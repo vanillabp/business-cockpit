@@ -1,0 +1,8 @@
+logging:
+  level:
+    ROOT: INFO
+
+spring:
+  application:
+    name: VanillaBP-business-cockpit
+    

@@ -1,0 +1,186 @@
+openapi: 3.1.0
+info:
+  description: Business Cockpit API
+  version: '1.0'
+  title: BC-API
+servers:
+  - url: /api/v1.0
+
+paths:
+  /service/usertask-event:
+    post:
+      summary: processes a user task event
+      operationId: processUserTaskEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+
+components:
+  schemas:
+    UrlType:
+      type: string
+      enum:
+      - EXTERNAL
+      - WEBPACK_REACT
+      - WEBPACK_WEBCOMPONENT
+      - ANGULAR
+    UserTaskEventType:
+      type: string
+      enum:
+      - ACTIVATED
+      - SUSPENDED
+      - COMPLETED
+      - CANCELLED
+      - INCIDENT
+    UserTaskEvent:
+      type: object
+      required:
+      - id
+      - processId
+      - taskDefinition
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        userTaskId:
+          type: string
+          description: user task id
+          example: Has to be unique across all reporting systems
+        type:
+          $ref: '#/components/schemas/UserTaskEventType'
+          description: event type
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        workflowModule:
+          type: string
+          description: The workflow module sending this event
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process
+        workflowTitle:
+          type: object
+          description: BPMN process title
+          additionalProperties:
+            type: string
+          example:
+            en: Taxi Ride
+            de: Taxifahrt
+        bpmnWorkflowId:
+          type: string
+          description: The unique ID of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        workflowId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: 123456
+        title:
+          type: object
+          description: The rendered title of the user-task (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Do ride #4711"
+            de: "Führe die Fahrt #4711 durch"
+        workflowTaskId:
+          type: string
+          description: The BPMN user task's ID
+          example: "Task_TaxiRide"
+        taskDefinition:
+          type: string
+          description: The task's formkey
+          example: "DoRideForm"
+        formKeyTitle:
+          type: object
+          description: The generic title of the user-task (must not contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: Do ride
+            de: Führe die Fahrt durch
+        taskProviderApiUrl:
+          type: string
+          description: URL implementing business-cockpit's task-provider API
+          example: http://localhost:9000/taxiride/task-api/v1.0
+        url:
+          type: string
+          description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
+        urlType:
+          $ref: '#/components/schemas/UrlType'
+          example: WEBPACK_REACT
+        hasIcon:
+          type: boolean
+        hasFavicon:
+          type: boolean
+        assignee:
+          type: string
+          example: driverA
+        candidateUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        candidateGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
+        dueDate:
+          type: string
+          format: date-time
+          example: 2020-05-21T13:30:26.202Z
+        followupDate:
+          type: string
+          format: date-time
+          example: null
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: {}
+          example: '{ "customer": "passanger A" }'
+        detailsPropertyTitles:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              language:
+                type: string
+              title:
+                type: string
+              showAsColumn:
+                type: boolean
+              sortable:
+                type: boolean
+              filterable:
+                type: boolean
+        detailsTextSearch:
+          type: string
+          description: List of words for fulltext searching details

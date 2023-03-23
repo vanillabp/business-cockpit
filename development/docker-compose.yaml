@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  business-cockpit-mongo:
+    image: mongo:4.4
+    container_name: business-cockpit-mongo
+    restart: "no"
+    ports:
+      - "27017:27017"
+    entrypoint: [ "/usr/bin/mongod", "--replSet", "rs0", "--bind_ip_all" ]
+  business-cockpit-mongo-setup:
+    image: business-cockpit-mongo-setup
+    build: ./src/main/mongodb/
+    container_name: business-cockpit-mongo-setup
+    depends_on:
+      - business-cockpit-mongo

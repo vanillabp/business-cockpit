@@ -1,0 +1,4 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://bc:bc@business-cockpit-mongo:27017/bc

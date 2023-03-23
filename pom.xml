@@ -2,17 +2,22 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.vanillabp</groupId>
-  <artifactId>cockpit-parent</artifactId>
+  <artifactId>business-cockpit-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <version.java>11</version.java>
+    <version.java>17</version.java>
+    <version.org.mapstruct>1.5.3.Final</version.org.mapstruct>
   </properties>
 
-  <modules></modules>
+  <modules>
+    <module>commons</module>
+    <module>business-cockpit</module>
+    <module>apis</module>
+  </modules>
 
   <build>
     <pluginManagement>
@@ -23,11 +28,42 @@
           <version>3.10.1</version>
           <configuration>
             <release>${version.java}</release>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${version.org.mapstruct}</version>
+              </path>
+            </annotationProcessorPaths>
+            <compilerArgs>
+              <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
+              <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>
+              <arg>-Amapstruct.defaultComponentModel=spring</arg>
+              <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+              <arg>-Amapstruct.unmappedSourcePolicy=ERROR</arg>
+            </compilerArgs>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
   </build>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>3.0.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>${version.org.mapstruct}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <licenses>
     <license>
