@@ -1,5 +1,5 @@
 rsconf = {
-    _id : "rs0",
+    _id : "rs-business-cockpit",
     members: [
         {
             "_id": 0,
@@ -7,6 +7,6 @@ rsconf = {
             "priority": 3
         }
     ]
-}
+};
 
 rs.initiate(rsconf);

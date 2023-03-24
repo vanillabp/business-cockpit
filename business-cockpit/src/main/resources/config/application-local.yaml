@@ -1,4 +1,4 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://bc:bc@business-cockpit-mongo:27017/bc
+      uri: mongodb://business-cockpit:business-cockpit@business-cockpit-mongo:27017/business-cockpit
