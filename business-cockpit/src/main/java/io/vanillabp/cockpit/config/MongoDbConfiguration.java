@@ -4,7 +4,6 @@ import io.vanillabp.cockpit.commons.mongo.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.OffsetDateTimeWriteConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.convert.ConverterBuilder;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;

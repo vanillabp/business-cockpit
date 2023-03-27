@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.vanillabp</groupId>
-    <artifactId>business-cockpit-parent</artifactId>
+    <groupId>io.vanillabp.businescockpit</groupId>
+    <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 

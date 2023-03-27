@@ -1,0 +1,3 @@
+application:
+  business-cockpit:
+    base-url: http://localhost:8080/bpms/api/v1

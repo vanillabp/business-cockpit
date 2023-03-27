@@ -4,17 +4,17 @@
 
   <parent>
     <groupId>io.vanillabp.businescockpit</groupId>
-    <artifactId>parent</artifactId>
+    <artifactId>development</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>business-cockpit</artifactId>
-  <name>A Spring Boot / React based application to operate workflows and process user tasks.</name>
+  <artifactId>simulator</artifactId>
+  <name>A microservice simulating all bounded systems needed to run the business-cockpit for development.</name>
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
   </properties>
-  
+
   <build>
     <plugins>
       <plugin>
@@ -28,7 +28,7 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>io.vanillabp.cockpit.BusinessCockpitApplication</mainClass>
+          <mainClass>io.vanillabp.cockpit.BusinessCockpitSimulator</mainClass>
           <executable>true</executable>
           <fork>true</fork>
         </configuration>
@@ -53,16 +53,17 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+      <artifactId>spring-boot-starter-freemarker</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>bpms-api-server</artifactId>
+      <artifactId>bpms-api-client</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.mapstruct</groupId>
-      <artifactId>mapstruct</artifactId>
+      <groupId>com.devskiller</groupId>
+      <artifactId>jfairy</artifactId>
+      <version>0.6.2</version>
     </dependency>
   </dependencies>
 </project>

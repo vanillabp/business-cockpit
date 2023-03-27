@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(path = "/api/v1")
+@RequestMapping(path = "/bpms/api/v1")
 public class BpmsApiController implements BpmsApi {
 
     @Autowired
@@ -20,7 +20,7 @@ public class BpmsApiController implements BpmsApi {
     private UserTaskService userTaskService;
     
     @Override
-    public ResponseEntity<Void> processUserTaskCreatedEvent(
+    public ResponseEntity<Void> userTaskCreatedEvent(
             @Valid UserTaskCreatedEvent userTaskCreatedEvent) {
         
         final var created = userTaskService

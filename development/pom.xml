@@ -4,16 +4,15 @@
 
   <parent>
     <groupId>io.vanillabp.businescockpit</groupId>
-    <artifactId>apis</artifactId>
+    <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>workflow-provider-api</artifactId>
-  <name>API for triggering actions on workflows or user tasks</name>
+  <artifactId>development</artifactId>
+  <name>Everything needed for local development</name>
   <packaging>pom</packaging>
   
    <modules>
-    <module>client</module>
-    <module>server</module>
+    <module>simulator</module>
   </modules>
 </project>

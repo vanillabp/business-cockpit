@@ -4,15 +4,15 @@ info:
   version: '1.0'
   title: BC-API
 servers:
-  - url: /api/v1.0
+  - url: /api/v1
 
 paths:
-  /bpms/usertask/created:
+  /usertask/created:
     post:
       tags:
         - bpms
       summary: processes a user task CREATED event
-      operationId: processUserTaskCreatedEvent
+      operationId: userTaskCreatedEvent
       requestBody:
         required: true
         content:
@@ -28,12 +28,12 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
-  /bpms/usertask/{userTaskId}/updated:
+  /usertask/{userTaskId}/updated:
     post:
       tags:
         - bpms
       summary: processes a user task UPDATED event
-      operationId: processUserTaskUpdatedEvent
+      operationId: userTaskUpdatedEvent
       parameters:
         - in: path
           name: userTaskId
@@ -55,12 +55,12 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
-  /bpms/usertask/{userTaskId}/suspended:
+  /usertask/{userTaskId}/suspended:
     post:
       tags:
         - bpms
       summary: processes a user task SUSPENDED event
-      operationId: processUserTaskSuspendedEvent
+      operationId: userTaskSuspendedEvent
       parameters:
         - in: path
           name: userTaskId
@@ -82,12 +82,12 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
-  /bpms/usertask/{userTaskId}/activated:
+  /usertask/{userTaskId}/activated:
     post:
       tags:
         - bpms
       summary: processes a user task ACTIVATED event
-      operationId: processUserTaskActivatedEvent
+      operationId: userTaskActivatedEvent
       parameters:
         - in: path
           name: userTaskId
@@ -109,12 +109,12 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
-  /bpms/usertask/{userTaskId}/completed:
+  /usertask/{userTaskId}/completed:
     post:
       tags:
         - bpms
       summary: processes a user task COMPLETED event
-      operationId: processUserTaskCompletedEvent
+      operationId: userTaskCompletedEvent
       parameters:
         - in: path
           name: userTaskId
@@ -136,12 +136,12 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
-  /bpms/usertask/{userTaskId}/cancelled:
+  /usertask/{userTaskId}/cancelled:
     post:
       tags:
         - bpms
       summary: processes a user task CANCELLED event
-      operationId: processUserTaskCancelledEvent
+      operationId: userTaskCancelledEvent
       parameters:
         - in: path
           name: userTaskId
