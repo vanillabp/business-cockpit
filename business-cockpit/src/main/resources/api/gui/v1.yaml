@@ -1,0 +1,318 @@
+openapi: 3.0.0
+info:
+  description: GUI API
+  version: '1.0'
+  title: gui
+servers:
+  - url: /gui/api/v1
+
+security:
+  - JWT: []
+
+paths:
+  /app/info:
+    get:
+      tags:
+        - login
+      summary: information about the current app
+      operationId: appInformation
+      responses:
+        200:
+          description: the app information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppInformation'
+  /app/current-user:
+    get:
+      tags:
+        - login
+      summary: load current user from security context
+      operationId: currentUser
+      parameters:
+        - in: header
+          name: "X-Refresh-Token"
+          schema:
+            type: string
+      responses:
+        200:
+          description: The user logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: No user logged in
+  /tasklist/usertask:
+    post:
+      tags:
+        - tasklist
+      summary: User tasks to be shown in a list view
+      operationId: getUserTasks
+      parameters:
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            format: int32
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasks'
+components:
+  schemas:
+    ValidationErrors:
+      type: object
+      additionalProperties: {}
+    Sex:
+      type: string
+      enum:
+        - MALE
+        - FEMALE
+        - OTHER
+    Role:
+      type: string
+      enum:
+        - READONLY
+    UserStatus:
+      type: string
+      enum:
+        - ACTIVE
+        - INACTIVE
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        memberId:
+          type: int
+        email:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        sex:
+          $ref: '#/components/schemas/Sex'
+        avatar:
+          type: integer
+          format: int32
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+    AppInformation:
+      type: object
+      properties:
+        titleShort:
+          type: string
+        titleLong:
+          type: string
+        homepageUrl:
+          type: string
+        homepageServiceConditionsUrl:
+          type: string
+        contactEmailAddress:
+          type: string
+        version:
+          type: string
+    UrlType:
+      type: string
+      enum:
+      - EXTERNAL
+      - WEBPACK_REACT
+      - WEBPACK_WEBCOMPONENT
+      - ANGULAR
+    DetailsPropertyTitle:
+      type: object
+      properties:
+        path:
+          type: string
+        title:
+          type: object
+          additionalProperties:
+            type: string
+        showAsColumn:
+          type: boolean
+        sortable:
+          type: boolean
+        filterable:
+          type: boolean
+    Page:
+      type: object
+      required:
+        - totalElements
+        - totalPages
+        - number
+        - size
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        number:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    UserTasks:
+      type: object
+      required:
+        - page
+        - userTasks
+      properties:
+        page:
+          $ref: '#/components/schemas/Page'
+        userTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTask'
+    UserTask:
+      type: object
+      required:
+      - id
+      - userTaskId
+      - timestamp
+      - bpmnProcessId
+      - taskDefinition
+      - title
+      - taskProviderApiUrl
+      - url
+      - urlType
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        version:
+          type: integer
+          format: int32
+          description: revision of the usertask record
+        userTaskId:
+          type: string
+          description: user task id
+          example: Has to be unique across all reporting systems
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        workflowModule:
+          type: string
+          description: The workflow module sending this event
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process
+        workflowTitle:
+          type: object
+          description: BPMN process title
+          additionalProperties:
+            type: string
+          example:
+            en: Taxi Ride
+            de: Taxifahrt
+        bpmnWorkflowId:
+          type: string
+          description: The unique ID of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        workflowId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: 123456
+        title:
+          type: object
+          description: The rendered title of the user-task (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Do ride #4711"
+            de: "Führe die Fahrt #4711 durch"
+        workflowTaskId:
+          type: string
+          description: The BPMN user task's ID
+          example: "Task_TaxiRide"
+        taskDefinition:
+          type: string
+          description: The task's formkey
+          example: "DoRideForm"
+        taskDefinitionTitle:
+          type: object
+          description: The generic title of the user-task (must not contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: Do ride
+            de: Führe die Fahrt durch
+        taskProviderApiUrl:
+          type: string
+          description: URL implementing business-cockpit's task-provider API
+          example: http://localhost:9000/taxiride/task-api/v1.0
+        url:
+          type: string
+          description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
+        urlType:
+          $ref: '#/components/schemas/UrlType'
+          example: WEBPACK_REACT
+        hasIcon:
+          type: boolean
+        hasFavicon:
+          type: boolean
+        assignee:
+          type: string
+          example: driverA
+        candidateUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        candidateGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
+        dueDate:
+          type: string
+          format: date-time
+          example: 2020-05-21T13:30:26.202Z
+        followupDate:
+          type: string
+          format: date-time
+          example: null
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: true
+          example: "{ 'customer': 'passanger A' }"
+        detailsPropertyTitles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailsPropertyTitle'
+        detailsTextSearch:
+          type: string
+          description: List of words for fulltext searching details

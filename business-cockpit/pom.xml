@@ -33,6 +33,56 @@
           <fork>true</fork>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>6.4.0</version>
+        <executions>
+          <execution>
+            <id>generate-gui-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/api/gui/v1.yaml</inputSpec>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <apiPackage>io.vanillabp.cockpit.gui.api.v1</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.gui.api.v1</modelPackage>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <configOptions>
+                <sourceFolder>openapi</sourceFolder>
+                <useTags>true</useTags>
+                <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useSpringController>true</useSpringController>
+                <enablePostProcessFile>true</enablePostProcessFile>
+                <useBeanValidation>false</useBeanValidation>
+			      <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+              </configOptions>
+              <addCompileSourceRoot>true</addCompileSourceRoot>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-client-gui-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/api/gui/v1.yaml</inputSpec>
+              <output>${project.basedir}/src/main/webapp/src/client/gui</output>
+              <generatorName>typescript-fetch</generatorName>
+              <configOptions>
+                <typescriptThreePlus>true</typescriptThreePlus>
+                <withInterfaces>true</withInterfaces>
+                <supportsES6>false</supportsES6>
+              </configOptions>
+              <addCompileSourceRoot>false</addCompileSourceRoot>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -56,6 +106,10 @@
       <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>bpms-api-server</artifactId>
       <version>${project.version}</version>
@@ -63,6 +117,22 @@
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
   </dependencies>
 </project>

@@ -1,13 +1,21 @@
 package io.vanillabp.cockpit;
 
+import java.util.Map;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 
-import java.util.Map;
+import io.vanillabp.cockpit.bpms.BpmsApiProperties;
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 
 @SpringBootApplication
 @ComponentScan(basePackageClasses = BusinessCockpitApplication.class)
+@EnableConfigurationProperties({
+    ApplicationProperties.class,
+    BpmsApiProperties.class
+})
 public class BusinessCockpitApplication {
 
     public static void main(String... args) {

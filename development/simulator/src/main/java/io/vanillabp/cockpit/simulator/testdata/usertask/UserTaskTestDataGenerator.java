@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class UserTaskTestDataGenerator implements Runnable {
 
@@ -105,19 +106,58 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
     
-    private UserTaskCreatedEvent buildCreatedEvent() {
+    private String getProcessTitle(
+            final String language,
+            final int process) {
         
-        final var result = new UserTaskCreatedEvent();
+        if ("de".equals(language)) {
+            
+            return switch (process) {
+                case 0 -> "Taxifahrt";
+                case 1 -> "Bezahlung";
+                case 2 -> "Fahrzeug laden";
+                default -> "Demo"; 
+                };
+            
+        }
+
+        return switch (process) {
+            case 0 -> "Taxi ride";
+            case 1 -> "Payment";
+            case 2 -> "Charge car";
+            default -> "Demo";
+            };
+
+    }
+    
+    private String getBpmnProcessId(
+            final int process) {
         
-        result.setId(UUID.randomUUID().toString());
-        result.setBpmnWorkflowId(UUID.randomUUID().toString());
-        result.setBpmnProcessId(
-                switch (random.nextInt(4)) {
+        return switch (process) {
                 case 0 -> "TaxiRide";
                 case 1 -> "Payment";
                 case 2 -> "ChargeCar";
                 default -> "Demo"; 
-                });
+                };
+        
+    }
+    
+    private UserTaskCreatedEvent buildCreatedEvent() {
+        
+        final var result = new UserTaskCreatedEvent();
+        
+        final var process = random.nextInt(4);
+        
+        result.setId(UUID.randomUUID().toString());
+        result.setBpmnWorkflowId(UUID.randomUUID().toString());
+        result.setBpmnProcessId(getBpmnProcessId(process));
+        result.setWorkflowTitle(
+                fairies
+                        .keySet()
+                        .stream()
+                        .map(language -> Map.entry(language, getProcessTitle(language, process)))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        
         result.setBpmnProcessVersion("0");
         result.setTaskDefinition(
                 switch (random.nextInt(4)) {
@@ -129,6 +169,15 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setWorkflowTaskId(
                 result.getTaskDefinition());
         result.setTimestamp(OffsetDateTime.now());
+        
+        result.setTitle(
+                fairies
+                        .entrySet()
+                        .stream()
+                        .map(entry -> Map.entry(
+                                entry.getKey(),
+                                entry.getValue().textProducer().sentence(5)))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         
         if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
             result.setAssignee(users[random.nextInt(users.length)]);

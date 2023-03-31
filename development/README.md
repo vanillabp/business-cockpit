@@ -32,4 +32,4 @@ The *simulator* is a standalone Spring Boot application which mimiks the behavio
 
 ### Generate testdata
 
-To develop tasklist features dummy tasks can be generated. At [this URL](localhost:8079/testdata/usertask/form) you will find a form used to trigger new tasks. The tasks generated are independent from any process instance data.
+To develop tasklist features dummy tasks can be generated. At [this URL](http://localhost:8079/testdata/usertask/form) you will find a form used to trigger new tasks. The tasks generated are independent from any process instance data.
