@@ -4,7 +4,7 @@
 <h1>Generate user-tasks in business-cockpit.</h1>
 
 <form action="/testdata/usertask/generate" method="POST">
-<p><input name="noOfTasks" value="10"> &nbsp; The number of tasks</p>
+<p><input name="noOfEvents" value="10"> &nbsp; The number of events</p>
 <p><input name="languages" value="en,de"> &nbsp; The languages for which to generate titles.</p>
 <p><input name="percentageUserCandidates" value="50"> &nbsp; The amount of tasks having a user candidate (in percent).</p>
 <p><input name="percentageGroupCandidates" value="50"> &nbsp; The amount of tasks having a group candidate (in percent).</p>

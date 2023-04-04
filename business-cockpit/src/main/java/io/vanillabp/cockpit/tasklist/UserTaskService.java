@@ -1,10 +1,11 @@
 package io.vanillabp.cockpit.tasklist;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
@@ -32,6 +33,9 @@ import jakarta.annotation.PreDestroy;
 @Transactional
 public class UserTaskService {
 
+    @Autowired
+    private Logger logger;
+    
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
     
@@ -64,7 +68,14 @@ public class UserTaskService {
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
         
         applicationEventPublisher.publishEvent(
-                new UserTaskChangedNotification(message));
+                UserTaskChangedNotification.build(message));
+        
+    }
+    
+    public Optional<UserTask> getUserTask(
+            final String userTaskId) {
+        
+        return userTasks.findById(userTaskId);
         
     }
     
@@ -82,7 +93,7 @@ public class UserTaskService {
     
     public Page<UserTask> getUserTasksUpdated(
             final int size,
-            final Collection<String> updatedTasksIds) {
+            final Collection<String> knownUserTasksIds) {
         
         final var tasks = userTasks.findAllIds(
                 PageRequest
@@ -94,51 +105,49 @@ public class UserTaskService {
                 tasks
                         .stream()
                         .map(task -> {
-                            if (updatedTasksIds.contains(task.getId())) {
-                                return userTasks.findById(task.getId()).get();
-                            } else {
+                            if (knownUserTasksIds.contains(task.getId())) {
                                 return task;
+                            } else {
+                                return userTasks.findById(task.getId()).get();
                             }
                         })
                         .collect(Collectors.toList()),
                 Pageable
-                        .ofSize(tasks.size())
+                        .ofSize(tasks.isEmpty() ? 1 : tasks.size())
                         .withPage(0),
                 userTasks.count());
         
     }
     
-    public boolean processEvent_UserTaskCreated(
+    public boolean createUserTask(
             final UserTask userTask) {
         
         try {
-            LoggerFactory.getLogger(UserTaskService.class).info("{}", userTask.getId());
             userTasks.save(userTask);
             return true;
         } catch (final DuplicateKeyException | OptimisticLockingFailureException e) {
-            return userTaskUpdated(userTask);
+            return false;
         }
         
     }
-    
-    public boolean userTaskUpdated(
+
+    public boolean updateUserTask(
             final UserTask userTask) {
         
-        return OptimisticLockingUtils.doWithRetries(
-                () -> {
-                    final var userTaskFound = userTasks.findById(userTask.getId());
-                    if (userTaskFound.isEmpty()) {
-                        return false;
-                    }
-                    final var existingUserTask = userTaskFound.get();
-
-                    // update modifiable properties
-                    existingUserTask.setDueDate(userTask.getDueDate());
-                    
-                    userTasks.save(existingUserTask);
-                    
-                    return true;
-                });
+        try {
+            
+            return OptimisticLockingUtils.doWithRetries(
+                    () -> {
+                        userTasks.save(userTask);
+                        return true;
+                    });
+            
+        } catch (OptimisticLockingFailureException e) {
+            
+            logger.warn("Could not update usertask '{}'!", userTask.getId(), e);
+            return false;
+            
+        }
         
     }
     

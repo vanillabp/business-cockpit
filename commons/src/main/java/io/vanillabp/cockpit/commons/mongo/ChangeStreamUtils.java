@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.bson.Document;
-import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
@@ -61,6 +61,9 @@ public class ChangeStreamUtils {
     };
     
     @Autowired
+    private Logger logger;
+
+    @Autowired
     private MessageListenerContainer messageListenerContainer;
     
     public <T> Subscription subscribe(
@@ -93,7 +96,7 @@ public class ChangeStreamUtils {
         
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
-                .builder(listener)
+                .builder(catchExceptionsListener(listener, entityClass))
                 .filter(newAggregation(match(where("operationType").in(operationTypes))))
                 .maxAwaitTime(Duration.ofSeconds(15))
                 .collection(collectionName)
@@ -102,6 +105,22 @@ public class ChangeStreamUtils {
         // hook up to message listener backed by its own thread pool
         return messageListenerContainer
                 .register(requestForChangeEvents, entityClass);     
+        
+    }
+    
+    private <T> MessageListener<ChangeStreamDocument<Document>, T> catchExceptionsListener(
+            final MessageListener<ChangeStreamDocument<Document>, T> listener,
+            final Class<T> entityClass) {
+
+        return (message) -> {
+            try {
+                listener.onMessage(message);
+            } catch (Throwable e) {
+                logger.warn("Could error of change-stream listener for entity '{}'!",
+                        entityClass.getName(),
+                        e);
+            }
+        };
         
     }
     

@@ -234,6 +234,7 @@ const App: React.FC<AppProps> = (_props: AppProps): JSX.Element => {
             <AppHeader />
             <Box
                 direction='row'
+                fill
                 style={ { display: 'unset' } } /* to avoid removing bottom margin of inner boxes */
                 overflow={ { horizontal: 'hidden' } }>
               <Suspense fallback={<LoadingIndicator />}>

@@ -79,7 +79,7 @@ public class GuiApiController implements TasklistApi {
 	    
         final var tasks = userTaskService.getUserTasksUpdated(
                 userTasksUpdate.getSize(),
-                userTasksUpdate.getUpdatedTasksIds());
+                userTasksUpdate.getKnownUserTasksIds());
     
         final var result = new UserTasks()
                 .page(new Page()

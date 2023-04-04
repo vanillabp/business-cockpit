@@ -27,18 +27,18 @@ public class UserTaskChangedNotification extends NotificationEvent {
         this.userTaskId = userTaskId;
         
     }
-
-    public UserTaskChangedNotification(
+    
+    public static UserTaskChangedNotification build(
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
+    
+        final var type = Type.valueOf(
+                OperationType.byMongoType(
+                        message.getRaw().getOperationTypeString()).name());
 
-        this(
-                Type
-                        .valueOf(OperationType
-                                .byMongoType(message.getRaw().getOperationTypeString())
-                        .name()),
-                message
-                        .getBody()
-                        .getId());
+        return new UserTaskChangedNotification(
+                type,
+                message.getRaw().getDocumentKey().get(
+                        message.getRaw().getDocumentKey().getFirstKey()).asString().getValue());
         
     }
     

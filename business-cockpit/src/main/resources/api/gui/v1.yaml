@@ -206,7 +206,6 @@ components:
       type: object
       required:
       - id
-      - userTaskId
       - createdAt
       - updatedAt
       - bpmnProcessId
@@ -218,15 +217,12 @@ components:
       properties:
         id:
           type: string
-          description: event id withing the source system
+          description: user task id
+          example: Has to be unique across all reporting systems
         version:
           type: integer
           format: int32
           description: revision of the usertask record
-        userTaskId:
-          type: string
-          description: user task id
-          example: Has to be unique across all reporting systems
         initiator:
           type: string
           description: The user who triggered the update. Null if the update is done by the system.
@@ -373,12 +369,12 @@ components:
       type: object
       required:
         - size
-        - updatedTasksIds
+        - knownUserTasksIds
       properties:
         size:
           type: integer
           format: int32
-        updatedTasksIds:
+        knownUserTasksIds:
           type: array
           items:
             type: string

@@ -36,7 +36,7 @@ interface ListItems<T extends Data> {
 
 type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number) => Promise<ListItems<T>>;
 
-type ReloadItemsFunction = <T extends Data>(numberOfItems: number, updatedItemsIds: Array<string>) => Promise<ListItems<T>>;
+type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>) => Promise<ListItems<T>>;
 
 type ReloadCallbackFunction = (updatedItemId: string) => Promise<void>;
 
@@ -49,12 +49,16 @@ const loadItems = async <T extends Data>(
   const result = await retrieveItems(
       items === undefined
           ? 0
-          : Math.floor(items.length / itemsBatchSize)
-            + (items.length % itemsBatchSize),
+          : items.length % itemsBatchSize === 0
+          ? Math.floor(items.length / itemsBatchSize)
+          : Math.floor(items.length / itemsBatchSize) + 1,
       itemsBatchSize
     );
   
-  const currentNumberOfItems = items === undefined ? 1 : items.length + 1;
+  const currentNumberOfItems = items === undefined
+      ? 1
+      : items.length + 1;
+  
   const newItems = result
       .items
       .map((item, index) => ({
@@ -66,8 +70,8 @@ const loadItems = async <T extends Data>(
         } as ListItem<T>));
   setItems(
       items === undefined
-      ? newItems
-      : items.concat(newItems));
+          ? newItems
+          : items.concat(newItems));
   
   return result.serverTimestamp;
   
@@ -77,15 +81,20 @@ const reloadData = async <T extends Data>(
   reloadItems: ReloadItemsFunction,
   setItems: (items: Array<ListItem<T>>) => void,
   items: Array<ListItem<T>> | undefined,
-  userTaskChanged: string,
+  updatedItemId: string,
   initialTimestamp: MutableRefObject<Date | undefined>,
 ) => {
 
-  const unfilledBatch = items!.length % itemsBatchSize;
-  const size = items!.length
-      + (unfilledBatch > 0 ? itemsBatchSize - unfilledBatch : 0);
-      
-  const result = await reloadItems(size, [ userTaskChanged ]);
+  const prefill = 2; // estimate that not more than 60 items will be created at once
+  const size = (items!.length === 0
+      ? prefill
+      : Math.floor(items!.length / itemsBatchSize) + prefill) * itemsBatchSize;
+
+  const result = await reloadItems(
+      size,
+      items!
+          .filter(item => item.id !== updatedItemId)
+          .map(item => item.id));
   
   const itemsById = new Map(items!.map(item => [ item.id, item ]));
   const mergedItems = result
@@ -101,7 +110,7 @@ const reloadData = async <T extends Data>(
             ? ListItemStatus.ENDED
             : item.updatedAt > initialTimestamp.current!
             ? ListItemStatus.UPDATED
-            : oldItem.status;
+            : ListItemStatus.INITIAL;
         
         const newItem = (item.version === 0
             ? {

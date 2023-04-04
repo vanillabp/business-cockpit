@@ -71,20 +71,20 @@ public class UserTaskTestDataController {
             groups[i] = domain.substring(0, domain.indexOf('.'));
         }
         
-        final var noOfTasks = parameters.getNoOfTasks() / parameters.getNoOfConcurrentRequest();
-        var remainingNoOfTasks = parameters.getNoOfTasks();
+        final var noOfEvents = parameters.getNoOfEvents() / parameters.getNoOfConcurrentRequest();
+        var remainingNoOfTasks = parameters.getNoOfEvents();
         for (int i = 1; i <= parameters.getNoOfConcurrentRequest(); ++i) {
             final var generator = new UserTaskTestDataGenerator(
-                    (i - 1) * noOfTasks,
+                    (i - 1) * noOfEvents,
                     i != parameters.getNoOfConcurrentRequest()
-                            ? noOfTasks
+                            ? noOfEvents
                             : remainingNoOfTasks,
                     bpmsApiProvider.getObject(),
                     users,
                     groups,
                     fairies,
                     parameters);
-            remainingNoOfTasks -= noOfTasks;
+            remainingNoOfTasks -= noOfEvents;
             final var thread = new Thread(generator);
             thread.start();
         }

@@ -25,11 +25,10 @@ public class BpmsApiController implements BpmsApi {
     
     @Override
     public ResponseEntity<Void> userTaskCreatedEvent(
-            @Valid UserTaskCreatedEvent userTaskCreatedEvent) {
+            final @Valid UserTaskCreatedEvent userTaskCreatedEvent) {
         
-        final var created = userTaskService
-                .processEvent_UserTaskCreated(
-                        userTaskMapper.toModel(userTaskCreatedEvent));
+        final var created = userTaskService.createUserTask(
+                userTaskMapper.toModel(userTaskCreatedEvent));
         
         if (created) {
             return ResponseEntity.ok().build();
@@ -37,6 +36,65 @@ public class BpmsApiController implements BpmsApi {
             return ResponseEntity.badRequest().build();
         }
         
+    }
+
+    @Override
+    public ResponseEntity<Void> userTaskUpdatedEvent(
+            final String userTaskId,
+            final @Valid UserTaskUpdatedEvent userTaskUpdatedEvent) {
+        
+        
+        final var userTaskFound = userTaskService.getUserTask(userTaskId);
+        if (userTaskFound.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        final var existingUserTask = userTaskFound.get();
+
+        // update modifiable properties
+        existingUserTask.setDueDate(userTaskUpdatedEvent.getDueDate());
+
+        final var updated = userTaskService.updateUserTask(
+                existingUserTask);
+        
+        if (updated) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+    }
+    
+    @Override
+    public ResponseEntity<Void> userTaskCompletedEvent(
+            final String userTaskId,
+            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
+        // TODO Auto-generated method stub
+        return BpmsApi.super.userTaskCompletedEvent(userTaskId, userTaskLifecycleEvent);
+    }
+    
+    @Override
+    public ResponseEntity<Void> userTaskCancelledEvent(
+            final String userTaskId,
+            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
+        // TODO Auto-generated method stub
+        return BpmsApi.super.userTaskCancelledEvent(userTaskId, userTaskLifecycleEvent);
+    }
+    
+    @Override
+    public ResponseEntity<Void> userTaskSuspendedEvent(
+            final String userTaskId,
+            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
+        // TODO Auto-generated method stub
+        return BpmsApi.super.userTaskSuspendedEvent(userTaskId, userTaskLifecycleEvent);
+    }
+    
+    @Override
+    public ResponseEntity<Void> userTaskActivatedEvent(
+            final String userTaskId,
+            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
+        // TODO Auto-generated method stub
+        return BpmsApi.super.userTaskActivatedEvent(userTaskId, userTaskLifecycleEvent);
     }
     
 }

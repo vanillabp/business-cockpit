@@ -21,8 +21,6 @@ public class UserTask implements UpdateInformationAware {
     @Version
     private long version;
 
-    private String userTaskId;
-
     private String initiator;
 
     private OffsetDateTime createdAt;
@@ -97,14 +95,6 @@ public class UserTask implements UpdateInformationAware {
 
     public void setVersion(long version) {
         this.version = version;
-    }
-
-    public String getUserTaskId() {
-        return userTaskId;
-    }
-
-    public void setUserTaskId(String userTaskId) {
-        this.userTaskId = userTaskId;
     }
 
     public String getInitiator() {

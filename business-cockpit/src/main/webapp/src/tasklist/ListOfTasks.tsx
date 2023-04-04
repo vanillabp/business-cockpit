@@ -5,7 +5,7 @@ import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdat
 import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../client/gui';
 import { useGuiSse } from '../client/guiClient';
-import { Grid, Box, Text } from 'grommet';
+import { Grid, Box } from 'grommet';
 import useResponsiveScreen from '../utils/responsiveUtils';
 import { EventSourceMessage, WakeupSseCallback } from '../components/SseProvider';
 
@@ -39,13 +39,13 @@ const reloadUserTasks = async (
   tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
   numberOfItems: number,
-  updatedItemsIds: Array<string>,
+  knownItemsIds: Array<string>,
 ): Promise<ListItems<UserTask>> => {
 
   const result = await tasklistApi.getUserTasksUpdate({
       userTasksUpdate: {
           size: numberOfItems,
-          updatedTasksIds: updatedItemsIds
+          knownUserTasksIds: knownItemsIds
         }
     })
   
@@ -59,7 +59,7 @@ const reloadUserTasks = async (
 
 const ListOfTasks = () => {
 
-  const { isPhone, isNotPhone } = useResponsiveScreen();
+  const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('tasklist/list');
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
@@ -79,7 +79,6 @@ const ListOfTasks = () => {
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
   
   return (
-    <>
       <Grid
           rows={ [ 'auto', '2rem' ] }
           fill>
@@ -199,8 +198,7 @@ const ListOfTasks = () => {
             }
           </Box>
         </Box>
-      </Grid>
-    </>);
+      </Grid>);
       
 };
 

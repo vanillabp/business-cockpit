@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.simulator.testdata.usertask;
 
 public class UserTaskTestDataParameters {
 
-    private int noOfTasks;
+    private int noOfEvents;
 
     private int noOfUsers;
     
@@ -22,14 +22,14 @@ public class UserTaskTestDataParameters {
 
     private int throttling;
     
-    public int getNoOfTasks() {
-        return noOfTasks;
+    public int getNoOfEvents() {
+        return noOfEvents;
     }
-
-    public void setNoOfTasks(int noOfTasks) {
-        this.noOfTasks = noOfTasks;
+    
+    public void setNoOfEvents(int noOfEvents) {
+        this.noOfEvents = noOfEvents;
     }
-
+    
     public int getNoOfUsers() {
         return noOfUsers;
     }
