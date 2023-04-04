@@ -67,6 +67,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
+    put:
+      tags:
+        - tasklist
+      summary: Updated list of usertasks
+      operationId: getUserTasksUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksUpdate"
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasks'
 components:
   schemas:
     ValidationErrors:
@@ -171,9 +189,13 @@ components:
     UserTasks:
       type: object
       required:
+        - serverTimestamp
         - page
         - userTasks
       properties:
+        serverTimestamp:
+          type: string
+          format: date-time
         page:
           $ref: '#/components/schemas/Page'
         userTasks:
@@ -185,7 +207,8 @@ components:
       required:
       - id
       - userTaskId
-      - timestamp
+      - createdAt
+      - updatedAt
       - bpmnProcessId
       - taskDefinition
       - title
@@ -207,20 +230,27 @@ components:
         initiator:
           type: string
           description: The user who triggered the update. Null if the update is done by the system.
-        timestamp:
+        createdAt:
           type: string
           format: date-time
-          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          description: The time the task was created
           example: 2019-05-21T13:30:26.202Z
-        source:
+        updatedAt:
           type: string
-          description: name of the source system sending this event
+          format: date-time
+          description: The time the task was updated
+          example: 2019-05-21T13:30:26.202Z
+        endedAt:
+          type: string
+          format: date-time
+          description: The time the task was ended
+          example: 2019-05-21T13:30:26.202Z
         workflowModule:
           type: string
-          description: The workflow module sending this event
+          description: The workflow module of this usertask
         comment:
           type: string
-          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+          example: A comment describing the status. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
         bpmnProcessId:
           type: string
           description: BPMN process ID
@@ -316,3 +346,39 @@ components:
         detailsTextSearch:
           type: string
           description: List of words for fulltext searching details
+    PingEvent:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    UserTaskEvent:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        id:
+          type: string
+    UserTasksUpdate:
+      type: object
+      required:
+        - size
+        - updatedTasksIds
+      properties:
+        size:
+          type: integer
+          format: int32
+        updatedTasksIds:
+          type: array
+          items:
+            type: string

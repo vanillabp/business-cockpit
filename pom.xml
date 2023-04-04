@@ -41,7 +41,7 @@
               <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>
               <arg>-Amapstruct.defaultComponentModel=spring</arg>
               <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-              <arg>-Amapstruct.unmappedSourcePolicy=ERROR</arg>
+              <arg>-Amapstruct.unmappedSourcePolicy=IGNORE</arg>
             </compilerArgs>
           </configuration>
         </plugin>

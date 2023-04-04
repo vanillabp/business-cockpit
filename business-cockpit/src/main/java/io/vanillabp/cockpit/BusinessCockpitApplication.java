@@ -6,6 +6,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
@@ -16,6 +18,8 @@ import io.vanillabp.cockpit.config.properties.ApplicationProperties;
     ApplicationProperties.class,
     BpmsApiProperties.class
 })
+@EnableAsync
+@EnableScheduling
 public class BusinessCockpitApplication {
 
     public static void main(String... args) {

@@ -4,14 +4,16 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
 @Document(collection = UserTask.COLLECTION_NAME)
-public class UserTask {
+public class UserTask implements UpdateInformationAware {
 
-    static final String COLLECTION_NAME = "usertask";
+    public static final String COLLECTION_NAME = "usertask";
     
     @Id
     private String id;
@@ -23,7 +25,13 @@ public class UserTask {
 
     private String initiator;
 
-    private OffsetDateTime timestamp;
+    private OffsetDateTime createdAt;
+
+    private OffsetDateTime updatedAt;
+
+    private String updatedBy;
+    
+    private OffsetDateTime endedAt;
 
     private String source;
 
@@ -106,13 +114,38 @@ public class UserTask {
     public void setInitiator(String initiator) {
         this.initiator = initiator;
     }
-
-    public OffsetDateTime getTimestamp() {
-        return timestamp;
+    
+    public OffsetDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setTimestamp(OffsetDateTime timestamp) {
-        this.timestamp = timestamp;
+    public void setCreatedAt(OffsetDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(OffsetDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+    
+    @Override
+    public void setUpdatedBy(String userId) {
+        this.updatedBy = userId;
+    }
+
+    public OffsetDateTime getEndedAt() {
+        return endedAt;
+    }
+
+    public void setEndedAt(OffsetDateTime endedAt) {
+        this.endedAt = endedAt;
     }
 
     public String getSource() {

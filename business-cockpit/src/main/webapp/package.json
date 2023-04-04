@@ -4,8 +4,8 @@
   "private": true,
   "dependencies": {
     "@fontsource/roboto": "^4.5.8",
-    "grommet": "^2.25.1",
-    "grommet-icons": "^4.7.0",
+    "grommet": "2.31.0",
+    "grommet-icons": "4.10.0",
     "i18next": "^22.0.3",
     "react": "^18.2.0",
     "react-avatar-edit": "^1.2.0",

@@ -9,6 +9,10 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 public interface UserTaskMapper {
 
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "createdAt", source = "timestamp")
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "endedAt", ignore = true)
     UserTask toModel(UserTaskCreatedEvent event);
     
 }

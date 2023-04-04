@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.util.exceptions;
+package io.vanillabp.cockpit.commons.exceptions;
 
 public class BcForbiddenException extends RuntimeException {
 

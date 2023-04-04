@@ -4,7 +4,7 @@ import { buildFetchApi, doLogout } from '../utils/fetchApi';
 import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '../components/SseProvider';
 import { createContext } from 'react';
 
-const SSE_UPDATE_URL = "/api/v1/gui/updates";
+const SSE_UPDATE_URL = "/gui/api/v1/updates";
 
 const getLoginGuiApi = (
   dispatch: Dispatch,

@@ -1,10 +1,10 @@
-package io.vanillabp.cockpit.util;
+package io.vanillabp.cockpit.commons.utils;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import io.vanillabp.cockpit.util.exceptions.BcForbiddenException;
+import io.vanillabp.cockpit.commons.exceptions.BcForbiddenException;
 
 @Component
 public class UserContext {

@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
-import { SnapScrollingDataTable } from '../components/SnapScrollingDataTable';
-import { useAppContext } from '../AppContext';
+import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../components/SearchableAndSortableUpdatingList';
 import { useTasklistApi } from './TasklistAppContext';
-import { TasklistApi, UserTask } from '../client/gui';
-import { Grid, Box, ColumnConfig, Text, CheckBox } from 'grommet';
+import { TasklistApi, UserTask, UserTaskEvent } from '../client/gui';
+import { useGuiSse } from '../client/guiClient';
+import { Grid, Box, Text } from 'grommet';
 import useResponsiveScreen from '../utils/responsiveUtils';
+import { EventSourceMessage, WakeupSseCallback } from '../components/SseProvider';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
@@ -14,125 +15,188 @@ i18n.addResources('en', 'tasklist/list', {
 i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
     });
-    
-const itemsBatchSize = 30;
- 
-const loadData = async (
+
+const loadUserTasks = async (
   tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
-  setUserTasks: (userTasks: Array<UserTask>) => void,
-  userTasks: Array<UserTask> | undefined
-) => {
+  pageSize: number,
+  pageNumber: number,
+): Promise<ListItems<UserTask>> => {
   
   const result = await tasklistApi
-        .getUserTasks({
-            pageNumber: userTasks === undefined
-                ? 0
-                : Math.floor(userTasks.length / itemsBatchSize)
-                  + (userTasks.length % itemsBatchSize),
-            pageSize: itemsBatchSize
-          });
-    setNumberOfUserTasks(result!.page.totalElements);
-    const currentNumberOfTasks = userTasks === undefined ? 1 : userTasks.length + 1;
-    const numberedTasks = result
-        .userTasks
-        .map((task, index) => ({ ...task, number: currentNumberOfTasks + index }));
-    setUserTasks(
-        userTasks === undefined
-        ? numberedTasks
-        : userTasks.concat(numberedTasks));
-  	
+        .getUserTasks({ pageNumber, pageSize });
+        
+  setNumberOfUserTasks(result!.page.totalElements);
+
+  return {
+      serverTimestamp: result.serverTimestamp,
+      items: result.userTasks
+  	};
+};
+
+
+const reloadUserTasks = async (
+  tasklistApi: TasklistApi,
+  setNumberOfUserTasks: (number: number) => void,
+  numberOfItems: number,
+  updatedItemsIds: Array<string>,
+): Promise<ListItems<UserTask>> => {
+
+  const result = await tasklistApi.getUserTasksUpdate({
+      userTasksUpdate: {
+          size: numberOfItems,
+          updatedTasksIds: updatedItemsIds
+        }
+    })
+  
+  setNumberOfUserTasks(result!.page.totalElements);
+  
+  return {
+      serverTimestamp: result.serverTimestamp,
+      items: result.userTasks
+    };   
 };
 
 const ListOfTasks = () => {
 
-  const { showLoadingIndicator } = useAppContext();
-  const { isPhone } = useResponsiveScreen();
+  const { isPhone, isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('tasklist/list');
-  const tasklistApi = useTasklistApi();
   
-  const [ tasks, setTasks ] = useState<Array<UserTask> | undefined>(undefined);
-  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
+  const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
+  const tasklistApi = useTasklistApi(wakeupSseCallback);
   
-  useEffect(() => {
-      if (tasks !== undefined) {
-        return;
-      }
-      const initList = async () => {
-          showLoadingIndicator(true);
-          await loadData(tasklistApi, setNumberOfTasks, setTasks, tasks);
-          showLoadingIndicator(false);
-        };
-      initList();
-    }, [ showLoadingIndicator, tasks, tasklistApi, setTasks, setNumberOfTasks ]);
-  
-  const columns: ColumnConfig<UserTask>[] =
-      [
-          { property: 'id',
-            pin: true,
-            size: '2.2rem',
-            header: <Box
-                    pad="xsmall">
-                  <CheckBox />
-                </Box>,
-            render: (userTask: UserTask) => (
-                <Box
-                    pad="xsmall">
-                  <CheckBox />
-                </Box>)
-          },
-          { property: 'number',
-            header: 'No',
-            size: '3rem'
-          },
-          { property: 'name',
-            header: t('name'),
-            render: (userTask: UserTask) => (
-                <Text truncate="tip">
-                  { userTask.title.de }
-                </Text>)
-          },
-      ];
+  const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
+  const updateList = useMemo(() => async (ev: EventSourceMessage<UserTaskEvent>) => {
+      if (!updateListRef.current) return;
+      updateListRef.current(ev.data.id);
+    }, [ updateListRef ]);
+  wakeupSseCallback.current = useGuiSse<UserTaskEvent>(
+      updateList,
+      /^UserTask$/
+    );
 
-  const headerHeight = 'auto';
-  const phoneMargin = '10vw';
+  const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
+  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
   
   return (
     <>
       <Grid
-          rows={ [ 'xxsmall' ] }
+          rows={ [ 'auto', '2rem' ] }
           fill>
+        <Box>
+          <SearchableAndSortableUpdatingList
+              t={ t }
+              itemsRef={ userTasks }
+              updateListRef= { updateListRef }
+              retrieveItems={ (pageNumber, pageSize) => 
+// @ts-ignore
+                  loadUserTasks(
+                      tasklistApi,
+                      setNumberOfTasks,
+                      pageSize,
+                      pageNumber) }
+              reloadItems={ (numberOfItems, updatedItemsIds) =>
+// @ts-ignore
+                  reloadUserTasks(
+                      tasklistApi,
+                      setNumberOfTasks,
+                      numberOfItems,
+                      updatedItemsIds) }
+            />
+        </Box>
         <Box
-            flex
-            justify='between'
             direction='row'
-            pad={ isPhone ? 'medium' : 'small' }>
+            justify='between'
+            align="center">
           <Box
-              justify='center'
-              align="center">
-            <Text>{ t('total') } { numberOfTasks }</Text>
+              pad='xsmall'>
+            { t('total') } { numberOfTasks }
           </Box>
           <Box
               direction='row'
-              gap='medium'>
-          </Box>
-        </Box>
-        <Box>
-          <Box
-              fill='horizontal'
-              overflow={ { vertical: 'auto' }}>
-            <SnapScrollingDataTable
-                primaryKey={ false }
-                fill
-                pin
-                size='100%'
-                columns={ columns }
-                step={ itemsBatchSize }
-                headerHeight={ headerHeight }
-                phoneMargin={ phoneMargin }
-                onMore={ () => loadData(tasklistApi, setNumberOfTasks, setTasks, tasks) }
-                data={ tasks }
-                replace />
+              gap='small'
+              pad='xsmall'
+              align="center">
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background="white" />
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background="light-2" />
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                      Unverändert
+                    </Box>
+                  : undefined
+            }
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-3', opacity: 0.1 } } />
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-3', opacity: 0.3 } } />
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                      Neu
+                    </Box>
+                  : undefined
+            }
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-1', opacity: 0.15 } } />
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-1', opacity: 0.35 } } />
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                      Aktualisiert
+                    </Box>
+                  : undefined
+            }
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-4', opacity: 0.15 } } />
+              <Box
+                  width="1rem"
+                  height="100%"
+                  background={ { color: 'accent-4', opacity: 0.3 } } />
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                      Abgeschlossen
+                    </Box>
+                  : undefined
+            }
           </Box>
         </Box>
       </Grid>

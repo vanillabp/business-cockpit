@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.commons.mongo;
+package io.vanillabp.cockpit.commons.mongo.converters;
 
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import org.springframework.core.convert.converter.Converter;

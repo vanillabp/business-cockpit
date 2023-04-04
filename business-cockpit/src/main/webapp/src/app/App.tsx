@@ -47,6 +47,7 @@ export const theme: ThemeType = {
       border: undefined,
     },
     body: {
+      border: undefined,
       extend: css`
         overflow: visible;
       `

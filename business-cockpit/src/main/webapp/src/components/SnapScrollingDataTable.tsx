@@ -93,9 +93,9 @@ const SnapScrollingDataTable = forwardRef(({
             ref={ ref as any }
             onScroll={ onScroll }>
           <DataTable
-              fill
               ref={ undefined as any }
-              pad='0'
+              fill
+              pad='none'
               style={ {
                 maxWidth: tableWidth,
                 marginLeft: 'auto',

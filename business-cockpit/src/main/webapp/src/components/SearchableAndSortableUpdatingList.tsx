@@ -1,0 +1,246 @@
+import React, { useState, MutableRefObject, useEffect, useRef, useCallback } from 'react';
+import { Box, ColumnConfig, Text, CheckBox } from 'grommet';
+import { SnapScrollingDataTable } from '../components/SnapScrollingDataTable';
+import { TFunction } from 'i18next';
+import { useAppContext } from '../AppContext';
+
+const itemsBatchSize = 30;
+
+enum ListItemStatus {
+  INITIAL,
+  NEW,
+  UPDATED,
+  ENDED,
+};
+
+type Data = {
+  id: string,
+  version?: number,
+  createdAt: Date,
+  updatedAt: Date,
+  endedAt?: Date,
+};
+
+interface ListItem<T extends Data> {
+  id: string;
+  number: number;
+  data: T;
+  status: ListItemStatus;
+  selected: boolean;
+};
+
+interface ListItems<T extends Data> {
+  serverTimestamp: Date;
+  items: Array<T>;
+};
+
+type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number) => Promise<ListItems<T>>;
+
+type ReloadItemsFunction = <T extends Data>(numberOfItems: number, updatedItemsIds: Array<string>) => Promise<ListItems<T>>;
+
+type ReloadCallbackFunction = (updatedItemId: string) => Promise<void>;
+
+const loadItems = async <T extends Data>(
+  retrieveItems: RetrieveItemsFunction,
+  setItems: (items: Array<ListItem<T>>) => void,
+  items: Array<ListItem<T>> | undefined,
+): Promise<Date> => {
+
+  const result = await retrieveItems(
+      items === undefined
+          ? 0
+          : Math.floor(items.length / itemsBatchSize)
+            + (items.length % itemsBatchSize),
+      itemsBatchSize
+    );
+  
+  const currentNumberOfItems = items === undefined ? 1 : items.length + 1;
+  const newItems = result
+      .items
+      .map((item, index) => ({
+          id: item.id,
+          data: item,
+          number: currentNumberOfItems + index,
+          selected: false,
+          status: ListItemStatus.INITIAL,
+        } as ListItem<T>));
+  setItems(
+      items === undefined
+      ? newItems
+      : items.concat(newItems));
+  
+  return result.serverTimestamp;
+  
+};
+
+const reloadData = async <T extends Data>(
+  reloadItems: ReloadItemsFunction,
+  setItems: (items: Array<ListItem<T>>) => void,
+  items: Array<ListItem<T>> | undefined,
+  userTaskChanged: string,
+  initialTimestamp: MutableRefObject<Date | undefined>,
+) => {
+
+  const unfilledBatch = items!.length % itemsBatchSize;
+  const size = items!.length
+      + (unfilledBatch > 0 ? itemsBatchSize - unfilledBatch : 0);
+      
+  const result = await reloadItems(size, [ userTaskChanged ]);
+  
+  const itemsById = new Map(items!.map(item => [ item.id, item ]));
+  const mergedItems = result
+      .items
+      .map((item, index) => {
+        const oldItem = itemsById.get(item.id)!;
+        
+        const status = item.version === 0
+            ? oldItem.status
+            : item.createdAt > initialTimestamp.current!
+            ? ListItemStatus.NEW
+            : Boolean(item.endedAt) && item.endedAt! > initialTimestamp.current!
+            ? ListItemStatus.ENDED
+            : item.updatedAt > initialTimestamp.current!
+            ? ListItemStatus.UPDATED
+            : oldItem.status;
+        
+        const newItem = (item.version === 0
+            ? {
+                id: item.id,
+                data: oldItem?.data,
+                number: 1 + index,
+                selected: oldItem?.selected,
+                status: oldItem?.status,
+              }
+            : {
+                id: item.id,
+                data: item,
+                number: 1 + index,
+                selected: oldItem?.selected,
+                status,
+              }
+            ) as ListItem<T>;
+        return newItem;
+      });
+   setItems(mergedItems);
+   
+};
+
+const SearchableAndSortableUpdatingList = <T extends Data>({
+  t,
+  itemsRef,
+  updateListRef,
+  retrieveItems,
+  reloadItems,
+}: {
+  t: TFunction,
+  itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
+  updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
+  retrieveItems: RetrieveItemsFunction,
+  reloadItems: ReloadItemsFunction,
+}) => {
+
+  const { showLoadingIndicator } = useAppContext();
+
+  const [ items, _setItems ] = useState<Array<ListItem<T>> | undefined>(undefined);
+  const initialTimestamp = useRef<Date | undefined>(undefined);
+  const setItems = useCallback((newItems: Array<ListItem<T>>) => {
+      itemsRef.current = newItems;
+      _setItems(newItems);
+    }, [ _setItems, itemsRef ]);
+    
+  useEffect(() => {
+      updateListRef.current = (updatedItemId) => reloadData(
+          reloadItems,
+          setItems,
+          items,
+          updatedItemId,
+          initialTimestamp);
+      if (initialTimestamp.current) {
+        return;
+      }
+      initialTimestamp.current = new Date();
+      const initList = async () => {
+          showLoadingIndicator(true);
+          const result = await loadItems(
+              retrieveItems,
+              setItems,
+              items);
+          initialTimestamp.current = result;
+          showLoadingIndicator(false);
+        };
+      initList();
+    }, [ showLoadingIndicator, items, retrieveItems, reloadItems, setItems, initialTimestamp, updateListRef ]);
+  
+  const columns: ColumnConfig<ListItem<T>>[] =
+      [
+          { property: 'id',
+            primary: true,
+            pin: true,
+            size: '2.2rem',
+            header: <Box
+                    pad="xsmall">
+                  <CheckBox />
+                </Box>,
+            render: (_item: ListItem<T>) => (
+                <Box pad="xsmall">
+                  <CheckBox />
+                </Box>)
+          },
+          { property: 'number',
+            header: 'No',
+            size: '3rem'
+          },
+          { property: 'name',
+            header: t('name'),
+            render: (item: ListItem<T>) => (
+                <Box>
+                  <Text
+                      truncate="tip">
+                    { item.data['title'].de }
+                  </Text>
+                </Box>)
+          },
+      ];
+
+  const headerHeight = 'auto';
+  const phoneMargin = '0';
+  
+  const colorRowAccordingToUpdateStatus = items?.reduce((props, item) => {
+      if (item.status !== ListItemStatus.INITIAL) {
+        return {
+            ...props,
+            [ item.id ]: { background:
+                item.status === ListItemStatus.NEW
+                    ? { color: 'accent-3', opacity: item.number % 2 === 1 ? 0.1 : 0.3 }
+                    : item.status === ListItemStatus.UPDATED
+                    ? { color: 'accent-1', opacity: item.number % 2 === 1 ? 0.15 : 0.35 }
+                    : item.status === ListItemStatus.ENDED
+                    ? { color: 'accent-4', opacity: item.number % 2 === 1 ? 0.15 : 0.3 }
+                    : undefined
+              }
+          };
+      }
+      return props;
+    }, {});
+   
+  return (<Box
+              fill='horizontal'
+              overflow={ { vertical: 'auto' }}>
+            <SnapScrollingDataTable
+                primaryKey={ false }
+                fill
+                pin
+                rowProps={ colorRowAccordingToUpdateStatus }
+                size='100%'
+                columns={ columns }
+                step={ itemsBatchSize }
+                headerHeight={ headerHeight }
+                phoneMargin={ phoneMargin }
+                onMore={ () => loadItems(retrieveItems, setItems, items) }
+                data={ items }
+                replace />
+          </Box>);
+
+};
+
+export { SearchableAndSortableUpdatingList, ListItem, ListItems, ListItemStatus, ReloadCallbackFunction };

@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.commons.mongo;
+package io.vanillabp.cockpit.commons.mongo.converters;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.WritingConverter;
