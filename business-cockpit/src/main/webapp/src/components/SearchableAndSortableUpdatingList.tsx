@@ -38,7 +38,7 @@ type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: numb
 
 type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>) => Promise<ListItems<T>>;
 
-type ReloadCallbackFunction = (updatedItemId: string) => Promise<void>;
+type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
 
 const loadItems = async <T extends Data>(
   retrieveItems: RetrieveItemsFunction,
@@ -81,7 +81,7 @@ const reloadData = async <T extends Data>(
   reloadItems: ReloadItemsFunction,
   setItems: (items: Array<ListItem<T>>) => void,
   items: Array<ListItem<T>> | undefined,
-  updatedItemId: string,
+  updatedItemsIds: Array<string>,
   initialTimestamp: MutableRefObject<Date | undefined>,
 ) => {
 
@@ -93,7 +93,7 @@ const reloadData = async <T extends Data>(
   const result = await reloadItems(
       size,
       items!
-          .filter(item => item.id !== updatedItemId)
+          .filter(item => !updatedItemsIds.includes(item.id))
           .map(item => item.id));
   
   const itemsById = new Map(items!.map(item => [ item.id, item ]));
@@ -158,11 +158,11 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
     }, [ _setItems, itemsRef ]);
     
   useEffect(() => {
-      updateListRef.current = (updatedItemId) => reloadData(
+      updateListRef.current = (updatedItemsIds) => reloadData(
           reloadItems,
           setItems,
           items,
-          updatedItemId,
+          updatedItemsIds,
           initialTimestamp);
       if (initialTimestamp.current) {
         return;

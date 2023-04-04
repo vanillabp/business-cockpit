@@ -68,7 +68,8 @@ const ListOfTasks = () => {
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<UserTaskEvent>) => {
       if (!updateListRef.current) return;
-      updateListRef.current(ev.data.id);
+      const listOfUpdatedTasks = ev.data.map(userTask => userTask.id);
+      updateListRef.current(listOfUpdatedTasks);
     }, [ updateListRef ]);
   wakeupSseCallback.current = useGuiSse<UserTaskEvent>(
       updateList,

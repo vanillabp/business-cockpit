@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import io.vanillabp.cockpit.commons.utils.UserContext;
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 
 @RestController
 @RequestMapping(path = "/gui/api/v1")
@@ -27,6 +29,9 @@ public class LoginApiController implements LoginApi {
 
     @Autowired
     private Logger logger;
+    
+    @Autowired
+    private ApplicationProperties properties;
     
     @Autowired
     private UserContext userContext;
@@ -48,7 +53,8 @@ public class LoginApiController implements LoginApi {
         
         final var updateEmitter = new SseEmitter(-1l);
         updateEmitters.put(id, UpdateEmitter
-                .withEmitter(updateEmitter));
+                .withEmitter(updateEmitter)
+                .updateInterval(properties.getGuiSseUpdateInterval()));
 
         // This ping forces the browser to treat the text/event-stream request
         // as closed and therefore the lock created in fetchApi.ts is released
@@ -73,6 +79,13 @@ public class LoginApiController implements LoginApi {
 
     }
     
+    @Scheduled(fixedDelayString = "PT1S")
+    public void updateClients() {
+        
+        updateClients(null);
+        
+    }
+    
     @EventListener(classes = GuiEvent.class)
     public void updateClients(
             final GuiEvent guiEvent) {
@@ -80,21 +93,29 @@ public class LoginApiController implements LoginApi {
         updateEmitters
                 .values()
                 .stream()
-                .filter(emitter -> guiEvent.matchesTargetRoles(emitter.getRoles()))
+                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getRoles()))
+                .filter(emitter -> emitter.sendEvent(guiEvent))
                 .forEach(emitter -> {
-                    try {
-                        emitter
-                                .getEmitter()
-                                .send(
-                                        SseEmitter
-                                                .event()
-                                                .id(UUID.randomUUID().toString())
-                                                .data(guiEvent.getEvent(), MediaType.APPLICATION_JSON)
-                                                .name(guiEvent.getSource().toString())
-                                                .reconnectTime(30000));
-                    } catch (Exception e) {
-                        logger.warn("Could not send update event", e);
-                    }
+                    emitter
+                            .consumeEvents()
+                            .stream()
+                            .collect(Collectors.groupingBy(GuiEvent::getSource))
+                            .entrySet()
+                            .forEach(entry -> {
+                                try {
+                                    emitter
+                                            .getEmitter()
+                                            .send(
+                                                    SseEmitter
+                                                            .event()
+                                                            .id(UUID.randomUUID().toString())
+                                                            .data(entry.getValue(), MediaType.APPLICATION_JSON)
+                                                            .name(entry.getKey().toString())
+                                                            .reconnectTime(30000));
+                                } catch (Exception e) {
+                                    logger.warn("Could not send update event", e);
+                                }
+                            });
                 });
         
     }
