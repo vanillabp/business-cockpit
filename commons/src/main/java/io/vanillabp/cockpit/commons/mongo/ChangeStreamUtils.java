@@ -19,6 +19,8 @@ import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Component;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
 @Component
 public class ChangeStreamUtils {
@@ -97,6 +99,8 @@ public class ChangeStreamUtils {
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
                 .builder(catchExceptionsListener(listener, entityClass))
+                .fullDocumentLookup(FullDocument.DEFAULT)
+                .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
                 .filter(newAggregation(match(where("operationType").in(operationTypes))))
                 .maxAwaitTime(Duration.ofSeconds(15))
                 .collection(collectionName)
