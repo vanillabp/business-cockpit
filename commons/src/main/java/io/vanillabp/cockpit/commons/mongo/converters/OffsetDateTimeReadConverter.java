@@ -15,7 +15,13 @@ public class OffsetDateTimeReadConverter implements Converter<Date, OffsetDateTi
 
     @Override
     public OffsetDateTime convert(final Date source) {
+        
+        if (source.getTime() == Long.MAX_VALUE) {
+            return OffsetDateTime.MAX;
+        }
+        
         return DateTimeUtil.fromDate(source);
+        
     }
     
 }

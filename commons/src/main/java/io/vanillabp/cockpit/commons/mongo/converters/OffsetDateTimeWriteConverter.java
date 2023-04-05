@@ -19,6 +19,10 @@ public class OffsetDateTimeWriteConverter implements Converter<OffsetDateTime, D
             return null;
         }
         
+        if (source.equals(OffsetDateTime.MAX)) {
+            return new Date(Long.MAX_VALUE);
+        }
+        
         return Date.from(source.toInstant());
         
     }

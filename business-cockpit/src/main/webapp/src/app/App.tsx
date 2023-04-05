@@ -167,7 +167,8 @@ export const theme: ThemeType = {
     `
   },
   checkBox: {
-    size: '20px'
+    size: '20px',
+    color: 'black',
   },
 };
 

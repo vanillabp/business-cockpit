@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist;
 
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -14,7 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,10 @@ import jakarta.annotation.PreDestroy;
 @Transactional
 public class UserTaskService {
 
+    private static final Sort DEFAULT_SORT =
+            Sort.by(Order.asc("dueDate").nullsLast())
+            .and(Sort.by("createdAt").ascending());
+    
     @Autowired
     private Logger logger;
     
@@ -87,7 +93,7 @@ public class UserTaskService {
     			PageRequest
     					.ofSize(pageSize)
     					.withPage(pageNumber)
-    					.withSort(Direction.DESC, "createdAt"));
+    					.withSort(Sort.by(Order.asc("dueDate").nullsFirst())));
     	
     }
     
@@ -99,7 +105,7 @@ public class UserTaskService {
                 PageRequest
                         .ofSize(size)
                         .withPage(0)
-                        .withSort(Direction.DESC, "createdAt"));
+                        .withSort(DEFAULT_SORT));
         
         return new PageImpl<UserTask>(
                 tasks
@@ -121,6 +127,11 @@ public class UserTaskService {
     
     public boolean createUserTask(
             final UserTask userTask) {
+        
+        if (userTask.getDueDate() == null) {
+            // for correct sorting
+            userTask.setDueDate(OffsetDateTime.MAX);
+        }
         
         try {
             userTasks.save(userTask);

@@ -114,89 +114,109 @@ const ListOfTasks = () => {
           </Box>
           <Box
               direction='row'
-              gap='small'
+              gap='medium'
               pad='xsmall'
               align="center">
             <Box
-                direction='row'
-                height="1rem"
-                border={ { color: 'light-4', size: '1px' } }>
+                direction="row"
+                align="center"
+                gap='xsmall'>
               <Box
-                  width="1rem"
-                  height="100%"
-                  background="white" />
-              <Box
-                  width="1rem"
-                  height="100%"
-                  background="light-2" />
+                  direction='row'
+                  height="1rem"
+                  border={ { color: 'light-4', size: '1px' } }>
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background="white" />
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background="light-2" />
+              </Box>
+              {
+                isNotPhone
+                    ? <Box>
+                        Unverändert
+                      </Box>
+                    : undefined
+              }
             </Box>
-            {
-              isNotPhone
-                  ? <Box>
-                      Unverändert
-                    </Box>
-                  : undefined
-            }
             <Box
-                direction='row'
-                height="1rem"
-                border={ { color: 'light-4', size: '1px' } }>
+                direction="row"
+                align="center"
+                gap='xsmall'>
               <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-3', opacity: 0.1 } } />
-              <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-3', opacity: 0.3 } } />
+                  direction='row'
+                  height="1rem"
+                  border={ { color: 'light-4', size: '1px' } }>
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-3', opacity: 0.1 } } />
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-3', opacity: 0.3 } } />
+              </Box>
+              {
+                isNotPhone
+                    ? <Box>
+                        Neu
+                      </Box>
+                    : undefined
+              }
             </Box>
-            {
-              isNotPhone
-                  ? <Box>
-                      Neu
-                    </Box>
-                  : undefined
-            }
             <Box
-                direction='row'
-                height="1rem"
-                border={ { color: 'light-4', size: '1px' } }>
+                direction="row"
+                align="center"
+                gap='xsmall'>
               <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-1', opacity: 0.15 } } />
-              <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-1', opacity: 0.35 } } />
+                  direction='row'
+                  height="1rem"
+                  border={ { color: 'light-4', size: '1px' } }>
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-1', opacity: 0.15 } } />
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-1', opacity: 0.35 } } />
+              </Box>
+              {
+                isNotPhone
+                    ? <Box>
+                        Aktualisiert
+                      </Box>
+                    : undefined
+              }
             </Box>
-            {
-              isNotPhone
-                  ? <Box>
-                      Aktualisiert
-                    </Box>
-                  : undefined
-            }
             <Box
-                direction='row'
-                height="1rem"
-                border={ { color: 'light-4', size: '1px' } }>
+                direction="row"
+                align="center"
+                gap='xsmall'>
               <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-4', opacity: 0.15 } } />
-              <Box
-                  width="1rem"
-                  height="100%"
-                  background={ { color: 'accent-4', opacity: 0.3 } } />
+                  direction='row'
+                  height="1rem"
+                  border={ { color: 'light-4', size: '1px' } }>
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-4', opacity: 0.15 } } />
+                <Box
+                    width="1rem"
+                    height="100%"
+                    background={ { color: 'accent-4', opacity: 0.3 } } />
+              </Box>
+              {
+                isNotPhone
+                    ? <Box>
+                        Abgeschlossen
+                      </Box>
+                    : undefined
+              }
             </Box>
-            {
-              isNotPhone
-                  ? <Box>
-                      Abgeschlossen
-                    </Box>
-                  : undefined
-            }
           </Box>
         </Box>
       </Grid>);
