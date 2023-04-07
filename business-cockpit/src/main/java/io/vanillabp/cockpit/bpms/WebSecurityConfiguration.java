@@ -4,12 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.HttpBasicServerAuthenticationEntryPoint;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
+
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApiController;
 
 @Configuration("BpmsApiWebSecurityConfiguration")
 @Order(1)
@@ -23,41 +27,42 @@ public class WebSecurityConfiguration {
 	private BpmsApiProperties properties;
 	
     @Bean
-    protected SecurityFilterChain bpmsApiSecurityFilterChain(
-            final HttpSecurity http) throws Exception {
-
+    public SecurityWebFilterChain bpmsApiHttpSecurity(
+            final ServerHttpSecurity http) {
+        
+        final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
+        basicEntryPoint.setRealm(properties.getRealmName());
+        
         http
+                .securityMatcher(new PathPatternParserServerWebExchangeMatcher(
+                        BpmsApiController.BPMS_API_URL_PREFIX + "/**"))
                 .csrf().disable()
                 .cors().disable()
-                .headers()
-                        .contentTypeOptions().disable()
-                        .frameOptions().disable()
+                .authorizeExchange()
+                        .anyExchange()
+                        .authenticated()
                         .and()
-                .sessionManagement()
-                        .sessionCreationPolicy(SessionCreationPolicy.NEVER)
-                        .and()
-//                .authorizeHttpRequests(authorize -> authorize
-//                                .requestMatchers(BpmsApiController.BPMS_API_URL_PREFIX)
-//                                		.hasRole(BPMS_API_ROLE))
                 .httpBasic()
-                        .realmName(properties.getRealmName())
-                        .and()
-                .userDetailsService(bpmsApiUserDetailsService());
-
+                        .securityContextRepository(
+                                NoOpServerSecurityContextRepository.getInstance())
+                        .authenticationManager(
+                                new UserDetailsRepositoryReactiveAuthenticationManager(
+                                        bpmsApiUserDetailsService()))
+                        .authenticationEntryPoint(basicEntryPoint);
+        
         return http.build();
-	        
-	}
-    
+    }
+
     @Bean
-    public UserDetailsService bpmsApiUserDetailsService() {
+    public MapReactiveUserDetailsService bpmsApiUserDetailsService() {
         
         final var user = User.builder()
-            .username(properties.getUsername())
-            .password(properties.getPassword())
-            .roles(BPMS_API_ROLE)
-            .build();
-        return new InMemoryUserDetailsManager(user);
-
+                .username(properties.getUsername())
+                .password(properties.getPassword())
+                .roles(BPMS_API_ROLE)
+                .build();
+        return new MapReactiveUserDetailsService(user);
+        
     }
-    
+        
 }

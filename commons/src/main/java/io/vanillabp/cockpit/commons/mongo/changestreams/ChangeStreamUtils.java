@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.commons.mongo;
+package io.vanillabp.cockpit.commons.mongo.changestreams;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -12,6 +12,8 @@ import java.util.List;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
@@ -23,44 +25,10 @@ import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
 @Component
+@ConditionalOnBean(MongoTemplate.class)
 public class ChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
-    
-    public static enum OperationType {
-        ANY("insert", "update", "replace", "delete"),
-        INSERT("insert"),
-        UPDATE("update", "replace"),
-        DELETE("delete");
-        
-        private List<String> mongoTypes;
-        
-        OperationType(final String... types) {
-            
-            mongoTypes = new LinkedList<>();
-            Arrays
-                    .stream(types)
-                    .forEach(type -> mongoTypes.add(type));
-                    
-        }
-        
-        public List<String> getMongoTypes() {
-            return mongoTypes;
-        }
-        
-        public static OperationType byMongoType(
-                final String type) {
-            
-            return List
-                    .of(INSERT, UPDATE, DELETE)
-                    .stream()
-                    .filter(operation -> operation.getMongoTypes().contains(type))
-                    .findFirst()
-                    .orElse(null);
-
-        }
-        
-    };
     
     @Autowired
     private Logger logger;

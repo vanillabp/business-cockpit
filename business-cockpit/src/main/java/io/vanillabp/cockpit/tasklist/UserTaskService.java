@@ -2,37 +2,29 @@ package io.vanillabp.cockpit.tasklist;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
-import org.springframework.data.mongodb.core.messaging.Message;
-import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import com.mongodb.client.model.changestream.ChangeStreamDocument;
-
-import io.vanillabp.cockpit.commons.mongo.ChangeStreamUtils;
-import io.vanillabp.cockpit.commons.mongo.OptimisticLockingUtils;
+import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
+import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
 @Service
-@Transactional
 public class UserTaskService {
 
     private static final Sort DEFAULT_SORT =
@@ -46,119 +38,144 @@ public class UserTaskService {
     private ApplicationEventPublisher applicationEventPublisher;
     
     @Autowired
-    private ChangeStreamUtils changeStreamUtils;
+    private ReactiveChangeStreamUtils changeStreamUtils;
     
     @Autowired
     private UserTaskRepository userTasks;
     
-    private Subscription userTasksChangedSubscription;
+    @Autowired
+    private MicroserviceProxyRegistry microserviceProxyRegistry;
+    
+    private Disposable dbChangesSubscription;
     
     @PostConstruct
     public void subscribeToDbChanges() {
         
-        userTasksChangedSubscription = changeStreamUtils.subscribe(
-                UserTask.class,
-                this::processUserTaskRepositoryChanged);
+        dbChangesSubscription = changeStreamUtils
+                .subscribe(UserTask.class)
+                .map(UserTaskChangedNotification::build)
+                .doOnNext(applicationEventPublisher::publishEvent)
+                .subscribe();
+        
+        // register all URLs already known
+        userTasks
+                .findAllWorkflowModulesAndUrls()
+                .collectList()
+                .map(wmaus -> wmaus
+                        .stream()
+                        .collect(Collectors.toMap(
+                                UserTask::getWorkflowModule,
+                                UserTask::getUrl)))
+                .doOnNext(microserviceProxyRegistry::registerMicroservice)
+                .subscribe();
         
     }
     
     @PreDestroy
-    public void unsubscribeFromDbChanges() {
+    public void cleanup() {
         
-        changeStreamUtils
-                .unsubscribe(userTasksChangedSubscription);
-        
-    }
-    
-    private void processUserTaskRepositoryChanged(
-            final Message<ChangeStreamDocument<Document>, UserTask> message) {
-        
-        applicationEventPublisher.publishEvent(
-                UserTaskChangedNotification.build(message));
+        dbChangesSubscription.dispose();
         
     }
     
-    public Optional<UserTask> getUserTask(
+    public Mono<UserTask> getUserTask(
             final String userTaskId) {
         
         return userTasks.findById(userTaskId);
         
     }
     
-    public Page<UserTask> getUserTasks(
+    public Mono<Page<UserTask>> getUserTasks(
 			final int pageNumber,
 			final int pageSize) {
     	
-    	return userTasks.findAll(
-    			PageRequest
-    					.ofSize(pageSize)
-    					.withPage(pageNumber)
-    					.withSort(Sort.by(Order.asc("dueDate").nullsFirst())));
+        final var pageRequest = PageRequest
+                .ofSize(pageSize)
+                .withPage(pageNumber)
+                .withSort(Sort.by(Order.asc("dueDate").nullsFirst()));
+        
+    	return userTasks
+    	        .findAllBy(pageRequest)
+    	        .collectList()
+    	        .zipWith(userTasks.count())
+    	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
     }
     
-    public Page<UserTask> getUserTasksUpdated(
+    public Mono<Page<UserTask>> getUserTasksUpdated(
             final int size,
             final Collection<String> knownUserTasksIds) {
         
-        final var tasks = userTasks.findAllIds(
-                PageRequest
-                        .ofSize(size)
-                        .withPage(0)
-                        .withSort(DEFAULT_SORT));
+        final var pageRequest = PageRequest
+                .ofSize(size)
+                .withPage(0)
+                .withSort(DEFAULT_SORT);
         
-        return new PageImpl<UserTask>(
-                tasks
-                        .stream()
-                        .map(task -> {
-                            if (knownUserTasksIds.contains(task.getId())) {
-                                return task;
-                            } else {
-                                return userTasks.findById(task.getId()).get();
-                            }
-                        })
-                        .collect(Collectors.toList()),
-                Pageable
-                        .ofSize(tasks.isEmpty() ? 1 : tasks.size())
-                        .withPage(0),
-                userTasks.count());
+        final var tasks = userTasks.findAllIds(
+                pageRequest);
+        
+        return tasks
+                .flatMap(task -> {
+                    if (knownUserTasksIds.contains(task.getId())) {
+                        return Mono.just(task);
+                    }
+                    return userTasks.findById(task.getId());
+                })
+                .collectList()
+                .zipWith(userTasks.count())
+                .map(t -> new PageImpl<>(
+                        t.getT1(),
+                        Pageable
+                                .ofSize(t.getT1().isEmpty() ? 1 : t.getT1().size())
+                                .withPage(0),
+                        t.getT2()));
         
     }
     
-    public boolean createUserTask(
+    public Mono<Boolean> createUserTask(
             final UserTask userTask) {
+        
+        if (userTask == null) {
+            Mono.just(Boolean.FALSE);
+        }
         
         if (userTask.getDueDate() == null) {
             // for correct sorting
             userTask.setDueDate(OffsetDateTime.MAX);
         }
         
-        try {
-            userTasks.save(userTask);
-            return true;
-        } catch (final DuplicateKeyException | OptimisticLockingFailureException e) {
-            return false;
-        }
-        
+        return userTasks
+                .save(userTask)
+                .doOnNext(task -> microserviceProxyRegistry
+                        .registerMicroservice(
+                                task.getWorkflowModule(),
+                                task.getUrl()))
+                .map(task -> Boolean.TRUE)
+                .onErrorResume(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return Mono.just(Boolean.FALSE);
+                });
+                
     }
 
-    public boolean updateUserTask(
+    public Mono<Boolean> updateUserTask(
             final UserTask userTask) {
         
-        try {
-            
-            return OptimisticLockingUtils.doWithRetries(
-                    () -> {
-                        userTasks.save(userTask);
-                        return true;
-                    });
-            
-        } catch (OptimisticLockingFailureException e) {
-            
-            logger.warn("Could not update usertask '{}'!", userTask.getId(), e);
-            return false;
-            
+        if (userTask == null) {
+            return Mono.just(Boolean.FALSE);
         }
+        
+        return userTasks
+                .save(userTask)
+                .onErrorMap(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return null;
+                })
+                .map(savedTask -> savedTask != null);
         
     }
     

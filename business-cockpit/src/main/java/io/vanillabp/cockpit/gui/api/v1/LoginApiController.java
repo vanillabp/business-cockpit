@@ -13,15 +13,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.integration.dsl.MessageChannels;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.SubscribableChannel;
+import org.springframework.messaging.support.GenericMessage;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.server.ServerWebExchange;
 
 import io.vanillabp.cockpit.commons.utils.UserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(path = "/gui/api/v1")
@@ -43,39 +51,40 @@ public class LoginApiController implements LoginApi {
     
     @RequestMapping(
             method = RequestMethod.GET,
-            value = "/updates"
-        )
-    public SseEmitter updatesSubscription() throws Exception {
+            value = "/updates",
+            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<?>> updatesSubscription() throws Exception {
         
         final var id = UUID.randomUUID().toString();
         
-        final var user = userContext.getUserLoggedIn();
-        
-        final var updateEmitter = new SseEmitter(-1l);
-        updateEmitters.put(id, UpdateEmitter
-                .withEmitter(updateEmitter)
-                .updateInterval(properties.getGuiSseUpdateInterval()));
+        return userContext
+                .getUserLoggedInAsMono()
+                .flatMapMany(user -> {
 
-        // This ping forces the browser to treat the text/event-stream request
-        // as closed and therefore the lock created in fetchApi.ts is released
-        // to avoid the UI would stuck in cases of errors.
-        taskScheduler.schedule(
-                () -> {
-                    try {
-                        final var ping = new PingEvent();
-                        updateEmitter
-                                .send(
-                                        SseEmitter
-                                                .event()
-                                                .id(UUID.randomUUID().toString())
-                                                .data(ping, MediaType.APPLICATION_JSON)
-                                                .name("ping"));
-                    } catch (Exception e) {
-                        logger.warn("Could not SSE send confirmation, client might stuck");
-                    }
-                }, Instant.now().plusMillis(300));
-        
-        return updateEmitter;
+                    final var channel = MessageChannels
+                            .direct("SSE-" + user + "-" + id).get();
+                    updateEmitters.put(id, UpdateEmitter
+                            .withChannel(channel)
+                            .updateInterval(properties.getGuiSseUpdateInterval()));
+
+                    // This ping forces the browser to treat the text/event-stream request
+                    // as closed and therefore the lock created in fetchApi.ts is released
+                    // to avoid the UI would stuck in cases of errors.
+                    taskScheduler.schedule(
+                            () -> {
+                                if (!pingUpdateEmitter(channel)) {
+                                    logger.warn("Could not SSE send confirmation, client might stuck");
+                                }
+                            }, Instant.now().plusMillis(300));
+
+                    return Flux.create(sink -> {
+                        final MessageHandler handler = message -> sink.next(
+                                ServerSentEvent.class.cast(message.getPayload()));
+                        sink.onCancel(() -> channel.unsubscribe(handler));
+                        channel.subscribe(handler);
+                    }, FluxSink.OverflowStrategy.BUFFER);
+                    
+                });
 
     }
     
@@ -101,17 +110,13 @@ public class LoginApiController implements LoginApi {
                             .stream()
                             .collect(Collectors.groupingBy(GuiEvent::getSource))
                             .entrySet()
+                            .stream()
                             .forEach(entry -> {
                                 try {
-                                    emitter
-                                            .getEmitter()
-                                            .send(
-                                                    SseEmitter
-                                                            .event()
-                                                            .id(UUID.randomUUID().toString())
-                                                            .data(entry.getValue(), MediaType.APPLICATION_JSON)
-                                                            .name(entry.getKey().toString())
-                                                            .reconnectTime(30000));
+                                    sendSseEvent(
+                                            emitter.getChannel(),
+                                            entry.getKey().toString(),
+                                            entry.getValue());
                                 } catch (Exception e) {
                                     logger.warn("Could not send update event", e);
                                 }
@@ -129,23 +134,11 @@ public class LoginApiController implements LoginApi {
     @Scheduled(fixedDelayString = "PT1M")
     public void cleanupUpdateEmitters() {
         
-        final var ping = new PingEvent();
-        
         final var toBeDeleted = new LinkedList<String>();
         updateEmitters
                 .entrySet()
                 .forEach(entry -> {
-                    try {
-                        final var emitter = entry.getValue();
-                        emitter
-                                .getEmitter()
-                                .send(
-                                        SseEmitter
-                                                .event()
-                                                .id(UUID.randomUUID().toString())
-                                                .data(ping, MediaType.APPLICATION_JSON)
-                                                .name("ping"));
-                    } catch (Exception e) {
+                    if (!pingUpdateEmitter(entry.getValue().getChannel())) {
                         toBeDeleted.add(entry.getKey());
                     }
                 });
@@ -153,29 +146,58 @@ public class LoginApiController implements LoginApi {
         
     }
     
-    @Override
-    public ResponseEntity<AppInformation> appInformation() {
+    private static final PingEvent pingEvent = new PingEvent();
+    
+    private boolean pingUpdateEmitter(
+            final SubscribableChannel channel) {
         
-        return ResponseEntity.ok(
-                new AppInformation()
-                        .titleLong("DKE BPMS Cockpit")
-                        .titleShort("DKE")
-                        .version("0.0.1-SNAPSHOT"));
+        try {
+            sendSseEvent(channel, "ping", pingEvent);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+        
+    }
+    
+    private <T> void sendSseEvent(
+            final SubscribableChannel channel,
+            final String name,
+            final T payload) throws Exception {
+        
+        channel.send(new GenericMessage<ServerSentEvent<?>>(
+                ServerSentEvent
+                       .builder(payload)
+                       .id(UUID.randomUUID().toString())
+                       .event(name)
+                       .build()));
         
     }
     
     @Override
-    public ResponseEntity<User> currentUser(
-            final String xRefreshToken) {
+    public Mono<ResponseEntity<AppInformation>> appInformation(
+            final ServerWebExchange exchange) {
+
+        return Mono.just(ResponseEntity.ok(
+                new AppInformation()
+                        .titleLong("DKE BPMS Cockpit")
+                        .titleShort("DKE")
+                        .version("0.0.1-SNAPSHOT")));
         
-        final var user = userContext.getUserLoggedIn();
+    }
+    
+    @Override
+    public Mono<ResponseEntity<User>> currentUser(
+            final String xRefreshToken,
+            final ServerWebExchange exchange) {
         
-        return ResponseEntity.ok(
-                new User()
+        return userContext
+                .getUserLoggedInAsMono()
+                .map(user -> new User()
                         .id(user)
                         .sex(Sex.OTHER)
-                        .roles(List.of()));
-
+                        .roles(List.of()))
+                .map(ResponseEntity::ok);
         
     }
     

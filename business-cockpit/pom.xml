@@ -59,6 +59,7 @@
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
                 <useBeanValidation>false</useBeanValidation>
+                <reactive>true</reactive>
 			      <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
@@ -89,21 +90,19 @@
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-starter-tomcat</artifactId>
-        </exclusion>
-      </exclusions>
+      <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-undertow</artifactId>
+      <artifactId>spring-boot-starter-integration</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+      <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

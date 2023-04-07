@@ -11,14 +11,15 @@
   <artifactId>commons</artifactId>
   <name>Common classes and utilities which may be also used by other Spring Boot applications like workflow modules.</name>
 
-  <properties>
-    <feign.version>12.2</feign.version>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-mongodb</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -43,22 +44,18 @@
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-core</artifactId>
-      <version>${feign.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-okhttp</artifactId>
-      <version>${feign.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-jackson</artifactId>
-      <version>${feign.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-slf4j</artifactId>
-      <version>${feign.version}</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign.form</groupId>

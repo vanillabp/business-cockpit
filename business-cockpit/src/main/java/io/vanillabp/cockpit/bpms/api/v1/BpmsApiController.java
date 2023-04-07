@@ -5,10 +5,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 
 import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import jakarta.validation.Valid;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
@@ -24,77 +26,42 @@ public class BpmsApiController implements BpmsApi {
     private UserTaskService userTaskService;
     
     @Override
-    public ResponseEntity<Void> userTaskCreatedEvent(
-            final @Valid UserTaskCreatedEvent userTaskCreatedEvent) {
-        
-        final var created = userTaskService.createUserTask(
-                userTaskMapper.toModel(userTaskCreatedEvent));
-        
-        if (created) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.badRequest().build();
-        }
+    public Mono<ResponseEntity<Void>> userTaskCreatedEvent(
+            final @Valid Mono<UserTaskCreatedEvent> userTaskCreatedEvent,
+            final ServerWebExchange exchange) {
+
+        return userTaskCreatedEvent
+                .map(userTaskMapper::toModel)
+                .flatMap(userTaskService::createUserTask)
+                .map(created -> created
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
         
     }
 
     @Override
-    public ResponseEntity<Void> userTaskUpdatedEvent(
+    public Mono<ResponseEntity<Void>> userTaskUpdatedEvent(
             final String userTaskId,
-            final @Valid UserTaskUpdatedEvent userTaskUpdatedEvent) {
+            final @Valid Mono<UserTaskUpdatedEvent> userTaskUpdatedEvent,
+            final ServerWebExchange exchange) {
         
-        
-        final var userTaskFound = userTaskService.getUserTask(userTaskId);
-        if (userTaskFound.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        final var existingUserTask = userTaskFound.get();
+        return userTaskService
+                .getUserTask(userTaskId)
+                .zipWith(userTaskUpdatedEvent)
+                .map(t -> {
+                    final var task = t.getT1();
+                    final var updatedEvent = t.getT2();
+                    
+                    // update modifiable properties
+                    task.setDueDate(updatedEvent.getDueDate());
+                    
+                    return task;
+                })
+                .flatMap(userTaskService::updateUserTask)
+                .map(created -> created
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
 
-        // update modifiable properties
-        existingUserTask.setDueDate(userTaskUpdatedEvent.getDueDate());
-
-        final var updated = userTaskService.updateUserTask(
-                existingUserTask);
-        
-        if (updated) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.badRequest().build();
-        }
-
-    }
-    
-    @Override
-    public ResponseEntity<Void> userTaskCompletedEvent(
-            final String userTaskId,
-            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
-        // TODO Auto-generated method stub
-        return BpmsApi.super.userTaskCompletedEvent(userTaskId, userTaskLifecycleEvent);
-    }
-    
-    @Override
-    public ResponseEntity<Void> userTaskCancelledEvent(
-            final String userTaskId,
-            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
-        // TODO Auto-generated method stub
-        return BpmsApi.super.userTaskCancelledEvent(userTaskId, userTaskLifecycleEvent);
-    }
-    
-    @Override
-    public ResponseEntity<Void> userTaskSuspendedEvent(
-            final String userTaskId,
-            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
-        // TODO Auto-generated method stub
-        return BpmsApi.super.userTaskSuspendedEvent(userTaskId, userTaskLifecycleEvent);
-    }
-    
-    @Override
-    public ResponseEntity<Void> userTaskActivatedEvent(
-            final String userTaskId,
-            final @Valid UserTaskLifecycleEvent userTaskLifecycleEvent) {
-        // TODO Auto-generated method stub
-        return BpmsApi.super.userTaskActivatedEvent(userTaskId, userTaskLifecycleEvent);
     }
     
 }

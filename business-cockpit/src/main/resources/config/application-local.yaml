@@ -3,7 +3,6 @@ spring:
     mongodb:
       uri: mongodb://business-cockpit:business-cockpit@business-cockpit-mongo:27017/business-cockpit
 
-
 bpms-api:
   username: abc
   password: "{noop}123"

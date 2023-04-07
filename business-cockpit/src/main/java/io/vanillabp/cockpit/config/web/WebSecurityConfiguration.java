@@ -1,56 +1,81 @@
 package io.vanillabp.cockpit.config.web;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.security.web.server.authentication.HttpBasicServerAuthenticationEntryPoint;
+import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
+import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity(securedEnabled = true)
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+@Order(99)
 public class WebSecurityConfiguration {
 
-	@Configuration
-	@Order(99)
-	public static class GuiWebSecurityConfiguration {
-		
-	    @Value("${spring.application.name}")
-	    private String applicationName;
+    @Value("${spring.application.name}")
+    private String applicationName;
 
-	    @Bean
-	    protected SecurityFilterChain guiSecurityFilterChain(
-	            final HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityWebFilterChain guiHttpSecurity(
+            final ServerHttpSecurity http) {
+        
+        final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
+        basicEntryPoint.setRealm(applicationName);
+        
+        final var logoutSuccessHandler = new RedirectServerLogoutSuccessHandler();
+        logoutSuccessHandler.setLogoutSuccessUrl(URI.create("/"));
+        
+        http
+                .csrf().disable()
+                .cors().disable()
+                .anonymous().disable()
+                .authorizeExchange()
+                        .matchers(new PathPatternParserServerWebExchangeMatcher(
+                                "/gui/api/v1/app-info"))
+                                .permitAll()
+                        .anyExchange()
+                                .authenticated()
+                        .and()
+                .httpBasic()
+                        .securityContextRepository(
+                                NoOpServerSecurityContextRepository.getInstance())
+                        .authenticationManager(
+                                new UserDetailsRepositoryReactiveAuthenticationManager(
+                                        userDetailsService()))
+                        .authenticationEntryPoint(basicEntryPoint)
+                        .and()
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler));
+            
+        return http.build();
+        
+    }
 
-	        http
-	                .csrf().disable()
-	                .cors().disable()
-                    .anonymous().disable()
-	                .headers()
-	                        .contentTypeOptions().disable()
-	                        .frameOptions().disable()
-	                        .and()
-	                .sessionManagement()
-	                        .sessionCreationPolicy(SessionCreationPolicy.NEVER)
-	                        .and()
-	                .authorizeHttpRequests(authorize -> authorize
-	                                .requestMatchers("/gui/api/v1/app-info").permitAll()
-	                                .anyRequest().authenticated())
-	                .httpBasic()
-	                        .realmName(applicationName)
-	                        .and()
-	                .logout(logout -> logout
-	                        .logoutUrl("/logout")
-	                        .logoutSuccessUrl("/"));
-
-	        return http.build();
-	        
-	    }
-
-	}
+    @Bean
+    @Primary
+    public MapReactiveUserDetailsService userDetailsService() {
+        
+        final var user = User.builder()
+                .username("test")
+                .password("{noop}test")
+                .roles()
+                .build();
+        return new MapReactiveUserDetailsService(user);
+        
+    }
 	
 }

@@ -35,6 +35,7 @@
                 <useSpringBoot3>true</useSpringBoot3>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
+                <reactive>true</reactive>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
               <generateApiTests>false</generateApiTests>
@@ -51,6 +52,10 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

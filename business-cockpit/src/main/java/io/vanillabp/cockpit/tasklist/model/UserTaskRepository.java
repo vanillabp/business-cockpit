@@ -1,16 +1,25 @@
 package io.vanillabp.cockpit.tasklist.model;
 
-import java.util.List;
-
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 
+import reactor.core.publisher.Flux;
+
 @Repository
-public interface UserTaskRepository extends MongoRepository<UserTask, String> {
+public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, String> {
 
     @Query(value = "{ }", fields = "{ '_id': 1 }")
-    List<UserTask> findAllIds(Pageable pageable);
+    Flux<UserTask> findAllIds(Pageable pageable);
+    
+    Flux<UserTask> findAllBy(Pageable pageable);
+    
+    @Aggregation({
+            "{ $sort:{ workflowModule: 1, url: 1 } }",
+            "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, url: { '$first': '$url' } } }"
+        })
+    Flux<UserTask> findAllWorkflowModulesAndUrls();
     
 }

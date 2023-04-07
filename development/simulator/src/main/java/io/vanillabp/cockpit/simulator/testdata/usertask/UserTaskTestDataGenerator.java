@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.devskiller.jfairy.Fairy;
 
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.UrlType;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskUpdatedEvent;
@@ -153,7 +154,7 @@ public class UserTaskTestDataGenerator implements Runnable {
                 case 0 -> "Taxifahrt";
                 case 1 -> "Bezahlung";
                 case 2 -> "Fahrzeug laden";
-                default -> "Demo"; 
+                default -> "Test"; 
                 };
             
         }
@@ -162,7 +163,7 @@ public class UserTaskTestDataGenerator implements Runnable {
             case 0 -> "Taxi ride";
             case 1 -> "Payment";
             case 2 -> "Charge car";
-            default -> "Demo";
+            default -> "Test";
             };
 
     }
@@ -174,7 +175,7 @@ public class UserTaskTestDataGenerator implements Runnable {
                 case 0 -> "TaxiRide";
                 case 1 -> "Payment";
                 case 2 -> "ChargeCar";
-                default -> "Demo"; 
+                default -> "Test"; 
                 };
         
     }
@@ -225,7 +226,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         
         final var result = new UserTaskCreatedEvent();
         
-        final var process = random.nextInt(4);
+        final var process = random.nextInt(10);
         
         result.setId(UUID.randomUUID().toString());
         result.setUserTaskId(UUID.randomUUID().toString());
@@ -241,14 +242,19 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setBpmnProcessVersion("0");
         result.setTaskDefinition(
                 switch (random.nextInt(4)) {
-                case 0 -> "Do1";
-                case 1 -> "Do2";
-                case 2 -> "Do3";
-                default -> "Do4"; 
+                case 0 -> "TestForm1";
+                case 1 -> "TestForm2";
+                case 2 -> "TestForm3";
+                default -> "TestForm4"; 
                 });
         result.setWorkflowTaskId(
                 result.getTaskDefinition());
         result.setTimestamp(OffsetDateTime.now());
+        
+        result.setWorkflowModule("TestModule");
+        result.setUrl("http://localhost:8079/TestModule/asset-manifest.json");
+        result.setUrlType(UrlType.WEBPACK_REACT);
+        result.setTaskProviderApiUrl("http://localhost:8079/TestModule/task-provider/v1");
         
         result.setTitle(
                 fairies
