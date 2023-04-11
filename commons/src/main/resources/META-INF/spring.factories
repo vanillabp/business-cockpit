@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration
