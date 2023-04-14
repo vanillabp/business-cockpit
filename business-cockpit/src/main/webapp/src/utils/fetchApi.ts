@@ -13,7 +13,7 @@ const doRequest = (
   ) => {
 
   navigator.locks.request(
-      'elmo-webapp',
+      'bc-webapp',
       {
         mode: Boolean(refreshToken) ? 'exclusive' : 'shared'
       },

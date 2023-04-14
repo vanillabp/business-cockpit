@@ -13,6 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.TasklistApi;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
@@ -92,4 +93,17 @@ public class GuiApiController implements TasklistApi {
         
 	}
 	
+    @Override
+    public Mono<ResponseEntity<UserTask>> getUserTask(
+            final String userTaskId,
+            final ServerWebExchange exchange) {
+        
+        return userTaskService
+                .getUserTask(userTaskId)
+                .map(mapper::toApi)
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+        
+    }
+    
 }

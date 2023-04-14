@@ -1,8 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { ListOfTasks } from './ListOfTasks';
-import i18n from '../i18n';
+import i18n from '../../i18n';
 import React, { useLayoutEffect } from "react";
-import { useAppContext } from "../AppContext";
+import { useAppContext } from "../../AppContext";
 
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Tasks',

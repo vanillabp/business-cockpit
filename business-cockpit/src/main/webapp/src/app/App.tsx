@@ -1,20 +1,21 @@
 import React, { Suspense, useEffect, lazy } from 'react';
-import { Box, Grommet, Heading, Text, ThemeType } from 'grommet';
+import { Box, Grommet, ThemeType } from 'grommet';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
-import { AppHeader } from './menu/AppHeader';
-import { Main } from './Main';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import '../i18n';
-import { ProtectedRoute } from './ProtectedRoute';
 import { CurrentUser } from './CurrentUser';
 import { GuiSseProvider } from '../client/guiClient';
-import { Login } from './Login';
-import { css } from 'styled-components';
 import { MessageToast } from '../components/Toast';
 import { LoadingIndicator } from '../components/LoadingIndicator';
 import { useKeepNowUpToDate } from '../utils/now-hook';
+import { css } from 'styled-components';
+import { Login } from './Login';
+import { ProtectedRoute } from '../app/ProtectedRoute';
+
+const MainApp = lazy(() => import('../main-app/MainApp'));
+const UserTaskApp = lazy(() => import('../usertask-app/UserTaskApp'));
 
 export const theme: ThemeType = {
   global: {
@@ -184,6 +185,7 @@ i18n.addResources('en', appNs, {
       "not-found": "The requested page is unknown!",
       "not-found hint": "Maybe use used a link in a mail which is already expired.",
       "url-tasklist": "tasks",
+      "url-usertask": "task",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit',
@@ -195,10 +197,9 @@ i18n.addResources('de', appNs, {
       "not-found": "Die angeforderte Seite ist unbekannt!",
       "not-found hint": "Eventuell hast du einen Link aus einer Mail verwendet, der bereits veraltet ist.",
       "url-tasklist": "aufgaben",
+      "url-usertask": "aufgabe",
     });
     
-const TaskList = lazy(() => import('../tasklist/Main'));
-
 type AppProps = {};
 
 const App: React.FC<AppProps> = (_props: AppProps): JSX.Element => {
@@ -232,44 +233,22 @@ const App: React.FC<AppProps> = (_props: AppProps): JSX.Element => {
         <Router>
           <Box
               fill>
-            <AppHeader />
-            <Box
-                direction='row'
-                fill
-                style={ { display: 'unset' } } /* to avoid removing bottom margin of inner boxes */
-                overflow={ { horizontal: 'hidden' } }>
-              <Suspense fallback={<LoadingIndicator />}>
-                <CurrentUser>
-                  <Routes>
-                    <Route element={<ProtectedRoute />}>
-                      <Route path={t('url-tasklist') + '/*'} element={<TaskList />} />
-                    </Route>
-                    <Route path='/login' element={<Login />} />
-                    <Route element={<ProtectedRoute />}>
-                      <Route path='/' element={<Main />} />
-                    </Route>
-                    <Route path='*' element={
-                      <Box
-                          direction='column'
-                          fill='horizontal'
-                          flex='shrink'
-                          align='center'
-                          gap='medium'
-                          pad='medium'
-                          width='medium'>
-                        <Heading level='3'>{t('not-found')}</Heading>
-                        <Text>{t('not-found hint')}</Text>
-                      </Box>
-                    } />
-                  </Routes>
-                  {
-                    state.loadingIndicator
-                        ? <LoadingIndicator />
-                        : <></>
-                  }
-                </CurrentUser>
-              </Suspense>
-            </Box>
+            <Suspense fallback={<LoadingIndicator />}>
+              <CurrentUser>
+                <Routes>
+                  <Route path={ `${ t('url-usertask') }/*` } element={<UserTaskApp />} />
+                  <Route path='login' element={<Login />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="*" element={<MainApp />} />
+                  </Route>
+               </Routes>
+                {
+                  state.loadingIndicator
+                      ? <LoadingIndicator />
+                      : <></>
+                }
+              </CurrentUser>
+            </Suspense>
           </Box>
         </Router>
       </GuiSseProvider>

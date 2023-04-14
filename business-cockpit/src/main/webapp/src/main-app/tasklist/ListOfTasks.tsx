@@ -1,19 +1,29 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
-import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../components/SearchableAndSortableUpdatingList';
+import i18n from '../../i18n';
+import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../../components/SearchableAndSortableUpdatingList';
 import { useTasklistApi } from './TasklistAppContext';
-import { TasklistApi, UserTask, UserTaskEvent } from '../client/gui';
-import { useGuiSse } from '../client/guiClient';
-import { Grid, Box } from 'grommet';
-import useResponsiveScreen from '../utils/responsiveUtils';
-import { EventSourceMessage, WakeupSseCallback } from '../components/SseProvider';
+import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
+import { useGuiSse } from '../../client/guiClient';
+import { Grid, Box, CheckBox } from 'grommet';
+import useResponsiveScreen from '../../utils/responsiveUtils';
+import { EventSourceMessage, WakeupSseCallback } from '../../components/SseProvider';
+import { Link } from '../../components/Link';
+import { useAppContext } from "../../AppContext";
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
+      "no": "No.",
+      "name": "task",
+      "unsupported-url-type_title": "Open task",
+      "unsupported-url-type_message": "Internal error: The task refers to an unsupported URL-type!",
     });
 i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
+      "no": "Nr.",
+      "name": "Aufgabe",
+      "unsupported-url-type_title": "Aufgabe öffnen",
+      "unsupported-url-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten URL-Typ!",
     });
 
 const loadUserTasks = async (
@@ -33,7 +43,6 @@ const loadUserTasks = async (
       items: result.userTasks
   	};
 };
-
 
 const reloadUserTasks = async (
   tasklistApi: TasklistApi,
@@ -61,6 +70,8 @@ const ListOfTasks = () => {
 
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('tasklist/list');
+  const { t: tApp } = useTranslation('app');
+  const { toast } = useAppContext();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
@@ -79,6 +90,57 @@ const ListOfTasks = () => {
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
   
+  const openTask = async (userTask: UserTask) => {
+      if (userTask.urlType !== 'WEBPACK_REACT') {
+        toast({
+            namespace: 'tasklist/list',
+            title: t('unsupported-url-type_title'),
+            message: t('unsupported-url-type_message'),
+            status: 'critical'
+          });
+        return;
+      }
+      
+      const targetWindowName = `usertask-app-${userTask.id}`;
+      const targetUrl = `/${ tApp('url-usertask') }/${userTask.id}`;
+      const targetWindow = window.open(targetUrl, targetWindowName);
+      if (targetWindow) {
+        targetWindow.focus();
+      }
+    };
+    
+  const columns: ColumnConfig<ListItem<UserTask>>[] =
+      [
+          { property: 'id',
+            primary: true,
+            pin: true,
+            size: '2.2rem',
+            header: <Box
+                    pad="xsmall">
+                  <CheckBox />
+                </Box>,
+            render: (_item: ListItem<T>) => (
+                <Box pad="xsmall">
+                  <CheckBox />
+                </Box>)
+          },
+          { property: 'number',
+            header: t('no'),
+            size: '3rem'
+          },
+          { property: 'name',
+            header: t('name'),
+            render: (item: ListItem<T>) => (
+                <Box>
+                  <Link
+                      onClick={ () => openTask(item.data) }
+                      truncate="tip">
+                    { item.data['title'].de }
+                  </Link>
+                </Box>)
+          },
+      ];
+  
   return (
       <Grid
           rows={ [ 'auto', '2rem' ] }
@@ -86,6 +148,7 @@ const ListOfTasks = () => {
         <Box>
           <SearchableAndSortableUpdatingList
               t={ t }
+              columns={ columns }
               itemsRef={ userTasks }
               updateListRef= { updateListRef }
               retrieveItems={ (pageNumber, pageSize) => 

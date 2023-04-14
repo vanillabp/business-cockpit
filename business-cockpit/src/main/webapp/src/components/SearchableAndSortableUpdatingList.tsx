@@ -1,7 +1,6 @@
 import React, { useState, MutableRefObject, useEffect, useRef, useCallback } from 'react';
-import { Box, ColumnConfig, Text, CheckBox } from 'grommet';
+import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from '../components/SnapScrollingDataTable';
-import { TFunction } from 'i18next';
 import { useAppContext } from '../AppContext';
 
 const itemsBatchSize = 30;
@@ -135,17 +134,17 @@ const reloadData = async <T extends Data>(
 };
 
 const SearchableAndSortableUpdatingList = <T extends Data>({
-  t,
   itemsRef,
   updateListRef,
   retrieveItems,
   reloadItems,
+  columns,
 }: {
-  t: TFunction,
   itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
   updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
   retrieveItems: RetrieveItemsFunction,
   reloadItems: ReloadItemsFunction,
+  columns: ColumnConfig<any>[],
 }) => {
 
   const { showLoadingIndicator } = useAppContext();
@@ -180,37 +179,6 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
       initList();
     }, [ showLoadingIndicator, items, retrieveItems, reloadItems, setItems, initialTimestamp, updateListRef ]);
   
-  const columns: ColumnConfig<ListItem<T>>[] =
-      [
-          { property: 'id',
-            primary: true,
-            pin: true,
-            size: '2.2rem',
-            header: <Box
-                    pad="xsmall">
-                  <CheckBox />
-                </Box>,
-            render: (_item: ListItem<T>) => (
-                <Box pad="xsmall">
-                  <CheckBox />
-                </Box>)
-          },
-          { property: 'number',
-            header: 'No',
-            size: '3rem'
-          },
-          { property: 'name',
-            header: t('name'),
-            render: (item: ListItem<T>) => (
-                <Box>
-                  <Text
-                      truncate="tip">
-                    { item.data['title'].de }
-                  </Text>
-                </Box>)
-          },
-      ];
-
   const headerHeight = 'auto';
   const phoneMargin = '0';
   

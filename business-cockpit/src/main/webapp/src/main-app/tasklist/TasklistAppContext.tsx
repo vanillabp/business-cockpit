@@ -1,8 +1,8 @@
 import { useMemo, MutableRefObject } from 'react';
-import { useAppContext } from '../AppContext';
-import { getTasklistGuiApi } from '../client/guiClient';
-import { TasklistApi } from '../client/gui';
-import { WakeupSseCallback } from '../components/SseProvider';
+import { useAppContext } from '../../AppContext';
+import { getTasklistGuiApi } from '../../client/guiClient';
+import { TasklistApi } from '../../client/gui';
+import { WakeupSseCallback } from '../../components/SseProvider';
 
 const useTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): TasklistApi => {
 

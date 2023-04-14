@@ -43,6 +43,27 @@ paths:
                 $ref: '#/components/schemas/User'
         404:
           description: No user logged in
+  /tasklist/usertask/{userTaskId}:
+    get:
+      tags:
+        - tasklist
+      summary: Fetch data of one single User task
+      operationId: getUserTask
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Users task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTask'
+        404:
+          description: Unknown user task
   /tasklist/usertask:
     post:
       tags:
@@ -131,6 +152,10 @@ components:
             $ref: '#/components/schemas/Role'
     AppInformation:
       type: object
+      required:
+        - titleShort
+        - titleLong
+        - version
       properties:
         titleShort:
           type: string

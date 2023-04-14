@@ -140,6 +140,7 @@ const fetchAppInformationFromLoginApi = async (appInformation: AppInformation | 
   try {
     const appInformation = await loginApi.appInformation();
     dispatch({ type: 'updateAppInformation', appInformation });
+    window.document.title = appInformation.titleLong;
   } catch (error) {
     console.error(error);
   }
