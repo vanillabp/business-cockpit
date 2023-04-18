@@ -1,38 +1,49 @@
-const MicroFrontedPlugin = require('craco-plugin-micro-frontend');
-require('react-scripts/config/env');
 const { parseVersion } = require('./utils');
 const { DefinePlugin } = require("webpack");
+const { ModuleFederationPlugin } = require('webpack').container;
+const { dependencies } = require('./package.json');
 
 module.exports = {
   webpack: {
-    plugins: [
-      new DefinePlugin({
-        options: {
-          'process.env': {
-            BUILD_TIMESTAMP: `'${new Date().toISOString()}'`,
-            BUILD_VERSION: `'${parseVersion()}'`,
-          }
-        },
-      }),
-    ],
-  },
-  plugins: [
-    {
-      plugin: MicroFrontedPlugin,
-      options: {
-        orgName: 'vanillabp-bc',
-        fileName: 'TestModule',
-        entry: 'src/index.ts',
-        orgPackagesAsExternal: true, // marks packages that has @vanillabp-bc prefix as external
-        reactPackagesAsExternal: true, // marks react and react-dom as external
-        externals: [
-          'react-router',
-          'react-router-dom',
-          'react-i18next'
-        ],
-        minimize: true,
-        outputPath: process.env.BUILD_PATH,
+    configure: {
+      output: {
+        publicPath: '/wm/TestModule/',
+      },
+      entry: {
+        remote: './src/index',
       },
     },
-  ],
+    plugins: {
+      remove: [ 'HtmlWebpackPlugin' , 'MiniCssExtractPlugin' ],
+      add: [
+        new DefinePlugin({
+          'process.env.BUILD_TIMESTAMP': `'${new Date().toISOString()}'`,
+          'process.env.BUILD_VERSION': `'${parseVersion()}'`,
+        }),
+        new ModuleFederationPlugin({
+          name: "remote",
+          filename: 'remoteEntry.js',
+          exposes: {
+            List: './src/List',
+            Form: './src/Form',
+          },
+          shared: {
+            ...dependencies,
+            react: {
+              import: 'react', // the "react" package will be used a provided and fallback module
+              shareKey: 'react', // under this name the shared module will be placed in the share scope
+              shareScope: 'default', // share scope with this name will be used
+              singleton: true,
+              requiredVersion: dependencies["react"],
+            },
+            "react-dom": {
+              singleton: true,
+              requiredVersion: dependencies["react-dom"],
+            },
+            
+          },
+        }),
+      ]
+    }
+  }
 };

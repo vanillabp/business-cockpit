@@ -41,7 +41,7 @@
   },
   "scripts": {
     "start": "GENERATE_SOURCEMAP=false && craco start",
-    "build": "cross-env BUILD_PATH=../../../target/classes/static/TestModule REACT_APP_INJECTABLE=true craco build",
+    "build": "cross-env BUILD_PATH=../../../target/classes/static/TestModule craco build",
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static/TestModule",
     "test": "craco test",
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/TestModule/static/js/*.js"

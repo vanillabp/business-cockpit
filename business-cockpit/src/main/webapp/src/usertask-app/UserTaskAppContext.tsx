@@ -1,10 +1,10 @@
 import React, { useMemo, MutableRefObject, PropsWithChildren } from 'react';
-import { useAppContext } from '../AppContext';
 import { getTasklistGuiApi } from '../client/guiClient';
 import { TasklistApi } from '../client/gui';
 import { WakeupSseCallback } from '../components/SseProvider';
 import { useParams } from 'react-router-dom';
 import { NoUserTaskGiven } from './NoUserTaskGiven';
+import { useAppContext } from '../AppContext';
 
 const UserTaskAppContext = React.createContext<{
   userTaskId: string;
@@ -15,7 +15,6 @@ let userTask: UserTask | undefined = undefined;
 let inprogress: Promise<UserTask | null> | undefined = undefined;
 
 const loadUserTask = (
-  showLoadingIndicator: (show: boolean) => void,
   tasklistApi: TasklistApi,
   userTaskId: string
 ): UserTask => {
@@ -50,10 +49,8 @@ const loadUserTask = (
 const UserTaskAppContextProvider = ({ children }: PropsWithChildren<{}>) => {
   const tasklistApi = useTasklistApi();
   const userTaskId = useParams()['*'];
-  const { showLoadingIndicator } = useAppContext();
   
   const userTask = loadUserTask(
-      showLoadingIndicator,
       tasklistApi,
       userTaskId);
 

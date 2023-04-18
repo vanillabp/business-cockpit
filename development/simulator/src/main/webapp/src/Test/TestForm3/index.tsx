@@ -1,4 +1,4 @@
-const formKey = 'TestForm3';
+const taskDefinition = 'TestForm3';
 
 const taskListColumns = [
   {
@@ -11,4 +11,4 @@ const taskListColumns = [
   }
 ];
 
-export { taskListColumns, formKey };
+export { taskListColumns, taskDefinition };

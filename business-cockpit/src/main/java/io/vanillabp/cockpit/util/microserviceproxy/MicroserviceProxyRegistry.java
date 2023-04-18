@@ -127,7 +127,9 @@ public class MicroserviceProxyRegistry implements RouteLocator {
                     .stream()
                     .filter(entry -> !routes.containsKey(entry.getKey()))
                     .forEach(entry -> {
-                        // remove '/asset-manifest.json' from URL
+                        // remove file from URL because it is reflected by
+                        // the url-type and may change on evolving the
+                        // workflow modules UI
                         final var target = entry.getValue().replaceFirst("/[^/]+$", "/");
                         routes.put(entry.getKey(), target);
                     });
