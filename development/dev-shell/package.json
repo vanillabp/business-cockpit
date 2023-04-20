@@ -1,0 +1,67 @@
+{
+  "name": "test-module",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@bc/shared": "file:../../react-shared",
+    "@fontsource/roboto": "^4.5.8",
+    "@microsoft/fetch-event-source": "^2.0.1",
+    "grommet": "2.31.0",
+    "grommet-icons": "4.10.0",
+    "i18next": "^22.0.3",
+    "react": "^18.2.0",
+    "react-cookie": "^4.1.1",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^12.0.0",
+    "react-jsx": "^1.0.0",
+    "react-router-dom": "^6.3.0",
+    "styled-components": "^5.3.3",
+    "universal-cookie": "^4.0.4",
+    "usehooks-ts": "^2.7.1",
+    "web-vitals": "^1.1.2"
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@testing-library/jest-dom": "^5.15.0",
+    "@testing-library/react": "^11.2.7",
+    "@testing-library/user-event": "^12.8.3",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.7",
+    "@types/react": "^18.0.21",
+    "@types/react-dom": "^18.0.6",
+    "@types/styled-components": "^5.1.24",
+    "@types/web": "^0.0.61",
+    "compress-create-react-app": "^1.2.1",
+    "craco-plugin-micro-frontend": "^6.0.0",
+    "cross-env": "^7.0.3",
+    "http-proxy-middleware": "^2.0.6",
+    "react-scripts": "5.0.1",
+    "source-map-explorer": "^2.5.2",
+    "typescript": "4.9.5",
+    "xml2js": "^0.4.23"
+  },
+  "scripts": {
+    "start": "GENERATE_SOURCEMAP=true && craco start",
+    "build": "cross-env craco build",
+    "test": "craco test",
+    "analyze": "cross-env source-map-explorer dist/static/js/*.js"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
