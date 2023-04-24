@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export type UseCase = 'List' | 'Form';
 
@@ -159,13 +159,16 @@ const getModule = (
 ): ComponentProducer => {
   const moduleId = `${workflowModuleId}#${useCase}`;
   let result = modules[moduleId];
-  if (result !== undefined) {
+  if ((result !== undefined)
+      && (result.retry === undefined)) {
     return {
         subscribe: (handler: HandlerFunction) => handler(result), 
         unsubscribe: (handler: HandlerFunction) => handler(result), 
       };
   }
+  
   return loadModule(moduleId, workflowModuleId, useCase);
+  
 };
 
 const useFederationModule = (
@@ -174,14 +177,17 @@ const useFederationModule = (
 ): Module => {
 
   const [module, setModule] = useState(modules[workflowModuleId]);
+
+  const memoizedGetModule = useCallback(
+      () => getModule(workflowModuleId, useCase),
+      [ workflowModuleId, useCase ]);
   
   useEffect(() => {
-      if (module !== undefined) return;
-      const { subscribe, unsubscribe } = getModule(workflowModuleId, useCase);
+      const { subscribe, unsubscribe } = memoizedGetModule();
       const handler = (loadedModule: Module) => setModule(loadedModule);
       subscribe(handler);
       return () => unsubscribe(handler);
-    }, [workflowModuleId, useCase, module, setModule]);
+    }, [ memoizedGetModule, setModule ]);
   
   return module;
 
