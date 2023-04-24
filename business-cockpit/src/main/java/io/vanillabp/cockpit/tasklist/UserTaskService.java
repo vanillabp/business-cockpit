@@ -92,7 +92,7 @@ public class UserTaskService {
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
-                .withSort(Sort.by(Order.asc("dueDate").nullsFirst()));
+                .withSort(DEFAULT_SORT);
         
     	return userTasks
     	        .findAllBy(pageRequest)

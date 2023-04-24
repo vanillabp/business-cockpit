@@ -1,7 +1,7 @@
 import { Box, Button, CalendarHeaderProps, Heading, RangeInput } from "grommet";
 import React, { ChangeEvent, useContext } from "react";
 import { ThemeContext } from "styled-components";
-import useResponsiveScreen from "../utils/responsiveUtils";
+import { useResponsiveScreen } from "@bc/shared";
 
 const headingPadMap = {
   phone: 'xsmall',

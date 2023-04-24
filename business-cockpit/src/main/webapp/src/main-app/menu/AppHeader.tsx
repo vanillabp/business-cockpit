@@ -4,7 +4,7 @@ import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from '../../AppContext';
-import useResponsiveScreen from '../../utils/responsiveUtils';
+import { useResponsiveScreen } from "@bc/shared";
 import { ResponsiveMenu } from "./ResponsiveMenu";
 
 const AppHeader = () => {

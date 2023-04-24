@@ -1,13 +1,13 @@
 import { Configuration as GuiConfiguration, LoginApi, TasklistApi } from './gui';
-import { Dispatch, useAppContext } from '../AppContext';
-import { buildFetchApi, doLogout } from '../utils/fetchApi';
-import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '../components/SseProvider';
-import { createContext } from 'react';
+import { useAppContext } from '../AppContext';
+import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '@bc/shared';
+import { createContext, Dispatch } from 'react';
+import { ToastAction, buildFetchApi, doLogout } from '@bc/shared';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
 
 const getLoginGuiApi = (
-  dispatch: Dispatch,
+  dispatch: Dispatch<ToastAction>,
   wakeupSseCallback?: WakeupSseCallback
 ): LoginApi => {
   const config = new GuiConfiguration({
@@ -18,7 +18,7 @@ const getLoginGuiApi = (
 };
 
 const getTasklistGuiApi = (
-  dispatch: Dispatch,
+  dispatch: Dispatch<ToastAction>,
   wakeupSseCallback?: WakeupSseCallback
 ): TasklistApi => {
   const config = new GuiConfiguration({

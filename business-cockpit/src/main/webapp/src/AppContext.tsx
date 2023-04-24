@@ -1,23 +1,16 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, Dispatch } from 'react';
 import { User, LoginApi, AppInformation } from './client/gui';
 import { getLoginGuiApi } from './client/guiClient';
-import { StatusType } from 'grommet';
+import { Toast, ToastAction } from '@bc/shared';
 
 type Action =
     | { type: 'updateAppInformation', appInformation: AppInformation | null }
     | { type: 'updateCurrentUser', user: User | null }
     | { type: 'showMenu', visibility: boolean }
     | { type: 'loadingIndicator', show: boolean }
-    | { type: 'toast', toast: Toast | undefined }
+    | ToastAction
     | { type: 'updateTitle', title: string, intern?: boolean };
-export type Dispatch = (action: Action) => void;
-export type Toast = {
-  namespace: string;
-  title: string | undefined | null;
-  message: string;
-  status?: StatusType;
-  timeout?: number;
-};
+
 type State = {
   appInformation: AppInformation | null;
   currentUser: User | null | undefined;
@@ -30,7 +23,7 @@ type State = {
 
 const AppContext = React.createContext<{
   state: State;
-  dispatch: Dispatch;
+  dispatch: Dispatch<Action>;
   toast: (toast: Toast) => void;
   fetchAppInformation: () => void;
   fetchCurrentUser: (resolve: (value: User | null) => void, reject: (error: any) => void, forceUpdate?: boolean) => void;
@@ -133,7 +126,7 @@ const AppContextProvider = ({ children }: AppContextProviderProps) => {
    </AppContext.Provider>);
 };
 
-const fetchAppInformationFromLoginApi = async (appInformation: AppInformation | null, dispatch: Dispatch, loginApi: LoginApi) => {
+const fetchAppInformationFromLoginApi = async (appInformation: AppInformation | null, dispatch: Dispatch<Action>, loginApi: LoginApi) => {
   if (appInformation !== null) {
     return;
   }
@@ -147,7 +140,7 @@ const fetchAppInformationFromLoginApi = async (appInformation: AppInformation | 
 }
 
 const fetchCurrentUserFromGui = async (currentUser: User | null | undefined,
-    dispatch: Dispatch,
+    dispatch: Dispatch<Action>,
     loginApi: LoginApi,
     resolve: (value: User | null) => void,
     reject: (error: any) => void,
@@ -169,15 +162,15 @@ const fetchCurrentUserFromGui = async (currentUser: User | null | undefined,
   }
 }
 
-const setShowMenu = (dispatch: Dispatch, visibility: boolean) => {
+const setShowMenu = (dispatch: Dispatch<Action>, visibility: boolean) => {
   dispatch({ type: 'showMenu', visibility });
 }
 
-const setLoadingIndicator = (dispatch: Dispatch, show: boolean) => {
+const setLoadingIndicator = (dispatch: Dispatch<Action>, show: boolean) => {
   dispatch({ type: 'loadingIndicator', show });
 }
 
-const updateTitle = (dispatch: Dispatch, title: string, intern?: boolean) => {
+const updateTitle = (dispatch: Dispatch<Action>, title: string, intern?: boolean) => {
   dispatch({ type: 'updateTitle', title, intern });
 }
 

@@ -3,7 +3,7 @@ import { User as UserMale, UserFemale } from 'grommet-icons';
 import { Anchor, Avatar, Box, Text } from 'grommet';
 import { BorderType } from 'grommet/utils';
 import React, { useRef, useState } from 'react';
-import useOnClickOutside from '../utils/clickOutside';
+import { useOnClickOutside } from '@bc/shared';
 import { useAppContext } from '../AppContext';
 import { Content } from './MainLayout';
 

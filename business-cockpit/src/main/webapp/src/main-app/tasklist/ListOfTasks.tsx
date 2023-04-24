@@ -6,8 +6,8 @@ import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox } from 'grommet';
-import useResponsiveScreen from '../../utils/responsiveUtils';
-import { EventSourceMessage, WakeupSseCallback } from '../../components/SseProvider';
+import { useResponsiveScreen } from "@bc/shared";
+import { EventSourceMessage, WakeupSseCallback } from '@bc/shared';
 import { Link } from '../../components/Link';
 import { useAppContext } from "../../AppContext";
 
