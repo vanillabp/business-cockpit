@@ -14,7 +14,7 @@
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
   </properties>
-  
+
   <build>
     <plugins>
       <plugin>
@@ -60,7 +60,7 @@
                 <enablePostProcessFile>true</enablePostProcessFile>
                 <useBeanValidation>false</useBeanValidation>
                 <reactive>true</reactive>
-			      <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
             </configuration>
@@ -132,6 +132,10 @@
     <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
   </dependencies>
 </project>

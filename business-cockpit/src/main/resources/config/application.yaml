@@ -5,9 +5,6 @@ logging:
 spring:
   application:
     name: VanillaBP-business-cockpit
-  jackson:
-    # reduce amout of data sent to the GUI by skipping null-value properties
-    default-property-inclusion: NON_NULL
 
 bpms-api:
   realm-name: BPMS-API
