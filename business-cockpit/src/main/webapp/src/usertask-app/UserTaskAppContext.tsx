@@ -1,6 +1,6 @@
 import React, { useMemo, MutableRefObject, PropsWithChildren } from 'react';
 import { getTasklistGuiApi } from '../client/guiClient';
-import { TasklistApi } from '../client/gui';
+import { TasklistApi, UserTask } from '../client/gui';
 import { WakeupSseCallback } from '../components/SseProvider';
 import { useParams } from 'react-router-dom';
 import { NoUserTaskGiven } from './NoUserTaskGiven';
@@ -8,16 +8,16 @@ import { useAppContext } from '../AppContext';
 
 const UserTaskAppContext = React.createContext<{
   userTaskId: string;
-  userTask: UserTask;
+  userTask: UserTask | null;
 } | undefined>(undefined);
 
-let userTask: UserTask | undefined = undefined;
+let userTask: UserTask | null | undefined = undefined;
 let inprogress: Promise<UserTask | null> | undefined = undefined;
 
 const loadUserTask = (
   tasklistApi: TasklistApi,
   userTaskId: string
-): UserTask => {
+): UserTask | null | undefined => {
   
   if (inprogress === undefined) {
     if (!Boolean(userTaskId)) {
@@ -48,19 +48,19 @@ const loadUserTask = (
 
 const UserTaskAppContextProvider = ({ children }: PropsWithChildren<{}>) => {
   const tasklistApi = useTasklistApi();
-  const userTaskId = useParams()['*'];
+  const userTaskId: string | undefined = useParams()['*'];
   
   const userTask = loadUserTask(
       tasklistApi,
-      userTaskId);
+      userTaskId!);
 
   const value = {
-      userTaskId,
-      userTask
+      userTaskId: userTaskId!,
+      userTask: userTask!
     };
 
   return userTask === null
-      ? <NoUserTaskGiven loading={ false } />
+      ? <NoUserTaskGiven />
       : <UserTaskAppContext.Provider value={value}>
           {children}
         </UserTaskAppContext.Provider>;

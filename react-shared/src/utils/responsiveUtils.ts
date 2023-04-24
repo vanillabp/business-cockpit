@@ -33,4 +33,4 @@ const useResponsiveScreen = (): CurrentScreen => {
   
 };
 
-export default useResponsiveScreen;
+export { useResponsiveScreen };

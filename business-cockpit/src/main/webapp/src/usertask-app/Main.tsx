@@ -13,7 +13,7 @@ const Main = () => {
   document.title = userTask.title.de;
 
   const module = useFederationModule(userTask.workflowModule, 'Form');
-  
+
   useEffect(() => {
       if (!module) {
         showLoadingIndicator(true);
@@ -23,9 +23,12 @@ const Main = () => {
     }, [ module, showLoadingIndicator ]);
   
   if (!module) {
-    return <NoUserTaskGiven loading={ true } />
+    return <NoUserTaskGiven loading />
   }
-
+  if (module.retry) {
+    return <NoUserTaskGiven retry={ module.retry } />
+  }
+    
   const Form = module.UserTaskForm;
   
   return (

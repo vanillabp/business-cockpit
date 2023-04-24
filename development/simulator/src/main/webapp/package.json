@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@bc/shared": "file:../../../../../react-shared",
     "@fontsource/roboto": "^4.5.8",
     "@microsoft/fetch-event-source": "^2.0.1",
     "grommet": "2.31.0",

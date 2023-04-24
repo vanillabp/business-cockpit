@@ -1,10 +1,11 @@
+import { Dispatch } from 'react';
 import { WakeupSseCallback } from '../components/SseProvider';
-import { ToastDispatch } from '../components/Toast';
+import { ToastAction } from '../components/Toast';
 
 const REFRESH_TOKEN_HEADER = "x-refresh-token";
 
 const doRequest = (
-    dispatch: ToastDispatch,
+    dispatch: Dispatch<ToastAction>,
     resolve: (response: Response) => void,
     reject: (error: any) => void,
     input: RequestInfo | URL,
@@ -91,7 +92,7 @@ const doRequest = (
   
 };
 
-const buildFetchApi = (dispatch: ToastDispatch, wakeupSeeCallback?: WakeupSseCallback): WindowOrWorkerGlobalScope['fetch'] => {
+const buildFetchApi = (dispatch: Dispatch<ToastAction>, wakeupSeeCallback?: WakeupSseCallback): WindowOrWorkerGlobalScope['fetch'] => {
   
   return (input, init): Promise<Response> => {
       return new Promise((resolve, reject) => {

@@ -8,10 +8,7 @@ module.exports = {
     configure: {
       output: {
         publicPath: '/wm/TestModule/',
-      },
-      entry: {
-        remote: './src/index',
-      },
+      }
     },
     plugins: {
       remove: [ 'HtmlWebpackPlugin' , 'MiniCssExtractPlugin' ],
@@ -21,7 +18,7 @@ module.exports = {
           'process.env.BUILD_VERSION': `'${parseVersion()}'`,
         }),
         new ModuleFederationPlugin({
-          name: "remote",
+          name: "TestModule",
           filename: 'remoteEntry.js',
           exposes: {
             List: './src/List',
@@ -40,7 +37,10 @@ module.exports = {
               singleton: true,
               requiredVersion: dependencies["react-dom"],
             },
-            
+            "@bc/shared": {
+              import: '@bc/shared',
+              requiredVersion: '0.0.1'
+            }
           },
         }),
       ]

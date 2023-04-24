@@ -1,8 +1,15 @@
 const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
 const { dependencies } = require("./package.json");
 
+const path = require("path");
+
+const aliases = {
+  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared", "dist"),
+};
+
 module.exports = {
   webpack: {
+    alias: aliases,
     plugins: {
       add: [
         new ModuleFederationPlugin({
@@ -20,9 +27,30 @@ module.exports = {
               singleton: true,
               requiredVersion: dependencies["react-dom"],
             },
+            "@bc/shared": {
+              import: '@bc/shared',
+              requiredVersion: '0.0.1'
+            }
           },
         }),
       ]
     }
-  }
+  },
+  plugins: [
+    {
+      plugin: {
+        overrideWebpackConfig: ({ webpackConfig, pluginOptions, context: { paths } }) => {
+//          webpackConfig.resolve.extensionAlias = {
+//                ".js": [".ts", ".tsx", ".js", ".mjs"],
+//                ".mjs": [".mts", ".mjs"]
+//              };
+          const ignoreWarnings = [
+              { module: /@bc\/shared/ },
+              { module: /@microsoft\/fetch-event-source/ }
+            ];
+          return { ...webpackConfig, ignoreWarnings }
+        }
+      }
+    }
+  ]
 };

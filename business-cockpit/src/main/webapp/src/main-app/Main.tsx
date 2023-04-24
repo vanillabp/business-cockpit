@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react';
 import { useAppContext } from '../AppContext';
 import { Box } from 'grommet';
+import { Test } from '@bc/shared';
 
 const Main = () => {
 
@@ -10,7 +11,7 @@ const Main = () => {
     setAppHeaderTitle('app');
   }, [ setAppHeaderTitle ]);
   
-  return <Box>Main</Box>;
+  return <Box>Main: <Test /></Box>;
 
 }
 

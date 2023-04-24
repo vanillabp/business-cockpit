@@ -23,4 +23,4 @@ function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   { capture: true });
 }
 
-export default useOnClickOutside;
+export { useOnClickOutside };

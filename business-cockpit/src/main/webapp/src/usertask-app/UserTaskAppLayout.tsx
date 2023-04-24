@@ -1,6 +1,5 @@
-import React, { useEffect, PropsWithChildren } from 'react';
-import { Box, Text } from 'grommet';
-import { useAppContext } from '../AppContext';
+import React, { PropsWithChildren } from 'react';
+import { Box } from 'grommet';
 
 interface FrameProps {
   header?: ReactNode | undefined;

@@ -2,13 +2,10 @@ import React from 'react';
 import User from './User';
 import { useAppContext } from '../../AppContext';
 import { Anchor, Box, Grid, Text } from 'grommet';
-import { Logout, Stakeholder, UserAdmin, UserFemale, User as UserMale, UserSettings } from 'grommet-icons';
+import { Logout, Stakeholder } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import { Role, Sex } from '../../client/gui';
-import { useNavigate } from 'react-router-dom';
-import { useCurrentUserRoles } from '../../utils/roleUtils';
 import { doLogout } from '../../client/guiClient';
 
 i18n.addResources('en', 'menu', {
@@ -25,7 +22,6 @@ i18n.addResources('de', 'menu', {
 const Menu = () => {
   
   const { state, showMenu } = useAppContext();
-  const navigate = useNavigate();
   const { t } = useTranslation('menu');
   const { t: tApp } = useTranslation('app');
   

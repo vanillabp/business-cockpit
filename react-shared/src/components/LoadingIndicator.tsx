@@ -1,15 +1,6 @@
-import React, { Dispatch } from "react";
+import React from "react";
 import { Box, Layer } from "grommet";
 import { Cycle } from "grommet-icons";
-import { Action } from '../types/AppContext';
-
-export type LoadingIndicatorDispatchType = 'toast';
-export interface LoadingIndicatorAction extends Action<LoadingIndicatorDispatchType> {
-  toast: boolean | undefined;
-};
-
-export interface LoadingIndicatorDispatch extends Dispatch<LoadingIndicatorAction> {
-};
 
 const LoadingIndicator = () => (
     <Layer

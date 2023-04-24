@@ -3,7 +3,7 @@
 Example:
 
 ```js
-import { LoadingIndicator } from '@bc/shared/components/LoadingIndicator';
+import { LoadingIndicator } from '@bc/shared';
 ```
 
 Read the next sections for instructions of installation.

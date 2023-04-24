@@ -16,11 +16,8 @@ export type ToastAction = {
   toast: Toast | undefined;
 };
 
-export interface ToastDispatch extends Dispatch<ToastAction> {
-};
-
 interface MessageToastProps {
-  dispatch: ToastDispatch;
+  dispatch: Dispatch<ToastAction>;
   msg: Toast;
 };
 
