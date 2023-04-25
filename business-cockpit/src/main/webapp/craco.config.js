@@ -1,6 +1,7 @@
-const ModuleFederationPlugin = require("webpack/lib/container/ModuleFederationPlugin");
-const { dependencies } = require("./package.json");
-
+const { parseVersion } = require('./utils');
+const { DefinePlugin } = require("webpack");
+const { ModuleFederationPlugin } = require('webpack').container;
+const { dependencies } = require('./package.json');
 const path = require("path");
 
 const aliases = {

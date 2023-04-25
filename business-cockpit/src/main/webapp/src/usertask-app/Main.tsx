@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useUserTaskAppContext } from './UserTaskAppContext';
-import { UserTaskAppLayout } from './UserTaskAppLayout';
+import { UserTaskAppLayout } from '@bc/shared';
 import { useFederationModule } from '../utils/module-federation';
 import { useAppContext } from '../AppContext';
 import { NoUserTaskGiven } from './NoUserTaskGiven';

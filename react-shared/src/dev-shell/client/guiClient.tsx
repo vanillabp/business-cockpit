@@ -1,12 +1,12 @@
-import { useAppContext } from '../AppContext';
-import { buildFetchApi } from '@bc/shared/utils/fetchApi';
+import { useAppContext } from '../DevShellAppContext.js';
+import { buildFetchApi } from '../../utils/fetchApi.js';
 import {
     OnMessageFunction,
     SseContextInterface,
     SseProvider,
     useSse,
     WakeupSseCallback
-  } from '@bc/shared/components/SseProvider';
+  } from '../../components/SseProvider.js';
 import { createContext } from 'react';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";

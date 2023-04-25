@@ -2,48 +2,84 @@ const { parseVersion } = require('./utils');
 const { DefinePlugin } = require("webpack");
 const { ModuleFederationPlugin } = require('webpack').container;
 const { dependencies } = require('./package.json');
+const path = require("path");
+
+const aliases = {
+  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
+  'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
+  'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
+  'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")
+};
 
 module.exports = {
   webpack: {
+    alias: aliases,
     configure: {
-      output: {
-        publicPath: '/wm/TestModule/',
-      }
+      ...(process.env.NODE_ENV !== 'production'
+         ? {
+             entry: './test/index.tsx',
+           }
+         : {
+             output: {
+               publicPath: '/wm/TestModule/',
+             }
+           })
     },
     plugins: {
-      remove: [ 'HtmlWebpackPlugin' , 'MiniCssExtractPlugin' ],
+      remove: process.env.NODE_ENV !== 'production'
+          ? []
+          : [ 'HtmlWebpackPlugin' , 'MiniCssExtractPlugin' ],
       add: [
         new DefinePlugin({
           'process.env.BUILD_TIMESTAMP': `'${new Date().toISOString()}'`,
           'process.env.BUILD_VERSION': `'${parseVersion()}'`,
         }),
-        new ModuleFederationPlugin({
-          name: "TestModule",
-          filename: 'remoteEntry.js',
-          exposes: {
-            List: './src/List',
-            Form: './src/Form',
-          },
-          shared: {
-            ...dependencies,
-            react: {
-              import: 'react', // the "react" package will be used a provided and fallback module
-              shareKey: 'react', // under this name the shared module will be placed in the share scope
-              shareScope: 'default', // share scope with this name will be used
-              singleton: true,
-              requiredVersion: dependencies["react"],
-            },
-            "react-dom": {
-              singleton: true,
-              requiredVersion: dependencies["react-dom"],
-            },
-            "@bc/shared": {
-              import: '@bc/shared',
-              requiredVersion: '0.0.1'
-            }
-          },
-        }),
+        ...(process.env.NODE_ENV !== 'production'
+            ? []
+            : [
+                new ModuleFederationPlugin({
+                  name: "TestModule",
+                  filename: 'remoteEntry.js',
+                  exposes: {
+                    List: './src/List',
+                    Form: './src/Form',
+                  },
+                  shared: {
+                    react: {
+                      singleton: true,
+                      requiredVersion: dependencies["react"],
+                    },
+                    "react-dom": {
+                      singleton: true,
+                      requiredVersion: dependencies["react-dom"],
+                    },
+                  },
+                }),
+              ])
       ]
     }
-  }
+  },
+  plugins: [
+    {
+      plugin: {
+        overrideWebpackConfig: ({ webpackConfig, pluginOptions, context: { paths } }) => {
+          const moduleScopePlugin = webpackConfig.resolve.plugins.find(plugin => plugin.appSrcs && plugin.allowedFiles);
+          if (moduleScopePlugin) {
+            Object
+                .keys(aliases)
+                .map(key => aliases[key])
+                .forEach(path => moduleScopePlugin.appSrcs.push(path));
+          }
+//          webpackConfig.resolve.extensionAlias = {
+//                ".js": [".ts", ".tsx", ".js", ".mjs"],
+//                ".mjs": [".mts", ".mjs"]
+//              };
+          const ignoreWarnings = [
+              { module: /@microsoft\/fetch-event-source/ }
+            ];
+          return { ...webpackConfig, ignoreWarnings }
+        }
+      }
+    }
+  ]
 };

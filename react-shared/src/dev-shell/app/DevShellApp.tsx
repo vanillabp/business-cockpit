@@ -1,16 +1,18 @@
 import React, { Suspense } from 'react';
 import { Box, Grommet } from 'grommet';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { useAppContext } from '../AppContext';
-import i18n from '../i18n';
-import '../i18n';
-import { CurrentUser } from './CurrentUser';
-import { GuiSseProvider } from '../client/guiClient';
-import { MessageToast } from '@bc/shared/components/Toast';
-import { Test } from '@bc/shared/components/Test';
-import { LoadingIndicator } from '@bc/shared/components/LoadingIndicator';
-import { useKeepNowUpToDate } from '@bc/shared/utils/now-hook';
-import { theme } from '@bc/shared/theme';
+import { BrowserRouter as Router, Outlet, Route, Routes } from 'react-router-dom';
+import { useAppContext } from '../DevShellAppContext.js';
+import i18n from '../i18n.js';
+import '../i18n.js';
+import { CurrentUser } from './CurrentUser.js';
+import { GuiSseProvider } from '../client/guiClient.js';
+import { MessageToast } from '../../components/Toast.js';
+import { LoadingIndicator } from '../../components/LoadingIndicator.js';
+import { useKeepNowUpToDate } from '../../utils/now-hook.js';
+import { theme } from '../../theme/index.js';
+import { UserTaskAppLayout } from '../../components/UserTaskAppLayout.js';
+import { Header } from './Header.js';
+import { useTranslation } from 'react-i18next';
 
 const appNs = 'app';
 
@@ -23,6 +25,7 @@ i18n.addResources('en', appNs, {
       "forbidden": "This action is forbidden. If you think this is an error then please retry but logout and login before. If the error still persists then get in contact with the management board.",
       "not-found": "The requested page is unknown!",
       "not-found hint": "Maybe use used a link in a mail which is already expired.",
+      "url-usertask": "task",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit Dev Shell',
@@ -33,11 +36,13 @@ i18n.addResources('de', appNs, {
       "forbidden": "Diese Aktion ist verboten. Wenn du denkst, dass es sich um einen Fehler handelt, dann versuche es nochmals und melde dich davor ab und wieder an. Besteht das Problem weiterhin, dann kontaktiere bitte den Vereinsvorstand.",
       "not-found": "Die angeforderte Seite ist unbekannt!",
       "not-found hint": "Eventuell hast du einen Link aus einer Mail verwendet, der bereits veraltet ist.",
+      "url-usertask": "aufgabe",
     });
     
-const App = () => {
+const DevShellApp = () => {
 
   const { state, dispatch } = useAppContext();
+  const { t } = useTranslation(appNs);
 
   useKeepNowUpToDate();
   
@@ -55,8 +60,16 @@ const App = () => {
             <Suspense fallback={<LoadingIndicator />}>
               <CurrentUser>
                 <Routes>
-                  <Route path="*" element={<Test />} />
-               </Routes>
+                  <Route element={
+                      <UserTaskAppLayout
+                          header={<Header />}>
+                        <Outlet />
+                      </UserTaskAppLayout>
+                    }>
+                    <Route path={ `${t('url-usertask')}/:userTaskId` } element={<div>JUHU</div>} />
+                    <Route path="*" element={<div>Empty</div>} />
+                  </Route>
+                </Routes>
                 {
                   state.loadingIndicator
                       ? <LoadingIndicator />
@@ -72,4 +85,4 @@ const App = () => {
 };
 
 
-export default App;
+export { DevShellApp, appNs };

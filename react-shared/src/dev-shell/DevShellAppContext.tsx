@@ -1,9 +1,9 @@
 import React, { useCallback, Dispatch } from 'react';
-import { Toast } from '@bc/shared/components/Toast';
+import { Toast, ToastAction } from '../components/Toast';
 
 type Action =
     | { type: 'loadingIndicator', show: boolean }
-    | { type: 'toast', toast: Toast | undefined };
+    | ToastAction;
     
 type State = {
   toast: Toast | undefined;
