@@ -5,7 +5,7 @@ import { BorderType } from 'grommet/utils';
 import React, { useRef, useState } from 'react';
 import { useOnClickOutside } from '@bc/shared';
 import { useAppContext } from '../AppContext';
-import { Content } from './MainLayout';
+import { useResponsiveScreen } from '@bc/shared';
 
 type UserAvatarProps = {
   user: UserDto;
@@ -69,6 +69,8 @@ const UserAvatar = ({
     setShowDetails(user);
   };
   
+  const { isPhone } = useResponsiveScreen();
+  
   return (
       <Box
           style={ { position: 'relative' } }
@@ -96,7 +98,8 @@ const UserAvatar = ({
                       } }>
                   <Text
                       weight="bold">{ user.id }</Text>
-                  <Content>
+                  <Box
+                      pad={ { bottom: isPhone ? 'medium' : 'small' } }>
                     <Text truncate="tip">
                       { showDetails.firstName } { showDetails.lastName }
                     </Text>
@@ -104,7 +107,7 @@ const UserAvatar = ({
                         href={ `mailto:${ showDetails.email }` }>
                       { showDetails.email }
                     </Anchor>
-                  </Content>
+                  </Box>
                 </Box>
               : undefined
         }

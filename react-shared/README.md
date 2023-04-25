@@ -24,27 +24,6 @@ For local development of user-task forms in workflow modules one can
 1. Change to webapp folder of the workflow module
 1. Link the global package `npm link @bc/shared@0.0.1` (this needs to be repeated after each `npm install`)
 
-## tsconfig.json
-
-It is necessary to tell the Typescript compiler where to find imports of `@bc/shared`:
-
-```json
-{
-  "compilerOptions": {
-    ...
-    "baseUrl": "./",
-    "paths": {
-      "@bc/shared/*": ["node_modules/@bc/shared/dist/*"]
-    }
-  },
-  "include": [
-    "src/**/*",
-    "node_modules/@bc/shared/dist/**/*"
-  ],
-  ...
-}
-```
-
 ### Webpack
 
 Also Webpack needs to learn about the module. If the project is using `create-react-app` scripts one can use the drop-in replacement `craco` instead which allows to modify Webpack configuration.
@@ -61,8 +40,9 @@ Add the file `craco.config.js` to your root-folder:
 const path = require("path");
 
 const aliases = {
-  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared", "dist"),
-  react: path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
+  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
+  'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
+  'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
   'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")
 };
 
@@ -82,7 +62,6 @@ module.exports = {
                 .forEach(path => moduleScopePlugin.appSrcs.push(path));
           }
           const ignoreWarnings = [
-              { module: /@bc\/shared/ },
               { module: /@microsoft\/fetch-event-source/ }
             ];
           return { ...webpackConfig, ignoreWarnings }

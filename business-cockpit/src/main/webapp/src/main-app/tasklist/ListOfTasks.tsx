@@ -8,7 +8,7 @@ import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox } from 'grommet';
 import { useResponsiveScreen } from "@bc/shared";
 import { EventSourceMessage, WakeupSseCallback } from '@bc/shared';
-import { Link } from '../../components/Link';
+import { Link } from '@bc/shared';
 import { useAppContext } from "../../AppContext";
 
 i18n.addResources('en', 'tasklist/list', {

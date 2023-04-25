@@ -28,18 +28,6 @@
     "react-router-dom": "^6.3.0",
     "styled-components": "^5.3.3"
   },
-  "optionalDependencies": {
-    "@fontsource/roboto": "^4.5.8",
-    "grommet": "2.31.0",
-    "grommet-icons": "4.10.0",
-    "i18next": "^22.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-i18next": "^12.0.0",
-    "react-jsx": "^1.0.0",
-    "react-router-dom": "^6.3.0",
-    "styled-components": "^5.3.3"
-  },
   "devDependencies": {
     "@babel/preset-env": "^7.21.4",
     "@babel/preset-react": "^7.18.6",

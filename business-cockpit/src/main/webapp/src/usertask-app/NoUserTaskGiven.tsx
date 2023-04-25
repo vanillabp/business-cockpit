@@ -7,12 +7,12 @@ import { useTranslation } from 'react-i18next';
 
 i18n.addResources('en', 'no-usertask-given', {
       "hint": "Unfortunately, the task cannot be shown at the moment!",
-      "retry": "Retry...",
+      "retry": "Retry loading...",
       "task-does-not-exist": "The request task does not exist!"
     });
 i18n.addResources('de', 'no-usertask-given', {
       "hint": "Leider ist derzeit kein Zugriff auf die Aufgabe möglich!",
-      "retry": "Nochmals probieren...",
+      "retry": "Laden nochmals probieren...",
       "task-does-not-exist": "Die angeforderte Aufgabe existiert nicht!"
     });
 
@@ -36,22 +36,22 @@ const NoUserTaskGiven = ({
       <UserTaskAppLayout>
         <Box
            fill='horizontal'
-           margin='medium'
-           pad='medium'
-           gap='medium'
+           margin='large'
            align="center">
           {
             loading
                 ? undefined
                 : retry
-                ? <>
+                ? <Box
+                      direction="column"
+                      gap='medium'>
                     <Box>
                       { t('hint') }
                     </Box>
                     <Button
                         label={ t('retry') }
                         onClick={ () => retry() } />
-                  </>
+                  </Box>
                 : <Text
                       weight='bold'>
                     { t('task-does-not-exist') }

@@ -4,10 +4,18 @@ const { dependencies } = require("./package.json");
 const path = require("path");
 
 const aliases = {
-  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared", "dist"),
+  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
+  'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
+  'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
+  'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")
 };
 
 module.exports = {
+  devServer: {
+      devMiddleware: {
+          writeToDisk: true,
+      },
+  },
   webpack: {
     alias: aliases,
     plugins: {
@@ -15,22 +23,16 @@ module.exports = {
         new ModuleFederationPlugin({
           name: "business-cockpit",
           shared: {
-            ...dependencies,
             react: {
-              import: 'react', // the "react" package will be used a provided and fallback module
-              shareKey: 'react', // under this name the shared module will be placed in the share scope
-              shareScope: 'default', // share scope with this name will be used
+              eager: true,
               singleton: true,
               requiredVersion: dependencies["react"],
             },
             "react-dom": {
+              eager: true,
               singleton: true,
               requiredVersion: dependencies["react-dom"],
             },
-            "@bc/shared": {
-              import: '@bc/shared',
-              requiredVersion: '0.0.1'
-            }
           },
         }),
       ]
@@ -40,12 +42,18 @@ module.exports = {
     {
       plugin: {
         overrideWebpackConfig: ({ webpackConfig, pluginOptions, context: { paths } }) => {
+          const moduleScopePlugin = webpackConfig.resolve.plugins.find(plugin => plugin.appSrcs && plugin.allowedFiles);
+          if (moduleScopePlugin) {
+            Object
+                .keys(aliases)
+                .map(key => aliases[key])
+                .forEach(path => moduleScopePlugin.appSrcs.push(path));
+          }
 //          webpackConfig.resolve.extensionAlias = {
 //                ".js": [".ts", ".tsx", ".js", ".mjs"],
 //                ".mjs": [".mts", ".mjs"]
 //              };
           const ignoreWarnings = [
-              { module: /@bc\/shared/ },
               { module: /@microsoft\/fetch-event-source/ }
             ];
           return { ...webpackConfig, ignoreWarnings }
