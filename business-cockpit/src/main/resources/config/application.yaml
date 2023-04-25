@@ -5,6 +5,10 @@ logging:
 spring:
   application:
     name: VanillaBP-business-cockpit
+  webflux:
+    static-path-pattern: "/**"
+  resources:
+    static-locations: "classpath:/static/"
 
 bpms-api:
   realm-name: BPMS-API

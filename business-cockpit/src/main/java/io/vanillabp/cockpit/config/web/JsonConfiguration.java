@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.config;
+package io.vanillabp.cockpit.config.web;
 
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;

@@ -21,7 +21,6 @@ import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 })
 @EnableAsync
 @EnableScheduling
-@EnableWebFlux
 public class BusinessCockpitApplication {
 
     public static void main(String... args) {
