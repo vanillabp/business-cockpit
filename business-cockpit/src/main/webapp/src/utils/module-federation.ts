@@ -1,3 +1,4 @@
+import { UserTaskForm } from '@bc/shared';
 import React, { useState, useEffect, useCallback } from 'react';
 
 export type UseCase = 'List' | 'Form';
@@ -18,18 +19,13 @@ export interface TasklistCellProps {
   columnId: string;
 };
 
-export interface UserTaskFormProps {
-  bpmnProcessId: string;
-  formKey: string;
-};
-
 export interface Module {
   workflowModuleId?: string;
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
   taskListColumns?: Column[];
-  UserTaskForm?: React.FC<UserTaskFormProps>;
+  UserTaskForm?: UserTaskForm;
   TaskListCell?: React.FC<TasklistCellProps>; 
 };
 

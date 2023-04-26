@@ -8,7 +8,7 @@ import { useAppContext } from '../AppContext';
 
 const UserTaskAppContext = React.createContext<{
   userTaskId: string;
-  userTask: UserTask | null;
+  userTask: UserTask;
 } | undefined>(undefined);
 
 let userTask: UserTask | null | undefined = undefined;

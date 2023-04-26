@@ -1,4 +1,3 @@
-const { parseVersion } = require('./utils');
 const { DefinePlugin } = require("webpack");
 const { ModuleFederationPlugin } = require('webpack').container;
 const { dependencies } = require('./package.json');

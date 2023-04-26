@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@bc/shared": "file:../../../../../react-shared",
+    "@bc/official-gui-client": "file:../../../../../apis/official-gui-api/client",
     "@fontsource/roboto": "^4.5.8",
     "@microsoft/fetch-event-source": "^2.0.1",
     "grommet": "2.31.0",

@@ -60,13 +60,15 @@ const DevShellApp = () => {
             <Suspense fallback={<LoadingIndicator />}>
               <CurrentUser>
                 <Routes>
-                  <Route element={
-                      <UserTaskAppLayout
-                          header={<Header />}>
-                        <Outlet />
-                      </UserTaskAppLayout>
-                    }>
-                    <Route path={ `${t('url-usertask')}/:userTaskId` } element={<div>JUHU</div>} />
+                  <Route
+                      path={ t('url-usertask') as string }
+                      element={
+                          <UserTaskAppLayout
+                              header={<Header />}>
+                            <Outlet />
+                          </UserTaskAppLayout>
+                      }>
+                    <Route path=":userTaskId" element={<div>JUHU</div>} />
                     <Route path="*" element={<div>Empty</div>} />
                   </Route>
                 </Routes>

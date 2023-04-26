@@ -12,6 +12,7 @@
     "package.json"
   ],
   "dependencies": {
+    "@bc/official-gui-client": "file:../apis/official-gui-api/client",
     "@microsoft/fetch-event-source": "^2.0.1",
     "react-cookie": "^4.1.1",
     "usehooks-ts": "^2.7.1"

@@ -1,0 +1,29 @@
+{
+  "name": "@bc/official-gui-client",
+  "version": "0.0.1",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "dependencies": {
+  },
+  "peerDependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.23",
+    "@types/web": "^0.0.61",
+    "cross-env": "^7.0.3",
+    "tsup": "^6.7.0",
+    "typescript": "4.8.4"
+  },
+  "scripts": {
+    "start": "tsup --watch",
+    "build": "tsup"
+  }
+}

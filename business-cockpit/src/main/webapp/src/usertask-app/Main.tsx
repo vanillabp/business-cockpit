@@ -10,7 +10,7 @@ const Main = () => {
   const { showLoadingIndicator } = useAppContext();
   const { userTask } = useUserTaskAppContext();
   
-  document.title = userTask.title.de;
+  document.title = userTask!.title.de;
 
   const module = useFederationModule(userTask.workflowModule, 'Form');
 
@@ -29,13 +29,11 @@ const Main = () => {
     return <NoUserTaskGiven retry={ module.retry } />
   }
     
-  const Form = module.UserTaskForm;
+  const Form = module.UserTaskForm!;
   
   return (
       <UserTaskAppLayout>
-        <Form
-            bpmnProcessId={ userTask.bpmnProcessId }
-            taskDefinition={ userTask.taskDefinition } />
+        <Form userTask={ userTask } />
       </UserTaskAppLayout>);
 
 }

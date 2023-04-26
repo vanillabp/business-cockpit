@@ -4,17 +4,16 @@
 
   <parent>
     <groupId>io.vanillabp.businescockpit</groupId>
-    <artifactId>parent</artifactId>
+    <artifactId>apis</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>apis</artifactId>
-  <name>APIs needed in regards to the VanillaBP business cockpit</name>
+  <artifactId>official-gui-api</artifactId>
+  <name>API defining user tasks</name>
   <packaging>pom</packaging>
   
    <modules>
-    <module>bpms-api</module>
-    <module>workflow-provider-api</module>
-    <module>official-gui-api</module>
+    <module>server</module>
+    <module>client</module>
   </modules>
 </project>
