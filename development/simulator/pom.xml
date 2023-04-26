@@ -48,6 +48,10 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-undertow</artifactId>
     </dependency>
@@ -58,6 +62,11 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>bpms-api-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>official-gui-api-server</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

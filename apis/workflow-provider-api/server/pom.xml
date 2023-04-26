@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>workflow-provider-server</artifactId>
+  <artifactId>workflow-provider-api-server</artifactId>
   <name>Spring Boot controller for serving the workflow provider API</name>
 
 </project>

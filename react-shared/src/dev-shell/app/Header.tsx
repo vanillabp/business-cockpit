@@ -1,27 +1,51 @@
-import { Box, Keyboard, TextInput } from 'grommet';
+import { Box, Keyboard, TextInput, Menu } from 'grommet';
 import { Search } from 'grommet-icons';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useResponsiveScreen } from '../../utils/responsiveUtils.js';
 import { appNs } from './DevShellApp.js';
+import i18n from '../i18n.js';
+
+i18n.addResources('en', 'header', {
+      "views-label": "View",
+      "view-form": "form",
+      "view-icon": "icon",
+      "view-list": "list",
+    });
+i18n.addResources('de', 'header', {
+      "views-label": "Ansicht",
+      "view-form": "Formular",
+      "view-icon": "Symbol",
+      "view-list": "Liste",
+    });
 
 const Header = () => {
   
   const { isPhone } = useResponsiveScreen();
   const navigate = useNavigate();
   const { t: tApp } = useTranslation(appNs);
+  const { t } = useTranslation('header');
+
   const userTaskId: string | undefined = useParams()['userTaskId'];
 
   const [ taskId, setTaskId ] = useState(userTaskId);
 
-  const loadUserTask = () => navigate(`/${ tApp('url-usertask') }/${taskId}`);
+  const switchView = (target: string) => navigate(`/${ tApp('url-usertask') }/${taskId}${target}`);
+  
+  const loadUserTask = () => navigate(`/${ tApp('url-usertask') }/${taskId}`, { replace: true });
+  
+  const viewMenuItems = [
+      { label: t('view-form'), onClick: () => switchView('') },
+      { label: t('view-list'), onClick: () => switchView(`/${tApp('url-list')}`) },
+      { label: t('view-icon'), onClick: () => switchView(`/${tApp('url-icon')}`) }
+    ];
   
   return (
       <Box
           fill
-          direction="column"
-          justify="center"
+          direction="row"
+          justify="between"
           pad="small">
         <Box
             width={ isPhone ? '15rem' : '26rem' }
@@ -41,6 +65,12 @@ const Header = () => {
                 onChange={ (event) => setTaskId(event.target.value) }
                 placeholder="task ID" />
           </Keyboard>
+        </Box>
+        <Box>
+          <Menu
+              disabled={ !Boolean(userTaskId) }
+              label={ t('views-label') }
+              items={ viewMenuItems } />
         </Box>
       </Box>);
 };

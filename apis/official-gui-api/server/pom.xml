@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>official-gui-server</artifactId>
+  <artifactId>official-gui-api-server</artifactId>
   <name>Spring Boot controller for serving the official GUI API</name>
 
   <build>
@@ -35,7 +35,6 @@
                 <useSpringBoot3>true</useSpringBoot3>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
-                <reactive>true</reactive>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
               <generateApiTests>false</generateApiTests>
@@ -52,10 +51,6 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

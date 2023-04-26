@@ -13,6 +13,8 @@ import { theme } from '../../theme/index.js';
 import { UserTaskAppLayout } from '../../components/UserTaskAppLayout.js';
 import { Header } from './Header.js';
 import { useTranslation } from 'react-i18next';
+import { UserTaskAppContextConsumer, UserTaskAppContextProvider } from './UserTaskAppContext.js';
+import { UserTaskForm } from '../../types/UserTaskForm.js';
 
 const appNs = 'app';
 
@@ -26,6 +28,8 @@ i18n.addResources('en', appNs, {
       "not-found": "The requested page is unknown!",
       "not-found hint": "Maybe use used a link in a mail which is already expired.",
       "url-usertask": "task",
+      "url-icon": "icon",
+      "url-list": "list",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit Dev Shell',
@@ -37,15 +41,25 @@ i18n.addResources('de', appNs, {
       "not-found": "Die angeforderte Seite ist unbekannt!",
       "not-found hint": "Eventuell hast du einen Link aus einer Mail verwendet, der bereits veraltet ist.",
       "url-usertask": "aufgabe",
+      "url-icon": "symbol",
+      "url-list": "liste",
     });
     
-const DevShellApp = () => {
+const DevShellApp = ({
+  officialGuiApiUrl,
+  userTaskForm
+}: {
+  officialGuiApiUrl: string,
+  userTaskForm: UserTaskForm,
+}) => {
 
   const { state, dispatch } = useAppContext();
   const { t } = useTranslation(appNs);
 
   useKeepNowUpToDate();
   
+  const Form = userTaskForm;
+
   return (
     <Grommet
         theme={theme}
@@ -65,11 +79,36 @@ const DevShellApp = () => {
                       element={
                           <UserTaskAppLayout
                               header={<Header />}>
-                            <Outlet />
+                            <Suspense fallback={ <div>loading</div> }>
+                              <UserTaskAppContextProvider
+                                  officialGuiApiUrl={ officialGuiApiUrl }>
+                                <Outlet />
+                              </UserTaskAppContextProvider>
+                            </Suspense>
                           </UserTaskAppLayout>
                       }>
-                    <Route path=":userTaskId" element={<div>JUHU</div>} />
-                    <Route path="*" element={<div>Empty</div>} />
+                    <Route path=":userTaskId">
+                      <Route
+                          index
+                          element={
+                              <UserTaskAppContextConsumer>
+                                { (userTask) => <Form userTask={ userTask } /> }
+                              </UserTaskAppContextConsumer>
+                        } />
+                      <Route
+                          path={ t('url-icon') as string }
+                          element={
+                              <div>Icon</div>
+                        } />
+                      <Route
+                          path={ t('url-list') as string }
+                          element={
+                              <div>List</div>
+                        } />
+                    </Route>
+                    <Route
+                        index
+                        element={<div>Empty</div>} />
                   </Route>
                 </Routes>
                 {

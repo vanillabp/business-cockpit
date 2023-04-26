@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>workflow-provider-client</artifactId>
+  <artifactId>workflow-provider-api-client</artifactId>
   <name>REST client to access the workflow provider API</name>
 
 </project>

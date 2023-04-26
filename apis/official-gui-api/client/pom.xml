@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>official-gui-client</artifactId>
+  <artifactId>official-gui-api-client</artifactId>
   <name>Typescript client of the official GUI API</name>
 
   <build>

@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.simulator.testdata.usertask;
+package io.vanillabp.cockpit.simulator.usertask.testdata;
 
 public class UserTaskTestDataParameters {
 

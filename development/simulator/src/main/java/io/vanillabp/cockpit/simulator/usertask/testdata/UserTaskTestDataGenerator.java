@@ -1,8 +1,9 @@
-package io.vanillabp.cockpit.simulator.testdata.usertask;
+package io.vanillabp.cockpit.simulator.usertask.testdata;
 
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
@@ -144,7 +145,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
     
-    private String getProcessTitle(
+    private static String getProcessTitle(
             final String language,
             final int process) {
         
@@ -168,7 +169,7 @@ public class UserTaskTestDataGenerator implements Runnable {
 
     }
     
-    private String getBpmnProcessId(
+    private static String getBpmnProcessId(
             final int process) {
         
         return switch (process) {
@@ -224,6 +225,51 @@ public class UserTaskTestDataGenerator implements Runnable {
 
     private UserTaskCreatedEvent buildCreatedEvent() {
         
+        final String assignee;
+        if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
+            assignee = users[random.nextInt(users.length)];
+        } else {
+            assignee = null;
+        }
+
+        final List<String> candidateUsers;
+        if ((assignee != null)
+                && (random.nextInt(100) < parameters.getPercentageUserCandidates())) {
+            candidateUsers = List.of(assignee);
+        } else {
+            candidateUsers = null;
+        }
+
+        final List<String> candidateGroups;
+        if (random.nextInt(100) < parameters.getPercentageGroupCandidates()) {
+            if (random.nextBoolean() || (groups.length < 2)) {
+                candidateGroups = List.of(
+                        groups[random.nextInt(groups.length)]);
+            } else {
+                final var firstGroup = groups[random.nextInt(groups.length)];
+                String secondGroup;
+                while ((secondGroup = groups[random.nextInt(groups.length)]).equals(firstGroup)) { }
+                candidateGroups = List.of(firstGroup, secondGroup);
+            }
+        } else {
+            candidateGroups = null;
+        }
+        
+        return buildCreatedEvent(
+                random,
+                fairies,
+                assignee,
+                candidateUsers,
+                candidateGroups);
+        
+    }
+    public static UserTaskCreatedEvent buildCreatedEvent(
+            final Random random,
+            final Map<String, Fairy> fairies,
+            final String assignee,
+            final List<String> candidateUsers,
+            final List<String> candidateGroups) {
+        
         final var result = new UserTaskCreatedEvent();
         
         final var process = random.nextInt(10);
@@ -265,31 +311,22 @@ public class UserTaskTestDataGenerator implements Runnable {
                                 entry.getValue().textProducer().sentence(5)))
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         
-        if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
-            result.setAssignee(users[random.nextInt(users.length)]);
-        }
-        
-        if (random.nextInt(100) < parameters.getPercentageUserCandidates()) {
-            if (result.getAssignee() != null) {
-                result.setCandidateUsers(List.of(result.getAssignee()));
-            }
-        }
-        
-        if (random.nextInt(100) < parameters.getPercentageGroupCandidates()) {
-            if (random.nextBoolean() || (groups.length < 2)) {
-                result.setCandidateGroups(List.of(
-                        groups[random.nextInt(groups.length)]));
-            } else {
-                final var firstGroup = groups[random.nextInt(groups.length)];
-                String secondGroup;
-                while ((secondGroup = groups[random.nextInt(groups.length)]).equals(firstGroup)) { }
-                result.setCandidateGroups(List.of(firstGroup, secondGroup));
-            }
-        }
+        result.setAssignee(assignee);
+        result.setCandidateUsers(candidateUsers);
+        result.setCandidateGroups(candidateGroups);
                 
         return result;
         
     }
     
+    public static Fairy buildFairy(
+            final String language) {
+        
+        return Fairy.builder()
+                .withLocale(Locale.forLanguageTag(language))
+                .withRandomSeed((int) System.currentTimeMillis())
+                .build();
+        
+    }
     
 }

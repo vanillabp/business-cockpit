@@ -12,6 +12,17 @@ const aliases = {
 };
 
 module.exports = {
+  devServer: {
+    historyApiFallback: true,
+    proxy: {
+      '/official-api': {
+        target: 'http://0.0.0.0:8079',
+        secure: false,
+        changeOrigin: true,
+        logLevel: "debug",
+      },
+    },
+  },
   webpack: {
     alias: aliases,
     configure: {

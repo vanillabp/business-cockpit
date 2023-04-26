@@ -1,8 +1,10 @@
-package io.vanillabp.cockpit.simulator.testdata.usertask;
+package io.vanillabp.cockpit.simulator.usertask.testdata;
 
-import com.devskiller.jfairy.Fairy;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import jakarta.annotation.PostConstruct;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -13,11 +15,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Collectors;
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import jakarta.annotation.PostConstruct;
 
 @Controller
 @RequestMapping(path = "/testdata/usertask")
@@ -43,7 +42,7 @@ public class UserTaskTestDataController {
         final var fairies =
                 Arrays
                         .stream(parameters.getLanguages().split(","))
-                        .map(l -> Map.entry(l, buildFairy(l.trim())))
+                        .map(l -> Map.entry(l, UserTaskTestDataGenerator.buildFairy(l.trim())))
                         .collect(Collectors.toMap(
                                 e -> e.getKey(),
                                 e -> e.getValue(),
@@ -90,16 +89,6 @@ public class UserTaskTestDataController {
         }
                 
         return "testdata/usertask/report";
-        
-    }
-    
-    private Fairy buildFairy(
-            final String language) {
-        
-        return Fairy.builder()
-                .withLocale(Locale.forLanguageTag(language))
-                .withRandomSeed((int) System.currentTimeMillis())
-                .build();
         
     }
     
