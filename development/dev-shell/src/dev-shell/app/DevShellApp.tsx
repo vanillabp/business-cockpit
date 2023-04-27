@@ -6,15 +6,17 @@ import i18n from '../i18n.js';
 import '../i18n.js';
 import { CurrentUser } from './CurrentUser.js';
 import { GuiSseProvider } from '../client/guiClient.js';
-import { MessageToast } from '../../components/Toast.js';
-import { LoadingIndicator } from '../../components/LoadingIndicator.js';
-import { useKeepNowUpToDate } from '../../utils/now-hook.js';
-import { theme } from '../../theme/index.js';
-import { UserTaskAppLayout } from '../../components/UserTaskAppLayout.js';
+import {
+  MessageToast,
+  LoadingIndicator,
+  useKeepNowUpToDate,
+  theme,
+  UserTaskForm,
+  UserTaskAppLayout
+} from '@bc/shared';
 import { Header } from './Header.js';
 import { useTranslation } from 'react-i18next';
 import { UserTaskAppContextConsumer, UserTaskAppContextProvider } from './UserTaskAppContext.js';
-import { UserTaskForm } from '../../types/UserTaskForm.js';
 
 const appNs = 'app';
 

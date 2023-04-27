@@ -1,6 +1,6 @@
 import React, { useMemo, MutableRefObject, PropsWithChildren, ReactNode, ReactElement, useContext, FunctionComponentElement } from 'react';
 import { getOfficialTasklistApi } from '../client/guiClient.js';
-import { WakeupSseCallback } from '../../index.js';
+import { WakeupSseCallback } from '@bc/shared';
 import { useParams } from 'react-router-dom';
 import { OfficialTasklistApi, UserTask } from '@bc/official-gui-client';
 import { useAppContext } from '../DevShellAppContext.js';

@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.vanillabp.businescockpit</groupId>
+  <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -11,18 +11,35 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.java>17</version.java>
     <version.org.mapstruct>1.5.3.Final</version.org.mapstruct>
+    <npm.registry>http://localhost:4873/</npm.registry>
   </properties>
 
   <modules>
     <module>commons</module>
-    <module>business-cockpit</module>
     <module>apis</module>
+    <module>react-shared</module>
+    <module>business-cockpit</module>
     <module>development</module>
   </modules>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>3.0.5</version>
+          <configuration>
+            <classifier>runnable</classifier>
+            <executable>true</executable>
+            <fork>true</fork>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -43,6 +60,53 @@
               <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
               <arg>-Amapstruct.unmappedSourcePolicy=IGNORE</arg>
             </compilerArgs>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>1.12.1</version>
+          <executions>
+            <execution>
+              <id>install node and npm install</id>
+              <goals>
+                <goal>install-node-and-npm</goal>
+                <goal>npm</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>npm update</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>update @bc/* --no-save</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm build</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>run build</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm publish snapshot</id>
+              <phase>package</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>run publish:snapshot -- --registry ${npm.registry}</arguments>
+              </configuration>
+            </execution>
+          </executions>
+          <configuration>
+            <nodeVersion>v18.16.0</nodeVersion>
+            <npmVersion>9.6.5</npmVersion>
+            <installDirectory>${java.io.tmpdir}/frontend-maven-plugin</installDirectory>
           </configuration>
         </plugin>
       </plugins>
@@ -88,5 +152,4 @@
       <organizationUrl>https://www.phactum.at</organizationUrl>
     </developer>
   </developers>
-
 </project>

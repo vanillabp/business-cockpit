@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.vanillabp.businescockpit</groupId>
+    <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
@@ -18,19 +18,18 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>repackage</goal>
-            </goals>
-          </execution>
-        </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
         <configuration>
-          <mainClass>io.vanillabp.cockpit.BusinessCockpitApplication</mainClass>
-          <executable>true</executable>
-          <fork>true</fork>
+          <filesets>
+            <fileset>
+              <directory>${project.basedir}/src/main/webapp/node_modules</directory>
+              <includes>
+                <include>**/*</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+          </filesets>
         </configuration>
       </plugin>
       <plugin>
@@ -83,6 +82,28 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>io.vanillabp.cockpit.BusinessCockpitApplication</mainClass>
+        </configuration>
       </plugin>
     </plugins>
   </build>

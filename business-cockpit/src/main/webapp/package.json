@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "@bc/shared": "file:../../../../react-shared",
+    "@bc/shared": ">=0.0.1-snapshot.0",
     "@fontsource/roboto": "^4.5.8",
     "grommet": "2.31.0",
     "grommet-icons": "4.10.0",
@@ -44,7 +44,8 @@
     "build": "cross-env BUILD_PATH=../../../target/classes/static craco build",
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static",
     "test": "craco test",
-    "analyze": "cross-env source-map-explorer ../../../target/classes/static/static/js/*.js"
+    "analyze": "cross-env source-map-explorer ../../../target/classes/static/static/js/*.js",
+    "publish:snapshot": "echo 'no publish for webapps'"
   },
   "eslintConfig": {
     "extends": [

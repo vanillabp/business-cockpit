@@ -1,0 +1,54 @@
+storage: /verdaccio/storage/data
+plugins: /verdaccio/plugins
+
+web:
+  title: Verdaccio
+
+auth:
+  auth-memory:
+    users:
+      admin:
+        name: admin
+        password: admin
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+
+packages:
+  '@bc/*':
+    access: $all
+    publish: $anonymous
+    unpublish: $anonymous
+
+  '@*/*':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+server:
+  keepAliveTimeout: 60
+
+publish:
+  allow_offline: true
+
+middlewares:
+  audit:
+    enabled: true
+  static-token:
+    - token: mySecureToken
+      user: systemUser
+      password: systemPassword
+    - token: ABCD1234
+      user: uncle
+      password: tom
+
+log: { type: stdout, format: pretty, level: http }
+

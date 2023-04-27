@@ -12,7 +12,24 @@ services:
     image: business-cockpit-mongo-setup
     build: ./mongo/
     container_name: business-cockpit-mongo-setup
+    restart: "no"
     depends_on:
       - business-cockpit-mongo
     volumes:
        - "./mongo:/config"
+  verdaccio:
+    build: ./verdaccio/
+    container_name: 'verdaccio'
+    restart: "no"
+    networks:
+      - node-network
+    environment:
+      - VERDACCIO_PORT=4873
+    ports:
+      - '4873:4873'
+    volumes:
+      - ./verdaccio/conf:/verdaccio/conf
+networks:
+  node-network:
+    driver: bridge
+

@@ -1,14 +1,14 @@
 import { useAppContext } from '../DevShellAppContext.js';
-import { buildFetchApi } from '../../utils/fetchApi.js';
 import {
+    buildFetchApi,
     OnMessageFunction,
     SseContextInterface,
     SseProvider,
     useSse,
-    WakeupSseCallback
-  } from '../../components/SseProvider.js';
+    WakeupSseCallback,
+    ToastAction
+ } from '@bc/shared';
 import { createContext, Dispatch } from 'react';
-import { ToastAction } from '../../components/Toast.js';
 import { OfficialTasklistApi, Configuration as GuiConfiguration } from '@bc/official-gui-client';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";

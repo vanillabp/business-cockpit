@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.vanillabp.businescockpit</groupId>
+    <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
@@ -13,6 +13,7 @@
   <packaging>pom</packaging>
   
    <modules>
+    <module>dev-shell</module>
     <module>simulator</module>
   </modules>
 </project>

@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { DevShellApp } from './app/DevShellApp.js';
 import { AppContextProvider } from './DevShellAppContext.js';
-import { UserTaskForm } from '../types/UserTaskForm.js';
+import { UserTaskForm } from '@bc/shared';
 import "@fontsource/roboto/latin-300.css";
 import "@fontsource/roboto/files/roboto-latin-300-normal.woff2";
 import "@fontsource/roboto/files/roboto-latin-300-normal.woff";
