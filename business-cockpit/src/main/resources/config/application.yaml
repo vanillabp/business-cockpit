@@ -10,5 +10,14 @@ spring:
   resources:
     static-locations: "classpath:/static/"
 
+server:
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
+    min-response-size: 2048
+  error:
+    whitelabel:
+      enabled: false
+
 bpms-api:
   realm-name: BPMS-API
