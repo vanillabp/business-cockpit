@@ -1,6 +1,6 @@
 {
   "name": "@bc/dev-shell",
-  "version": "0.0.1-snapshot.4",
+  "version": "0.0.1-snapshot.0",
   "sideEffects": false,
   "type": "module",
   "main": "dist/index.js",
@@ -59,7 +59,7 @@
     "build-storybook": "storybook build",
     "start": "tsup --watch",
     "build": "tsup",
-    "publish:snapshot": "npm run version:snapshot && npm publish --tag snapshot",
+    "publish:snapshot": "npm unpublish --force && npm publish --tag snapshot",
     "version:snapshot": "npm version prerelease --preid snapshot"
   }
 }

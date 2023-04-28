@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>io.vanillabp.businesscockpit</groupId>
-  <artifactId>parent</artifactId>
+  <artifactId>business-cockpit-parent</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>

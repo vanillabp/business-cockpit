@@ -95,7 +95,7 @@ After the build succeeded the service can be started:
 
 ```sh
 cd business-cockpit
-jar -jar target/business-cockpit-*-runnable.jar
+jar -Dspring.profiles.active=local -jar target/business-cockpit-*-runnable.jar
 ```
 
 To connect to the business cockpit UI use these parameters:

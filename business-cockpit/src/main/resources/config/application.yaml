@@ -3,8 +3,6 @@ logging:
     ROOT: INFO
 
 spring:
-  application:
-    name: VanillaBP-business-cockpit
   webflux:
     static-path-pattern: "/**"
   resources:

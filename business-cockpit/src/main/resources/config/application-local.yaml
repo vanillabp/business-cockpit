@@ -6,3 +6,8 @@ spring:
 bpms-api:
   username: abc
   password: "{noop}123"
+
+business-cockpit:
+  title-short: VanillaBP-BC
+  title-long: VanillaBP Business Cockpit
+  application-version: ${project.version}

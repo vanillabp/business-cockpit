@@ -180,9 +180,9 @@ public class LoginApiController implements LoginApi {
 
         return Mono.just(ResponseEntity.ok(
                 new AppInformation()
-                        .titleLong("DKE BPMS Cockpit")
-                        .titleShort("DKE")
-                        .version("0.0.1-SNAPSHOT")));
+                        .titleLong(properties.getTitleLong())
+                        .titleShort(properties.getTitleShort())
+                        .version(properties.getApplicationVersion())));
         
     }
     

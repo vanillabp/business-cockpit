@@ -2,10 +2,11 @@ package io.vanillabp.cockpit.config.web;
 
 import java.net.URI;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
@@ -19,21 +20,24 @@ import org.springframework.security.web.server.authentication.logout.RedirectSer
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 @Order(99)
 public class WebSecurityConfiguration {
 
-    @Value("${spring.application.name}")
-    private String applicationName;
+    @Autowired
+    private ApplicationProperties properties;
 
     @Bean
     public SecurityWebFilterChain guiHttpSecurity(
-            final ServerHttpSecurity http) {
+            final ServerHttpSecurity http,
+            final MapReactiveUserDetailsService userDetailsService) {
         
         final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
-        basicEntryPoint.setRealm(applicationName);
+        basicEntryPoint.setRealm(properties.getTitleShort());
         
         final var logoutSuccessHandler = new RedirectServerLogoutSuccessHandler();
         logoutSuccessHandler.setLogoutSuccessUrl(URI.create("/"));
@@ -54,7 +58,7 @@ public class WebSecurityConfiguration {
                                 NoOpServerSecurityContextRepository.getInstance())
                         .authenticationManager(
                                 new UserDetailsRepositoryReactiveAuthenticationManager(
-                                        userDetailsService()))
+                                        userDetailsService))
                         .authenticationEntryPoint(basicEntryPoint)
                         .and()
                 .logout(logout -> logout
@@ -67,6 +71,7 @@ public class WebSecurityConfiguration {
 
     @Bean
     @Primary
+    @Profile("local")
     public MapReactiveUserDetailsService userDetailsService() {
         
         final var user = User.builder()
@@ -77,5 +82,5 @@ public class WebSecurityConfiguration {
         return new MapReactiveUserDetailsService(user);
         
     }
-	
+    
 }
