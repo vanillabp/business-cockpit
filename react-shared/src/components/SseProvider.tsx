@@ -92,6 +92,7 @@ const SseProvider = ({ url, Context, buildFetchApi, children, ...rest }: React.P
   const abortController = useRef<AbortController | undefined>(undefined);
   const closeConnectionTimer = useRef<Timeout | undefined>(undefined);
   const retryConnectTimer = useRef<Timeout | undefined>(undefined);
+  const lastConnectionId = useRef<number>(0);
   
   const releaseConnection: ReleaseConnectionFunction = (connectionId) => {
     delete connections.current[connectionId];
@@ -147,7 +148,8 @@ const SseProvider = ({ url, Context, buildFetchApi, children, ...rest }: React.P
       buildEventSource();
     }
 
-    const connectionId = new Date().getTime().toString();
+    const connectionId = lastConnectionId.current.toString();
+    ++lastConnectionId.current;
     connections.current = {
         ...connections.current,
         [connectionId]: {
