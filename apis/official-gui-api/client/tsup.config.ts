@@ -6,7 +6,11 @@ const env = process.env.NODE_ENV;
 export const tsup: Options = {
   splitting: true,
   clean: true,
-  dts: true,
+  dts: {
+    compilerOptions: {
+      isolatedModules: false
+    }
+  },
   format: ['esm'],
   minify: env === 'production',
   bundle: env === 'production',

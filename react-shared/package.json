@@ -56,6 +56,7 @@
   "scripts": {
     "storybook": "echo 'Run with sudo on Linux for HMR!' && storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "postinstall": "npm link @bc/official-gui-client@0.0.1-snapshot.0 || true",
     "start": "tsup --watch",
     "build": "tsup",
     "publish:snapshot": "npm unpublish --force && npm publish --tag snapshot",

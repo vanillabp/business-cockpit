@@ -75,15 +75,6 @@
               </goals>
             </execution>
             <execution>
-              <id>npm update</id>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>update @bc/* --no-save</arguments>
-              </configuration>
-            </execution>
-            <execution>
               <id>npm build</id>
               <goals>
                 <goal>npm</goal>
@@ -99,7 +90,7 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>run publish:snapshot -- --registry ${npm.registry}</arguments>
+                <arguments>run publish:snapshot -- --@bc:registry=${npm.registry}</arguments>
               </configuration>
             </execution>
           </executions>
@@ -152,4 +143,12 @@
       <organizationUrl>https://www.phactum.at</organizationUrl>
     </developer>
   </developers>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>github</id>
+      <name>Github Packages</name>
+      <url>https://github.com/vanillabp/business-cockpit</url>
+    </snapshotRepository>
+  </distributionManagement>
 </project>

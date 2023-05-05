@@ -49,10 +49,6 @@ module.exports = {
                 .map(key => aliases[key])
                 .forEach(path => moduleScopePlugin.appSrcs.push(path));
           }
-//          webpackConfig.resolve.extensionAlias = {
-//                ".js": [".ts", ".tsx", ".js", ".mjs"],
-//                ".mjs": [".mts", ".mjs"]
-//              };
           const ignoreWarnings = [
               { module: /@microsoft\/fetch-event-source/ }
             ];

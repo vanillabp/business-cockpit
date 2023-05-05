@@ -40,6 +40,7 @@
     "webpack": "^5.74.0"
   },
   "scripts": {
+    "postinstall": "npm link @bc/shared@0.0.1-snapshot.0 @bc/official-gui-client@0.0.1-snapshot.0 || true",
     "start": "GENERATE_SOURCEMAP=false && cross-env BUILD_PATH=../../../target/classes/static craco start",
     "build": "cross-env BUILD_PATH=../../../target/classes/static craco build",
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static",

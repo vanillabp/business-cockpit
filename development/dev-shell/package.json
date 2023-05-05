@@ -55,6 +55,7 @@
     "typescript": "4.8.4"
   },
   "scripts": {
+    "postinstall": "npm link @bc/shared@0.0.1-snapshot.0 @bc/official-gui-client@0.0.1-snapshot.0 || true",
     "storybook": "echo 'Run with sudo on Linux for HMR!' && storybook dev -p 6006",
     "build-storybook": "storybook build",
     "start": "tsup --watch",

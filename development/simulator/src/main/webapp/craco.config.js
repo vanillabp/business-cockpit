@@ -5,6 +5,8 @@ const { dependencies } = require('./package.json');
 const path = require("path");
 
 const aliases = {
+  '@bc/official-gui-client': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "official-gui-client"),
+  '@bc/dev-shell': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "dev-shell"),
   '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
   'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
   'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
@@ -34,7 +36,11 @@ module.exports = {
              output: {
                publicPath: '/wm/TestModule/',
              }
-           })
+           }),
+      // this conf come from https://github.com/relative-ci/bundle-stats/tree/master/packages/cli#webpack-configuration
+      //stats: {
+      //  errorDetails: true,
+      //}
     },
     plugins: {
       remove: process.env.NODE_ENV !== 'production'
@@ -81,14 +87,14 @@ module.exports = {
                 .map(key => aliases[key])
                 .forEach(path => moduleScopePlugin.appSrcs.push(path));
           }
-//          webpackConfig.resolve.extensionAlias = {
-//                ".js": [".ts", ".tsx", ".js", ".mjs"],
-//                ".mjs": [".mts", ".mjs"]
-//              };
           const ignoreWarnings = [
               { module: /@microsoft\/fetch-event-source/ }
             ];
-          return { ...webpackConfig, ignoreWarnings }
+          return {
+              ...webpackConfig,
+              ignoreWarnings,
+              //stats: 'verbose'
+            };
         }
       }
     }
