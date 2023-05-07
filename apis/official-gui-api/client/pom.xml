@@ -20,6 +20,13 @@
         <configuration>
           <filesets>
             <fileset>
+              <directory>${project.basedir}/src</directory>
+              <includes>
+                <include>**/*</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
+            <fileset>
               <directory>${project.basedir}/dist</directory>
               <includes>
                 <include>**/*</include>
@@ -56,6 +63,26 @@
                 <supportsES6>true</supportsES6>
               </configOptions>
               <addCompileSourceRoot>false</addCompileSourceRoot>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>link-for-other-packages</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>process-resources</phase>
+            <configuration>
+              <executable>${java.io.tmpdir}/frontend-maven-plugin/node/npm</executable>
+              <workingDirectory>${project.basedir}</workingDirectory>
+              <arguments>
+                <argument>link</argument>
+              </arguments>
             </configuration>
           </execution>
         </executions>

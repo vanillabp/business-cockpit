@@ -43,6 +43,8 @@ docker-compose start
 
 Afterwards one can [build and run the business cockpit](#build-and-run-the-business-cockpit).
 
+*Hint:* Building the business cockpit will also establish npm-links between the packages provided by this repository. This helps to ensure using the right version during the build and also supports local development.
+
 ### MongoDB
 
 For production MongoDb one has to use replica-sets because the VanillaBP business cockpit uses the MongoDb "changestream" feature which not available otherwise.
@@ -70,7 +72,7 @@ As part of the build NPM packages are published which has to be used by BPMS sof
 To use this registry one has to create a file `.npmrc` in your home folder:
 
 ```
-registry=http://localhost:4873
+@bc:registry=http://localhost:4873
 //localhost:4873/:_authToken="fake"
 ```
 

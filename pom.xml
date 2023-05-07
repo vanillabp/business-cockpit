@@ -76,6 +76,7 @@
             </execution>
             <execution>
               <id>npm build</id>
+              <phase>compile</phase>
               <goals>
                 <goal>npm</goal>
               </goals>
@@ -99,6 +100,11 @@
             <npmVersion>9.6.5</npmVersion>
             <installDirectory>${java.io.tmpdir}/frontend-maven-plugin</installDirectory>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>3.1.0</version>
         </plugin>
       </plugins>
     </pluginManagement>
