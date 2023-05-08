@@ -46,7 +46,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>6.6.0-SNAPSHOT</version>
         <executions>
           <execution>
             <id>generate-client-gui-api</id>
@@ -61,6 +61,7 @@
                 <typescriptThreePlus>true</typescriptThreePlus>
                 <withInterfaces>true</withInterfaces>
                 <supportsES6>true</supportsES6>
+                <importFileExtension>.mjs</importFileExtension>
               </configOptions>
               <addCompileSourceRoot>false</addCompileSourceRoot>
             </configuration>

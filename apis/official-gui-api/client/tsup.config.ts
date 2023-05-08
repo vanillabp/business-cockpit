@@ -8,7 +8,7 @@ export const tsup: Options = {
   clean: true,
   dts: {
     compilerOptions: {
-      isolatedModules: false
+      isolatedModules: false,
     }
   },
   format: ['esm'],
