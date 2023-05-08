@@ -61,7 +61,7 @@
                 <typescriptThreePlus>true</typescriptThreePlus>
                 <withInterfaces>true</withInterfaces>
                 <supportsES6>true</supportsES6>
-                <importFileExtension>.mjs</importFileExtension>
+                <importFileExtension>.js</importFileExtension>
               </configOptions>
               <addCompileSourceRoot>false</addCompileSourceRoot>
             </configuration>

@@ -12,6 +12,9 @@ export const tsup: Options = {
     }
   },
   format: ['esm'],
+  outExtension: ({ format }) => ({
+    js: `.${format === 'esm' ? 'js' : format}`,
+  }),
   minify: env === 'production',
   bundle: env === 'production',
   skipNodeModulesBundle: true,
