@@ -154,7 +154,7 @@
     <snapshotRepository>
       <id>github</id>
       <name>Github Packages</name>
-      <url>https://github.com/vanillabp/business-cockpit</url>
+      <url>https://maven.pkg.github.com/vanillabp/business-cockpit</url>
     </snapshotRepository>
   </distributionManagement>
 </project>
