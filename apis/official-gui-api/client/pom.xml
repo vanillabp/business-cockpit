@@ -10,7 +10,7 @@
 
   <packaging>pom</packaging>
   <artifactId>official-gui-api-client</artifactId>
-  <name>Used to build '@bc/official-gui-client' npm package</name>
+  <name>Used to build '@vanillabp/bp-official-gui-client' npm package</name>
 
   <build>
     <plugins>

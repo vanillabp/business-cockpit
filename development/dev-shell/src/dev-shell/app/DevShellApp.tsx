@@ -13,7 +13,7 @@ import {
   theme,
   UserTaskForm,
   UserTaskAppLayout
-} from '@bc/shared';
+} from '@vanillabp/bc-shared';
 import { Header } from './Header.js';
 import { useTranslation } from 'react-i18next';
 import { UserTaskAppContextConsumer, UserTaskAppContextProvider } from './UserTaskAppContext.js';

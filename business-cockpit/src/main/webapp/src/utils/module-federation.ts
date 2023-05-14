@@ -1,4 +1,4 @@
-import { UserTaskForm } from '@bc/shared';
+import { UserTaskForm } from '@vanillabp/bc-shared';
 import React, { useState, useEffect, useCallback } from 'react';
 
 export type UseCase = 'List' | 'Form';

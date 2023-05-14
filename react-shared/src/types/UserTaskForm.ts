@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { UserTask } from "@bc/official-gui-client";
+import { UserTask } from "@vanillabp/bc-official-gui-client";
 
 interface UserTaskFormProps {
   userTask: UserTask;

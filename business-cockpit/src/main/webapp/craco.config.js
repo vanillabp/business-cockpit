@@ -4,7 +4,6 @@ const { dependencies } = require('./package.json');
 const path = require("path");
 
 const aliases = {
-  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
   'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
   'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
   'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")

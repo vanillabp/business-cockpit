@@ -47,9 +47,9 @@
               <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
               <arguments>
                 <argument>link</argument>
-                <argument>@bc/official-gui-client</argument>
-                <argument>@bc/shared</argument>
-                <argument>@bc/dev-shell</argument>
+                <argument>@vanillabp/bc-official-gui-client</argument>
+                <argument>@vanillabp/bc-shared</argument>
+                <argument>@vanillabp/bc-dev-shell</argument>
               </arguments>
             </configuration>
           </execution>

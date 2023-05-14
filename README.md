@@ -72,7 +72,7 @@ As part of the build NPM packages are published which has to be used by BPMS sof
 To use this registry one has to create a file `.npmrc` in your home folder:
 
 ```
-@bc:registry=http://localhost:4873
+@vanillabp:registry=http://localhost:4873
 //localhost:4873/:_authToken="fake"
 ```
 
@@ -83,6 +83,8 @@ To connect to the registry UI use these parameters:
 * *URL:* [http://localhost:4873/](http://localhost:4873/)
 * *username:* admin
 * *password:* admin
+
+*Hint:* If you do repeating builds for testing then you have to use the Maven profile `unpublish-npm` which removes previously published packages from the local registry.
 
 ## Build and Run the Business Cockpit
 

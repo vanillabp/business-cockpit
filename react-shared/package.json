@@ -1,6 +1,6 @@
 {
-  "name": "@bc/shared",
-  "version": "0.0.1-snapshot.0",
+  "name": "@vanillabp/bc-shared",
+  "version": "0.0.1-SNAPSHOT",
   "sideEffects": false,
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,7 @@
     "package.json"
   ],
   "dependencies": {
-    "@bc/official-gui-client": ">=0.0.1-snapshot.0",
+    "@vanillabp/bc-official-gui-client": "0.0.1-SNAPSHOT",
     "@microsoft/fetch-event-source": "2.0.1",
     "react-cookie": "4.1.1",
     "usehooks-ts": "2.7.1"
@@ -58,7 +58,8 @@
     "build-storybook": "storybook build",
     "start": "tsup --watch",
     "build": "tsup",
-    "publish:snapshot": "npm unpublish --force && npm publish --tag snapshot",
+    "unpublish:snapshot": "npm unpublish --force",
+    "publish:snapshot": "npm publish --tag snapshot",
     "version:snapshot": "npm version prerelease --preid snapshot"
   }
 }

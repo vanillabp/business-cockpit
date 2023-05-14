@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, Dispatch } from 'react';
 import { User, LoginApi, AppInformation } from './client/gui';
 import { getLoginGuiApi } from './client/guiClient';
-import { Toast, ToastAction } from '@bc/shared';
+import { Toast, ToastAction } from '@vanillabp/bc-shared';
 
 type Action =
     | { type: 'updateAppInformation', appInformation: AppInformation | null }

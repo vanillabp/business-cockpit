@@ -3,7 +3,7 @@
 Example:
 
 ```js
-import { LoadingIndicator } from '@bc/shared';
+import { LoadingIndicator } from '@vanillabp/bc-shared';
 ```
 
 Read the next sections for instructions of installation.
@@ -11,7 +11,7 @@ Read the next sections for instructions of installation.
 ## package.json
 
 ```sh
-npm install @bc/shared
+npm install @vanillabp/bc-shared
 ```
 
 ### Development
@@ -20,9 +20,9 @@ For local development of user-task forms in workflow modules one can
 
 1. [build this package locally](#build)
 1. Link the package `npm link`
-1. Get current package-version `npm -g list` (e.g. `@bc/shared@0.0.1`)
+1. Get current package-version `npm -g list` (e.g. `@vanillabp/bc-shared@0.0.1`)
 1. Change to webapp folder of the workflow module
-1. Link the global package `npm link @bc/shared@0.0.1` (this needs to be repeated after each `npm install`)
+1. Link the global package `npm link @vanillabp/bc-shared@0.0.1` (this needs to be repeated after each `npm install`)
 
 ### Webpack
 
@@ -40,7 +40,6 @@ Add the file `craco.config.js` to your root-folder:
 const path = require("path");
 
 const aliases = {
-  '@bc/shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@bc", "shared"),
   'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
   'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
   'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")

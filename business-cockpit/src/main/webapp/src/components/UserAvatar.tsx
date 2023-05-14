@@ -3,9 +3,9 @@ import { User as UserMale, UserFemale } from 'grommet-icons';
 import { Anchor, Avatar, Box, Text } from 'grommet';
 import { BorderType } from 'grommet/utils';
 import React, { useRef, useState } from 'react';
-import { useOnClickOutside } from '@bc/shared';
+import { useOnClickOutside } from '@vanillabp/bc-shared';
 import { useAppContext } from '../AppContext';
-import { useResponsiveScreen } from '@bc/shared';
+import { useResponsiveScreen } from '@vanillabp/bc-shared';
 
 type UserAvatarProps = {
   user: UserDto;

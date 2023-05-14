@@ -7,9 +7,9 @@ import {
     useSse,
     WakeupSseCallback,
     ToastAction
- } from '@bc/shared';
+ } from '@vanillabp/bc-shared';
 import { createContext, Dispatch } from 'react';
-import { OfficialTasklistApi, Configuration as GuiConfiguration } from '@bc/official-gui-client';
+import { OfficialTasklistApi, Configuration as GuiConfiguration } from '@vanillabp/bc-official-gui-client';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
 

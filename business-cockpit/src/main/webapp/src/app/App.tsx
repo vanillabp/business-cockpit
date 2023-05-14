@@ -7,12 +7,12 @@ import i18n from '../i18n';
 import '../i18n';
 import { CurrentUser } from './CurrentUser';
 import { GuiSseProvider } from '../client/guiClient';
-import { MessageToast } from '@bc/shared';
-import { LoadingIndicator } from '@bc/shared';
-import { useKeepNowUpToDate } from '@bc/shared';
+import { MessageToast } from '@vanillabp/bc-shared';
+import { LoadingIndicator } from '@vanillabp/bc-shared';
+import { useKeepNowUpToDate } from '@vanillabp/bc-shared';
 import { Login } from './Login';
 import { ProtectedRoute } from '../app/ProtectedRoute';
-import { theme } from '@bc/shared';
+import { theme } from '@vanillabp/bc-shared';
 
 const MainApp = lazy(() => import('../main-app/MainApp'));
 const UserTaskApp = lazy(() => import('../usertask-app/UserTaskApp'));

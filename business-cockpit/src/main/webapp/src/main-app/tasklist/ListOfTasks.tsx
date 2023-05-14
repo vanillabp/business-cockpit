@@ -6,9 +6,9 @@ import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox } from 'grommet';
-import { useResponsiveScreen } from "@bc/shared";
-import { EventSourceMessage, WakeupSseCallback } from '@bc/shared';
-import { Link } from '@bc/shared';
+import { useResponsiveScreen } from "@vanillabp/bc-shared";
+import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { Link } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
 
 i18n.addResources('en', 'tasklist/list', {

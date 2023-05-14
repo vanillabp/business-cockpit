@@ -1,7 +1,7 @@
 import { Text } from 'grommet';
 import React, { lazy } from 'react';
 import { bpmnProcessId as Test_bpmnProcessId } from './Test';
-import { UserTaskForm as UserTaskFormComponent } from '@bc/shared';
+import { UserTaskForm as UserTaskFormComponent } from '@vanillabp/bc-shared';
 
 const Test_UserTaskForm = lazy(() => import('./Test/Form'));
 
