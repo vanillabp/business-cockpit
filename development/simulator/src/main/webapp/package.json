@@ -48,7 +48,8 @@
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static/TestModule",
     "test": "craco test",
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/TestModule/static/js/*.js",
-    "publish:snapshot": "echo 'no publish for webapps'"
+    "publish:snapshot": "echo 'no publish for webapps'",
+    "unpublish:snapshot": "echo 'no unpublish for webapps'"
   },
   "eslintConfig": {
     "extends": [
