@@ -17,6 +17,7 @@
 
   <modules>
     <module>commons</module>
+    <module>openapi-generator-fixes</module>
     <module>apis</module>
     <module>react-shared</module>
     <module>business-cockpit</module>
