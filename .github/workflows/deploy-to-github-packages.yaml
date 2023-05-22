@@ -24,19 +24,19 @@ jobs:
           always-auth: true
       - uses: actions/delete-package-versions@v4.1.1
         with: 
-          package-name: '@vanillabp/bc-official-gui-client'
+          package-name: 'bc-official-gui-client'
           package-type: 'npm'
           min-versions-to-keep: 0
           ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
       - uses: actions/delete-package-versions@v4.1.1
         with: 
-          package-name: '@vanillabp/bc-shared'
+          package-name: 'bc-shared'
           package-type: 'npm'
           min-versions-to-keep: 0
           ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
       - uses: actions/delete-package-versions@v4.1.1
         with: 
-          package-name: '@vanillabp/bc-dev-shell'
+          package-name: 'bc-dev-shell'
           package-type: 'npm'
           min-versions-to-keep: 0
           ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
