@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 import reactor.core.publisher.Flux;
 
 @Component
@@ -27,10 +29,22 @@ public class ReactiveChangeStreamUtils {
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
 
     @Autowired
-    private ReactiveMongoTemplate mongoTemplate;
+    private MongoDbProperties properties;
     
+    @Autowired
+    private ReactiveMongoTemplate mongoTemplate;
+
     public <T> Flux<ChangeStreamEvent<T>> subscribe(
             final Class<T> entityClass,
+            final OperationType... watchingOperationTypes) {
+        
+        return subscribe(entityClass, false, watchingOperationTypes);
+        
+    }
+
+    public <T> Flux<ChangeStreamEvent<T>> subscribe(
+            final Class<T> entityClass,
+            final boolean fullDocument,
             final OperationType... watchingOperationTypes) {
         
         // get collection name from entity class
@@ -59,7 +73,10 @@ public class ReactiveChangeStreamUtils {
         return mongoTemplate
                 .changeStream(entityClass)
                 .withOptions(builder -> builder
-                        .fullDocumentLookup(FullDocument.DEFAULT)
+                        .fullDocumentLookup(
+                                fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
+                                        ? FullDocument.UPDATE_LOOKUP // required for Cosmos
+                                        : FullDocument.DEFAULT)
                         .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
                         .filter(newAggregation(match(where("operationType").in(operationTypes)))))
                 .watchCollection(collectionName)

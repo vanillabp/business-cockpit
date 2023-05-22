@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.reactive.config.EnableWebFlux;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;

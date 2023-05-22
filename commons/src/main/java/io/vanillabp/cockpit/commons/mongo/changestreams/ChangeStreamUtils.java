@@ -24,6 +24,9 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
+
 @Component
 @ConditionalOnBean(MongoTemplate.class)
 public class ChangeStreamUtils {
@@ -32,12 +35,25 @@ public class ChangeStreamUtils {
     
     @Autowired
     private Logger logger;
+    
+    @Autowired
+    private MongoDbProperties properties;
 
     @Autowired
     private MessageListenerContainer messageListenerContainer;
-    
+
     public <T> Subscription subscribe(
             final Class<T> entityClass,
+            final MessageListener<ChangeStreamDocument<Document>, T> listener,
+            final OperationType... watchingOperationTypes) {
+        
+        return subscribe(entityClass, false, listener, watchingOperationTypes);
+        
+    }
+
+    public <T> Subscription subscribe(
+            final Class<T> entityClass,
+            final boolean fullDocument,
             final MessageListener<ChangeStreamDocument<Document>, T> listener,
             final OperationType... watchingOperationTypes) {
 
@@ -67,7 +83,10 @@ public class ChangeStreamUtils {
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
                 .builder(catchExceptionsListener(listener, entityClass))
-                .fullDocumentLookup(FullDocument.DEFAULT)
+                .fullDocumentLookup(
+                        fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
+                                ? FullDocument.UPDATE_LOOKUP // required for Cosmos
+                                : FullDocument.DEFAULT)
                 .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
                 .filter(newAggregation(match(where("operationType").in(operationTypes))))
                 .maxAwaitTime(Duration.ofSeconds(15))

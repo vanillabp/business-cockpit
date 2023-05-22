@@ -6,8 +6,6 @@ import org.springframework.lang.NonNull;
 @ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = false)
 public class ApplicationProperties {
 
-    private MongoDb mongodb = new MongoDb();
-    
     private int guiSseUpdateInterval = 1000;
     
     @NonNull
@@ -18,14 +16,6 @@ public class ApplicationProperties {
     
     @NonNull
     private String applicationVersion;
-    
-    public MongoDb getMongodb() {
-        return mongodb;
-    }
-    
-    public void setMongodb(MongoDb mongodb) {
-        this.mongodb = mongodb;
-    }
     
     public int getGuiSseUpdateInterval() {
         return guiSseUpdateInterval;
