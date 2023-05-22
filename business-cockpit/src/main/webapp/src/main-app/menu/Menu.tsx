@@ -25,7 +25,7 @@ const Menu = () => {
   const { t } = useTranslation('menu');
   const { t: tApp } = useTranslation('app');
   
-  const hideMenu = () => showMenu(false);
+  // const hideMenu = () => showMenu(false);
   
   return (
       <Grid
