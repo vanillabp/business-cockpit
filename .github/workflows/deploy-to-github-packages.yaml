@@ -22,7 +22,7 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@vanillabp'
       - name: Publish package
-        run: mvn --batch-mode deploy
+        run: mvn --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
