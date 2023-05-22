@@ -16,6 +16,11 @@ jobs:
           java-version: '17'
           distribution: 'adopt'
           cache: 'maven'
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@vanillabp'
       - name: Publish package
         run: mvn --batch-mode deploy
         env:
