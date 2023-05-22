@@ -25,4 +25,5 @@ jobs:
         run: mvn --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}
 
