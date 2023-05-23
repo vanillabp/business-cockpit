@@ -14,6 +14,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
@@ -31,6 +32,7 @@ import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 
 @Component
 @ConditionalOnBean(MongoTemplate.class)
+@DependsOn("changesetAutoConfiguration")
 public class ChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";

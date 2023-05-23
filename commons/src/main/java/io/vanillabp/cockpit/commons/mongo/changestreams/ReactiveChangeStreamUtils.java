@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Flux;
 
 @Component
 @ConditionalOnBean(ReactiveMongoTemplate.class)
+@DependsOn("changesetAutoConfiguration")
 public class ReactiveChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
