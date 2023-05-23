@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.commons.mongo.changestreams;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 import java.time.Instant;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.stereotype.Component;
 
 import com.mongodb.client.model.changestream.FullDocument;
@@ -70,6 +72,12 @@ public class ReactiveChangeStreamUtils {
                     .forEach(type -> operationTypes.addAll(type.getMongoTypes()));
         }
         
+        final var aggregations = new LinkedList<AggregationOperation>();
+        aggregations.add(match(where("operationType").in(operationTypes)));
+        if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+            aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
+        }
+        
         return mongoTemplate
                 .changeStream(entityClass)
                 .withOptions(builder -> builder
@@ -78,7 +86,7 @@ public class ReactiveChangeStreamUtils {
                                         ? FullDocument.UPDATE_LOOKUP // required for Cosmos
                                         : FullDocument.DEFAULT)
                         .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
-                        .filter(newAggregation(match(where("operationType").in(operationTypes)))))
+                        .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new))))
                 .watchCollection(collectionName)
                 .resumeAt(Instant.now())
                 .listen();

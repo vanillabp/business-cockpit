@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.commons.mongo.changestreams;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 import java.time.Duration;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
@@ -80,6 +82,12 @@ public class ChangeStreamUtils {
                     .forEach(type -> operationTypes.addAll(type.getMongoTypes()));
         }
         
+        final var aggregations = new LinkedList<AggregationOperation>();
+        aggregations.add(match(where("operationType").in(operationTypes)));
+        if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+            aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
+        }
+        
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
                 .builder(catchExceptionsListener(listener, entityClass))
@@ -88,7 +96,7 @@ public class ChangeStreamUtils {
                                 ? FullDocument.UPDATE_LOOKUP // required for Cosmos
                                 : FullDocument.DEFAULT)
                 .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
-                .filter(newAggregation(match(where("operationType").in(operationTypes))))
+                .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new)))
                 .maxAwaitTime(Duration.ofSeconds(15))
                 .collection(collectionName)
                 .build();
