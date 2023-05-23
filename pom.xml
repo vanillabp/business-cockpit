@@ -83,7 +83,7 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>--@vanillabp:registry=${npm.registry} install</arguments>
+                <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/**</arguments>
               </configuration>
             </execution>
             <execution>
