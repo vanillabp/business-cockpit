@@ -13,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(ChangesetInformation.COLLECTION_NAME)
 public class ChangesetInformation {
 
-    public static final String COLLECTION_NAME = "Changesets";
+    public static final String COLLECTION_NAME = "ChangesetInformation";
     
     @Id
     private String id;

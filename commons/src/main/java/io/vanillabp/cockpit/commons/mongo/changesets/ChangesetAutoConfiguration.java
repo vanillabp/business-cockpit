@@ -356,9 +356,9 @@ public class ChangesetAutoConfiguration {
         final var unkownChangesets = new LinkedList<ChangesetInformation>();
         
         knownChangesets()
-                .forEach(alreadyAppliiedChangeset -> {
-                        if (changeSetMethods.remove(alreadyAppliiedChangeset) == null) {
-                            unkownChangesets.add(alreadyAppliiedChangeset);
+                .forEach(alreadyAppliedChangeset -> {
+                        if (changeSetMethods.remove(alreadyAppliedChangeset) == null) {
+                            unkownChangesets.add(alreadyAppliedChangeset);
                         }
                 });
         
