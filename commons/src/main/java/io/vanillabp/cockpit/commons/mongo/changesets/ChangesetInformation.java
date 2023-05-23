@@ -10,9 +10,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * This entity is used to persist changeset information.
  */
-@Document("Changesets")
+@Document(ChangesetInformation.COLLECTION_NAME)
 public class ChangesetInformation {
 
+    public static final String COLLECTION_NAME = "Changesets";
+    
     @Id
     private String id;
     

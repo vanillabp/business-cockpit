@@ -20,12 +20,16 @@ import org.springframework.boot.autoconfigure.data.mongo.MongoReactiveRepositori
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Query;
 
 import com.mongodb.WriteConcern;
 import com.mongodb.reactivestreams.client.MongoClient;
 
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 import jakarta.annotation.PostConstruct;
 
 /**
@@ -57,12 +61,16 @@ public class ChangesetAutoConfiguration {
 
     private ReactiveMongoTemplate mongoTemplate;
     
+    private MongoDbProperties properties;
+    
     public ChangesetAutoConfiguration(
             final ApplicationContext applicationContext, 
-            final ReactiveMongoTemplate mongoTemplate) {
+            final ReactiveMongoTemplate mongoTemplate,
+            final MongoDbProperties properties) {
         
         this.applicationContext = applicationContext;
         this.mongoTemplate = mongoTemplate;
+        this.properties = properties;
 
     }
 
@@ -70,9 +78,11 @@ public class ChangesetAutoConfiguration {
     public void init() {
     
         logger.info("About to apply MongoDb changesets...");
-
+        
         mongoTemplate.setWriteConcern(WriteConcern.JOURNALED);
 
+        initChangesetsCollection();
+        
         final var changesets = buildMapSortedByChangesetOrder();
         
         collectChangesetsByAnnotationsOnBeans(changesets);
@@ -91,6 +101,33 @@ public class ChangesetAutoConfiguration {
         
     }
 
+    private void initChangesetsCollection() {
+        
+        if (mongoTemplate
+                .getCollectionNames()
+                .toStream()
+                .anyMatch(name -> name.equals(ChangesetInformation.COLLECTION_NAME))) {
+            return;
+        }
+        
+        mongoTemplate
+                .createCollection(ChangesetInformation.COLLECTION_NAME)
+                .block();
+
+        // Azure Cosmos wants indexes for all fields ordered by
+        if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+            
+            mongoTemplate
+                    .indexOps(ChangesetInformation.COLLECTION_NAME)
+                    .ensureIndex(new Index()
+                            .on("order", Direction.ASC)
+                            .named(ChangesetInformation.COLLECTION_NAME + "_order"))
+                    .block();
+            
+        }
+        
+    }
+    
     private void rollbackAllIfNecessary() {
         
         final String rollbackSysProp = System.getProperty(
