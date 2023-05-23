@@ -73,9 +73,14 @@ public class ReactiveChangeStreamUtils {
         }
         
         final var aggregations = new LinkedList<AggregationOperation>();
-        aggregations.add(match(where("operationType").in(operationTypes)));
         if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+            if (operationTypes.containsAll(OperationType.DELETE.getMongoTypes())) {
+                operationTypes.removeAll(OperationType.DELETE.getMongoTypes());
+            }
+            aggregations.add(match(where("operationType").in(operationTypes)));
             aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
+        } else {
+            aggregations.add(match(where("operationType").in(operationTypes)));
         }
         
         return mongoTemplate
