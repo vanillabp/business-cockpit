@@ -192,10 +192,21 @@ public class LoginApiController implements LoginApi {
             final ServerWebExchange exchange) {
         
         return userContext
-                .getUserLoggedInAsMono()
+                .getUserLoggedInDetailsAsMono()
                 .map(user -> new User()
-                        .id(user)
-                        .sex(Sex.OTHER)
+                        .id(user.getId())
+                        .lastName(user.getLastName())
+                        .firstName(user.getFirstName())
+                        .email(user.getEmail())
+                        .sex(
+                                user.isFemale() == null
+                                        ? Sex.OTHER
+                                        : user.isFemale()
+                                        ? Sex.FEMALE
+                                        : Sex.MALE)
+                        .status(user.isActive()
+                                        ? UserStatus.ACTIVE
+                                        : UserStatus.INACTIVE)
                         .roles(List.of()))
                 .map(ResponseEntity::ok);
         
