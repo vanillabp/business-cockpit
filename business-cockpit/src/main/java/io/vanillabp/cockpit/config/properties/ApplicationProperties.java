@@ -17,6 +17,9 @@ public class ApplicationProperties {
     @NonNull
     private String applicationVersion;
     
+    @NonNull
+    private String applicationUri;
+    
     public int getGuiSseUpdateInterval() {
         return guiSseUpdateInterval;
     }
@@ -47,6 +50,14 @@ public class ApplicationProperties {
 
     public void setApplicationVersion(String applicationVersion) {
         this.applicationVersion = applicationVersion;
+    }
+    
+    public String getApplicationUri() {
+        return applicationUri;
+    }
+    
+    public void setApplicationUri(String applicationUri) {
+        this.applicationUri = applicationUri;
     }
     
 }
