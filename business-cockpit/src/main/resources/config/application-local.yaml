@@ -11,3 +11,4 @@ business-cockpit:
   title-short: VanillaBP-BC
   title-long: VanillaBP Business Cockpit
   application-version: ${project.version}
+  application-uri: http://localhost:8080
