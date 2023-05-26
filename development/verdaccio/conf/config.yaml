@@ -16,7 +16,7 @@ uplinks:
     url: https://registry.npmjs.org/
 
 packages:
-  '@bc/*':
+  '@vanillabp/*':
     access: $all
     publish: $anonymous
     unpublish: $anonymous

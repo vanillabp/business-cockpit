@@ -1,8 +1,8 @@
 import { Configuration as GuiConfiguration, LoginApi, TasklistApi } from './gui';
 import { useAppContext } from '../AppContext';
-import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '@bc/shared';
+import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { createContext, Dispatch } from 'react';
-import { ToastAction, buildFetchApi, doLogout } from '@bc/shared';
+import { ToastAction, buildFetchApi } from '@vanillabp/bc-shared';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
 
@@ -67,7 +67,6 @@ export {
     GuiSseProvider,
     useGuiSse,
     getLoginGuiApi,
-    getTasklistGuiApi,
-    doLogout,
+    getTasklistGuiApi
   };
 

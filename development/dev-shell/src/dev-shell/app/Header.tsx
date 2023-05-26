@@ -3,7 +3,7 @@ import { Search } from 'grommet-icons';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useResponsiveScreen } from '@bc/shared';
+import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from './DevShellApp.js';
 import i18n from '../i18n.js';
 

@@ -12,10 +12,12 @@
     <version.java>17</version.java>
     <version.org.mapstruct>1.5.3.Final</version.org.mapstruct>
     <npm.registry>http://localhost:4873/</npm.registry>
+    <skip.npm.unpublish>true</skip.npm.unpublish>
   </properties>
 
   <modules>
     <module>commons</module>
+    <module>openapi-generator-fixes</module>
     <module>apis</module>
     <module>react-shared</module>
     <module>business-cockpit</module>
@@ -69,10 +71,20 @@
           <executions>
             <execution>
               <id>install node and npm install</id>
+              <phase>generate-resources</phase>
               <goals>
                 <goal>install-node-and-npm</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>npm install</id>
+              <phase>generate-resources</phase>
+              <goals>
                 <goal>npm</goal>
               </goals>
+              <configuration>
+                <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/**</arguments>
+              </configuration>
             </execution>
             <execution>
               <id>npm build</id>
@@ -85,13 +97,24 @@
               </configuration>
             </execution>
             <execution>
+              <id>npm unpublish snapshot</id>
+              <phase>package</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>run unpublish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
+                <skip>${skip.npm.unpublish}</skip>
+              </configuration>
+            </execution>
+            <execution>
               <id>npm publish snapshot</id>
               <phase>package</phase>
               <goals>
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>run publish:snapshot -- --@bc:registry=${npm.registry}</arguments>
+                <arguments>run publish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
               </configuration>
             </execution>
           </executions>
@@ -154,7 +177,16 @@
     <snapshotRepository>
       <id>github</id>
       <name>Github Packages</name>
-      <url>https://github.com/vanillabp/business-cockpit</url>
+      <url>https://maven.pkg.github.com/vanillabp/business-cockpit</url>
     </snapshotRepository>
   </distributionManagement>
+
+  <profiles>
+    <profile>
+      <id>unpublish-npm</id>
+      <properties>
+        <skip.npm.unpublish>false</skip.npm.unpublish>
+      </properties>
+    </profile>
+  </profiles>
 </project>

@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.config.web;
 import java.net.URI;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -20,7 +21,10 @@ import org.springframework.security.web.server.authentication.logout.RedirectSer
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
+import io.vanillabp.cockpit.commons.utils.UserDetails;
+import io.vanillabp.cockpit.commons.utils.UserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.config.web.security.BasicUserDetails;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -32,6 +36,7 @@ public class WebSecurityConfiguration {
     private ApplicationProperties properties;
 
     @Bean
+    @ConditionalOnMissingBean(name = "guiHttpSecurity")
     public SecurityWebFilterChain guiHttpSecurity(
             final ServerHttpSecurity http,
             final MapReactiveUserDetailsService userDetailsService) {
@@ -80,6 +85,20 @@ public class WebSecurityConfiguration {
                 .roles()
                 .build();
         return new MapReactiveUserDetailsService(user);
+        
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean(name = "userDetailsProvider")
+    public UserDetailsProvider userDetailsProvider() {
+        
+        return new UserDetailsProvider() {
+                @Override
+                public UserDetails getUserDetails(final Object principal) {
+                    final var user = (User) principal;
+                    return new BasicUserDetails(user);
+                }
+            };
         
     }
     

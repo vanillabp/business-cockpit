@@ -1,11 +1,11 @@
 {
   "name": "test-module",
-  "version": "0.0.1-snapshots.0",
+  "version": "0.0.1-SNAPSHOT",
   "private": true,
   "dependencies": {
-    "@bc/shared": ">=0.0.1-snapshot.0",
-    "@bc/official-gui-client": ">=0.0.1-snapshot.0",
-    "@bc/dev-shell": ">=0.0.1-snapshot.0",
+    "@vanillabp/bc-shared": "0.0.1-SNAPSHOT",
+    "@vanillabp/bc-official-gui-client": "0.0.1-SNAPSHOT",
+    "@vanillabp/bc-dev-shell": "0.0.1-SNAPSHOT",
     "@fontsource/roboto": "4.5.8",
     "@microsoft/fetch-event-source": "2.0.1",
     "grommet": "2.31.0",
@@ -48,7 +48,8 @@
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static/TestModule",
     "test": "craco test",
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/TestModule/static/js/*.js",
-    "publish:snapshot": "echo 'no publish for webapps'"
+    "publish:snapshot": "echo 'no publish for webapps'",
+    "unpublish:snapshot": "echo 'no unpublish for webapps'"
   },
   "eslintConfig": {
     "extends": [

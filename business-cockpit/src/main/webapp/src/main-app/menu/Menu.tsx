@@ -6,7 +6,6 @@ import { Logout, Stakeholder } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
-import { doLogout } from '../../client/guiClient';
 
 i18n.addResources('en', 'menu', {
       "logout": "Logout",
@@ -25,7 +24,7 @@ const Menu = () => {
   const { t } = useTranslation('menu');
   const { t: tApp } = useTranslation('app');
   
-  const hideMenu = () => showMenu(false);
+  // const hideMenu = () => showMenu(false);
   
   return (
       <Grid
@@ -51,9 +50,10 @@ const Menu = () => {
             }
             <MenuItem
                 roles={ null }
-                onClick={ doLogout }>
+                onClick={ () => document.forms["logoutForm"].submit() }>
               <Logout />
               <Text>{t('logout')}</Text>
+              <form action="/logout" method="POST" id="logoutForm"></form>
             </MenuItem>
           </>
         }

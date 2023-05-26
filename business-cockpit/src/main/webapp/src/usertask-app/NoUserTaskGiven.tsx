@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Text, Button } from 'grommet';
 import { useAppContext } from '../AppContext';
-import { UserTaskAppLayout } from '@bc/shared';
+import { UserTaskAppLayout } from '@vanillabp/bc-shared';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
 

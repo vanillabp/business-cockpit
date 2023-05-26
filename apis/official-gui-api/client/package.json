@@ -1,6 +1,6 @@
 {
-  "name": "@bc/official-gui-client",
-  "version": "0.0.1-snapshot.0",
+  "name": "@vanillabp/bc-official-gui-client",
+  "version": "0.0.1-SNAPSHOT",
   "sideEffects": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,7 +18,8 @@
   "scripts": {
     "start": "tsup --watch",
     "build": "tsup",
-    "publish:snapshot": "npm unpublish --force && npm publish --tag snapshot",
+    "unpublish:snapshot": "npm unpublish --force",
+    "publish:snapshot": "npm publish --tag snapshot",
     "version:snapshot": "npm version prerelease --preid snapshot"
   }
 }

@@ -3,7 +3,7 @@ import { Text } from 'grommet';
 import { taskDefinition as TestForm1_taskDefinition } from './TestForm1';
 import { taskDefinition as TestForm2_taskDefinition } from './TestForm2';
 import { taskDefinition as TestForm3_taskDefinition } from './TestForm3';
-import { UserTaskForm as UserTaskFormComponent } from '@bc/shared';
+import { UserTaskForm as UserTaskFormComponent } from '@vanillabp/bc-shared';
 
 const TestForm1 = lazy(() => import('./TestForm1/Form'));
 const TestForm2 = lazy(() => import('./TestForm2/Form'));

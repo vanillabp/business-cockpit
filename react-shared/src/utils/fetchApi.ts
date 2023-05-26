@@ -105,25 +105,4 @@ const buildFetchApi = (dispatch: Dispatch<ToastAction>, wakeupSeeCallback?: Wake
 
 };
 
-const doLogout = async () => {
-  
-  const storedRefreshToken = window.localStorage.getItem(REFRESH_TOKEN_HEADER);
-  const response = await window.fetch('/logout', {
-      method: 'GET',
-      // @ts-ignore
-      headers: {
-        [REFRESH_TOKEN_HEADER]: storedRefreshToken
-      },
-    });
-  
-  if (response.status < 200 && response.status > 302) {
-    document.location.href = '/logout';
-  } else {
-    document.location.href = '/';
-  }
-  
-  window.localStorage.removeItem(REFRESH_TOKEN_HEADER);
-  
-};
-
-export { buildFetchApi, doLogout, REFRESH_TOKEN_HEADER };
+export { buildFetchApi, REFRESH_TOKEN_HEADER };

@@ -10,7 +10,7 @@
 
   <packaging>pom</packaging>
   <artifactId>react-shared</artifactId>
-  <name>Used to build '@bc/shared' npm package</name>
+  <name>Used to build '@vanillabp/bc-shared' npm package</name>
 
   <build>
     <plugins>
@@ -51,7 +51,7 @@
               <workingDirectory>${project.basedir}</workingDirectory>
               <arguments>
                 <argument>link</argument>
-                <argument>@bc/official-gui-client</argument>
+                <argument>@vanillabp/bc-official-gui-client</argument>
               </arguments>
             </configuration>
           </execution>

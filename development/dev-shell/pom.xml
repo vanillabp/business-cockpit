@@ -10,7 +10,7 @@
 
   <packaging>pom</packaging>
   <artifactId>dev-shell</artifactId>
-  <name>Used to build '@bc/dev-shell' npm package</name>
+  <name>Used to build '@vanillabp/bc-dev-shell' npm package</name>
 
   <build>
     <plugins>
@@ -51,8 +51,8 @@
               <workingDirectory>${project.basedir}</workingDirectory>
               <arguments>
                 <argument>link</argument>
-                <argument>@bc/official-gui-client</argument>
-                <argument>@bc/shared</argument>
+                <argument>@vanillabp/bc-official-gui-client</argument>
+                <argument>@vanillabp/bc-shared</argument>
               </arguments>
             </configuration>
           </execution>

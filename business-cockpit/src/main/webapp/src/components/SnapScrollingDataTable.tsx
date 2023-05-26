@@ -1,6 +1,6 @@
 import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Text } from 'grommet';
 import { SnapAlignBox, SnapScrollingGrid } from './SnapScrolling';
-import { useResponsiveScreen } from "@bc/shared";
+import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import React, { forwardRef, PropsWithChildren, ReactNode, UIEventHandler } from 'react';
 
 interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<Omit<DataTableExtendedProps<TRowType>, 'columns'>> {

@@ -1,9 +1,9 @@
 {
   "name": "vanillabp-business-cockpit",
-  "version": "0.0.1",
+  "version": "0.0.1-SNAPSHOT",
   "private": true,
   "dependencies": {
-    "@bc/shared": ">=0.0.1-snapshot.0",
+    "@vanillabp/bc-shared": "0.0.1-SNAPSHOT",
     "@fontsource/roboto": "4.5.8",
     "grommet": "2.31.0",
     "grommet-icons": "4.10.0",
@@ -45,7 +45,8 @@
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static",
     "test": "craco test",
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/static/js/*.js",
-    "publish:snapshot": "echo 'no publish for webapps'"
+    "publish:snapshot": "echo 'no publish for webapps'",
+    "unpublish:snapshot": "echo 'no unpublish for webapps'"
   },
   "eslintConfig": {
     "extends": [

@@ -1,6 +1,6 @@
 import { useLayoutEffect } from 'react';
 import { useAppContext } from '../AppContext';
-import { Box, Button } from 'grommet';
+import { Box } from 'grommet';
 
 const Login = () => {
 

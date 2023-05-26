@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.commons.mongo.changestreams;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 import java.time.Duration;
@@ -13,7 +14,9 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
@@ -24,20 +27,37 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
 import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
+
 @Component
 @ConditionalOnBean(MongoTemplate.class)
+@DependsOn("changesetAutoConfiguration")
 public class ChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
     
     @Autowired
     private Logger logger;
+    
+    @Autowired
+    private MongoDbProperties properties;
 
     @Autowired
     private MessageListenerContainer messageListenerContainer;
-    
+
     public <T> Subscription subscribe(
             final Class<T> entityClass,
+            final MessageListener<ChangeStreamDocument<Document>, T> listener,
+            final OperationType... watchingOperationTypes) {
+        
+        return subscribe(entityClass, false, listener, watchingOperationTypes);
+        
+    }
+
+    public <T> Subscription subscribe(
+            final Class<T> entityClass,
+            final boolean fullDocument,
             final MessageListener<ChangeStreamDocument<Document>, T> listener,
             final OperationType... watchingOperationTypes) {
 
@@ -64,12 +84,26 @@ public class ChangeStreamUtils {
                     .forEach(type -> operationTypes.addAll(type.getMongoTypes()));
         }
         
+        final var aggregations = new LinkedList<AggregationOperation>();
+        if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+            if (operationTypes.containsAll(OperationType.DELETE.getMongoTypes())) {
+                operationTypes.removeAll(OperationType.DELETE.getMongoTypes());
+            }
+            aggregations.add(match(where("operationType").in(operationTypes)));
+            aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
+        } else {
+            aggregations.add(match(where("operationType").in(operationTypes)));
+        }
+        
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
                 .builder(catchExceptionsListener(listener, entityClass))
-                .fullDocumentLookup(FullDocument.DEFAULT)
+                .fullDocumentLookup(
+                        fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
+                                ? FullDocument.UPDATE_LOOKUP // required for Cosmos
+                                : FullDocument.DEFAULT)
                 .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
-                .filter(newAggregation(match(where("operationType").in(operationTypes))))
+                .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new)))
                 .maxAwaitTime(Duration.ofSeconds(15))
                 .collection(collectionName)
                 .build();

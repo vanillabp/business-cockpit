@@ -3,8 +3,8 @@ import { Layer, Collapsible, Box, Button, Keyboard } from 'grommet';
 import { Menu } from './Menu';
 import { FormClose } from 'grommet-icons';
 import { useAppContext } from '../../AppContext';
-import { useResponsiveScreen } from "@bc/shared";
-import { useOnClickOutside } from '@bc/shared';
+import { useResponsiveScreen } from "@vanillabp/bc-shared";
+import { useOnClickOutside } from '@vanillabp/bc-shared';
 
 const ResponsiveMenu = () => {
   

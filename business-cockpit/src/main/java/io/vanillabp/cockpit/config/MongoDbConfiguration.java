@@ -19,15 +19,15 @@ import com.mongodb.WriteConcern;
 import com.mongodb.connection.SslSettings;
 import com.mongodb.management.JMXConnectionPoolListener;
 
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
-import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 
 @Configuration
 public class MongoDbConfiguration {
 
     @Autowired
-    private ApplicationProperties properties;
+    private MongoDbProperties properties;
     
     /**
      * Used to enable TLS in integration environments.
@@ -38,7 +38,7 @@ public class MongoDbConfiguration {
         return clientSettingsBuilder -> clientSettingsBuilder
                 .applyToSslSettings(builder -> builder.applySettings(
                         SslSettings.builder()
-                        .enabled(properties.getMongodb().isUseTls())
+                        .enabled(properties.isUseTls())
                         .build()))
                 .applyToConnectionPoolSettings(builder -> builder.addConnectionPoolListener(
                         new JMXConnectionPoolListener()));
@@ -77,7 +77,6 @@ public class MongoDbConfiguration {
                 .withJournal(Boolean.TRUE)
                 .withWTimeout(
                         Duration.parse(properties
-                                .getMongodb()
                                 .getUseTimeout()).get(ChronoUnit.SECONDS),
                         TimeUnit.SECONDS));
         return template;

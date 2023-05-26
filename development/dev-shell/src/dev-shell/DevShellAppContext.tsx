@@ -1,5 +1,5 @@
 import React, { useCallback, Dispatch } from 'react';
-import { Toast, ToastAction } from '@bc/shared';
+import { Toast, ToastAction } from '@vanillabp/bc-shared';
 
 type Action =
     | { type: 'loadingIndicator', show: boolean }
