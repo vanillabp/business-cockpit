@@ -59,16 +59,16 @@ public class UserTaskService {
         
         // register all URLs already known
         userTasks
-                .findAllWorkflowModulesAndUrls()
+                .findAllWorkflowModulesAndUris()
                 .collectList()
-                .map(wmaus -> wmaus
+                .map(modulesAndUris -> modulesAndUris
                         .stream()
                         .collect(Collectors.toMap(
                                 UserTask::getWorkflowModule,
-                                UserTask::getUrl)))
+                                UserTask::getWorkflowModuleUri)))
                 .doOnNext(microserviceProxyRegistry::registerMicroservice)
                 .subscribe();
-        
+
     }
     
     @PreDestroy
@@ -149,7 +149,7 @@ public class UserTaskService {
                 .doOnNext(task -> microserviceProxyRegistry
                         .registerMicroservice(
                                 task.getWorkflowModule(),
-                                task.getUrl()))
+                                task.getWorkflowModuleUri()))
                 .map(task -> Boolean.TRUE)
                 .onErrorResume(e -> {
                     logger.error("Could not save user task '{}'!",

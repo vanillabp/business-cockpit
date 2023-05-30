@@ -17,9 +17,9 @@ public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, St
     Flux<UserTask> findAllBy(Pageable pageable);
     
     @Aggregation({
-            "{ $sort:{ workflowModule: 1, url: 1 } }",
-            "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, url: { '$first': '$url' } } }"
+            "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",
+            "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
         })
-    Flux<UserTask> findAllWorkflowModulesAndUrls();
+    Flux<UserTask> findAllWorkflowModulesAndUris();
     
 }

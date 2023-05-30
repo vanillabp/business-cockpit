@@ -78,7 +78,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
     
     public void registerMicroservice(
             final String id,
-            final String url) {
+            final String uri) {
         
         try {
             
@@ -98,9 +98,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
                 return;
             }
             
-            // remove '/asset-manifest.json' from URL
-            final var target = url.replaceFirst("/[^/]+$", "/");
-            routes.put(id, target);
+            routes.put(id, uri);
             
         } finally {
             writeLock.unlock();
@@ -112,7 +110,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
     }
 
     public void registerMicroservice(
-            final Map<String, String> microserviceUrls) {
+            final Map<String, String> microserviceUris) {
 
         int numberOfPreviousKnownMicroservices = 0;
         int numberOfAfterwardsKnownMicroservices = 0;
@@ -122,17 +120,11 @@ public class MicroserviceProxyRegistry implements RouteLocator {
             
             numberOfPreviousKnownMicroservices = routes.size();
             
-            microserviceUrls
+            microserviceUris
                     .entrySet()
                     .stream()
                     .filter(entry -> !routes.containsKey(entry.getKey()))
-                    .forEach(entry -> {
-                        // remove file from URL because it is reflected by
-                        // the url-type and may change on evolving the
-                        // workflow modules UI
-                        final var target = entry.getValue().replaceFirst("/[^/]+$", "/");
-                        routes.put(entry.getKey(), target);
-                    });
+                    .forEach(entry -> routes.put(entry.getKey(), entry.getValue()));
             
             numberOfAfterwardsKnownMicroservices = routes.size();
             

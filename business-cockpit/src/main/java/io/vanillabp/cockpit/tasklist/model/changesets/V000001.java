@@ -15,7 +15,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 @ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    private static final String INDEX_WORKFLOWMODULE_URL = "workflowModule_url";
+    private static final String INDEX_WORKFLOWMODULE_URL = UserTask.COLLECTION_NAME + "_workflowModuleUri";
 
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
@@ -31,12 +31,12 @@ public class V000001 {
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
                         .on("workflowModule", Direction.ASC)
-                        .on("url", Direction.ASC)
-                        .named("workflowModule_url"))
+                        .on("workflowModuleUri", Direction.ASC)
+                        .named(INDEX_WORKFLOWMODULE_URL))
                 .block();
         
         return List.of(
-                "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + V000001.INDEX_WORKFLOWMODULE_URL + "' }",
+                "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_URL + "' }",
                 "{ drop: '" + UserTask.COLLECTION_NAME + "' }");
         
     }

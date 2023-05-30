@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.devskiller.jfairy.Fairy;
 
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.UrlType;
+import io.vanillabp.cockpit.bpms.api.v1.UiComponentsType;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskUpdatedEvent;
@@ -298,9 +298,10 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setTimestamp(OffsetDateTime.now());
         
         result.setWorkflowModule("TestModule");
-        result.setUrl("http://localhost:8079/TestModule/remoteEntry.js");
-        result.setUrlType(UrlType.WEBPACK_REACT);
-        result.setTaskProviderApiUrl("http://localhost:8079/TestModule/task-provider/v1");
+        result.setWorkflowModuleUri("http://localhost:8079/wm/TestModule");
+        result.setUiUriPath("/remoteEntry.js");
+        result.setUiUriType(UiComponentsType.WEBPACK_REACT);
+        result.setTaskProviderApiUriPath("/task-provider/v1");
         
         result.setTitle(
                 fairies

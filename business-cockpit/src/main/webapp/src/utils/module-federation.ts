@@ -1,5 +1,6 @@
 import { UserTaskForm } from '@vanillabp/bc-shared';
 import React, { useState, useEffect, useCallback } from 'react';
+import { UserTask, UiComponentsType } from '../client/gui';
 
 export type UseCase = 'List' | 'Form';
 
@@ -20,7 +21,7 @@ export interface TasklistCellProps {
 };
 
 export interface Module {
-  workflowModuleId?: string;
+  moduleId?: string;
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
@@ -44,14 +45,14 @@ type ComponentProducer = {
 // inspired by https://github.com/hasanayan/react-dynamic-remote-component
 
 export const attachScript = (
-  workflowModuleId: string,
+  moduleId: string,
   url: string
 ) => {
-  const existingElement = document.getElementById(workflowModuleId);
+  const existingElement = document.getElementById(moduleId);
 
   if (existingElement) {
     //@ts-expect-error
-    if (window[workflowModuleId]) return Promise.resolve(true);
+    if (window[moduleId]) return Promise.resolve(true);
 
     return new Promise((resolve) => {
       existingElement.onload = (e) => {
@@ -64,7 +65,7 @@ export const attachScript = (
   element.src = url;
   element.type = "text/javascript";
   element.async = true;
-  element.id = "___" + workflowModuleId;
+  element.id = "___" + moduleId;
 
   const scriptLoadPromise = new Promise<HTMLScriptElement>(
     (resolve, reject) => {
@@ -81,37 +82,38 @@ export const attachScript = (
 };
 
 export const detachScript = (
-  workflowModuleId: string
+  moduleId: string
 ) => {
-  const element = document.getElementById("___" + workflowModuleId);
+  const element = document.getElementById("___" + moduleId);
   if (element) document.head.removeChild(element);
 };
 
 const fetchModule = async (
-  workflowModuleId: string,
+  moduleId: string,
+  uiUri: string,
   useCase: UseCase
 ): Promise<Module> => {
 
-  await attachScript(workflowModuleId, `/wm/${workflowModuleId}/remoteEntry.js`);
+  await attachScript(moduleId, uiUri);
   
   //@ts-expect-error
   await __webpack_init_sharing__("default");
   //@ts-expect-error
-  const container = window[workflowModuleId];
+  const container = window[moduleId];
   if (!container.isInitialized) {
     container.isInitialized = true;
     //@ts-expect-error
     await container.init(__webpack_share_scopes__.default);
   }
   //@ts-expect-error
-  const factory = await window[workflowModuleId].get(useCase);
+  const factory = await window[moduleId].get(useCase);
 
   return factory();
 };
 
 const loadModule = (
   moduleId: string,
-  workflowModuleId: string,
+  userTask: UserTask,
   useCase: UseCase
 ): ComponentProducer => {
   const callbacks: Array<HandlerFunction> = [];
@@ -119,7 +121,11 @@ const loadModule = (
   const retry = async () => {
     if (module.UserTaskForm !== undefined) return;
     try {
-      module = await fetchModule(workflowModuleId, useCase);
+      if (userTask.uiUriType === UiComponentsType.WebpackReact) {
+        module = await fetchModule(userTask.workflowModule, userTask.uiUri, useCase);
+      } else {
+        throw `Unsupported UiUriType: ${userTask.uiUriType}!`;
+      }
       publish();
     } catch (error) {
       console.error(error);
@@ -128,7 +134,7 @@ const loadModule = (
     }
   };
 
-  let module: Module = { workflowModuleId, retry };
+  let module: Module = { moduleId, retry };
   modules[moduleId] = module;
     
   const publish = () => callbacks.forEach(callback => callback(module));
@@ -150,10 +156,11 @@ const loadModule = (
 };
 
 const getModule = (
-  workflowModuleId: string,
+  moduleId: string,
+  userTask: UserTask,
   useCase: UseCase
 ): ComponentProducer => {
-  const moduleId = `${workflowModuleId}#${useCase}`;
+
   let result = modules[moduleId];
   if ((result !== undefined)
       && (result.retry === undefined)) {
@@ -163,20 +170,21 @@ const getModule = (
       };
   }
   
-  return loadModule(moduleId, workflowModuleId, useCase);
+  return loadModule(moduleId, userTask, useCase);
   
 };
 
 const useFederationModule = (
-  workflowModuleId: string,
+  userTask: UserTask,
   useCase: UseCase
 ): Module => {
 
-  const [module, setModule] = useState(modules[workflowModuleId]);
+  const moduleId = `${userTask.workflowModule}#${useCase}`;
+  const [module, setModule] = useState(modules[moduleId]);
 
   const memoizedGetModule = useCallback(
-      () => getModule(workflowModuleId, useCase),
-      [ workflowModuleId, useCase ]);
+      () => getModule(moduleId, userTask, useCase),
+      [ moduleId, useCase ]);
   
   useEffect(() => {
       const { subscribe, unsubscribe } = memoizedGetModule();
