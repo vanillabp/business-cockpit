@@ -55,11 +55,13 @@ public class UserTask implements UpdateInformationAware {
 
     private Map<String, String> taskDefinitionTitle = null;
 
-    private String taskProviderApiUrl;
+    private String workflowModuleUri;
+    
+    private String taskProviderApiUriPath;
 
-    private String url;
+    private String uiUriPath;
 
-    private UrlType urlType;
+    private UiCompontentsType uiUriType;
 
     private Boolean hasIcon;
 
@@ -233,31 +235,39 @@ public class UserTask implements UpdateInformationAware {
     public void setTaskDefinitionTitle(Map<String, String> taskDefinitionTitle) {
         this.taskDefinitionTitle = taskDefinitionTitle;
     }
-
-    public String getTaskProviderApiUrl() {
-        return taskProviderApiUrl;
+    
+    public String getTaskProviderApiUriPath() {
+        return taskProviderApiUriPath;
     }
 
-    public void setTaskProviderApiUrl(String taskProviderApiUrl) {
-        this.taskProviderApiUrl = taskProviderApiUrl;
+    public void setTaskProviderApiUriPath(String taskProviderApiUriPath) {
+        this.taskProviderApiUriPath = taskProviderApiUriPath;
     }
 
-    public String getUrl() {
-        return url;
+    public String getUiUriPath() {
+        return uiUriPath;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setUiUriPath(String uiUriPath) {
+        this.uiUriPath = uiUriPath;
     }
 
-    public UrlType getUrlType() {
-        return urlType;
+    public UiCompontentsType getUiUriType() {
+        return uiUriType;
     }
 
-    public void setUrlType(UrlType urlType) {
-        this.urlType = urlType;
+    public void setUiUriType(UiCompontentsType uiUriType) {
+        this.uiUriType = uiUriType;
     }
 
+    public String getWorkflowModuleUri() {
+        return workflowModuleUri;
+    }
+    
+    public void setWorkflowModuleUri(String workflowModuleUri) {
+        this.workflowModuleUri = workflowModuleUri;
+    }
+    
     public Boolean getHasIcon() {
         return hasIcon;
     }

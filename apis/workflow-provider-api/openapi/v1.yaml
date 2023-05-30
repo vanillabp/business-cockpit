@@ -29,7 +29,7 @@ paths:
 
 components:
   schemas:
-    UrlType:
+    UiComponentsType:
       type: string
       enum:
       - EXTERNAL
@@ -125,17 +125,15 @@ components:
           example:
             en: Do ride
             de: Führe die Fahrt durch
-        taskProviderApiUrl:
-          type: string
-          description: URL implementing business-cockpit's task-provider API
-          example: http://localhost:9000/taxiride/task-api/v1.0
-        url:
+        uiUri:
           type: string
           description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
-        urlType:
-          $ref: '#/components/schemas/UrlType'
+        uiUriType:
+          $ref: '#/components/schemas/UiComponentsType'
           example: WEBPACK_REACT
+        workflowModuleUri:
+          type: string
         hasIcon:
           type: boolean
         hasFavicon:

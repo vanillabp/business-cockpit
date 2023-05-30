@@ -15,15 +15,15 @@ i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
       "no": "No.",
       "name": "task",
-      "unsupported-url-type_title": "Open task",
-      "unsupported-url-type_message": "Internal error: The task refers to an unsupported URL-type!",
+      "unsupported-ui-uri-type_title": "Open task",
+      "unsupported-ui-uri-type_message": "Internal error: The task refers to an unsupported UI-URI-type!",
     });
 i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Aufgabe",
-      "unsupported-url-type_title": "Aufgabe öffnen",
-      "unsupported-url-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten URL-Typ!",
+      "unsupported-ui-uri-type_title": "Aufgabe öffnen",
+      "unsupported-ui-uri-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
 
 const loadUserTasks = async (
@@ -91,11 +91,11 @@ const ListOfTasks = () => {
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
   
   const openTask = async (userTask: UserTask) => {
-      if (userTask.urlType !== 'WEBPACK_REACT') {
+      if (userTask.uiUriType !== 'WEBPACK_REACT') {
         toast({
             namespace: 'tasklist/list',
-            title: t('unsupported-url-type_title'),
-            message: t('unsupported-url-type_message'),
+            title: t('unsupported-ui-uri-type_title'),
+            message: t('unsupported-ui-uri-type_message'),
             status: 'critical'
           });
         return;

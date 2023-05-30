@@ -166,7 +166,7 @@ paths:
 
 components:
   schemas:
-    UrlType:
+    UiComponentsType:
       type: string
       enum:
       - EXTERNAL
@@ -197,9 +197,10 @@ components:
       - bpmnProcessId
       - taskDefinition
       - title
-      - taskProviderApiUrl
-      - url
-      - urlType
+      - workflowModuleUri
+      - taskProviderApiUriPath
+      - uiUriPath
+      - uiUriType
       properties:
         id:
           type: string
@@ -272,16 +273,21 @@ components:
           example:
             en: Do ride
             de: Führe die Fahrt durch
-        taskProviderApiUrl:
+        workflowModuleUri:
           type: string
-          description: URL implementing business-cockpit's task-provider API
-          example: http://localhost:9000/taxiride/task-api/v1.0
-        url:
+          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
+          example: http://localhost:9000/taxiride
+        taskProviderApiUriPath:
           type: string
-          description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
-          example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
-        urlType:
-          $ref: '#/components/schemas/UrlType'
+          description: A path added to workflowModuleUri to build a URI for the task-provider API
+          example: /api/v1/task-provider
+        uiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: /remoteEntry.js
+        uiUriType:
+          type: string
+          $ref: '#/components/schemas/UiComponentsType'
           example: WEBPACK_REACT
         hasIcon:
           type: boolean

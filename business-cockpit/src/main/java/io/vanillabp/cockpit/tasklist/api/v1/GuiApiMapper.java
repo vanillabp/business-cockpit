@@ -12,7 +12,8 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 @Mapper
 public abstract class GuiApiMapper {
 
-    @Mapping(target = "url", expression = "java(urlToApiUsingMicroserviceProxy(userTask.getUrl()))")
+    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")
+    @Mapping(target = "taskProviderUri", expression = "java(proxiedTaskProviderUri(userTask))")
 	public abstract UserTask toApi(
 			io.vanillabp.cockpit.tasklist.model.UserTask userTask);
 
@@ -20,37 +21,36 @@ public abstract class GuiApiMapper {
 			List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks);
 	
     @NoMappingMethod
-	protected String urlToApiUsingMicroserviceProxy(
-	        final String url) {
+	protected String proxiedUiUri(
+	        final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
 	    
-	    if (url == null) {
+        if (userTask.getWorkflowModuleUri() == null) {
+            return null;
+        }
+	    if (userTask.getUiUriPath() == null) {
 	        return null;
 	    }
 	    
-	    var indexOfPath = -1;
-	    if (url.startsWith("http")) {
-	        indexOfPath = url.indexOf("//");
-	        if (indexOfPath != -1) {
-	            indexOfPath += 2;
-	        }
-	        indexOfPath = url.indexOf('/', indexOfPath);
-            if (indexOfPath != -1) {
-                indexOfPath += 1;
-            }
-	    } else {
-            indexOfPath = url.indexOf('/');
-            if (indexOfPath != -1) {
-                indexOfPath += 1;
-            }
-	    }
-
-	    if (indexOfPath == -1) {
-	        return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX;
-	    }
-	    
 	    return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
-	            + url.substring(indexOfPath);
+	            + userTask.getWorkflowModule()
+	            + (userTask.getUiUriPath().startsWith("/")
+	                    ? userTask.getUiUriPath()
+                        : "/" + userTask.getUiUriPath());
 	    
 	}
-	
+
+    @NoMappingMethod
+    protected String proxiedTaskProviderUri(
+            final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
+        
+        if (userTask.getWorkflowModuleUri() == null) {
+            return null;
+        }
+        
+        return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
+                + userTask.getWorkflowModule()
+                + "/";
+        
+    }
+
 }

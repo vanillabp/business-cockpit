@@ -74,7 +74,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Role'
-    UrlType:
+    UiComponentsType:
       type: string
       enum:
       - EXTERNAL
@@ -106,9 +106,10 @@ components:
       - bpmnProcessId
       - taskDefinition
       - title
-      - taskProviderApiUrl
-      - url
-      - urlType
+      - workflowModuleUri
+      - taskProviderUri
+      - uiUri
+      - uiUriType
       properties:
         id:
           type: string
@@ -189,17 +190,18 @@ components:
           example:
             en: Do ride
             de: Führe die Fahrt durch
-        taskProviderApiUrl:
+        uiUri:
           type: string
-          description: URL implementing business-cockpit's task-provider API
-          example: http://localhost:9000/taxiride/task-api/v1.0
-        url:
+          description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: http://localhost:8080/wm/what-ever/remoteEntry.js
+        uiUriType:
           type: string
-          description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
-          example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
-        urlType:
-          $ref: '#/components/schemas/UrlType'
+          $ref: '#/components/schemas/UiComponentsType'
           example: WEBPACK_REACT
+        taskProviderUri:
+          type: string
+          description: An URI pointing to the task-provider's own API (maybe used by user-task forms)
+          example: http://localhost:8080/wm/what-ever/
         hasIcon:
           type: boolean
         hasFavicon:
