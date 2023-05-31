@@ -16,7 +16,6 @@ import org.springframework.security.web.server.util.matcher.PathPatternParserSer
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApiController;
 
 @Configuration("BpmsApiWebSecurityConfiguration")
-@Order(1)
 public class WebSecurityConfiguration {
 
     public static final String BPMS_API_ROLE = "BPMS-API";
@@ -27,6 +26,7 @@ public class WebSecurityConfiguration {
 	private BpmsApiProperties properties;
 	
     @Bean
+    @Order(1)
     public SecurityWebFilterChain bpmsApiHttpSecurity(
             final ServerHttpSecurity http) {
         

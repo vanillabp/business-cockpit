@@ -29,13 +29,13 @@ import io.vanillabp.cockpit.config.web.security.BasicUserDetails;
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
-@Order(99)
 public class WebSecurityConfiguration {
 
     @Autowired
     private ApplicationProperties properties;
 
     @Bean
+    @Order(99)
     @ConditionalOnMissingBean(name = "guiHttpSecurity")
     public SecurityWebFilterChain guiHttpSecurity(
             final ServerHttpSecurity http,
