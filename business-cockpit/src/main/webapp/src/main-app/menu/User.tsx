@@ -9,13 +9,22 @@ type CurrentUserProps = {
 
 const User = ({
   user,
-}: CurrentUserProps) => {
-  return <Grid fill="horizontal"
-          gap="small" columns={['xxsmall', 'auto', 'flex']} align="center">
-          <UserAvatar user={ user } />
-          <Text truncate="tip">{user.email}</Text>
-          <Text>{ user.memberId !== undefined ? `(${user.memberId})` : '' }</Text>
-        </Grid>;
-}
+}: CurrentUserProps) => (
+  <Grid fill="horizontal"
+    gap="small" columns={['xxsmall', 'auto', 'flex']} align="center">
+    <UserAvatar user={ user } />
+    <Text truncate="tip">
+    {
+      !Boolean(user.lastName)
+          ? !Boolean(user.email)
+            ? user.id
+            : user.email
+          : Boolean(user.firstName)
+          ? `${user.firstName} ${user.lastName}`
+          : user.lastName
+    }
+    </Text>
+  </Grid>
+);
 
 export default User;

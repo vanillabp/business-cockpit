@@ -124,7 +124,7 @@ const loadModule = (
       if (userTask.uiUriType === UiComponentsType.WebpackReact) {
         module = await fetchModule(userTask.workflowModule, userTask.uiUri, useCase);
       } else {
-        throw `Unsupported UiUriType: ${userTask.uiUriType}!`;
+        throw new Error(`Unsupported UiUriType: ${userTask.uiUriType}!`);
       }
       publish();
     } catch (error) {
@@ -184,7 +184,7 @@ const useFederationModule = (
 
   const memoizedGetModule = useCallback(
       () => getModule(moduleId, userTask, useCase),
-      [ moduleId, useCase ]);
+      [ moduleId, userTask, useCase ]);
   
   useEffect(() => {
       const { subscribe, unsubscribe } = memoizedGetModule();

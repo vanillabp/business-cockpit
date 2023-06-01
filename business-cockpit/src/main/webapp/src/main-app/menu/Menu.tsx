@@ -2,19 +2,22 @@ import React from 'react';
 import User from './User';
 import { useAppContext } from '../../AppContext';
 import { Anchor, Box, Grid, Text } from 'grommet';
-import { Logout, Stakeholder } from 'grommet-icons';
+import { Logout, Stakeholder, Task } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import { useNavigate } from 'react-router-dom';
 
 i18n.addResources('en', 'menu', {
       "logout": "Logout",
-      "user profile": "User profile",
+      "user-profile": "User profile",
+      "tasklist": "Tasks",
       "READONLY": "read-only",
     });
 i18n.addResources('de', 'menu', {
       "logout": "Abmelden",
-      "user profile": "Benutzerprofil",
+      "user-profile": "Benutzerprofil",
+      "tasklist": "Aufgaben",
       "READONLY": "nur lesend",
     });
 
@@ -23,8 +26,9 @@ const Menu = () => {
   const { state, showMenu } = useAppContext();
   const { t } = useTranslation('menu');
   const { t: tApp } = useTranslation('app');
+  const navigate = useNavigate();
   
-  // const hideMenu = () => showMenu(false);
+  const hideMenu = () => showMenu(false);
   
   return (
       <Grid
@@ -49,6 +53,16 @@ const Menu = () => {
                   : <></>
             }
             <MenuItem
+                roles={ null }
+                onClick={() => {
+                  hideMenu();
+                  navigate(tApp('url-tasklist') as string);
+                }}>
+              <Task />
+              <Text>{t('tasklist')}</Text>
+            </MenuItem>
+            <MenuItem
+                background="light-3"
                 roles={ null }
                 onClick={ () => document.forms["logoutForm"].submit() }>
               <Logout />

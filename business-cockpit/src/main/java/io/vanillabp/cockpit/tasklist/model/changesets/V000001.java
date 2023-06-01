@@ -15,7 +15,8 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 @ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    private static final String INDEX_WORKFLOWMODULE_URL = UserTask.COLLECTION_NAME + "_workflowModuleUri";
+    private static final String INDEX_WORKFLOWMODULE_URI = UserTask.COLLECTION_NAME + "_workflowModuleUri";
+    private static final String INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
 
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
@@ -32,11 +33,20 @@ public class V000001 {
                 .ensureIndex(new Index()
                         .on("workflowModule", Direction.ASC)
                         .on("workflowModuleUri", Direction.ASC)
-                        .named(INDEX_WORKFLOWMODULE_URL))
+                        .named(INDEX_WORKFLOWMODULE_URI))
+                .block();
+        
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("dueDate", Direction.ASC)
+                        .on("createdAt", Direction.ASC)
+                        .named(INDEX_DEFAULT_SORT))
                 .block();
         
         return List.of(
-                "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_URL + "' }",
+                "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_DEFAULT_SORT + "' }",
+                "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_URI + "' }",
                 "{ drop: '" + UserTask.COLLECTION_NAME + "' }");
         
     }
