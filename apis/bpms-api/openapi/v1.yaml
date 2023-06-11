@@ -18,7 +18,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskCreatedEvent"
+              $ref: "#/components/schemas/UserTaskCreatedOrUpdatedEvent"
       responses:
         200:
           description: successful operation
@@ -45,7 +45,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskUpdatedEvent"
+              $ref: "#/components/schemas/UserTaskCreatedOrUpdatedEvent"
       responses:
         200:
           description: successful operation
@@ -72,7 +72,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskLifecycleEvent"
+              $ref: "#/components/schemas/UserTaskSuspendedEvent"
       responses:
         200:
           description: successful operation
@@ -99,7 +99,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskLifecycleEvent"
+              $ref: "#/components/schemas/UserTaskActivatedEvent"
       responses:
         200:
           description: successful operation
@@ -126,7 +126,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskLifecycleEvent"
+              $ref: "#/components/schemas/UserTaskCompletedEvent"
       responses:
         200:
           description: successful operation
@@ -153,7 +153,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTaskLifecycleEvent"
+              $ref: "#/components/schemas/UserTaskCancelledEvent"
       responses:
         200:
           description: successful operation
@@ -166,29 +166,21 @@ paths:
 
 components:
   schemas:
-    UiComponentsType:
+    UiUriType:
       type: string
       enum:
       - EXTERNAL
-      - WEBPACK_REACT
-      - WEBPACK_WEBCOMPONENT
-      - ANGULAR
-    DetailsPropertyTitle:
+      - WEBPACK_MF_REACT  # MF ... Module Federation
+    DetailProperties:
       type: object
       properties:
         path:
           type: string
-        title:
-          type: object
-          additionalProperties:
-            type: string
-        showAsColumn:
-          type: boolean
         sortable:
           type: boolean
         filterable:
           type: boolean
-    UserTaskCreatedEvent:
+    UserTaskCreatedOrUpdatedEvent:
       type: object
       required:
       - id
@@ -205,6 +197,9 @@ components:
         id:
           type: string
           description: event id withing the source system
+        updated:
+          type: boolean
+          description: Whether this event is about an update (otherwise creating a user task)
         userTaskId:
           type: string
           description: user task id
@@ -241,9 +236,9 @@ components:
           example:
             en: Taxi Ride
             de: Taxifahrt
-        bpmnWorkflowId:
+        workflowKey:
           type: string
-          description: The unique ID of the workflow
+          description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
         workflowId:
           type: string
@@ -287,12 +282,8 @@ components:
           example: /remoteEntry.js
         uiUriType:
           type: string
-          $ref: '#/components/schemas/UiComponentsType'
-          example: WEBPACK_REACT
-        hasIcon:
-          type: boolean
-        hasFavicon:
-          type: boolean
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
         assignee:
           type: string
           example: driverA
@@ -310,7 +301,7 @@ components:
           type: string
           format: date-time
           example: 2020-05-21T13:30:26.202Z
-        followupDate:
+        followUpDate:
           type: string
           format: date-time
           example: null
@@ -319,88 +310,28 @@ components:
           description: Properties for individual searches
           additionalProperties: true
           example: '{ "customer": "passanger A" }'
-        detailsPropertyTitles:
+        detailsProperties:
           type: array
           items:
-            $ref: '#/components/schemas/DetailsPropertyTitle'
-        detailsTextSearch:
-          type: string
-          description: List of words for fulltext searching details
-    UserTaskUpdatedEvent:
-      type: object
-      required:
-      - id
-      - timestamp
-      - title
-      properties:
-        id:
-          type: string
-          description: event id withing the source system
-        initiator:
-          type: string
-          description: The user who triggered the update. Null if the update is done by the system.
-        timestamp:
-          type: string
-          format: date-time
-          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
-          example: 2019-05-21T13:30:26.202Z
-        source:
-          type: string
-          description: name of the source system sending this event
-        comment:
-          type: string
-          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
-        title:
-          type: object
-          description: The rendered title of the user-task (may contain specific data)
-          additionalProperties:
-            type: string
-          example:
-            en: "Do ride #4711"
-            de: "Führe die Fahrt #4711 durch"
-        assignee:
-          type: string
-          example: driverA
-        candidateUsers:
-          type: array
-          items:
-            type: string
-          example: []
-        candidateGroups:
-          type: array
-          items:
-            type: string
-          example: [ "drivers" ]
-        dueDate:
-          type: string
-          format: date-time
-          example: 2020-05-21T13:30:26.202Z
-        followupDate:
-          type: string
-          format: date-time
-          example: null
-        details:
-          type: object
-          description: Properties for individual searches
-          additionalProperties: true
-          example: '{ "customer": "passanger A" }'
-        detailsPropertyTitles:
-          type: array
-          items:
-            $ref: '#/components/schemas/DetailsPropertyTitle'
-        detailsTextSearch:
+            $ref: '#/components/schemas/DetailProperties'
+        detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
     UserTaskLifecycleEvent:
       type: object
       required:
       - id
+      - userTaskId
       - timestamp
       - title
       properties:
         id:
           type: string
           description: event id withing the source system
+        userTaskId:
+          type: string
+          description: user task id
+          example: Has to be unique across all reporting systems
         initiator:
           type: string
           description: The user who triggered the update. Null if the update is done by the system.
@@ -415,3 +346,15 @@ components:
         comment:
           type: string
           example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+    UserTaskCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+    UserTaskCancelledEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+    UserTaskSuspendedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+    UserTaskActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"

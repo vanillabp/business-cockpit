@@ -7,7 +7,10 @@ const taskListColumns = [
       'de': 'Fällig',
       'en': 'due'
     },
-    path: 'dueDate'
+    path: 'dueDate',
+    showAsColumn: true,
+    sortable: true,
+    filterable: true
   }
 ];
 

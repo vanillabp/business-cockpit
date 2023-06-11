@@ -15,10 +15,12 @@ import org.slf4j.LoggerFactory;
 import com.devskiller.jfairy.Fairy;
 
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.UiComponentsType;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskLifecycleEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
 
 public class UserTaskTestDataGenerator implements Runnable {
 
@@ -38,7 +40,7 @@ public class UserTaskTestDataGenerator implements Runnable {
     
     private UserTaskTestDataParameters parameters;
     
-    private List<UserTaskCreatedEvent> created = new LinkedList<>();
+    private List<UserTaskCreatedOrUpdatedEvent> created = new LinkedList<>();
 
     private Logger logger;
     
@@ -93,24 +95,27 @@ public class UserTaskTestDataGenerator implements Runnable {
                     
                 } else {
                     
-                    final var lifecycleEvent = buildLifecylceEvent(createdEvent);
                     final var typeOfEvent = random.nextInt();
                     switch (typeOfEvent) {
                     case 0:
                             bpmsApi.userTaskCompletedEvent(
-                                    createdEvent.getUserTaskId(), lifecycleEvent);
+                                    createdEvent.getUserTaskId(),
+                                    buildCompletedEvent(createdEvent));
                             break;
                     case 1:
                             bpmsApi.userTaskCancelledEvent(
-                                    createdEvent.getUserTaskId(), lifecycleEvent);
+                                    createdEvent.getUserTaskId(),
+                                    buildCancelledEvent(createdEvent));
                             break;
                     case 2:
                             bpmsApi.userTaskSuspendedEvent(
-                                    createdEvent.getUserTaskId(), lifecycleEvent);
+                                    createdEvent.getUserTaskId(),
+                                    buildSuspendedEvent(createdEvent));
                             break;
                     default:
                             bpmsApi.userTaskActivatedEvent(
-                                    createdEvent.getUserTaskId(), lifecycleEvent);
+                                    createdEvent.getUserTaskId(),
+                                    buildActivatedEvent(createdEvent));
                     }
                     
                 }
@@ -181,21 +186,13 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private UserTaskUpdatedEvent buildUpdatedEvent(
-            final UserTaskCreatedEvent createdEvent) {
+    private UserTaskCreatedOrUpdatedEvent buildUpdatedEvent(
+            final UserTaskCreatedOrUpdatedEvent createdEvent) {
         
-        final var result = new UserTaskUpdatedEvent();
-        
-        result.setAssignee(createdEvent.getAssignee());
-        result.setCandidateGroups(createdEvent.getCandidateGroups());
-        result.setCandidateUsers(createdEvent.getCandidateUsers());
-        result.setDetails(createdEvent.getDetails());
-        result.setDetailsPropertyTitles(createdEvent.getDetailsPropertyTitles());
-        result.setDetailsTextSearch(createdEvent.getDetailsTextSearch());
-        result.setDueDate(createdEvent.getDueDate());
-        result.setFollowupDate(createdEvent.getFollowupDate());
+        final var result = createdEvent;
         result.setId(UUID.randomUUID().toString());
         result.setTimestamp(OffsetDateTime.now());
+        result.setUpdated(Boolean.TRUE);
         
         result.setTitle(
                 fairies
@@ -210,10 +207,10 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private UserTaskLifecycleEvent buildLifecylceEvent(
-            final UserTaskCreatedEvent createdEvent) {
+    private UserTaskCancelledEvent buildCancelledEvent(
+            final UserTaskCreatedOrUpdatedEvent createdEvent) {
         
-        final var result = new UserTaskLifecycleEvent();
+        final var result = new UserTaskCancelledEvent();
         
         result.setId(UUID.randomUUID().toString());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
@@ -223,7 +220,49 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private UserTaskCreatedEvent buildCreatedEvent() {
+
+    private UserTaskCompletedEvent buildCompletedEvent(
+            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+        
+        final var result = new UserTaskCompletedEvent();
+        
+        result.setId(UUID.randomUUID().toString());
+        result.setComment(fairies.values().iterator().next().textProducer().word(3));
+        result.setTimestamp(OffsetDateTime.now());
+        
+        return result;
+        
+    }
+
+
+    private UserTaskActivatedEvent buildActivatedEvent(
+            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+        
+        final var result = new UserTaskActivatedEvent();
+        
+        result.setId(UUID.randomUUID().toString());
+        result.setComment(fairies.values().iterator().next().textProducer().word(3));
+        result.setTimestamp(OffsetDateTime.now());
+        
+        return result;
+        
+    }
+
+
+    private UserTaskSuspendedEvent buildSuspendedEvent(
+            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+        
+        final var result = new UserTaskSuspendedEvent();
+        
+        result.setId(UUID.randomUUID().toString());
+        result.setComment(fairies.values().iterator().next().textProducer().word(3));
+        result.setTimestamp(OffsetDateTime.now());
+        
+        return result;
+        
+    }
+
+    private UserTaskCreatedOrUpdatedEvent buildCreatedEvent() {
         
         final String assignee;
         if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
@@ -263,20 +302,21 @@ public class UserTaskTestDataGenerator implements Runnable {
                 candidateGroups);
         
     }
-    public static UserTaskCreatedEvent buildCreatedEvent(
+    public static UserTaskCreatedOrUpdatedEvent buildCreatedEvent(
             final Random random,
             final Map<String, Fairy> fairies,
             final String assignee,
             final List<String> candidateUsers,
             final List<String> candidateGroups) {
         
-        final var result = new UserTaskCreatedEvent();
+        final var result = new UserTaskCreatedOrUpdatedEvent();
+        result.setUpdated(Boolean.FALSE);
         
         final var process = random.nextInt(10);
         
         result.setId(UUID.randomUUID().toString());
         result.setUserTaskId(UUID.randomUUID().toString());
-        result.setBpmnWorkflowId(UUID.randomUUID().toString());
+        result.setWorkflowKey(UUID.randomUUID().toString());
         result.setBpmnProcessId(getBpmnProcessId(process));
         result.setWorkflowTitle(
                 fairies
@@ -300,7 +340,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setWorkflowModule("TestModule");
         result.setWorkflowModuleUri("http://localhost:8079/wm/TestModule");
         result.setUiUriPath("/remoteEntry.js");
-        result.setUiUriType(UiComponentsType.WEBPACK_REACT);
+        result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
         result.setTaskProviderApiUriPath("/task-provider/v1");
         
         result.setTitle(

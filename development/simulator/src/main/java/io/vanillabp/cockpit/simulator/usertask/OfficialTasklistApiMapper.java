@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.simulator.usertask;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 
@@ -16,11 +16,11 @@ public abstract class OfficialTasklistApiMapper {
     @Mapping(target = "version", constant = "1")
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
     @Mapping(target = "taskProviderUri", expression = "java(proxiedTaskProviderUri(event))")
-    public abstract UserTask toApi(UserTaskCreatedEvent event);
+    public abstract UserTask toApi(UserTaskCreatedOrUpdatedEvent event);
     
     @NoMappingMethod
     protected String proxiedUiUri(
-            final UserTaskCreatedEvent userTask) {
+            final UserTaskCreatedOrUpdatedEvent userTask) {
         
         if (userTask.getWorkflowModuleUri() == null) {
             return null;
@@ -38,7 +38,7 @@ public abstract class OfficialTasklistApiMapper {
 
     @NoMappingMethod
     protected String proxiedTaskProviderUri(
-            final UserTaskCreatedEvent userTask) {
+            final UserTaskCreatedOrUpdatedEvent userTask) {
         
         if (userTask.getWorkflowModuleUri() == null) {
             return null;

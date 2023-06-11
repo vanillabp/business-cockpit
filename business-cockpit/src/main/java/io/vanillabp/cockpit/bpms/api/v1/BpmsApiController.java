@@ -27,7 +27,7 @@ public class BpmsApiController implements BpmsApi {
     
     @Override
     public Mono<ResponseEntity<Void>> userTaskCreatedEvent(
-            final @Valid Mono<UserTaskCreatedEvent> userTaskCreatedEvent,
+            final @Valid Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent,
             final ServerWebExchange exchange) {
 
         return userTaskCreatedEvent
@@ -42,7 +42,7 @@ public class BpmsApiController implements BpmsApi {
     @Override
     public Mono<ResponseEntity<Void>> userTaskUpdatedEvent(
             final String userTaskId,
-            final @Valid Mono<UserTaskUpdatedEvent> userTaskUpdatedEvent,
+            final @Valid Mono<UserTaskCreatedOrUpdatedEvent> userTaskUpdatedEvent,
             final ServerWebExchange exchange) {
         
         return userTaskService

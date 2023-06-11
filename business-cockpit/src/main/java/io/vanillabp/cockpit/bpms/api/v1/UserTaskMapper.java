@@ -14,6 +14,6 @@ public interface UserTaskMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "endedAt", ignore = true)
-    UserTask toModel(UserTaskCreatedEvent event);
+    UserTask toModel(UserTaskCreatedOrUpdatedEvent event);
 
 }

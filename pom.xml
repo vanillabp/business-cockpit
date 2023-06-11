@@ -22,6 +22,8 @@
     <module>react-shared</module>
     <module>business-cockpit</module>
     <module>development</module>
+    <module>spi-for-java</module>
+    <module>adapters</module>
   </modules>
 
   <build>
@@ -153,6 +155,16 @@
         <groupId>org.mapstruct</groupId>
         <artifactId>mapstruct</artifactId>
         <version>${version.org.mapstruct}</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.annotation</groupId>
+        <artifactId>javax.annotation-api</artifactId>
+        <version>1.3.2</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vanillabp</groupId>
+        <artifactId>spring-boot-support</artifactId>
+        <version>1.0.4-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

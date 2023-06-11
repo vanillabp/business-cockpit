@@ -1,19 +1,5 @@
 package io.vanillabp.cockpit.commons.rest.adapter;
 
-import feign.Feign.Builder;
-import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
-import io.vanillabp.cockpit.commons.rest.adapter.tls.TlsTruststoreUtil;
-import feign.Request;
-import okhttp3.Authenticator;
-import okhttp3.Credentials;
-import okhttp3.OkHttpClient;
-import okhttp3.Response;
-import okhttp3.Route;
-import okhttp3.logging.HttpLoggingInterceptor;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InjectionPoint;
-import org.springframework.util.StringUtils;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.SecureRandom;
@@ -29,6 +15,21 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InjectionPoint;
+import org.springframework.util.StringUtils;
+
+import feign.Feign.Builder;
+import feign.Request;
+import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
+import io.vanillabp.cockpit.commons.rest.adapter.tls.TlsTruststoreUtil;
+import okhttp3.Authenticator;
+import okhttp3.Credentials;
+import okhttp3.OkHttpClient;
+import okhttp3.Response;
+import okhttp3.Route;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 public abstract class ClientsConfigurationBase {
 

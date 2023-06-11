@@ -43,7 +43,7 @@ public class UserTask implements UpdateInformationAware {
 
     private Map<String, String> workflowTitle = null;
 
-    private String bpmnWorkflowId;
+    private String WorkflowKey;
 
     private String workflowId;
 
@@ -61,11 +61,7 @@ public class UserTask implements UpdateInformationAware {
 
     private String uiUriPath;
 
-    private UiCompontentsType uiUriType;
-
-    private Boolean hasIcon;
-
-    private Boolean hasFavicon;
+    private UiUriType uiUriType;
 
     private String assignee;
 
@@ -75,13 +71,11 @@ public class UserTask implements UpdateInformationAware {
 
     private OffsetDateTime dueDate;
 
-    private OffsetDateTime followupDate;
+    private OffsetDateTime followUpDate;
 
     private Map<String, Object> details = null;
 
-    private List<DetailsPropertyTitle> detailsPropertyTitles = null;
-
-    private String detailsTextSearch;
+    private String detailsFulltextSearch;
 
     public String getId() {
         return id;
@@ -188,14 +182,14 @@ public class UserTask implements UpdateInformationAware {
         this.workflowTitle = workflowTitle;
     }
 
-    public String getBpmnWorkflowId() {
-        return bpmnWorkflowId;
+    public String getWorkflowKey() {
+        return WorkflowKey;
     }
-
-    public void setBpmnWorkflowId(String bpmnWorkflowId) {
-        this.bpmnWorkflowId = bpmnWorkflowId;
+    
+    public void setWorkflowKey(String workflowKey) {
+        WorkflowKey = workflowKey;
     }
-
+    
     public String getWorkflowId() {
         return workflowId;
     }
@@ -252,11 +246,11 @@ public class UserTask implements UpdateInformationAware {
         this.uiUriPath = uiUriPath;
     }
 
-    public UiCompontentsType getUiUriType() {
+    public UiUriType getUiUriType() {
         return uiUriType;
     }
 
-    public void setUiUriType(UiCompontentsType uiUriType) {
+    public void setUiUriType(UiUriType uiUriType) {
         this.uiUriType = uiUriType;
     }
 
@@ -266,22 +260,6 @@ public class UserTask implements UpdateInformationAware {
     
     public void setWorkflowModuleUri(String workflowModuleUri) {
         this.workflowModuleUri = workflowModuleUri;
-    }
-    
-    public Boolean getHasIcon() {
-        return hasIcon;
-    }
-
-    public void setHasIcon(Boolean hasIcon) {
-        this.hasIcon = hasIcon;
-    }
-
-    public Boolean getHasFavicon() {
-        return hasFavicon;
-    }
-
-    public void setHasFavicon(Boolean hasFavicon) {
-        this.hasFavicon = hasFavicon;
     }
 
     public String getAssignee() {
@@ -316,12 +294,12 @@ public class UserTask implements UpdateInformationAware {
         this.dueDate = dueDate;
     }
 
-    public OffsetDateTime getFollowupDate() {
-        return followupDate;
+    public OffsetDateTime getFollowUpDate() {
+        return followUpDate;
     }
 
-    public void setFollowupDate(OffsetDateTime followupDate) {
-        this.followupDate = followupDate;
+    public void setFollowUpDate(OffsetDateTime followUpDate) {
+        this.followUpDate = followUpDate;
     }
 
     public Map<String, Object> getDetails() {
@@ -332,20 +310,12 @@ public class UserTask implements UpdateInformationAware {
         this.details = details;
     }
 
-    public List<DetailsPropertyTitle> getDetailsPropertyTitles() {
-        return detailsPropertyTitles;
+    public String getDetailsFulltextSearch() {
+        return detailsFulltextSearch;
     }
 
-    public void setDetailsPropertyTitles(List<DetailsPropertyTitle> detailsPropertyTitles) {
-        this.detailsPropertyTitles = detailsPropertyTitles;
-    }
-
-    public String getDetailsTextSearch() {
-        return detailsTextSearch;
-    }
-
-    public void setDetailsTextSearch(String detailsTextSearch) {
-        this.detailsTextSearch = detailsTextSearch;
+    public void setDetailsFulltextSearch(String detailsFulltextSearch) {
+        this.detailsFulltextSearch = detailsFulltextSearch;
     }
 
 }

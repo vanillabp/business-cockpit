@@ -74,28 +74,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Role'
-    UiComponentsType:
+    UiUriType:
       type: string
       enum:
       - EXTERNAL
-      - WEBPACK_REACT
-      - WEBPACK_WEBCOMPONENT
-      - ANGULAR
-    DetailsPropertyTitle:
-      type: object
-      properties:
-        path:
-          type: string
-        title:
-          type: object
-          additionalProperties:
-            type: string
-        showAsColumn:
-          type: boolean
-        sortable:
-          type: boolean
-        filterable:
-          type: boolean
+      - WEBPACK_MF_REACT  # MF ... Module Federation
     UserTask:
       type: object
       required:
@@ -158,9 +141,9 @@ components:
           example:
             en: Taxi Ride
             de: Taxifahrt
-        bpmnWorkflowId:
+        workflowKey:
           type: string
-          description: The unique ID of the workflow
+          description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
         workflowId:
           type: string
@@ -196,16 +179,12 @@ components:
           example: http://localhost:8080/wm/what-ever/remoteEntry.js
         uiUriType:
           type: string
-          $ref: '#/components/schemas/UiComponentsType'
-          example: WEBPACK_REACT
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
         taskProviderUri:
           type: string
           description: An URI pointing to the task-provider's own API (maybe used by user-task forms)
           example: http://localhost:8080/wm/what-ever/
-        hasIcon:
-          type: boolean
-        hasFavicon:
-          type: boolean
         assignee:
           type: string
           example: driverA
@@ -223,7 +202,7 @@ components:
           type: string
           format: date-time
           example: 2020-05-21T13:30:26.202Z
-        followupDate:
+        followUpDate:
           type: string
           format: date-time
           example: null
@@ -232,10 +211,6 @@ components:
           description: Properties for individual searches
           additionalProperties: true
           example: "{ 'customer': 'passanger A' }"
-        detailsPropertyTitles:
-          type: array
-          items:
-            $ref: '#/components/schemas/DetailsPropertyTitle'
-        detailsTextSearch:
+        detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
