@@ -7,7 +7,8 @@ const path = require("path");
 const aliases = {
   'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
   'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
-  'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")
+  'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom"),
+  'react-router-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-router-dom")
 };
 
 module.exports = {
@@ -66,6 +67,10 @@ module.exports = {
                     "react-dom": {
                       singleton: true,
                       requiredVersion: dependencies["react-dom"],
+                    },
+                    "react-router-dom": {
+                      singleton: true,
+                      requiredVersion: dependencies["react-router-dom"],
                     },
                   },
                 }),

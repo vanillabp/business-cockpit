@@ -1,6 +1,6 @@
 import { UserTaskForm } from '@vanillabp/bc-shared';
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserTask, UiComponentsType } from '../client/gui';
+import { UserTask, UiUriType } from '../client/gui';
 
 export type UseCase = 'List' | 'Form';
 
@@ -96,17 +96,18 @@ const fetchModule = async (
 
   await attachScript(moduleId, uiUri);
   
+  const webpackModuleId = moduleId.replaceAll('-', '_');
   //@ts-expect-error
   await __webpack_init_sharing__("default");
   //@ts-expect-error
-  const container = window[moduleId];
+  const container = window[webpackModuleId];
   if (!container.isInitialized) {
     container.isInitialized = true;
     //@ts-expect-error
     await container.init(__webpack_share_scopes__.default);
   }
   //@ts-expect-error
-  const factory = await window[moduleId].get(useCase);
+  const factory = await window[webpackModuleId].get(useCase);
 
   return factory();
 };
@@ -121,7 +122,7 @@ const loadModule = (
   const retry = async () => {
     if (module.UserTaskForm !== undefined) return;
     try {
-      if (userTask.uiUriType === UiComponentsType.WebpackReact) {
+      if (userTask.uiUriType === UiUriType.WebpackMfReact) {
         module = await fetchModule(userTask.workflowModule, userTask.uiUri, useCase);
       } else {
         throw new Error(`Unsupported UiUriType: ${userTask.uiUriType}!`);

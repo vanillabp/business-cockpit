@@ -11,9 +11,10 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, String> {
 
-    @Query(value = "{ }", fields = "{ '_id': 1 }")
+    @Query(value = "{ endedAt: null }", fields = "{ '_id': 1 }")
     Flux<UserTask> findAllIds(Pageable pageable);
     
+    @Query(value = "{ endedAt: null }")
     Flux<UserTask> findAllBy(Pageable pageable);
     
     @Aggregation({

@@ -132,6 +132,51 @@ public class UserTaskService {
         
     }
     
+    public Mono<Boolean> completeUserTask(
+            final UserTask userTask,
+            final OffsetDateTime timestamp) {
+        
+        if (userTask == null) {
+            Mono.just(Boolean.FALSE);
+        }
+        
+        userTask.setEndedAt(timestamp);
+        
+        return userTasks
+                .save(userTask)
+                .map(task -> Boolean.TRUE)
+                .onErrorResume(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return Mono.just(Boolean.FALSE);
+                });        
+    }
+
+    public Mono<Boolean> cancelUserTask(
+            final UserTask userTask,
+            final OffsetDateTime timestamp,
+            final String reason) {
+        
+        if (userTask == null) {
+            Mono.just(Boolean.FALSE);
+        }
+
+        userTask.setEndedAt(timestamp);
+        userTask.setComment(reason);
+
+        return userTasks
+                .save(userTask)
+                .map(task -> Boolean.TRUE)
+                .onErrorResume(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return Mono.just(Boolean.FALSE);
+                });
+        
+    }
+
     public Mono<Boolean> createUserTask(
             final UserTask userTask) {
         

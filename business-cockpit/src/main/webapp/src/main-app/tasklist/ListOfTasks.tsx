@@ -91,7 +91,7 @@ const ListOfTasks = () => {
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
   
   const openTask = async (userTask: UserTask) => {
-      if (userTask.uiUriType !== 'WEBPACK_REACT') {
+      if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
         toast({
             namespace: 'tasklist/list',
             title: t('unsupported-ui-uri-type_title'),

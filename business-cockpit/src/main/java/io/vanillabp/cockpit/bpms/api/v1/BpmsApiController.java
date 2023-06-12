@@ -64,4 +64,57 @@ public class BpmsApiController implements BpmsApi {
 
     }
     
+    @Override
+    public Mono<ResponseEntity<Void>> userTaskCompletedEvent(
+            final String userTaskId,
+            final @Valid Mono<UserTaskCompletedEvent> userTaskCompletedEvent,
+            final ServerWebExchange exchange) {
+        
+        return userTaskService
+                .getUserTask(userTaskId)
+                .zipWith(userTaskCompletedEvent)
+                .flatMap(t -> {
+                    final var task = t.getT1();
+                    final var completedEvent = t.getT2();
+                    
+                    task.setEndedAt(
+                            completedEvent.getTimestamp());
+                    
+                    return userTaskService.completeUserTask(
+                            task,
+                            completedEvent.getTimestamp());
+                })
+                .map(completed -> completed
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
+        
+    }
+    
+    @Override
+    public Mono<ResponseEntity<Void>> userTaskCancelledEvent(
+            final String userTaskId,
+            final @Valid Mono<UserTaskCancelledEvent> userTaskCancelledEvent,
+            final ServerWebExchange exchange) {
+
+        return userTaskService
+                .getUserTask(userTaskId)
+                .zipWith(userTaskCancelledEvent)
+                .flatMap(t -> {
+                    final var task = t.getT1();
+                    final var completedEvent = t.getT2();
+                    
+                    task.setEndedAt(
+                            completedEvent.getTimestamp());
+                    
+                    return userTaskService.cancelUserTask(
+                            task,
+                            completedEvent.getTimestamp(),
+                            completedEvent.getComment());
+                })
+                .map(completed -> completed
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
+        
+    } 
+    
 }

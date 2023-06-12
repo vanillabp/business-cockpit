@@ -15,9 +15,6 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 @ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    private static final String INDEX_WORKFLOWMODULE_URI = UserTask.COLLECTION_NAME + "_workflowModuleUri";
-    private static final String INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
-
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
             final ReactiveMongoTemplate mongo) {
@@ -28,6 +25,8 @@ public class V000001 {
         
         // necessary to accelerate initialization of
         // microservice proxies on startup
+        
+        final var INDEX_WORKFLOWMODULE_URI = UserTask.COLLECTION_NAME + "_workflowModuleUri";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -36,6 +35,7 @@ public class V000001 {
                         .named(INDEX_WORKFLOWMODULE_URI))
                 .block();
         
+        final var INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -48,6 +48,22 @@ public class V000001 {
                 "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_DEFAULT_SORT + "' }",
                 "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_WORKFLOWMODULE_URI + "' }",
                 "{ drop: '" + UserTask.COLLECTION_NAME + "' }");
+        
+    }
+    
+    @Changeset(order = 2)
+    public String createUsertaskEndedAtIndex(
+            final ReactiveMongoTemplate mongo) {
+        
+        final var INDEX_ENDED_AT = UserTask.COLLECTION_NAME + "_endedAt";
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("endedAt", Direction.ASC)
+                        .named(INDEX_ENDED_AT))
+                .block();
+        
+        return "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_ENDED_AT + "' }";
         
     }
     
