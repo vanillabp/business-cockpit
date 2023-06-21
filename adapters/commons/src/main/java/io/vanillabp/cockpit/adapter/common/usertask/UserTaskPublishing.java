@@ -102,6 +102,7 @@ public class UserTaskPublishing {
                 final var workflowsProperties = workflowsCockpitProperties
                         .getWorkflows()
                         .stream()
+                        .filter(props -> !props.matches(event.getWorkflowModule()))
                         .filter(props -> props.matches(event.getWorkflowModule(), event.getBpmnProcessId()))
                         .findFirst()
                         .get();
@@ -110,7 +111,9 @@ public class UserTaskPublishing {
                         .getOrDefault(event.getTaskDefinition(), EMPTY_PROPERTIES);
                 
                 event.setTaskProviderApiUriPath(
-                        workflowsProperties.getTaskProviderApiPath());
+                        StringUtils.hasText(workflowsProperties.getTaskProviderApiPath())
+                                ? workflowsProperties.getTaskProviderApiPath()
+                                : commonWorkflowsProperties.getTaskProviderApiPath());
                 var uiUriPath = workflowsProperties.getUiUriPath();
                 if (!StringUtils.hasText(uiUriPath)) {
                     uiUriPath = commonWorkflowsProperties.getUiUriPath();
@@ -133,7 +136,9 @@ public class UserTaskPublishing {
                 }
                 event.setUiUriType(UiUriType.fromValue(uiUriType));
                 event.setWorkflowModuleUri(
-                        workflowsProperties.getWorkflowModuleUri());
+                        StringUtils.hasText(workflowsProperties.getWorkflowModuleUri())
+                                ? workflowsProperties.getWorkflowModuleUri()
+                                : commonWorkflowsProperties.getWorkflowModuleUri());
                         
                 if (Boolean.FALSE.equals(event.getUpdated())) {
                     bpmsApiV1.get().userTaskCreatedEvent(event);

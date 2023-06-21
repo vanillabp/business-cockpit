@@ -308,38 +308,50 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         setTextInEvent(
                                 language,
                                 locale,
-                                "title",
-                                () -> details.getTitle(),
-                                () -> event.getTitle(),
-                                details.getTemplateContext(),
-                                errorLoggingContext);
-                        
-                        setTextInEvent(
-                                language,
-                                locale,
-                                "workflow-title",
+                                "workflow-title.ftl",
                                 () -> details.getWorkflowTitle(),
                                 () -> event.getWorkflowTitle(),
+                                bpmnProcessName,
+                                details.getTemplateContext(),
+                                errorLoggingContext);
+
+                        setTextInEvent(
+                                language,
+                                locale,
+                                StringUtils.hasText(userTaskProperties.getTemplatesPath())
+                                        ? userTaskProperties.getTemplatesPath()
+                                                + File.separator
+                                                + "title.ftl"
+                                        : "title.ftl",
+                                () -> details.getTitle(),
+                                () -> event.getTitle(),
+                                delegateTask.getName(),
                                 details.getTemplateContext(),
                                 errorLoggingContext);
                         
                         setTextInEvent(
                                 language,
                                 locale,
-                                "task-definition-title",
+                                StringUtils.hasText(userTaskProperties.getTemplatesPath())
+                                ? userTaskProperties.getTemplatesPath()
+                                        + File.separator
+                                        + "task-definition-title.ftl"
+                                : "task-definition-title.ftl",
                                 () -> details.getTaskDefinitionTitle(),
                                 () -> event.getTaskDefinitionTitle(),
+                                delegateTask.getName(),
                                 details.getTemplateContext(),
                                 errorLoggingContext);
                         
                         event.setDetailsFulltextSearch(
                                 renderText(
                                         e -> errorLoggingContext.apply(
-                                                "details-fulltext-search",
+                                                "details-fulltext-search.ftl",
                                                 e),
                                         locale,
                                         details.getDetailsFulltextSearch(),
-                                        details.getTemplateContext()));
+                                        details.getTemplateContext(),
+                                        () -> delegateTask.getName()));
                         
                     });
 
@@ -353,12 +365,16 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final String name,
             final Supplier<Map<String, String>> detailsSupplier,
             final Supplier<Map<String, String>> eventSupplier,
+            final String defaultValue,
             final Object templateContext,
             final BiFunction<String, Exception, Object[]> errorLoggingContext) {
         
-        final var text = detailsSupplier.get() == null
-                ? ""
-                : detailsSupplier.get().get(language);
+        final var detailsGiven = 
+                (detailsSupplier.get() != null)
+                && detailsSupplier.get().containsKey(language);
+        final var templateName = detailsGiven
+                ? detailsSupplier.get().get(language)
+                : name;
         eventSupplier
                 .get()
                 .put(
@@ -366,8 +382,11 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         renderText(
                                 e -> errorLoggingContext.apply(name, e),
                                 locale,
-                                text,
-                                templateContext));
+                                templateName,
+                                templateContext,
+                                () -> detailsGiven
+                                        ? detailsSupplier.get().get(language)
+                                        : defaultValue));
         
     }
     
@@ -375,16 +394,15 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final Function<Exception, Object[]> errorLoggingContext,
             final Locale locale,
             final String templateName,
-            final Object templateContext) {
+            final Object templateContext,
+            final Supplier<String> defaultValue) {
         
         final var templatePath = 
                 (userTasksProperties.getTemplatesPath()
-                + File.pathSeparator
-                + userTaskProperties.getTemplatesPath()
                 + (StringUtils.hasText(templateName)
-                        ? File.pathSeparator + templateName
+                        ? File.separator + templateName
                         : "")
-                .replace(File.pathSeparator + File.pathSeparator, File.pathSeparator));
+                .replace(File.separator + File.separator, File.separator));
         try {
             final var template = templating
                     .get()
@@ -400,7 +418,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             } else {
                 // templateName seems to be text already rendered by user code
             }
-            return templateName;
+            return defaultValue.get();
         }
         
     }

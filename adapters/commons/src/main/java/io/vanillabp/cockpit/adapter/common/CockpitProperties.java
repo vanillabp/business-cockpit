@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.adapter.common;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import io.vanillabp.cockpit.commons.rest.adapter.Client;
@@ -20,7 +19,6 @@ public class CockpitProperties {
     
     private boolean userTasksEnabled = true;
     
-    @Value("${spring.freemarker.template-loader-path:}")
     private String templateLoaderPath;
     
     public Client getClient() {

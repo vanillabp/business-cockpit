@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
 import org.springframework.util.StringUtils;
 
+import freemarker.cache.TemplateLookupStrategy;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
@@ -32,6 +33,7 @@ import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.modules.WorkflowModuleProperties;
 import io.vanillabp.springboot.modules.WorkflowModulePropertiesConfiguration;
+import no.api.freemarker.java8.Java8ObjectWrapper;
 
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
 @AutoConfigureAfter(WorkflowModulePropertiesConfiguration.class)
@@ -89,6 +91,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                     workflowsCockpitProperties
                             .getWorkflows()
                             .stream()
+                            .filter(workflowProperties -> workflowProperties.getBpmnProcessId() == null) // ignored for validation
                             .peek(workflowProperties -> {
                                 if (!StringUtils.hasText(workflowProperties.getWorkflowModuleUri())) {
                                     throw new RuntimeException(
@@ -109,7 +112,6 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                                             + "'].task-provider-api-path' is not set!");
                                 }
                             })
-                            .filter(workflowProperties -> workflowProperties.getBpmnProcessId() == null) // ignored for validation
                             .filter(workflowProperties -> workflowProperties.getWorkflowModuleId()
                                     .equals(workflowModuleProperties.getWorkflowModuleId()))
                             .findFirst()
@@ -163,9 +165,9 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                                         throw new IllegalArgumentException(
                                                 "No properties '"
                                                 + VanillaBpProperties.PREFIX
-                                                + ".workflows[*].workflow-module-id='"
+                                                + ".workflows[workflow-module-id="
                                                 + workflowModuleProperties.getWorkflowModuleId()
-                                                + "' found! This configuration is required for each workflow module.");
+                                                + "]' found! This configuration is required for each workflow module.");
                                     });
                 });
         
@@ -282,6 +284,14 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
             protected freemarker.template.Configuration newConfiguration() throws IOException, TemplateException {
                 return new freemarker.template.Configuration(FREEMARKER_VERSION);
             }
+            
+            protected void postProcessConfiguration(
+                    final freemarker.template.Configuration config) throws IOException ,TemplateException {
+                config.setTemplateLookupStrategy(TemplateLookupStrategy.DEFAULT_2_3_0);
+                config.setLocalizedLookup(true);
+                config.setRecognizeStandardFileExtensions(true);
+                config.setObjectWrapper(new Java8ObjectWrapper(FREEMARKER_VERSION));
+            };
 
         };
         
