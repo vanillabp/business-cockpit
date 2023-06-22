@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.devskiller.jfairy.Fairy;
 
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.DetailProperties;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
@@ -326,8 +327,9 @@ public class UserTaskTestDataGenerator implements Runnable {
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         
         result.setBpmnProcessVersion("0");
+        final var formDef = random.nextInt(4);
         result.setTaskDefinition(
-                switch (random.nextInt(4)) {
+                switch (formDef) {
                 case 0 -> "TestForm1";
                 case 1 -> "TestForm2";
                 case 2 -> "TestForm3";
@@ -355,6 +357,35 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setAssignee(assignee);
         result.setCandidateUsers(candidateUsers);
         result.setCandidateGroups(candidateGroups);
+
+        if (formDef % 2 == 0) {
+            result.setDueDate(OffsetDateTime.now().plusHours(
+                    random.nextInt(48) - 6));
+        }
+        
+        if (formDef % 2 == 0) {
+            final var testData1 = new TestData1();
+            testData1.setTestId1(Integer.toString(random.nextInt(5)));
+            testData1.setTestId2(random.nextInt(10000));
+            result.setDetails(
+                    Map.of("test1", testData1));
+            result.setDetailsProperties(List.of(
+                    new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
+                    new DetailProperties().path("test1.testId2").filterable(false).sortable(false)));
+        } else {
+            final var testData1 = new TestData1();
+            testData1.setTestId1(Integer.toString(random.nextInt(5)));
+            testData1.setTestId2(random.nextInt(10000));
+            final var testData2 = new TestData2();
+            testData2.setTestId3(Integer.toString(random.nextInt(5)));
+            testData2.setTestId2(random.nextInt(10000));
+            result.setDetails(
+                    Map.of("test1", testData1, "test2", testData2));
+            result.setDetailsProperties(List.of(
+                    new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
+                    new DetailProperties().path("test2.testId2").filterable(false).sortable(false),
+                    new DetailProperties().path("test2.testId3").filterable(true).sortable(true)));
+        }
                 
         return result;
         
