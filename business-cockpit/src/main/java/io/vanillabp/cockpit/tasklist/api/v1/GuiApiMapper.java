@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.mapstruct.Mapper;
@@ -13,6 +14,7 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 public abstract class GuiApiMapper {
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")
+    @Mapping(target = "dueDate", expression = "java(mapDateTimeMaxToNull(userTask))")
     @Mapping(target = "taskProviderUri", expression = "java(proxiedTaskProviderUri(userTask))")
 	public abstract UserTask toApi(
 			io.vanillabp.cockpit.tasklist.model.UserTask userTask);
@@ -51,6 +53,16 @@ public abstract class GuiApiMapper {
                 + userTask.getWorkflowModule()
                 + "/";
         
+    }
+
+    @NoMappingMethod
+    protected OffsetDateTime mapDateTimeMaxToNull(
+            final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
+        if (userTask.getDueDate() == OffsetDateTime.MAX) {
+            return null;
+        }
+
+        return userTask.getDueDate();
     }
 
 }
