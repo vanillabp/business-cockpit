@@ -43,10 +43,6 @@ components:
         - MALE
         - FEMALE
         - OTHER
-    Role:
-      type: string
-      enum:
-        - READONLY
     UserStatus:
       type: string
       enum:
@@ -73,7 +69,8 @@ components:
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/Role'
+            type:
+              string
     UiUriType:
       type: string
       enum:

@@ -5,8 +5,6 @@ import java.util.List;
 
 import org.springframework.context.ApplicationEvent;
 
-import io.vanillabp.cockpit.gui.api.v1.Role;
-
 public abstract class NotificationEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
@@ -15,13 +13,13 @@ public abstract class NotificationEvent extends ApplicationEvent {
     
     private final Type type;
     
-    private List<Role> targetRoles;
+    private List<String> targetRoles;
 
     public NotificationEvent(
             final Object source,
             final Clock clock,
             final Type type,
-            final List<Role> targetRoles) {
+            final List<String> targetRoles) {
         
         super(source, clock);
         this.type = type;
@@ -32,7 +30,7 @@ public abstract class NotificationEvent extends ApplicationEvent {
     public NotificationEvent(
             final Object source,
             final Type type,
-            List<Role> targetRoles) {
+            List<String> targetRoles) {
         
         super(source);
         this.type = type;
@@ -44,12 +42,12 @@ public abstract class NotificationEvent extends ApplicationEvent {
         return type;
     }
 
-    public List<Role> getTargetRoles() {
+    public List<String> getTargetRoles() {
         return targetRoles;
     }
     
     public boolean matchesTargetRoles(
-            final List<Role> roles) {
+            final List<String> roles) {
         
         if (targetRoles == null) {
             return true;

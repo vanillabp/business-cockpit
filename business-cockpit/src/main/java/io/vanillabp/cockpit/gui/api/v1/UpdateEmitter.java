@@ -11,7 +11,7 @@ public class UpdateEmitter {
     
     private SubscribableChannel channel;
     
-    private List<Role> roles;
+    private List<String> roles;
     
     private long lastCommit;
     
@@ -35,7 +35,7 @@ public class UpdateEmitter {
         return channel;
     }
     
-    public List<Role> getRoles() {
+    public List<String> getRoles() {
         return roles;
     }
     
