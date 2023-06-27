@@ -5,6 +5,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
@@ -33,6 +34,7 @@ import io.vanillabp.spi.service.TaskId;
 @Target(METHOD)
 @Inherited
 @Documented
+@Repeatable(UserTaskDetailsProviders.class)
 public @interface UserTaskDetailsProvider {
 
     static String ALL = "*";

@@ -8,13 +8,15 @@ import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
-import { Link } from '@vanillabp/bc-shared';
+import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
       "no": "No.",
       "name": "task",
+      "project": "Project",
+      "due": "Due",
       "unsupported-ui-uri-type_title": "Open task",
       "unsupported-ui-uri-type_message": "Internal error: The task refers to an unsupported UI-URI-type!",
     });
@@ -22,6 +24,8 @@ i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Aufgabe",
+      "project": "Projekt",
+      "due": "Fällig",
       "unsupported-ui-uri-type_title": "Aufgabe öffnen",
       "unsupported-ui-uri-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
@@ -130,6 +134,7 @@ const ListOfTasks = () => {
           },
           { property: 'name',
             header: t('name'),
+            size: 'calc(100% - 30.2rem)',
             render: (item: ListItem<T>) => (
                 <Box>
                   <Link
@@ -139,6 +144,27 @@ const ListOfTasks = () => {
                   </Link>
                 </Box>)
           },
+          { property: 'project',
+              header: t('project'),
+              size: '15rem',
+              render: (item: ListItem<T>) => (
+                  <Box>
+                      { item?.data['details']?.project?.name || "-" }
+                  </Box>)
+          },
+          { property: 'due',
+            header: t('due'),
+            size: '10rem',
+            render: (item: ListItem<UserTask>) => (
+                <Box>
+                    { item?.data.dueDate ?
+                        ( <span
+                            title={ toLocalDateString(item?.data.dueDate) + " " + toLocaleTimeStringWithoutSeconds(item?.data.dueDate) }
+                          >{ toLocalDateString(item?.data.dueDate) }</span> )
+                        : ( '-' )
+                    }
+                </Box>)
+          }
       ];
   
   return (

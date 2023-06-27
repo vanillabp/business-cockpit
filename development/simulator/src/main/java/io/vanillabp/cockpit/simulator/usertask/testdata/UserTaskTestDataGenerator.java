@@ -362,16 +362,23 @@ public class UserTaskTestDataGenerator implements Runnable {
             result.setDueDate(OffsetDateTime.now().plusHours(
                     random.nextInt(48) - 6));
         }
-        
+
+        final var projectData = new ProjectData();
+        final var textProducer = buildFairy("de").textProducer();
+        projectData.setProjectPk(textProducer.randomString(12));
+        projectData.setName(textProducer.word(3));
+
         if (formDef % 2 == 0) {
             final var testData1 = new TestData1();
             testData1.setTestId1(Integer.toString(random.nextInt(5)));
             testData1.setTestId2(random.nextInt(10000));
             result.setDetails(
-                    Map.of("test1", testData1));
+                    Map.of("test1", testData1,
+                            "project", projectData));
             result.setDetailsProperties(List.of(
                     new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
-                    new DetailProperties().path("test1.testId2").filterable(false).sortable(false)));
+                    new DetailProperties().path("test1.testId2").filterable(false).sortable(false),
+                    new DetailProperties().path("project.name").filterable(true).sortable(true)));
         } else {
             final var testData1 = new TestData1();
             testData1.setTestId1(Integer.toString(random.nextInt(5)));
@@ -380,11 +387,14 @@ public class UserTaskTestDataGenerator implements Runnable {
             testData2.setTestId3(Integer.toString(random.nextInt(5)));
             testData2.setTestId2(random.nextInt(10000));
             result.setDetails(
-                    Map.of("test1", testData1, "test2", testData2));
+                    Map.of("test1", testData1,
+                            "test2", testData2,
+                            "project", projectData));
             result.setDetailsProperties(List.of(
                     new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
                     new DetailProperties().path("test2.testId2").filterable(false).sortable(false),
-                    new DetailProperties().path("test2.testId3").filterable(true).sortable(true)));
+                    new DetailProperties().path("test2.testId3").filterable(true).sortable(true),
+                    new DetailProperties().path("project.name").filterable(true).sortable(true)));
         }
                 
         return result;
