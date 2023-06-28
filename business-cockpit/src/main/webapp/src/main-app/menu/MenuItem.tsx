@@ -6,7 +6,7 @@ import { useCurrentUserRoles } from '../../utils/roleUtils';
 
 interface MenuItemProps extends PropsWithChildren<BoxProps> {
   href?: string;
-  roles?: Array<Role> | null;
+  roles?: Array<string> | null;
   background?: BackgroundType;
 };
 

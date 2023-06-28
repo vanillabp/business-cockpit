@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.gui.api.v1;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -207,7 +206,7 @@ public class LoginApiController implements LoginApi {
                         .status(user.isActive()
                                         ? UserStatus.ACTIVE
                                         : UserStatus.INACTIVE)
-                        .roles(List.of()))
+                        .roles(user.getRoles()))
                 .map(ResponseEntity::ok);
         
     }
