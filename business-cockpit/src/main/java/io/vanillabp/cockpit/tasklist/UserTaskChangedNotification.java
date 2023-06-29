@@ -32,12 +32,25 @@ public class UserTaskChangedNotification extends NotificationEvent {
     public static UserTaskChangedNotification build(
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
     
-        final var type = Type.valueOf(
-                OperationType.byMongoType(
-                        message.getRaw().getOperationTypeString()).name());
+        final OperationType type;
+        // Since CosmosDB for MongoDB does not support OperationType yet it is
+        // necessary to derived the OperationType from the document's content.
+        // see https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
+        if (message.getRaw().getOperationTypeString() == null) {
+            if (message.getBody().getCreatedAt().equals(message.getBody().getUpdatedAt())) {
+                type = OperationType.INSERT;
+            } else {
+                type = OperationType.UPDATE;
+            }
+        }
+        // Original MongoDB:
+        else {
+            type = OperationType.byMongoType(
+                    message.getRaw().getOperationTypeString());
+        }
 
         return new UserTaskChangedNotification(
-                type,
+                Type.valueOf(type.name()),
                 message.getRaw().getDocumentKey().get(
                         message.getRaw().getDocumentKey().getFirstKey()).asString().getValue());
         
@@ -46,12 +59,25 @@ public class UserTaskChangedNotification extends NotificationEvent {
     public static UserTaskChangedNotification build(
             final ChangeStreamEvent<UserTask> event) {
         
-        final var type = Type.valueOf(
-                OperationType.byMongoType(
-                        event.getRaw().getOperationTypeString()).name());
+        final OperationType type;
+        // Since CosmosDB for MongoDB does not support OperationType yet it is
+        // necessary to derived the OperationType from the document's content.
+        // see https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
+        if (event.getRaw().getOperationTypeString() == null) {
+            if (event.getBody().getCreatedAt().equals(event.getBody().getUpdatedAt())) {
+                type = OperationType.INSERT;
+            } else {
+                type = OperationType.UPDATE;
+            }
+        }
+        // Original MongoDB:
+        else {
+            type = OperationType.byMongoType(
+                    event.getRaw().getOperationTypeString());
+        }
 
         return new UserTaskChangedNotification(
-                type,
+                Type.valueOf(type.name()),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue());
         

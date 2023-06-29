@@ -53,7 +53,12 @@ public class UserTaskService {
         
         dbChangesSubscription = changeStreamUtils
                 .subscribe(UserTask.class)
-                .map(UserTaskChangedNotification::build)
+                .flatMap(userTask -> Mono
+                        .fromCallable(() -> UserTaskChangedNotification.build(userTask))
+                        .doOnError(e -> logger
+                                .warn("Error on processing user-task change-stream "
+                                        + "event! Will resume stream.", e))
+                        .onErrorResume(Exception.class, e -> Mono.empty()))
                 .doOnNext(applicationEventPublisher::publishEvent)
                 .subscribe();
         
@@ -97,7 +102,7 @@ public class UserTaskService {
     	return userTasks
     	        .findAllBy(pageRequest)
     	        .collectList()
-    	        .zipWith(userTasks.count())
+    	        .zipWith(userTasks.countAll())
     	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
     }

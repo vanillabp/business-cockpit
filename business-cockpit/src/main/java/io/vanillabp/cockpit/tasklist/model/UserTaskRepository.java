@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, String> {
@@ -16,6 +17,9 @@ public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, St
     
     @Query(value = "{ endedAt: null }")
     Flux<UserTask> findAllBy(Pageable pageable);
+    
+    @Query(value = "{ endedAt: null }", count = true)
+    Mono<Long> countAll();
     
     @Aggregation({
             "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",

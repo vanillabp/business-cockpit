@@ -31,7 +31,7 @@ public class BpmsApiController implements BpmsApi {
             final ServerWebExchange exchange) {
 
         return userTaskCreatedEvent
-                .map(userTaskMapper::toModel)
+                .map(userTaskMapper::toNewTask)
                 .flatMap(userTaskService::createUserTask)
                 .map(created -> created
                         ? ResponseEntity.ok().build()
@@ -48,15 +48,7 @@ public class BpmsApiController implements BpmsApi {
         return userTaskService
                 .getUserTask(userTaskId)
                 .zipWith(userTaskUpdatedEvent)
-                .map(t -> {
-                    final var task = t.getT1();
-                    final var updatedEvent = t.getT2();
-                    
-                    // update modifiable properties
-                    task.setDueDate(updatedEvent.getDueDate());
-                    
-                    return task;
-                })
+                .map(t -> userTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
                 .flatMap(userTaskService::updateUserTask)
                 .map(created -> created
                         ? ResponseEntity.ok().build()
