@@ -98,29 +98,33 @@ public class LoginApiController implements LoginApi {
     public void updateClients(
             final GuiEvent guiEvent) {
         
+        final var toBeRemoved = new LinkedList<String>();
         updateEmitters
-                .values()
+                .entrySet()
                 .stream()
-                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getRoles()))
-                .filter(emitter -> emitter.sendEvent(guiEvent))
+                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
                 .forEach(emitter -> {
-                    emitter
+                    final var updateEmitter = emitter.getValue();
+                    updateEmitter
                             .consumeEvents()
                             .stream()
                             .collect(Collectors.groupingBy(GuiEvent::getSource))
                             .entrySet()
                             .stream()
-                            .forEach(entry -> {
+                            .forEach(eventEntry -> {
                                 try {
                                     sendSseEvent(
-                                            emitter.getChannel(),
-                                            entry.getKey().toString(),
-                                            entry.getValue());
+                                            updateEmitter.getChannel(),
+                                            eventEntry.getKey().toString(),
+                                            eventEntry.getValue());
                                 } catch (Exception e) {
                                     logger.warn("Could not send update event", e);
+                                    toBeRemoved.add(emitter.getKey());
                                 }
                             });
                 });
+        toBeRemoved.forEach(updateEmitters::remove);
         
     }
 
