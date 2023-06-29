@@ -10,7 +10,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.java>17</version.java>
-    <version.org.mapstruct>1.5.3.Final</version.org.mapstruct>
+    <version.org.mapstruct>1.5.5.Final</version.org.mapstruct>
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
   </properties>

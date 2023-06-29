@@ -102,7 +102,7 @@ public class UserTaskService {
     	return userTasks
     	        .findAllBy(pageRequest)
     	        .collectList()
-    	        .zipWith(userTasks.count())
+    	        .zipWith(userTasks.countAll())
     	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
     }

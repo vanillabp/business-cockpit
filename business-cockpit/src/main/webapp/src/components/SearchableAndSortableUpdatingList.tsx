@@ -100,18 +100,19 @@ const reloadData = async <T extends Data>(
       .items
       .map((item, index) => {
         const oldItem = itemsById.get(item.id)!;
+        const itemNotInUpdateResponse = item.version === 0;
         
-        const status = item.version === 0
+        const status = itemNotInUpdateResponse
             ? oldItem.status
-            : item.createdAt > initialTimestamp.current!
+            : item.createdAt.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.NEW
-            : Boolean(item.endedAt) && item.endedAt! > initialTimestamp.current!
+            : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.ENDED
-            : item.updatedAt > initialTimestamp.current!
+            : item.updatedAt.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.UPDATED
             : ListItemStatus.INITIAL;
         
-        const newItem = (item.version === 0
+        const newItem = (itemNotInUpdateResponse
             ? {
                 id: item.id,
                 data: oldItem?.data,
