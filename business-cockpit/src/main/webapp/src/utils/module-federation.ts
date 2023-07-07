@@ -1,11 +1,29 @@
 import { UserTaskForm } from '@vanillabp/bc-shared';
-import React, { useState, useEffect, useCallback } from 'react';
-import { UserTask, UiUriType } from '../client/gui';
+import React, { useState, useEffect } from 'react';
 
 export type UseCase = 'List' | 'Form';
 
+export enum UiUriType {
+    External = 'EXTERNAL',
+    WebpackMfReact = 'WEBPACK_MF_REACT'
+};
+
+export interface ModuleDefinition {
+  workflowModule: string;
+  uiUriType: UiUriType;
+  uiUri: string;
+};
+
 export interface Title {
   [key: string]: string;
+}
+
+export interface ColumnsOfProcesses {
+  [key: string]: ColumnsOfUserTasks;
+}
+
+export interface ColumnsOfUserTasks {
+  [key: string]: Column[];
 }
 
 export interface Column {
@@ -21,11 +39,11 @@ export interface TasklistCellProps {
 };
 
 export interface Module {
-  moduleId?: string;
+  moduleId: string;
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
-  taskListColumns?: Column[];
+  taskListColumns?: ColumnsOfProcesses;
   UserTaskForm?: UserTaskForm;
   TaskListCell?: React.FC<TasklistCellProps>; 
 };
@@ -114,18 +132,22 @@ const fetchModule = async (
 
 const loadModule = (
   moduleId: string,
-  userTask: UserTask,
+  moduleDefinition: ModuleDefinition,
   useCase: UseCase
 ): ComponentProducer => {
   const callbacks: Array<HandlerFunction> = [];
   
   const retry = async () => {
-    if (module.UserTaskForm !== undefined) return;
+    if (module.buildTimestamp !== undefined) return;
     try {
-      if (userTask.uiUriType === UiUriType.WebpackMfReact) {
-        module = await fetchModule(userTask.workflowModule, userTask.uiUri, useCase);
+      if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
+        const webpackModule =  await fetchModule(moduleDefinition.workflowModule, moduleDefinition.uiUri, useCase);
+        module = {
+          ...webpackModule,
+          moduleId: moduleDefinition.workflowModule
+        };
       } else {
-        throw new Error(`Unsupported UiUriType: ${userTask.uiUriType}!`);
+        throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
       }
       publish();
     } catch (error) {
@@ -158,7 +180,7 @@ const loadModule = (
 
 const getModule = (
   moduleId: string,
-  userTask: UserTask,
+  moduleDefinition: ModuleDefinition,
   useCase: UseCase
 ): ComponentProducer => {
 
@@ -171,31 +193,77 @@ const getModule = (
       };
   }
   
-  return loadModule(moduleId, userTask, useCase);
+  return loadModule(moduleId, moduleDefinition, useCase);
   
 };
 
 const useFederationModule = (
-  userTask: UserTask,
+  moduleDefinition: ModuleDefinition,
   useCase: UseCase
 ): Module => {
 
-  const moduleId = `${userTask.workflowModule}#${useCase}`;
+  const moduleId = `${moduleDefinition.workflowModule}#${useCase}`;
   const [module, setModule] = useState(modules[moduleId]);
-
-  const memoizedGetModule = useCallback(
-      () => getModule(moduleId, userTask, useCase),
-      [ moduleId, userTask, useCase ]);
   
   useEffect(() => {
-      const { subscribe, unsubscribe } = memoizedGetModule();
+      const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
       const handler = (loadedModule: Module) => setModule(loadedModule);
       subscribe(handler);
       return () => unsubscribe(handler);
-    }, [ memoizedGetModule, setModule ]);
+    }, [ setModule, moduleId, moduleDefinition, useCase ]);
   
   return module;
 
 };
 
-export { useFederationModule };
+const useFederationModules = (
+  moduleDefinitions: ModuleDefinition[] | undefined,
+  useCase: UseCase
+): Module[] | undefined => {
+
+  const [modules, setModules] = useState<Array<Module> | undefined>(undefined);
+
+  useEffect(() => {
+
+      if (moduleDefinitions === undefined) {
+        return;
+      }
+      
+      const distinctModuleDefinitions = moduleDefinitions
+          .reduce(
+              (moduleIds, userTask) => moduleIds.includes(userTask.workflowModule)
+                  ? moduleIds : moduleIds.concat(userTask.workflowModule),
+              new Array<string>())
+          .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModule === moduleId)!);
+
+      const result = new Array<Module>();
+      
+      const unsubscribers = distinctModuleDefinitions.map((moduleDefinition, index) => {
+          const moduleId = `${moduleDefinition.workflowModule}#${useCase}`;
+          const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
+          const handler = (loadedModule: Module) => {
+              result[index] = loadedModule;
+              if (result.length < distinctModuleDefinitions.length) {
+                return;
+              }
+              const anyModuleStillLoading = result.reduce(
+                  (anyModuleStillLoading, module) => anyModuleStillLoading || ((module.buildTimestamp === undefined) && (module.retry === undefined)),
+                  false);
+              if (anyModuleStillLoading) {
+                return;
+              }
+              setModules(result);
+            };
+          subscribe(handler);
+          return () => unsubscribe(handler);
+        });
+        
+      return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+      
+    }, [ moduleDefinitions, useCase, setModules ]);
+  
+  return modules;
+  
+};
+
+export { useFederationModule, useFederationModules };

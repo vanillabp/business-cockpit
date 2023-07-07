@@ -71,7 +71,7 @@ public class UserTaskService {
                         .collect(Collectors.toMap(
                                 UserTask::getWorkflowModule,
                                 UserTask::getWorkflowModuleUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservice)
+                .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
 
     }

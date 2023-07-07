@@ -1,6 +1,5 @@
 import React, { PropsWithChildren } from 'react';
 import { AnchorExtendedProps, Box, BoxProps } from 'grommet';
-import { Role } from '../../client/gui';
 import { BackgroundType } from 'grommet/utils';
 import { useCurrentUserRoles } from '../../utils/roleUtils';
 

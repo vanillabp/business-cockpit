@@ -1,15 +1,16 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../../components/SearchableAndSortableUpdatingList';
 import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
-import { Grid, Box, CheckBox } from 'grommet';
+import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
+import { Column, ModuleDefinition, useFederationModule, useFederationModules } from '../../utils/module-federation';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
@@ -70,6 +71,10 @@ const reloadUserTasks = async (
     };   
 };
 
+interface DefinitionOfUserTask {
+  [key: string]: UserTask;  
+}
+
 const ListOfTasks = () => {
 
   const { isNotPhone } = useResponsiveScreen();
@@ -91,8 +96,59 @@ const ListOfTasks = () => {
       /^UserTask$/
     );
 
+  const [ columnDefinitions, setColumnDefinitions ] = useState<Array<Column> | undefined>(undefined);
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
-  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
+  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
+  const [ modulesOfTasks, setModulesOfTasks ] = useState<ModuleDefinition[] | undefined>(undefined);
+  const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
+  useEffect(() => {
+      const loadMetaInformation = async () => {
+        const result = await tasklistApi
+            .getUserTasks({ pageNumber: 0, pageSize: 100 });
+        setNumberOfTasks(result.page.totalElements);
+        const moduleDefinitions = result
+            .userTasks
+            .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask as ModuleDefinition)
+                ? moduleDefinitions : moduleDefinitions.concat(userTask as ModuleDefinition), new Array<ModuleDefinition>());
+        setModulesOfTasks(moduleDefinitions);
+        const userTaskDefinitions: DefinitionOfUserTask = {};
+        result
+            .userTasks
+            .forEach(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+        setDefinitionsOfTasks(userTaskDefinitions);
+      };
+      if (userTasks.current === undefined) {
+        loadMetaInformation();
+      }
+    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks ]);
+  
+  const modules = useFederationModules(modulesOfTasks, 'List');
+  useEffect(() => {
+    if (modules === undefined) {
+      return;
+    }
+    if (definitionsOfTasks === undefined) {
+      return;
+    }
+    console.log(Object
+        .keys(definitionsOfTasks)
+        .map(definition => {
+          return definitionsOfTasks[definition]
+          })
+        .map(definition => {
+            const columnsOfProcess = modules
+                .filter(module => module.moduleId === definition.workflowModule)
+                .filter(module => module.taskListColumns![definition.bpmnProcessId])
+                .map(module => module.taskListColumns![definition.bpmnProcessId]);
+            if (columnsOfProcess.length === 0) return undefined;
+            return columnsOfProcess[0][definition.taskDefinition];
+          })
+        .filter(columnsOfTask => columnsOfTask !== undefined)
+        .reduce((totalColumns, columnsOfTask) => {
+            columnsOfTask!.forEach(column => { totalColumns[column.id] = column });
+            return totalColumns;
+          }, {}));
+  }, [ modules, definitionsOfTasks ]);
   
   const openTask = async (userTask: UserTask) => {
       if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
@@ -123,7 +179,7 @@ const ListOfTasks = () => {
                     pad="xsmall">
                   <CheckBox />
                 </Box>,
-            render: (_item: ListItem<T>) => (
+            render: (_item: ListItem<UserTask>) => (
                 <Box pad="xsmall">
                   <CheckBox />
                 </Box>)
@@ -135,7 +191,7 @@ const ListOfTasks = () => {
           { property: 'name',
             header: t('name'),
             size: 'calc(100% - 30.2rem)',
-            render: (item: ListItem<T>) => (
+            render: (item: ListItem<UserTask>) => (
                 <Box>
                   <Link
                       onClick={ () => openTask(item.data) }
@@ -147,7 +203,7 @@ const ListOfTasks = () => {
           { property: 'project',
               header: t('project'),
               size: '15rem',
-              render: (item: ListItem<T>) => (
+              render: (item: ListItem<UserTask>) => (
                   <Box>
                       { item?.data['details']?.project?.name || "-" }
                   </Box>)
@@ -166,33 +222,37 @@ const ListOfTasks = () => {
                 </Box>)
           }
       ];
-  
+
   return (
       <Grid
           rows={ [ 'auto', '2rem' ] }
           fill>
-        <Box>
-          <SearchableAndSortableUpdatingList
-              t={ t }
-              columns={ columns }
-              itemsRef={ userTasks }
-              updateListRef= { updateListRef }
-              retrieveItems={ (pageNumber, pageSize) => 
+        {
+          (userTasks.current !== undefined) && (columnDefinitions !== undefined)
+              ? <Box>Loading</Box>
+              : <Box>
+                    <SearchableAndSortableUpdatingList
+                        t={ t }
+                        columns={ columns }
+                        itemsRef={ userTasks }
+                        updateListRef= { updateListRef }
+                        retrieveItems={ (pageNumber, pageSize) => 
 // @ts-ignore
-                  loadUserTasks(
-                      tasklistApi,
-                      setNumberOfTasks,
-                      pageSize,
-                      pageNumber) }
-              reloadItems={ (numberOfItems, updatedItemsIds) =>
+                            loadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                pageSize,
+                                pageNumber) }
+                        reloadItems={ (numberOfItems, updatedItemsIds) =>
 // @ts-ignore
-                  reloadUserTasks(
-                      tasklistApi,
-                      setNumberOfTasks,
-                      numberOfItems,
-                      updatedItemsIds) }
-            />
-        </Box>
+                            reloadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                numberOfItems,
+                                updatedItemsIds) }
+                      />
+                  </Box>
+        }
         <Box
             direction='row'
             justify='between'
