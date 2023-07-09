@@ -5,14 +5,14 @@ import { useAppContext } from '../AppContext';
 
 const itemsBatchSize = 30;
 
-enum ListItemStatus {
+export enum ListItemStatus {
   INITIAL,
   NEW,
   UPDATED,
   ENDED,
 };
 
-type Data = {
+export type Data = {
   id: string,
   version?: number,
   createdAt: Date,
@@ -20,7 +20,7 @@ type Data = {
   endedAt?: Date,
 };
 
-interface ListItem<T extends Data> {
+export interface ListItem<T extends Data> {
   id: string;
   number: number;
   data: T;
@@ -28,7 +28,7 @@ interface ListItem<T extends Data> {
   selected: boolean;
 };
 
-interface ListItems<T extends Data> {
+export interface ListItems<T extends Data> {
   serverTimestamp: Date;
   items: Array<T>;
 };
@@ -202,8 +202,7 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
     }, {});
    
   return (<Box
-              fill='horizontal'
-              overflow={ { vertical: 'auto' }}>
+              fill>
             <SnapScrollingDataTable
                 primaryKey={ false }
                 fill
@@ -221,4 +220,4 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
 
 };
 
-export { SearchableAndSortableUpdatingList, ListItem, ListItems, ListItemStatus, ReloadCallbackFunction };
+export { SearchableAndSortableUpdatingList, ReloadCallbackFunction };

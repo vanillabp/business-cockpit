@@ -10,17 +10,17 @@ const TestForm3_TaskListCell = lazy(() => import('./TestForm3/List'));
 
 const TaskListCell = ({
     taskDefinition,
-    column
+    path
   }: {
     taskDefinition: string,
-    column: string
+    path: string
   }) => 
     taskDefinition === TestForm1_taskDefinition
-        ? <TestForm1_TaskListCell column={ column } />
+        ? <TestForm1_TaskListCell path={ path } />
         : taskDefinition === TestForm2_taskDefinition
-        ? <TestForm2_TaskListCell column={ column } />
+        ? <TestForm2_TaskListCell path={ path } />
         : taskDefinition === TestForm3_taskDefinition
-        ? <TestForm3_TaskListCell column={ column } />
+        ? <TestForm3_TaskListCell path={ path } />
         : <Text>{ `unknown task '${taskDefinition}'` }</Text>;
 
 export default TaskListCell;

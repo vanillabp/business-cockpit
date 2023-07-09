@@ -1,9 +1,9 @@
 import React from 'react';
 
 const TestForm2ListCell = ({
-    column
+    path
   }: {
-    column: string
-  }) => <div>2: { column }</div>
+    path: string
+  }) => <div>2: { path }</div>
 
 export default TestForm2ListCell;

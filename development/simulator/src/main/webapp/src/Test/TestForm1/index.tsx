@@ -10,7 +10,9 @@ const taskListColumns = [
     path: 'dueDate',
     showAsColumn: true,
     sortable: true,
-    filterable: true
+    filterable: true,
+    width: '10rem',
+    priority: 99
   },
   {
     id: 'ID1',
@@ -21,7 +23,9 @@ const taskListColumns = [
     path: 'details.test1.testId1',
     showAsColumn: true,
     sortable: true,
-    filterable: true
+    filterable: true,
+    width: '10rem',
+    priority: 1
   }
 ];
 

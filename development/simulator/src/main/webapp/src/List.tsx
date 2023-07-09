@@ -16,14 +16,14 @@ const taskListColumns = {
 const TaskListCell = ({
     bpmnProcessId,
     taskDefinition,
-    column
+    path
   }: {
     bpmnProcessId: string,
     taskDefinition: string,
-    column: string
+    path: string
   }) =>
     bpmnProcessId === Test_bpmnProcessId
-        ? <Test_TaskListCell taskDefinition={ taskDefinition } column={ column } />
+        ? <Test_TaskListCell taskDefinition={ taskDefinition } path={ path } />
         : <Text>{ `unknown BPMN process ID '${bpmnProcessId}'` }</Text>;
 
 export {

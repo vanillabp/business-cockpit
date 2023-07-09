@@ -27,15 +27,16 @@ export interface ColumnsOfUserTasks {
 }
 
 export interface Column {
-  id: string;
   title: Title;
   path: string;
+  priority: number;
+  width: string;
 };
 
 export interface TasklistCellProps {
   bpmnProcessId: string;
-  formKey: string;
-  columnId: string;
+  taskDefinition: string;
+  path: string;
 };
 
 export interface Module {

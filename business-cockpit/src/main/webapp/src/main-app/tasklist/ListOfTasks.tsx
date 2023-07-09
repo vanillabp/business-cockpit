@@ -11,6 +11,8 @@ import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
 import { Column, ModuleDefinition, useFederationModule, useFederationModules } from '../../utils/module-federation';
+import i18next from 'i18next';
+import { ListCell, TypeOfItem } from '../../components/ListCell';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
@@ -122,6 +124,7 @@ const ListOfTasks = () => {
       }
     }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks ]);
   
+  const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks, 'List');
   useEffect(() => {
     if (modules === undefined) {
@@ -130,7 +133,7 @@ const ListOfTasks = () => {
     if (definitionsOfTasks === undefined) {
       return;
     }
-    console.log(Object
+    const totalColumns = Object
         .keys(definitionsOfTasks)
         .map(definition => {
           return definitionsOfTasks[definition]
@@ -145,10 +148,14 @@ const ListOfTasks = () => {
           })
         .filter(columnsOfTask => columnsOfTask !== undefined)
         .reduce((totalColumns, columnsOfTask) => {
-            columnsOfTask!.forEach(column => { totalColumns[column.id] = column });
+            columnsOfTask!.forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
-          }, {}));
-  }, [ modules, definitionsOfTasks ]);
+          }, {});
+    const orderedColumns = (Object
+        .values(totalColumns) as Array<Column>)
+        .sort((a, b) => a.priority - b.priority);
+    setColumnsOfTasks(orderedColumns);
+  }, [ modules, definitionsOfTasks, setColumnsOfTasks ]);
   
   const openTask = async (userTask: UserTask) => {
       if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
@@ -168,7 +175,7 @@ const ListOfTasks = () => {
         targetWindow.focus();
       }
     };
-    
+
   const columns: ColumnConfig<ListItem<UserTask>>[] =
       [
           { property: 'id',
@@ -190,45 +197,38 @@ const ListOfTasks = () => {
           },
           { property: 'name',
             header: t('name'),
-            size: 'calc(100% - 30.2rem)',
+            size: `calc(100% - 5.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<UserTask>) => (
                 <Box>
                   <Link
                       onClick={ () => openTask(item.data) }
                       truncate="tip">
-                    { item.data['title'].de }
+                    { item.data['title'][i18next.language] || item.data['title']['en'] }
                   </Link>
                 </Box>)
           },
-          { property: 'project',
-              header: t('project'),
-              size: '15rem',
-              render: (item: ListItem<UserTask>) => (
-                  <Box>
-                      { item?.data['details']?.project?.name || "-" }
-                  </Box>)
-          },
-          { property: 'due',
-            header: t('due'),
-            size: '10rem',
-            render: (item: ListItem<UserTask>) => (
-                <Box>
-                    { item?.data.dueDate ?
-                        ( <span
-                            title={ toLocalDateString(item?.data.dueDate) + " " + toLocaleTimeStringWithoutSeconds(item?.data.dueDate) }
-                          >{ toLocalDateString(item?.data.dueDate) }</span> )
-                        : ( '-' )
-                    }
-                </Box>)
-          }
+          ...(columnsOfTasks === undefined
+              ? []
+              : columnsOfTasks!.map(column => ({
+                    property: column.path,
+                    header: column.title[i18next.language] || column.title['en'],
+                    size: column.width,
+                    render: (item: ListItem<UserTask>) => <ListCell
+                                                              modulesAvailable={ modules! }
+                                                              column={ column }
+                                                              currentLanguage={ i18next.language }
+                                                              typeOfItem={ TypeOfItem.TaskList }
+                                                              item={ item } />
+                  }))
+          )
       ];
-
+  
   return (
       <Grid
           rows={ [ 'auto', '2rem' ] }
           fill>
         {
-          (userTasks.current !== undefined) && (columnDefinitions !== undefined)
+          (columnsOfTasks === undefined)
               ? <Box>Loading</Box>
               : <Box>
                     <SearchableAndSortableUpdatingList
