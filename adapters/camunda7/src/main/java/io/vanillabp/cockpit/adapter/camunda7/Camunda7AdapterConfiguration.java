@@ -11,17 +11,21 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 
+import org.camunda.bpm.engine.RepositoryService;
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.Camunda7UserTaskEventPublisher;
 import io.vanillabp.cockpit.adapter.camunda7.wiring.Camunda7WiringPlugin;
 import io.vanillabp.cockpit.adapter.camunda7.wiring.WiringBpmnParseListener;
+import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowEventSpringListener;
+import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.Camunda7WorkflowEventPublisher;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 
@@ -38,7 +42,7 @@ public class Camunda7AdapterConfiguration {
         return new Camunda7UserTaskEventHandler();
         
     }
-    
+
     @Bean
     public WiringBpmnParseListener cockpitWiringBpmnParseListener(
             final CockpitProperties properties,
@@ -85,7 +89,7 @@ public class Camunda7AdapterConfiguration {
                 camunda7UserTaskEventHandler);
         
     }
-    
+
     @Bean
     public Camunda7WiringPlugin cockpitCamunda7WiringPlugin(
             final WiringBpmnParseListener wiringBpmnParseListener) {
@@ -94,5 +98,28 @@ public class Camunda7AdapterConfiguration {
                 wiringBpmnParseListener);
         
     }
-    
+
+    @Bean
+    public Camunda7WorkflowEventSpringListener camunda7WorkflowEventSpringListener(
+            final ApplicationEventPublisher applicationEventPublisher,
+            final CockpitProperties cockpitProperties,
+            final ApiVersionAware bpmsApiVersionAware,
+            final RepositoryService repositoryService) {
+
+        return new Camunda7WorkflowEventSpringListener(applicationEventPublisher,
+                cockpitProperties,
+                bpmsApiVersionAware,
+                repositoryService);
+
+    }
+
+    @Bean
+    public Camunda7WorkflowEventPublisher camunda7WorkflowEventPublisher(
+            final WorkflowPublishing workflowPublishing) {
+
+        return new Camunda7WorkflowEventPublisher(
+                workflowPublishing);
+
+    }
+
 }

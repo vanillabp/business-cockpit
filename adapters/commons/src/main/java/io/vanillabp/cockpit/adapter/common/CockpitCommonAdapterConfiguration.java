@@ -25,6 +25,7 @@ import freemarker.template.Version;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
@@ -187,6 +188,18 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
 
     }
 
+    @Bean
+    @ConditionalOnProperty()
+    public WorkflowPublishing workflowPublishing(
+            @Qualifier("bpmsApiV1")
+            final Optional<BpmsApi> bpmsApi) {
+        return new WorkflowPublishing(
+                workerId,
+                bpmsApi,
+                properties);
+
+    }
+
     private UiUriType findAndValidateUiUriTypeProperty(
             final String prefix,
             final String uiUriTypeProperty) {
@@ -224,7 +237,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
         final var config = properties.getClient();
         final var apiClient = new ApiClient().setBasePath(config.getBaseUrl());
         configureFeignBuilder(apiClient.getClass(), apiClient.getFeignBuilder(), config);
-        
+
         return apiClient.buildClient(BpmsApi.class);
         
     }

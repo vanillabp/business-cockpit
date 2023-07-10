@@ -18,6 +18,8 @@ public class CockpitProperties {
     private String uiUriType;
     
     private boolean userTasksEnabled = true;
+
+    private boolean workflowListEnabled = true;
     
     private String templateLoaderPath;
     
@@ -52,7 +54,15 @@ public class CockpitProperties {
     public void setUserTasksEnabled(boolean userTasksEnabled) {
         this.userTasksEnabled = userTasksEnabled;
     }
-    
+
+    public boolean isWorkflowListEnabled() {
+        return workflowListEnabled;
+    }
+
+    public void setWorkflowListEnabled(boolean workflowListEnabled) {
+        this.workflowListEnabled = workflowListEnabled;
+    }
+
     public String getTemplateLoaderPath() {
         return templateLoaderPath;
     }
