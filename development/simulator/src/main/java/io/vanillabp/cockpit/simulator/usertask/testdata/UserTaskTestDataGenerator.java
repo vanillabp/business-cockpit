@@ -3,12 +3,12 @@ package io.vanillabp.cockpit.simulator.usertask.testdata;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -364,7 +364,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         }
 
         final var projectData = new ProjectData();
-        final var textProducer = buildFairy("de").textProducer();
+        final var textProducer = FairyHelper.buildFairy("de").textProducer();
         projectData.setProjectPk(textProducer.randomString(12));
         projectData.setName(textProducer.word(3));
 
@@ -400,15 +400,5 @@ public class UserTaskTestDataGenerator implements Runnable {
         return result;
         
     }
-    
-    public static Fairy buildFairy(
-            final String language) {
-        
-        return Fairy.builder()
-                .withLocale(Locale.forLanguageTag(language))
-                .withRandomSeed((int) System.currentTimeMillis())
-                .build();
-        
-    }
-    
+
 }
