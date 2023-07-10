@@ -8,9 +8,9 @@ import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
-import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
+import { Link } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
-import { Column, ModuleDefinition, useFederationModule, useFederationModules } from '../../utils/module-federation';
+import { Column, ModuleDefinition, useFederationModules } from '../../utils/module-federation';
 import i18next from 'i18next';
 import { ListCell, TypeOfItem } from '../../components/ListCell';
 
@@ -98,7 +98,6 @@ const ListOfTasks = () => {
       /^UserTask$/
     );
 
-  const [ columnDefinitions, setColumnDefinitions ] = useState<Array<Column> | undefined>(undefined);
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
   const [ modulesOfTasks, setModulesOfTasks ] = useState<ModuleDefinition[] | undefined>(undefined);
@@ -182,8 +181,7 @@ const ListOfTasks = () => {
             primary: true,
             pin: true,
             size: '2.2rem',
-            header: <Box
-                    pad="xsmall">
+            header: <Box>
                   <CheckBox />
                 </Box>,
             render: (_item: ListItem<UserTask>) => (
@@ -191,13 +189,9 @@ const ListOfTasks = () => {
                   <CheckBox />
                 </Box>)
           },
-          { property: 'number',
-            header: t('no'),
-            size: '3rem'
-          },
           { property: 'name',
             header: t('name'),
-            size: `calc(100% - 5.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
+            size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<UserTask>) => (
                 <Box>
                   <Link
@@ -213,6 +207,7 @@ const ListOfTasks = () => {
                     property: column.path,
                     header: column.title[i18next.language] || column.title['en'],
                     size: column.width,
+                    plain: true,
                     render: (item: ListItem<UserTask>) => <ListCell
                                                               modulesAvailable={ modules! }
                                                               column={ column }

@@ -1,6 +1,6 @@
-import { Text } from 'grommet';
 import React, { lazy } from 'react';
 import { bpmnProcessId as Test_bpmnProcessId, taskListColumns as Test_taskListColumns } from './Test';
+import { UserTaskListCell, WarningListCell } from '@vanillabp/bc-shared';
 
 const Test_TaskListCell = lazy(() => import('./Test/List'));
 
@@ -13,22 +13,18 @@ const taskListColumns = {
   [ Test_bpmnProcessId ]: Test_taskListColumns
 };
 
-const TaskListCell = ({
-    bpmnProcessId,
-    taskDefinition,
-    path
-  }: {
-    bpmnProcessId: string,
-    taskDefinition: string,
-    path: string
-  }) =>
-    bpmnProcessId === Test_bpmnProcessId
-        ? <Test_TaskListCell taskDefinition={ taskDefinition } path={ path } />
-        : <Text>{ `unknown BPMN process ID '${bpmnProcessId}'` }</Text>;
+const UserTaskListCellComponent: UserTaskListCell = ({
+  item,
+  column,
+  defaultCell
+}) =>
+  item.data.bpmnProcessId === Test_bpmnProcessId
+      ? <Test_TaskListCell item={ item } column={ column } defaultCell={ defaultCell } />
+      : <WarningListCell message={ `unknown BPMN process ID '${item.data.bpmnProcessId}'` } />;
 
 export {
   buildVersion,
   buildTimestamp,
   taskListColumns,
-  TaskListCell
+  UserTaskListCellComponent as TaskListCell
 };

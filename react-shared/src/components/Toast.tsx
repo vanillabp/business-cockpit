@@ -1,5 +1,5 @@
 import { Notification, Timeout } from "grommet";
-import React, { useCallback, useEffect, useLayoutEffect, Dispatch } from "react";
+import React, { useCallback, useEffect, Dispatch } from "react";
 import { useTranslation } from "react-i18next";
 import { StatusType } from 'grommet';
 

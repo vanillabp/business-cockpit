@@ -2,15 +2,9 @@ import React, { useState, MutableRefObject, useEffect, useRef, useCallback } fro
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from '../components/SnapScrollingDataTable';
 import { useAppContext } from '../AppContext';
+import { ListItemStatus } from '@vanillabp/bc-shared';
 
 const itemsBatchSize = 30;
-
-export enum ListItemStatus {
-  INITIAL,
-  NEW,
-  UPDATED,
-  ENDED,
-};
 
 export type Data = {
   id: string,

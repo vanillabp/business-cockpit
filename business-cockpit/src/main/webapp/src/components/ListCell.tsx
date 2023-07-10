@@ -5,7 +5,7 @@ import { Box, Text } from 'grommet';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
 import { Alert, StatusCritical } from 'grommet-icons';
-import { useResponsiveScreen } from '@vanillabp/bc-shared';
+import { useResponsiveScreen, WarningListCell, DefaultUserTaskListCell } from '@vanillabp/bc-shared';
 
 i18n.addResources('en', 'listcell', {
       "workflowmodule_unknown": "Unknown",
@@ -55,72 +55,32 @@ const ListCell = <T extends WorkflowAwareData>({
   
   const module = modulesAvailable.find((module => item.data.workflowModule === module.moduleId));
   if (module === undefined) {
-    return (
-        <Box
-            direction='row'
-            justify='end'>
-          <StatusCritical color='status-critical' />
-          {
-            isNotPhone
-                ? <Text truncate="tip">{ t('workflowmodule_unknown')}</Text>
-                : undefined
-          }
-        </Box>);
+    return <WarningListCell
+        error={ true }
+        message={ t('workflowmodule_unknown') } />;
   }
   
   if (module.retry) {
-    return (
-        <Box
-            border={ { color: 'status-warning', size: '1px' } }
-            direction='row'
-            justify='end'>
-          <Alert color='status-warning' />
-          {
-            isNotPhone
-                ? <Text truncate="tip">{ t('workflowmodule_retry')}</Text>
-                : undefined
-          }
-        </Box>);
+    return <WarningListCell
+        message={ t('workflowmodule_retry') } />;
   }
   
   if (typeOfItem !== TypeOfItem.TaskList) {
-    return (
-        <Box
-            border={ { color: 'status-warning', size: '1px' } }
-            direction='row'
-            justify='end'>
-          <Alert color='status-warning' />
-          {
-            isNotPhone
-                ? <Text truncate="tip">{ t('typeofitem_unsupported')}</Text>
-                : undefined
-          }
-        </Box>);
+    return <WarningListCell
+        message={ t('typeofitem_unsupported') } />;
   }
 
   if (!Boolean(module.TaskListCell)) {
     console.warn(`Workflow-module ${module.moduleId} has no TaskListCell defined!`);
-    return (
-        <Box
-            border={ { color: 'status-warning', size: '1px' } }
-            direction='row'
-            justify='end'>
-          <Alert color='status-warning' />
-          {
-            isNotPhone
-                ? <Text truncate="tip">{ t('typeofitem_unsupported')}</Text>
-                : undefined
-          }
-        </Box>);
+    return <WarningListCell
+        message={ t('typeofitem_unsupported') } />;
   }
   
   const Cell = module.TaskListCell!;
-  const data = item.data as unknown as TaskAwareData;
-  
   return <Cell
-            bpmnProcessId={ data.bpmnProcessId }
-            taskDefinition={ data.taskDefinition }
-            path={ column.path } />;
+            item={ item }
+            column={ column }
+            defaultCell={ DefaultUserTaskListCell } />;
   
 }
 
