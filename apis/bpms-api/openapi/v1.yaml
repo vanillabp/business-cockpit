@@ -5,6 +5,9 @@ info:
   title: BC-API
 servers:
   - url: /api/v1
+tags:
+  - name: bpms
+    description: BPMS Events
 
 paths:
   /usertask/created:
@@ -162,7 +165,114 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
+
+
+  /workflow/created:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow CREATED event
+      operationId: workflowCreatedEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreatedOrUpdatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/updated:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow UPDATED event
+      operationId: workflowUpdatedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreatedOrUpdatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/completed:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow COMPLETED event
+      operationId: workflowCompletedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCompletedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/cancelled:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow CANCELLED event
+      operationId: workflowCancelledEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCancelledEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
 
 components:
   schemas:
@@ -358,3 +468,159 @@ components:
     UserTaskActivatedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+
+    WorkflowCreatedOrUpdatedEvent:
+      type: object
+      required:
+        - id
+        - workflowId
+        - timestamp
+        - bpmnProcessId
+        - workflowModuleUri
+        - processProviderApiUriPath
+        - uiUriPath
+        - uiUriType
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        updated:
+          type: boolean
+          description: Whether this event is about an update (otherwise creating a user task)
+        workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        workflowAggregateId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: AT0815
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        workflowModule:
+          type: string
+          description: The workflow module sending this event
+        title:
+          type: object
+          description: The rendered title of the workflow (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Ride request #4711"
+            de: "Fahrtanfrage #4711"
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersionTag:
+          type: string
+          description: Version Tag of the BPMN process
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process (beneath the version tag)
+        workflowTitle:
+          type: object
+          description: BPMN process title
+          additionalProperties:
+            type: string
+          example:
+            en: Taxi Ride
+            de: Taxifahrt
+        workflowModuleUri:
+          type: string
+          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
+          example: http://localhost:9000/taxiride
+        workflowDetailsProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the workflow-details-provider API
+          example: /api/v1/workflow-details-provider
+        uiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: /remoteEntry.js
+        uiUriType:
+          type: string
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: true
+          example: '{ "ride-request": "4711" }'
+        detailsProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailProperties'
+        detailsFulltextSearch:
+          type: string
+          description: List of words for fulltext searching details
+    WorkflowLifecycleEvent:
+      type: object
+      required:
+        - id
+        - workflowId
+        - timestamp
+        - title
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        workflowAggregateId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: AT0815
+        title:
+          type: object
+          description: The rendered title of the workflow (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Ride request #4711"
+            de: "Fahrtanfrage #4711"
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersionTag:
+          type: string
+          description: Version Tag of the BPMN process
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process (beneath the version tag)
+
+    WorkflowCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowLifecycleEvent"
+    WorkflowCancelledEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowLifecycleEvent"

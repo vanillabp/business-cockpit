@@ -9,6 +9,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
@@ -21,9 +22,15 @@ public class BpmsApiController implements BpmsApi {
 	
     @Autowired
     private UserTaskMapper userTaskMapper;
+
+    @Autowired
+    private WorkflowMapper workflowMapper;
     
     @Autowired
     private UserTaskService userTaskService;
+
+    @Autowired
+    private WorkflowlistService workflowlistService;
     
     @Override
     public Mono<ResponseEntity<Void>> userTaskCreatedEvent(
@@ -107,6 +114,34 @@ public class BpmsApiController implements BpmsApi {
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
         
-    } 
-    
+    }
+
+    @Override
+    public Mono<ResponseEntity<Void>> workflowCreatedEvent(
+            final @Valid Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedEvent,
+            final ServerWebExchange exchange) {
+
+        return workflowCreatedEvent
+                .map(workflowMapper::toNewWorkflow)
+                .flatMap(workflowlistService::createWorkflow)
+                .map(created -> created
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
+    }
+
+    @Override
+    public Mono<ResponseEntity<Void>> workflowCancelledEvent(String workflowId, Mono<WorkflowCancelledEvent> workflowCancelledEvent, ServerWebExchange exchange) {
+        return BpmsApi.super.workflowCancelledEvent(workflowId, workflowCancelledEvent, exchange);
+    }
+
+    @Override
+    public Mono<ResponseEntity<Void>> workflowCompletedEvent(String workflowId, Mono<WorkflowCompletedEvent> workflowCompletedEvent, ServerWebExchange exchange) {
+        return BpmsApi.super.workflowCompletedEvent(workflowId, workflowCompletedEvent, exchange);
+    }
+
+
+    @Override
+    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(String workflowId, Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedOrUpdatedEvent, ServerWebExchange exchange) {
+        return BpmsApi.super.workflowUpdatedEvent(workflowId, workflowCreatedOrUpdatedEvent, exchange);
+    }
 }
