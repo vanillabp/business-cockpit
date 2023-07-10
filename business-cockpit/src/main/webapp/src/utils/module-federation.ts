@@ -1,7 +1,7 @@
 import { UserTaskForm } from '@vanillabp/bc-shared';
 import React, { useState, useEffect } from 'react';
 
-export type UseCase = 'List' | 'Form';
+export type UseCase = 'UserTaskList' | 'UserTaskForm';
 
 export enum UiUriType {
     External = 'EXTERNAL',
@@ -44,9 +44,9 @@ export interface Module {
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
-  taskListColumns?: ColumnsOfProcesses;
+  userTaskListColumns?: ColumnsOfProcesses;
   UserTaskForm?: UserTaskForm;
-  TaskListCell?: React.FC<TasklistCellProps>; 
+  UserTaskListCell?: React.FC<TasklistCellProps>; 
 };
 
 interface Modules {

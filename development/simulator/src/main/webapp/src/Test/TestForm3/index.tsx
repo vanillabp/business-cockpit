@@ -1,6 +1,6 @@
 const taskDefinition = 'TestForm3';
 
-const taskListColumns = [
+const userTaskListColumns = [
   {
     id: 'dueDate',
     title: {
@@ -29,4 +29,4 @@ const taskListColumns = [
   }
 ];
 
-export { taskListColumns, taskDefinition };
+export { userTaskListColumns, taskDefinition };

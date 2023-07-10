@@ -124,7 +124,7 @@ const ListOfTasks = () => {
     }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
-  const modules = useFederationModules(modulesOfTasks, 'List');
+  const modules = useFederationModules(modulesOfTasks, 'UserTaskList');
   useEffect(() => {
     if (modules === undefined) {
       return;
@@ -140,8 +140,8 @@ const ListOfTasks = () => {
         .map(definition => {
             const columnsOfProcess = modules
                 .filter(module => module.moduleId === definition.workflowModule)
-                .filter(module => module.taskListColumns![definition.bpmnProcessId])
-                .map(module => module.taskListColumns![definition.bpmnProcessId]);
+                .filter(module => module.userTaskListColumns![definition.bpmnProcessId])
+                .map(module => module.userTaskListColumns![definition.bpmnProcessId]);
             if (columnsOfProcess.length === 0) return undefined;
             return columnsOfProcess[0][definition.taskDefinition];
           })
@@ -181,11 +181,14 @@ const ListOfTasks = () => {
             primary: true,
             pin: true,
             size: '2.2rem',
-            header: <Box>
-                  <CheckBox />
-                </Box>,
+            plain: true,
+            header: <Box
+                        align="center">
+                      <CheckBox />
+                    </Box>,
             render: (_item: ListItem<UserTask>) => (
-                <Box pad="xsmall">
+                <Box
+                    align="center">
                   <CheckBox />
                 </Box>)
           },
@@ -193,7 +196,9 @@ const ListOfTasks = () => {
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<UserTask>) => (
-                <Box>
+                <Box
+                    fill
+                    pad="xsmall">
                   <Link
                       onClick={ () => openTask(item.data) }
                       truncate="tip">

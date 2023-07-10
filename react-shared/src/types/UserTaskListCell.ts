@@ -6,7 +6,7 @@ interface Title {
   [key: string]: string;
 }
 
-interface Column {
+export interface Column {
   title: Title;
   path: string;
   priority: number;

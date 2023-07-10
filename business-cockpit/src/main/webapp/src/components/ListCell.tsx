@@ -1,11 +1,9 @@
 import React from 'react';
 import { Column, Module } from '../utils/module-federation';
 import { Data, ListItem } from './SearchableAndSortableUpdatingList';
-import { Box, Text } from 'grommet';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
-import { Alert, StatusCritical } from 'grommet-icons';
-import { useResponsiveScreen, WarningListCell, DefaultUserTaskListCell } from '@vanillabp/bc-shared';
+import { WarningListCell, DefaultUserTaskListCell } from '@vanillabp/bc-shared';
 
 i18n.addResources('en', 'listcell', {
       "workflowmodule_unknown": "Unknown",
@@ -21,10 +19,6 @@ i18n.addResources('de', 'listcell', {
 export enum TypeOfItem {
   TaskList,
   WorkflowList
-}
-
-interface TaskAwareData extends WorkflowAwareData {
-  taskDefinition: string;
 }
 
 interface WorkflowAwareData extends Data {
@@ -50,7 +44,6 @@ const ListCell = <T extends WorkflowAwareData>({
   item,
 }: ListCellParameters<T>) => {
   
-  const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('listcell');
   
   const module = modulesAvailable.find((module => item.data.workflowModule === module.moduleId));
@@ -70,13 +63,13 @@ const ListCell = <T extends WorkflowAwareData>({
         message={ t('typeofitem_unsupported') } />;
   }
 
-  if (!Boolean(module.TaskListCell)) {
-    console.warn(`Workflow-module ${module.moduleId} has no TaskListCell defined!`);
+  if (!Boolean(module.UserTaskListCell)) {
+    console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
     return <WarningListCell
         message={ t('typeofitem_unsupported') } />;
   }
   
-  const Cell = module.TaskListCell!;
+  const Cell = module.UserTaskListCell!;
   return <Cell
             item={ item }
             column={ column }

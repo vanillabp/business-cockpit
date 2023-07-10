@@ -3,10 +3,12 @@ package io.vanillabp.cockpit.adapter.camunda7;
 import java.util.Map;
 import java.util.Optional;
 
+import org.camunda.bpm.spring.boot.starter.CamundaBpmAutoConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -27,6 +29,13 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 
 @AutoConfigurationPackage(basePackageClasses = Camunda7AdapterConfiguration.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
+@AutoConfigureBefore(
+        value = { CamundaBpmAutoConfiguration.class },
+        // according to https://github.com/camunda/camunda-bpm-platform/blob/204b40921f7749a916b28c1073e0dc8df5c27134/engine/src/main/java/org/camunda/bpm/engine/impl/task/TaskDefinition.java#L181
+        // built-in-task-listeners will always be added to the beginning of the list
+        // of task-listeners. As we need cockpit-task-listeners to be executed after
+        // vanilla-bp-wiring-task-listeners this module has to be initialized first.
+        name = { "io.vanillabp.camunda7.Camunda7AdapterConfiguration" }) // 
 public class Camunda7AdapterConfiguration {
     
     @Value("${workerId}")

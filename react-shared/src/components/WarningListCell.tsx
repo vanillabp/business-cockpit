@@ -21,7 +21,7 @@ const WarningListCell = ({
           align="center"
           direction='row'
           background={ { color, opacity: 'medium' } }
-          justify='end'
+          justify='start'
           pad="xsmall"
           gap="xsmall">
         <Icon

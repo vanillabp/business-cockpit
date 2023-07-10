@@ -92,7 +92,7 @@ public class UserTaskCreated
     }
 
     public String getWorkflowTaskId() {
-        return event.getWorkflowTaskId();
+        return event.getUserTaskId();
     }
     
     
