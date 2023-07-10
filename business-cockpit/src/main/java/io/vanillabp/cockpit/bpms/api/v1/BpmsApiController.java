@@ -131,17 +131,58 @@ public class BpmsApiController implements BpmsApi {
 
     @Override
     public Mono<ResponseEntity<Void>> workflowCancelledEvent(String workflowId, Mono<WorkflowCancelledEvent> workflowCancelledEvent, ServerWebExchange exchange) {
-        return BpmsApi.super.workflowCancelledEvent(workflowId, workflowCancelledEvent, exchange);
+        return workflowlistService
+                .getWorkflow(workflowId)
+                .zipWith(workflowCancelledEvent)
+                .flatMap(t -> {
+                    final var workflow = t.getT1();
+                    final var completedEvent = t.getT2();
+
+                    workflow.setEndedAt(
+                            completedEvent.getTimestamp());
+
+                    return workflowlistService.cancelWorkflow(
+                            workflow,
+                            completedEvent.getTimestamp(),
+                            completedEvent.getComment());
+                })
+                .map(completed -> completed
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
     }
 
     @Override
     public Mono<ResponseEntity<Void>> workflowCompletedEvent(String workflowId, Mono<WorkflowCompletedEvent> workflowCompletedEvent, ServerWebExchange exchange) {
-        return BpmsApi.super.workflowCompletedEvent(workflowId, workflowCompletedEvent, exchange);
+
+        return workflowlistService
+                .getWorkflow(workflowId)
+                .zipWith(workflowCompletedEvent)
+                .flatMap(t -> {
+                    final var task = t.getT1();
+                    final var completedEvent = t.getT2();
+
+                    task.setEndedAt(
+                            completedEvent.getTimestamp());
+
+                    return workflowlistService.completeWorkflow(
+                            task,
+                            completedEvent.getTimestamp());
+                })
+                .map(completed -> completed
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
     }
 
 
     @Override
-    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(String workflowId, Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedOrUpdatedEvent, ServerWebExchange exchange) {
-        return BpmsApi.super.workflowUpdatedEvent(workflowId, workflowCreatedOrUpdatedEvent, exchange);
+    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(String workflowId, Mono<WorkflowCreatedOrUpdatedEvent> workflowUpdatedEvent, ServerWebExchange exchange) {
+        return workflowlistService
+                .getWorkflow(workflowId)
+                .zipWith(workflowUpdatedEvent)
+                .map(t -> workflowMapper.toUpdatedWorkflow(t.getT2(), t.getT1()))
+                .flatMap(workflowlistService::updateWorkflow)
+                .map(created -> created
+                        ? ResponseEntity.ok().build()
+                        : ResponseEntity.badRequest().build());
     }
 }
