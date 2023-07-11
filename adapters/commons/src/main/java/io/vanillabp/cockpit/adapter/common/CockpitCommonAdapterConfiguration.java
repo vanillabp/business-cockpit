@@ -189,7 +189,6 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     }
 
     @Bean
-    @ConditionalOnProperty()
     public WorkflowPublishing workflowPublishing(
             @Qualifier("bpmsApiV1")
             final Optional<BpmsApi> bpmsApi) {
