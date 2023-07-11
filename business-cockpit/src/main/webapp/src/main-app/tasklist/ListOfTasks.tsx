@@ -82,7 +82,7 @@ const ListOfTasks = () => {
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('tasklist/list');
   const { t: tApp } = useTranslation('app');
-  const { toast } = useAppContext();
+  const { toast, showLoadingIndicator } = useAppContext();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
@@ -119,9 +119,10 @@ const ListOfTasks = () => {
         setDefinitionsOfTasks(userTaskDefinitions);
       };
       if (userTasks.current === undefined) {
+        showLoadingIndicator(true);
         loadMetaInformation();
       }
-    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks ]);
+    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, showLoadingIndicator ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks, 'UserTaskList');
@@ -229,7 +230,7 @@ const ListOfTasks = () => {
           fill>
         {
           (columnsOfTasks === undefined)
-              ? <Box>Loading</Box>
+              ? <Box></Box>
               : <Box>
                     <SearchableAndSortableUpdatingList
                         t={ t }

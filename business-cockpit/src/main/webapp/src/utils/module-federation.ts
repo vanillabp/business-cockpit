@@ -229,6 +229,10 @@ const useFederationModules = (
       if (moduleDefinitions === undefined) {
         return;
       }
+      if (moduleDefinitions.length === 0) {
+        setModules([]);
+        return;
+      }
       
       const distinctModuleDefinitions = moduleDefinitions
           .reduce(
