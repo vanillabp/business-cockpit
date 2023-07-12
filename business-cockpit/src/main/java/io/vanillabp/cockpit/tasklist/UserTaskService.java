@@ -29,7 +29,8 @@ public class UserTaskService {
 
     private static final Sort DEFAULT_SORT =
             Sort.by(Order.asc("dueDate").nullsLast())
-            .and(Sort.by("createdAt").ascending());
+            .and(Sort.by("createdAt").ascending())
+            .and(Sort.by("id").ascending());
     
     @Autowired
     private Logger logger;
@@ -120,14 +121,14 @@ public class UserTaskService {
                 pageRequest);
         
         return tasks
-                .flatMap(task -> {
+                .flatMapSequential(task -> {
                     if (knownUserTasksIds.contains(task.getId())) {
                         return Mono.just(task);
                     }
                     return userTasks.findById(task.getId());
                 })
                 .collectList()
-                .zipWith(userTasks.count())
+                .zipWith(userTasks.countAll())
                 .map(t -> new PageImpl<>(
                         t.getT1(),
                         Pageable

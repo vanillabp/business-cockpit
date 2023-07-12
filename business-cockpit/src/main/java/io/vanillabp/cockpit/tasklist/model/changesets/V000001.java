@@ -67,4 +67,26 @@ public class V000001 {
         
     }
     
+    @Changeset(order = 3)
+    public String changeDefaultUserTaskIndex(
+            final ReactiveMongoTemplate mongo) {
+        
+        final var INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .dropIndex(INDEX_DEFAULT_SORT)
+                .then(
+                        mongo
+                        .indexOps(UserTask.COLLECTION_NAME)
+                        .ensureIndex(new Index()
+                                .on("dueDate", Direction.ASC)
+                                .on("createdAt", Direction.ASC)
+                                .on("id", Direction.ASC)
+                                .named(INDEX_DEFAULT_SORT)))
+                .block();
+        
+        return null;
+        
+    }
+    
 }

@@ -198,7 +198,6 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
   return (<Box
               fill>
             <SnapScrollingDataTable
-                primaryKey={ false }
                 fill
                 pin
                 rowProps={ colorRowAccordingToUpdateStatus }
