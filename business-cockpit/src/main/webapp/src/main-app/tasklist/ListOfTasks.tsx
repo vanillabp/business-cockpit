@@ -7,7 +7,7 @@ import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
-import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
 import { Column, ModuleDefinition, useFederationModules } from '../../utils/module-federation';
@@ -18,8 +18,6 @@ i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
       "no": "No.",
       "name": "task",
-      "project": "Project",
-      "due": "Due",
       "unsupported-ui-uri-type_title": "Open task",
       "unsupported-ui-uri-type_message": "Internal error: The task refers to an unsupported UI-URI-type!",
     });
@@ -27,8 +25,6 @@ i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Aufgabe",
-      "project": "Projekt",
-      "due": "Fällig",
       "unsupported-ui-uri-type_title": "Aufgabe öffnen",
       "unsupported-ui-uri-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
@@ -54,6 +50,10 @@ const loadUserTasks = async (
 const reloadUserTasks = async (
   tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
+  existingModuleDefinitions: UserTask[] | undefined,
+  setModulesOfTasks: (modules: UserTask[] | undefined) => void,
+  existingUserTaskDefinitions: DefinitionOfUserTask | undefined,
+  setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
 ): Promise<ListItems<UserTask>> => {
@@ -66,6 +66,24 @@ const reloadUserTasks = async (
     })
   
   setNumberOfUserTasks(result!.page.totalElements);
+
+  const newModuleDefinitions = result
+      .userTasks
+      .filter(userTask => userTask.workflowModule !== undefined)
+      .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
+          ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
+  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
+    setModulesOfTasks(newModuleDefinitions);
+    const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
+    result
+        .userTasks
+        .filter(userTask => userTask.taskDefinition !== undefined)
+        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+    if ((existingUserTaskDefinitions === undefined)
+        || Object.keys(existingUserTaskDefinitions).length !== Object.keys(newUserTaskDefinitions).length) {
+      setDefinitionsOfTasks(newUserTaskDefinitions);
+    }
+  }
   
   return {
       serverTimestamp: result.serverTimestamp,
@@ -88,19 +106,19 @@ const ListOfTasks = () => {
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
-  const updateList = useMemo(() => async (ev: EventSourceMessage<UserTaskEvent>) => {
+  const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<UserTaskEvent>>>) => {
       if (!updateListRef.current) return;
       const listOfUpdatedTasks = ev.data.map(userTaskEvent => userTaskEvent.event.id);
       updateListRef.current(listOfUpdatedTasks);
     }, [ updateListRef ]);
-  wakeupSseCallback.current = useGuiSse<UserTaskEvent>(
+  wakeupSseCallback.current = useGuiSse<Array<EventMessage<UserTaskEvent>>>(
       updateList,
       /^UserTask$/
     );
 
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
-  const [ modulesOfTasks, setModulesOfTasks ] = useState<ModuleDefinition[] | undefined>(undefined);
+  const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
@@ -109,8 +127,8 @@ const ListOfTasks = () => {
         setNumberOfTasks(result.page.totalElements);
         const moduleDefinitions = result
             .userTasks
-            .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask as ModuleDefinition)
-                ? moduleDefinitions : moduleDefinitions.concat(userTask as ModuleDefinition), new Array<ModuleDefinition>());
+            .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
+                ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
         setModulesOfTasks(moduleDefinitions);
         const userTaskDefinitions: DefinitionOfUserTask = {};
         result
@@ -125,7 +143,7 @@ const ListOfTasks = () => {
     }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, showLoadingIndicator ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
-  const modules = useFederationModules(modulesOfTasks, 'UserTaskList');
+  const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
   useEffect(() => {
     if (modules === undefined) {
       return;
@@ -151,11 +169,18 @@ const ListOfTasks = () => {
             columnsOfTask!.forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
           }, {});
+    const existingColumnsSignature = columnsOfTasks === undefined
+        ? ' ' // initial state is different then updates
+        : columnsOfTasks.map(c => c.path).join('|');
     const orderedColumns = (Object
         .values(totalColumns) as Array<Column>)
         .sort((a, b) => a.priority - b.priority);
+    const newColumnsSignature = orderedColumns.map(c => c.path).join('|');
+    if (existingColumnsSignature === newColumnsSignature) {
+      return;
+    }
     setColumnsOfTasks(orderedColumns);
-  }, [ modules, definitionsOfTasks, setColumnsOfTasks ]);
+  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
   
   const openTask = async (userTask: UserTask) => {
       if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
@@ -226,12 +251,13 @@ const ListOfTasks = () => {
   
   return (
       <Grid
+          key="grid"
           rows={ [ 'auto', '2rem' ] }
           fill>
         {
           (columnsOfTasks === undefined)
-              ? <Box></Box>
-              : <Box>
+              ? <Box key="list"></Box>
+              : <Box key="list">
                     <SearchableAndSortableUpdatingList
                         t={ t }
                         columns={ columns }
@@ -249,12 +275,17 @@ const ListOfTasks = () => {
                             reloadUserTasks(
                                 tasklistApi,
                                 setNumberOfTasks,
+                                modulesOfTasks,
+                                setModulesOfTasks,
+                                definitionsOfTasks,
+                                setDefinitionsOfTasks,
                                 numberOfItems,
                                 updatedItemsIds) }
                       />
                   </Box>
         }
         <Box
+            key="footer"
             direction='row'
             justify='between'
             align="center">

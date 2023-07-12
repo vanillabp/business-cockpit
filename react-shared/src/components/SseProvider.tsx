@@ -6,6 +6,12 @@ type SseURL = string;
 
 type SseConnectionID = string;
 
+export interface EventMessage<T> {
+  source: string;
+  timestamp: number;
+  event: T;
+}
+
 export interface EventSourceMessage<T> {
     id: string;
     event: string;
