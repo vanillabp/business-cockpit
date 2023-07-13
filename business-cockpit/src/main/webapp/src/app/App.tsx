@@ -16,6 +16,7 @@ import { theme } from '@vanillabp/bc-shared';
 
 const MainApp = lazy(() => import('../main-app/MainApp'));
 const UserTaskApp = lazy(() => import('../usertask-app/UserTaskApp'));
+const WorkflowlistApp = lazy(() => import('../workflowlist-app/WorkflowlistApp'));
 
 const appNs = 'app';
 
@@ -30,6 +31,8 @@ i18n.addResources('en', appNs, {
       "not-found hint": "Maybe use used a link in a mail which is already expired.",
       "url-tasklist": "tasks",
       "url-usertask": "task",
+      "url-workflowlist": "workflows",
+      "url-workflow": "workflow",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit',
@@ -42,6 +45,8 @@ i18n.addResources('de', appNs, {
       "not-found hint": "Eventuell hast du einen Link aus einer Mail verwendet, der bereits veraltet ist.",
       "url-tasklist": "aufgaben",
       "url-usertask": "aufgabe",
+      "url-workflowlist": "workflows",
+      "url-workflow": "workflow",
     });
     
 type AppProps = {};
@@ -81,6 +86,7 @@ const App: React.FC<AppProps> = (_props: AppProps): JSX.Element => {
               <CurrentUser>
                 <Routes>
                   <Route path={ `${ t('url-usertask') }/*` } element={<UserTaskApp />} />
+                  <Route path={ `${ t('url-workflow') }/*` } element={<WorkflowlistApp />} />
                   <Route path='login' element={<Login />} />
                   <Route element={<ProtectedRoute />}>
                     <Route path="*" element={<MainApp />} />

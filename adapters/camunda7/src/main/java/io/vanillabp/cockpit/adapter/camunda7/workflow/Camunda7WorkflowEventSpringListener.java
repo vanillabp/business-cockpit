@@ -15,6 +15,7 @@ import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
+import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
 import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
@@ -113,12 +114,13 @@ public class Camunda7WorkflowEventSpringListener {
                     bpmnProcessId,
                     bpmnProcessVersionTag,
                     bpmnProcessVersion,
+                    bpmnProcessName,
                     processInstanceEvent,
                     workflowCreatedEvent);
 
             // callWorkflowDetailsProviderMethod
 
-            // fillWorkflowDetailsByCustomDetails
+            fillWorkflowDetailsByCustomDetails(workflowCreatedEvent, prefilledWorkflowDetails);
 
         } else {
 
@@ -137,15 +139,26 @@ public class Camunda7WorkflowEventSpringListener {
 
     }
 
+    private void fillWorkflowDetailsByCustomDetails(
+            WorkflowCreated event,
+            WorkflowDetails details
+    ) {
+        event.setWorkflowTitle(details.getWorkflowTitle());
+        event.setTitle(details.getTitle());
+    }
+
 
     private WorkflowCreated prefillWorkflowDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersionTag,
             final String bpmnProcessVersion,
+            final String bpmnProcessName,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
             final WorkflowCreated event) {
 
         final var prefilledWorkflowDetails = event;
+
+        final var language = "de";
 
         prefilledWorkflowDetails.setId(
                 System.nanoTime()
@@ -160,8 +173,8 @@ public class Camunda7WorkflowEventSpringListener {
         prefilledWorkflowDetails.setBpmnProcessVersion(bpmnProcessVersion);
         prefilledWorkflowDetails.setWorkflowId(processInstanceEvent.getProcessInstanceId());
         prefilledWorkflowDetails.setWorkflowAggregateId(processInstanceEvent.getBusinessKey());
-        prefilledWorkflowDetails.setTitle(new HashMap<>());
-        prefilledWorkflowDetails.setWorkflowTitle(new HashMap<>());
+        prefilledWorkflowDetails.setTitle(Map.of(language, bpmnProcessName));
+        prefilledWorkflowDetails.setWorkflowTitle(Map.of(language, bpmnProcessName));
 
         return prefilledWorkflowDetails;
 

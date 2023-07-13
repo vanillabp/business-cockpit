@@ -1,4 +1,4 @@
-import { Configuration as GuiConfiguration, LoginApi, TasklistApi } from './gui';
+import { Configuration as GuiConfiguration, LoginApi, TasklistApi, WorkflowlistApi } from './gui';
 import { useAppContext } from '../AppContext';
 import { OnMessageFunction, SseContextInterface, SseProvider, useSse, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { createContext, Dispatch } from 'react';
@@ -26,6 +26,17 @@ const getTasklistGuiApi = (
     fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
   });
   return new TasklistApi(config);
+};
+
+const getWorkflowlistGuiApi = (
+    dispatch: Dispatch<ToastAction>,
+    wakeupSseCallback?: WakeupSseCallback
+): WorkflowlistApi => {
+    const config = new GuiConfiguration({
+        basePath: '/gui/api/v1',
+        fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+    });
+    return new WorkflowlistApi(config);
 };
 
 interface GuiSseContextInterface extends SseContextInterface { };
@@ -67,6 +78,7 @@ export {
     GuiSseProvider,
     useGuiSse,
     getLoginGuiApi,
-    getTasklistGuiApi
+    getTasklistGuiApi,
+    getWorkflowlistGuiApi
   };
 
