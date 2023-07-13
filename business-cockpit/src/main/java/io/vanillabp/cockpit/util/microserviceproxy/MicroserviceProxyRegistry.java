@@ -109,7 +109,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
 
     }
 
-    public void registerMicroservice(
+    public void registerMicroservices(
             final Map<String, String> microserviceUris) {
 
         int numberOfPreviousKnownMicroservices = 0;

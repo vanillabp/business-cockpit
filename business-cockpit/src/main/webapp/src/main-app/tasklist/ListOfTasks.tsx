@@ -1,22 +1,23 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../../components/SearchableAndSortableUpdatingList';
 import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
-import { Grid, Box, CheckBox } from 'grommet';
+import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
-import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
-import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
+import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { Link } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
+import { Column, ModuleDefinition, useFederationModules } from '../../utils/module-federation';
+import i18next from 'i18next';
+import { ListCell, TypeOfItem } from '../../components/ListCell';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
       "no": "No.",
       "name": "task",
-      "project": "Project",
-      "due": "Due",
       "unsupported-ui-uri-type_title": "Open task",
       "unsupported-ui-uri-type_message": "Internal error: The task refers to an unsupported UI-URI-type!",
     });
@@ -24,8 +25,6 @@ i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Aufgabe",
-      "project": "Projekt",
-      "due": "Fällig",
       "unsupported-ui-uri-type_title": "Aufgabe öffnen",
       "unsupported-ui-uri-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
@@ -51,6 +50,10 @@ const loadUserTasks = async (
 const reloadUserTasks = async (
   tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
+  existingModuleDefinitions: UserTask[] | undefined,
+  setModulesOfTasks: (modules: UserTask[] | undefined) => void,
+  existingUserTaskDefinitions: DefinitionOfUserTask | undefined,
+  setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
 ): Promise<ListItems<UserTask>> => {
@@ -63,6 +66,24 @@ const reloadUserTasks = async (
     })
   
   setNumberOfUserTasks(result!.page.totalElements);
+
+  const newModuleDefinitions = result
+      .userTasks
+      .filter(userTask => userTask.workflowModule !== undefined)
+      .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
+          ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
+  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
+    setModulesOfTasks(newModuleDefinitions);
+    const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
+    result
+        .userTasks
+        .filter(userTask => userTask.taskDefinition !== undefined)
+        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+    if ((existingUserTaskDefinitions === undefined)
+        || Object.keys(existingUserTaskDefinitions).length !== Object.keys(newUserTaskDefinitions).length) {
+      setDefinitionsOfTasks(newUserTaskDefinitions);
+    }
+  }
   
   return {
       serverTimestamp: result.serverTimestamp,
@@ -70,29 +91,96 @@ const reloadUserTasks = async (
     };   
 };
 
+interface DefinitionOfUserTask {
+  [key: string]: UserTask;  
+}
+
 const ListOfTasks = () => {
 
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('tasklist/list');
   const { t: tApp } = useTranslation('app');
-  const { toast } = useAppContext();
+  const { toast, showLoadingIndicator } = useAppContext();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
-  const updateList = useMemo(() => async (ev: EventSourceMessage<UserTaskEvent>) => {
+  const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<UserTaskEvent>>>) => {
       if (!updateListRef.current) return;
       const listOfUpdatedTasks = ev.data.map(userTaskEvent => userTaskEvent.event.id);
       updateListRef.current(listOfUpdatedTasks);
     }, [ updateListRef ]);
-  wakeupSseCallback.current = useGuiSse<UserTaskEvent>(
+  wakeupSseCallback.current = useGuiSse<Array<EventMessage<UserTaskEvent>>>(
       updateList,
       /^UserTask$/
     );
 
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
-  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(-1);
+  const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
+  const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
+  const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
+  useEffect(() => {
+      const loadMetaInformation = async () => {
+        const result = await tasklistApi
+            .getUserTasks({ pageNumber: 0, pageSize: 100 });
+        setNumberOfTasks(result.page.totalElements);
+        const moduleDefinitions = result
+            .userTasks
+            .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
+                ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
+        setModulesOfTasks(moduleDefinitions);
+        const userTaskDefinitions: DefinitionOfUserTask = {};
+        result
+            .userTasks
+            .forEach(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+        setDefinitionsOfTasks(userTaskDefinitions);
+      };
+      if (userTasks.current === undefined) {
+        showLoadingIndicator(true);
+        loadMetaInformation();
+      }
+    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, showLoadingIndicator ]);
+  
+  const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
+  const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
+  useEffect(() => {
+    if (modules === undefined) {
+      return;
+    }
+    if (definitionsOfTasks === undefined) {
+      return;
+    }
+    const totalColumns = Object
+        .keys(definitionsOfTasks)
+        .map(definition => {
+          return definitionsOfTasks[definition]
+          })
+        .map(definition => {
+            const columnsOfProcess = modules
+                .filter(module => module.moduleId === definition.workflowModule)
+                .filter(module => module.userTaskListColumns![definition.bpmnProcessId])
+                .map(module => module.userTaskListColumns![definition.bpmnProcessId]);
+            if (columnsOfProcess.length === 0) return undefined;
+            return columnsOfProcess[0][definition.taskDefinition];
+          })
+        .filter(columnsOfTask => columnsOfTask !== undefined)
+        .reduce((totalColumns, columnsOfTask) => {
+            columnsOfTask!.forEach(column => { totalColumns[column.path] = column });
+            return totalColumns;
+          }, {});
+    const existingColumnsSignature = columnsOfTasks === undefined
+        ? ' ' // initial state is different then updates
+        : columnsOfTasks.map(c => c.path).join('|');
+    const orderedColumns = (Object
+        .values(totalColumns) as Array<Column>)
+        .sort((a, b) => a.priority - b.priority);
+    const newColumnsSignature = orderedColumns.map(c => c.path).join('|');
+    if (existingColumnsSignature === newColumnsSignature) {
+      return;
+    }
+    setColumnsOfTasks(orderedColumns);
+  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
   
   const openTask = async (userTask: UserTask) => {
       if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
@@ -112,88 +200,92 @@ const ListOfTasks = () => {
         targetWindow.focus();
       }
     };
-    
+
   const columns: ColumnConfig<ListItem<UserTask>>[] =
       [
           { property: 'id',
             primary: true,
             pin: true,
             size: '2.2rem',
+            plain: true,
             header: <Box
-                    pad="xsmall">
-                  <CheckBox />
-                </Box>,
-            render: (_item: ListItem<T>) => (
-                <Box pad="xsmall">
+                        align="center">
+                      <CheckBox />
+                    </Box>,
+            render: (_item: ListItem<UserTask>) => (
+                <Box
+                    align="center">
                   <CheckBox />
                 </Box>)
-          },
-          { property: 'number',
-            header: t('no'),
-            size: '3rem'
           },
           { property: 'name',
             header: t('name'),
-            size: 'calc(100% - 30.2rem)',
-            render: (item: ListItem<T>) => (
-                <Box>
+            size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
+            render: (item: ListItem<UserTask>) => (
+                <Box
+                    fill
+                    pad="xsmall">
                   <Link
                       onClick={ () => openTask(item.data) }
                       truncate="tip">
-                    { item.data['title'].de }
+                    { item.data['title'][i18next.language] || item.data['title']['en'] }
                   </Link>
                 </Box>)
           },
-          { property: 'project',
-              header: t('project'),
-              size: '15rem',
-              render: (item: ListItem<T>) => (
-                  <Box>
-                      { item?.data['details']?.project?.name || "-" }
-                  </Box>)
-          },
-          { property: 'due',
-            header: t('due'),
-            size: '10rem',
-            render: (item: ListItem<UserTask>) => (
-                <Box>
-                    { item?.data.dueDate ?
-                        ( <span
-                            title={ toLocalDateString(item?.data.dueDate) + " " + toLocaleTimeStringWithoutSeconds(item?.data.dueDate) }
-                          >{ toLocalDateString(item?.data.dueDate) }</span> )
-                        : ( '-' )
-                    }
-                </Box>)
-          }
+          ...(columnsOfTasks === undefined
+              ? []
+              : columnsOfTasks!.map(column => ({
+                    property: column.path,
+                    header: column.title[i18next.language] || column.title['en'],
+                    size: column.width,
+                    plain: true,
+                    render: (item: ListItem<UserTask>) => <ListCell
+                                                              modulesAvailable={ modules! }
+                                                              column={ column }
+                                                              currentLanguage={ i18next.language }
+                                                              typeOfItem={ TypeOfItem.TaskList }
+                                                              item={ item } />
+                  }))
+          )
       ];
   
   return (
       <Grid
+          key="grid"
           rows={ [ 'auto', '2rem' ] }
           fill>
-        <Box>
-          <SearchableAndSortableUpdatingList
-              t={ t }
-              columns={ columns }
-              itemsRef={ userTasks }
-              updateListRef= { updateListRef }
-              retrieveItems={ (pageNumber, pageSize) => 
+        {
+          (columnsOfTasks === undefined)
+              ? <Box key="list"></Box>
+              : <Box key="list">
+                    <SearchableAndSortableUpdatingList
+                        t={ t }
+                        columns={ columns }
+                        itemsRef={ userTasks }
+                        updateListRef= { updateListRef }
+                        retrieveItems={ (pageNumber, pageSize) => 
 // @ts-ignore
-                  loadUserTasks(
-                      tasklistApi,
-                      setNumberOfTasks,
-                      pageSize,
-                      pageNumber) }
-              reloadItems={ (numberOfItems, updatedItemsIds) =>
+                            loadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                pageSize,
+                                pageNumber) }
+                        reloadItems={ (numberOfItems, updatedItemsIds) =>
 // @ts-ignore
-                  reloadUserTasks(
-                      tasklistApi,
-                      setNumberOfTasks,
-                      numberOfItems,
-                      updatedItemsIds) }
-            />
-        </Box>
+                            reloadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                modulesOfTasks,
+                                setModulesOfTasks,
+                                definitionsOfTasks,
+                                setDefinitionsOfTasks,
+                                numberOfItems,
+                                updatedItemsIds) }
+                      />
+                  </Box>
+        }
         <Box
+            key="footer"
             direction='row'
             justify='between'
             align="center">

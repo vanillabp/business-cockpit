@@ -1,6 +1,6 @@
 const taskDefinition = 'TestForm2';
 
-const taskListColumns = [
+const userTaskListColumns = [
   {
     id: 'dueDate',
     title: {
@@ -10,8 +10,10 @@ const taskListColumns = [
     path: 'dueDate',
     showAsColumn: true,
     sortable: true,
-    filterable: true
+    filterable: true,
+    width: '10rem',
+    priority: 99
   }
 ];
 
-export { taskListColumns, taskDefinition };
+export { userTaskListColumns, taskDefinition };

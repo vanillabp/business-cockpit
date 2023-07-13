@@ -12,7 +12,7 @@ const Main = () => {
   
   document.title = userTask!.title.de;
 
-  const module = useFederationModule(userTask, 'Form');
+  const module = useFederationModule(userTask, 'UserTaskForm');
 
   useEffect(() => {
       if (!module) {

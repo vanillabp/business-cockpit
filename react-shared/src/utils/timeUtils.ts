@@ -41,17 +41,17 @@ const parseLocalDateToIsoString = (localDate: string | undefined | null): string
   
 }
 
-const toLocalDateString = (date: Date): string | undefined => {
+const toLocalDateString = (date?: Date): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
   }
   
-  return String(date.getFullYear()).padStart(4, '0')
+  return String(date!.getFullYear()).padStart(4, '0')
       + '-'
-      + String(date.getMonth() + 1).padStart(2, '0')
+      + String(date!.getMonth() + 1).padStart(2, '0')
       + '-'
-      + String(date.getDate()).padStart(2, '0');
+      + String(date!.getDate()).padStart(2, '0');
   
 }
 

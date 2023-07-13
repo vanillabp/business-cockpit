@@ -155,4 +155,9 @@ export const theme: ThemeType = {
     size: '20px',
     color: 'black',
   },
+  tip: {
+      content: {
+          background: "white"
+      }
+  },
 };

@@ -56,8 +56,8 @@ module.exports = {
                   name: "TestModule",
                   filename: 'remoteEntry.js',
                   exposes: {
-                    List: './src/List',
-                    Form: './src/Form',
+                    UserTaskList: './src/UserTaskList',
+                    UserTaskForm: './src/UserTaskForm',
                   },
                   shared: {
                     react: {
