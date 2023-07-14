@@ -3,46 +3,43 @@ package io.vanillabp.cockpit.adapter.common.wiring;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 
-import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
-import io.vanillabp.spi.cockpit.UserTaskDetailsProvider;
-import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
+import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+import io.vanillabp.spi.cockpit.WorkflowDetailsProvider;
+import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.context.ApplicationContext;
 
-public abstract class AbstractWorkflowWiring<T extends Connectable, M extends UserTaskMethodParameterFactory>
-        extends AbstractTaskWiring<T, UserTaskDetailsProvider, M> {
+public abstract class AbstractWorkflowWiring<T extends Connectable, M extends WorkflowMethodParameterFactory>
+        extends AbstractTaskWiring<T, WorkflowDetailsProvider, M> {
 
     public AbstractWorkflowWiring(
             final ApplicationContext applicationContext,
             final M methodParameterFactory) {
-
-
-        // TODO
 
         super(applicationContext, methodParameterFactory);
         
     }
     
     @Override
-    protected Class<UserTaskDetailsProvider> getAnnotationType() {
+    protected Class<WorkflowDetailsProvider> getAnnotationType() {
         
-        return UserTaskDetailsProvider.class;
+        return WorkflowDetailsProvider.class;
         
     }
 
-    protected MethodParameter validatePrefilledUserTaskDetails(
+    protected MethodParameter validatePrefilledWorkflowDetails(
             final Method method,
             final Parameter parameter,
             final int index) {
 
-        if (!parameter.getType().equals(PrefilledUserTaskDetails.class)) {
+        if (!parameter.getType().equals(PrefilledWorkflowDetails.class)) {
             return null;
         }
         
         return methodParameterFactory
-                .getPrefilledUserTaskDetailsParameter(
+                .getPrefilledWorkflowDetailsParameter(
                         index,
                         parameter.getName());
         

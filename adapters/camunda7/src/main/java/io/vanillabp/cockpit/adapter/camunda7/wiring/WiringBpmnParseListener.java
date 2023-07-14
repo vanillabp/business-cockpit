@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.adapter.camunda7.wiring;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowWiring;
 import org.camunda.bpm.engine.impl.bpmn.behavior.UserTaskActivityBehavior;
 import org.camunda.bpm.engine.impl.bpmn.parser.AbstractBpmnParseListener;
 import org.camunda.bpm.engine.impl.persistence.entity.ProcessDefinitionEntity;
@@ -24,6 +25,8 @@ public class WiringBpmnParseListener extends AbstractBpmnParseListener {
     private List<ToBeWired> toBeWired = new LinkedList<>();
     
     private final Camunda7UserTaskWiring userTaskWiring;
+
+    private final Camunda7WorkflowWiring workflowWiring;
     
     private final boolean userTasksEnabled;
     
@@ -38,11 +41,13 @@ public class WiringBpmnParseListener extends AbstractBpmnParseListener {
     public WiringBpmnParseListener(
             final boolean userTasksEnabled,
             final Camunda7UserTaskWiring userTaskWiring,
-            final Camunda7UserTaskEventHandler userTaskEventHandler) {
+            final Camunda7UserTaskEventHandler userTaskEventHandler,
+            final Camunda7WorkflowWiring workflowWiring) {
 
         this.userTasksEnabled = userTasksEnabled;
         this.userTaskWiring = userTaskWiring;
         this.userTaskEventHandler = userTaskEventHandler;
+        this.workflowWiring = workflowWiring;
         
     }
 
@@ -109,6 +114,11 @@ public class WiringBpmnParseListener extends AbstractBpmnParseListener {
                     }
                     tbw.connectables
                             .forEach(connectable -> userTaskWiring.wireTask(tbw.workflowModuleId, connectable));
+                });
+
+        toBeWired
+                .forEach(tbw -> {
+                    workflowWiring.wireWorkflow(tbw.workflowModuleId, tbw.bpmnProcessId);
                 });
 
     }

@@ -121,12 +121,14 @@ const ListOfWorkflows = () => {
             primary: true,
             pin: true,
             size: '2.2rem',
+            plain: true,
             header: <Box
-                    pad="xsmall">
-                  <CheckBox />
-                </Box>,
+                        align="center">
+                      <CheckBox />
+                    </Box>,
             render: (_item: ListItem<Workflow>) => (
-                <Box pad="xsmall">
+                <Box
+                    align="center">
                   <CheckBox />
                 </Box>)
           },
@@ -136,9 +138,11 @@ const ListOfWorkflows = () => {
           },
           { property: 'name',
             header: t('name'),
-            size: 'calc(100% - 2.2rem - 3rem - 15rem)',
+            size: 'calc(100% - 2.2rem - 3rem - 15rem - 15rem)',
             render: (item: ListItem<Workflow>) => (
-                <Box>
+                <Box
+                    fill
+                    pad="xsmall">
                   <Link
                       onClick={ () => openWorkflow(item.data) }
                       truncate="tip">
@@ -150,16 +154,20 @@ const ListOfWorkflows = () => {
               header: t('project'),
               size: '15rem',
               render: (item: ListItem<Workflow>) => (
-                  <Box>
-                      { item?.data['details']?.project?.name || "-" }
+                  <Box
+                      fill
+                      pad="xsmall">
+                    { item?.data['details']?.project?.name || "-" }
                   </Box>)
           },
           { property: 'gremium',
               header: t('gremium'),
               size: '15rem',
               render: (item: ListItem<Workflow>) => (
-                  <Box>
-                      { item?.data['details']?.gremium?.name || "-" }
+                  <Box
+                      fill
+                      pad="xsmall">
+                    { item?.data['details']?.gremium?.name || "-" }
                   </Box>)
           },
 
