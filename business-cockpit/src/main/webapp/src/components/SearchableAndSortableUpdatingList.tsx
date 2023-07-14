@@ -94,7 +94,6 @@ const reloadData = async <T extends Data>(
       .items
       .map((item, index) => {
         const oldItem = itemsById.get(item.id)!;
-        console.log(item.id, oldItem);
         const itemNotInUpdateResponse = item.version === 0;
         
         const status = itemNotInUpdateResponse

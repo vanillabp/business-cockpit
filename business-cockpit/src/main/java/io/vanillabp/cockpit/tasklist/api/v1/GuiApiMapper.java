@@ -10,7 +10,7 @@ import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 
-@Mapper
+@Mapper(implementationName = "TasklistGuiApiMapperImpl")
 public abstract class GuiApiMapper {
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")

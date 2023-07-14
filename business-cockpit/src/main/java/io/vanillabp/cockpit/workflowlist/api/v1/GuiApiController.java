@@ -4,12 +4,10 @@ import java.time.OffsetDateTime;
 
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
-import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowEvent;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdate;
-import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.workflowlist.WorkflowChangedNotification;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-@RestController
+@RestController("workflowListGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
-public class WorkflowListGuiApiController implements WorkflowlistApi {
-
+public class GuiApiController implements WorkflowlistApi {
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -33,8 +30,7 @@ public class WorkflowListGuiApiController implements WorkflowlistApi {
     private WorkflowlistService workflowlistService;
 
     @Autowired
-    private WorkflowGuiApiMapper mapper;
-
+    private GuiApiMapper mapper;
 
     @EventListener(classes = WorkflowChangedNotification.class)
     public void updateClients(
@@ -50,6 +46,7 @@ public class WorkflowListGuiApiController implements WorkflowlistApi {
                                 .type(notification.getType().toString())));
 
     }
+
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflows(
             final Integer pageNumber,
@@ -93,4 +90,5 @@ public class WorkflowListGuiApiController implements WorkflowlistApi {
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
 
     }
+    
 }

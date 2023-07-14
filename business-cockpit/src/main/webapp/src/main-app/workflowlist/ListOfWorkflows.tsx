@@ -5,10 +5,9 @@ import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdat
 import { useWorkflowlistApi } from "./WorkflowlistAppContext";
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
-import { useResponsiveScreen } from "@vanillabp/bc-shared";
+import { EventMessage, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
-import { Link, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '@vanillabp/bc-shared';
-import { useAppContext } from "../../AppContext";
+import { Link, } from '@vanillabp/bc-shared';
 import { WorkflowlistApi, Workflow, WorkflowEvent } from "../../client/gui";
 
 i18n.addResources('en', 'workflowlist/list', {
@@ -75,19 +74,17 @@ const ListOfWorkflows = () => {
 
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('workflowlist/list');
-  const { t: tApp } = useTranslation('app');
-  const { toast } = useAppContext();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
-  const updateList = useMemo(() => async (ev: EventSourceMessage<WorkflowEvent>) => {
+  const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<WorkflowEvent>>>) => {
       if (!updateListRef.current) return;
       const listOfUpdatedWorkflows = ev.data.map(workflowEvent => workflowEvent.event.id);
       updateListRef.current(listOfUpdatedWorkflows);
     }, [ updateListRef ]);
-  wakeupSseCallback.current = useGuiSse<WorkflowEvent>(
+  wakeupSseCallback.current = useGuiSse<Array<EventMessage<WorkflowEvent>>>(
       updateList,
       /^Workflow$/
   );
@@ -96,24 +93,6 @@ const ListOfWorkflows = () => {
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
 
   const openWorkflow = async (workflow: Workflow) => { console.log('TODO: open workflow')};
-  /*const openTask = async (userTask: UserTask) => {
-      if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
-        toast({
-            namespace: 'tasklist/list',
-            title: t('unsupported-ui-uri-type_title'),
-            message: t('unsupported-ui-uri-type_message'),
-            status: 'critical'
-          });
-        return;
-      }
-      
-      const targetWindowName = `usertask-app-${userTask.id}`;
-      const targetUrl = `/${ tApp('url-usertask') }/${userTask.id}`;
-      const targetWindow = window.open(targetUrl, targetWindowName);
-      if (targetWindow) {
-        targetWindow.focus();
-      }
-    };*/
     
   const columns: ColumnConfig<ListItem<Workflow>>[] =
       [

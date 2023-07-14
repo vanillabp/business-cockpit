@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.workflowlist;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.commons.mongo.changestreams.OperationType;
-import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.bson.Document;
@@ -89,4 +88,5 @@ public class WorkflowChangedNotification extends NotificationEvent {
     public void setWorkflowId(String workflowId) {
         this.workflowId = workflowId;
     }
+    
 }

@@ -2,17 +2,23 @@ package io.vanillabp.cockpit.workflowlist.model.changesets;
 
 import java.util.List;
 
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
-import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
 
+import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
+
 @Component("V100_Workflow")
 @ChangesetConfiguration(author = "gwieshammer")
 public class V000001 {
+
+    private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
+    private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
+    private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
 
     @Changeset(order = 1000)
     public List<String> createWorkflowCollection(
@@ -24,8 +30,6 @@ public class V000001 {
 
         // necessary to accelerate initialization of
         // microservice proxies on startup
-
-        final var INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -34,7 +38,6 @@ public class V000001 {
                         .named(INDEX_WORKFLOWMODULE_URI))
                 .block();
 
-        final var INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -53,7 +56,6 @@ public class V000001 {
     public String createWorkflowEndedAtIndex(
             final ReactiveMongoTemplate mongo) {
 
-        final var INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -64,4 +66,25 @@ public class V000001 {
         return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_ENDED_AT + "' }";
 
     }
+    
+    @Changeset(order = 1003, author = "stephanpelikan")
+    public String fixDefaultUserTaskIndex(
+            final ReactiveMongoTemplate mongo) {
+        
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .dropIndex(INDEX_DEFAULT_SORT)
+                .then(
+                        mongo
+                        .indexOps(Workflow.COLLECTION_NAME)
+                        .ensureIndex(new Index()
+                                .on("createdAt", Direction.ASC)
+                                .on("_id", Direction.ASC)
+                                .named(INDEX_DEFAULT_SORT)))
+                .block();
+        
+        return null;
+        
+    }
+
 }

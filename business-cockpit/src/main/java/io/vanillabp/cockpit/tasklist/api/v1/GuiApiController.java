@@ -21,7 +21,7 @@ import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import reactor.core.publisher.Mono;
 
-@RestController
+@RestController("tasklistGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
 public class GuiApiController implements TasklistApi {
 

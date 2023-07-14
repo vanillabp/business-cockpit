@@ -9,8 +9,8 @@ i18n.addResources('en', 'tasklist', {
       "title.short": 'Workflows',
     });
 i18n.addResources('de', 'tasklist', {
-      "title.long": 'Workflows',
-      "title.short": 'Workflows',
+      "title.long": 'Vorgänge',
+      "title.short": 'Vorgänge',
     });
 
 const Main = () => {

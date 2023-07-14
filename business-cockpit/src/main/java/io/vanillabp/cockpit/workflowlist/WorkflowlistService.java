@@ -4,15 +4,6 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
-import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
-import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import io.vanillabp.cockpit.workflowlist.model.Workflow;
-import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -21,7 +12,15 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.stereotype.Service;
+
+import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
@@ -32,7 +31,8 @@ public class WorkflowlistService {
     private Logger logger;
 
     private static final Sort DEFAULT_SORT =
-            Sort.by(Sort.Order.asc("createdAt").nullsLast());
+            Sort.by(Order.asc("createdAt").nullsLast())
+            .and(Sort.by("id").ascending());
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -107,7 +107,7 @@ public class WorkflowlistService {
         final var workflows = workflowRepository.findAllIds(pageRequest);
 
         return workflows
-                .flatMap(workflow -> {
+                .flatMapSequential(workflow -> {
                     if (knownWorkflowIds.contains(workflow.getId())) {
                         return Mono.just(workflow);
                     }
@@ -195,7 +195,7 @@ public class WorkflowlistService {
 
         dbChangesSubscription = changeStreamUtils
                 .subscribe(Workflow.class)
-                .flatMap(workflow -> Mono
+                .flatMapSequential(workflow -> Mono
                         .fromCallable(() -> WorkflowChangedNotification.build(workflow))
                         .doOnError(e -> logger
                                 .warn("Error on processing workflow change-stream "
@@ -203,19 +203,19 @@ public class WorkflowlistService {
                         .onErrorResume(Exception.class, e -> Mono.empty()))
                 .doOnNext(applicationEventPublisher::publishEvent)
                 .subscribe();
-/*
+
         // register all URLs already known
-        userTasks
+        workflowRepository
                 .findAllWorkflowModulesAndUris()
                 .collectList()
                 .map(modulesAndUris -> modulesAndUris
                         .stream()
                         .collect(Collectors.toMap(
-                                UserTask::getWorkflowModule,
-                                UserTask::getWorkflowModuleUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservice)
+                                Workflow::getWorkflowModule,
+                                Workflow::getWorkflowModuleUri)))
+                .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
-*/
+
     }
 
     @PreDestroy

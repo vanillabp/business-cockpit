@@ -10,10 +10,15 @@ import org.springframework.stereotype.Component;
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
 
 @Component("V100_UserTask")
 @ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
+
+    private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
+    private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
+    private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
 
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
@@ -25,8 +30,6 @@ public class V000001 {
         
         // necessary to accelerate initialization of
         // microservice proxies on startup
-        
-        final var INDEX_WORKFLOWMODULE_URI = UserTask.COLLECTION_NAME + "_workflowModuleUri";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -35,7 +38,6 @@ public class V000001 {
                         .named(INDEX_WORKFLOWMODULE_URI))
                 .block();
         
-        final var INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -55,7 +57,6 @@ public class V000001 {
     public String createUsertaskEndedAtIndex(
             final ReactiveMongoTemplate mongo) {
         
-        final var INDEX_ENDED_AT = UserTask.COLLECTION_NAME + "_endedAt";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .ensureIndex(new Index()
@@ -71,7 +72,6 @@ public class V000001 {
     public String changeDefaultUserTaskIndex(
             final ReactiveMongoTemplate mongo) {
         
-        final var INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .dropIndex(INDEX_DEFAULT_SORT)
@@ -93,7 +93,6 @@ public class V000001 {
     public String fixDefaultUserTaskIndex(
             final ReactiveMongoTemplate mongo) {
         
-        final var INDEX_DEFAULT_SORT = UserTask.COLLECTION_NAME + "_defaultSort";
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .dropIndex(INDEX_DEFAULT_SORT)

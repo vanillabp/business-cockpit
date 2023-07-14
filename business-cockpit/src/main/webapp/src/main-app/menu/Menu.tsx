@@ -19,7 +19,7 @@ i18n.addResources('de', 'menu', {
       "logout": "Abmelden",
       "user-profile": "Benutzerprofil",
       "tasklist": "Aufgaben",
-      "workflowlist": "Workflows",
+      "workflowlist": "Vorgänge",
       "READONLY": "nur lesend",
     });
 

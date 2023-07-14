@@ -1,6 +1,6 @@
 import { useMemo, MutableRefObject } from 'react';
 import { useAppContext } from '../../AppContext';
-import { getTasklistGuiApi, getWorkflowlistGuiApi } from '../../client/guiClient';
+import { getWorkflowlistGuiApi } from '../../client/guiClient';
 import { WorkflowlistApi } from '../../client/gui';
 import { WakeupSseCallback } from '@vanillabp/bc-shared';
 

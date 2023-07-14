@@ -8,8 +8,8 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper
-public abstract class WorkflowGuiApiMapper {
+@Mapper(implementationName = "WorkflowListGuiApiMapperImpl")
+public abstract class GuiApiMapper {
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(workflow))")
     @Mapping(target = "id", source = "workflowId")

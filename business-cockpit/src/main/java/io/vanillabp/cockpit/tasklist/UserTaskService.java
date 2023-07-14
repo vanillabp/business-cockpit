@@ -54,7 +54,7 @@ public class UserTaskService {
         
         dbChangesSubscription = changeStreamUtils
                 .subscribe(UserTask.class)
-                .flatMap(userTask -> Mono
+                .flatMapSequential(userTask -> Mono
                         .fromCallable(() -> UserTaskChangedNotification.build(userTask))
                         .doOnError(e -> logger
                                 .warn("Error on processing user-task change-stream "

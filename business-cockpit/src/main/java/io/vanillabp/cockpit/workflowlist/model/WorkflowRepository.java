@@ -1,10 +1,11 @@
 package io.vanillabp.cockpit.workflowlist.model;
 
-import io.vanillabp.cockpit.tasklist.model.UserTask;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,5 +20,11 @@ public interface WorkflowRepository extends ReactiveMongoRepository<Workflow, St
 
     @Query(value = "{ endedAt: null }", count = true)
     Mono<Long> countAll();
+
+    @Aggregation({
+        "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",
+        "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
+    })
+    Flux<Workflow> findAllWorkflowModulesAndUris();
 
 }
