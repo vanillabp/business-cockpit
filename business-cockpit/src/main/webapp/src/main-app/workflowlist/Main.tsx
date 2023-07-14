@@ -23,7 +23,8 @@ const Main = () => {
 
   return (
     <Routes>
-      <Route path='/' element={<ListOfWorkflows />} />
+      <Route index element={<ListOfWorkflows />} />
+      <Route path="/:workflowId" element={<Main />} />
     </Routes>);
 }
 

@@ -58,6 +58,7 @@ module.exports = {
                   exposes: {
                     UserTaskList: './src/UserTaskList',
                     UserTaskForm: './src/UserTaskForm',
+                    WorkflowPage: './src/WorkflowPage',
                   },
                   shared: {
                     react: {
