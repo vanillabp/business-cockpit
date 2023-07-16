@@ -4,20 +4,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+
+import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.util.StringUtils;
 
 public class Camunda7WorkflowEventSpringListener {
     private static final Logger logger = LoggerFactory
             .getLogger(Camunda7WorkflowEventSpringListener.class);
     private final CockpitProperties cockpitProperties;
     private final Map<String,Camunda7WorkflowHandler> workflowHandlerMap = new HashMap<>();
-
+    private final RepositoryService repositoryService;
     public Camunda7WorkflowEventSpringListener(
-            CockpitProperties cockpitProperties) {
+            final CockpitProperties cockpitProperties,
+            final RepositoryService repositoryService) {
         this.cockpitProperties = cockpitProperties;
+        this.repositoryService = repositoryService;
     }
 
     public void addWorkflowHandler(String forBpmnProcessId, Camunda7WorkflowHandler camunda7WorkflowHandler) {
@@ -55,10 +60,18 @@ public class Camunda7WorkflowEventSpringListener {
             return;
         }
         final String bpmnProcessName = processInstanceEvent.getProcessDefinitionKey();
-        // TODO GWI, repositoryService not injectable, need to do some magic upfront
-        final String bpmnProcessVersionTag = "VERSION-TAG";
-        final String bpmnProcessVersion = "`processInstanceEvent.getProcessDefinitionVersion()`";
-        workflowHandler.listenProcessInstanceEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, bpmnProcessVersionTag);
+        final var processDefinition = repositoryService.getProcessDefinition(processInstanceEvent.getProcessDefinitionId());
+        final String bpmnProcessVersion;
+        if (StringUtils.hasText(processDefinition.getVersionTag())) {
+            bpmnProcessVersion = processDefinition.getVersionTag()
+                    + ":"
+                    + Integer.toString(processDefinition.getVersion());
+        } else {
+            bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
+        }
+
+        workflowHandler.listenProcessInstanceEvent(
+                processInstanceEvent, bpmnProcessName, bpmnProcessVersion);
     }
 
 }

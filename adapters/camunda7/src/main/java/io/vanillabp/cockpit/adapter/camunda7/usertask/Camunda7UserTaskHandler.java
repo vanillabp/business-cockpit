@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.camunda.bpm.engine.delegate.DelegateExecution;
@@ -29,11 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 import org.springframework.util.StringUtils;
 
 import freemarker.template.Configuration;
-import freemarker.template.TemplateNotFoundException;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskCompleted;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskCreated;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskDeleted;
@@ -65,8 +62,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     
     private final CockpitProperties properties;
     
-    private final UserTasksProperties userTasksProperties;
-    
     private final UserTaskProperties userTaskProperties;
     
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -79,14 +74,12 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
     
-    private final Optional<Configuration> templating;
-    
     private final String taskDefinition;
     
     public Camunda7UserTaskHandler(
             final String taskDefinition,
             final CockpitProperties properties,
-            final UserTasksProperties userTasksProperties,
+            final UserTasksProperties workflowProperties,
             final UserTaskProperties userTaskProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             final Optional<Configuration> templating,
@@ -98,23 +91,21 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final Method method,
             final List<MethodParameter> parameters) {
         
-        super(workflowAggregateRepository, bean, method, parameters);
+        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
         this.taskDefinition = taskDefinition;
         this.properties = properties;
-        this.userTasksProperties = userTasksProperties;
         this.userTaskProperties = userTaskProperties != null
                 ? userTaskProperties
                 : new UserTaskProperties();
         this.applicationEventPublisher = applicationEventPublisher;
-        this.templating = templating;
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
         this.bpmsApiVersionAware = bpmsApiVersionAware;
         
         if (this.templating.isEmpty()
-                && !StringUtils.hasText(userTasksProperties.getBpmnDescriptionLanguage())
+                && !StringUtils.hasText(workflowProperties.getBpmnDescriptionLanguage())
                 && ((userTaskProperties == null)
-                        || !StringUtils.hasText(userTasksProperties.getBpmnDescriptionLanguage()))) {
+                        || !StringUtils.hasText(workflowProperties.getBpmnDescriptionLanguage()))) {
                     
             throw new RuntimeException(
                     "Templating is inactive because property '"
@@ -122,15 +113,15 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                     + ".template-loader-path' has no value. It is mandatory to set either '"
                     + VanillaBpProperties.PREFIX
                     + ".workflows[workflow-module-id="
-                    + userTasksProperties.getWorkflowModuleId()
+                    + workflowProperties.getWorkflowModuleId()
                     + ", bpmn-process-id="
-                    + userTasksProperties.getBpmnProcessId()
+                    + workflowProperties.getBpmnProcessId()
                     + "].bpmn-description-language' or '"
                     + VanillaBpProperties.PREFIX
                     + ".workflows[workflow-module-id="
-                    + userTasksProperties.getWorkflowModuleId()
+                    + workflowProperties.getWorkflowModuleId()
                     + ", bpmn-process-id="
-                    + userTasksProperties.getBpmnProcessId()
+                    + workflowProperties.getBpmnProcessId()
                     + "].user-tasks["
                     + taskDefinition
                     + "].bpmn-description-language'!");
@@ -256,8 +247,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                     details.getFollowUpDate());
             event.setDetails(
                     details.getDetails());
-            event.setDetailsFulltextSearch(
-                    details.getDetailsFulltextSearch());
             event.setI18nLanguages(
                     details.getI18nLanguages());
             
@@ -276,19 +265,31 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
             final var language = StringUtils.hasText(userTaskProperties.getBpmnDescriptionLanguage())
                     ? userTaskProperties.getBpmnDescriptionLanguage()
-                    : userTasksProperties.getBpmnDescriptionLanguage();
+                    : workflowProperties.getBpmnDescriptionLanguage();
 
-            event.setWorkflowTitle(Map.of(
-                    language,
-                    bpmnProcessName));
-            event.setTitle(Map.of(
-                    language,
-                    delegateTask.getName()));
-            event.setTaskDefinitionTitle(Map.of(
-                    language,
-                    delegateTask.getName()));
-            event.setDetailsFulltextSearch(
-                    delegateTask.getName());
+            if ((details.getWorkflowTitle() == null)
+                    || details.getWorkflowTitle().isEmpty()) {
+                event.setWorkflowTitle(Map.of(
+                        language,
+                        bpmnProcessName));
+            }
+            if ((details.getTitle() == null)
+                    || details.getTitle().isEmpty()) {
+                event.setTitle(Map.of(
+                        language,
+                        delegateTask.getName()));
+            }
+            if ((details.getTaskDefinitionTitle() == null)
+                    || details.getTaskDefinitionTitle().isEmpty()) {
+                event.setTaskDefinitionTitle(Map.of(
+                        language,
+                        delegateTask.getName()));
+            }
+            if ((details.getDetailsFulltextSearch() == null)
+                    || !StringUtils.hasText(details.getDetailsFulltextSearch())) {
+                event.setDetailsFulltextSearch(
+                        delegateTask.getName());
+            }
             
         } else {
 
@@ -358,70 +359,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         }
         
     }
-
-    private void setTextInEvent(
-            final String language,
-            final Locale locale,
-            final String name,
-            final Supplier<Map<String, String>> detailsSupplier,
-            final Supplier<Map<String, String>> eventSupplier,
-            final String defaultValue,
-            final Object templateContext,
-            final BiFunction<String, Exception, Object[]> errorLoggingContext) {
-        
-        final var detailsGiven = 
-                (detailsSupplier.get() != null)
-                && detailsSupplier.get().containsKey(language);
-        final var templateName = detailsGiven
-                ? detailsSupplier.get().get(language)
-                : name;
-        eventSupplier
-                .get()
-                .put(
-                        language,
-                        renderText(
-                                e -> errorLoggingContext.apply(name, e),
-                                locale,
-                                templateName,
-                                templateContext,
-                                () -> detailsGiven
-                                        ? detailsSupplier.get().get(language)
-                                        : defaultValue));
-        
-    }
-    
-    private String renderText(
-            final Function<Exception, Object[]> errorLoggingContext,
-            final Locale locale,
-            final String templateName,
-            final Object templateContext,
-            final Supplier<String> defaultValue) {
-        
-        final var templatePath = 
-                (userTasksProperties.getTemplatesPath()
-                + (StringUtils.hasText(templateName)
-                        ? File.separator + templateName
-                        : "")
-                .replace(File.separator + File.separator, File.separator));
-        try {
-            final var template = templating
-                    .get()
-                    .getTemplate(templatePath, locale);
-            return FreeMarkerTemplateUtils.processTemplateIntoString(
-                    template,
-                    templateContext);
-        } catch (Exception e) {
-            if (!(e instanceof TemplateNotFoundException)) {
-                logger.warn("Could not render {} for user task '{}' of workflow '{}'! "
-                        + "Will use BPMN title",
-                        errorLoggingContext.apply(e));
-            } else {
-                // templateName seems to be text already rendered by user code
-            }
-            return defaultValue.get();
-        }
-        
-    }
             
     private UserTaskCreated prefillUserTaskDetails(
             final String bpmnProcessId,
@@ -476,10 +413,10 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             prefilledUserTaskDetails.setDetailsCharacteristics(
                     userTaskProperties.getDetailsProperties());
             
-        } else if (userTasksProperties.getDetailsProperties() != null) {
+        } else if (workflowProperties.getDetailsProperties() != null) {
 
             prefilledUserTaskDetails.setDetailsCharacteristics(
-                    userTasksProperties.getDetailsProperties());
+                    workflowProperties.getDetailsProperties());
             
         }
         

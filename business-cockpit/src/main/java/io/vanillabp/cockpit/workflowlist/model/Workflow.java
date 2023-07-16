@@ -39,11 +39,7 @@ public class Workflow implements UpdateInformationAware {
 
     private String bpmnProcessId;
 
-    private String bpmnProcessVersionTag;
-
     private String bpmnProcessVersion;
-
-    private Map<String, String> workflowTitle = null;
 
     private String workflowId;
 
@@ -153,28 +149,12 @@ public class Workflow implements UpdateInformationAware {
         this.bpmnProcessId = bpmnProcessId;
     }
 
-    public String getBpmnProcessVersionTag() {
-        return bpmnProcessVersionTag;
-    }
-
-    public void setBpmnProcessVersionTag(String bpmnProcessVersionTag) {
-        this.bpmnProcessVersionTag = bpmnProcessVersionTag;
-    }
-
     public String getBpmnProcessVersion() {
         return bpmnProcessVersion;
     }
 
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         this.bpmnProcessVersion = bpmnProcessVersion;
-    }
-
-    public Map<String, String> getWorkflowTitle() {
-        return workflowTitle;
-    }
-
-    public void setWorkflowTitle(Map<String, String> workflowTitle) {
-        this.workflowTitle = workflowTitle;
     }
 
     public String getWorkflowId() {

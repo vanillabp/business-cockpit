@@ -17,6 +17,10 @@ public class WorkflowCreated
     private List<String> i18nLanguages;
 
     private Map<String, ? extends DetailCharacteristics> detailsCharacteristics;
+
+    private Object templateContext;
+    
+    private String uiUriPath;
     
     public WorkflowCreated(
             final WorkflowCreatedOrUpdatedEvent event,
@@ -55,12 +59,6 @@ public class WorkflowCreated
         return event.getBpmnProcessVersion();
         
     }
-    @Override
-    public String getBpmnProcessVersionTag() {
-
-        return event.getBpmnProcessVersionTag();
-
-    }
     
     public void setWorkflowId(String workflowId) {
         event.setWorkflowId(workflowId);
@@ -77,16 +75,9 @@ public class WorkflowCreated
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         event.setBpmnProcessVersion(bpmnProcessVersion);
     }
-    public void setBpmnProcessVersionTag(String bpmnProcessVersionTag) {
-        event.setBpmnProcessVersionTag(bpmnProcessVersionTag);
-    }
 
     public String getBpmnProcessId() {
         return event.getBpmnProcessId();
-    }
-
-    public Map<String, String> getWorkflowTitle() {
-        return event.getWorkflowTitle();
     }
 
     @Override
@@ -145,10 +136,6 @@ public class WorkflowCreated
         event.setComment(comment);
     }
 
-    public void setWorkflowTitle(Map<String, String> workflowTitle) {
-        event.setWorkflowTitle(workflowTitle);
-    }
-
     public Map<String, String> getTitle() {
         return event.getTitle();
     }
@@ -172,4 +159,27 @@ public class WorkflowCreated
     public void setDetailsFulltextSearch(String detailsFulltextSearch) {
         event.setDetailsFulltextSearch(detailsFulltextSearch);
     }
+    
+    public void setTemplateContext(Object templateContext) {
+        
+        this.templateContext = templateContext;
+        
+    }
+    
+    @Override
+    public Object getTemplateContext() {
+        
+        return templateContext;
+        
+    }
+    
+    @Override
+    public String getUiUriPath() {
+        return uiUriPath;
+    }
+    
+    public void setUiUriPath(String uiUriPath) {
+        this.uiUriPath = uiUriPath;
+    }
+    
 }

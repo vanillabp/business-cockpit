@@ -11,8 +11,6 @@ public interface WorkflowDetails {
 
     String getComment();
 
-    Map<String, String> getWorkflowTitle();
-
     Map<String, String> getTitle();
 
     Map<String, Object> getDetails();
@@ -22,4 +20,18 @@ public interface WorkflowDetails {
     String getDetailsFulltextSearch();
 
     List<String> getI18nLanguages();
+
+    /**
+     * Used for rendering title and details-fulltext-search
+     * based on templates.
+     * 
+     * @return The template context
+     */
+    Object getTemplateContext();
+    
+    /**
+     * @return A URI path if workflow-details view is EXTERNAL
+     */
+    String getUiUriPath();
+
 }

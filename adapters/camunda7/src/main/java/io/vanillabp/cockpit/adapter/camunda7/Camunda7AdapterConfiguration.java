@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+
+import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.spring.boot.starter.CamundaBpmAutoConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskEventHandler;
@@ -107,6 +110,9 @@ public class Camunda7AdapterConfiguration {
             final ApplicationContext applicationContext,
             final ApplicationEventPublisher applicationEventPublisher,
             final CockpitProperties cockpitProperties,
+            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
+            final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             @Qualifier("BpmsApi") ApiVersionAware bpmsApiVersionAware,
             final Camunda7WorkflowEventSpringListener workflowEventListener) {
@@ -114,9 +120,11 @@ public class Camunda7AdapterConfiguration {
                 applicationContext,
                 applicationEventPublisher,
                 cockpitProperties,
+                workflowsCockpitProperties,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
                 bpmsApiVersionAware,
+                templating,
                 workflowEventListener
         );
     }
@@ -132,9 +140,10 @@ public class Camunda7AdapterConfiguration {
 
     @Bean
     public Camunda7WorkflowEventSpringListener camunda7WorkflowEventSpringListener(
-            final CockpitProperties cockpitProperties) {
+            final CockpitProperties cockpitProperties,
+            @Lazy final RepositoryService repositoryService) {
 
-        return new Camunda7WorkflowEventSpringListener(cockpitProperties);
+        return new Camunda7WorkflowEventSpringListener(cockpitProperties, repositoryService);
 
     }
 

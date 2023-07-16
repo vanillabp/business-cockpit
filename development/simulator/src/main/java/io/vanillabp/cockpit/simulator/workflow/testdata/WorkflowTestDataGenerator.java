@@ -216,7 +216,7 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setWorkflowId(UUID.randomUUID().toString());
         result.setWorkflowAggregateId(UUID.randomUUID().toString());
         result.setBpmnProcessId(getBpmnProcessId(process));
-        result.setWorkflowTitle(
+        result.setTitle(
                 fairies
                         .keySet()
                         .stream()
@@ -230,14 +230,6 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
         result.setWorkflowDetailsProviderApiUriPath("/workflow-details-provider/v1");
-        result.setTitle(
-                fairies
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(
-                                entry.getKey(),
-                                entry.getValue().textProducer().sentence(5)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         return result;
     }

@@ -262,20 +262,9 @@ components:
           type: string
           description: BPMN process ID
           example: taxi-ride
-        bpmnProcessVersionTag:
-          type: string
-          description: Versiontag of the BPMN process
         bpmnProcessVersion:
           type: string
           description: Version of the BPMN process and tag
-        workflowTitle:
-          type: object
-          description: BPMN process title
-          additionalProperties:
-            type: string
-          example:
-            en: Taxi Ride
-            de: Taxifahrt
         workflowAggregateId:
           type: string
           description: The natural ID of the workflow (e.g. order-id)

@@ -11,15 +11,11 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
 
     String getBpmnProcessId();
     
-    String getBpmnProcessVersionTag();
-
     String getBpmnProcessVersion();
 
     void setInitiator(String initiator);
     
     void setComment(String comment);
-
-    void setWorkflowTitle(Map<String, String> workflowTitle);
 
     void setTitle(Map<String, String> title);
 

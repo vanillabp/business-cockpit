@@ -15,7 +15,7 @@ public interface WorkflowMapper {
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
     Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
-
+    
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

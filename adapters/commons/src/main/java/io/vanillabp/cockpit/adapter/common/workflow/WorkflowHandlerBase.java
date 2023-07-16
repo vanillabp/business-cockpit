@@ -2,23 +2,29 @@ package io.vanillabp.cockpit.adapter.common.workflow;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
-import io.vanillabp.cockpit.adapter.common.wiring.parameters.PrefilledWorkflowDetailsMethodParameter;
-import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
-import io.vanillabp.springboot.adapter.TaskHandlerBase;
-import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.data.repository.CrudRepository;
 
-public abstract class WorkflowHandlerBase extends TaskHandlerBase {
+import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
+import io.vanillabp.cockpit.adapter.common.wiring.TemplatingHandlerBase;
+import io.vanillabp.cockpit.adapter.common.wiring.parameters.PrefilledWorkflowDetailsMethodParameter;
+import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
+import io.vanillabp.springboot.parameters.MethodParameter;
+
+public abstract class WorkflowHandlerBase extends TemplatingHandlerBase {
 
     public WorkflowHandlerBase(
+            final UserTasksProperties workflowProperties,
+            final Optional<Configuration> templating,
             final CrudRepository<Object, Object> workflowAggregateRepository,
             final Object bean,
             final Method method,
             final List<MethodParameter> parameters) {
         
-        super(workflowAggregateRepository, bean, method, parameters);
+        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
         
     }
 

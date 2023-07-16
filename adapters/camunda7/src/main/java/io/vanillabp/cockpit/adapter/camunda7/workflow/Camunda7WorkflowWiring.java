@@ -5,11 +5,13 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7Connectable;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
@@ -23,10 +25,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 
+import freemarker.template.Configuration;
+
 public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Connectable, WorkflowMethodParameterFactory> {
 
-
     private final CockpitProperties cockpitProperties;
+    
+    private final UserTasksWorkflowProperties workflowsCockpitProperties;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -36,20 +41,26 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
 
     private final Camunda7WorkflowEventSpringListener workflowEventListener;
 
+    private final Optional<Configuration> templating;
+
     public Camunda7WorkflowWiring(
             ApplicationContext applicationContext,
             ApplicationEventPublisher applicationEventPublisher,
             CockpitProperties cockpitProperties,
+            final UserTasksWorkflowProperties workflowsCockpitProperties,
             WorkflowMethodParameterFactory methodParameterFactory,
             Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             ApiVersionAware bpmsApiVersionAware,
+            Optional<Configuration> templating,
             Camunda7WorkflowEventSpringListener workflowEventListener) {
         super(applicationContext, methodParameterFactory);
         this.cockpitProperties = cockpitProperties;
+        this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.connectableServices = connectableServices;
         this.bpmsApiVersionAware = bpmsApiVersionAware;
         this.workflowEventListener = workflowEventListener;
+        this.templating = templating;
     }
 
     public boolean wireWorkflow(String workflowModuleId, String bpmnProcessId) {
@@ -192,13 +203,22 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
                             + "' which is mandatory for methods providing user-task details!");
         }
 
+        final var workflowProperties = workflowsCockpitProperties
+                .getWorkflows()
+                .stream()
+                .filter(props -> props.matches(workflowModuleId, bpmnProcessId))
+                .findFirst()
+                .get();
+
         @SuppressWarnings("unchecked")
         final var workflowHandler = new Camunda7WorkflowHandler(
                 cockpitProperties,
+                workflowProperties,
                 applicationEventPublisher,
                 bpmsApiVersionAware,
                 processService,
                 bpmnProcessId,
+                templating,
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository(),
                 bean,
                 method,

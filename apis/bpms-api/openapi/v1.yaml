@@ -524,20 +524,9 @@ components:
           type: string
           description: BPMN process ID
           example: taxi-ride
-        bpmnProcessVersionTag:
-          type: string
-          description: Version Tag of the BPMN process
         bpmnProcessVersion:
           type: string
           description: Version of the BPMN process (beneath the version tag)
-        workflowTitle:
-          type: object
-          description: BPMN process title
-          additionalProperties:
-            type: string
-          example:
-            en: Taxi Ride
-            de: Taxifahrt
         workflowModuleUri:
           type: string
           description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
@@ -611,9 +600,6 @@ components:
           type: string
           description: BPMN process ID
           example: taxi-ride
-        bpmnProcessVersionTag:
-          type: string
-          description: Version Tag of the BPMN process
         bpmnProcessVersion:
           type: string
           description: Version of the BPMN process (beneath the version tag)

@@ -195,7 +195,8 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
         return new WorkflowPublishing(
                 workerId,
                 bpmsApi,
-                properties);
+                properties,
+                workflowsCockpitProperties);
 
     }
 
