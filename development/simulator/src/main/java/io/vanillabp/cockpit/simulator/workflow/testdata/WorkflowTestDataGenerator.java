@@ -15,6 +15,8 @@ import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,6 +232,12 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
         result.setWorkflowDetailsProviderApiUriPath("/workflow-details-provider/v1");
+
+        final var testData1 = new TestData1();
+        testData1.setTestId1(Integer.toString(random.nextInt(5)));
+        testData1.setTestId2(random.nextInt(10000));
+        result.setDetails(
+                Map.of("test1", testData1));
 
         return result;
     }

@@ -1,14 +1,18 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../../components/SearchableAndSortableUpdatingList';
 import { useWorkflowlistApi } from "./WorkflowlistAppContext";
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
-import { EventMessage, useResponsiveScreen } from "@vanillabp/bc-shared";
+import { Column, EventMessage, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, } from '@vanillabp/bc-shared';
 import { WorkflowlistApi, Workflow, WorkflowEvent } from "../../client/gui";
+import { useAppContext } from '../../AppContext';
+import { ModuleDefinition, useFederationModules } from '../../utils/module-federation';
+import { ListCell, TypeOfItem } from '../../components/ListCell';
+import i18next from 'i18next';
 
 i18n.addResources('en', 'workflowlist/list', {
       "total": "Total:",
@@ -50,6 +54,10 @@ const loadWorkflows = async (
 const reloadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
   setNumberOfWorkflows: (number: number) => void,
+  existingModuleDefinitions: Workflow[] | undefined,
+  setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
+  existingWorkflowDefinitions: DefinitionOfWorkflow | undefined,
+  setDefinitionsOfWorkflows: (definitions: DefinitionOfWorkflow | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
 ): Promise<ListItems<Workflow>> => {
@@ -62,6 +70,23 @@ const reloadWorkflows = async (
     })
 
   setNumberOfWorkflows(result!.page.totalElements);
+
+  const newModuleDefinitions = result
+      .workflows
+      .filter(workflow => workflow.workflowModule !== undefined)
+      .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
+          ? moduleDefinitions : moduleDefinitions.concat(workflow), existingModuleDefinitions || []);
+  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
+    setModulesOfWorkflows(newModuleDefinitions);
+    const newWorkflowDefinitions: DefinitionOfWorkflow = { ...existingWorkflowDefinitions };
+    result
+        .workflows
+        .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow);
+    if ((existingWorkflowDefinitions === undefined)
+        || Object.keys(existingWorkflowDefinitions).length !== Object.keys(newWorkflowDefinitions).length) {
+      setDefinitionsOfWorkflows(newWorkflowDefinitions);
+    }
+  }
   
   return {
       serverTimestamp: result.serverTimestamp,
@@ -69,11 +94,15 @@ const reloadWorkflows = async (
   };
 };
 
+interface DefinitionOfWorkflow {
+  [key: string]: Workflow;
+}
 
 const ListOfWorkflows = () => {
 
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('workflowlist/list');
+  const { toast, showLoadingIndicator } = useAppContext();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
@@ -91,6 +120,68 @@ const ListOfWorkflows = () => {
 
   const workflows = useRef<Array<ListItem<Workflow>> | undefined>(undefined);
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
+  const [ modulesOfWorkflows, setModulesOfWorkflows ] = useState<Workflow[] | undefined>(undefined);
+  const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
+  useEffect(() => {
+      const loadMetaInformation = async () => {
+        const result = await workflowlistApi
+            .getWorkflows({ pageNumber: 0, pageSize: 100 });
+        setNumberOfWorkflows(result.page.totalElements);
+        const moduleDefinitions = result
+            .workflows
+            .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
+                ? moduleDefinitions : moduleDefinitions.concat(workflow), new Array<Workflow>());
+        setModulesOfWorkflows(moduleDefinitions);
+        const workflowDefinitions: DefinitionOfWorkflow = {};
+        result
+            .workflows
+            .forEach(workflow => workflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow);
+        setDefinitionsOfWorkflows(workflowDefinitions);
+      };
+      if (workflows.current === undefined) {
+        showLoadingIndicator(true);
+        loadMetaInformation();
+      }
+    }, [ workflows, workflowlistApi, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator ]);
+
+  const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
+  const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
+  useEffect(() => {
+    if (modules === undefined) {
+      return;
+    }
+    if (definitionsOfWorkflows === undefined) {
+      return;
+    }
+    const totalColumns = Object
+        .keys(definitionsOfWorkflows)
+        .map(definition => {
+          return definitionsOfWorkflows[definition]
+          })
+        .map(definition => {
+            const columnsOfWorkflow = modules
+                .filter(module => module.moduleId === definition.workflowModule)
+                .map(module => module.workflowListColumns![definition.bpmnProcessId]);
+            if (columnsOfWorkflow.length === 0) return undefined;
+            return columnsOfWorkflow[0];
+          })
+        .filter(columnsOfWorkflow => columnsOfWorkflow !== undefined)
+        .reduce((totalColumns, columnsOfWorkflow) => {
+            columnsOfWorkflow!.forEach(column => { totalColumns[column.path] = column });
+            return totalColumns;
+          }, {});
+    const existingColumnsSignature = columnsOfWorkflows === undefined
+        ? ' ' // initial state is different then updates
+        : columnsOfWorkflows.map(c => c.path).join('|');
+    const orderedColumns = (Object
+        .values(totalColumns) as Array<Column>)
+        .sort((a, b) => a.priority - b.priority);
+    const newColumnsSignature = orderedColumns.map(c => c.path).join('|');
+    if (existingColumnsSignature === newColumnsSignature) {
+      return;
+    }
+    setColumnsOfWorkflows(orderedColumns);
+  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows ]);
 
   const openWorkflow = async (workflow: Workflow) => { console.log('TODO: open workflow')};
     
@@ -111,13 +202,9 @@ const ListOfWorkflows = () => {
                   <CheckBox />
                 </Box>)
           },
-          { property: 'number',
-            header: t('no'),
-            size: '3rem'
-          },
           { property: 'name',
             header: t('name'),
-            size: 'calc(100% - 2.2rem - 3rem - 15rem - 15rem)',
+            size: `calc(100% - 2.2rem${columnsOfWorkflows === undefined ? 'x' : columnsOfWorkflows!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<Workflow>) => (
                 <Box
                     fill
@@ -125,31 +212,25 @@ const ListOfWorkflows = () => {
                   <Link
                       onClick={ () => openWorkflow(item.data) }
                       truncate="tip">
-                    { item.data['title'].de }
+                    { item.data['title'][i18next.language] || item.data['title']['en'] }
                   </Link>
                 </Box>)
           },
-          { property: 'project',
-              header: t('project'),
-              size: '15rem',
-              render: (item: ListItem<Workflow>) => (
-                  <Box
-                      fill
-                      pad="xsmall">
-                    { item?.data['details']?.project?.name || "-" }
-                  </Box>)
-          },
-          { property: 'gremium',
-              header: t('gremium'),
-              size: '15rem',
-              render: (item: ListItem<Workflow>) => (
-                  <Box
-                      fill
-                      pad="xsmall">
-                    { item?.data['details']?.gremium?.name || "-" }
-                  </Box>)
-          },
-
+          ...(columnsOfWorkflows === undefined
+              ? []
+              : columnsOfWorkflows!.map(column => ({
+                    property: column.path,
+                    header: column.title[i18next.language] || column.title['en'],
+                    size: column.width,
+                    plain: true,
+                    render: (item: ListItem<Workflow>) => <ListCell
+                                                              modulesAvailable={ modules! }
+                                                              column={ column }
+                                                              currentLanguage={ i18next.language }
+                                                              typeOfItem={ TypeOfItem.WorkflowList }
+                                                              item={ item } />
+                  }))
+          )
       ];
   
   return (
@@ -174,6 +255,10 @@ const ListOfWorkflows = () => {
                   reloadWorkflows(
                       workflowlistApi,
                       setNumberOfWorkflows,
+                      modulesOfWorkflows,
+                      setModulesOfWorkflows,
+                      definitionsOfWorkflows,
+                      setDefinitionsOfWorkflows,
                       numberOfItems,
                       updatedItemsIds) }
             />

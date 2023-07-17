@@ -59,6 +59,7 @@ module.exports = {
                     UserTaskList: './src/UserTaskList',
                     UserTaskForm: './src/UserTaskForm',
                     WorkflowPage: './src/WorkflowPage',
+                    WorkflowList: './src/WorkflowList',
                   },
                   shared: {
                     react: {

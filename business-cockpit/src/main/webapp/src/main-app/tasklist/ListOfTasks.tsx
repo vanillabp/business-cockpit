@@ -92,7 +92,7 @@ const reloadUserTasks = async (
 };
 
 interface DefinitionOfUserTask {
-  [key: string]: UserTask;  
+  [key: string]: UserTask;
 }
 
 const ListOfTasks = () => {
@@ -140,7 +140,7 @@ const ListOfTasks = () => {
         showLoadingIndicator(true);
         loadMetaInformation();
       }
-    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, showLoadingIndicator ]);
+    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');

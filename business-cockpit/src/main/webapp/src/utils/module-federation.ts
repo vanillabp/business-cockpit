@@ -1,7 +1,7 @@
 import { UserTaskForm } from '@vanillabp/bc-shared';
 import React, { useState, useEffect } from 'react';
 
-export type UseCase = 'UserTaskList' | 'UserTaskForm';
+export type UseCase = 'UserTaskList' | 'UserTaskForm' | 'WorkflowList';
 
 export enum UiUriType {
     External = 'EXTERNAL',
@@ -18,8 +18,8 @@ export interface Title {
   [key: string]: string;
 }
 
-export interface ColumnsOfProcesses {
-  [key: string]: ColumnsOfUserTasks;
+export interface ColumnsOfWorkflows {
+  [key: string]: Column[];
 }
 
 export interface ColumnsOfUserTasks {
@@ -39,14 +39,21 @@ export interface TasklistCellProps {
   path: string;
 };
 
+export interface WorkflowCellProps {
+  bpmnProcessId: string;
+  path: string;
+};
+
 export interface Module {
   moduleId: string;
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
-  userTaskListColumns?: ColumnsOfProcesses;
+  userTaskListColumns?: ColumnsOfUserTasks;
+  workflowListColumns?: ColumnsOfWorkflows;
   UserTaskForm?: UserTaskForm;
   UserTaskListCell?: React.FC<TasklistCellProps>; 
+  WorkflowListCell?: React.FC<WorkflowCellProps>; 
 };
 
 interface Modules {

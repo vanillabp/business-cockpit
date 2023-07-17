@@ -58,18 +58,26 @@ const ListCell = <T extends WorkflowAwareData>({
         message={ t('workflowmodule_retry') } />;
   }
   
-  if (typeOfItem !== TypeOfItem.TaskList) {
-    return <WarningListCell
-        message={ t('typeofitem_unsupported') } />;
-  }
-
-  if (!Boolean(module.UserTaskListCell)) {
-    console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
+  let Cell;
+  if (typeOfItem === TypeOfItem.TaskList) {
+    if (!Boolean(module.UserTaskListCell)) {
+      console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
+      return <WarningListCell
+          message={ t('typeofitem_unsupported') } />;
+    }
+    Cell = module.UserTaskListCell!;
+  } else if (typeOfItem === TypeOfItem.WorkflowList) {
+    if (!Boolean(module.WorkflowListCell)) {
+      console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
+      return <WarningListCell
+          message={ t('typeofitem_unsupported') } />;
+    }
+    Cell = module.WorkflowListCell!;
+  } else {
     return <WarningListCell
         message={ t('typeofitem_unsupported') } />;
   }
   
-  const Cell = module.UserTaskListCell!;
   return <Cell
             item={ item }
             column={ column }
