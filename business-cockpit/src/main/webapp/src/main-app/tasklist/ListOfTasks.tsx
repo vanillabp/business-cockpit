@@ -9,8 +9,9 @@ import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link } from '@vanillabp/bc-shared';
+import { Column } from '@vanillabp/bc-shared';
 import { useAppContext } from "../../AppContext";
-import { Column, ModuleDefinition, useFederationModules } from '../../utils/module-federation';
+import { ModuleDefinition, useFederationModules } from '../../utils/module-federation';
 import i18next from 'i18next';
 import { ListCell, TypeOfItem } from '../../components/ListCell';
 
@@ -153,16 +154,15 @@ const ListOfTasks = () => {
     }
     const totalColumns = Object
         .keys(definitionsOfTasks)
-        .map(definition => {
-          return definitionsOfTasks[definition]
-          })
+        .map(definition => definitionsOfTasks[definition])
         .map(definition => {
             const columnsOfProcess = modules
-                .filter(module => module.moduleId === definition.workflowModule)
-                .filter(module => module.userTaskListColumns![definition.bpmnProcessId])
-                .map(module => module.userTaskListColumns![definition.bpmnProcessId]);
+                .filter(m => m !== undefined)
+                .filter(m => m.workflowModule === definition.workflowModule)
+                .filter(m => m.userTaskListColumns !== undefined)
+                .map(m => m.userTaskListColumns(definition));
             if (columnsOfProcess.length === 0) return undefined;
-            return columnsOfProcess[0][definition.taskDefinition];
+            return columnsOfProcess[0];
           })
         .filter(columnsOfTask => columnsOfTask !== undefined)
         .reduce((totalColumns, columnsOfTask) => {

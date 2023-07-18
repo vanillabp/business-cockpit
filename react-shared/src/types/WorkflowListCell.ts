@@ -2,10 +2,6 @@ import { FC } from "react";
 import { Workflow } from "@vanillabp/bc-official-gui-client";
 import { Column, ListItemStatus } from "./index.js";
 
-interface Title {
-  [key: string]: string;
-}
-
 interface ListItem {
   id: string;
   number: number;
@@ -24,3 +20,5 @@ interface WorkflowCellProps extends DefaultWorkflowListCellProps {
 }
 
 export type WorkflowListCell = FC<WorkflowCellProps>;
+
+export type ColumnsOfWorkflowFunction = (workflow: Workflow) => Column[] | undefined;

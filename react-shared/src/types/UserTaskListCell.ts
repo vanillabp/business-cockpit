@@ -31,3 +31,5 @@ interface UserTaskListCellProps extends DefaultUserTaskListCellProps {
 }
 
 export type UserTaskListCell = FC<UserTaskListCellProps>;
+
+export type ColumnsOfUserTaskFunction = (userTask: UserTask) => Column[] | undefined;

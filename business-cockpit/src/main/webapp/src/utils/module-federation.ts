@@ -1,4 +1,4 @@
-import { UserTaskForm } from '@vanillabp/bc-shared';
+import { UserTaskForm, ColumnsOfUserTaskFunction, ColumnsOfWorkflowFunction } from '@vanillabp/bc-shared';
 import React, { useState, useEffect } from 'react';
 
 export type UseCase = 'UserTaskList' | 'UserTaskForm' | 'WorkflowList';
@@ -14,25 +14,6 @@ export interface ModuleDefinition {
   uiUri: string;
 };
 
-export interface Title {
-  [key: string]: string;
-}
-
-export interface ColumnsOfWorkflows {
-  [key: string]: Column[];
-}
-
-export interface ColumnsOfUserTasks {
-  [key: string]: Column[];
-}
-
-export interface Column {
-  title: Title;
-  path: string;
-  priority: number;
-  width: string;
-};
-
 export interface TasklistCellProps {
   bpmnProcessId: string;
   taskDefinition: string;
@@ -46,11 +27,12 @@ export interface WorkflowCellProps {
 
 export interface Module {
   moduleId: string;
+  workflowModule: string;
   retry?: () => void;
   buildVersion?: string;
   buildTimestamp?: Date;
-  userTaskListColumns?: ColumnsOfUserTasks;
-  workflowListColumns?: ColumnsOfWorkflows;
+  userTaskListColumns?: ColumnsOfUserTaskFunction;
+  workflowListColumns?: ColumnsOfWorkflowFunction;
   UserTaskForm?: UserTaskForm;
   UserTaskListCell?: React.FC<TasklistCellProps>; 
   WorkflowListCell?: React.FC<WorkflowCellProps>; 
@@ -152,8 +134,10 @@ const loadModule = (
         const webpackModule =  await fetchModule(moduleDefinition.workflowModule, moduleDefinition.uiUri, useCase);
         module = {
           ...webpackModule,
-          moduleId: moduleDefinition.workflowModule
+          workflowModule: moduleDefinition.workflowModule,
+          moduleId
         };
+        modules[moduleId] = module;
       } else {
         throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
       }
@@ -165,7 +149,7 @@ const loadModule = (
     }
   };
 
-  let module: Module = { moduleId, retry };
+  let module: Module = { moduleId, workflowModule: moduleDefinition.workflowModule, retry };
   modules[moduleId] = module;
     
   const publish = () => callbacks.forEach(callback => callback(module));
@@ -229,7 +213,7 @@ const useFederationModules = (
   useCase: UseCase
 ): Module[] | undefined => {
 
-  const [modules, setModules] = useState<Array<Module> | undefined>(undefined);
+  const [modules, setModules] = useState<Module[] | undefined>(undefined);
 
   useEffect(() => {
 
@@ -248,18 +232,25 @@ const useFederationModules = (
               new Array<string>())
           .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModule === moduleId)!);
 
-      const result = new Array<Module>();
+      const result: Module[] = [];
+      distinctModuleDefinitions
+          .forEach((moduleDefinition, i) => {
+              result[i] = {
+                moduleId: `${moduleDefinition.workflowModule}#${useCase}`,
+                workflowModule: moduleDefinition.workflowModule
+              }
+          });
       
       const unsubscribers = distinctModuleDefinitions.map((moduleDefinition, index) => {
-          const moduleId = `${moduleDefinition.workflowModule}#${useCase}`;
-          const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
+          const { subscribe, unsubscribe } = getModule(result[index].moduleId, moduleDefinition, useCase);
           const handler = (loadedModule: Module) => {
               result[index] = loadedModule;
               if (result.length < distinctModuleDefinitions.length) {
                 return;
               }
-              const anyModuleStillLoading = result.reduce(
-                  (anyModuleStillLoading, module) => anyModuleStillLoading || ((module.buildTimestamp === undefined) && (module.retry === undefined)),
+              const anyModuleStillLoading = result
+                  .reduce(
+                  (anyModuleStillLoading, module) => anyModuleStillLoading || (module === undefined) || ((module.buildTimestamp === undefined) && (module.retry === undefined)),
                   false);
               if (anyModuleStillLoading) {
                 return;

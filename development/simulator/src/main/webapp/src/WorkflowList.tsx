@@ -1,14 +1,17 @@
 import React from 'react';
 import { bpmnProcessId as Test_bpmnProcessId, workflowListColumns as Test_workflowListColumns } from './Test';
-import { WarningListCell, WorkflowListCell } from '@vanillabp/bc-shared';
+import { WarningListCell, WorkflowListCell, ColumnsOfWorkflowFunction } from '@vanillabp/bc-shared';
 
 //@ts-expect-error
 const buildVersion = process.env.BUILD_VERSION;
 //@ts-expect-error
 const buildTimestamp = new Date(process.env.BUILD_TIMESTAMP);
 
-const workflowListColumns = {
-  [ Test_bpmnProcessId ]: Test_workflowListColumns
+const workflowListColumns: ColumnsOfWorkflowFunction = workflow => {
+  if (workflow.bpmnProcessId === Test_bpmnProcessId) {
+    return Test_workflowListColumns;
+  }
+  return undefined;
 };
 
 const WorkflowListCellComponent: WorkflowListCell = ({

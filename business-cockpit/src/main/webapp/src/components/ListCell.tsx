@@ -46,7 +46,7 @@ const ListCell = <T extends WorkflowAwareData>({
   
   const { t } = useTranslation('listcell');
   
-  const module = modulesAvailable.find((module => item.data.workflowModule === module.moduleId));
+  const module = modulesAvailable.find((module => item.data.workflowModule === module.workflowModule));
   if (module === undefined) {
     return <WarningListCell
         error={ true }
@@ -61,14 +61,14 @@ const ListCell = <T extends WorkflowAwareData>({
   let Cell;
   if (typeOfItem === TypeOfItem.TaskList) {
     if (!Boolean(module.UserTaskListCell)) {
-      console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
+      console.warn(`Workflow-module ${module.workflowModule} has no UserTaskListCell defined!`);
       return <WarningListCell
           message={ t('typeofitem_unsupported') } />;
     }
     Cell = module.UserTaskListCell!;
   } else if (typeOfItem === TypeOfItem.WorkflowList) {
     if (!Boolean(module.WorkflowListCell)) {
-      console.warn(`Workflow-module ${module.moduleId} has no UserTaskListCell defined!`);
+      console.warn(`Workflow-module ${module.workflowModule} has no UserTaskListCell defined!`);
       return <WarningListCell
           message={ t('typeofitem_unsupported') } />;
     }

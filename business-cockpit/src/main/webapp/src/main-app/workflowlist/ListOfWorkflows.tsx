@@ -160,8 +160,10 @@ const ListOfWorkflows = () => {
           })
         .map(definition => {
             const columnsOfWorkflow = modules
-                .filter(module => module.moduleId === definition.workflowModule)
-                .map(module => module.workflowListColumns![definition.bpmnProcessId]);
+                .filter(m => m !== undefined)
+                .filter(m => m.workflowModule === definition.workflowModule)
+                .filter(m => m.workflowListColumns !== undefined)
+                .map(module => module.workflowListColumns(definition));
             if (columnsOfWorkflow.length === 0) return undefined;
             return columnsOfWorkflow[0];
           })
