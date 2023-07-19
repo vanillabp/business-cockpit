@@ -93,7 +93,10 @@ public class WorkflowPublishing {
                         .findFirst()
                         .get();
 
-                event.setWorkflowDetailsProviderApiUriPath("TODO");
+                event.setWorkflowProviderApiUriPath(
+                        StringUtils.hasText(workflowsProperties.getWorkflowProviderApiPath())
+                        ? workflowsProperties.getWorkflowProviderApiPath()
+                        : commonWorkflowsProperties.getWorkflowProviderApiPath());
                 var uiUriPath = workflowsProperties.getUiUriPath();
                 if (!StringUtils.hasText(uiUriPath)) {
                     uiUriPath = commonWorkflowsProperties.getUiUriPath();

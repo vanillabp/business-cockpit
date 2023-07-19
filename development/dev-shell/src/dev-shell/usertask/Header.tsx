@@ -4,16 +4,16 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useResponsiveScreen } from '@vanillabp/bc-shared';
-import { appNs } from './DevShellApp.js';
+import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
 
-i18n.addResources('en', 'header', {
+i18n.addResources('en', 'usertask-header', {
       "views-label": "View",
       "view-form": "form",
       "view-icon": "icon",
       "view-list": "list",
     });
-i18n.addResources('de', 'header', {
+i18n.addResources('de', 'usertask-header', {
       "views-label": "Ansicht",
       "view-form": "Formular",
       "view-icon": "Symbol",
@@ -25,7 +25,7 @@ const Header = () => {
   const { isPhone } = useResponsiveScreen();
   const navigate = useNavigate();
   const { t: tApp } = useTranslation(appNs);
-  const { t } = useTranslation('header');
+  const { t } = useTranslation('usertask-header');
 
   const userTaskId: string | undefined = useParams()['userTaskId'];
 

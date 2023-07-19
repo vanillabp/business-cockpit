@@ -49,7 +49,7 @@ public class Workflow implements UpdateInformationAware {
 
     private String workflowModuleUri;
 
-    private String workflowDetailsProviderApiUriPath;
+    private String workflowProviderApiUriPath;
 
     private String uiUriPath;
 
@@ -189,12 +189,12 @@ public class Workflow implements UpdateInformationAware {
         this.workflowModuleUri = workflowModuleUri;
     }
 
-    public String getWorkflowDetailsProviderApiUriPath() {
-        return workflowDetailsProviderApiUriPath;
+    public String getWorkflowProviderApiUriPath() {
+        return workflowProviderApiUriPath;
     }
 
-    public void setWorkflowDetailsProviderApiUriPath(String workflowDetailsProviderApiUriPath) {
-        this.workflowDetailsProviderApiUriPath = workflowDetailsProviderApiUriPath;
+    public void setWorkflowProviderApiUriPath(String workflowProviderApiUriPath) {
+        this.workflowProviderApiUriPath = workflowProviderApiUriPath;
     }
 
     public String getUiUriPath() {

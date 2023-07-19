@@ -477,7 +477,7 @@ components:
         - timestamp
         - bpmnProcessId
         - workflowModuleUri
-        - processProviderApiUriPath
+        - workflowProviderApiUriPath
         - uiUriPath
         - uiUriType
       properties:
@@ -531,10 +531,6 @@ components:
           type: string
           description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
           example: http://localhost:9000/taxiride
-        workflowDetailsProviderApiUriPath:
-          type: string
-          description: A path added to workflowModuleUri to build a URI for the workflow-details-provider API
-          example: /api/v1/workflow-details-provider
         uiUriPath:
           type: string
           description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
@@ -543,6 +539,10 @@ components:
           type: string
           $ref: '#/components/schemas/UiUriType'
           example: WEBPACK_MF_REACT
+        workflowProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the workflow-provider API
+          example: /api/v1/workflow-details-provider
         details:
           type: object
           description: Properties for individual searches

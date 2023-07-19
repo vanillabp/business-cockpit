@@ -19,6 +19,8 @@ public class UserTasksProperties extends WorkflowAndModule implements Comparable
     
     private String taskProviderApiPath;
     
+    private String workflowProviderApiPath;
+    
     private String uiUriPath;
     
     private String bpmnDescriptionLanguage;
@@ -139,6 +141,14 @@ public class UserTasksProperties extends WorkflowAndModule implements Comparable
     
     public void setBpmnDescriptionLanguage(String bpmnDescriptionLanguage) {
         this.bpmnDescriptionLanguage = bpmnDescriptionLanguage;
+    }
+    
+    public String getWorkflowProviderApiPath() {
+        return workflowProviderApiPath;
+    }
+    
+    public void setWorkflowProviderApiPath(String workflowProviderApiPath) {
+        this.workflowProviderApiPath = workflowProviderApiPath;
     }
     
 }

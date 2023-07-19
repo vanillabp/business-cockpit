@@ -2,16 +2,18 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 
 import java.util.List;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(implementationName = "WorkflowListGuiApiMapperImpl")
 public abstract class GuiApiMapper {
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(workflow))")
+    @Mapping(target = "workflowProviderUri", expression = "java(proxiedWorkflowProviderUri(workflow))")
     @Mapping(target = "id", source = "workflowId")
     public abstract Workflow toApi(
             io.vanillabp.cockpit.workflowlist.model.Workflow workflow);
@@ -38,4 +40,17 @@ public abstract class GuiApiMapper {
 
     }
 
+    @NoMappingMethod
+    protected String proxiedWorkflowProviderUri(
+            final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
+        
+        if (workflow.getWorkflowModuleUri() == null) {
+            return null;
+        }
+        
+        return workflow.getWorkflowModuleUri()
+                + "/";
+        
+    }
+    
 }

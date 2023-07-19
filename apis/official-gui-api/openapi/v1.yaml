@@ -232,8 +232,6 @@ components:
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
-
-
     Workflow:
       type: object
       required:
@@ -243,7 +241,7 @@ components:
         - workflowModule
         - bpmnProcessId
         - title
-        - workflowModuleUri
+        - workflowProviderUri
         - uiUri
         - uiUriType
       properties:
@@ -306,6 +304,10 @@ components:
           type: string
           $ref: '#/components/schemas/UiUriType'
           example: WEBPACK_MF_REACT
+        workflowProviderUri:
+          type: string
+          description: An URI pointing to the workflow-provider's own API (maybe used by workflow pages)
+          example: http://localhost:8080/wm/what-ever/
         details:
           type: object
           description: Properties for individual searches

@@ -231,7 +231,7 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setWorkflowModuleUri("http://localhost:8079/wm/TestModule");
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
-        result.setWorkflowDetailsProviderApiUriPath("/workflow-details-provider/v1");
+        result.setWorkflowProviderApiUriPath("/workflow-details-provider/v1");
 
         final var testData1 = new TestData1();
         testData1.setTestId1(Integer.toString(random.nextInt(5)));
