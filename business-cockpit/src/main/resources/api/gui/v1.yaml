@@ -106,7 +106,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
-
   /workflows/workflow:
     post:
       tags:
@@ -149,6 +148,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Workflows'
+  /workflows/workflow/{workflowId}:
+    get:
+      tags:
+        - workflowlist
+      summary: Fetch data of one single workflow
+      operationId: getWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Workflow'
+        404:
+          description: Unknown workflow
 components:
   schemas:
     AppInformation:

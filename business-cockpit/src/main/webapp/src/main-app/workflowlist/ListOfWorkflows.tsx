@@ -13,6 +13,7 @@ import { useAppContext } from '../../AppContext';
 import { ModuleDefinition, useFederationModules } from '../../utils/module-federation';
 import { ListCell, TypeOfItem } from '../../components/ListCell';
 import i18next from 'i18next';
+import { useNavigate } from 'react-router-dom';
 
 i18n.addResources('en', 'workflowlist/list', {
       "total": "Total:",
@@ -103,6 +104,7 @@ const ListOfWorkflows = () => {
   const { isNotPhone } = useResponsiveScreen();
   const { t } = useTranslation('workflowlist/list');
   const { toast, showLoadingIndicator } = useAppContext();
+  const navigate = useNavigate();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
@@ -163,7 +165,7 @@ const ListOfWorkflows = () => {
                 .filter(m => m !== undefined)
                 .filter(m => m.workflowModule === definition.workflowModule)
                 .filter(m => m.workflowListColumns !== undefined)
-                .map(module => module.workflowListColumns(definition));
+                .map(module => module.workflowListColumns!(definition));
             if (columnsOfWorkflow.length === 0) return undefined;
             return columnsOfWorkflow[0];
           })
@@ -185,7 +187,9 @@ const ListOfWorkflows = () => {
     setColumnsOfWorkflows(orderedColumns);
   }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows ]);
 
-  const openWorkflow = async (workflow: Workflow) => { console.log('TODO: open workflow')};
+  const openWorkflow = async (workflow: Workflow) => {
+    navigate(`./${workflow.id}`);
+  };
     
   const columns: ColumnConfig<ListItem<Workflow>>[] =
       [

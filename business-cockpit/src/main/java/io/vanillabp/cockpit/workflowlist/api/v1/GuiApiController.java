@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
+import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowEvent;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
@@ -89,6 +90,19 @@ public class GuiApiController implements WorkflowlistApi {
                                 .serverTimestamp(OffsetDateTime.now())))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
 
+    }
+    
+    @Override
+    public Mono<ResponseEntity<Workflow>> getWorkflow(
+            final String workflowId,
+            final ServerWebExchange exchange) {
+        
+        return workflowlistService
+                .getWorkflow(workflowId)
+                .map(mapper::toApi)
+                .map(ResponseEntity::ok)
+                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+        
     }
     
 }

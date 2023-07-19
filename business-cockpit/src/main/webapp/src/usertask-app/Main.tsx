@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useUserTaskAppContext } from './UserTaskAppContext';
 import { UserTaskAppLayout } from '@vanillabp/bc-shared';
-import { useFederationModule } from '../utils/module-federation';
+import { ModuleDefinition, useFederationModule } from '../utils/module-federation';
 import { useAppContext } from '../AppContext';
 import { NoUserTaskGiven } from './NoUserTaskGiven';
 
@@ -12,7 +12,7 @@ const Main = () => {
   
   document.title = userTask!.title.de;
 
-  const module = useFederationModule(userTask, 'UserTaskForm');
+  const module = useFederationModule(userTask as ModuleDefinition, 'UserTaskForm');
 
   useEffect(() => {
       if (!module) {
@@ -22,11 +22,11 @@ const Main = () => {
       showLoadingIndicator(false);
     }, [ module, showLoadingIndicator ]);
   
-  if (!module) {
-    return <NoUserTaskGiven loading />
-  }
-  if (module.retry) {
+  if (module?.retry) {
     return <NoUserTaskGiven retry={ module.retry } />
+  }
+  if (!module || (module.buildTimestamp === undefined)) {
+    return <NoUserTaskGiven loading />
   }
     
   const Form = module.UserTaskForm!;

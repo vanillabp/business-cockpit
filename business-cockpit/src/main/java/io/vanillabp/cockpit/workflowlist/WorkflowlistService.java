@@ -73,7 +73,8 @@ public class WorkflowlistService {
     public Mono<Workflow> getWorkflow(
             final String workflowId) {
 
-        return workflowRepository.findById(workflowId);
+        return workflowRepository
+                .findById(workflowId);
 
     }
 

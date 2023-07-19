@@ -3,6 +3,7 @@ import { ListOfWorkflows } from './ListOfWorkflows';
 import i18n from '../../i18n';
 import React, { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
+import { WorkflowPage } from "./WorkflowPage";
 
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Workflows',
@@ -24,7 +25,7 @@ const Main = () => {
   return (
     <Routes>
       <Route index element={<ListOfWorkflows />} />
-      <Route path="/:workflowId" element={<Main />} />
+      <Route path="/:workflowId" element={<WorkflowPage />} />
     </Routes>);
 }
 

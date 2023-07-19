@@ -31,6 +31,27 @@ paths:
                 $ref: '#/components/schemas/UserTask'
         404:
           description: Unknown user task
+  /workflows/workflow/{workflowId}:
+    get:
+      tags:
+        - officialWorkflowlist
+      summary: Fetch data of one single workflow
+      operationId: getWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        404:
+          description: Unknown workflow
           
 components:
   schemas:

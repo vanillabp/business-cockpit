@@ -160,7 +160,7 @@ const ListOfTasks = () => {
                 .filter(m => m !== undefined)
                 .filter(m => m.workflowModule === definition.workflowModule)
                 .filter(m => m.userTaskListColumns !== undefined)
-                .map(m => m.userTaskListColumns(definition));
+                .map(m => m.userTaskListColumns!(definition));
             if (columnsOfProcess.length === 0) return undefined;
             return columnsOfProcess[0];
           })

@@ -1,7 +1,7 @@
-import { UserTaskForm, ColumnsOfUserTaskFunction, ColumnsOfWorkflowFunction } from '@vanillabp/bc-shared';
+import { UserTaskForm, ColumnsOfUserTaskFunction, ColumnsOfWorkflowFunction, WorkflowPage } from '@vanillabp/bc-shared';
 import React, { useState, useEffect } from 'react';
 
-export type UseCase = 'UserTaskList' | 'UserTaskForm' | 'WorkflowList';
+export type UseCase = 'UserTaskList' | 'UserTaskForm' | 'WorkflowList' | 'WorkflowPage';
 
 export enum UiUriType {
     External = 'EXTERNAL',
@@ -28,14 +28,15 @@ export interface WorkflowCellProps {
 export interface Module {
   moduleId: string;
   workflowModule: string;
-  retry?: () => void;
+  retry?: (callback?: () => void) => void;
   buildVersion?: string;
   buildTimestamp?: Date;
   userTaskListColumns?: ColumnsOfUserTaskFunction;
   workflowListColumns?: ColumnsOfWorkflowFunction;
   UserTaskForm?: UserTaskForm;
-  UserTaskListCell?: React.FC<TasklistCellProps>; 
-  WorkflowListCell?: React.FC<WorkflowCellProps>; 
+  UserTaskListCell?: React.FC<TasklistCellProps>;
+  WorkflowListCell?: React.FC<WorkflowCellProps>;
+  WorkflowPage?: WorkflowPage;
 };
 
 interface Modules {
@@ -127,10 +128,11 @@ const loadModule = (
 ): ComponentProducer => {
   const callbacks: Array<HandlerFunction> = [];
   
-  const retry = async () => {
+  const retry = async (retryCallback?: () => void) => {
     if (module.buildTimestamp !== undefined) return;
     try {
       if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
+        detachScript(moduleId);
         const webpackModule =  await fetchModule(moduleDefinition.workflowModule, moduleDefinition.uiUri, useCase);
         module = {
           ...webpackModule,
@@ -146,12 +148,21 @@ const loadModule = (
       console.error(error);
       module.retry = retry;
       publish();
+    } finally {
+      if (retryCallback) {
+        retryCallback();
+      }
     }
   };
 
-  let module: Module = { moduleId, workflowModule: moduleDefinition.workflowModule, retry };
-  modules[moduleId] = module;
-    
+  let module: Module;
+  if (Object.keys(modules).includes(moduleId)) {
+    module = modules[moduleId];
+  } else {
+    module = { moduleId, workflowModule: moduleDefinition.workflowModule };
+    modules[moduleId] = module;
+  }
+  
   const publish = () => callbacks.forEach(callback => callback(module));
   
   const subscribe = (callback: HandlerFunction) => {
@@ -177,8 +188,7 @@ const getModule = (
 ): ComponentProducer => {
 
   let result = modules[moduleId];
-  if ((result !== undefined)
-      && (result.retry === undefined)) {
+  if (result !== undefined) {
     return {
         subscribe: (handler: HandlerFunction) => handler(result), 
         unsubscribe: (handler: HandlerFunction) => handler(result), 
@@ -190,14 +200,17 @@ const getModule = (
 };
 
 const useFederationModule = (
-  moduleDefinition: ModuleDefinition,
+  moduleDefinition: ModuleDefinition | undefined,
   useCase: UseCase
-): Module => {
-
-  const moduleId = `${moduleDefinition.workflowModule}#${useCase}`;
+): Module | undefined => {
+  
+  const moduleId = moduleDefinition !== undefined ? `${moduleDefinition.workflowModule}#${useCase}` : 'undefined';
   const [module, setModule] = useState(modules[moduleId]);
   
   useEffect(() => {
+      if (moduleDefinition === undefined) {
+        return undefined;
+      }
       const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
       const handler = (loadedModule: Module) => setModule(loadedModule);
       subscribe(handler);
