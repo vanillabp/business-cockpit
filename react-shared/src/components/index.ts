@@ -8,3 +8,4 @@ export * from './ModalDialog.js';
 export * from './UserTaskAppLayout.js';
 export * from './WarningListCell.js';
 export * from './DefaultUserTaskListCell.js';
+export * from './CopyClipboard.js';
