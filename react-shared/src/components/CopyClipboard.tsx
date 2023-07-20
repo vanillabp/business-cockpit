@@ -15,7 +15,7 @@ const CopyClipboard = ({
   content,
   size = 'medium',
   background = { color: 'rgba(0, 0, 0, 0.5)' },
-  color,
+  color = 'white',
   children,
 }: PropsWithChildren<CopyClipbardProps>) => {
   const targetRef = useRef<HTMLSpanElement>(null);

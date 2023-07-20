@@ -5,11 +5,11 @@ import React, { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
 import { WorkflowPage } from "./WorkflowPage";
 
-i18n.addResources('en', 'tasklist', {
+i18n.addResources('en', 'workflowlist', {
       "title.long": 'Workflows',
       "title.short": 'Workflows',
     });
-i18n.addResources('de', 'tasklist', {
+i18n.addResources('de', 'workflowlist', {
       "title.long": 'Vorgänge',
       "title.short": 'Vorgänge',
     });
@@ -19,7 +19,7 @@ const Main = () => {
   const { setAppHeaderTitle } = useAppContext();
   
   useLayoutEffect(() => {
-    setAppHeaderTitle('tasklist', false);
+    setAppHeaderTitle('workflowlist', false);
   }, [ setAppHeaderTitle ]);
 
   return (

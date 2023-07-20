@@ -48,8 +48,8 @@ public abstract class GuiApiMapper {
             return null;
         }
         
-        return workflow.getWorkflowModuleUri()
-                + "/";
+        return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
+                + workflow.getWorkflowModule();
         
     }
     
