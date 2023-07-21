@@ -43,7 +43,7 @@ public class UserTask implements UpdateInformationAware {
 
     private Map<String, String> workflowTitle = null;
 
-    private String WorkflowKey;
+    private String workflowKey;
 
     private String workflowId;
 
@@ -182,12 +182,12 @@ public class UserTask implements UpdateInformationAware {
         this.workflowTitle = workflowTitle;
     }
 
-    public String getWorkflowKey() {
-        return WorkflowKey;
+    public String getworkflowKey() {
+        return workflowKey;
     }
     
     public void setWorkflowKey(String workflowKey) {
-        WorkflowKey = workflowKey;
+        this.workflowKey = workflowKey;
     }
     
     public String getWorkflowId() {

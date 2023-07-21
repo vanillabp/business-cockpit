@@ -5,7 +5,6 @@ import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -21,6 +20,12 @@ public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, St
     @Query(value = "{ endedAt: null }", count = true)
     Mono<Long> countAll();
     
+    @Query(value = "{ $or: [ { workflowKey: ?0 }, { WorkflowKey: ?0 } ] }", sort = "{ dueDate: 1, createdAt: 1, _id: 1 }")
+    Flux<UserTask> findAllByWorkflowId(String workflowId);
+
+    @Query(value = "{ $and: [ { $or: [ { workflowKey: ?0 }, { WorkflowKey: ?0 } ] }, { endedAt: null } ] }", sort = "{ dueDate: 1, createdAt: 1, _id: 1 }")
+    Flux<UserTask> findActiveByWorkflowId(String workflowId);
+
     @Aggregation({
             "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",
             "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"

@@ -10,7 +10,7 @@ security:
   - JWT: []
 
 paths:
-  /tasklist/usertask/{userTaskId}:
+  /usertask/{userTaskId}:
     get:
       tags:
         - officialTasklist
@@ -31,7 +31,40 @@ paths:
                 $ref: '#/components/schemas/UserTask'
         404:
           description: Unknown user task
-  /workflows/workflow/{workflowId}:
+  /workflow/{workflowId}/usertasks:
+    get:
+      tags:
+        - officialWorkflowlist
+      summary: Fetch usertasks for the workflow
+      operationId: getUserTasksOfWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: activeOnly
+          required: true
+          schema:
+            type: boolean
+        - in: query
+          name: llatcup
+          required: true
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserTask'
+        404:
+          description: Unknown workflow
+  /workflow/{workflowId}:
     get:
       tags:
         - officialWorkflowlist
@@ -108,7 +141,6 @@ components:
       - taskDefinition
       - title
       - workflowModuleUri
-      - taskProviderUri
       - uiUri
       - uiUriType
       properties:
@@ -199,9 +231,9 @@ components:
           type: string
           $ref: '#/components/schemas/UiUriType'
           example: WEBPACK_MF_REACT
-        taskProviderUri:
+        workflowModuleUri:
           type: string
-          description: An URI pointing to the task-provider's own API (maybe used by user-task forms)
+          description: An URI pointing to the workflow-module's own API (maybe used by user-task forms)
           example: http://localhost:8080/wm/what-ever/
         assignee:
           type: string
@@ -241,7 +273,7 @@ components:
         - workflowModule
         - bpmnProcessId
         - title
-        - workflowProviderUri
+        - workflowModuleUri
         - uiUri
         - uiUriType
       properties:
@@ -304,9 +336,9 @@ components:
           type: string
           $ref: '#/components/schemas/UiUriType'
           example: WEBPACK_MF_REACT
-        workflowProviderUri:
+        workflowModuleUri:
           type: string
-          description: An URI pointing to the workflow-provider's own API (maybe used by workflow pages)
+          description: An URI pointing to the workflow-modules's own API (maybe used by workflow pages)
           example: http://localhost:8080/wm/what-ever/
         details:
           type: object

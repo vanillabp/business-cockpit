@@ -14,20 +14,17 @@ import { useAppContext } from "../../AppContext";
 import { ModuleDefinition, useFederationModules } from '../../utils/module-federation';
 import i18next from 'i18next';
 import { ListCell, TypeOfItem } from '../../components/ListCell';
+import { openTask } from '../../utils/open-task';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
       "no": "No.",
       "name": "task",
-      "unsupported-ui-uri-type_title": "Open task",
-      "unsupported-ui-uri-type_message": "Internal error: The task refers to an unsupported UI-URI-type!",
     });
 i18n.addResources('de', 'tasklist/list', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Aufgabe",
-      "unsupported-ui-uri-type_title": "Aufgabe öffnen",
-      "unsupported-ui-uri-type_message": "Internes Problem: Die Aufgabe bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
 
 const loadUserTasks = async (
@@ -182,24 +179,7 @@ const ListOfTasks = () => {
     setColumnsOfTasks(orderedColumns);
   }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
   
-  const openTask = async (userTask: UserTask) => {
-      if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
-        toast({
-            namespace: 'tasklist/list',
-            title: t('unsupported-ui-uri-type_title'),
-            message: t('unsupported-ui-uri-type_message'),
-            status: 'critical'
-          });
-        return;
-      }
-      
-      const targetWindowName = `usertask-app-${userTask.id}`;
-      const targetUrl = `/${ tApp('url-usertask') }/${userTask.id}`;
-      const targetWindow = window.open(targetUrl, targetWindowName);
-      if (targetWindow) {
-        targetWindow.focus();
-      }
-    };
+  const open = async (userTask: UserTask) => openTask(userTask, toast, tApp);
 
   const columns: ColumnConfig<ListItem<UserTask>>[] =
       [
@@ -226,7 +206,7 @@ const ListOfTasks = () => {
                     fill
                     pad="xsmall">
                   <Link
-                      onClick={ () => openTask(item.data) }
+                      onClick={ () => open(item.data) }
                       truncate="tip">
                     { item.data['title'][i18next.language] || item.data['title']['en'] }
                   </Link>

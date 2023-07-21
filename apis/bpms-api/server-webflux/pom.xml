@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>bpms-api-server</artifactId>
+  <artifactId>bpms-api-server-webflux</artifactId>
   <name>Spring Boot controller for serving the BPMS API</name>
 
   <build>
@@ -33,8 +33,10 @@
               <configOptions>
                 <useTags>true</useTags>
                 <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
+                <reactive>true</reactive>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
               <generateApiTests>false</generateApiTests>
@@ -49,30 +51,24 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter</artifactId>
-      <version>2.7.6</version>
-      <scope>provided</scope>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-      <version>5.3.9</version>
-      <scope>provided</scope>
+      <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
-        <groupId>javax.validation</groupId>
-        <artifactId>validation-api</artifactId>
-        <version>2.0.1.Final</version>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>4.0.1</version>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

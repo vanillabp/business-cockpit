@@ -15,7 +15,7 @@ public abstract class OfficialTasklistApiMapper {
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "version", constant = "1")
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
-    @Mapping(target = "taskProviderUri", expression = "java(proxiedTaskProviderUri(event))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
     public abstract UserTask toApi(UserTaskCreatedOrUpdatedEvent event);
     
     @NoMappingMethod
@@ -37,7 +37,7 @@ public abstract class OfficialTasklistApiMapper {
     }
 
     @NoMappingMethod
-    protected String proxiedTaskProviderUri(
+    protected String proxiedWorkflowModuleUri(
             final UserTaskCreatedOrUpdatedEvent userTask) {
         
         if (userTask.getWorkflowModuleUri() == null) {

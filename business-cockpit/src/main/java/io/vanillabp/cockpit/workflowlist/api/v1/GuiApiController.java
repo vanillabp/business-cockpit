@@ -1,14 +1,14 @@
 package io.vanillabp.cockpit.workflowlist.api.v1;
 
-import java.time.OffsetDateTime;
-
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowEvent;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdate;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowChangedNotification;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
 
 @RestController("workflowListGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
@@ -29,9 +32,15 @@ public class GuiApiController implements WorkflowlistApi {
 
     @Autowired
     private WorkflowlistService workflowlistService;
+    
+    @Autowired
+    private UserTaskService userTaskService;
 
     @Autowired
     private GuiApiMapper mapper;
+    
+    @Autowired
+    private io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper userTaskMapper;
 
     @EventListener(classes = WorkflowChangedNotification.class)
     public void updateClients(
@@ -102,6 +111,23 @@ public class GuiApiController implements WorkflowlistApi {
                 .map(mapper::toApi)
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+        
+    }
+    
+    @Override
+    public Mono<ResponseEntity<Flux<UserTask>>> getUserTasksOfWorkflow(
+            final String workflowId,
+            final Boolean activeOnlyRequested,
+            final Boolean llatcup,
+            final ServerWebExchange exchange) {
+        
+        final var activeOnly = activeOnlyRequested != null ? activeOnlyRequested.booleanValue() : true;
+        
+        return Mono.just(
+                ResponseEntity.ok(
+                        userTaskService
+                                .getUserTasksOfWorkflow(activeOnly, workflowId)
+                                .map(t -> userTaskMapper.toApi(t))));
         
     }
     

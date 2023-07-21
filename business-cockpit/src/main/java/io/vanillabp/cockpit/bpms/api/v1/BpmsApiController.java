@@ -1,16 +1,15 @@
 package io.vanillabp.cockpit.bpms.api.v1;
 
+import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
-
-import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
-import io.vanillabp.cockpit.tasklist.UserTaskService;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
-import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -152,7 +151,10 @@ public class BpmsApiController implements BpmsApi {
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> workflowCompletedEvent(String workflowId, Mono<WorkflowCompletedEvent> workflowCompletedEvent, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Void>> workflowCompletedEvent(
+            final String workflowId,
+            final Mono<WorkflowCompletedEvent> workflowCompletedEvent,
+            final ServerWebExchange exchange) {
 
         return workflowlistService
                 .getWorkflow(workflowId)
@@ -171,11 +173,16 @@ public class BpmsApiController implements BpmsApi {
                 .map(completed -> completed
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
+        
     }
 
 
     @Override
-    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(String workflowId, Mono<WorkflowCreatedOrUpdatedEvent> workflowUpdatedEvent, ServerWebExchange exchange) {
+    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(
+            final String workflowId,
+            final Mono<WorkflowCreatedOrUpdatedEvent> workflowUpdatedEvent,
+            final ServerWebExchange exchange) {
+        
         return workflowlistService
                 .getWorkflow(workflowId)
                 .zipWith(workflowUpdatedEvent)
@@ -184,5 +191,7 @@ public class BpmsApiController implements BpmsApi {
                 .map(created -> created
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
+        
     }
+
 }

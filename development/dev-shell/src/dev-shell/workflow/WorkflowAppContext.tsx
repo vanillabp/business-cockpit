@@ -1,23 +1,29 @@
-import React, { useMemo, MutableRefObject, PropsWithChildren, useContext } from 'react';
+import React, { useMemo, MutableRefObject, PropsWithChildren, useContext, useRef } from 'react';
 import { getOfficialWorkflowlistApi } from '../client/guiClient.js';
-import { WakeupSseCallback } from '@vanillabp/bc-shared';
-import { useParams } from 'react-router-dom';
-import { OfficialTasklistApi, Workflow } from '@vanillabp/bc-official-gui-client';
+import { BcWorkflow, GetUserTasksFunction, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { NavigateFunction, useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
-import { OfficialWorkflowlistApi } from '@vanillabp/bc-official-gui-client';
+import { OfficialWorkflowlistApi, Workflow } from '@vanillabp/bc-official-gui-client';
+import { useTranslation } from 'react-i18next';
+import { appNs } from '../app/DevShellApp.js';
 
 const WorkflowAppContext = React.createContext<{
   workflowId: string;
-  workflow: Workflow;
+  workflow: BcWorkflow;
 } | undefined>(undefined);
 
-let workflow: Workflow | null | undefined = undefined;
-let inprogress: Promise<Workflow | null> | undefined = undefined;
+let workflow: BcWorkflow | null | undefined = undefined;
+let inprogress: Promise<BcWorkflow | null> | undefined = undefined;
+
+interface Navigate {
+  fn: NavigateFunction;
+}
 
 const loadWorkflow = (
   workflowlistApi: OfficialWorkflowlistApi,
-  workflowId: string
-): Workflow | null | undefined => {
+  workflowId: string,
+  tApp: (t: string) => string,
+): BcWorkflow | null | undefined => {
   
   if (Boolean(workflow)
       && (workflow!.id !== workflowId)) {
@@ -30,10 +36,30 @@ const loadWorkflow = (
       return null;
     }
 
-    inprogress = new Promise<Workflow | null>((resolve, reject) => {
+    const openTask = (userTaskId: string) => window.location.href = `/${ tApp('url-usertask') }/${userTaskId}`;
+    
+    inprogress = new Promise<BcWorkflow | null>((resolve, reject) => {
         workflowlistApi.getWorkflow({ workflowId })
-            .then((value: Workflow | null) => {
-              workflow = value;
+            .then((value: Workflow) => {
+              const getWorkflowFunction: GetUserTasksFunction = async (
+                  activeOnly,
+                  limitListAccordingToCurrentUsersPermissions
+                ) => {
+                  return (await workflowlistApi
+                      .getUserTasksOfWorkflow({
+                          workflowId: workflowId,
+                          activeOnly,
+                          llatcup: limitListAccordingToCurrentUsersPermissions,
+                      }))
+                      .map(userTask => ({
+                        ...userTask,
+                        open: () => openTask(userTask.id),
+                      }));
+                };
+              workflow = {
+                  ...value,
+                  getUserTasks: getWorkflowFunction,
+                };
               resolve(workflow);
             }).catch((error: any) => {
               workflow = null;
@@ -58,10 +84,12 @@ const WorkflowAppContextProvider = ({
 }: PropsWithChildren<{officialGuiApiUrl: string}>) => {
   const workflowlistApi = useOfficialWorkflowlistApi(officialGuiApiUrl);
   const workflowId: string | undefined = useParams()['workflowId'];
+  const { t: tApp } = useTranslation(appNs);
 
   const workflow = loadWorkflow(
       workflowlistApi,
-      workflowId!);
+      workflowId!,
+      tApp);
 
   const value = {
       workflowId: workflowId!,
@@ -97,7 +125,7 @@ const useWorkflowAppContext = () => {
 
 const WorkflowAppContextConsumer = ({
   children
-}: { children: (workflow: Workflow) => JSX.Element }) => {
+}: { children: (workflow: BcWorkflow) => JSX.Element }) => {
   const context = useContext(WorkflowAppContext);
   return children(context!.workflow);
 };

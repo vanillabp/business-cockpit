@@ -43,7 +43,7 @@ paths:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/User'
         404:
           description: No user logged in
-  /tasklist/usertask/{userTaskId}:
+  /usertask/{userTaskId}:
     get:
       tags:
         - tasklist
@@ -64,7 +64,7 @@ paths:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/UserTask'
         404:
           description: Unknown user task
-  /tasklist/usertask:
+  /usertask:
     post:
       tags:
         - tasklist
@@ -106,7 +106,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
-  /workflows/workflow:
+  /workflow:
     post:
       tags:
         - workflowlist
@@ -148,7 +148,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Workflows'
-  /workflows/workflow/{workflowId}:
+  /workflow/{workflowId}/usertasks:
+    get:
+      tags:
+        - workflowlist
+      summary: Fetch usertasks for the workflow
+      operationId: getUserTasksOfWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: activeOnly
+          required: true
+          schema:
+            type: boolean
+        - in: query
+          name: llatcup
+          required: true
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/UserTask'
+        404:
+          description: Unknown workflow
+  /workflow/{workflowId}:
     get:
       tags:
         - workflowlist

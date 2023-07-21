@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.simulator.workflow;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -12,9 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.devskiller.jfairy.Fairy;
 
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
+import io.vanillabp.cockpit.simulator.usertask.OfficialTasklistApiMapper;
+import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
 import io.vanillabp.cockpit.simulator.workflow.testdata.WorkflowTestDataGenerator;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @RestController
 @RequestMapping(path = "/official-api/v1")
@@ -22,6 +29,8 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
     
     private Map<String, Workflow> workflows = new HashMap<>();
     
+    private Map<String, List<UserTask>> userTasks = new HashMap<>();
+
     private final static Random random = new Random(System.currentTimeMillis());
     
     private final static Map<String, Fairy> fairies = new HashMap<>();
@@ -33,6 +42,9 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
 
     @Autowired
     private OfficialWorkflowlistApiMapper mapper;
+    
+    @Autowired
+    private OfficialTasklistApiMapper userTaskMapper;
     
     @Override
     public ResponseEntity<Workflow> getWorkflow(
@@ -50,6 +62,40 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
         result.setId(workflowId);
         
         workflows.put(workflowId, result);
+        
+        return ResponseEntity.ok(result);
+        
+    }
+    
+    @Override
+    public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(
+            final String workflowId,
+            final @NotNull @Valid Boolean activeOnly,
+            final @NotNull @Valid Boolean llatcup) {
+        
+        final var existingUserTasks = userTasks.get(workflowId);
+        if (existingUserTasks != null) {
+            return ResponseEntity.ok(existingUserTasks);
+        }
+        
+        final var result = new LinkedList<UserTask>();
+        userTasks.put(workflowId, result);
+        
+        final var num = random.nextInt(activeOnly ? 5 : 10);
+        String workflowKey = null;
+        for (int i = 0; i < num; ++i) {
+            
+            final var createdEvent = UserTaskTestDataGenerator
+                    .buildCreatedEvent(random, fairies, null, null, null);
+            createdEvent.setWorkflowId(workflowId);
+            if (workflowKey == null) {
+                workflowKey = createdEvent.getWorkflowKey();
+            } else {
+                createdEvent.setWorkflowKey(workflowKey);
+            }
+            result.add(userTaskMapper.toApi(createdEvent));
+            
+        }
         
         return ResponseEntity.ok(result);
         

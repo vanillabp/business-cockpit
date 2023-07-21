@@ -1,8 +1,8 @@
 import { FC } from "react";
-import { Workflow } from "@vanillabp/bc-official-gui-client";
+import { BcWorkflow } from "./BcWorkflow";
 
 interface WorkflowPageProps {
-  workflow: Workflow;
+  workflow: BcWorkflow;
 }
 
 export type WorkflowPage = FC<WorkflowPageProps>;

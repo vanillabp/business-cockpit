@@ -15,7 +15,7 @@ public abstract class OfficialWorkflowlistApiMapper {
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "version", constant = "1")
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
-    @Mapping(target = "workflowProviderUri", expression = "java(proxiedWorkflowProviderUri(event))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
     public abstract Workflow toApi(WorkflowCreatedOrUpdatedEvent event);
     
     @NoMappingMethod
@@ -37,7 +37,7 @@ public abstract class OfficialWorkflowlistApiMapper {
     }
     
     @NoMappingMethod
-    protected String proxiedWorkflowProviderUri(
+    protected String proxiedWorkflowModuleUri(
             final WorkflowCreatedOrUpdatedEvent workflow) {
         
         if (workflow.getWorkflowModuleUri() == null) {

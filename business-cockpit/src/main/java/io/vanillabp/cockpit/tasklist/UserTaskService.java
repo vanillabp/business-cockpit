@@ -22,6 +22,7 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -106,6 +107,20 @@ public class UserTaskService {
     	        .zipWith(userTasks.countAll())
     	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
+    }
+    
+    public Flux<UserTask> getUserTasksOfWorkflow(
+            final boolean activeOnly,
+            final String workflowId) {
+        
+        if (activeOnly) {
+            return userTasks
+                    .findActiveByWorkflowId(workflowId);
+        }
+        
+        return userTasks
+                .findAllByWorkflowId(workflowId);
+        
     }
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
