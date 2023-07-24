@@ -216,7 +216,7 @@ public class WorkflowTestDataGenerator implements Runnable {
         final var process = random.nextInt(10);
         result.setId(UUID.randomUUID().toString());
         result.setWorkflowId(UUID.randomUUID().toString());
-        result.setWorkflowAggregateId(UUID.randomUUID().toString());
+        result.setBusinessId(UUID.randomUUID().toString());
         result.setBpmnProcessId(getBpmnProcessId(process));
         result.setTitle(
                 fairies

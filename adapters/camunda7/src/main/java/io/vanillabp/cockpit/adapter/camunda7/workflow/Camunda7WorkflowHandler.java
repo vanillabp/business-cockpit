@@ -1,24 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
-import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.util.StringUtils;
-
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskHandler;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCompleted;
@@ -38,6 +19,23 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
+import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
+import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.util.StringUtils;
+
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
@@ -279,7 +277,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         prefilledWorkflowDetails.setBpmnProcessId(bpmnProcessId);
         prefilledWorkflowDetails.setBpmnProcessVersion(bpmnProcessVersion);
         prefilledWorkflowDetails.setWorkflowId(processInstanceEvent.getProcessInstanceId());
-        prefilledWorkflowDetails.setWorkflowAggregateId(processInstanceEvent.getBusinessKey());
+        prefilledWorkflowDetails.setBusinessId(processInstanceEvent.getBusinessKey());
         prefilledWorkflowDetails.setTitle(new HashMap<>());
 
         return prefilledWorkflowDetails;

@@ -82,16 +82,16 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
         userTasks.put(workflowId, result);
         
         final var num = random.nextInt(activeOnly ? 5 : 10);
-        String workflowKey = null;
+        String businessId = null;
         for (int i = 0; i < num; ++i) {
             
             final var createdEvent = UserTaskTestDataGenerator
                     .buildCreatedEvent(random, fairies, null, null, null);
             createdEvent.setWorkflowId(workflowId);
-            if (workflowKey == null) {
-                workflowKey = createdEvent.getWorkflowKey();
+            if (businessId == null) {
+                businessId = createdEvent.getBusinessId();
             } else {
-                createdEvent.setWorkflowKey(workflowKey);
+                createdEvent.setBusinessId(businessId);
             }
             result.add(userTaskMapper.toApi(createdEvent));
             

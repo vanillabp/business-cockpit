@@ -6,6 +6,8 @@ import java.util.Map;
 
 public interface UserTaskDetails {
 
+    String getId();
+    
     String getInitiator();
     
     String getComment();

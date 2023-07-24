@@ -384,11 +384,23 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                 bpmnProcessVersion);
         prefilledUserTaskDetails.setTaskDefinition(
                 taskDefinition);
-        prefilledUserTaskDetails.setWorkflowId(
+        prefilledUserTaskDetails.setBusinessId(
                 delegateTask.getExecution().getBusinessKey());
-        prefilledUserTaskDetails.setWorkflowTaskId(
+        prefilledUserTaskDetails.setBpmnTaskId(
                 delegateTask.getTaskDefinitionKey());
-        prefilledUserTaskDetails.setWorkflowKey(
+        
+        var superExecution = (ExecutionEntity) delegateTask.getExecution();
+        while ((superExecution.getParentId() != null)
+                || (superExecution.getSuperExecution() != null)) {
+            if (superExecution.getSuperExecution() != null) {
+                superExecution = superExecution.getSuperExecution();
+            } else {
+                superExecution = superExecution.getParent();
+            }
+        }
+        prefilledUserTaskDetails.setWorkflowId(
+                superExecution.getProcessInstanceId());
+        prefilledUserTaskDetails.setSubWorkflowId(
                 delegateTask.getProcessInstanceId());
         
         prefilledUserTaskDetails.setTitle(new HashMap<>());

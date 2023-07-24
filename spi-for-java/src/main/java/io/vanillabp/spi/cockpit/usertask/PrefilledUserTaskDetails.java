@@ -14,7 +14,7 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
     
     String getBpmnProcessVersion();
     
-    String getWorkflowTaskId();
+    String getBpmnTaskId();
 
     void setInitiator(String initiator);
     

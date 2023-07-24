@@ -16,7 +16,7 @@ const UserTaskListTextCellWrapper: React.FC<UserTaskListTextCellWrapperProps> = 
         align="center"
         direction='row'
         justify='start'
-        pad="xsmall"
+        pad="xxsmall"
         gap="xsmall">
       <Text
           truncate="tip"

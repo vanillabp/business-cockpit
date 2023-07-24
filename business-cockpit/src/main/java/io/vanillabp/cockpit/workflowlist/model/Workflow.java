@@ -43,7 +43,7 @@ public class Workflow implements UpdateInformationAware {
 
     private String workflowId;
 
-    private String workflowAggregateId;
+    private String businessId;
 
     private Map<String, String> title;
 
@@ -165,12 +165,12 @@ public class Workflow implements UpdateInformationAware {
         this.workflowId = workflowId;
     }
 
-    public String getWorkflowAggregateId() {
-        return workflowAggregateId;
+    public String getBusinessId() {
+        return businessId;
     }
 
-    public void setWorkflowAggregateId(String workflowAggregateId) {
-        this.workflowAggregateId = workflowAggregateId;
+    public void setBusinessId(String businessId) {
+        this.businessId = businessId;
     }
 
     public Map<String, String> getTitle() {

@@ -22,10 +22,11 @@ const WarningListCell = ({
           direction='row'
           background={ { color, opacity: 'medium' } }
           justify='start'
-          pad="xsmall"
+          pad="xxsmall"
           gap="xsmall">
         <Icon
             color={ color }
+            size="15rem"
             a11yTitle={ message } />
         {
           isNotPhone

@@ -43,13 +43,15 @@ public class UserTask implements UpdateInformationAware {
 
     private Map<String, String> workflowTitle = null;
 
-    private String workflowKey;
+    private String businessId;
 
     private String workflowId;
+    
+    private String subWorkflowId;
 
     private Map<String, String> title;
 
-    private String workflowTaskId;
+    private String bpmnTaskId;
 
     private String taskDefinition;
 
@@ -181,13 +183,13 @@ public class UserTask implements UpdateInformationAware {
     public void setWorkflowTitle(Map<String, String> workflowTitle) {
         this.workflowTitle = workflowTitle;
     }
-
-    public String getworkflowKey() {
-        return workflowKey;
+    
+    public String getBusinessId() {
+        return businessId;
     }
     
-    public void setWorkflowKey(String workflowKey) {
-        this.workflowKey = workflowKey;
+    public void setBusinessId(String businessId) {
+        this.businessId = businessId;
     }
     
     public String getWorkflowId() {
@@ -206,14 +208,14 @@ public class UserTask implements UpdateInformationAware {
         this.title = title;
     }
 
-    public String getWorkflowTaskId() {
-        return workflowTaskId;
+    public String getBpmnTaskId() {
+        return bpmnTaskId;
     }
-
-    public void setWorkflowTaskId(String workflowTaskId) {
-        this.workflowTaskId = workflowTaskId;
+    
+    public void setBpmnTaskId(String bpmnTaskId) {
+        this.bpmnTaskId = bpmnTaskId;
     }
-
+    
     public String getTaskDefinition() {
         return taskDefinition;
     }
@@ -316,6 +318,14 @@ public class UserTask implements UpdateInformationAware {
 
     public void setDetailsFulltextSearch(String detailsFulltextSearch) {
         this.detailsFulltextSearch = detailsFulltextSearch;
+    }
+
+    public String getSubWorkflowId() {
+        return subWorkflowId;
+    }
+    
+    public void setSubWorkflowId(String subWorkflowId) {
+        this.subWorkflowId = subWorkflowId;
     }
 
 }

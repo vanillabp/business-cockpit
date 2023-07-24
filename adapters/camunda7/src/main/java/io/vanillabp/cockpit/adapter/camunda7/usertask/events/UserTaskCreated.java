@@ -67,12 +67,16 @@ public class UserTaskCreated
         
     }
     
-    public void setWorkflowKey(String workflowKey) {
-        event.setWorkflowKey(workflowKey);
+    public void setBusinessId(String businessId) {
+        event.setBusinessId(businessId);
     }
 
     public void setWorkflowId(String workflowId) {
         event.setWorkflowId(workflowId);
+    }
+    
+    public void setSubWorkflowId(String subWorkflowId) {
+        event.setSubWorkflowId(subWorkflowId);
     }
 
     public void setBpmnProcessId(String bpmnProcessId) {
@@ -83,21 +87,26 @@ public class UserTaskCreated
         event.setBpmnProcessVersion(bpmnProcessVersion);
     }
 
-    public void setWorkflowTaskId(String workflowTaskId) {
-        event.setWorkflowTaskId(workflowTaskId);
+    public void setBpmnTaskId(String bpmnTaskId) {
+        event.setBpmnTaskId(bpmnTaskId);
     }
 
     public String getBpmnProcessId() {
         return event.getBpmnProcessId();
     }
 
-    public String getWorkflowTaskId() {
-        return event.getUserTaskId();
+    public String getBpmnTaskId() {
+        return event.getBpmnTaskId();
     }
     
     
     public Map<String, String> getWorkflowTitle() {
         return event.getWorkflowTitle();
+    }
+    
+    @Override
+    public String getId() {
+        return event.getUserTaskId();
     }
 
     @Override

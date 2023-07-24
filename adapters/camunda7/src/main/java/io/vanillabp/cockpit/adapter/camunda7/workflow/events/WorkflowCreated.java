@@ -64,8 +64,8 @@ public class WorkflowCreated
         event.setWorkflowId(workflowId);
     }
 
-    public void setWorkflowAggregateId(String workflowAggregateId) {
-        event.setWorkflowAggregateId(workflowAggregateId);
+    public void setBusinessId(String businessId) {
+        event.setBusinessId(businessId);
     }
 
     public void setBpmnProcessId(String bpmnProcessId) {

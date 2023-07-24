@@ -344,11 +344,15 @@ components:
           example:
             en: Taxi Ride
             de: Taxifahrt
-        workflowKey:
+        workflowId:
           type: string
           description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
-        workflowId:
+        subWorkflowId:
+          type: string
+          description: The unique key of the Call-Activity which caused the user task (or the workflowId)
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        businessId:
           type: string
           description: The natural ID of the workflow (e.g. order-id)
           example: 123456
@@ -360,7 +364,7 @@ components:
           example:
             en: "Do ride #4711"
             de: "Führe die Fahrt #4711 durch"
-        workflowTaskId:
+        bpmnTaskId:
           type: string
           description: The BPMN user task's ID
           example: "Task_TaxiRide"
@@ -466,7 +470,6 @@ components:
     UserTaskActivatedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskLifecycleEvent"
-
     WorkflowCreatedOrUpdatedEvent:
       type: object
       required:
@@ -489,7 +492,7 @@ components:
           type: string
           description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
-        workflowAggregateId:
+        businessId:
           type: string
           description: The natural ID of the workflow (e.g. order-id)
           example: AT0815
@@ -568,7 +571,7 @@ components:
           type: string
           description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
-        workflowAggregateId:
+        businessId:
           type: string
           description: The natural ID of the workflow (e.g. order-id)
           example: AT0815
@@ -601,7 +604,6 @@ components:
         bpmnProcessVersion:
           type: string
           description: Version of the BPMN process (beneath the version tag)
-
     WorkflowCompletedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowLifecycleEvent"

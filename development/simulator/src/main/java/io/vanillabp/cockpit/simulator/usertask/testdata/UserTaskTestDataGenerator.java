@@ -317,7 +317,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         
         result.setId(UUID.randomUUID().toString());
         result.setUserTaskId(UUID.randomUUID().toString());
-        result.setWorkflowKey(UUID.randomUUID().toString());
+        result.setBusinessId(UUID.randomUUID().toString());
         result.setBpmnProcessId(getBpmnProcessId(process));
         result.setWorkflowTitle(
                 fairies
@@ -335,7 +335,7 @@ public class UserTaskTestDataGenerator implements Runnable {
                 case 2 -> "TestForm3";
                 default -> "TestForm4"; 
                 });
-        result.setWorkflowTaskId(
+        result.setBpmnTaskId(
                 result.getTaskDefinition());
         result.setTimestamp(OffsetDateTime.now());
         
