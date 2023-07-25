@@ -215,7 +215,7 @@ const useFederationModule = (
       const handler = (loadedModule: Module) => setModule(loadedModule);
       subscribe(handler);
       return () => unsubscribe(handler);
-    }, [ setModule, moduleId, moduleDefinition, useCase ]);
+    }, [ setModule, moduleDefinition, useCase ]); //eslint-disable-line react-hooks/exhaustive-deps -- moduleId is derived from moduleDefinition
   
   return module;
 

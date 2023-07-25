@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { createRef, useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { useParams } from 'react-router-dom';
 import { ModuleDefinition, useFederationModule } from '../../utils/module-federation';
@@ -14,7 +14,7 @@ const WorkflowPage = () => {
   const { toast, showLoadingIndicator } = useAppContext();
   const workflowId: string | undefined = useParams()['*'];
   
-  const [ loadingWorkflow, setLoadingWorkflow ] = useState(false);
+  const loadingWorkflow = useRef(false);
   const [ workflow, setWorkflow ] = useState<BcWorkflow | undefined | null>(undefined);
   const workflowListApi = useWorkflowlistApi();
   useEffect(() => {
@@ -24,7 +24,7 @@ const WorkflowPage = () => {
       if (workflow !== undefined) {
         return;
       }
-      if (loadingWorkflow) {
+      if (loadingWorkflow.current) {
         return;
       }
       const loadWorkflow = async () => {
@@ -50,10 +50,10 @@ const WorkflowPage = () => {
           };
           setWorkflow(bcWorkflows);
         };
-      setLoadingWorkflow(true);
+      loadingWorkflow.current = true;
       showLoadingIndicator(true);
       loadWorkflow();
-    }, [ toast, tApp, workflowListApi, workflowId, workflow, loadingWorkflow, showLoadingIndicator, setWorkflow, setLoadingWorkflow ]);
+    }, [ toast, tApp, workflowListApi, workflowId, workflow, loadingWorkflow, showLoadingIndicator, setWorkflow ]);
   
   const module = useFederationModule(workflow as ModuleDefinition, 'WorkflowPage');
   useEffect(() => {
@@ -64,7 +64,7 @@ const WorkflowPage = () => {
         return;
       }
       showLoadingIndicator(false);
-    }, [ module, showLoadingIndicator ]);
+    }, [ module, module?.buildTimestamp, module?.retry, showLoadingIndicator ]);
 
   if (module?.retry) {
     return <NoWorkflowGiven retry={ module.retry } />
