@@ -29,6 +29,8 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
     void setAssignee(String assignee);
     
     void setCandidateUsers(List<String> candidateUsers);
+    
+    void setCandidateGroups(List<String> candidateGroups);
 
     void setDetails(Map<String, Object> details);
     
