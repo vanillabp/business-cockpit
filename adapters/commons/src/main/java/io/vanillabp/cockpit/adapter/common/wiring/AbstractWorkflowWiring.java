@@ -4,8 +4,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
-import io.vanillabp.spi.cockpit.WorkflowDetailsProvider;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
+import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;

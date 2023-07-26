@@ -6,8 +6,8 @@ import java.lang.reflect.Parameter;
 import org.springframework.context.ApplicationContext;
 
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
-import io.vanillabp.spi.cockpit.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
+import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;

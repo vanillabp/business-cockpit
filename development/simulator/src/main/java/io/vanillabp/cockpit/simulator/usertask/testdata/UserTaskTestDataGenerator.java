@@ -1,5 +1,17 @@
 package io.vanillabp.cockpit.simulator.usertask.testdata;
 
+import com.devskiller.jfairy.Fairy;
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
+import io.vanillabp.cockpit.simulator.common.FairyHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,21 +19,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import io.vanillabp.cockpit.simulator.common.FairyHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.devskiller.jfairy.Fairy;
-
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.DetailProperties;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
 
 public class UserTaskTestDataGenerator implements Runnable {
 
@@ -375,10 +372,6 @@ public class UserTaskTestDataGenerator implements Runnable {
             result.setDetails(
                     Map.of("test1", testData1,
                             "project", projectData));
-            result.setDetailsProperties(List.of(
-                    new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
-                    new DetailProperties().path("test1.testId2").filterable(false).sortable(false),
-                    new DetailProperties().path("project.name").filterable(true).sortable(true)));
         } else {
             final var testData1 = new TestData1();
             testData1.setTestId1(Integer.toString(random.nextInt(5)));
@@ -390,11 +383,6 @@ public class UserTaskTestDataGenerator implements Runnable {
                     Map.of("test1", testData1,
                             "test2", testData2,
                             "project", projectData));
-            result.setDetailsProperties(List.of(
-                    new DetailProperties().path("test1.testId1").filterable(true).sortable(true),
-                    new DetailProperties().path("test2.testId2").filterable(false).sortable(false),
-                    new DetailProperties().path("test2.testId3").filterable(true).sortable(true),
-                    new DetailProperties().path("project.name").filterable(true).sortable(true)));
         }
                 
         return result;

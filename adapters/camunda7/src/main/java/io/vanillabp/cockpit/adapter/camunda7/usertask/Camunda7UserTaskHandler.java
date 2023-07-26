@@ -419,19 +419,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         prefilledUserTaskDetails.setFollowUpDate(
                 DateTimeUtil.fromDate(delegateTask.getFollowUpDate()));
         
-        if ((userTaskProperties != null)
-                && (userTaskProperties.getDetailsProperties() != null)) {
-        
-            prefilledUserTaskDetails.setDetailsCharacteristics(
-                    userTaskProperties.getDetailsProperties());
-            
-        } else if (workflowProperties.getDetailsProperties() != null) {
-
-            prefilledUserTaskDetails.setDetailsCharacteristics(
-                    workflowProperties.getDetailsProperties());
-            
-        }
-        
         return prefilledUserTaskDetails;
         
     }

@@ -25,8 +25,6 @@ public class UserTasksProperties extends WorkflowAndModule implements Comparable
     
     private String bpmnDescriptionLanguage;
     
-    private Map<String, DetailsProperties> detailsProperties;
-    
     @Override
     public boolean equals(
             final Object obj) {
@@ -125,14 +123,6 @@ public class UserTasksProperties extends WorkflowAndModule implements Comparable
 
     public void setUiUriPath(String uiUriPath) {
         this.uiUriPath = uiUriPath;
-    }
-    
-    public Map<String, DetailsProperties> getDetailsProperties() {
-        return detailsProperties;
-    }
-    
-    public void setDetailsProperties(Map<String, DetailsProperties> detailsProperties) {
-        this.detailsProperties = detailsProperties;
     }
     
     public String getBpmnDescriptionLanguage() {

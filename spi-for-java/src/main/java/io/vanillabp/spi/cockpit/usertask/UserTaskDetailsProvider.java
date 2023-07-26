@@ -1,4 +1,4 @@
-package io.vanillabp.spi.cockpit;
+package io.vanillabp.spi.cockpit.usertask;
 
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
@@ -9,7 +9,6 @@ import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.service.TaskId;
 
 /**

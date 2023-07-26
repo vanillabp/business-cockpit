@@ -1,15 +1,12 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask.events;
 
+import io.vanillabp.cockpit.adapter.common.usertask.EventWrapper;
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import io.vanillabp.cockpit.adapter.common.usertask.EventWrapper;
-import io.vanillabp.cockpit.bpms.api.v1.DetailProperties;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
-import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 
 public class UserTaskCreated
         implements PrefilledUserTaskDetails, EventWrapper {
@@ -17,8 +14,6 @@ public class UserTaskCreated
     private final UserTaskCreatedOrUpdatedEvent event;
     
     private List<String> i18nLanguages;
-    
-    private Map<String, ? extends DetailCharacteristics> detailsCharacteristics;
 
     private Object templateContext;
     
@@ -124,19 +119,6 @@ public class UserTaskCreated
         
     }
     
-    @Override
-    public Map<String, ? extends DetailCharacteristics> getDetailsCharacteristics() {
-        
-        return detailsCharacteristics;
-        
-    }
-    
-    public void setDetailsCharacteristics(Map<String, ? extends DetailCharacteristics> detailsCharacteristics) {
-        
-        this.detailsCharacteristics = detailsCharacteristics;
-        
-    }
-    
     public void setTemplateContext(Object templateContext) {
         
         this.templateContext = templateContext;
@@ -151,23 +133,7 @@ public class UserTaskCreated
     }
     
     public UserTaskCreatedOrUpdatedEvent getEvent() {
-        
-        if (detailsCharacteristics == null) {
-            event.setDetailsProperties(null);
-        } else {
-            event.setDetailsProperties(
-                    detailsCharacteristics
-                            .entrySet()
-                            .stream()
-                            .map(entry -> new DetailProperties()
-                                    .path(entry.getKey())
-                                    .filterable(entry.getValue().isFilterable())
-                                    .sortable(entry.getValue().isSortable()))
-                            .collect(Collectors.toList()));
-        }
-        
         return event;
-        
     }
 
     public String getWorkflowId() {

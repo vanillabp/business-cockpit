@@ -279,15 +279,6 @@ components:
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
-    DetailProperties:
-      type: object
-      properties:
-        path:
-          type: string
-        sortable:
-          type: boolean
-        filterable:
-          type: boolean
     UserTaskCreatedOrUpdatedEvent:
       type: object
       required:
@@ -422,10 +413,6 @@ components:
           description: Properties for individual searches
           additionalProperties: true
           example: '{ "customer": "passanger A" }'
-        detailsProperties:
-          type: array
-          items:
-            $ref: '#/components/schemas/DetailProperties'
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
@@ -549,10 +536,6 @@ components:
           description: Properties for individual searches
           additionalProperties: true
           example: '{ "ride-request": "4711" }'
-        detailsProperties:
-          type: array
-          items:
-            $ref: '#/components/schemas/DetailProperties'
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details

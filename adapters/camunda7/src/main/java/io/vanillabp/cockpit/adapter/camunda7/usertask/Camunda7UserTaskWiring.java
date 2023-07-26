@@ -16,9 +16,9 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
-import io.vanillabp.spi.cockpit.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
+import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.parameters.MethodParameter;
 

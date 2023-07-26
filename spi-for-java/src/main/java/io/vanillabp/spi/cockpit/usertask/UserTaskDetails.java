@@ -30,8 +30,6 @@ public interface UserTaskDetails {
     
     Map<String, Object> getDetails();
     
-    Map<String, ? extends DetailCharacteristics> getDetailsCharacteristics();
-    
     String getDetailsFulltextSearch();
     
     List<String> getI18nLanguages();

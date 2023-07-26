@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { FC } from 'react';
 import { Box, Text, TextExtendedProps } from 'grommet';
-import { UserTaskListCell } from '../types/index.js';
+import { DefaultUserTaskListCellProps } from '../types/index.js';
 import { getObjectProperty, toLocalDateString } from '../utils/index.js';
 
 interface UserTaskListTextCellWrapperProps extends TextExtendedProps {
@@ -25,7 +25,7 @@ const UserTaskListTextCellWrapper: React.FC<UserTaskListTextCellWrapperProps> = 
       </Text>
     </Box>);
 
-const DefaultUserTaskListCell: UserTaskListCell = ({
+const DefaultUserTaskListCell: FC<DefaultUserTaskListCellProps> = ({
     item,
     column
 }) => {
