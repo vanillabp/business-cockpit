@@ -22,6 +22,7 @@ import org.springframework.util.StringUtils;
 
 import feign.Feign.Builder;
 import feign.Request;
+import feign.Retryer;
 import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
 import io.vanillabp.cockpit.commons.rest.adapter.tls.TlsTruststoreUtil;
 import okhttp3.Authenticator;
@@ -56,6 +57,26 @@ public abstract class ClientsConfigurationBase {
         configureFeignBuilder(clientClass, builder, properties, null);
         
     }
+    
+    protected void configureRetry(
+            final Builder builder,
+            final Client properties) {
+        
+        final var retryProperties = properties.getRetry();
+        if ((retryProperties == null)
+                || !retryProperties.isEnabled()) {
+            
+            builder.retryer(Retryer.NEVER_RETRY);
+            return;
+            
+        }
+        
+        builder.retryer(new Retryer.Default(
+                retryProperties.getPeriod().toMillis(),
+                retryProperties.getMaxPeriod().toMillis(),
+                retryProperties.getMaxAttempts()));
+        
+    }
 
     protected void configureFeignBuilder(
             final Class<?> clientClass,
@@ -70,6 +91,8 @@ public abstract class ClientsConfigurationBase {
         configureOkHttpClient(clientClass, properties, httpClientBuilder, adoptHttpClientBuilder);
         
         builder.client(new feign.okhttp.OkHttpClient(httpClientBuilder.build()));
+
+        configureRetry(builder, properties);
 
         if (configureBasicAuthentication(builder, properties)) {
             return;
