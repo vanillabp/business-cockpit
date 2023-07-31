@@ -1,4 +1,4 @@
-import React, { createRef, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { useParams } from 'react-router-dom';
 import { ModuleDefinition, useFederationModule } from '../../utils/module-federation';

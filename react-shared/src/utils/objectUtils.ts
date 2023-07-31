@@ -1,5 +1,5 @@
 
-const getObjectProperty = (object: any, path: string, defaultValue?: string): string | undefined => {
+const getObjectProperty = (object: any, path: string, defaultValue?: string): any | undefined => {
     if (!Boolean(object)) { // null or undefined
       return defaultValue;
     }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { buildTimestamp, buildVersion } from '../WorkflowPage';
-import { BcUserTask, WorkflowPage, theme } from '@vanillabp/bc-shared';
-import { Box, Grommet, Heading, Text } from 'grommet';
+import { BcUserTask, CopyClipboard, WorkflowPage, theme } from '@vanillabp/bc-shared';
+import { Box, Grommet, Heading, Text, Tip } from 'grommet';
 import { Share } from 'grommet-icons';
 
 const TestWorkflowPage: WorkflowPage = ({ workflow }) => {
@@ -28,7 +28,15 @@ const TestWorkflowPage: WorkflowPage = ({ workflow }) => {
             margin="medium">
             <Heading
                 level="2">
-              '{workflow.title.de}' { buildVersion } from { buildTimestamp.toLocaleString() }
+              <CopyClipboard
+                  content='workflow.title.de'
+                  size="xsmall">
+                <Tip
+                    content={ `${ buildVersion } from ${ buildTimestamp.toLocaleString() }` }
+                    dropProps={ { stretch: false } }>
+                  {workflow.title.de}
+                </Tip>
+              </CopyClipboard>
             </Heading>
             {
               userTasks === undefined
