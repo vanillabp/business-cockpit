@@ -18,6 +18,7 @@ import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.DelegateTask;
 import org.camunda.bpm.engine.delegate.TaskListener;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
+import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
 import org.camunda.bpm.engine.task.IdentityLink;
 import org.camunda.bpm.model.bpmn.instance.Activity;
 import org.camunda.bpm.model.bpmn.instance.BaseElement;
@@ -139,17 +140,18 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     }
 
     public void notify(
-            final DelegateTask delegateTask) {
+            final TaskEntity task,
+            final String eventName) {
 
         final EventWrapper eventWrapper =
-                switch (delegateTask.getEventName()) {
+                switch (task.getEventName()) {
                 case TaskListener.EVENTNAME_CREATE -> new UserTaskCreated(
                         new UserTaskCreatedOrUpdatedEvent(),
-                        delegateTask.getTenantId(),
+                        task.getTenantId(),
                         properties.getI18nLanguages());
                 case TaskListener.EVENTNAME_UPDATE -> new UserTaskUpdated(
                         new UserTaskCreatedOrUpdatedEvent(),
-                        delegateTask.getTenantId(),
+                        task.getTenantId(),
                         properties.getI18nLanguages());
                 case TaskListener.EVENTNAME_COMPLETE -> new UserTaskCompleted(
                         new UserTaskCompletedEvent());
@@ -157,15 +159,15 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         new UserTaskCancelledEvent());
                 default -> throw new RuntimeException(
                         "Unsupported event type '"
-                        + delegateTask.getEventName()
+                        + task.getEventName()
                         + "'!");
                 };
-        
+                
         if (eventWrapper instanceof UserTaskCreated) {
 
             final var userTaskCreatedEvent = (UserTaskCreated) eventWrapper;
 
-            final var execution = (ExecutionEntity) delegateTask.getExecution();
+            final var execution = (ExecutionEntity) task.getExecution();
             final var processDefinition = execution
                     .getProcessDefinition();
 
@@ -186,18 +188,18 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final var prefilledUserTaskDetails = prefillUserTaskDetails(
                     bpmnProcessId,
                     bpmnProcessVersion,
-                    delegateTask,
+                    task,
                     userTaskCreatedEvent);
         
             final var details = callUserTaskDetailsProviderMethod(
-                    delegateTask,
+                    task,
                     (PrefilledUserTaskDetails) prefilledUserTaskDetails);
             
             fillUserTaskDetailsByCustomDetails(
                     bpmnProcessId,
                     bpmnProcessVersion,
                     bpmnProcessName,
-                    delegateTask,
+                    task,
                     userTaskCreatedEvent,
                     details == null
                             ? prefilledUserTaskDetails
@@ -205,7 +207,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             
         } else {
             
-            fillLifecycleEvent(delegateTask, eventWrapper);
+            fillLifecycleEvent(task, eventWrapper);
             
         }
 
@@ -224,7 +226,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
-            final DelegateTask delegateTask,
+            final TaskEntity delegateTask,
             final UserTaskCreated event,
             final UserTaskDetails details) {
         

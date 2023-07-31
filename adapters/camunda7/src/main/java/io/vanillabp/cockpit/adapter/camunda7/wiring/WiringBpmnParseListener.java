@@ -118,7 +118,13 @@ public class WiringBpmnParseListener extends AbstractBpmnParseListener {
 
         toBeWired
                 .forEach(tbw -> {
-                    workflowWiring.wireWorkflow(tbw.workflowModuleId, tbw.bpmnProcessId);
+                    workflowWiring.wireService(
+                            tbw.workflowModuleId,
+                            tbw.bpmnProcessId);
+                    
+                    workflowWiring.wireWorkflow(
+                            tbw.workflowModuleId,
+                            tbw.bpmnProcessId);
                 });
 
     }

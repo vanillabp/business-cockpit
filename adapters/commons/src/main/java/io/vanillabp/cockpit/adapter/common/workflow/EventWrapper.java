@@ -12,4 +12,6 @@ public interface EventWrapper {
 
     void setTimestamp(OffsetDateTime timestamp);
     
+    String getApiVersion();
+    
 }

@@ -1,34 +1,32 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskHandler;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCompleted;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCreated;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowUpdated;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.ProcessWorkflowEvent;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
+import io.vanillabp.cockpit.adapter.common.workflow.EventWrapper;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
-import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
+import org.camunda.bpm.engine.history.HistoricProcessInstance;
 import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
 import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,8 +41,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
     private final CockpitProperties cockpitProperties;
 
-    private final ApplicationEventPublisher applicationEventPublisher;
-
     private final ApiVersionAware bpmsApiVersionAware;
 
     private final AdapterAwareProcessService<?> processService;
@@ -56,7 +52,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     public Camunda7WorkflowHandler(
             final CockpitProperties cockpitProperties,
             final UserTasksProperties workflowProperties,
-            final ApplicationEventPublisher applicationEventPublisher,
             final ApiVersionAware bpmsApiVersionAware,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
@@ -68,7 +63,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         
         super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
         this.cockpitProperties = cockpitProperties;
-        this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
         this.bpmsApiVersionAware = bpmsApiVersionAware;
@@ -83,22 +77,83 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         return logger;
         
     }
+    
+    public EventWrapper wrapProcessInstance(
+            final HistoricProcessInstance processInstance,
+            final String bpmnProcessName,
+            final String bpmnProcessVersion) {
 
+        final String workflowModuleId = processInstance.getTenantId();
+        
+        EventWrapper eventWrapper = null;
+        if (processInstance.getEndTime() != null) {
+            eventWrapper = new WorkflowCompleted(
+                    new WorkflowCompletedEvent(),
+                    bpmsApiVersionAware.getApiVersion()
+            );
+        } else {
+            eventWrapper = new WorkflowUpdated(
+                    new WorkflowCreatedOrUpdatedEvent(),
+                    workflowModuleId,
+                    cockpitProperties.getI18nLanguages(),
+                    bpmsApiVersionAware.getApiVersion()
+            );
+        }
 
+        if (eventWrapper instanceof WorkflowCreated) {
 
+            final var workflowCreatedEvent = (WorkflowCreated) eventWrapper;
 
-    public void listenProcessInstanceEvent(HistoricProcessInstanceEventEntity processInstanceEvent,
+            final var bpmnProcessId = processInstance.getProcessDefinitionKey();
+
+            final var prefilledWorkflowDetails = prefillWorkflowDetails(
+                    bpmnProcessId,
+                    bpmnProcessVersion,
+                    bpmnProcessName,
+                    processInstance,
+                    workflowCreatedEvent);
+
+            final var details = callWorkflowDetailsProviderMethod(
+                    processInstance.getId(),
+                    processInstance.getId(),
+                    processInstance.getBusinessKey(),
+                    (PrefilledWorkflowDetails) prefilledWorkflowDetails);
+
+            fillWorkflowDetailsByCustomDetails(
+                    bpmnProcessId,
+                    bpmnProcessVersion,
+                    bpmnProcessName,
+                    workflowCreatedEvent,
+                    details == null
+                            ? prefilledWorkflowDetails
+                            : details);
+
+        } else {
+
+            fillLifecycleEvent(
+                    processInstance.getId(),
+                    processInstance.getDeleteReason(),
+                    eventWrapper);
+
+        }
+        
+        return eventWrapper;
+
+    }
+    
+    public EventWrapper wrapProcessInstanceEvent(HistoricProcessInstanceEventEntity processInstanceEvent,
                                            String bpmnProcessName,
                                            String bpmnProcessVersion) {
 
         final String workflowModuleId = processInstanceEvent.getTenantId();
 
-        io.vanillabp.cockpit.adapter.common.workflow.EventWrapper eventWrapper = null;
+        EventWrapper eventWrapper = null;
         if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_START)) {
             eventWrapper = new WorkflowCreated(
                     new WorkflowCreatedOrUpdatedEvent(),
                     workflowModuleId,
-                    cockpitProperties.getI18nLanguages()
+                    cockpitProperties.getI18nLanguages(),
+                    bpmsApiVersionAware.getApiVersion()
             );
         }
 
@@ -106,7 +161,8 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             eventWrapper = new WorkflowUpdated(
                     new WorkflowCreatedOrUpdatedEvent(),
                     workflowModuleId,
-                    cockpitProperties.getI18nLanguages()
+                    cockpitProperties.getI18nLanguages(),
+                    bpmsApiVersionAware.getApiVersion()
             );
         }
 
@@ -114,7 +170,8 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
             eventWrapper = new WorkflowCompleted(
-                    new WorkflowCompletedEvent()
+                    new WorkflowCompletedEvent(),
+                    bpmsApiVersionAware.getApiVersion()
             );
         }
         if (eventWrapper == null) {
@@ -138,7 +195,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                     workflowCreatedEvent);
 
             final var details = callWorkflowDetailsProviderMethod(
-                    processInstanceEvent,
+                    processInstanceEvent.getProcessInstanceId(),
+                    processInstanceEvent.getExecutionId(),
+                    processInstanceEvent.getBusinessKey(),
                     (PrefilledWorkflowDetails) prefilledWorkflowDetails);
 
             fillWorkflowDetailsByCustomDetails(
@@ -152,18 +211,14 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         } else {
 
-            fillLifecycleEvent(processInstanceEvent, eventWrapper);
+            fillLifecycleEvent(
+                    processInstanceEvent.getProcessInstanceId(),
+                    processInstanceEvent.getDeleteReason(),
+                    eventWrapper);
 
         }
-
-        applicationEventPublisher.publishEvent(
-                new WorkflowEvent(
-                        Camunda7UserTaskHandler.class,
-                        eventWrapper.getEvent(),
-                        bpmsApiVersionAware.getApiVersion()));
-        applicationEventPublisher.publishEvent(
-                new ProcessWorkflowEvent(
-                        Camunda7WorkflowEventSpringListener.class));
+        
+        return eventWrapper;
 
     }
 
@@ -272,8 +327,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                         + processInstanceEvent.getProcessInstanceId()
                         + "#"
                         + processInstanceEvent.getId());
-        prefilledWorkflowDetails.setTimestamp(
-                DateTimeUtil.fromDate(processInstanceEvent.getStartTime()));
+        prefilledWorkflowDetails.setTimestamp(OffsetDateTime.now());
         prefilledWorkflowDetails.setBpmnProcessId(bpmnProcessId);
         prefilledWorkflowDetails.setBpmnProcessVersion(bpmnProcessVersion);
         prefilledWorkflowDetails.setWorkflowId(processInstanceEvent.getProcessInstanceId());
@@ -284,27 +338,52 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
     }
 
+    private WorkflowCreated prefillWorkflowDetails(
+            final String bpmnProcessId,
+            final String bpmnProcessVersion,
+            final String bpmnProcessName,
+            final HistoricProcessInstance processInstance,
+            final WorkflowCreated event) {
+
+        final var prefilledWorkflowDetails = event;
+
+        // TODO: bpmnDescriptionLanguage leveled to workflows
+        final var language = "de";
+
+        prefilledWorkflowDetails.setId(
+                System.nanoTime()
+                        + "@"
+                        + processInstance.getId());
+        prefilledWorkflowDetails.setTimestamp(OffsetDateTime.now());
+        prefilledWorkflowDetails.setBpmnProcessId(bpmnProcessId);
+        prefilledWorkflowDetails.setBpmnProcessVersion(bpmnProcessVersion);
+        prefilledWorkflowDetails.setWorkflowId(processInstance.getId());
+        prefilledWorkflowDetails.setBusinessId(processInstance.getBusinessKey());
+        prefilledWorkflowDetails.setTitle(new HashMap<>());
+
+        return prefilledWorkflowDetails;
+
+    }
+
     private void fillLifecycleEvent(
-            final HistoricProcessInstanceEventEntity processInstanceEvent,
+            final String processInstanceId,
+            final String deleteReason,
             final io.vanillabp.cockpit.adapter.common.workflow.EventWrapper event) {
 
         event.setId(
                 System.nanoTime()
                         + "@"
-                        + processInstanceEvent.getProcessInstanceId()
-                        + "#"
-                        + processInstanceEvent.getId());
-        event.setComment(
-                processInstanceEvent.getDeleteReason());
-        event.setTimestamp(
-                // TODO GWI
-                DateTimeUtil.fromDate(processInstanceEvent.getStartTime()));
+                        + processInstanceId);
+        event.setComment(deleteReason);
+        event.setTimestamp(OffsetDateTime.now());
 
     }
 
     @SuppressWarnings("unchecked")
     private WorkflowDetails callWorkflowDetailsProviderMethod(
-            final HistoricProcessInstanceEventEntity processInstanceEvent,
+            final String processInstanceId,
+            final String executionId,
+            final String businessKey,
             final PrefilledWorkflowDetails prefilledWorkflowDetails) {
         
         // final var multiInstanceCache = new Map[] { null };
@@ -312,9 +391,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         try {
    
             logger.trace("Will handle workflow '{}' ('{}') by execution '{}'",
-                    processInstanceEvent.getProcessInstanceId(),
+                    processInstanceId,
                     bpmnProcessId,
-                    processInstanceEvent.getExecutionId());
+                    executionId);
             
             // final var execution = delegateTask.getExecution();
             
@@ -326,7 +405,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             };*/
             
             final var workflowAggregateId = parseWorkflowAggregateIdFromBusinessKey
-                    .apply(processInstanceEvent.getBusinessKey());
+                    .apply(businessKey);
             
             final var workflowAggregateCache = new WorkflowAggregateCache();
             

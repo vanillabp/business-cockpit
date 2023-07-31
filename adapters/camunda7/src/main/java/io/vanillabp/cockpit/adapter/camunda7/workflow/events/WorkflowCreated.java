@@ -22,16 +22,25 @@ public class WorkflowCreated
     
     private String uiUriPath;
     
+    private String apiVersion;
+    
     public WorkflowCreated(
             final WorkflowCreatedOrUpdatedEvent event,
             final String workflowModuleId,
-            final List<String> i18nLanguages) {
+            final List<String> i18nLanguages,
+            final String apiVersion) {
         
         this.event = event;
         this.i18nLanguages = i18nLanguages;
+        this.apiVersion = apiVersion;
         event.setUpdated(Boolean.FALSE);
         event.setWorkflowModule(workflowModuleId);
         
+    }
+    
+    @Override
+    public String getApiVersion() {
+        return apiVersion;
     }
     
     @Override

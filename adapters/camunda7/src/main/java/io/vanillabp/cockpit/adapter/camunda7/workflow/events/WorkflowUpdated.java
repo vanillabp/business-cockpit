@@ -9,9 +9,10 @@ public class WorkflowUpdated extends WorkflowCreated {
     public WorkflowUpdated(
             final WorkflowCreatedOrUpdatedEvent event,
             final String workflowModuleId,
-            final List<String> i18nLanguages) {
+            final List<String> i18nLanguages,
+            final String apiVersion) {
         
-        super(event, workflowModuleId, i18nLanguages);
+        super(event, workflowModuleId, i18nLanguages, apiVersion);
         event.setUpdated(Boolean.TRUE);
         
     }

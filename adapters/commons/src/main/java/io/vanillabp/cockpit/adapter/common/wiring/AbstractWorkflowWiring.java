@@ -1,8 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.wiring;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-
+import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
@@ -11,7 +9,10 @@ import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.context.ApplicationContext;
 
-public abstract class AbstractWorkflowWiring<T extends Connectable, M extends WorkflowMethodParameterFactory>
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+
+public abstract class AbstractWorkflowWiring<T extends Connectable, M extends WorkflowMethodParameterFactory, BCS extends BusinessCockpitServiceImplementation<?>>
         extends AbstractTaskWiring<T, WorkflowDetailsProvider, M> {
 
     public AbstractWorkflowWiring(
@@ -45,4 +46,24 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
         
     }
 
+    protected abstract BCS connectToBpms(
+            String workflowModuleId,
+            Class<?> workflowAggregateClass,
+            String bpmnProcessId);
+    
+    public BCS wireService(
+            final String workflowModuleId,
+            final String bpmnProcessId) {
+
+        final var workflowAggregateAndServiceClass =
+                determineAndValidateWorkflowAggregateAndServiceClass(bpmnProcessId);
+        final var workflowAggregateClass = workflowAggregateAndServiceClass.getKey();
+        
+        return connectToBpms(
+                workflowModuleId,
+                workflowAggregateClass,
+                bpmnProcessId);
+        
+    }
+    
 }

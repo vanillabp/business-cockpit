@@ -1,27 +1,10 @@
 package io.vanillabp.cockpit.adapter.common;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
-import org.springframework.util.StringUtils;
-
 import freemarker.cache.TemplateLookupStrategy;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
+import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
+import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
@@ -31,10 +14,37 @@ import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
+import io.vanillabp.spi.cockpit.BusinessCockpitService;
+import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.modules.WorkflowModuleProperties;
 import io.vanillabp.springboot.modules.WorkflowModulePropertiesConfiguration;
 import no.api.freemarker.java8.Java8ObjectWrapper;
+import org.springframework.beans.factory.InjectionPoint;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Scope;
+import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
+import org.springframework.util.StringUtils;
+
+import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
 
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
 @AutoConfigureAfter(WorkflowModulePropertiesConfiguration.class)
@@ -51,11 +61,19 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @Autowired
     private List<WorkflowModuleProperties> workflowModulesProperties;
     
+    @Autowired(required = false)
+    private VanillaBpProperties vanillaBpProperties;
+    
     @Autowired
     private CockpitProperties properties;
     
     @Autowired
     private UserTasksWorkflowProperties workflowsCockpitProperties;
+    
+    private Map<Class<?>, AdapterAwareBusinessCockpitService<?>> connectableServices = new HashMap<>();
+    
+    @Autowired
+    private List<AdapterConfigurationBase<?>> adapterConfigurations;
     
     @PostConstruct
     @jakarta.annotation.PostConstruct
@@ -314,4 +332,69 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
         
     }            
 
+    
+    @SuppressWarnings("unchecked")
+    @Bean
+    @Primary
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public <DE> BusinessCockpitService<?> adapterAwareBusinessCockpitService(
+            final SpringDataUtil springDataUtil,
+            final InjectionPoint injectionPoint) {
+
+        final ParameterizedType bcServiceGenericType;
+        if (injectionPoint.getMethodParameter() != null) {
+            bcServiceGenericType = 
+                    (ParameterizedType) injectionPoint
+                    .getMethodParameter()
+                    .getGenericParameterType();
+        } else if (injectionPoint.getField() != null) {
+            bcServiceGenericType =
+                    (ParameterizedType) injectionPoint
+                    .getField()
+                    .getGenericType();
+        } else {
+            throw new RuntimeException("Unsupported injection of BusinessCockpitService, only field-, constructor- and method-parameter-injection allowed!");
+        }
+        final Class<DE> workflowAggregateClass = (Class<DE>)
+                bcServiceGenericType.getActualTypeArguments()[0];
+        
+        final var existingService = connectableServices.get(workflowAggregateClass);
+        if (existingService != null) {
+            return existingService;
+        }
+
+        final var workflowAggregateRepository = springDataUtil
+                .getRepository(workflowAggregateClass);
+        final var workflowAggregateIdClass = springDataUtil
+                .getIdType(workflowAggregateClass);
+        
+        validateConfiguration();
+
+        final var bcServicesByAdapter = adapterConfigurations
+                .stream()
+                .map(adapter -> Map.entry(
+                        adapter.getAdapterId(),
+                        adapter.newBusinessCockpitServiceImplementation(
+                                springDataUtil,
+                                workflowAggregateClass,
+                                workflowAggregateIdClass,
+                                workflowAggregateRepository)))
+                .collect(Collectors
+                        .toMap(
+                                Map.Entry::getKey,
+                                Map.Entry::getValue));
+
+        @SuppressWarnings("rawtypes")
+        final var result = new AdapterAwareBusinessCockpitService(
+                vanillaBpProperties,
+                bcServicesByAdapter,
+                workflowAggregateIdClass,
+                workflowAggregateClass);
+
+        connectableServices.put(workflowAggregateClass, result);
+
+        return result;
+            
+    }
+    
 }

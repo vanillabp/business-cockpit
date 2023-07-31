@@ -9,11 +9,20 @@ public class WorkflowCompleted implements EventWrapper {
 
     private final WorkflowCompletedEvent event;
     
+    private final String apiVersion;
+    
     public WorkflowCompleted(
-            final WorkflowCompletedEvent event) {
+            final WorkflowCompletedEvent event,
+            final String apiVersion) {
         
         this.event = event;
+        this.apiVersion = apiVersion;
         
+    }
+    
+    @Override
+    public String getApiVersion() {
+        return apiVersion;
     }
 
     @Override

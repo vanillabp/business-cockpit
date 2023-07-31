@@ -1,20 +1,24 @@
 package io.vanillabp.cockpit.adapter.camunda7.wiring;
 
-import java.util.LinkedList;
-
 import org.camunda.bpm.engine.impl.cfg.AbstractProcessEnginePlugin;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.persistence.deploy.Deployer;
 import org.camunda.bpm.engine.impl.persistence.entity.DeploymentEntity;
 
+import java.util.LinkedList;
+
 public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
 
     private final WiringBpmnParseListener wiringBpmnParseListener;
     
+    private final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier;
+    
     public Camunda7WiringPlugin(
-            final WiringBpmnParseListener wiringBpmnParseListener) {
+            final WiringBpmnParseListener wiringBpmnParseListener,
+            final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier) {
 
         this.wiringBpmnParseListener = wiringBpmnParseListener;
+        this.historyEventProducerSupplier = historyEventProducerSupplier;
         
     }
 
@@ -40,6 +44,15 @@ public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
                 }
             });
         
+    }
+    
+    @Override
+    public void postInit(
+            final ProcessEngineConfigurationImpl processEngineConfiguration) {
+        
+        historyEventProducerSupplier.setHistoryEventProducer(
+                processEngineConfiguration.getHistoryEventProducer());
+
     }
     
 }

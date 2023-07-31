@@ -74,7 +74,8 @@ public class WorkflowPublishing {
     
     private void processEventV1(
             final List<?> events) {
-        events.forEach(eventObject -> {
+        events
+            .forEach(eventObject -> {
             if (eventObject instanceof WorkflowCreatedOrUpdatedEvent) {
                 final var event = (WorkflowCreatedOrUpdatedEvent) eventObject;
                 event.setSource(workerId);
