@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import { Box, Text, TextExtendedProps } from 'grommet';
 import { DefaultUserTaskListCellProps } from '../types/index.js';
-import { getObjectProperty, toLocalDateString, toLocaleTimeStringWithoutSeconds } from '../utils/index.js';
+import { getObjectProperty, toLocaleDateString, toLocaleStringWithoutSeconds, toLocaleTimeStringWithoutSeconds } from '../utils/index.js';
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 
@@ -60,26 +60,26 @@ const DefaultUserTaskListCell: FC<DefaultUserTaskListCellProps> = ({
     value = '';
   } else if (propertyValue instanceof Date) {
     if (column.path === 'dueDate') {
-      value = toLocalDateString(item.data.dueDate);
-      tip = `${toLocalDateString(item.data.dueDate)} ${toLocaleTimeStringWithoutSeconds(item.data.dueDate!)}`
+      value = toLocaleDateString(item.data.dueDate);
+      tip = toLocaleStringWithoutSeconds(item.data.dueDate);
     } else {
       value = toLocaleTimeStringWithoutSeconds(propertyValue);
     }
   } else if (typeof propertyValue === 'number') {
-    value = (propertyValue as Number).toLocaleString();
+    value = (propertyValue as Number).toLocaleString(window.navigator.language);
     align = 'right';
   } else if (typeof propertyValue === 'string') {
     const dateMatch = DATE_REGEXP.exec(propertyValue as string);
     if (dateMatch) {
       if (propertyValue.length === 10) {
-        value = toLocalDateString(new Date(Date.parse(propertyValue as string)));
+        value = toLocaleDateString(new Date(Date.parse(propertyValue as string)));
       } else if (column.path.endsWith('.dueDate')) {
         const tmpDate = new Date(Date.parse(propertyValue as string));
-        value = toLocalDateString(tmpDate);
-        tip = `${toLocalDateString(tmpDate)} ${toLocaleTimeStringWithoutSeconds(tmpDate)}`
+        value = toLocaleDateString(tmpDate);
+        tip = toLocaleStringWithoutSeconds(tmpDate);
       } else {
         const tmpDate = new Date(Date.parse(propertyValue as string));
-        value = `${toLocalDateString(tmpDate)} ${toLocaleTimeStringWithoutSeconds(tmpDate)}`;
+        value = toLocaleStringWithoutSeconds(tmpDate);
       }
     } else {
       value = propertyValue;

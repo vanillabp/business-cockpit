@@ -87,7 +87,7 @@ const CopyClipboard = ({
                 pad="xsmall">
               <Copy
                   color={ color }
-                  size={ size }
+                  size={ iconSize }
                   onClick={ () => copyContent(content!) } />
              </Box>
           </Drop>
