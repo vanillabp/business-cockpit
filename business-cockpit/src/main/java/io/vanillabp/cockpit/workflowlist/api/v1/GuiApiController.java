@@ -61,11 +61,17 @@ public class GuiApiController implements WorkflowlistApi {
     public Mono<ResponseEntity<Workflows>> getWorkflows(
             final Integer pageNumber,
             final Integer pageSize,
+            final OffsetDateTime initialTimestamp,
             final ServerWebExchange exchange) {
 
+        final var timestamp = initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now();
+        
         final var workflows = workflowlistService.getWorkflows(
                 pageNumber,
-                pageSize);
+                pageSize,
+                timestamp);
 
         return workflows.map(page -> ResponseEntity.ok(
                 new Workflows()
@@ -75,7 +81,7 @@ public class GuiApiController implements WorkflowlistApi {
                                 .totalElements(page.getTotalElements())
                                 .totalPages(page.getTotalPages()))
                         .workflows(mapper.toApi(page.getContent()))
-                        .serverTimestamp(OffsetDateTime.now())));
+                        .serverTimestamp(timestamp)));
 
     }
 
@@ -83,20 +89,26 @@ public class GuiApiController implements WorkflowlistApi {
     public Mono<ResponseEntity<Workflows>> getWorkflowsUpdate(
             final Mono<WorkflowsUpdate> workflowsUpdate,
             final ServerWebExchange exchange) {
-
+        
         return workflowsUpdate
-                .flatMap(update -> workflowlistService.getWorkflowsUpdated(
-                        update.getSize(),
-                        update.getKnownWorkflowIds()))
-                .map(page -> ResponseEntity.ok(
+                .zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
+                        ? update.getInitialTimestamp()
+                        : OffsetDateTime.now()))
+                .flatMap(entry -> Mono.zip(
+                        workflowlistService.getWorkflowsUpdated(
+                                entry.getT1().getSize(),
+                                entry.getT1().getKnownWorkflowIds(),
+                                entry.getT2()),
+                        Mono.just(entry.getT2())))
+                .map(entry -> ResponseEntity.ok(
                         new Workflows()
                                 .page(new Page()
-                                        .number(page.getNumber())
-                                        .size(page.getSize())
-                                        .totalElements(page.getTotalElements())
-                                        .totalPages(page.getTotalPages()))
-                                .workflows(mapper.toApi(page.getContent()))
-                                .serverTimestamp(OffsetDateTime.now())))
+                                        .number(entry.getT1().getNumber())
+                                        .size(entry.getT1().getSize())
+                                        .totalElements(entry.getT1().getTotalElements())
+                                        .totalPages(entry.getT1().getTotalPages()))
+                                .workflows(mapper.toApi(entry.getT1().getContent()))
+                                .serverTimestamp(entry.getT2())))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
 
     }

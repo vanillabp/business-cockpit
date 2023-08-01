@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.workflowlist;
 
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.stream.Collectors;
-
+import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -14,15 +16,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.stereotype.Service;
-
-import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import io.vanillabp.cockpit.workflowlist.model.Workflow;
-import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 @Service
 public class WorkflowlistService {
@@ -80,17 +79,22 @@ public class WorkflowlistService {
 
     public Mono<Page<Workflow>> getWorkflows(
             final int pageNumber,
-            final int pageSize) {
+            final int pageSize,
+            final OffsetDateTime initialTimestamp) {
 
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(DEFAULT_SORT);
-
+        
+        final var endedSince = (initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now()).toInstant();
+        
         return workflowRepository
-                .findAllBy(pageRequest)
+                .findActive(endedSince, pageRequest)
                 .collectList()
-                .zipWith(workflowRepository.countAll())
+                .zipWith(workflowRepository.countActive(endedSince))
                 .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
 
     }
@@ -98,14 +102,17 @@ public class WorkflowlistService {
 
     public Mono<Page<Workflow>> getWorkflowsUpdated(
             final int size,
-            final Collection<String> knownWorkflowIds) {
+            final Collection<String> knownWorkflowIds,
+            final OffsetDateTime initialTimestamp) {
 
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
                 .withSort(DEFAULT_SORT);
 
-        final var workflows = workflowRepository.findAllIds(pageRequest);
+        final var endedSince = initialTimestamp.toInstant();
+        
+        final var workflows = workflowRepository.findIdsOfActive(endedSince, pageRequest);
 
         return workflows
                 .flatMapSequential(workflow -> {
@@ -115,7 +122,7 @@ public class WorkflowlistService {
                     return workflowRepository.findById(workflow.getId());
                 })
                 .collectList()
-                .zipWith(workflowRepository.count())
+                .zipWith(workflowRepository.countActive(endedSince))
                 .map(t -> new PageImpl<>(
                         t.getT1(),
                         Pageable

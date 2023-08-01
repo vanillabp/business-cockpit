@@ -554,18 +554,6 @@ components:
           type: string
           description: The unique key of the workflow
           example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
-        businessId:
-          type: string
-          description: The natural ID of the workflow (e.g. order-id)
-          example: AT0815
-        title:
-          type: object
-          description: The rendered title of the workflow (may contain specific data)
-          additionalProperties:
-            type: string
-          example:
-            en: "Ride request #4711"
-            de: "Fahrtanfrage #4711"
         initiator:
           type: string
           description: The user who triggered the update. Null if the update is done by the system.

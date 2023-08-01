@@ -14,4 +14,12 @@ public interface EventWrapper {
     
     String getApiVersion();
     
+    void setWorkflowId(String workflowId);
+    
+    void setInitiator(String initiator);
+    
+    void setBpmnProcessId(String bpmnProcessId);
+    
+    void setBpmnProcessVersion(String bpmnProcessVersion);
+    
 }

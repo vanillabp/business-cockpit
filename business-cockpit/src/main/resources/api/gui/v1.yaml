@@ -81,6 +81,11 @@ paths:
           schema:
             type: integer
             format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       responses:
         200:
           description: Users tasks
@@ -123,6 +128,11 @@ paths:
           schema:
             type: integer
             format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       responses:
         200:
           description: Workflows
@@ -324,6 +334,9 @@ components:
           type: array
           items:
             type: string
+        initialTimestamp:
+          type: string
+          format: date-time
     WorkflowsUpdate:
       type: object
       required:
@@ -337,3 +350,6 @@ components:
           type: array
           items:
             type: string
+        initialTimestamp:
+          type: string
+          format: date-time

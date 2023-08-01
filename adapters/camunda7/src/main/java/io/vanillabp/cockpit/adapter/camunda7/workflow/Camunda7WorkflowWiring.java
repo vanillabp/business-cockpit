@@ -167,9 +167,9 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         }).filter((m) -> {
             return matchingMethods.getAndIncrement() == 0;
         }).map((m) -> {
-            return Map.entry((Method)m.getKey(), (List)validateParameters.apply((Method)m.getKey(), (Annotation)m.getValue()));
+            return Map.entry((Method)m.getKey(), validateParameters.apply((Method)m.getKey(), (Annotation)m.getValue()));
         }).forEach((m) -> {
-            connect.connect(bean, (Method)m.getKey(), (List)m.getValue());
+            connect.connect(bean, (Method)m.getKey(), m.getValue());
         });
     }
 

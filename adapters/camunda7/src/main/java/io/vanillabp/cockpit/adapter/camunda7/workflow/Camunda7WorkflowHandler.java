@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCancelled;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCompleted;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCreated;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowUpdated;
@@ -132,8 +133,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             } else {
     
                 fillLifecycleEvent(
-                        processInstance.getId(),
-                        processInstance.getDeleteReason(),
+                        bpmnProcessId,
+                        bpmnProcessVersion,
+                        processInstance,
                         eventWrapper);
     
             }
@@ -161,30 +163,25 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                     cockpitProperties.getI18nLanguages(),
                     bpmsApiVersionAware.getApiVersion()
             );
-        }
-
-        if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_UPDATE)) {
+        } else if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
+            if (processInstanceEvent.getDeleteReason() != null) {
+                eventWrapper = new WorkflowCancelled(
+                        new WorkflowCompletedEvent(),
+                        bpmsApiVersionAware.getApiVersion()
+                    );
+            } else {
+                eventWrapper = new WorkflowCompleted(
+                        new WorkflowCompletedEvent(),
+                        bpmsApiVersionAware.getApiVersion()
+                    );
+            }
+        } else {
             eventWrapper = new WorkflowUpdated(
                     new WorkflowCreatedOrUpdatedEvent(),
                     workflowModuleId,
                     cockpitProperties.getI18nLanguages(),
                     bpmsApiVersionAware.getApiVersion()
             );
-        }
-
-        // migrate
-
-        if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
-            eventWrapper = new WorkflowCompleted(
-                    new WorkflowCompletedEvent(),
-                    bpmsApiVersionAware.getApiVersion()
-            );
-        }
-        if (eventWrapper == null) {
-            throw new RuntimeException(
-                    "Unsupported process instance event type '"
-                            + processInstanceEvent.getEventType()
-                            + "'!");
         }
 
         if (eventWrapper instanceof WorkflowCreated) {
@@ -218,8 +215,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         } else {
 
             fillLifecycleEvent(
-                    processInstanceEvent.getProcessInstanceId(),
-                    processInstanceEvent.getDeleteReason(),
+                    bpmnProcessId,
+                    bpmnProcessVersion,
+                    processInstanceEvent,
                     eventWrapper);
 
         }
@@ -324,9 +322,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         final var prefilledWorkflowDetails = event;
 
-        // TODO: bpmnDescriptionLanguage leveled to workflows
-        final var language = "de";
-
         prefilledWorkflowDetails.setId(
                 System.nanoTime()
                         + "@"
@@ -353,9 +348,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         final var prefilledWorkflowDetails = event;
 
-        // TODO: bpmnDescriptionLanguage leveled to workflows
-        final var language = "de";
-
         prefilledWorkflowDetails.setId(
                 System.nanoTime()
                         + "@"
@@ -372,16 +364,42 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     }
 
     private void fillLifecycleEvent(
-            final String processInstanceId,
-            final String deleteReason,
+            final String bpmnProcessId,
+            final String bpmnProcessVersion,
+            final HistoricProcessInstanceEventEntity processInstanceEvent,
             final io.vanillabp.cockpit.adapter.common.workflow.EventWrapper event) {
 
         event.setId(
                 System.nanoTime()
                         + "@"
-                        + processInstanceId);
-        event.setComment(deleteReason);
+                        + processInstanceEvent.getProcessInstanceId()
+                        + "#"
+                        + processInstanceEvent.getId());
+        event.setComment(processInstanceEvent.getDeleteReason());
         event.setTimestamp(OffsetDateTime.now());
+        event.setWorkflowId(processInstanceEvent.getProcessInstanceId());
+        event.setInitiator(null); // TODO
+        event.setBpmnProcessId(bpmnProcessId);
+        event.setBpmnProcessVersion(bpmnProcessVersion);
+
+    }
+
+    private void fillLifecycleEvent(
+            final String bpmnProcessId,
+            final String bpmnProcessVersion,
+            final HistoricProcessInstance processInstance,
+            final io.vanillabp.cockpit.adapter.common.workflow.EventWrapper event) {
+
+        event.setId(
+                System.nanoTime()
+                        + "@"
+                        + processInstance.getId());
+        event.setComment(processInstance.getDeleteReason());
+        event.setTimestamp(OffsetDateTime.now());
+        event.setWorkflowId(processInstance.getId());
+        event.setInitiator(null); // TODO
+        event.setBpmnProcessId(bpmnProcessId);
+        event.setBpmnProcessVersion(bpmnProcessVersion);
 
     }
 
@@ -392,23 +410,12 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String businessKey,
             final PrefilledWorkflowDetails prefilledWorkflowDetails) {
         
-        // final var multiInstanceCache = new Map[] { null };
-   
         try {
    
             logger.trace("Will handle workflow '{}' ('{}') by execution '{}'",
                     processInstanceId,
                     bpmnProcessId,
                     executionId);
-            
-            // final var execution = delegateTask.getExecution();
-            
-            /*final Function<String, Object> multiInstanceSupplier = multiInstanceActivity -> {
-                if (multiInstanceCache[0] == null) {
-                    multiInstanceCache[0] = Camunda7WorkflowHandler.getMultiInstanceContext(execution);
-                }
-                return multiInstanceCache[0].get(multiInstanceActivity);
-            };*/
             
             final var workflowAggregateId = parseWorkflowAggregateIdFromBusinessKey
                     .apply(businessKey);
@@ -419,34 +426,10 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                     workflowAggregateCache,
                     workflowAggregateId,
                     true,
-
                     (args, param) -> processPrefilledWorkflowDetailsParameter(
                             args,
                             param,
                             () -> prefilledWorkflowDetails)
-                    //(args, param) -> processMultiInstanceIndexParameter(
-                    //        args,
-                    //        param,
-                    //        multiInstanceSupplier),
-                    //(args, param) -> processMultiInstanceTotalParameter(
-                    //        args,
-                    //        param,
-                    //        multiInstanceSupplier),
-                    //(args, param) -> processMultiInstanceElementParameter(
-                    //        args,
-                    //        param,
-                    //        multiInstanceSupplier),
-                    //(args, param) -> processMultiInstanceResolverParameter(
-                    //        args,
-                    //        param,
-                    //        () -> {
-                    //            if (workflowAggregateCache.workflowAggregate == null) {
-                    //                workflowAggregateCache.workflowAggregate = workflowAggregateRepository
-                    //                        .findById(workflowAggregateId)
-                    //                        .orElseThrow();
-                    //            }
-                    //            return workflowAggregateCache.workflowAggregate;
-                    //        }, multiInstanceSupplier)
                 );
 
         } catch (RuntimeException e) {

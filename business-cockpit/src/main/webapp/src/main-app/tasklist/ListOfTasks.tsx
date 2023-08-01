@@ -5,7 +5,7 @@ import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdat
 import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
-import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
+import { Grid, Box, CheckBox, ColumnConfig, Text } from 'grommet';
 import { BcUserTask, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link } from '@vanillabp/bc-shared';
@@ -33,11 +33,12 @@ const loadUserTasks = async (
   setNumberOfUserTasks: (number: number) => void,
   pageSize: number,
   pageNumber: number,
+  initialTimestamp: Date | undefined,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
   
   const result = await tasklistApi
-        .getUserTasks({ pageNumber, pageSize });
+        .getUserTasks({ pageNumber, pageSize, initialTimestamp });
         
   setNumberOfUserTasks(result!.page.totalElements);
 
@@ -56,13 +57,15 @@ const reloadUserTasks = async (
   setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
+  initialTimestamp: Date | undefined,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
 
   const result = await tasklistApi.getUserTasksUpdate({
       userTasksUpdate: {
           size: numberOfItems,
-          knownUserTasksIds: knownItemsIds
+          knownUserTasksIds: knownItemsIds,
+          initialTimestamp
         }
     })
   setNumberOfUserTasks(result!.page.totalElements);
@@ -204,11 +207,13 @@ const ListOfTasks = () => {
                 <Box
                     fill
                     pad="xsmall">
-                  <Link
-                      onClick={ item.data.open }
+                  <Text
                       truncate="tip">
-                    { item.data['title'][i18next.language] || item.data['title']['en'] }
-                  </Link>
+                    <Link
+                        onClick={ item.data.open }>
+                      { item.data['title'][i18next.language] || item.data['title']['en'] }
+                    </Link>
+                  </Text>
                 </Box>)
           },
           ...(columnsOfTasks === undefined
@@ -250,15 +255,16 @@ const ListOfTasks = () => {
                         columns={ columns }
                         itemsRef={ userTasks }
                         updateListRef= { updateListRef }
-                        retrieveItems={ (pageNumber, pageSize) => 
+                        retrieveItems={ (pageNumber, pageSize, initialTimestamp) => 
 // @ts-ignore
                             loadUserTasks(
                                 tasklistApi,
                                 setNumberOfTasks,
                                 pageSize,
                                 pageNumber,
+                                initialTimestamp,
                                 mapToBcUserTask) }
-                        reloadItems={ (numberOfItems, updatedItemsIds) =>
+                        reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
                             reloadUserTasks(
                                 tasklistApi,
@@ -269,6 +275,7 @@ const ListOfTasks = () => {
                                 setDefinitionsOfTasks,
                                 numberOfItems,
                                 updatedItemsIds,
+                                initialTimestamp,
                                 mapToBcUserTask) }
                       />
                   </Box>

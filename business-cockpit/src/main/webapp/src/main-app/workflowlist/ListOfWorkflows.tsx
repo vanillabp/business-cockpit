@@ -4,7 +4,7 @@ import i18n from '../../i18n';
 import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdatingList } from '../../components/SearchableAndSortableUpdatingList';
 import { useWorkflowlistApi } from "./WorkflowlistAppContext";
 import { useGuiSse } from '../../client/guiClient';
-import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
+import { Grid, Box, CheckBox, ColumnConfig, Text } from 'grommet';
 import { BcUserTask, BcWorkflow, Column, EventMessage, GetUserTasksFunction, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, } from '@vanillabp/bc-shared';
@@ -40,11 +40,11 @@ const loadWorkflows = async (
   setNumberOfWorkflows: (number: number) => void,
   pageSize: number,
   pageNumber: number,
+  initialTimestamp: Date | undefined,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
-  
   const result = await workflowlistApi
-        .getWorkflows({ pageNumber, pageSize });
+        .getWorkflows({ pageNumber, pageSize, initialTimestamp });
 
   setNumberOfWorkflows(result!.page.totalElements);
 
@@ -63,13 +63,15 @@ const reloadWorkflows = async (
   setDefinitionsOfWorkflows: (definitions: DefinitionOfWorkflow | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
+  initialTimestamp: Date | undefined,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
 
   const result = await workflowlistApi.getWorkflowsUpdate({
       workflowsUpdate: {
           size: numberOfItems,
-          knownWorkflowIds: knownItemsIds
+          knownWorkflowIds: knownItemsIds,
+          initialTimestamp
         }
     })
 
@@ -219,11 +221,12 @@ const ListOfWorkflows = () => {
                 <Box
                     fill
                     pad="xsmall">
-                  <Link
-                      onClick={ () => openWorkflow(item.data) }
-                      truncate="tip">
-                    { item.data['title'][i18next.language] || item.data['title']['en'] }
-                  </Link>
+                  <Text truncate="tip">
+                    <Link
+                        onClick={ () => openWorkflow(item.data) }>
+                      { item.data['title'][i18next.language] || item.data['title']['en'] }
+                    </Link>
+                  </Text>
                 </Box>)
           },
           ...(columnsOfWorkflows === undefined
@@ -276,15 +279,16 @@ const ListOfWorkflows = () => {
               columns={ columns }
               itemsRef={ workflows }
               updateListRef= { updateListRef }
-              retrieveItems={ (pageNumber, pageSize) => 
+              retrieveItems={ (pageNumber, pageSize, initialTimestamp) => 
 // @ts-ignore
                   loadWorkflows(
                       workflowlistApi,
                       setNumberOfWorkflows,
                       pageSize,
                       pageNumber,
+                      initialTimestamp,
                       mapToBcWorkflow) }
-              reloadItems={ (numberOfItems, updatedItemsIds) =>
+              reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
                   reloadWorkflows(
                       workflowlistApi,
@@ -295,6 +299,7 @@ const ListOfWorkflows = () => {
                       setDefinitionsOfWorkflows,
                       numberOfItems,
                       updatedItemsIds,
+                      initialTimestamp,
                       mapToBcWorkflow) }
             />
         </Box>

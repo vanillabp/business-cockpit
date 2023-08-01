@@ -1,8 +1,5 @@
 package io.vanillabp.cockpit.adapter.common.workflow;
 
-import java.util.List;
-import java.util.Optional;
-
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
@@ -14,6 +11,9 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Optional;
 
 public class WorkflowPublishing {
 

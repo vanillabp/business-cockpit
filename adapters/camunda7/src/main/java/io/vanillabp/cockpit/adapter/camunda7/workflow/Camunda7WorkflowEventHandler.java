@@ -56,22 +56,13 @@ public class Camunda7WorkflowEventHandler {
         workflowHandlerMap.put(forBpmnProcessId, camunda7WorkflowHandler);
     }
 
-    @EventListener(condition="#processInstanceEvent.eventType=='start'")
-    public void listenProcessInstanceStartEvent(HistoricProcessInstanceEventEntity processInstanceEvent) {
+    @EventListener
+    public void listenProcessInstanceEvents(HistoricProcessInstanceEventEntity processInstanceEvent) {
+        
         if (!cockpitProperties.isWorkflowListEnabled()) {
             return;
         }
 
-        processEventInTransaction(processInstanceEvent);
-        
-    }
-
-    @EventListener(condition="#processInstanceEvent.eventType=='end'")
-    public void listenProcessInstanceEndEvent(HistoricProcessInstanceEventEntity processInstanceEvent) {
-        if (!cockpitProperties.isWorkflowListEnabled()) {
-            return;
-        }
-        
         processEventInTransaction(processInstanceEvent);
         
     }

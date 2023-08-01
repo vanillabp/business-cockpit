@@ -94,17 +94,22 @@ public class UserTaskService {
     
     public Mono<Page<UserTask>> getUserTasks(
 			final int pageNumber,
-			final int pageSize) {
+			final int pageSize,
+			final OffsetDateTime initialTimestamp) {
     	
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(DEFAULT_SORT);
         
+        final var endedSince = (initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now()).toInstant();
+        
     	return userTasks
-    	        .findAllBy(pageRequest)
+    	        .findActive(endedSince, pageRequest)
     	        .collectList()
-    	        .zipWith(userTasks.countAll())
+    	        .zipWith(userTasks.countActive(endedSince))
     	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
     }
@@ -125,14 +130,18 @@ public class UserTaskService {
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
             final int size,
-            final Collection<String> knownUserTasksIds) {
+            final Collection<String> knownUserTasksIds,
+            final OffsetDateTime initialTimestamp) {
         
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
                 .withSort(DEFAULT_SORT);
         
-        final var tasks = userTasks.findAllIds(
+        final var endedSince = initialTimestamp.toInstant();
+        
+        final var tasks = userTasks.findIdsOfActive(
+                endedSince,
                 pageRequest);
         
         return tasks
@@ -143,7 +152,7 @@ public class UserTaskService {
                     return userTasks.findById(task.getId());
                 })
                 .collectList()
-                .zipWith(userTasks.countAll())
+                .zipWith(userTasks.countActive(endedSince))
                 .map(t -> new PageImpl<>(
                         t.getT1(),
                         Pageable

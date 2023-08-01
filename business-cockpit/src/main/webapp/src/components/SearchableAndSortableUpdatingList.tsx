@@ -27,9 +27,9 @@ export interface ListItems<T extends Data> {
   items: Array<T>;
 };
 
-type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number) => Promise<ListItems<T>>;
+type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
-type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>) => Promise<ListItems<T>>;
+type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
 type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
 
@@ -37,6 +37,7 @@ const loadItems = async <T extends Data>(
   retrieveItems: RetrieveItemsFunction,
   setItems: (items: Array<ListItem<T>>) => void,
   items: Array<ListItem<T>> | undefined,
+  initialTimestamp: MutableRefObject<Date | undefined>,
 ): Promise<Date> => {
 
   const result = await retrieveItems(
@@ -45,7 +46,8 @@ const loadItems = async <T extends Data>(
           : items.length % itemsBatchSize === 0
           ? Math.floor(items.length / itemsBatchSize)
           : Math.floor(items.length / itemsBatchSize) + 1,
-      itemsBatchSize
+      itemsBatchSize,
+      initialTimestamp.current,
     );
   
   const currentNumberOfItems = items === undefined
@@ -87,7 +89,8 @@ const reloadData = async <T extends Data>(
       size,
       items!
           .filter(item => !updatedItemsIds.includes(item.id))
-          .map(item => item.id));
+          .map(item => item.id),
+      initialTimestamp.current);
   
   const itemsById = new Map(items!.map(item => [ item.id, item ]));
   const mergedItems = result
@@ -95,17 +98,17 @@ const reloadData = async <T extends Data>(
       .map((item, index) => {
         const oldItem = itemsById.get(item.id)!;
         const itemNotInUpdateResponse = item.version === 0;
-        
+
         const status = itemNotInUpdateResponse
             ? oldItem.status
-            : item.createdAt.getTime() > initialTimestamp.current!.getTime()
-            ? ListItemStatus.NEW
             : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.ENDED
+            : item.createdAt.getTime() > initialTimestamp.current!.getTime()
+            ? ListItemStatus.NEW
             : item.updatedAt.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.UPDATED
             : ListItemStatus.INITIAL;
-        
+
         const newItem = (itemNotInUpdateResponse
             ? {
                 id: item.id,
@@ -167,7 +170,8 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
           const result = await loadItems(
               retrieveItems,
               setItems,
-              items);
+              items,
+              initialTimestamp);
           initialTimestamp.current = result;
           showLoadingIndicator(false);
         };
@@ -206,7 +210,7 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
                 step={ itemsBatchSize }
                 headerHeight={ headerHeight }
                 phoneMargin={ phoneMargin }
-                onMore={ () => loadItems(retrieveItems, setItems, items) }
+                onMore={ () => loadItems(retrieveItems, setItems, items, initialTimestamp) }
                 data={ items }
                 replace />
           </Box>);
