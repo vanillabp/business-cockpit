@@ -100,41 +100,47 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             );
         }
 
-        if (eventWrapper instanceof WorkflowCreated) {
+        try {
+            if (eventWrapper instanceof WorkflowCreated) {
+    
+                final var workflowCreatedEvent = (WorkflowCreated) eventWrapper;
+    
+                final var bpmnProcessId = processInstance.getProcessDefinitionKey();
 
-            final var workflowCreatedEvent = (WorkflowCreated) eventWrapper;
+                final var prefilledWorkflowDetails = prefillWorkflowDetails(
+                        bpmnProcessId,
+                        bpmnProcessVersion,
+                        bpmnProcessName,
+                        processInstance,
+                        workflowCreatedEvent);
 
-            final var bpmnProcessId = processInstance.getProcessDefinitionKey();
+                final var details = callWorkflowDetailsProviderMethod(
+                        processInstance.getId(),
+                        processInstance.getId(),
+                        processInstance.getBusinessKey(),
+                        (PrefilledWorkflowDetails) prefilledWorkflowDetails);
 
-            final var prefilledWorkflowDetails = prefillWorkflowDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    bpmnProcessName,
-                    processInstance,
-                    workflowCreatedEvent);
-
-            final var details = callWorkflowDetailsProviderMethod(
-                    processInstance.getId(),
-                    processInstance.getId(),
-                    processInstance.getBusinessKey(),
-                    (PrefilledWorkflowDetails) prefilledWorkflowDetails);
-
-            fillWorkflowDetailsByCustomDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    bpmnProcessName,
-                    workflowCreatedEvent,
-                    details == null
-                            ? prefilledWorkflowDetails
-                            : details);
-
-        } else {
-
-            fillLifecycleEvent(
-                    processInstance.getId(),
-                    processInstance.getDeleteReason(),
-                    eventWrapper);
-
+                fillWorkflowDetailsByCustomDetails(
+                        bpmnProcessId,
+                        bpmnProcessVersion,
+                        bpmnProcessName,
+                        workflowCreatedEvent,
+                        details == null
+                                ? prefilledWorkflowDetails
+                                : details);
+    
+            } else {
+    
+                fillLifecycleEvent(
+                        processInstance.getId(),
+                        processInstance.getDeleteReason(),
+                        eventWrapper);
+    
+            }
+            
+        } catch (Exception e) {
+            logger.warn("Error processing update", e);
+            return null;
         }
         
         return eventWrapper;

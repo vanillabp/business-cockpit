@@ -163,52 +163,57 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         + "'!");
                 };
                 
-        if (eventWrapper instanceof UserTaskCreated) {
-
-            final var userTaskCreatedEvent = (UserTaskCreated) eventWrapper;
-
-            final var execution = (ExecutionEntity) task.getExecution();
-            final var processDefinition = execution
-                    .getProcessDefinition();
-
-            final var bpmnProcessId = processDefinition
-                    .getKey();
-            final String bpmnProcessVersion;
-            if (StringUtils.hasText(processDefinition.getVersionTag())) {
-                bpmnProcessVersion = processDefinition.getVersionTag()
-                        + ":"
-                        + Integer.toString(processDefinition.getVersion());
+        try {
+            if (eventWrapper instanceof UserTaskCreated) {
+    
+                final var userTaskCreatedEvent = (UserTaskCreated) eventWrapper;
+    
+                final var execution = (ExecutionEntity) task.getExecution();
+                final var processDefinition = execution
+                        .getProcessDefinition();
+    
+                final var bpmnProcessId = processDefinition
+                        .getKey();
+                final String bpmnProcessVersion;
+                if (StringUtils.hasText(processDefinition.getVersionTag())) {
+                    bpmnProcessVersion = processDefinition.getVersionTag()
+                            + ":"
+                            + Integer.toString(processDefinition.getVersion());
+                } else {
+                    bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
+                }
+                final var bpmnProcessName = StringUtils.hasText(processDefinition.getName())
+                        ? processDefinition.getName()
+                        : processDefinition.getKey();
+                
+                final var prefilledUserTaskDetails = prefillUserTaskDetails(
+                        bpmnProcessId,
+                        bpmnProcessVersion,
+                        task,
+                        userTaskCreatedEvent);
+            
+                final var details = callUserTaskDetailsProviderMethod(
+                        task,
+                        (PrefilledUserTaskDetails) prefilledUserTaskDetails);
+                
+                fillUserTaskDetailsByCustomDetails(
+                        bpmnProcessId,
+                        bpmnProcessVersion,
+                        bpmnProcessName,
+                        task,
+                        userTaskCreatedEvent,
+                        details == null
+                                ? prefilledUserTaskDetails
+                                : details);
+                
             } else {
-                bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
+                
+                fillLifecycleEvent(task, eventWrapper);
+                
             }
-            final var bpmnProcessName = StringUtils.hasText(processDefinition.getName())
-                    ? processDefinition.getName()
-                    : processDefinition.getKey();
-            
-            final var prefilledUserTaskDetails = prefillUserTaskDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    task,
-                    userTaskCreatedEvent);
-        
-            final var details = callUserTaskDetailsProviderMethod(
-                    task,
-                    (PrefilledUserTaskDetails) prefilledUserTaskDetails);
-            
-            fillUserTaskDetailsByCustomDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    bpmnProcessName,
-                    task,
-                    userTaskCreatedEvent,
-                    details == null
-                            ? prefilledUserTaskDetails
-                            : details);
-            
-        } else {
-            
-            fillLifecycleEvent(task, eventWrapper);
-            
+        } catch (Exception e) {
+            logger.warn("Error processing update", e);
+            return;
         }
 
         applicationEventPublisher.publishEvent(

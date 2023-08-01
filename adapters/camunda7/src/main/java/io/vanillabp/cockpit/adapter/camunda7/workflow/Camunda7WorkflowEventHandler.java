@@ -230,9 +230,7 @@ public class Camunda7WorkflowEventHandler {
                     .processInstanceIds(new HashSet<String>(workflowsAfterTransaction.get()))
                     .list()
                     .stream()
-                    .peek(pi -> System.out.println("PI" + pi))
                     .map(this::processProcessInstanceHistoryEvent)
-                    .peek(ew -> System.out.println("EW" + ew))
                     .collect(Collectors.groupingBy(
                             EventWrapper::getApiVersion,
                             Collectors.mapping(
