@@ -1,8 +1,8 @@
 import { FC } from "react";
-import { UserTask } from "@vanillabp/bc-official-gui-client";
+import { BcUserTask } from "./BcUserTask";
 
 interface UserTaskFormProps {
-  userTask: UserTask;
+  userTask: BcUserTask;
 }
 
 export type UserTaskForm = FC<UserTaskFormProps>;

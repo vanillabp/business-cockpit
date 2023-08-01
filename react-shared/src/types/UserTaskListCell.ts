@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { UserTask } from "@vanillabp/bc-official-gui-client";
-import { ListItemStatus } from "./index.js";
+import { BcUserTask, ListItemStatus } from "./index.js";
 
 interface Title {
   [key: string]: string;
@@ -16,7 +16,7 @@ export interface Column {
 interface ListItem {
   id: string;
   number: number;
-  data: UserTask;
+  data: BcUserTask;
   status: ListItemStatus;
   selected: boolean;
 };

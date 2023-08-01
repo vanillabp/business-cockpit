@@ -6,7 +6,7 @@ import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
-import { useResponsiveScreen } from "@vanillabp/bc-shared";
+import { BcUserTask, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link } from '@vanillabp/bc-shared';
 import { Column } from '@vanillabp/bc-shared';
@@ -14,7 +14,8 @@ import { useAppContext } from "../../AppContext";
 import { ModuleDefinition, useFederationModules } from '../../utils/module-federation';
 import i18next from 'i18next';
 import { ListCell, TypeOfItem } from '../../components/ListCell';
-import { openTask } from '../../utils/open-task';
+import { navigateToWorkflow, openTask } from '../../utils/navigate';
+import { useNavigate } from 'react-router-dom';
 
 i18n.addResources('en', 'tasklist/list', {
       "total": "Total:",
@@ -32,6 +33,7 @@ const loadUserTasks = async (
   setNumberOfUserTasks: (number: number) => void,
   pageSize: number,
   pageNumber: number,
+  mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
   
   const result = await tasklistApi
@@ -41,7 +43,7 @@ const loadUserTasks = async (
 
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.userTasks
+      items: result.userTasks.map(userTask => mapToBcUserTask(userTask)),
   	};
 };
 
@@ -54,6 +56,7 @@ const reloadUserTasks = async (
   setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
+  mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
 
   const result = await tasklistApi.getUserTasksUpdate({
@@ -62,19 +65,16 @@ const reloadUserTasks = async (
           knownUserTasksIds: knownItemsIds
         }
     })
-  
   setNumberOfUserTasks(result!.page.totalElements);
 
-  const newModuleDefinitions = result
-      .userTasks
+  const newModuleDefinitions = result.userTasks
       .filter(userTask => userTask.workflowModule !== undefined)
       .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
           ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
   if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
     setModulesOfTasks(newModuleDefinitions);
     const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
-    result
-        .userTasks
+    result.userTasks
         .filter(userTask => userTask.taskDefinition !== undefined)
         .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
     if ((existingUserTaskDefinitions === undefined)
@@ -85,7 +85,7 @@ const reloadUserTasks = async (
   
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.userTasks
+      items: result.userTasks.map(userTask => mapToBcUserTask(userTask))
     };   
 };
 
@@ -99,6 +99,7 @@ const ListOfTasks = () => {
   const { t } = useTranslation('tasklist/list');
   const { t: tApp } = useTranslation('app');
   const { toast, showLoadingIndicator } = useAppContext();
+  const navigate = useNavigate();
   
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
@@ -179,9 +180,7 @@ const ListOfTasks = () => {
     setColumnsOfTasks(orderedColumns);
   }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
   
-  const open = async (userTask: UserTask) => openTask(userTask, toast, tApp);
-
-  const columns: ColumnConfig<ListItem<UserTask>>[] =
+  const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
           { property: 'id',
             primary: true,
@@ -192,7 +191,7 @@ const ListOfTasks = () => {
                         align="center">
                       <CheckBox />
                     </Box>,
-            render: (_item: ListItem<UserTask>) => (
+            render: (_item: ListItem<BcUserTask>) => (
                 <Box
                     align="center">
                   <CheckBox />
@@ -201,12 +200,12 @@ const ListOfTasks = () => {
           { property: 'name',
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
-            render: (item: ListItem<UserTask>) => (
+            render: (item: ListItem<BcUserTask>) => (
                 <Box
                     fill
                     pad="xsmall">
                   <Link
-                      onClick={ () => open(item.data) }
+                      onClick={ item.data.open }
                       truncate="tip">
                     { item.data['title'][i18next.language] || item.data['title']['en'] }
                   </Link>
@@ -219,7 +218,7 @@ const ListOfTasks = () => {
                     header: column.title[i18next.language] || column.title['en'],
                     size: column.width,
                     plain: true,
-                    render: (item: ListItem<UserTask>) => <ListCell
+                    render: (item: ListItem<BcUserTask>) => <ListCell
                                                               modulesAvailable={ modules! }
                                                               column={ column }
                                                               currentLanguage={ i18next.language }
@@ -228,6 +227,14 @@ const ListOfTasks = () => {
                   }))
           )
       ];
+      
+  const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
+      return {
+          ...userTask,
+          open: () => openTask(userTask, toast, tApp),
+          navigateToWorkflow: () => navigateToWorkflow(userTask, toast, tApp, navigate),
+        };
+    };
   
   return (
       <Grid
@@ -249,7 +256,8 @@ const ListOfTasks = () => {
                                 tasklistApi,
                                 setNumberOfTasks,
                                 pageSize,
-                                pageNumber) }
+                                pageNumber,
+                                mapToBcUserTask) }
                         reloadItems={ (numberOfItems, updatedItemsIds) =>
 // @ts-ignore
                             reloadUserTasks(
@@ -260,7 +268,8 @@ const ListOfTasks = () => {
                                 definitionsOfTasks,
                                 setDefinitionsOfTasks,
                                 numberOfItems,
-                                updatedItemsIds) }
+                                updatedItemsIds,
+                                mapToBcUserTask) }
                       />
                   </Box>
         }

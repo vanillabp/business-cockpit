@@ -5,7 +5,7 @@ import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdat
 import { useWorkflowlistApi } from "./WorkflowlistAppContext";
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig } from 'grommet';
-import { Column, EventMessage, useResponsiveScreen } from "@vanillabp/bc-shared";
+import { BcUserTask, BcWorkflow, Column, EventMessage, GetUserTasksFunction, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, } from '@vanillabp/bc-shared';
 import { WorkflowlistApi, Workflow, WorkflowEvent } from "../../client/gui";
@@ -14,6 +14,7 @@ import { ModuleDefinition, useFederationModules } from '../../utils/module-feder
 import { ListCell, TypeOfItem } from '../../components/ListCell';
 import i18next from 'i18next';
 import { useNavigate } from 'react-router-dom';
+import { openTask } from '../../utils/navigate';
 
 i18n.addResources('en', 'workflowlist/list', {
       "total": "Total:",
@@ -39,6 +40,7 @@ const loadWorkflows = async (
   setNumberOfWorkflows: (number: number) => void,
   pageSize: number,
   pageNumber: number,
+  mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
   
   const result = await workflowlistApi
@@ -48,8 +50,8 @@ const loadWorkflows = async (
 
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.workflows
-  };
+      items: result.workflows.map(workflow => mapToBcWorkflow(workflow))
+    };
 };
 
 const reloadWorkflows = async (
@@ -61,6 +63,7 @@ const reloadWorkflows = async (
   setDefinitionsOfWorkflows: (definitions: DefinitionOfWorkflow | undefined) => void,
   numberOfItems: number,
   knownItemsIds: Array<string>,
+  mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
 
   const result = await workflowlistApi.getWorkflowsUpdate({
@@ -91,8 +94,8 @@ const reloadWorkflows = async (
   
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.workflows
-  };
+      items: result.workflows.map(workflow => mapToBcWorkflow(workflow))
+    };
 };
 
 interface DefinitionOfWorkflow {
@@ -102,6 +105,7 @@ interface DefinitionOfWorkflow {
 const ListOfWorkflows = () => {
 
   const { isNotPhone } = useResponsiveScreen();
+  const { t: tApp } = useTranslation('app');
   const { t } = useTranslation('workflowlist/list');
   const { toast, showLoadingIndicator } = useAppContext();
   const navigate = useNavigate();
@@ -191,7 +195,7 @@ const ListOfWorkflows = () => {
     navigate(`./${workflow.id}`);
   };
     
-  const columns: ColumnConfig<ListItem<Workflow>>[] =
+  const columns: ColumnConfig<ListItem<BcWorkflow>>[] =
       [
           { property: 'id',
             primary: true,
@@ -202,7 +206,7 @@ const ListOfWorkflows = () => {
                         align="center">
                       <CheckBox />
                     </Box>,
-            render: (_item: ListItem<Workflow>) => (
+            render: (_item: ListItem<BcWorkflow>) => (
                 <Box
                     align="center">
                   <CheckBox />
@@ -211,7 +215,7 @@ const ListOfWorkflows = () => {
           { property: 'name',
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfWorkflows === undefined ? 'x' : columnsOfWorkflows!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
-            render: (item: ListItem<Workflow>) => (
+            render: (item: ListItem<BcWorkflow>) => (
                 <Box
                     fill
                     pad="xsmall">
@@ -229,7 +233,7 @@ const ListOfWorkflows = () => {
                     header: column.title[i18next.language] || column.title['en'],
                     size: column.width,
                     plain: true,
-                    render: (item: ListItem<Workflow>) => <ListCell
+                    render: (item: ListItem<BcWorkflow>) => <ListCell
                                                               modulesAvailable={ modules! }
                                                               column={ column }
                                                               currentLanguage={ i18next.language }
@@ -238,6 +242,29 @@ const ListOfWorkflows = () => {
                   }))
           )
       ];
+  
+  const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
+      const getUserTasksFunction: GetUserTasksFunction = async (
+          activeOnly,
+          limitListAccordingToCurrentUsersPermissions
+        ) => {
+          return (await workflowlistApi
+              .getUserTasksOfWorkflow({
+                  workflowId: workflow.id,
+                  activeOnly,
+                  llatcup: limitListAccordingToCurrentUsersPermissions,
+              }))
+              .map(userTask => ({
+                ...userTask,
+                open: () => openTask(userTask, toast, tApp),
+                navigateToWorkflow: () => {}, // don't change view because workflow is already shown
+              } as BcUserTask));
+        };
+      return {
+          ...workflow,
+          getUserTasks: getUserTasksFunction,
+        };
+    };
   
   return (
       <Grid
@@ -255,7 +282,8 @@ const ListOfWorkflows = () => {
                       workflowlistApi,
                       setNumberOfWorkflows,
                       pageSize,
-                      pageNumber) }
+                      pageNumber,
+                      mapToBcWorkflow) }
               reloadItems={ (numberOfItems, updatedItemsIds) =>
 // @ts-ignore
                   reloadWorkflows(
@@ -266,7 +294,8 @@ const ListOfWorkflows = () => {
                       definitionsOfWorkflows,
                       setDefinitionsOfWorkflows,
                       numberOfItems,
-                      updatedItemsIds) }
+                      updatedItemsIds,
+                      mapToBcWorkflow) }
             />
         </Box>
         <Box

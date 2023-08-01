@@ -4,8 +4,8 @@ import { useParams } from 'react-router-dom';
 import { ModuleDefinition, useFederationModule } from '../../utils/module-federation';
 import { NoWorkflowGiven } from './NoWorkflowGiven';
 import { useWorkflowlistApi } from './WorkflowlistAppContext';
-import { BcWorkflow, GetUserTasksFunction } from '@vanillabp/bc-shared';
-import { openTask } from '../../utils/open-task';
+import { BcUserTask, BcWorkflow, GetUserTasksFunction } from '@vanillabp/bc-shared';
+import { openTask } from '../../utils/navigate';
 import { useTranslation } from 'react-i18next';
 import { Box } from 'grommet';
 
@@ -30,7 +30,7 @@ const WorkflowPage = () => {
       }
       const loadWorkflow = async () => {
           const workflow = await workflowListApi.getWorkflow({ workflowId });
-          const getWorkflowFunction: GetUserTasksFunction = async (
+          const getUserTasksFunction: GetUserTasksFunction = async (
               activeOnly,
               limitListAccordingToCurrentUsersPermissions
             ) => {
@@ -43,11 +43,12 @@ const WorkflowPage = () => {
                   .map(userTask => ({
                     ...userTask,
                     open: () => openTask(userTask, toast, tApp),
-                  }));
+                    navigateToWorkflow: () => {}, // don't change view because workflow is already shown
+                  } as BcUserTask));
             };
           const bcWorkflows: BcWorkflow = {
             ...workflow,
-            getUserTasks: getWorkflowFunction
+            getUserTasks: getUserTasksFunction
           };
           setWorkflow(bcWorkflows);
         };

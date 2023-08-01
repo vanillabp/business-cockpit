@@ -1,6 +1,6 @@
 import React, { useMemo, MutableRefObject, PropsWithChildren, useContext, useRef } from 'react';
 import { getOfficialWorkflowlistApi } from '../client/guiClient.js';
-import { BcWorkflow, GetUserTasksFunction, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { BcUserTask, BcWorkflow, GetUserTasksFunction, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { NavigateFunction, useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
 import { OfficialWorkflowlistApi, Workflow } from '@vanillabp/bc-official-gui-client';
@@ -37,11 +37,12 @@ const loadWorkflow = (
     }
 
     const openTask = (userTaskId: string) => window.location.href = `/${ tApp('url-usertask') }/${userTaskId}`;
+    const openWorkflow = (workflowId: string) => window.location.href = `/${ tApp('url-workflow') }/${workflowId}`;
     
     inprogress = new Promise<BcWorkflow | null>((resolve, reject) => {
         workflowlistApi.getWorkflow({ workflowId })
             .then((value: Workflow) => {
-              const getWorkflowFunction: GetUserTasksFunction = async (
+              const getUserTasksFunction: GetUserTasksFunction = async (
                   activeOnly,
                   limitListAccordingToCurrentUsersPermissions
                 ) => {
@@ -54,11 +55,12 @@ const loadWorkflow = (
                       .map(userTask => ({
                         ...userTask,
                         open: () => openTask(userTask.id),
-                      }));
+                        navigateToWorkflow: () => openWorkflow(userTask.workflowId!),
+                      }) as BcUserTask);
                 };
               workflow = {
                   ...value,
-                  getUserTasks: getWorkflowFunction,
+                  getUserTasks: getUserTasksFunction,
                 };
               resolve(workflow);
             }).catch((error: any) => {

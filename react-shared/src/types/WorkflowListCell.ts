@@ -1,11 +1,11 @@
 import { FC } from "react";
 import { Workflow } from "@vanillabp/bc-official-gui-client";
-import { Column, ListItemStatus } from "./index.js";
+import { BcWorkflow, Column, ListItemStatus } from "./index.js";
 
 interface ListItem {
   id: string;
   number: number;
-  data: Workflow;
+  data: BcWorkflow;
   status: ListItemStatus;
   selected: boolean;
 };
