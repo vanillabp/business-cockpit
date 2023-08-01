@@ -7,6 +7,7 @@ import { useWorkflowlistApi } from './WorkflowlistAppContext';
 import { BcWorkflow, GetUserTasksFunction } from '@vanillabp/bc-shared';
 import { openTask } from '../../utils/open-task';
 import { useTranslation } from 'react-i18next';
+import { Box } from 'grommet';
 
 const WorkflowPage = () => {
   
@@ -75,7 +76,10 @@ const WorkflowPage = () => {
     
   const Page = module.WorkflowPage!;
   
-  return <Page workflow={ workflow! } />
+  return (
+      <Box fill>
+        <Page workflow={ workflow! } />
+      </Box>);
 };
 
 export { WorkflowPage };
