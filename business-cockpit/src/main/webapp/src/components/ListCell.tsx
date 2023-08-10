@@ -1,9 +1,9 @@
 import React from 'react';
-import { Column, Module } from '../utils/module-federation';
+import { Module } from '../utils/module-federation';
 import { Data, ListItem } from './SearchableAndSortableUpdatingList';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
-import { WarningListCell, DefaultUserTaskListCell } from '@vanillabp/bc-shared';
+import { WarningListCell, DefaultListCell, Column } from '@vanillabp/bc-shared';
 
 i18n.addResources('en', 'listcell', {
       "workflowmodule_unknown": "Unknown",
@@ -81,7 +81,7 @@ const ListCell = <T extends WorkflowAwareData>({
   return <Cell
             item={ item }
             column={ column }
-            defaultCell={ DefaultUserTaskListCell } />;
+            defaultCell={ DefaultListCell } />;
   
 }
 

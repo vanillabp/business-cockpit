@@ -6,7 +6,7 @@ import { useTasklistApi } from './TasklistAppContext';
 import { TasklistApi, UserTask, UserTaskEvent } from '../../client/gui';
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig, Text } from 'grommet';
-import { BcUserTask, useResponsiveScreen } from "@vanillabp/bc-shared";
+import { BcUserTask, ListItemStatus, colorForEndedItemsOrUndefined, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, EventMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link } from '@vanillabp/bc-shared';
 import { Column } from '@vanillabp/bc-shared';
@@ -203,18 +203,26 @@ const ListOfTasks = () => {
           { property: 'name',
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
-            render: (item: ListItem<BcUserTask>) => (
-                <Box
-                    fill
-                    pad="xsmall">
-                  <Text
-                      truncate="tip">
-                    <Link
-                        onClick={ item.data.open }>
-                      { item.data['title'][i18next.language] || item.data['title']['en'] }
-                    </Link>
-                  </Text>
-                </Box>)
+            render: (item: ListItem<BcUserTask>) => {
+                const title = item.data['title'][i18next.language] || item.data['title']['en'];
+                return (
+                    <Box
+                        fill
+                        pad="xsmall">
+                      <Text
+                          color={ colorForEndedItemsOrUndefined(item) }
+                          truncate="tip">
+                        {
+                          item.status === ListItemStatus.ENDED
+                              ? <>{ title }</>
+                              : <Link
+                                    onClick={ item.data.open }>
+                                  { title }
+                                </Link>
+                        }
+                      </Text>
+                    </Box>);
+                }
           },
           ...(columnsOfTasks === undefined
               ? []
@@ -306,10 +314,6 @@ const ListOfTasks = () => {
                     width="1rem"
                     height="100%"
                     background="white" />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background="light-2" />
               </Box>
               {
                 isNotPhone
@@ -331,10 +335,6 @@ const ListOfTasks = () => {
                     width="1rem"
                     height="100%"
                     background={ { color: 'accent-3', opacity: 0.1 } } />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-3', opacity: 0.3 } } />
               </Box>
               {
                 isNotPhone
@@ -352,10 +352,6 @@ const ListOfTasks = () => {
                   direction='row'
                   height="1rem"
                   border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-1', opacity: 0.15 } } />
                 <Box
                     width="1rem"
                     height="100%"
@@ -380,11 +376,7 @@ const ListOfTasks = () => {
                 <Box
                     width="1rem"
                     height="100%"
-                    background={ { color: 'accent-4', opacity: 0.15 } } />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-4', opacity: 0.3 } } />
+                    background={ { color: 'light-2', opacity: 0.5 } } />
               </Box>
               {
                 isNotPhone

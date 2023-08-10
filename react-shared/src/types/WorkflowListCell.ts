@@ -1,22 +1,10 @@
 import { FC } from "react";
 import { Workflow } from "@vanillabp/bc-official-gui-client";
-import { BcWorkflow, Column, ListItemStatus } from "./index.js";
+import { BcWorkflow, Column } from "./index.js";
+import { DefaultListCellProps } from "src/components/DefaultListCell.js";
 
-interface ListItem {
-  id: string;
-  number: number;
-  data: BcWorkflow;
-  status: ListItemStatus;
-  selected: boolean;
-};
-
-export interface DefaultWorkflowListCellProps {
-  item: ListItem;
-  column: Column;
-}
-
-interface WorkflowCellProps extends DefaultWorkflowListCellProps {
-  defaultCell: FC<DefaultWorkflowListCellProps>;
+interface WorkflowCellProps extends DefaultListCellProps<BcWorkflow> {
+  defaultCell: FC<DefaultListCellProps<BcWorkflow>>;
 }
 
 export type WorkflowListCell = FC<WorkflowCellProps>;

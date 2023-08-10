@@ -1,24 +1,37 @@
 import React, { FC } from 'react';
 import { Box, Text, TextExtendedProps } from 'grommet';
-import { DefaultUserTaskListCellProps } from '../types/index.js';
+import { Column, ListItem, ListItemStatus } from '../types/index.js';
 import { getObjectProperty, toLocaleDateString, toLocaleStringWithoutSeconds, toLocaleTimeStringWithoutSeconds } from '../utils/index.js';
+import { ColorType } from 'grommet/utils/index.js';
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 
-type Alignment = 'left' | 'center' | 'right';
+export const ENDED_FONT_COLOR = 'light-4';
+export const ENDED_FONT_COLOR_ODD = '#b4b4b4';
 
-interface UserTaskListTextCellWrapperProps extends TextExtendedProps {
+export type Alignment = 'left' | 'center' | 'right';
+
+const colorForEndedItemsOrUndefined = (item: ListItem<any>): ColorType => {
+  return item.status !== ListItemStatus.ENDED
+      ? undefined
+      : ENDED_FONT_COLOR;
+};
+
+interface TextListCellProps extends TextExtendedProps {
+  item: ListItem<any>;
   value?: string | String;
   align?: Alignment;
   tip?: string;
 }
 
-const UserTaskListTextCellWrapper: React.FC<UserTaskListTextCellWrapperProps> = ({
+const TextListCell: React.FC<TextListCellProps> = ({
+  item,
   value = '',
   align = 'left',
   tip,
   ...props
 }) => {
+  const color = colorForEndedItemsOrUndefined(item);
   return (
     <Box
         fill
@@ -35,11 +48,13 @@ const UserTaskListTextCellWrapper: React.FC<UserTaskListTextCellWrapperProps> = 
         tip === undefined
             ? <Text
                   truncate="tip"
+                  color={ color }
                   { ...props }>
                 { value }
               </Text>
             : <Text
                   truncate
+                  color={ color }
                   tip={ { content: tip } }
                   { ...props }>
                 { value }
@@ -48,7 +63,12 @@ const UserTaskListTextCellWrapper: React.FC<UserTaskListTextCellWrapperProps> = 
     </Box>);
 }
 
-const DefaultUserTaskListCell: FC<DefaultUserTaskListCellProps> = ({
+export interface DefaultListCellProps<D> {
+  item: ListItem<D>;
+  column: Column;
+}
+
+const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     item,
     column
 }) => {
@@ -85,10 +105,11 @@ const DefaultUserTaskListCell: FC<DefaultUserTaskListCellProps> = ({
       value = propertyValue;
     }
   }
-  return <UserTaskListTextCellWrapper
+  return <TextListCell
+      item={ item }
       value={ value }
       tip={ tip }
       align={ align } />;
 }
 
-export { DefaultUserTaskListCell, UserTaskListTextCellWrapper };
+export { DefaultListCell, TextListCell, colorForEndedItemsOrUndefined };

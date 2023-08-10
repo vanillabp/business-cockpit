@@ -5,7 +5,7 @@ import { ListItem, ListItems, ReloadCallbackFunction, SearchableAndSortableUpdat
 import { useWorkflowlistApi } from "./WorkflowlistAppContext";
 import { useGuiSse } from '../../client/guiClient';
 import { Grid, Box, CheckBox, ColumnConfig, Text } from 'grommet';
-import { BcUserTask, BcWorkflow, Column, EventMessage, GetUserTasksFunction, useResponsiveScreen } from "@vanillabp/bc-shared";
+import { BcUserTask, BcWorkflow, Column, EventMessage, GetUserTasksFunction, ListItemStatus, colorForEndedItemsOrUndefined, useResponsiveScreen } from "@vanillabp/bc-shared";
 import { EventSourceMessage, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { Link, } from '@vanillabp/bc-shared';
 import { WorkflowlistApi, Workflow, WorkflowEvent } from "../../client/gui";
@@ -217,17 +217,26 @@ const ListOfWorkflows = () => {
           { property: 'name',
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfWorkflows === undefined ? 'x' : columnsOfWorkflows!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
-            render: (item: ListItem<BcWorkflow>) => (
-                <Box
-                    fill
-                    pad="xsmall">
-                  <Text truncate="tip">
-                    <Link
-                        onClick={ () => openWorkflow(item.data) }>
-                      { item.data['title'][i18next.language] || item.data['title']['en'] }
-                    </Link>
-                  </Text>
-                </Box>)
+            render: (item: ListItem<BcWorkflow>) => {
+                const title = item.data['title'][i18next.language] || item.data['title']['en'];
+                return (
+                    <Box
+                        fill
+                        pad="xsmall">
+                      <Text
+                          color={ colorForEndedItemsOrUndefined(item) }
+                          truncate="tip">
+                        {
+                          item.status === ListItemStatus.ENDED
+                              ? <>{ title }</>
+                              : <Link
+                                    onClick={ () => openWorkflow(item.data) }>
+                                  { title }
+                                </Link>
+                        }
+                      </Text>
+                    </Box>);
+              }
           },
           ...(columnsOfWorkflows === undefined
               ? []
@@ -328,10 +337,6 @@ const ListOfWorkflows = () => {
                     width="1rem"
                     height="100%"
                     background="white" />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background="light-2" />
               </Box>
               {
                 isNotPhone
@@ -353,10 +358,6 @@ const ListOfWorkflows = () => {
                     width="1rem"
                     height="100%"
                     background={ { color: 'accent-3', opacity: 0.1 } } />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-3', opacity: 0.3 } } />
               </Box>
               {
                 isNotPhone
@@ -378,10 +379,6 @@ const ListOfWorkflows = () => {
                     width="1rem"
                     height="100%"
                     background={ { color: 'accent-1', opacity: 0.15 } } />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-1', opacity: 0.35 } } />
               </Box>
               {
                 isNotPhone
@@ -402,11 +399,7 @@ const ListOfWorkflows = () => {
                 <Box
                     width="1rem"
                     height="100%"
-                    background={ { color: 'accent-4', opacity: 0.15 } } />
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-4', opacity: 0.3 } } />
+                    background={ { color: 'light-2', opacity: 0.5 } } />
               </Box>
               {
                 isNotPhone

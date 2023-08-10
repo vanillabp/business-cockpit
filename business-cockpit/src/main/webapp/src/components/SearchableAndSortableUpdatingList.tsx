@@ -61,7 +61,7 @@ const loadItems = async <T extends Data>(
           data: item,
           number: currentNumberOfItems + index,
           selected: false,
-          status: ListItemStatus.INITIAL,
+          status: item.endedAt === undefined ? ListItemStatus.INITIAL : ListItemStatus.ENDED,
         } as ListItem<T>));
   setItems(
       items === undefined
@@ -187,11 +187,11 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
             ...props,
             [ item.id ]: { background:
                 item.status === ListItemStatus.NEW
-                    ? { color: 'accent-3', opacity: item.number % 2 === 1 ? 0.1 : 0.3 }
+                    ? { color: 'accent-3', opacity: 0.1 }
                     : item.status === ListItemStatus.UPDATED
-                    ? { color: 'accent-1', opacity: item.number % 2 === 1 ? 0.15 : 0.35 }
+                    ? { color: 'accent-1', opacity: 0.15 }
                     : item.status === ListItemStatus.ENDED
-                    ? { color: 'accent-4', opacity: item.number % 2 === 1 ? 0.15 : 0.3 }
+                    ? { color: 'light-2', opacity: 0.5 }
                     : undefined
               }
           };
@@ -204,6 +204,7 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
             <SnapScrollingDataTable
                 fill
                 pin
+                border={ { body: { side: 'bottom', color: 'light-3' } } }
                 rowProps={ colorRowAccordingToUpdateStatus }
                 size='100%'
                 columns={ columns }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getObjectProperty, UserTaskListCell, UserTaskListTextCellWrapper } from '@vanillabp/bc-shared';
+import { getObjectProperty, UserTaskListCell, TextListCell } from '@vanillabp/bc-shared';
 
 const TestForm1ListCell: UserTaskListCell = ({
   item,
@@ -8,7 +8,7 @@ const TestForm1ListCell: UserTaskListCell = ({
 }) => {
   const DefaultCell = defaultCell;
   return column.path.startsWith('details')
-      ? <UserTaskListTextCellWrapper value={ getObjectProperty(item.data, column.path) } />
+      ? <TextListCell item={ item } value={ getObjectProperty(item.data, column.path) } />
       : <DefaultCell item={ item } column={ column } />;
 }
 

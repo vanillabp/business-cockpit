@@ -111,9 +111,6 @@ const SnapScrollingDataTable = forwardRef(({
                 marginLeft: 'auto',
                 marginRight: 'auto'
               } }
-              background={ {
-                body: ['white', 'light-2']
-              } }
               columns={ dataTableColumns }
               { ...props } />
         </Box>
