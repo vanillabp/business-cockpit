@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.config.properties;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
 
@@ -19,6 +20,8 @@ public class ApplicationProperties {
     
     @NonNull
     private String applicationUri;
+    
+    private JwtProperties jwt = new JwtProperties();
     
     public int getGuiSseUpdateInterval() {
         return guiSseUpdateInterval;
@@ -58,6 +61,14 @@ public class ApplicationProperties {
     
     public void setApplicationUri(String applicationUri) {
         this.applicationUri = applicationUri;
+    }
+
+    public JwtProperties getJwt() {
+        return jwt;
+    }
+    
+    public void setJwt(JwtProperties jwt) {
+        this.jwt = jwt;
     }
     
 }
