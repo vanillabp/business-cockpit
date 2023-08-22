@@ -134,7 +134,7 @@ public class LoginApiController implements LoginApi {
      * will see an error which indicates we have to drop 
      * this emitter. 
      */
-    @Scheduled(fixedDelayString = "PT1M")
+    @Scheduled(fixedDelayString = "PT29S")
     public void cleanupUpdateEmitters() {
         
         final var toBeDeleted = new LinkedList<String>();
