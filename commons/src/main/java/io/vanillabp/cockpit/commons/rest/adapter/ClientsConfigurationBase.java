@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Feign.Builder;
 import feign.Request;
 import feign.Retryer;
+import feign.form.FormEncoder;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
@@ -120,7 +121,7 @@ public abstract class ClientsConfigurationBase {
             builder.decoder(
                     new JacksonDecoder(objectMapper.get()));
             builder.encoder(
-                    new JacksonEncoder(objectMapper.get()));
+                    new FormEncoder(new JacksonEncoder(objectMapper.get())));
         }
 
     }

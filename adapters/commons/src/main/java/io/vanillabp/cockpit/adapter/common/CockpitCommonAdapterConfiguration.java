@@ -330,8 +330,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
 
         return result;
         
-    }            
-
+    }
     
     @SuppressWarnings("unchecked")
     @Bean
