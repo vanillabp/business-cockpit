@@ -10,7 +10,7 @@ security:
   - JWT: []
 
 paths:
-  /tasklist/usertask/{userTaskId}:
+  /usertask/{userTaskId}:
     get:
       tags:
         - officialTasklist
@@ -31,6 +31,60 @@ paths:
                 $ref: '#/components/schemas/UserTask'
         404:
           description: Unknown user task
+  /workflow/{workflowId}/usertasks:
+    get:
+      tags:
+        - officialWorkflowlist
+      summary: Fetch usertasks for the workflow
+      operationId: getUserTasksOfWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: activeOnly
+          required: true
+          schema:
+            type: boolean
+        - in: query
+          name: llatcup
+          required: true
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserTask'
+        404:
+          description: Unknown workflow
+  /workflow/{workflowId}:
+    get:
+      tags:
+        - officialWorkflowlist
+      summary: Fetch data of one single workflow
+      operationId: getWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        404:
+          description: Unknown workflow
           
 components:
   schemas:
@@ -43,10 +97,6 @@ components:
         - MALE
         - FEMALE
         - OTHER
-    Role:
-      type: string
-      enum:
-        - READONLY
     UserStatus:
       type: string
       enum:
@@ -73,29 +123,13 @@ components:
         roles:
           type: array
           items:
-            $ref: '#/components/schemas/Role'
-    UiComponentsType:
+            type:
+              string
+    UiUriType:
       type: string
       enum:
       - EXTERNAL
-      - WEBPACK_REACT
-      - WEBPACK_WEBCOMPONENT
-      - ANGULAR
-    DetailsPropertyTitle:
-      type: object
-      properties:
-        path:
-          type: string
-        title:
-          type: object
-          additionalProperties:
-            type: string
-        showAsColumn:
-          type: boolean
-        sortable:
-          type: boolean
-        filterable:
-          type: boolean
+      - WEBPACK_MF_REACT  # MF ... Module Federation
     UserTask:
       type: object
       required:
@@ -107,7 +141,6 @@ components:
       - taskDefinition
       - title
       - workflowModuleUri
-      - taskProviderUri
       - uiUri
       - uiUriType
       properties:
@@ -158,11 +191,11 @@ components:
           example:
             en: Taxi Ride
             de: Taxifahrt
-        bpmnWorkflowId:
-          type: string
-          description: The unique ID of the workflow
-          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
         workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        businessId:
           type: string
           description: The natural ID of the workflow (e.g. order-id)
           example: 123456
@@ -174,7 +207,7 @@ components:
           example:
             en: "Do ride #4711"
             de: "Führe die Fahrt #4711 durch"
-        workflowTaskId:
+        bpmnTaskId:
           type: string
           description: The BPMN user task's ID
           example: "Task_TaxiRide"
@@ -196,16 +229,12 @@ components:
           example: http://localhost:8080/wm/what-ever/remoteEntry.js
         uiUriType:
           type: string
-          $ref: '#/components/schemas/UiComponentsType'
-          example: WEBPACK_REACT
-        taskProviderUri:
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
+        workflowModuleUri:
           type: string
-          description: An URI pointing to the task-provider's own API (maybe used by user-task forms)
+          description: An URI pointing to the workflow-module's own API (maybe used by user-task forms)
           example: http://localhost:8080/wm/what-ever/
-        hasIcon:
-          type: boolean
-        hasFavicon:
-          type: boolean
         assignee:
           type: string
           example: driverA
@@ -223,7 +252,7 @@ components:
           type: string
           format: date-time
           example: 2020-05-21T13:30:26.202Z
-        followupDate:
+        followUpDate:
           type: string
           format: date-time
           example: null
@@ -232,10 +261,90 @@ components:
           description: Properties for individual searches
           additionalProperties: true
           example: "{ 'customer': 'passanger A' }"
-        detailsPropertyTitles:
-          type: array
-          items:
-            $ref: '#/components/schemas/DetailsPropertyTitle'
-        detailsTextSearch:
+        detailsFulltextSearch:
+          type: string
+          description: List of words for fulltext searching details
+    Workflow:
+      type: object
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - workflowModule
+        - bpmnProcessId
+        - title
+        - workflowModuleUri
+        - uiUri
+        - uiUriType
+      properties:
+        id:
+          type: string
+          description: workflow id
+          example: Has to be unique across all reporting systems
+        version:
+          type: integer
+          format: int32
+          description: revision of the usertask record
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        createdAt:
+          type: string
+          format: date-time
+          description: The time the task was created
+          example: 2019-05-21T13:30:26.202Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: The time the task was updated
+          example: 2019-05-21T13:30:26.202Z
+        endedAt:
+          type: string
+          format: date-time
+          description: The time the task was ended
+          example: 2019-05-21T13:30:26.202Z
+        workflowModule:
+          type: string
+          description: The workflow module of this usertask
+        comment:
+          type: string
+          example: A comment describing the status. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process and tag
+        businessId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: 123456
+        title:
+          type: object
+          description: The rendered title of the user-task (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Do ride #4711"
+            de: "Führe die Fahrt #4711 durch"
+        uiUri:
+          type: string
+          description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: http://localhost:8080/wm/what-ever/remoteEntry.js
+        uiUriType:
+          type: string
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
+        workflowModuleUri:
+          type: string
+          description: An URI pointing to the workflow-modules's own API (maybe used by workflow pages)
+          example: http://localhost:8080/wm/what-ever/
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: true
+          example: "{ 'customer': 'passanger A' }"
+        detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details

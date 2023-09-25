@@ -22,6 +22,7 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -29,7 +30,8 @@ public class UserTaskService {
 
     private static final Sort DEFAULT_SORT =
             Sort.by(Order.asc("dueDate").nullsLast())
-            .and(Sort.by("createdAt").ascending());
+            .and(Sort.by("createdAt").ascending())
+            .and(Sort.by("id").ascending());
     
     @Autowired
     private Logger logger;
@@ -53,7 +55,12 @@ public class UserTaskService {
         
         dbChangesSubscription = changeStreamUtils
                 .subscribe(UserTask.class)
-                .map(UserTaskChangedNotification::build)
+                .flatMapSequential(userTask -> Mono
+                        .fromCallable(() -> UserTaskChangedNotification.build(userTask))
+                        .doOnError(e -> logger
+                                .warn("Error on processing user-task change-stream "
+                                        + "event! Will resume stream.", e))
+                        .onErrorResume(Exception.class, e -> Mono.empty()))
                 .doOnNext(applicationEventPublisher::publishEvent)
                 .subscribe();
         
@@ -66,7 +73,7 @@ public class UserTaskService {
                         .collect(Collectors.toMap(
                                 UserTask::getWorkflowModule,
                                 UserTask::getWorkflowModuleUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservice)
+                .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
 
     }
@@ -87,42 +94,65 @@ public class UserTaskService {
     
     public Mono<Page<UserTask>> getUserTasks(
 			final int pageNumber,
-			final int pageSize) {
+			final int pageSize,
+			final OffsetDateTime initialTimestamp) {
     	
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(DEFAULT_SORT);
         
+        final var endedSince = (initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now()).toInstant();
+        
     	return userTasks
-    	        .findAllBy(pageRequest)
+    	        .findActive(endedSince, pageRequest)
     	        .collectList()
-    	        .zipWith(userTasks.count())
+    	        .zipWith(userTasks.countActive(endedSince))
     	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
     	
     }
     
+    public Flux<UserTask> getUserTasksOfWorkflow(
+            final boolean activeOnly,
+            final String workflowId) {
+        
+        if (activeOnly) {
+            return userTasks
+                    .findActiveByWorkflowId(workflowId);
+        }
+        
+        return userTasks
+                .findAllByWorkflowId(workflowId);
+        
+    }
+    
     public Mono<Page<UserTask>> getUserTasksUpdated(
             final int size,
-            final Collection<String> knownUserTasksIds) {
+            final Collection<String> knownUserTasksIds,
+            final OffsetDateTime initialTimestamp) {
         
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
                 .withSort(DEFAULT_SORT);
         
-        final var tasks = userTasks.findAllIds(
+        final var endedSince = initialTimestamp.toInstant();
+        
+        final var tasks = userTasks.findIdsOfActive(
+                endedSince,
                 pageRequest);
         
         return tasks
-                .flatMap(task -> {
+                .flatMapSequential(task -> {
                     if (knownUserTasksIds.contains(task.getId())) {
                         return Mono.just(task);
                     }
                     return userTasks.findById(task.getId());
                 })
                 .collectList()
-                .zipWith(userTasks.count())
+                .zipWith(userTasks.countActive(endedSince))
                 .map(t -> new PageImpl<>(
                         t.getT1(),
                         Pageable
@@ -132,6 +162,51 @@ public class UserTaskService {
         
     }
     
+    public Mono<Boolean> completeUserTask(
+            final UserTask userTask,
+            final OffsetDateTime timestamp) {
+        
+        if (userTask == null) {
+            Mono.just(Boolean.FALSE);
+        }
+        
+        userTask.setEndedAt(timestamp);
+        
+        return userTasks
+                .save(userTask)
+                .map(task -> Boolean.TRUE)
+                .onErrorResume(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return Mono.just(Boolean.FALSE);
+                });        
+    }
+
+    public Mono<Boolean> cancelUserTask(
+            final UserTask userTask,
+            final OffsetDateTime timestamp,
+            final String reason) {
+        
+        if (userTask == null) {
+            Mono.just(Boolean.FALSE);
+        }
+
+        userTask.setEndedAt(timestamp);
+        userTask.setComment(reason);
+
+        return userTasks
+                .save(userTask)
+                .map(task -> Boolean.TRUE)
+                .onErrorResume(e -> {
+                    logger.error("Could not save user task '{}'!",
+                            userTask.getId(),
+                            e);
+                    return Mono.just(Boolean.FALSE);
+                });
+        
+    }
+
     public Mono<Boolean> createUserTask(
             final UserTask userTask) {
         

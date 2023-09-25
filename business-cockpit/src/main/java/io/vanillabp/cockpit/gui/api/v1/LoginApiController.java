@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.gui.api.v1;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,29 +98,33 @@ public class LoginApiController implements LoginApi {
     public void updateClients(
             final GuiEvent guiEvent) {
         
+        final var toBeRemoved = new LinkedList<String>();
         updateEmitters
-                .values()
+                .entrySet()
                 .stream()
-                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getRoles()))
-                .filter(emitter -> emitter.sendEvent(guiEvent))
+                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
                 .forEach(emitter -> {
-                    emitter
+                    final var updateEmitter = emitter.getValue();
+                    updateEmitter
                             .consumeEvents()
                             .stream()
                             .collect(Collectors.groupingBy(GuiEvent::getSource))
                             .entrySet()
                             .stream()
-                            .forEach(entry -> {
+                            .forEach(eventEntry -> {
                                 try {
                                     sendSseEvent(
-                                            emitter.getChannel(),
-                                            entry.getKey().toString(),
-                                            entry.getValue());
+                                            updateEmitter.getChannel(),
+                                            eventEntry.getKey().toString(),
+                                            eventEntry.getValue());
                                 } catch (Exception e) {
                                     logger.warn("Could not send update event", e);
+                                    toBeRemoved.add(emitter.getKey());
                                 }
                             });
                 });
+        toBeRemoved.forEach(updateEmitters::remove);
         
     }
 
@@ -131,7 +134,7 @@ public class LoginApiController implements LoginApi {
      * will see an error which indicates we have to drop 
      * this emitter. 
      */
-    @Scheduled(fixedDelayString = "PT1M")
+    @Scheduled(fixedDelayString = "PT29S")
     public void cleanupUpdateEmitters() {
         
         final var toBeDeleted = new LinkedList<String>();
@@ -207,7 +210,7 @@ public class LoginApiController implements LoginApi {
                         .status(user.isActive()
                                         ? UserStatus.ACTIVE
                                         : UserStatus.INACTIVE)
-                        .roles(List.of()))
+                        .roles(user.getRoles()))
                 .map(ResponseEntity::ok);
         
     }

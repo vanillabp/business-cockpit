@@ -1,15 +1,5 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
-import java.time.OffsetDateTime;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
-
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.TasklistApi;
@@ -19,9 +9,18 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-@RestController
+import java.time.OffsetDateTime;
+
+@RestController("tasklistGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
 public class GuiApiController implements TasklistApi {
 
@@ -53,11 +52,17 @@ public class GuiApiController implements TasklistApi {
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
             final Integer pageNumber,
             final Integer pageSize,
+            final OffsetDateTime initialTimestamp,
             final ServerWebExchange exchange) {
 		
+        final var timestamp = initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now();
+
 		final var tasks = userTaskService.getUserTasks(
 				pageNumber,
-				pageSize);
+				pageSize,
+				timestamp);
 
 		return tasks.map(page -> ResponseEntity.ok(
 		        new UserTasks()
@@ -67,7 +72,7 @@ public class GuiApiController implements TasklistApi {
         						.totalElements(page.getTotalElements())
         						.totalPages(page.getTotalPages()))
         				.userTasks(mapper.toApi(page.getContent()))
-        				.serverTimestamp(OffsetDateTime.now())));
+        				.serverTimestamp(timestamp)));
 		
 	}
 	
@@ -77,20 +82,26 @@ public class GuiApiController implements TasklistApi {
             final ServerWebExchange exchange) {
 	    
         return userTasksUpdate
-                .flatMap(update -> userTaskService.getUserTasksUpdated(
-                            update.getSize(),
-                            update.getKnownUserTasksIds()))
-                .map(page -> ResponseEntity.ok(
+                .zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
+                        ? update.getInitialTimestamp()
+                        : OffsetDateTime.now()))
+                .flatMap(entry -> Mono.zip(
+                        userTaskService.getUserTasksUpdated(
+                                entry.getT1().getSize(),
+                                entry.getT1().getKnownUserTasksIds(),
+                                entry.getT2()),
+                        Mono.just(entry.getT2())))
+                .map(entry -> ResponseEntity.ok(
                         new UserTasks()
                                 .page(new Page()
-                                        .number(page.getNumber())
-                                        .size(page.getSize())
-                                        .totalElements(page.getTotalElements())
-                                        .totalPages(page.getTotalPages()))
-                                .userTasks(mapper.toApi(page.getContent()))
-                                .serverTimestamp(OffsetDateTime.now())))
+                                        .number(entry.getT1().getNumber())
+                                        .size(entry.getT1().getSize())
+                                        .totalElements(entry.getT1().getTotalElements())
+                                        .totalPages(entry.getT1().getTotalPages()))
+                                .userTasks(mapper.toApi(entry.getT1().getContent()))
+                                .serverTimestamp(entry.getT2())))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
-        
+            
 	}
 	
     @Override

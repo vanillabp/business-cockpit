@@ -41,26 +41,44 @@ const parseLocalDateToIsoString = (localDate: string | undefined | null): string
   
 }
 
-const toLocalDateString = (date: Date): string | undefined => {
+const toLocalDateString = (date?: Date): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
   }
   
-  return String(date.getFullYear()).padStart(4, '0')
+  return String(date!.getFullYear()).padStart(4, '0')
       + '-'
-      + String(date.getMonth() + 1).padStart(2, '0')
+      + String(date!.getMonth() + 1).padStart(2, '0')
       + '-'
-      + String(date.getDate()).padStart(2, '0');
+      + String(date!.getDate()).padStart(2, '0');
   
 }
 
-const toLocaleTimeStringWithoutSeconds = (date: Date): string | undefined => {
+const toLocaleTimeStringWithoutSeconds = (date?: Date): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
   }
-  return date.toLocaleTimeString().replace(/:[0-9]{2}(?: |$)/, '');
+  return date!.toLocaleTimeString(window.navigator.language).replace(/:[0-9]{2}(?: |$)/, '');
+  
+}
+
+const toLocaleDateString = (date?: Date): string | undefined => {
+  
+  if (!Boolean(date)) {
+    return undefined;
+  }
+  return date!.toLocaleDateString(window.navigator.language);
+  
+}
+
+const toLocaleStringWithoutSeconds = (date?: Date): string | undefined => {
+  
+  if (!Boolean(date)) {
+    return undefined;
+  }
+  return `${toLocaleDateString(date)} ${toLocaleTimeStringWithoutSeconds(date)}`;
   
 }
 
@@ -129,6 +147,8 @@ const timeAsString = (date: Date): string => {
 export {
   parseLocalDate,
   toLocalDateString,
+  toLocaleDateString,
+  toLocaleStringWithoutSeconds,
   toLocaleTimeStringWithoutSeconds,
   parseLocalDateToIsoString,
   isValidLocalDate,

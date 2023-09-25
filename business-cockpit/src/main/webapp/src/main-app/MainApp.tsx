@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { NotFound } from '../app/NotFound';
 
 const TaskList = lazy(() => import('./tasklist/Main'));
+const WorkflowList = lazy(() => import('./workflowlist/Main'));
 
 const MainApp = () => {
 
@@ -22,6 +23,7 @@ const MainApp = () => {
           overflow={ { horizontal: 'hidden' } }>
         <Routes>
           <Route path={ `${ t('url-tasklist') }/*` } element={<TaskList />} />
+          <Route path={ `${ t('url-workflowlist') }/*` } element={<WorkflowList />} />
           <Route index element={<Main />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

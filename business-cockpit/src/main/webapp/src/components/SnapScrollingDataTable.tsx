@@ -77,12 +77,22 @@ const SnapScrollingDataTable = forwardRef(({
                   justify='center'
                   height="100%"
                   width={ column.size }
+                  border={
+                      index === 0
+                          ? undefined
+                          : { side: 'left' }
+                  }
+                  pad='xsmall'
                   snapAlign='center'>
-                <Text
-                    color='light-2'
-                    truncate='tip'>{
-                  column.header as string | React.ReactNode
-                }</Text>
+                {
+                  column.header instanceof String
+                      ? <Text
+                            color='light-2'
+                            truncate='tip'>{
+                          column.header
+                        }</Text>
+                      : column.header
+                }
               </SnapAlignBox>)
             }</Box>
         </Box>
@@ -100,9 +110,6 @@ const SnapScrollingDataTable = forwardRef(({
                 maxWidth: tableWidth,
                 marginLeft: 'auto',
                 marginRight: 'auto'
-              } }
-              background={ {
-                body: ['white', 'light-2']
               } }
               columns={ dataTableColumns }
               { ...props } />

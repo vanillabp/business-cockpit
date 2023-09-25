@@ -1,9 +1,14 @@
 package io.vanillabp.cockpit.commons.rest.adapter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Feign.Builder;
+import feign.Request;
+import feign.Retryer;
+import feign.form.FormEncoder;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
 import io.vanillabp.cockpit.commons.rest.adapter.tls.TlsTruststoreUtil;
-import feign.Request;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -12,6 +17,7 @@ import okhttp3.Route;
 import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InjectionPoint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -21,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -32,6 +39,9 @@ import javax.net.ssl.X509TrustManager;
 
 public abstract class ClientsConfigurationBase {
 
+    @Autowired
+    protected Optional<ObjectMapper> objectMapper;
+    
     protected void configureOkHttpClient(
             final Class<?> clientClass,
             final Client properties,
@@ -55,6 +65,26 @@ public abstract class ClientsConfigurationBase {
         configureFeignBuilder(clientClass, builder, properties, null);
         
     }
+    
+    protected void configureRetry(
+            final Builder builder,
+            final Client properties) {
+        
+        final var retryProperties = properties.getRetry();
+        if ((retryProperties == null)
+                || !retryProperties.isEnabled()) {
+            
+            builder.retryer(Retryer.NEVER_RETRY);
+            return;
+            
+        }
+        
+        builder.retryer(new Retryer.Default(
+                retryProperties.getPeriod().toMillis(),
+                retryProperties.getMaxPeriod().toMillis(),
+                retryProperties.getMaxAttempts()));
+        
+    }
 
     protected void configureFeignBuilder(
             final Class<?> clientClass,
@@ -62,7 +92,8 @@ public abstract class ClientsConfigurationBase {
             final Client properties,
             final Consumer<OkHttpClient.Builder> adoptHttpClientBuilder) {
 
-        builder.options(new Request.Options(properties.getConnectTimeout(), TimeUnit.MILLISECONDS,
+        builder.options(new Request.Options(
+                properties.getConnectTimeout(), TimeUnit.MILLISECONDS,
                 properties.getReadTimeout(), TimeUnit.MILLISECONDS, true));
 
         OkHttpClient.Builder httpClientBuilder = new OkHttpClient.Builder();
@@ -70,11 +101,27 @@ public abstract class ClientsConfigurationBase {
         
         builder.client(new feign.okhttp.OkHttpClient(httpClientBuilder.build()));
 
+        configureRetry(builder, properties);
+        
+        configureJsonEncoding(builder);
+
         if (configureBasicAuthentication(builder, properties)) {
             return;
         }
         if (configureOauthAuthentication(builder, properties)) {
             return;
+        }
+
+    }
+    
+    protected void configureJsonEncoding(
+            final Builder builder) {
+        
+        if (objectMapper.isPresent()) {
+            builder.decoder(
+                    new JacksonDecoder(objectMapper.get()));
+            builder.encoder(
+                    new FormEncoder(new JacksonEncoder(objectMapper.get())));
         }
 
     }

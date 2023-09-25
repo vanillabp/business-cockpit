@@ -26,6 +26,8 @@ public class Client {
 
 	private Map<String, String> additionalGetParameters;
 	
+	private Retry retry;
+	
     public boolean isInitialized() {
         return (baseUrl != null) && !TO_BE_DEFINED_URL.equals(baseUrl);
     }
@@ -114,4 +116,12 @@ public class Client {
         this.sslTruststorePassword = sslTruststorePassword;
     }
 
+    public Retry getRetry() {
+        return retry;
+    }
+    
+    public void setRetry(Retry retry) {
+        this.retry = retry;
+    }
+    
 }

@@ -2,17 +2,11 @@ import React, { useState, MutableRefObject, useEffect, useRef, useCallback } fro
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from '../components/SnapScrollingDataTable';
 import { useAppContext } from '../AppContext';
+import { ListItemStatus } from '@vanillabp/bc-shared';
 
 const itemsBatchSize = 30;
 
-enum ListItemStatus {
-  INITIAL,
-  NEW,
-  UPDATED,
-  ENDED,
-};
-
-type Data = {
+export type Data = {
   id: string,
   version?: number,
   createdAt: Date,
@@ -20,7 +14,7 @@ type Data = {
   endedAt?: Date,
 };
 
-interface ListItem<T extends Data> {
+export interface ListItem<T extends Data> {
   id: string;
   number: number;
   data: T;
@@ -28,14 +22,14 @@ interface ListItem<T extends Data> {
   selected: boolean;
 };
 
-interface ListItems<T extends Data> {
+export interface ListItems<T extends Data> {
   serverTimestamp: Date;
   items: Array<T>;
 };
 
-type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number) => Promise<ListItems<T>>;
+type RetrieveItemsFunction = <T extends Data>(pageNumber: number, pageSize: number, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
-type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>) => Promise<ListItems<T>>;
+type ReloadItemsFunction = <T extends Data>(numberOfItems: number, knownItemsIds: Array<string>, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
 type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
 
@@ -43,6 +37,7 @@ const loadItems = async <T extends Data>(
   retrieveItems: RetrieveItemsFunction,
   setItems: (items: Array<ListItem<T>>) => void,
   items: Array<ListItem<T>> | undefined,
+  initialTimestamp: MutableRefObject<Date | undefined>,
 ): Promise<Date> => {
 
   const result = await retrieveItems(
@@ -51,7 +46,8 @@ const loadItems = async <T extends Data>(
           : items.length % itemsBatchSize === 0
           ? Math.floor(items.length / itemsBatchSize)
           : Math.floor(items.length / itemsBatchSize) + 1,
-      itemsBatchSize
+      itemsBatchSize,
+      initialTimestamp.current,
     );
   
   const currentNumberOfItems = items === undefined
@@ -65,7 +61,7 @@ const loadItems = async <T extends Data>(
           data: item,
           number: currentNumberOfItems + index,
           selected: false,
-          status: ListItemStatus.INITIAL,
+          status: item.endedAt === undefined ? ListItemStatus.INITIAL : ListItemStatus.ENDED,
         } as ListItem<T>));
   setItems(
       items === undefined
@@ -93,25 +89,27 @@ const reloadData = async <T extends Data>(
       size,
       items!
           .filter(item => !updatedItemsIds.includes(item.id))
-          .map(item => item.id));
+          .map(item => item.id),
+      initialTimestamp.current);
   
   const itemsById = new Map(items!.map(item => [ item.id, item ]));
   const mergedItems = result
       .items
       .map((item, index) => {
         const oldItem = itemsById.get(item.id)!;
-        
-        const status = item.version === 0
+        const itemNotInUpdateResponse = item.version === 0;
+
+        const status = itemNotInUpdateResponse
             ? oldItem.status
-            : item.createdAt > initialTimestamp.current!
-            ? ListItemStatus.NEW
-            : Boolean(item.endedAt) && item.endedAt! > initialTimestamp.current!
+            : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.ENDED
-            : item.updatedAt > initialTimestamp.current!
+            : item.createdAt.getTime() > initialTimestamp.current!.getTime()
+            ? ListItemStatus.NEW
+            : item.updatedAt.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.UPDATED
             : ListItemStatus.INITIAL;
-        
-        const newItem = (item.version === 0
+
+        const newItem = (itemNotInUpdateResponse
             ? {
                 id: item.id,
                 data: oldItem?.data,
@@ -172,7 +170,8 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
           const result = await loadItems(
               retrieveItems,
               setItems,
-              items);
+              items,
+              initialTimestamp);
           initialTimestamp.current = result;
           showLoadingIndicator(false);
         };
@@ -188,11 +187,11 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
             ...props,
             [ item.id ]: { background:
                 item.status === ListItemStatus.NEW
-                    ? { color: 'accent-3', opacity: item.number % 2 === 1 ? 0.1 : 0.3 }
+                    ? { color: 'accent-3', opacity: 0.1 }
                     : item.status === ListItemStatus.UPDATED
-                    ? { color: 'accent-1', opacity: item.number % 2 === 1 ? 0.15 : 0.35 }
+                    ? { color: 'accent-1', opacity: 0.15 }
                     : item.status === ListItemStatus.ENDED
-                    ? { color: 'accent-4', opacity: item.number % 2 === 1 ? 0.15 : 0.3 }
+                    ? { color: 'light-2', opacity: 0.5 }
                     : undefined
               }
           };
@@ -201,23 +200,22 @@ const SearchableAndSortableUpdatingList = <T extends Data>({
     }, {});
    
   return (<Box
-              fill='horizontal'
-              overflow={ { vertical: 'auto' }}>
+              fill>
             <SnapScrollingDataTable
-                primaryKey={ false }
                 fill
                 pin
+                border={ { body: { side: 'bottom', color: 'light-3' } } }
                 rowProps={ colorRowAccordingToUpdateStatus }
                 size='100%'
                 columns={ columns }
                 step={ itemsBatchSize }
                 headerHeight={ headerHeight }
                 phoneMargin={ phoneMargin }
-                onMore={ () => loadItems(retrieveItems, setItems, items) }
+                onMore={ () => loadItems(retrieveItems, setItems, items, initialTimestamp) }
                 data={ items }
                 replace />
           </Box>);
 
 };
 
-export { SearchableAndSortableUpdatingList, ListItem, ListItems, ListItemStatus, ReloadCallbackFunction };
+export { SearchableAndSortableUpdatingList, ReloadCallbackFunction };

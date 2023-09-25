@@ -25,6 +25,7 @@
             </goals>
             <configuration>
               <inputSpec>${project.basedir}/../openapi/v1.yaml</inputSpec>
+              <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
               <generatorName>java</generatorName>
               <apiPackage>io.vanillabp.cockpit.bpms.api.v1</apiPackage>
               <modelPackage>io.vanillabp.cockpit.bpms.api.v1</modelPackage>

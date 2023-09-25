@@ -21,6 +21,11 @@ packages:
     publish: $anonymous
     unpublish: $anonymous
 
+  'grommet':
+    access: $all
+    publish: $anonymous
+    unpublish: $anonymous
+
   '@*/*':
     access: $all
     publish: $authenticated
@@ -35,6 +40,8 @@ packages:
 
 server:
   keepAliveTimeout: 60
+
+max_body_size: 100mb
 
 publish:
   allow_offline: true

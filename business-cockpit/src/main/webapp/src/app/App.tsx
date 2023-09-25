@@ -30,6 +30,9 @@ i18n.addResources('en', appNs, {
       "not-found hint": "Maybe use used a link in a mail which is already expired.",
       "url-tasklist": "tasks",
       "url-usertask": "task",
+      "url-workflowlist": "workflows",
+      "unsupported-ui-uri-type_title": "Open item",
+      "unsupported-ui-uri-type_message": "Internal error: The item refers to an unsupported UI-URI-type!",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit',
@@ -42,6 +45,9 @@ i18n.addResources('de', appNs, {
       "not-found hint": "Eventuell hast du einen Link aus einer Mail verwendet, der bereits veraltet ist.",
       "url-tasklist": "aufgaben",
       "url-usertask": "aufgabe",
+      "url-workflowlist": "vorgaenge",
+      "unsupported-ui-uri-type_title": "Element öffnen",
+      "unsupported-ui-uri-type_message": "Internes Problem: Das Element bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
     
 type AppProps = {};

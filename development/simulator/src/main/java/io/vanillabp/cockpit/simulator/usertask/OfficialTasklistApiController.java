@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,8 +27,8 @@ public class OfficialTasklistApiController implements OfficialTasklistApi {
     private final static Map<String, Fairy> fairies = new HashMap<>();
     
     static {
-        fairies.put("de", UserTaskTestDataGenerator.buildFairy("de"));
-        fairies.put("en", UserTaskTestDataGenerator.buildFairy("en"));
+        fairies.put("de", FairyHelper.buildFairy("de"));
+        fairies.put("en", FairyHelper.buildFairy("en"));
     }
 
     @Autowired

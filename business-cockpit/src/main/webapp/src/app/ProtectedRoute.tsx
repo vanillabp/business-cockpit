@@ -1,11 +1,10 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Role } from '../client/gui';
 import { Login } from './Login';
 import { useCurrentUserRoles } from '../utils/roleUtils';
 
 interface ProtectedRouteProps {
-  roles?: Array<Role>;
+  roles?: Array<string>;
 };
 
 const ProtectedRoute = ({

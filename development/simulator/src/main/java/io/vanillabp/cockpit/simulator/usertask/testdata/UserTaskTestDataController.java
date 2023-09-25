@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -42,7 +43,7 @@ public class UserTaskTestDataController {
         final var fairies =
                 Arrays
                         .stream(parameters.getLanguages().split(","))
-                        .map(l -> Map.entry(l, UserTaskTestDataGenerator.buildFairy(l.trim())))
+                        .map(l -> Map.entry(l, FairyHelper.buildFairy(l.trim())))
                         .collect(Collectors.toMap(
                                 e -> e.getKey(),
                                 e -> e.getValue(),

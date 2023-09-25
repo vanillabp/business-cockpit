@@ -33,24 +33,20 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
+        </configuration>
         <executions>
           <execution>
             <id>link-dependent-packages</id>
+            <phase>generate-resources</phase>
             <goals>
-              <goal>exec</goal>
+              <goal>npm</goal>
             </goals>
-            <phase>process-resources</phase>
             <configuration>
-              <executable>${java.io.tmpdir}/frontend-maven-plugin/node/npm</executable>
-              <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
-              <arguments>
-                <argument>link</argument>
-                <argument>@vanillabp/bc-official-gui-client</argument>
-                <argument>@vanillabp/bc-shared</argument>
-                <argument>@vanillabp/bc-dev-shell</argument>
-              </arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-dev-shell</arguments>
             </configuration>
           </execution>
         </executions>

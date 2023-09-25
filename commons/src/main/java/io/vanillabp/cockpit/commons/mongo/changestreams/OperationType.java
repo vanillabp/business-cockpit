@@ -28,13 +28,16 @@ public enum OperationType {
     
     public static OperationType byMongoType(
             final String type) {
-        
+
         return List
                 .of(INSERT, UPDATE, DELETE)
                 .stream()
                 .filter(operation -> operation.getMongoTypes().contains(type))
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new RuntimeException(
+                        "Unsupported change-stream operation-type '"
+                        + type
+                        + "'!"));
 
     }
     

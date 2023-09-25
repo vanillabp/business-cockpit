@@ -10,11 +10,11 @@ public class GuiEvent extends ApplicationEvent {
     
     private Object event;
     
-    private List<Role> targetRoles;
+    private List<String> targetRoles;
 
     public GuiEvent(
             final Object source,
-            final List<Role> targetRoles,
+            final List<String> targetRoles,
             final Object event) {
         
         super(source);
@@ -27,12 +27,12 @@ public class GuiEvent extends ApplicationEvent {
         return event;
     }
 
-    public List<Role> getTargetRoles() {
+    public List<String> getTargetRoles() {
         return targetRoles;
     }
     
     public boolean matchesTargetRoles(
-            final List<Role> roles) {
+            final List<String> roles) {
         
         if (targetRoles == null) {
             return true;

@@ -1,0 +1,21 @@
+import React, { lazy } from 'react';
+import { Text } from 'grommet';
+import { taskDefinition as TestForm1_taskDefinition } from './TestForm1';
+import { taskDefinition as TestForm2_taskDefinition } from './TestForm2';
+import { taskDefinition as TestForm3_taskDefinition } from './TestForm3';
+import { UserTaskForm as UserTaskFormComponent } from '@vanillabp/bc-shared';
+
+const TestForm1 = lazy(() => import('./TestForm1/UserTaskForm'));
+const TestForm2 = lazy(() => import('./TestForm2/UserTaskForm'));
+const TestForm3 = lazy(() => import('./TestForm3/UserTaskForm'));
+
+const UserTaskForm: UserTaskFormComponent = ({ userTask }) =>
+    userTask.taskDefinition === TestForm1_taskDefinition
+        ? <TestForm1 userTask={ userTask } />
+        : userTask.taskDefinition === TestForm2_taskDefinition
+        ? <TestForm2 userTask={ userTask } />
+        : userTask.taskDefinition === TestForm3_taskDefinition
+        ? <TestForm3 userTask={ userTask } />
+        : <Text>{ `unknown task '${userTask.taskDefinition}'` }</Text>;
+
+export default UserTaskForm;

@@ -2,7 +2,7 @@ import React from 'react';
 import User from './User';
 import { useAppContext } from '../../AppContext';
 import { Anchor, Box, Grid, Text } from 'grommet';
-import { Logout, Stakeholder, Task } from 'grommet-icons';
+import {Logout, Projects, Stakeholder, Task} from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -12,12 +12,14 @@ i18n.addResources('en', 'menu', {
       "logout": "Logout",
       "user-profile": "User profile",
       "tasklist": "Tasks",
+      "workflowlist": "Workflows",
       "READONLY": "read-only",
     });
 i18n.addResources('de', 'menu', {
       "logout": "Abmelden",
       "user-profile": "Benutzerprofil",
       "tasklist": "Aufgaben",
+      "workflowlist": "Vorgänge",
       "READONLY": "nur lesend",
     });
 
@@ -60,6 +62,15 @@ const Menu = () => {
                 }}>
               <Task />
               <Text>{t('tasklist')}</Text>
+            </MenuItem>
+            <MenuItem
+                roles={ null }
+                onClick={() => {
+                  hideMenu();
+                  navigate(tApp('url-workflowlist') as string);
+                }}>
+              <Projects />
+              <Text>{t('workflowlist')}</Text>
             </MenuItem>
             <MenuItem
                 background="light-3"

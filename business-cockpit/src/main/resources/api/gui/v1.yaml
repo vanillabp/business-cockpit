@@ -43,7 +43,7 @@ paths:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/User'
         404:
           description: No user logged in
-  /tasklist/usertask/{userTaskId}:
+  /usertask/{userTaskId}:
     get:
       tags:
         - tasklist
@@ -64,7 +64,7 @@ paths:
                 $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/UserTask'
         404:
           description: Unknown user task
-  /tasklist/usertask:
+  /usertask:
     post:
       tags:
         - tasklist
@@ -81,6 +81,11 @@ paths:
           schema:
             type: integer
             format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       responses:
         200:
           description: Users tasks
@@ -106,6 +111,107 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
+  /workflow:
+    post:
+      tags:
+        - workflowlist
+      summary: Workflows to be shown in a list view
+      operationId: getWorkflows
+      parameters:
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: Workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflows'
+    put:
+      tags:
+        - workflowlist
+      summary: Updated list of workflows
+      operationId: getWorkflowsUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowsUpdate"
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflows'
+  /workflow/{workflowId}/usertasks:
+    get:
+      tags:
+        - workflowlist
+      summary: Fetch usertasks for the workflow
+      operationId: getUserTasksOfWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: activeOnly
+          required: true
+          schema:
+            type: boolean
+        - in: query
+          name: llatcup
+          required: true
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/UserTask'
+        404:
+          description: Unknown workflow
+  /workflow/{workflowId}:
+    get:
+      tags:
+        - workflowlist
+      summary: Fetch data of one single workflow
+      operationId: getWorkflow
+      parameters:
+        - in: path
+          name: workflowId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Workflow'
+        404:
+          description: Unknown workflow
 components:
   schemas:
     AppInformation:
@@ -163,6 +269,22 @@ components:
           type: array
           items:
             $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/UserTask'
+    Workflows:
+      type: object
+      required:
+        - serverTimestamp
+        - page
+        - workflows
+      properties:
+        serverTimestamp:
+          type: string
+          format: date-time
+        page:
+          $ref: '#/components/schemas/Page'
+        workflows:
+          type: array
+          items:
+            $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Workflow'
     PingEvent:
       type: object
       required:
@@ -174,6 +296,19 @@ components:
         name:
           type: string
     UserTaskEvent:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        id:
+          type: string
+    WorkflowEvent:
       type: object
       required:
         - id
@@ -199,3 +334,22 @@ components:
           type: array
           items:
             type: string
+        initialTimestamp:
+          type: string
+          format: date-time
+    WorkflowsUpdate:
+      type: object
+      required:
+        - size
+        - knownWorkflowIds
+      properties:
+        size:
+          type: integer
+          format: int32
+        knownWorkflowIds:
+          type: array
+          items:
+            type: string
+        initialTimestamp:
+          type: string
+          format: date-time
