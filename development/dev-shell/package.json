@@ -19,7 +19,7 @@
   },
   "peerDependencies": {
     "@fontsource/roboto": "4.5.8",
-    "grommet": "2.32.2",
+    "grommet": "2.33.2",
     "grommet-icons": "4.10.0",
     "i18next": "22.0.3",
     "react": "18.2.0",
