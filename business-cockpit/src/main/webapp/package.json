@@ -37,7 +37,8 @@
     "react-scripts": "5.0.1",
     "source-map-explorer": "2.5.2",
     "typescript": "4.8.4",
-    "webpack": "5.74.0"
+    "webpack": "5.88.2",
+    "webpack-dev-server": "4.15.1"
   },
   "scripts": {
     "start": "GENERATE_SOURCEMAP=false && cross-env BUILD_PATH=../../../target/classes/static craco start",
