@@ -31,6 +31,53 @@ paths:
                 $ref: '#/components/schemas/UserTask'
         404:
           description: Unknown user task
+  /usertask:
+    post:
+      tags:
+        - officialTasklist
+      summary: User tasks to be shown in a list view
+      operationId: getUserTasks
+      parameters:
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasks'
+    put:
+      tags:
+        - officialTasklist
+      summary: Updated list of usertasks
+      operationId: getUserTasksUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksUpdate"
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasks'
   /workflow/{workflowId}/usertasks:
     get:
       tags:
@@ -64,27 +111,74 @@ paths:
                   $ref: '#/components/schemas/UserTask'
         404:
           description: Unknown workflow
-  /workflow/{workflowId}:
-    get:
+  /workflow:
+    post:
       tags:
         - officialWorkflowlist
-      summary: Fetch data of one single workflow
-      operationId: getWorkflow
+      summary: Workflows to be shown in a list view
+      operationId: getWorkflows
       parameters:
-        - in: path
-          name: workflowId
-          required: true
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: initialTimestamp
           schema:
             type: string
+            format: date-time
       responses:
         200:
-          description: Workflow
+          description: Workflows
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Workflow'
-        404:
-          description: Unknown workflow
+                $ref: '#/components/schemas/Workflows'
+    put:
+      tags:
+        - officialWorkflowlist
+      summary: Updated list of workflows
+      operationId: getWorkflowsUpdate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowsUpdate"
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflows'
+  /workflow/{workflowId}:
+      get:
+        tags:
+          - officialWorkflowlist
+        summary: Fetch data of one single workflow
+        operationId: getWorkflow
+        parameters:
+          - in: path
+            name: workflowId
+            required: true
+            schema:
+              type: string
+        responses:
+          200:
+            description: Workflow
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Workflow'
+          404:
+            description: Unknown workflow
           
 components:
   schemas:
@@ -228,9 +322,7 @@ components:
           description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: http://localhost:8080/wm/what-ever/remoteEntry.js
         uiUriType:
-          type: string
           $ref: '#/components/schemas/UiUriType'
-          example: WEBPACK_MF_REACT
         workflowModuleUri:
           type: string
           description: An URI pointing to the workflow-module's own API (maybe used by user-task forms)
@@ -264,6 +356,19 @@ components:
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
+    UserTaskEvent:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        id:
+          type: string
     Workflow:
       type: object
       required:
@@ -333,9 +438,7 @@ components:
           description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: http://localhost:8080/wm/what-ever/remoteEntry.js
         uiUriType:
-          type: string
           $ref: '#/components/schemas/UiUriType'
-          example: WEBPACK_MF_REACT
         workflowModuleUri:
           type: string
           description: An URI pointing to the workflow-modules's own API (maybe used by workflow pages)
@@ -348,3 +451,100 @@ components:
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
+    WorkflowEvent:
+      type: object
+      required:
+        - id
+        - name
+        - type
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        id:
+          type: string
+    Page:
+      type: object
+      required:
+        - totalElements
+        - totalPages
+        - number
+        - size
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        number:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    UserTasks:
+      type: object
+      required:
+        - serverTimestamp
+        - page
+        - userTasks
+      properties:
+        serverTimestamp:
+          type: string
+          format: date-time
+        page:
+          $ref: '#/components/schemas/Page'
+        userTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTask'
+    UserTasksUpdate:
+      type: object
+      required:
+        - size
+        - knownUserTasksIds
+      properties:
+        size:
+          type: integer
+          format: int32
+        knownUserTasksIds:
+          type: array
+          items:
+            type: string
+        initialTimestamp:
+          type: string
+          format: date-time
+    Workflows:
+      type: object
+      required:
+        - serverTimestamp
+        - page
+        - workflows
+      properties:
+        serverTimestamp:
+          type: string
+          format: date-time
+        page:
+          $ref: '#/components/schemas/Page'
+        workflows:
+          type: array
+          items:
+            $ref: '#/components/schemas/Workflow'
+    WorkflowsUpdate:
+      type: object
+      required:
+        - size
+        - knownWorkflowIds
+      properties:
+        size:
+          type: integer
+          format: int32
+        knownWorkflowIds:
+          type: array
+          items:
+            type: string
+        initialTimestamp:
+          type: string
+          format: date-time

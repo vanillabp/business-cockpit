@@ -2,6 +2,8 @@ import React from "react";
 import { Box, Layer } from "grommet";
 import { Cycle } from "grommet-icons";
 
+export type ShowLoadingIndicatorFunction = (show: boolean) => void;
+
 const LoadingIndicator = () => (
     <Layer
         plain
