@@ -1,0 +1,96 @@
+openapi: 3.0.0
+info:
+  description: GUI API
+  version: '1.0'
+  title: gui
+servers:
+  - url: /gui/api/v1
+
+security:
+  - JWT: []
+
+paths:
+  /app/info:
+    get:
+      tags:
+        - login
+      summary: information about the current app
+      operationId: appInformation
+      responses:
+        200:
+          description: the app information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppInformation'
+  /app/current-user:
+    get:
+      tags:
+        - login
+      summary: load current user from security context
+      operationId: currentUser
+      parameters:
+        - in: header
+          name: "X-Refresh-Token"
+          schema:
+            type: string
+      responses:
+        200:
+          description: The user logged in
+          content:
+            application/json:
+              schema:
+                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/User'
+        404:
+          description: No user logged in
+components:
+  schemas:
+    AppInformation:
+      type: object
+      required:
+        - titleShort
+        - titleLong
+        - version
+      properties:
+        titleShort:
+          type: string
+        titleLong:
+          type: string
+        homepageUrl:
+          type: string
+        homepageServiceConditionsUrl:
+          type: string
+        contactEmailAddress:
+          type: string
+        version:
+          type: string
+    Page:
+      type: object
+      required:
+        - totalElements
+        - totalPages
+        - number
+        - size
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        number:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    PingEvent:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string

@@ -1,10 +1,9 @@
 import { FC } from "react";
 import { UserTask } from "@vanillabp/bc-official-gui-client";
 import { BcUserTask, Column } from "./index.js";
-import { DefaultListCellProps } from "src/components/DefaultListCell.js";
+import { DefaultListCellAwareProps } from "../components";
 
-interface UserTaskListCellProps extends DefaultListCellProps<BcUserTask> {
-  defaultCell: FC<DefaultListCellProps<BcUserTask>>;
+interface UserTaskListCellProps extends DefaultListCellAwareProps<BcUserTask> {
 }
 
 export type UserTaskListCell = FC<UserTaskListCellProps>;

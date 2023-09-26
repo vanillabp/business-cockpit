@@ -1,7 +1,6 @@
-import { Notification, Timeout } from "grommet";
-import React, { useCallback, useEffect, Dispatch } from "react";
+import { Notification, StatusType, Timeout } from "grommet";
+import React, { Dispatch, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { StatusType } from 'grommet';
 
 export type Toast = {
   namespace: string;
@@ -15,6 +14,8 @@ export type ToastAction = {
   type: 'toast',
   toast: Toast | undefined;
 };
+
+export type ToastFunction = (toast: Toast) => void;
 
 interface MessageToastProps {
   dispatch: Dispatch<ToastAction>;

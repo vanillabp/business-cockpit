@@ -1,7 +1,12 @@
 import React, { FC } from 'react';
 import { Box, Text, TextExtendedProps } from 'grommet';
 import { Column, ListItem, ListItemStatus } from '../types/index.js';
-import { getObjectProperty, toLocaleDateString, toLocaleStringWithoutSeconds, toLocaleTimeStringWithoutSeconds } from '../utils/index.js';
+import {
+  getObjectProperty,
+  toLocaleDateString,
+  toLocaleStringWithoutSeconds,
+  toLocaleTimeStringWithoutSeconds
+} from '../utils/index.js';
 import { ColorType } from 'grommet/utils/index.js';
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
@@ -66,6 +71,10 @@ const TextListCell: React.FC<TextListCellProps> = ({
 export interface DefaultListCellProps<D> {
   item: ListItem<D>;
   column: Column;
+}
+
+export interface DefaultListCellAwareProps<T> extends DefaultListCellProps<T> {
+  defaultCell: FC<DefaultListCellProps<T>>;
 }
 
 const DefaultListCell: FC<DefaultListCellProps<any>> = ({

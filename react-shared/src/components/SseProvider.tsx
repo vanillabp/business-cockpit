@@ -1,4 +1,8 @@
-import { fetchEventSource, EventSourceMessage as FetchEventSourceMessage, FetchEventSourceInit } from "@microsoft/fetch-event-source";
+import {
+  EventSourceMessage as FetchEventSourceMessage,
+  fetchEventSource,
+  FetchEventSourceInit
+} from "@microsoft/fetch-event-source";
 import { Timeout } from "grommet";
 import React, { Context, useContext, useEffect, useRef } from "react";
 
@@ -33,6 +37,11 @@ export interface EventSourceMessage<T> {
 export type WakeupSseCallback = (() => void) | undefined;
 
 export type OnMessageFunction<T> = (ev: EventSourceMessage<T>) => void;
+
+export type GuiSseHook = <T, >(
+    onMessage: OnMessageFunction<T>,
+    messageName?: string | RegExp
+) => WakeupSseCallback;
 
 type OnMessageSignature = {
   onMessage: OnMessageFunction<any>,

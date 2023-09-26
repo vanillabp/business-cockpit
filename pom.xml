@@ -20,7 +20,8 @@
     <module>openapi-generator-fixes</module>
     <module>apis</module>
     <module>react-shared</module>
-    <module>business-cockpit</module>
+    <module>ui</module>
+    <module>container</module>
     <module>development</module>
     <module>spi-for-java</module>
     <module>adapters</module>
