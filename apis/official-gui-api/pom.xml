@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>apis</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>apis</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
 
-  <artifactId>official-gui-api</artifactId>
-  <name>API defining user tasks</name>
-  <packaging>pom</packaging>
-  
-   <modules>
-    <module>server</module>
-    <module>client</module>
-  </modules>
+    <artifactId>official-gui-api</artifactId>
+    <name>Official API of business cockpit to be implemented by custom services</name>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>server</module>
+        <module>server-reactive</module>
+        <module>client</module>
+    </modules>
 </project>
