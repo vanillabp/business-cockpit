@@ -1,21 +1,20 @@
 package io.vanillabp.cockpit.config.web.security;
 
+import io.vanillabp.cockpit.commons.utils.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.security.core.userdetails.User;
-
-import io.vanillabp.cockpit.commons.utils.UserDetails;
-
 public class BasicUserDetails implements UserDetails {
 
-    public BasicUserDetails(User user) {
+    public BasicUserDetails(org.springframework.security.core.userdetails.UserDetails user) {
         
         this.user = user;
         
     }
 
-    private User user;
+    private org.springframework.security.core.userdetails.UserDetails user;
     
     @Override
     public String getId() {
@@ -46,12 +45,12 @@ public class BasicUserDetails implements UserDetails {
     }
     
     @Override
-    public List<String> getRoles() {
+    public List<String> getAuthorities() {
         
         return user
                 .getAuthorities()
                 .stream()
-                .map(authority -> authority.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         
     }

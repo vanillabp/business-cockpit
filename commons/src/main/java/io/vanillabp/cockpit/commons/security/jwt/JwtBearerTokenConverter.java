@@ -13,9 +13,8 @@ import org.springframework.security.web.server.authentication.ServerAuthenticati
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.UUID;
-
 import javax.crypto.spec.SecretKeySpec;
+import java.util.UUID;
 
 public class JwtBearerTokenConverter implements ServerAuthenticationConverter {
 
@@ -54,7 +53,7 @@ public class JwtBearerTokenConverter implements ServerAuthenticationConverter {
         
         final var securityContext = SecurityContextHolder.createEmptyContext();
 
-        return null;
+        return Mono.just(securityContext.getAuthentication());
         
     }
     

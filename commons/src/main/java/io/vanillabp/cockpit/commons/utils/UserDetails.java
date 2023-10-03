@@ -19,6 +19,6 @@ public interface UserDetails {
      */
     Boolean isFemale();
 
-    List<String> getRoles();
+    List<String> getAuthorities();
 
 }

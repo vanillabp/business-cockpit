@@ -1,12 +1,12 @@
 package io.vanillabp.cockpit.commons.utils;
 
+import io.vanillabp.cockpit.commons.exceptions.BcForbiddenException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-
-import io.vanillabp.cockpit.commons.exceptions.BcForbiddenException;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -32,7 +32,7 @@ public class UserContext {
         }
         
         return userDetailsProvider
-                .getUserDetails(authentication.getPrincipal())
+                .getUserDetails(authentication)
                 .getId();
         
     }
@@ -54,7 +54,7 @@ public class UserContext {
         }
         
         return userDetailsProvider
-                .getUserDetails(authentication.getPrincipal());
+                .getUserDetails(authentication);
         
     }
 
@@ -62,8 +62,8 @@ public class UserContext {
         
         return ReactiveSecurityContextHolder
                 .getContext()
-                .map(c -> c.getAuthentication())
-                .map(authentication -> {
+                .map(SecurityContext::getAuthentication)
+                .flatMap(authentication -> {
                     if (authentication == null) {
                         throw new BcForbiddenException("No security context");
                     }
@@ -71,11 +71,11 @@ public class UserContext {
                         throw new BcForbiddenException("User anonymous");
                     }
                     if (authentication instanceof AnonymousAuthenticationToken) {
-                        return null;
+                        return Mono.empty();
                     }
                     return userDetailsProvider
-                            .getUserDetails(authentication.getPrincipal())
-                            .getId();
+                            .getUserDetailsAsMono(authentication)
+                            .map(UserDetails::getId);
                 });
         
     }
@@ -84,8 +84,8 @@ public class UserContext {
 
         return ReactiveSecurityContextHolder
                 .getContext()
-                .map(c -> c.getAuthentication())
-                .map(authentication -> {
+                .map(SecurityContext::getAuthentication)
+                .flatMap(authentication -> {
                     if (authentication == null) {
                         throw new BcForbiddenException("No security context");
                     }
@@ -93,12 +93,12 @@ public class UserContext {
                         throw new BcForbiddenException("User anonymous");
                     }
                     if (authentication instanceof AnonymousAuthenticationToken) {
-                        return null;
+                        return Mono.empty();
                     }
                     return userDetailsProvider
-                            .getUserDetails(authentication.getPrincipal());
+                            .getUserDetailsAsMono(authentication);
                 });
-        
+
     }
     
 }

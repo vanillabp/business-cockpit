@@ -15,12 +15,11 @@ import org.springframework.security.web.server.context.ServerSecurityContextRepo
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-
-import javax.crypto.spec.SecretKeySpec;
 
 public abstract class JwtServerSecurityContextRepository implements ServerSecurityContextRepository {
     
@@ -41,7 +40,7 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
             final SecurityContext context) {
 
         try {
-            
+
             final var expiresDuration = Duration
                     .parse(properties.getCookie().getExpiresDuration());
             final var expiresAt = Instant
@@ -52,24 +51,31 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
             final var token = buildToken(context, expiresAt);
             exchange
                     .getResponse()
-                    .addCookie(
-                            ResponseCookie
-                                    .from(properties.getCookie().getName())
-                                    .value(token)
-                                    .maxAge(expiresDuration)
-                                    .domain(properties.getCookie().getDomain())
-                                    .path(properties.getCookie().getPath())
-                                    .sameSite(getSecurityCookieSameSiteFromEnum())
-                                    .secure(properties.getCookie().isSecure())
-                                    .httpOnly(true)
-                                    .build());
+                    .beforeCommit(() ->
+                            Mono.defer(() -> {
+                                exchange
+                                        .getResponse()
+                                        .addCookie(
+                                                ResponseCookie
+                                                        .from(properties.getCookie().getName())
+                                                        .value(token)
+                                                        .maxAge(expiresDuration)
+                                                        .domain(properties.getCookie().getDomain())
+                                                        .path(properties.getCookie().getPath())
+                                                        .sameSite(getSecurityCookieSameSiteFromEnum())
+                                                        .secure(properties.getCookie().isSecure())
+                                                        .httpOnly(true)
+                                                        .build());
+                                return Mono.empty();
+                            }));
+
             return Mono.empty();
 
         } catch (Exception e) {
             getLogger().error("Could not build JWT token", e);
             return Mono.error(e);
         }
-        
+
     }
 
     @Override

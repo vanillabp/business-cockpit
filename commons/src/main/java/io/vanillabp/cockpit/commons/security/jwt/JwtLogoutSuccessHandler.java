@@ -2,10 +2,10 @@ package io.vanillabp.cockpit.commons.security.jwt;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.server.WebFilterExchange;
-import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
+import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
 import reactor.core.publisher.Mono;
 
-public class JwtLogoutSuccessHandler implements ServerLogoutSuccessHandler {
+public class JwtLogoutSuccessHandler extends RedirectServerLogoutSuccessHandler {
 
     private JwtProperties properties;
     
@@ -23,7 +23,7 @@ public class JwtLogoutSuccessHandler implements ServerLogoutSuccessHandler {
         
         JwtSecurityFilter.clearCookie(properties, exchange.getExchange());
 
-        return Mono.empty();
+        return super.onLogoutSuccess(exchange, authentication);
         
     }
     
