@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import io.vanillabp.cockpit.commons.utils.UserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class LoginApiController implements LoginApi {
     private ApplicationProperties properties;
     
     @Autowired
-    private UserContext userContext;
+    private ReactiveUserContext userContext;
     
     @Autowired
     private TaskScheduler taskScheduler;

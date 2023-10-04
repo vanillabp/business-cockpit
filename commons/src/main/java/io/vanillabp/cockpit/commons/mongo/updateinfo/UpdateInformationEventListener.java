@@ -1,14 +1,13 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
-import java.time.OffsetDateTime;
-
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.mongodb.core.mapping.event.BeforeConvertCallback;
 import org.springframework.stereotype.Component;
 
-import io.vanillabp.cockpit.commons.utils.UserContext;
+import java.time.OffsetDateTime;
 
 @Order(1)
 @Component

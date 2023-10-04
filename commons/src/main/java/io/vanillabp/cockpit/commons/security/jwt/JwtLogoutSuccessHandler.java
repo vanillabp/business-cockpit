@@ -21,7 +21,7 @@ public class JwtLogoutSuccessHandler extends RedirectServerLogoutSuccessHandler 
             final WebFilterExchange exchange,
             final Authentication authentication) {
         
-        JwtSecurityFilter.clearCookie(properties, exchange.getExchange());
+        JwtSecurityWebFilter.clearCookie(properties, exchange.getExchange());
 
         return super.onLogoutSuccess(exchange, authentication);
         

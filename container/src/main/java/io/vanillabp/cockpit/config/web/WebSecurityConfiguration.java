@@ -1,11 +1,11 @@
 package io.vanillabp.cockpit.config.web;
 
 import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
-import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityFilter;
-import io.vanillabp.cockpit.commons.utils.UserDetailsProvider;
+import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityWebFilter;
+import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.config.web.security.BasicServerSecurityContextRepository;
-import io.vanillabp.cockpit.config.web.security.BasicUserDetailsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -31,17 +31,30 @@ import java.net.URI;
 @EnableReactiveMethodSecurity
 public class WebSecurityConfiguration {
 
-    private static final ServerWebExchangeMatcher appInfoWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+    public static final ServerWebExchangeMatcher appInfoWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
             "/gui/api/v1/app/info");
+
+    public static final ServerWebExchangeMatcher currentUserWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/gui/api/v1/app/current-user");
+
+    public static final ServerWebExchangeMatcher assetsWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/assets/**");
+
+    public static final ServerWebExchangeMatcher staticWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/static/**");
+
+    public static final ServerWebExchangeMatcher workflowModulesProxyWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/wm/**");
 
     @Autowired
     private ApplicationProperties properties;
 
-    public JwtSecurityFilter jwtSecurityFilter() {
+    private JwtSecurityWebFilter jwtSecurityFilter() {
 
-        return new JwtSecurityFilter(
+        return new JwtSecurityWebFilter(
                 properties.getJwt(),
-                appInfoWebExchangeMatcher);
+                appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
+                staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher);
 
     }
 
@@ -60,7 +73,8 @@ public class WebSecurityConfiguration {
                 .cors().disable()
                 .anonymous().disable()
                 .authorizeExchange()
-                        .matchers(appInfoWebExchangeMatcher)
+                        .matchers(appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
+                                staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher)
                                 .permitAll()
                         .anyExchange()
                                 .authenticated()
@@ -73,7 +87,7 @@ public class WebSecurityConfiguration {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(jwtLogoutSuccessHandler()))
-                .addFilterAfter(jwtSecurityFilter(), SecurityWebFiltersOrder.REACTOR_CONTEXT);
+                .addFilterAfter(jwtSecurityFilter(), SecurityWebFiltersOrder.HTTP_BASIC);
             
         return http.build();
         
@@ -95,7 +109,7 @@ public class WebSecurityConfiguration {
         final var user = User.builder()
                 .username("test")
                 .password("{noop}test")
-                .roles()
+                .roles("TEST")
                 .build();
         return new MapReactiveUserDetailsService(user);
         
@@ -103,10 +117,9 @@ public class WebSecurityConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(name = "userDetailsProvider")
-    public UserDetailsProvider userDetailsProvider(
-            final MapReactiveUserDetailsService userDetailsService) {
+    public ReactiveUserDetailsProvider userDetailsProvider() {
         
-        return new BasicUserDetailsProvider(userDetailsService);
+        return new ReactiveJwtUserDetailsProvider();
         
     }
     

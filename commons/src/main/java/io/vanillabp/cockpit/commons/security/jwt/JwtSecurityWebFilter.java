@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
@@ -16,7 +17,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.spec.SecretKeySpec;
@@ -25,15 +25,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class JwtSecurityFilter implements WebFilter {
+public class JwtSecurityWebFilter implements WebFilter {
     
-    private static final Logger logger = LoggerFactory.getLogger(JwtSecurityFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(JwtSecurityWebFilter.class);
     
     private final JwtProperties properties;
 
     private final List<ServerWebExchangeMatcher> unprotectedExchangeMatchers;
     
-    public JwtSecurityFilter(
+    public JwtSecurityWebFilter(
             final JwtProperties properties,
             final ServerWebExchangeMatcher... unprotectedExchangeMatchers) {
 
@@ -46,14 +46,41 @@ public class JwtSecurityFilter implements WebFilter {
     public Mono<Void> filter(
             final ServerWebExchange exchange,
             final WebFilterChain chain) {
-        
+
+        JwtAuthenticationToken auth = null;
+        try {
+            auth = processJwtToken(exchange);
+        } catch (Exception e) {
+            logger.error("Cannot process JWT token", e);
+            clearCookie(properties, exchange);
+        }
+        if (auth == null) {
+            return chain.filter(exchange);
+        }
+
+        final var securityContext = new SecurityContextImpl();
+        securityContext.setAuthentication(auth);
+        return chain
+                .filter(exchange)
+                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
+
+        /*
+        return unprotectedExchangeMatchers
+                .get(unprotectedExchangeMatchers.size() - 1)
+                .matches(exchange)
+                .filter(ServerWebExchangeMatcher.MatchResult::isMatch)
+                .flatMap(result -> chain.filter(exchange))
+                .switchIfEmpty(chain.filter(exchange));
+*/
+                            /*
         return Flux
                 .fromIterable(unprotectedExchangeMatchers)  // for each matcher
-                .filterWhen(matcher -> matcher              // test for matching unprotected URLs
-                        .matches(exchange)
-                        .map(result -> !result.isMatch()))
-                .next()                                     // switch from Flux to Mono
-                .flatMap(unprotectedExchangeMapper -> chain.filter(exchange)) // proceed with chain for unprotected URLs
+                .flatMap(matcher -> matcher.matches(exchange))
+                .filter(ServerWebExchangeMatcher.MatchResult::isMatch)
+                .flatMap(found -> chain.filter(exchange))
+                .next()
+                .switchIfEmpty(chain.filter(exchange).then(Mono.empty()));
+                //.flatMap(unprotectedExchangeMapper -> chain.filter(exchange)) // proceed with chain for unprotected URLs
                 .switchIfEmpty(                             // set authentication for protected URLs
                         Mono.defer(() -> {
                             JwtAuthenticationToken auth = null;
@@ -65,17 +92,15 @@ public class JwtSecurityFilter implements WebFilter {
                             }
                             if (auth != null) {
                                 // https://stackoverflow.com/questions/77219897/spring-webflux-avoid-reauthentication-by-basic-after-custom-auth-filter
-                                /*
-                                final var newRequest = exchange
-                                        .getRequest()
-                                        .mutate()
-                                        .headers(h -> h.remove(HttpHeaders.AUTHORIZATION))
-                                        .build();
-                                final var newExchange = exchange
-                                        .mutate()
-                                        .request(newRequest)
-                                        .build();
-                                 */
+//                                final var newRequest = exchange
+//                                        .getRequest()
+//                                        .mutate()
+//                                        .headers(h -> h.remove(HttpHeaders.AUTHORIZATION))
+//                                        .build();
+//                                final var newExchange = exchange
+//                                        .mutate()
+//                                        .request(newRequest)
+//                                        .build();
                                 final var securityContext = new SecurityContextImpl();
                                 securityContext.setAuthentication(auth);
                                 return chain
@@ -84,6 +109,7 @@ public class JwtSecurityFilter implements WebFilter {
                             }
                             return chain.filter(exchange);
                         }));
+                            */
 /*
                 .doFinally(signal -> {                      // cleanup authentication after chain processing
                     SecurityContextHolder
@@ -95,7 +121,7 @@ public class JwtSecurityFilter implements WebFilter {
 */
 
     }
-    
+
     public static void clearCookie(
             final JwtProperties properties,
             final ServerWebExchange exchange) {
@@ -144,15 +170,44 @@ public class JwtSecurityFilter implements WebFilter {
                 .getValue();
 
     }
-    
+
+    private String resolveToken(
+            final ServerHttpResponse request) {
+
+        // Common user requests
+        final var cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+
+        final var cookieValues = cookies.get(properties.getCookie().getName());
+        if ((cookieValues == null) || cookieValues.isEmpty()) {
+            return null;
+        }
+
+        if (cookieValues.size() > 1) {
+            logger.warn("Got more than one cookie named '{}': {}. Will use the first!",
+                    cookies,
+                    properties.getCookie().getName());
+        }
+
+        return cookieValues
+                .get(0)
+                .getValue();
+
+    }
+
     private JwtAuthenticationToken processJwtToken(
-            final ServerHttpRequest request) {
-        
-        final var token = resolveToken(request);
+            final ServerWebExchange exchange) {
+
+        String token = resolveToken(exchange.getRequest());
+        if (!StringUtils.hasText(token)) {
+            token = resolveToken(exchange.getResponse());
+        }
         if (!StringUtils.hasText(token)) {
             return null;
         }
-        
+
         final var jwt = buildJwt(token);
 
         final Collection<? extends GrantedAuthority> authorities;

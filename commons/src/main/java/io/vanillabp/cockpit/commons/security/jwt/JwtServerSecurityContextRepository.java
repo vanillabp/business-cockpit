@@ -41,6 +41,14 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
 
         try {
 
+            if (!exchange
+                    .getRequest()
+                    .getCookies()
+                    .getOrDefault(properties.getCookie().getName(), List.of())
+                    .isEmpty()) {
+                return Mono.empty();
+            }
+
             final var expiresDuration = Duration
                     .parse(properties.getCookie().getExpiresDuration());
             final var expiresAt = Instant

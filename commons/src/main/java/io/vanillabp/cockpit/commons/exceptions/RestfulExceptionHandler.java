@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -46,7 +48,10 @@ public class RestfulExceptionHandler {
 
     }
 
-    @ExceptionHandler(BcForbiddenException.class)
+    @ExceptionHandler({
+            BcForbiddenException.class,
+            AccessDeniedException.class
+    })
     public ResponseEntity<String> handleForbiddenException(
             final Exception exception) {
 
@@ -54,6 +59,21 @@ public class RestfulExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
+                .body(exception.getMessage());
+
+    }
+
+    @ExceptionHandler({
+            BcUnauthorizedException.class,
+            AuthenticationCredentialsNotFoundException.class
+    })
+    public ResponseEntity<String> handleUnauthorizedException(
+            final Exception exception) {
+
+        logger.debug("Unauthorized", exception);
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(exception.getMessage());
 
     }

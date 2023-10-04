@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
-import io.vanillabp.cockpit.commons.utils.UserDetails;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -35,7 +35,7 @@ public class JwtUserDetails implements UserDetails {
         final var givenName = getJwt().getClaimAsString("given_name");
         if ((givenName == null)
                 && (name == null)) {
-            return getJwt().getSubject();
+            return null;
         }
         if (givenName == null) {
             final var posOfSeparator = name.indexOf(' ');
