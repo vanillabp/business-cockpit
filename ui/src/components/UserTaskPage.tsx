@@ -1,4 +1,4 @@
-import { FC, ReactElement, useEffect, useState } from 'react';
+import { FC, ReactElement, useEffect, useRef, useState } from 'react';
 import { BcUserTask, ShowLoadingIndicatorFunction, ToastFunction, UserTaskAppLayout } from '@vanillabp/bc-shared';
 import {
   ModuleDefinition,
@@ -14,15 +14,22 @@ import { TranslationFunction } from "../types/translate";
 const loadUserTask = (
     tasklistApi: OfficialTasklistApi,
     userTaskId: string,
-    setUserTask: (userTask: UserTask | null) => void,
+    setUserTask: (userTask: BcUserTask | null) => void,
+    navigateToWorkflow: (userTask: UserTask) => void,
+    openTask: (userTask: UserTask) => void,
 ) => {
   tasklistApi.getUserTask({ userTaskId, markAsRead: true })
-      .then((value: UserTask | null) => {
-        setUserTask(value);
+      .then((value: UserTask) => {
+        const bcUserTask: BcUserTask = {
+          ...value,
+          open: () => openTask(value),
+          navigateToWorkflow: () => navigateToWorkflow(value),
+        };
+        setUserTask(bcUserTask);
       }).catch((error: any) => {
-    setUserTask(null);
-    console.warn(error);
-  });
+        setUserTask(null);
+        console.warn(error);
+      });
 };
 
 interface UserTaskPageProps {
@@ -48,13 +55,19 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
 }: UserTaskPageProps) => {
 
   const tasklistApi = useTasklistApi();
-  const [ userTask, setUserTask ] = useState<UserTask | null>();
+  const [ userTask, setUserTask ] = useState<BcUserTask | null>();
+  const formRef = useRef<() => ReactElement>();
 
   useEffect(() => {
     if (userTaskId == undefined) {
       return;
     }
-    loadUserTask(tasklistApi, userTaskId, setUserTask);
+    loadUserTask(
+        tasklistApi,
+        userTaskId,
+        setUserTask,
+        userTask => navigateToWorkflow(userTask),
+        userTask => openTask(userTask));
   }, [ userTaskId ]); //eslint-disable-line react-hooks/exhaustive-deps -- should only be executed on change of userTaskId
 
   const module = useFederationModule(userTask as ModuleDefinition, 'UserTaskForm');
@@ -64,8 +77,10 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
         showLoadingIndicator(true);
         return;
       }
+      const Form = module.UserTaskForm!;
+      formRef.current = () => <Form userTask={ userTask! } />;
       showLoadingIndicator(false);
-    }, [ module, showLoadingIndicator ]);
+    }, [ module, showLoadingIndicator, formRef ]);
 
   if (userTask === undefined) {
     return <NoUserTaskGiven
@@ -78,7 +93,12 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     return <NoUserTaskGiven
         showLoadingIndicator={ showLoadingIndicator }
         t={ t }
-        retry={ () => loadUserTask(tasklistApi, userTaskId, setUserTask) }/>;
+        retry={ () => loadUserTask(
+            tasklistApi,
+            userTaskId,
+            setUserTask,
+            userTask => navigateToWorkflow(userTask),
+            userTask => openTask(userTask)) }/>;
   }
 
   document.title = userTask!.title.de;
@@ -89,7 +109,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
               t={ t }
               showLoadingIndicator={ showLoadingIndicator } />
   }
-  if (!module || (module.buildTimestamp === undefined)) {
+  if (!module || (module.buildTimestamp === undefined) || !formRef.current) {
     return <NoUserTaskGiven
               loading
               t={ t }
@@ -103,12 +123,12 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
       navigateToWorkflow: () => navigateToWorkflow(userTask),
     };
 
-  const ParameterizedForm = () => <Form userTask={ bcUserTask } />;
+  const ParameterizedForm: () => ReactElement = formRef.current!;
   return children === undefined
       ? <UserTaskAppLayout>
           <ParameterizedForm />
         </UserTaskAppLayout>
-      : children(bcUserTask, ParameterizedForm);
+      : children(userTask, ParameterizedForm);
 
 }
 
