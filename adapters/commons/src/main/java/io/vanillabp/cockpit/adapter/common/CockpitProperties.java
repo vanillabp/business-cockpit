@@ -1,10 +1,10 @@
 package io.vanillabp.cockpit.adapter.common;
 
-import java.util.List;
-
+import io.vanillabp.cockpit.commons.rest.adapter.Client;
+import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import io.vanillabp.cockpit.commons.rest.adapter.Client;
+import java.util.List;
 
 @ConfigurationProperties(prefix = CockpitProperties.PREFIX, ignoreUnknownFields = true)
 public class CockpitProperties {
@@ -22,6 +22,8 @@ public class CockpitProperties {
     private boolean workflowListEnabled = true;
     
     private String templateLoaderPath;
+
+    private JwtProperties jwt = new JwtProperties();
     
     public Client getClient() {
         return client;
@@ -70,5 +72,13 @@ public class CockpitProperties {
     public void setTemplateLoaderPath(String templateLoaderPath) {
         this.templateLoaderPath = templateLoaderPath;
     }
-    
+
+    public JwtProperties getJwt() {
+        return jwt;
+    }
+
+    public void setJwt(JwtProperties jwt) {
+        this.jwt = jwt;
+    }
+
 }
