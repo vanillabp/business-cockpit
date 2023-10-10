@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import i18n from 'i18next';
-import i18next from 'i18next';
 import { OfficialTasklistApi, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
 import {
@@ -31,18 +28,7 @@ import {
   TypeOfItem,
   useFederationModules
 } from '../index.js';
-import { useNavigate } from 'react-router-dom';
-
-i18n.addResources('en', 'tasklist/list', {
-      "total": "Total:",
-      "no": "No.",
-      "name": "task",
-    });
-i18n.addResources('de', 'tasklist/list', {
-      "total": "Anzahl:",
-      "no": "Nr.",
-      "name": "Aufgabe",
-    });
+import { TranslationFunction } from "../types/translate";
 
 const loadUserTasks = async (
   tasklistApi: OfficialTasklistApi,
@@ -114,11 +100,12 @@ interface DefinitionOfUserTask {
 
 const ListOfTasks = ({
     showLoadingIndicator,
-    toast,
     useGuiSse,
     useTasklistApi,
     openTask,
     navigateToWorkflow,
+    t,
+    currentLanguage,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     toast: ToastFunction,
@@ -126,13 +113,12 @@ const ListOfTasks = ({
     useTasklistApi: TasklistApiHook,
     openTask: OpenTaskFunction,
     navigateToWorkflow: NavigateToWorkflowFunction,
+    t: TranslationFunction,
+    currentLanguage: string,
 }) => {
 
   const { isNotPhone } = useResponsiveScreen();
-  const { t } = useTranslation('tasklist/list');
-  const { t: tApp } = useTranslation('app');
-  const navigate = useNavigate();
-  
+
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   
@@ -235,7 +221,7 @@ const ListOfTasks = ({
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<BcUserTask>) => {
-                const title = item.data['title'][i18next.language] || item.data['title']['en'];
+                const title = item.data['title'][currentLanguage] || item.data['title']['en'];
               return (
                     <Box
                         fill
@@ -260,14 +246,15 @@ const ListOfTasks = ({
               ? []
               : columnsOfTasks!.map(column => ({
                     property: column.path,
-                    header: column.title[i18next.language] || column.title['en'],
+                    header: column.title[currentLanguage] || column.title['en'],
                     size: column.width,
                     plain: true,
                     render: (item: ListItem<BcUserTask>) => <ListCell
                                                               modulesAvailable={ modules! }
                                                               column={ column }
-                                                              currentLanguage={ i18next.language }
+                                                              currentLanguage={ currentLanguage }
                                                               typeOfItem={ TypeOfItem.TaskList }
+                                                              t={ t }
                                                               // @ts-ignore
                                                               item={ item } />
                   }))
@@ -277,8 +264,8 @@ const ListOfTasks = ({
   const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
       return {
           ...userTask,
-          open: () => openTask(userTask, toast, tApp),
-          navigateToWorkflow: () => navigateToWorkflow(userTask, toast, tApp, navigate),
+          open: () => openTask(userTask),
+          navigateToWorkflow: () => navigateToWorkflow(userTask),
         };
     };
   
@@ -292,7 +279,6 @@ const ListOfTasks = ({
               ? <Box key="list"></Box>
               : <Box key="list">
                     <SearchableAndSortableUpdatingList
-                        t={ t }
                         showLoadingIndicator={ showLoadingIndicator }
                         columns={ columns }
                         itemsRef={ userTasks }

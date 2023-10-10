@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import i18n from 'i18next';
-import i18next from 'i18next';
 import { OfficialWorkflowlistApi, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
 import {
@@ -16,7 +13,6 @@ import {
   Link,
   ListItemStatus,
   ShowLoadingIndicatorFunction,
-  ToastFunction,
   useResponsiveScreen,
   WakeupSseCallback
 } from "@vanillabp/bc-shared";
@@ -33,26 +29,7 @@ import {
   useFederationModules,
   WorkflowlistApiHook
 } from '../index.js';
-import { useNavigate } from 'react-router-dom';
-
-i18n.addResources('en', 'workflowlist/list', {
-      "total": "Total:",
-      "no": "No.",
-      "name": "Workflow",
-      "project": "Project",
-      "gremium": "Committee",
-      "unsupported-ui-uri-type_title": "Open workflow",
-      "unsupported-ui-uri-type_message": "Internal error: The workflow refers to an unsupported UI-URI-type!",
-    });
-i18n.addResources('de', 'workflowlist/list', {
-      "total": "Anzahl:",
-      "no": "Nr.",
-      "name": "Workflow",
-      "project": "Projekt",
-      "gremium": "Gremium",
-      "unsupported-ui-uri-type_title": "Workflow öffnen",
-      "unsupported-ui-uri-type_message": "Internes Problem: Der Workflow bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
-    });
+import { TranslationFunction } from "../types/translate";
 
 const loadWorkflows = async (
   workflowlistApi: OfficialWorkflowlistApi,
@@ -125,25 +102,24 @@ interface DefinitionOfWorkflow {
 
 const ListOfWorkflows = ({
   showLoadingIndicator,
-  toast,
   useGuiSse,
   useWorkflowlistApi,
   openTask,
   navigateToWorkflow,
+  currentLanguage,
+  t,
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
-  toast: ToastFunction,
   useGuiSse: GuiSseHook,
   useWorkflowlistApi: WorkflowlistApiHook,
   openTask: OpenTaskFunction,
   navigateToWorkflow: NavigateToWorkflowFunction,
+  currentLanguage: string,
+  t: TranslationFunction,
 }) => {
 
   const { isNotPhone } = useResponsiveScreen();
-  const { t: tApp } = useTranslation('app');
-  const { t } = useTranslation('workflowlist/list');
-  const navigate = useNavigate();
-  
+
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
 
@@ -228,7 +204,7 @@ const ListOfWorkflows = ({
   }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows ]);
 
   const openWorkflow = async (workflow: Workflow) => {
-    navigate(`./${workflow.id}`);
+    navigateToWorkflow(workflow);
   };
     
   const columns: ColumnConfig<ListItem<BcWorkflow>>[] =
@@ -252,7 +228,7 @@ const ListOfWorkflows = ({
             header: t('name'),
             size: `calc(100% - 2.2rem${columnsOfWorkflows === undefined ? 'x' : columnsOfWorkflows!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
             render: (item: ListItem<BcWorkflow>) => {
-                const title = item.data['title'][i18next.language] || item.data['title']['en'];
+                const title = item.data['title'][currentLanguage] || item.data['title']['en'];
                 return (
                     <Box
                         fill
@@ -277,13 +253,14 @@ const ListOfWorkflows = ({
               ? []
               : columnsOfWorkflows!.map(column => ({
                     property: column.path,
-                    header: column.title[i18next.language] || column.title['en'],
+                    header: column.title[currentLanguage] || column.title['en'],
                     size: column.width,
                     plain: true,
                     render: (item: ListItem<BcWorkflow>) => <ListCell
                                                               modulesAvailable={ modules! }
                                                               column={ column }
-                                                              currentLanguage={ i18next.language }
+                                                              currentLanguage={ currentLanguage }
+                                                              t={ t }
                                                               typeOfItem={ TypeOfItem.WorkflowList }
                                                               // @ts-ignore
                                                               item={ item } />
@@ -304,7 +281,7 @@ const ListOfWorkflows = ({
               }))
               .map(userTask => ({
                 ...userTask,
-                open: () => openTask(userTask, toast, tApp),
+                open: () => openTask(userTask),
                 navigateToWorkflow: () => {}, // don't change view because workflow is already shown
               } as BcUserTask));
         };

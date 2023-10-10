@@ -1,24 +1,43 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { ListOfTasks } from '@vanillabp/bc-ui';
 import i18n from 'i18next';
+import i18next from 'i18next';
 import { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
 import { useTasklistApi } from "../../utils/apis";
 import { useGuiSse } from "../../client/guiClient";
 import { navigateToWorkflow, openTask } from "../../utils/navigate";
+import { useTranslation } from "react-i18next";
 
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Tasks',
       "title.short": 'Tasks',
+      "total": "Total:",
+      "no": "No.",
+      "name": "task",
+      "module-unknown": "Unknown module",
+      "retry-loading-module-hint": "Unfortunately, the task cannot be shown at the moment!",
+      "retry-loading-module": "Retry loading...",
+      "typeofitem_unsupported": "Wrong type",
     });
 i18n.addResources('de', 'tasklist', {
       "title.long": 'Aufgaben',
       "title.short": 'Aufgaben',
+      "total": "Anzahl:",
+      "no": "Nr.",
+      "name": "Aufgabe",
+      "module-unknown": "Unbekanntes Modul",
+      "retry-loading-module-hint": "Leider ist derzeit kein Zugriff auf die Aufgabe möglich!",
+      "retry-loading-module-": "Laden nochmals probieren...",
+      "typeofitem_unsupported": "Typfehler",
     });
 
 const Main = () => {
 
   const { setAppHeaderTitle, showLoadingIndicator, toast } = useAppContext();
+  const { t: tApp } = useTranslation('app');
+  const { t } = useTranslation('tasklist');
+  const navigate = useNavigate();
 
   useLayoutEffect(() => {
     setAppHeaderTitle('tasklist', false);
@@ -31,8 +50,14 @@ const Main = () => {
                                   toast={ toast }
                                   useTasklistApi={ useTasklistApi }
                                   useGuiSse={ useGuiSse }
-                                  openTask={ openTask }
-                                  navigateToWorkflow={ navigateToWorkflow } />} />
+                                  t={ t }
+                                  currentLanguage={ i18next.language }
+                                  openTask={
+                                      (userTask) =>
+                                          openTask(userTask, toast, tApp) }
+                                  navigateToWorkflow={
+                                      (userTask) =>
+                                          navigateToWorkflow(userTask, toast, tApp, navigate) } />} />
     </Routes>);
 }
 

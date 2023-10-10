@@ -1,8 +1,7 @@
 import { Toast } from "@vanillabp/bc-shared";
 import { TFunction } from "i18next";
 import { NavigateFunction } from 'react-router-dom';
-import { NavigateToWorkflowFunction, OpenTaskFunction } from '@vanillabp/bc-ui';
-import { UserTask } from "@vanillabp/bc-official-gui-client";
+import { UserTask, Workflow } from "@vanillabp/bc-official-gui-client";
 
 interface KnownWindowsOpened {
    [key: string]: Window;
@@ -10,7 +9,7 @@ interface KnownWindowsOpened {
 
 const windowsOpened: KnownWindowsOpened = {};
 
-const openTask: OpenTaskFunction = (
+const openTask = (
   userTask: UserTask,
   toast: (toast: Toast) => void,
   t: TFunction
@@ -44,13 +43,16 @@ const openTask: OpenTaskFunction = (
   }
 };
     
-const navigateToWorkflow: NavigateToWorkflowFunction = (
-  userTask: UserTask,
+const navigateToWorkflow = (
+  workflowDefinition: UserTask | Workflow,
   toast: (toast: Toast) => void,
   t: TFunction,
   navigate: NavigateFunction,
 ) => {
-  if (userTask.uiUriType !== 'WEBPACK_MF_REACT') {
+  const workflowId = 'workflowId' in workflowDefinition
+      ? (workflowDefinition as UserTask).workflowId
+      : workflowDefinition.id;
+  if (workflowDefinition.uiUriType !== 'WEBPACK_MF_REACT') {
     toast({
         namespace: 'tasklist/list',
         title: t('unsupported-ui-uri-type_title'),
@@ -60,7 +62,7 @@ const navigateToWorkflow: NavigateToWorkflowFunction = (
     return;
   }
   
-  navigate(`/${ t('url-workflowlist') }/${userTask.workflowId}`)  
-}; 
+  navigate(`/${ t('url-workflowlist') }/${workflowId}`)
+};
 
 export { openTask, navigateToWorkflow };

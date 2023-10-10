@@ -1,8 +1,7 @@
 import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Text } from 'grommet';
 import { SnapAlignBox, SnapScrollingGrid } from './SnapScrolling.js';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
-import React, { forwardRef, PropsWithChildren, ReactNode, UIEventHandler } from 'react';
-import { ReactI18NextChild } from "react-i18next";
+import React, { forwardRef, PropsWithChildren, ReactElement, ReactNode, UIEventHandler } from 'react';
 
 interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<Omit<DataTableExtendedProps<TRowType>, 'columns'>> {
   additionalHeader?: ReactNode | undefined;
@@ -92,7 +91,7 @@ const SnapScrollingDataTable = forwardRef(({
                             truncate='tip'>{
                           column.header
                         }</Text>
-                      : column.header as ReactI18NextChild
+                      : column.header as ReactElement
                 }
               </SnapAlignBox>)
             }</Box>

@@ -8,9 +8,8 @@ import {
   TasklistApiHook,
   useFederationModule
 } from '../index.js';
-import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { OfficialTasklistApi, UserTask } from "@vanillabp/bc-official-gui-client";
+import { TranslationFunction } from "../types/translate";
 
 const loadUserTask = (
     tasklistApi: OfficialTasklistApi,
@@ -33,6 +32,7 @@ interface UserTaskPageProps {
   openTask: OpenTaskFunction;
   navigateToWorkflow: NavigateToWorkflowFunction;
   useTasklistApi: TasklistApiHook;
+  t: TranslationFunction,
   children?: (userTask: BcUserTask, Form: () => ReactElement) => JSX.Element;
 };
 
@@ -43,11 +43,10 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     openTask,
     navigateToWorkflow,
     useTasklistApi,
+    t,
     children,
 }: UserTaskPageProps) => {
 
-  const { t: tApp } = useTranslation('app');
-  const navigate = useNavigate();
   const tasklistApi = useTasklistApi();
   const [ userTask, setUserTask ] = useState<UserTask | null>();
 
@@ -71,12 +70,14 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
   if (userTask === undefined) {
     return <NoUserTaskGiven
         loading={ true }
+        t={ t }
         showLoadingIndicator={ showLoadingIndicator } />;
   }
 
   if (userTask === null) {
     return <NoUserTaskGiven
         showLoadingIndicator={ showLoadingIndicator }
+        t={ t }
         retry={ () => loadUserTask(tasklistApi, userTaskId, setUserTask) }/>;
   }
 
@@ -85,19 +86,21 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
   if (module?.retry) {
     return <NoUserTaskGiven
               retry={ module.retry }
+              t={ t }
               showLoadingIndicator={ showLoadingIndicator } />
   }
   if (!module || (module.buildTimestamp === undefined)) {
     return <NoUserTaskGiven
               loading
+              t={ t }
               showLoadingIndicator={ showLoadingIndicator} />
   }
     
   const Form = module.UserTaskForm!;
   const bcUserTask: BcUserTask = {
       ...userTask,
-      open: () => openTask(userTask, toast, tApp),
-      navigateToWorkflow: () => navigateToWorkflow(userTask, toast, tApp, navigate),
+      open: () => openTask(userTask),
+      navigateToWorkflow: () => navigateToWorkflow(userTask),
     };
 
   const ParameterizedForm = () => <Form userTask={ bcUserTask } />;
