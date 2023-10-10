@@ -58,6 +58,16 @@
               <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared</arguments>
             </configuration>
           </execution>
+          <execution>
+            <id>link-for-other-packages</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>link</arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>

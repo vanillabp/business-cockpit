@@ -12,6 +12,18 @@
   <name>Spring Boot controller for serving the official GUI API</name>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <filtering>false</filtering>
+        <directory>../openapi</directory>
+        <includes>
+          <include>*.yaml</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.openapitools</groupId>
