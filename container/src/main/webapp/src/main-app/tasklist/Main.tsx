@@ -19,6 +19,10 @@ i18n.addResources('en', 'tasklist', {
       "retry-loading-module-hint": "Unfortunately, the task cannot be shown at the moment!",
       "retry-loading-module": "Retry loading...",
       "typeofitem_unsupported": "Wrong type",
+      "legend_new": "New",
+      "legend_completed": "Completed",
+      "legend_updated": "Updated",
+      "legend_unchanged": "Unchanged",
     });
 i18n.addResources('de', 'tasklist', {
       "title.long": 'Aufgaben',
@@ -30,6 +34,10 @@ i18n.addResources('de', 'tasklist', {
       "retry-loading-module-hint": "Leider ist derzeit kein Zugriff auf die Aufgabe möglich!",
       "retry-loading-module-": "Laden nochmals probieren...",
       "typeofitem_unsupported": "Typfehler",
+      "legend_new": "Neu",
+      "legend_completed": "Abgeschlossen",
+      "legend_updated": "Aktualisiert",
+      "legend_unchanged": "Unverändert",
     });
 
 const Main = () => {
@@ -47,7 +55,6 @@ const Main = () => {
     <Routes>
       <Route path='/' element={<ListOfTasks
                                   showLoadingIndicator={ showLoadingIndicator }
-                                  toast={ toast }
                                   useTasklistApi={ useTasklistApi }
                                   useGuiSse={ useGuiSse }
                                   t={ t }

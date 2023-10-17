@@ -1,10 +1,9 @@
 package io.vanillabp.cockpit.tasklist.model;
 
+import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -78,6 +77,41 @@ public class UserTask implements UpdateInformationAware {
     private Map<String, Object> details = null;
 
     private String detailsFulltextSearch;
+
+    private Map<String, OffsetDateTime> readBy;
+
+    public OffsetDateTime getReadAt(final String userId) {
+
+        if (userId == null) {
+            return null;
+        }
+        if (this.getReadBy() == null) {
+            return null;
+        }
+        return this.getReadBy().get(userId);
+
+    }
+
+    public void setReadAt(
+            final String userId) {
+
+        if (this.getReadBy() == null) {
+            this.setReadBy(Map.of(userId, OffsetDateTime.now()));
+        } else {
+            this.getReadBy().put(userId, OffsetDateTime.now());
+        }
+
+    }
+
+    public void clearReadAt(
+            final String userId) {
+
+        if (this.getReadBy() == null) {
+            return;
+        }
+        this.getReadBy().remove(userId);
+
+    }
 
     public String getId() {
         return id;
@@ -326,6 +360,14 @@ public class UserTask implements UpdateInformationAware {
     
     public void setSubWorkflowId(String subWorkflowId) {
         this.subWorkflowId = subWorkflowId;
+    }
+
+    public Map<String, OffsetDateTime> getReadBy() {
+        return readBy;
+    }
+
+    public void setReadBy(Map<String, OffsetDateTime> readBy) {
+        this.readBy = readBy;
     }
 
 }

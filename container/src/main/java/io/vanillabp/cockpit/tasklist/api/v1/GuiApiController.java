@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import io.vanillabp.cockpit.commons.utils.UserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.Page;
@@ -29,6 +30,9 @@ public class GuiApiController implements OfficialTasklistApi {
 
 	@Autowired
 	private UserTaskService userTaskService;
+
+	@Autowired
+	private UserContext userContext;
 	
 	@Autowired
 	private GuiApiMapper mapper;
@@ -59,19 +63,21 @@ public class GuiApiController implements OfficialTasklistApi {
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-		final var tasks = userTaskService.getUserTasks(
-				pageNumber,
-				pageSize,
-				timestamp);
+		final var tasksAndUser = Mono.zip(
+				userTaskService.getUserTasks(
+						pageNumber,
+						pageSize,
+						timestamp),
+				userContext.getUserLoggedInAsMono());
 
-		return tasks.map(page -> ResponseEntity.ok(
+		return tasksAndUser.map(tnu -> ResponseEntity.ok(
 		        new UserTasks()
         				.page(new Page()
-        						.number(page.getNumber())
-        						.size(page.getSize())
-        						.totalElements(page.getTotalElements())
-        						.totalPages(page.getTotalPages()))
-        				.userTasks(mapper.toApi(page.getContent()))
+        						.number(tnu.getT1().getNumber())
+        						.size(tnu.getT1().getSize())
+        						.totalElements(tnu.getT1().getTotalElements())
+        						.totalPages(tnu.getT1().getTotalPages()))
+        				.userTasks(mapper.toApi(tnu.getT1().getContent(), tnu.getT2()))
         				.serverTimestamp(timestamp)));
 		
 	}
@@ -90,7 +96,8 @@ public class GuiApiController implements OfficialTasklistApi {
                                 entry.getT1().getSize(),
                                 entry.getT1().getKnownUserTasksIds(),
                                 entry.getT2()),
-                        Mono.just(entry.getT2())))
+                        Mono.just(entry.getT2()),
+						userContext.getUserLoggedInAsMono()))
                 .map(entry -> ResponseEntity.ok(
                         new UserTasks()
                                 .page(new Page()
@@ -98,7 +105,7 @@ public class GuiApiController implements OfficialTasklistApi {
                                         .size(entry.getT1().getSize())
                                         .totalElements(entry.getT1().getTotalElements())
                                         .totalPages(entry.getT1().getTotalPages()))
-                                .userTasks(mapper.toApi(entry.getT1().getContent()))
+                                .userTasks(mapper.toApi(entry.getT1().getContent(), entry.getT3()))
                                 .serverTimestamp(entry.getT2())))
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
             
@@ -107,14 +114,57 @@ public class GuiApiController implements OfficialTasklistApi {
     @Override
     public Mono<ResponseEntity<UserTask>> getUserTask(
             final String userTaskId,
+			final Boolean markAsRead,
             final ServerWebExchange exchange) {
-        
-        return userTaskService
-                .getUserTask(userTaskId)
-                .map(mapper::toApi)
+
+		final var taskAndUser = Mono.zip(
+				userTaskService.getUserTask(userTaskId),
+				userContext.getUserLoggedInAsMono());
+
+        return taskAndUser
+				.flatMap(tnu -> {
+					final var readAt = tnu.getT1().getReadAt(tnu.getT2());
+					final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> userTask;
+					if ((markAsRead == null)        // not required to
+							|| !markAsRead          // mark as read or
+							|| (readAt != null)) {  // already read by current user
+						userTask = Mono.just(tnu.getT1());
+					} else {                        // to be marked as read by current user
+						userTask = userTaskService
+								.markAsRead(tnu.getT1().getId(), tnu.getT2());
+					}
+					return Mono.zip(userTask, Mono.just(tnu.getT2()));
+				})
+				.map(tnu -> mapper.toApi(tnu.getT1(), tnu.getT2())
+				)
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-        
+
     }
-    
+
+	@Override
+	public Mono<ResponseEntity<Void>> usertaskUserTaskIdMarkAsReadPatch(
+			final String userTaskId,
+			final Boolean unread,
+			final ServerWebExchange exchange) {
+
+		final var currentUser = userContext
+				.getUserLoggedInAsMono();
+
+		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
+		if ((unread != null) && unread) {
+			result = currentUser
+					.flatMap(userId -> userTaskService.markAsUnread(userTaskId, userId));
+		} else {
+			result = currentUser
+					.flatMap(userId -> userTaskService.markAsRead(userTaskId, userId));
+
+		}
+
+		return result
+                .map(userTask -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
 }

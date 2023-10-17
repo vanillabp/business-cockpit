@@ -14,6 +14,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "readBy", ignore = true)
+    @Mapping(target = "readAt", ignore = true)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
     
     @Mapping(target = "id", ignore = true)
@@ -22,6 +24,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "readBy", ignore = true)
+    @Mapping(target = "readAt", ignore = true)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
     
 }

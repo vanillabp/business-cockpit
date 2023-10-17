@@ -61,7 +61,6 @@ const navigateToWorkflow = (
       });
     return;
   }
-  
   navigate(`/${ t('url-workflowlist') }/${workflowId}`)
 };
 

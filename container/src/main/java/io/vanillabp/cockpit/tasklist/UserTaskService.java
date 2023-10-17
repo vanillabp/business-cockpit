@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.tasklist;
 
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.stream.Collectors;
-
+import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
+import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -14,16 +16,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.stereotype.Service;
-
-import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
-import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 @Service
 public class UserTaskService {
@@ -91,7 +90,31 @@ public class UserTaskService {
         return userTasks.findById(userTaskId);
         
     }
-    
+
+    public Mono<UserTask> markAsRead(
+            final String userTaskId,
+            final String userId) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    userTask.setReadAt(userId);
+                    return userTasks.save(userTask);
+                });
+
+    }
+
+    public Mono<UserTask> markAsUnread(
+            final String userTaskId,
+            final String userId) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    userTask.clearReadAt(userId);
+                    return userTasks.save(userTask);
+                });
+
+    }
+
     public Mono<Page<UserTask>> getUserTasks(
 			final int pageNumber,
 			final int pageSize,

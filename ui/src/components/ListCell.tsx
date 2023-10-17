@@ -16,6 +16,7 @@ interface ListCellParameters<T extends ListItemData> {
   typeOfItem: TypeOfItem;
   item: ListItem<T>;
   t: TranslationFunction;
+  showUnreadAsBold?: boolean;
 }
 
 const ListCell = <T extends ListItemData & ModuleDefinition, >({
@@ -25,7 +26,8 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   currentLanguage,
   typeOfItem,
   item,
-  t
+  t,
+  showUnreadAsBold,
 }: ListCellParameters<T>) => {
   
   const module = modulesAvailable.find((module => item.data.workflowModule === module.workflowModule));
@@ -63,6 +65,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   return <Cell
             item={ item }
             column={ column }
+            showUnreadAsBold={ showUnreadAsBold }
             defaultCell={ DefaultListCell } />;
   
 }

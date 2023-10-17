@@ -1,4 +1,4 @@
-import React, { MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
+import React, { MutableRefObject, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from './SnapScrollingDataTable.js';
 import { ListItemStatus, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
@@ -11,6 +11,7 @@ export type ListItemData = {
   createdAt: Date,
   updatedAt: Date,
   endedAt?: Date,
+  read?: Date;
 };
 
 export interface ListItem<T extends ListItemData> {
@@ -19,6 +20,7 @@ export interface ListItem<T extends ListItemData> {
   data: T;
   status: ListItemStatus;
   selected: boolean;
+  read?: Date;
 };
 
 export interface ListItems<T extends ListItemData> {
@@ -31,6 +33,8 @@ type RetrieveItemsFunction = <T extends ListItemData>(pageNumber: number, pageSi
 type ReloadItemsFunction = <T extends ListItemData>(numberOfItems: number, knownItemsIds: Array<string>, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
 export type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
+
+export type RefreshItemCallbackFunction = (itemIds: Array<string>) => void;
 
 const loadItems = async <T extends ListItemData>(
   retrieveItems: RetrieveItemsFunction,
@@ -61,6 +65,7 @@ const loadItems = async <T extends ListItemData>(
           number: currentNumberOfItems + index,
           selected: false,
           status: item.endedAt === undefined ? ListItemStatus.INITIAL : ListItemStatus.ENDED,
+          read: item.read,
         } as ListItem<T>));
   setItems(
       items === undefined
@@ -115,6 +120,7 @@ const reloadData = async <T extends ListItemData>(
                 number: 1 + index,
                 selected: oldItem?.selected,
                 status: oldItem?.status,
+                read: oldItem?.read,
               }
             : {
                 id: item.id,
@@ -122,6 +128,7 @@ const reloadData = async <T extends ListItemData>(
                 number: 1 + index,
                 selected: oldItem?.selected,
                 status,
+                read: item.read,
               }
             ) as ListItem<T>;
         return newItem;
@@ -133,17 +140,21 @@ const reloadData = async <T extends ListItemData>(
 const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   itemsRef,
   updateListRef,
+  refreshItemRef,
   retrieveItems,
   reloadItems,
   columns,
   showLoadingIndicator,
+  additionalHeader,
 }: {
   itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
   updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
+  refreshItemRef?: MutableRefObject<RefreshItemCallbackFunction | undefined>,
   retrieveItems: RetrieveItemsFunction,
   reloadItems: ReloadItemsFunction,
   columns: ColumnConfig<any>[],
   showLoadingIndicator: ShowLoadingIndicatorFunction,
+  additionalHeader?: ReactNode | undefined;
 }) => {
   const [ items, _setItems ] = useState<Array<ListItem<T>> | undefined>(undefined);
   const initialTimestamp = useRef<Date | undefined>(undefined);
@@ -151,8 +162,20 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
       itemsRef.current = newItems;
       _setItems(newItems);
     }, [ _setItems, itemsRef ]);
+  const setSelected = useCallback((itemId: string, selected: boolean) => {
+        _setItems(items?.map(item => {
+          if (item.id === itemId) {
+            item.selected = selected;
+          }
+          return item;
+        }));
+      },
+      [ _setItems, items ]);
     
   useEffect(() => {
+      if (refreshItemRef) {
+        refreshItemRef.current = (itemIds) => setItems(items!.map(item => itemIds.includes(item.id) ? { ...item } : item));
+      }
       updateListRef.current = (updatedItemsIds) => reloadData(
           reloadItems,
           setItems,
@@ -202,6 +225,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
             <SnapScrollingDataTable
                 fill
                 pin
+                additionalHeader={ additionalHeader }
                 border={ { body: { side: 'bottom', color: 'light-3' } } }
                 rowProps={ colorRowAccordingToUpdateStatus }
                 size='100%'

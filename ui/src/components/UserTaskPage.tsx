@@ -16,7 +16,7 @@ const loadUserTask = (
     userTaskId: string,
     setUserTask: (userTask: UserTask | null) => void,
 ) => {
-  tasklistApi.getUserTask({ userTaskId })
+  tasklistApi.getUserTask({ userTaskId, markAsRead: true })
       .then((value: UserTask | null) => {
         setUserTask(value);
       }).catch((error: any) => {

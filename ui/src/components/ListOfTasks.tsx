@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { OfficialTasklistApi, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
+import { Box, Button, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
@@ -11,7 +11,6 @@ import {
   Link,
   ListItemStatus,
   ShowLoadingIndicatorFunction,
-  ToastFunction,
   useResponsiveScreen,
   WakeupSseCallback
 } from "@vanillabp/bc-shared";
@@ -22,6 +21,7 @@ import {
   ModuleDefinition,
   NavigateToWorkflowFunction,
   OpenTaskFunction,
+  RefreshItemCallbackFunction,
   ReloadCallbackFunction,
   SearchableAndSortableUpdatingList,
   TasklistApiHook,
@@ -29,6 +29,7 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
+import { FormView, Hide } from "grommet-icons";
 
 const loadUserTasks = async (
   tasklistApi: OfficialTasklistApi,
@@ -61,6 +62,7 @@ const reloadUserTasks = async (
   knownItemsIds: Array<string>,
   initialTimestamp: Date | undefined,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
+  allSelected: boolean,
 ): Promise<ListItems<UserTask>> => {
 
   const result = await tasklistApi.getUserTasksUpdate({
@@ -90,9 +92,48 @@ const reloadUserTasks = async (
   
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.userTasks.map(userTask => mapToBcUserTask(userTask))
+      items: result.userTasks.map(userTask => {
+        return {
+          ...mapToBcUserTask(userTask),
+          selected: allSelected,
+        }
+      })
     };   
+
 };
+
+const SetReadStatusButtons = ({
+  markAsRead,
+  markAsUnread,
+}: {
+  markAsRead: () => void,
+  markAsUnread: () => void,
+}) => {
+
+  return <>
+          <Button
+              hoverIndicator="light-2"
+              onClick={ markAsRead }>
+            <Box
+                pad="0.2rem"
+                round={ { size: '0.4rem', corner: 'left' } }
+                border>
+              <FormView />
+            </Box>
+          </Button>
+          <Button
+              hoverIndicator="light-2"
+              onClick={ markAsUnread }>
+            <Box
+                pad="0.2rem"
+                round={ { size: '0.4rem', corner: 'right' } }
+                border={ [ { side: 'right' }, { side: 'top' }, { side: 'bottom' } ] }>
+              <Hide />
+            </Box>
+          </Button>
+        </>;
+
+}
 
 interface DefinitionOfUserTask {
   [key: string]: UserTask;
@@ -108,7 +149,6 @@ const ListOfTasks = ({
     currentLanguage,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
-    toast: ToastFunction,
     useGuiSse: GuiSseHook,
     useTasklistApi: TasklistApiHook,
     openTask: OpenTaskFunction,
@@ -117,8 +157,8 @@ const ListOfTasks = ({
     currentLanguage: string,
 }) => {
 
-  const { isNotPhone } = useResponsiveScreen();
-
+  const { isNotPhone, isPhone } = useResponsiveScreen();
+console.log('isNotPhone', isNotPhone)
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   
@@ -132,6 +172,7 @@ const ListOfTasks = ({
       updateList,
       /^UserTask$/
     );
+  const refreshItemRef = useRef<RefreshItemCallbackFunction | undefined>(undefined);
 
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
@@ -199,7 +240,9 @@ const ListOfTasks = ({
     }
     setColumnsOfTasks(orderedColumns);
   }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
-  
+
+  const [ allSelected, setAllSelected ] = useState(false);
+
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
           { property: 'id',
@@ -209,12 +252,36 @@ const ListOfTasks = ({
             plain: true,
             header: <Box
                         align="center">
-                      <CheckBox />
+                      <CheckBox
+                          checked={ allSelected }
+                          onChange={ event => {
+                            (refreshItemRef.current!)(
+                              userTasks
+                                  .current!
+                                  .reduce((allItemIds, item) => {
+                                    item.selected = event.currentTarget.checked;
+                                    allItemIds.push(item.id);
+                                    return allItemIds;
+                                  }, new Array<string>())
+                            );
+                            setAllSelected(event.currentTarget.checked);
+                          } } />
                     </Box>,
-            render: (_item: ListItem<BcUserTask>) => (
+            render: (item: ListItem<BcUserTask>) => (
                 <Box
                     align="center">
-                  <CheckBox />
+                  <CheckBox
+                      checked={ item.selected }
+                      onChange={ event => {
+                        item.selected = event.currentTarget.checked;
+                        (refreshItemRef.current!)([ item.id ]);
+                        const currentlyAllSelected = userTasks
+                            .current!
+                            .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
+                        if (currentlyAllSelected != allSelected) {
+                          setAllSelected(currentlyAllSelected);
+                        }
+                      } } />
                 </Box>)
           },
           { property: 'name',
@@ -228,6 +295,7 @@ const ListOfTasks = ({
                         pad="xsmall">
                       <Text
                           color={ colorForEndedItemsOrUndefined(item) }
+                          weight={ item.read === undefined ? 'bold' : 'normal' }
                           truncate="tip">
                         {
                           item.status === ListItemStatus.ENDED
@@ -254,6 +322,7 @@ const ListOfTasks = ({
                                                               column={ column }
                                                               currentLanguage={ currentLanguage }
                                                               typeOfItem={ TypeOfItem.TaskList }
+                                                              showUnreadAsBold={ true }
                                                               t={ t }
                                                               // @ts-ignore
                                                               item={ item } />
@@ -268,6 +337,26 @@ const ListOfTasks = ({
           navigateToWorkflow: () => navigateToWorkflow(userTask),
         };
     };
+
+  const markAsRead = (unread: boolean) => {
+    const read = unread ? undefined : new Date();
+    const userTaskMarkedIds = userTasks
+        .current!
+        .filter(userTask => userTask.selected)
+        .map(userTask => {
+          userTask.read = read;
+          userTask.selected = false;
+          return userTask.id;
+        })
+        .reduce((userTaskIds, userTaskId) => {
+            userTaskIds.push(userTaskId);
+            return userTaskIds;
+        }, new Array<string>());
+    (refreshItemRef.current!)(userTaskMarkedIds);
+    setAllSelected(false);
+    userTaskMarkedIds.forEach(userTaskId => tasklistApi
+        .usertaskUserTaskIdMarkAsReadPatch({ userTaskId, unread }));
+  };
   
   return (
       <Grid
@@ -282,7 +371,8 @@ const ListOfTasks = ({
                         showLoadingIndicator={ showLoadingIndicator }
                         columns={ columns }
                         itemsRef={ userTasks }
-                        updateListRef= { updateListRef }
+                        updateListRef={ updateListRef }
+                        refreshItemRef={ refreshItemRef }
                         retrieveItems={ (pageNumber, pageSize, initialTimestamp) => 
 // @ts-ignore
                             loadUserTasks(
@@ -305,6 +395,20 @@ const ListOfTasks = ({
                                 updatedItemsIds,
                                 initialTimestamp,
                                 mapToBcUserTask) }
+                        additionalHeader={
+                            <Box
+                                fill
+                                background='white'
+                                direction="row"
+                                align="center"
+                                justify="start"
+                                style={ { minHeight: '3rem', maxHeight: '3rem'} }
+                                pad={ { horizontal: 'xsmall' } }>
+                              <SetReadStatusButtons
+                                  markAsRead={ () => markAsRead(false) }
+                                  markAsUnread={ () => markAsRead(true) }/>
+                            </Box>
+                        }
                       />
                   </Box>
         }
@@ -338,7 +442,7 @@ const ListOfTasks = ({
               {
                 isNotPhone
                     ? <Box>
-                        Unverändert
+                      { t('legend_unchanged') }
                       </Box>
                     : undefined
               }
@@ -359,7 +463,7 @@ const ListOfTasks = ({
               {
                 isNotPhone
                     ? <Box>
-                        Neu
+                      { t('legend_new') }
                       </Box>
                     : undefined
               }
@@ -380,7 +484,7 @@ const ListOfTasks = ({
               {
                 isNotPhone
                     ? <Box>
-                        Aktualisiert
+                      { t('legend_updated') }
                       </Box>
                     : undefined
               }
@@ -401,7 +505,7 @@ const ListOfTasks = ({
               {
                 isNotPhone
                     ? <Box>
-                        Abgeschlossen
+                      { t('legend_completed') }
                       </Box>
                     : undefined
               }
