@@ -27,6 +27,7 @@ interface TextListCellProps extends TextExtendedProps {
   value?: string | String;
   align?: Alignment;
   tip?: string;
+  showUnreadAsBold?: boolean;
 }
 
 const TextListCell: React.FC<TextListCellProps> = ({
@@ -34,6 +35,7 @@ const TextListCell: React.FC<TextListCellProps> = ({
   value = '',
   align = 'left',
   tip,
+  showUnreadAsBold = false,
   ...props
 }) => {
   const color = colorForEndedItemsOrUndefined(item);
@@ -54,12 +56,14 @@ const TextListCell: React.FC<TextListCellProps> = ({
             ? <Text
                   truncate="tip"
                   color={ color }
+                  weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
                   { ...props }>
                 { value }
               </Text>
             : <Text
                   truncate
                   color={ color }
+                  weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
                   tip={ { content: tip } }
                   { ...props }>
                 { value }
@@ -71,6 +75,7 @@ const TextListCell: React.FC<TextListCellProps> = ({
 export interface DefaultListCellProps<D> {
   item: ListItem<D>;
   column: Column;
+  showUnreadAsBold?: boolean;
 }
 
 export interface DefaultListCellAwareProps<T> extends DefaultListCellProps<T> {
@@ -79,7 +84,8 @@ export interface DefaultListCellAwareProps<T> extends DefaultListCellProps<T> {
 
 const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     item,
-    column
+    column,
+    showUnreadAsBold,
 }) => {
   const propertyValue = getObjectProperty(item.data, column.path);
   let value;
@@ -118,6 +124,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
       item={ item }
       value={ value }
       tip={ tip }
+      showUnreadAsBold={ showUnreadAsBold }
       align={ align } />;
 }
 

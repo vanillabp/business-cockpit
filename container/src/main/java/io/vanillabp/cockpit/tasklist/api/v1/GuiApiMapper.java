@@ -15,11 +15,22 @@ public abstract class GuiApiMapper {
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")
     @Mapping(target = "dueDate", expression = "java(mapDateTimeMaxToNull(userTask))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(userTask))")
+    @Mapping(target = "read", expression = "java(userTask.getReadAt(userId))")
 	public abstract UserTask toApi(
-			io.vanillabp.cockpit.tasklist.model.UserTask userTask);
+			io.vanillabp.cockpit.tasklist.model.UserTask userTask,
+            String userId);
 
-    public abstract List<UserTask> toApi(
-			List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks);
+    public List<UserTask> toApi(
+			List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks,
+            String userId) {
+        if (userTasks == null) {
+            return null;
+        }
+        return userTasks
+                .stream()
+                .map(userTask -> toApi(userTask, userId))
+                .toList();
+    }
 
     @NoMappingMethod
     protected String proxiedUiUri(

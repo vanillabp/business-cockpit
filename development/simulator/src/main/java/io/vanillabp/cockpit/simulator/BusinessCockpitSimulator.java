@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.simulator;
 
+import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.commons.utils.LoggerFactory;
 import io.vanillabp.cockpit.simulator.config.ApplicationProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,7 +11,11 @@ import org.springframework.context.annotation.ComponentScan;
 import java.util.Map;
 
 @SpringBootApplication
-@ComponentScan(basePackageClasses = BusinessCockpitSimulator.class)
+@ComponentScan(basePackageClasses = {
+        BusinessCockpitSimulator.class,
+        RestfulExceptionHandler.class,
+        LoggerFactory.class
+})
 @EnableConfigurationProperties({ ApplicationProperties.class })
 public class BusinessCockpitSimulator {
 

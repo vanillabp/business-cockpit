@@ -1,7 +1,11 @@
 package io.vanillabp.cockpit.config.web;
 
-import java.net.URI;
-
+import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
+import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityWebFilter;
+import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.config.web.security.BasicServerSecurityContextRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -9,30 +13,50 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpBasicServerAuthenticationEntryPoint;
-import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
-import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 
-import io.vanillabp.cockpit.commons.utils.UserDetails;
-import io.vanillabp.cockpit.commons.utils.UserDetailsProvider;
-import io.vanillabp.cockpit.config.properties.ApplicationProperties;
-import io.vanillabp.cockpit.config.web.security.BasicUserDetails;
+import java.net.URI;
 
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 public class WebSecurityConfiguration {
 
+    public static final ServerWebExchangeMatcher appInfoWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/gui/api/v1/app/info");
+
+    public static final ServerWebExchangeMatcher currentUserWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/gui/api/v1/app/current-user");
+
+    public static final ServerWebExchangeMatcher assetsWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/assets/**");
+
+    public static final ServerWebExchangeMatcher staticWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/static/**");
+
+    public static final ServerWebExchangeMatcher workflowModulesProxyWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
+            "/wm/**");
+
     @Autowired
     private ApplicationProperties properties;
+
+    private JwtSecurityWebFilter jwtSecurityFilter() {
+
+        return new JwtSecurityWebFilter(
+                properties.getJwt(),
+                appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
+                staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher);
+
+    }
 
     @Bean
     @Order(99)
@@ -43,35 +67,38 @@ public class WebSecurityConfiguration {
         
         final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
         basicEntryPoint.setRealm(properties.getTitleShort());
-        
-        final var logoutSuccessHandler = new RedirectServerLogoutSuccessHandler();
-        logoutSuccessHandler.setLogoutSuccessUrl(URI.create("/"));
-        
+
         http
                 .csrf().disable()
                 .cors().disable()
                 .anonymous().disable()
                 .authorizeExchange()
-                        .matchers(new PathPatternParserServerWebExchangeMatcher(
-                                "/gui/api/v1/app-info"))
+                        .matchers(appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
+                                staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher)
                                 .permitAll()
                         .anyExchange()
                                 .authenticated()
                         .and()
                 .httpBasic()
                         .securityContextRepository(
-                                NoOpServerSecurityContextRepository.getInstance())
-                        .authenticationManager(
-                                new UserDetailsRepositoryReactiveAuthenticationManager(
-                                        userDetailsService))
+                                new BasicServerSecurityContextRepository(properties.getJwt()))
                         .authenticationEntryPoint(basicEntryPoint)
                         .and()
                 .logout(logout -> logout
                         .logoutUrl("/logout")
-                        .logoutSuccessHandler(logoutSuccessHandler));
+                        .logoutSuccessHandler(jwtLogoutSuccessHandler()))
+                .addFilterAfter(jwtSecurityFilter(), SecurityWebFiltersOrder.HTTP_BASIC);
             
         return http.build();
         
+    }
+
+    public JwtLogoutSuccessHandler jwtLogoutSuccessHandler() {
+
+        final var handler = new JwtLogoutSuccessHandler(properties.getJwt());
+        handler.setLogoutSuccessUrl(URI.create("/"));
+        return handler;
+
     }
 
     @Bean
@@ -82,7 +109,7 @@ public class WebSecurityConfiguration {
         final var user = User.builder()
                 .username("test")
                 .password("{noop}test")
-                .roles()
+                .roles("TEST")
                 .build();
         return new MapReactiveUserDetailsService(user);
         
@@ -90,15 +117,9 @@ public class WebSecurityConfiguration {
     
     @Bean
     @ConditionalOnMissingBean(name = "userDetailsProvider")
-    public UserDetailsProvider userDetailsProvider() {
+    public ReactiveUserDetailsProvider userDetailsProvider() {
         
-        return new UserDetailsProvider() {
-                @Override
-                public UserDetails getUserDetails(final Object principal) {
-                    final var user = (User) principal;
-                    return new BasicUserDetails(user);
-                }
-            };
+        return new ReactiveJwtUserDetailsProvider();
         
     }
     

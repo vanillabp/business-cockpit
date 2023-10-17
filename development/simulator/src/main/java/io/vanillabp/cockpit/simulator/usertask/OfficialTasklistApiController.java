@@ -1,20 +1,18 @@
 package io.vanillabp.cockpit.simulator.usertask;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
+import com.devskiller.jfairy.Fairy;
+import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
+import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.devskiller.jfairy.Fairy;
-
-import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
-import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping(path = "/official-api/v1")
@@ -36,7 +34,8 @@ public class OfficialTasklistApiController implements OfficialTasklistApi {
     
     @Override
     public ResponseEntity<UserTask> getUserTask(
-            final String userTaskId) {
+            final String userTaskId,
+            final Boolean markAsRead) {
         
         final var existingUserTask = userTasks.get(userTaskId);
         if (existingUserTask != null) {

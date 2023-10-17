@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.workflowlist.api.v1;
 
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.Page;
@@ -35,6 +36,9 @@ public class GuiApiController implements OfficialWorkflowlistApi {
     
     @Autowired
     private UserTaskService userTaskService;
+
+    @Autowired
+    private ReactiveUserContext userContext;
 
     @Autowired
     private GuiApiMapper mapper;
@@ -134,12 +138,13 @@ public class GuiApiController implements OfficialWorkflowlistApi {
             final ServerWebExchange exchange) {
         
         final var activeOnly = activeOnlyRequested == null || activeOnlyRequested;
-        
-        return Mono.just(
-                ResponseEntity.ok(
+
+        return userContext
+                .getUserLoggedInAsMono()
+                .map(userId -> ResponseEntity.ok(
                         userTaskService
                                 .getUserTasksOfWorkflow(activeOnly, workflowId)
-                                .map(t -> userTaskMapper.toApi(t))));
+                                .map(t -> userTaskMapper.toApi(t, userId))));
         
     }
     

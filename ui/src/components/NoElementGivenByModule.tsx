@@ -1,22 +1,19 @@
 import { useEffect } from 'react';
 import { Box, Button, Text } from 'grommet';
-import { useTranslation } from 'react-i18next';
 import { ShowLoadingIndicatorFunction } from "@vanillabp/bc-shared";
+import { TranslationFunction } from "../types/translate";
 
 const NoElementGivenByModule = ({
   loading = false,
   retry,
-  translationNs,
   showLoadingIndicator,
+  t,
 }: {
   loading?: boolean,
   retry?: (callback?: () => void) => void
-  translationNs: string;
   showLoadingIndicator: ShowLoadingIndicatorFunction;
+  t: TranslationFunction;
 }) => {
-  
-  const { t } = useTranslation(translationNs);
-
   useEffect(() => {
       showLoadingIndicator(loading);
     }, [ showLoadingIndicator, loading ]);
@@ -41,15 +38,15 @@ const NoElementGivenByModule = ({
                     direction="column"
                     gap='medium'>
                   <Box>
-                    { t('hint') }
+                    { t('retry-loading-module-hint') }
                   </Box>
                   <Button
-                      label={ t('retry') }
+                      label={ t('retry-loading-module') }
                       onClick={ retryLoadingModule } />
                 </Box>
               : <Text
                     weight='bold'>
-                  { t('does-not-exist') }
+                  { t('module-unknown') }
                 </Text>
         }
       </Box>);

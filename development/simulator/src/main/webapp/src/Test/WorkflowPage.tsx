@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { buildTimestamp, buildVersion } from '../WorkflowPage';
-import { BcUserTask, CopyClipboard, WorkflowPage, theme } from '@vanillabp/bc-shared';
+import { BcUserTask, CopyClipboard, theme, WorkflowPage } from '@vanillabp/bc-shared';
 import { Box, Grommet, Heading, Text, Tip } from 'grommet';
 import { Share } from 'grommet-icons';
 

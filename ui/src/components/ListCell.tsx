@@ -1,19 +1,7 @@
 import { ListItem, ListItemData, Module, ModuleDefinition } from '../index.js';
-import i18n from 'i18next';
-import { useTranslation } from 'react-i18next';
 import { Column, DefaultListCell, DefaultListCellAwareProps, WarningListCell } from '@vanillabp/bc-shared';
 import { FC } from "react";
-
-i18n.addResources('en', 'listcell', {
-      "workflowmodule_unknown": "Unknown",
-      "workflowmodule_retry": "Retry",
-      "typeofitem_unsupported": "Wrong type",
-    });
-i18n.addResources('de', 'listcell', {
-      "workflowmodule_unknown": "Unbekannt",
-      "workflowmodule_retry": "Laden",
-      "typeofitem_unsupported": "Typfehler",
-    });
+import { TranslationFunction } from "../types/translate";
 
 export enum TypeOfItem {
   TaskList,
@@ -27,6 +15,8 @@ interface ListCellParameters<T extends ListItemData> {
   currentLanguage: string;
   typeOfItem: TypeOfItem;
   item: ListItem<T>;
+  t: TranslationFunction;
+  showUnreadAsBold?: boolean;
 }
 
 const ListCell = <T extends ListItemData & ModuleDefinition, >({
@@ -36,20 +26,20 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   currentLanguage,
   typeOfItem,
   item,
+  t,
+  showUnreadAsBold,
 }: ListCellParameters<T>) => {
-  
-  const { t } = useTranslation('listcell');
   
   const module = modulesAvailable.find((module => item.data.workflowModule === module.workflowModule));
   if (module === undefined) {
     return <WarningListCell
         error={ true }
-        message={ t('workflowmodule_unknown') } />;
+        message={ t('module-unknown') } />;
   }
   
   if (module.retry) {
     return <WarningListCell
-        message={ t('workflowmodule_retry') } />;
+        message={ t('retry-loading-module-hint') } />;
   }
   
   let Cell: FC<DefaultListCellAwareProps<any>>;
@@ -75,6 +65,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   return <Cell
             item={ item }
             column={ column }
+            showUnreadAsBold={ showUnreadAsBold }
             defaultCell={ DefaultListCell } />;
   
 }

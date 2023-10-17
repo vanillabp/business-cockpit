@@ -1,12 +1,7 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -23,12 +18,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
-
-import io.vanillabp.cockpit.commons.utils.UserContext;
-import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "/gui/api/v1")
@@ -41,7 +40,7 @@ public class LoginApiController implements LoginApi {
     private ApplicationProperties properties;
     
     @Autowired
-    private UserContext userContext;
+    private ReactiveUserContext userContext;
     
     @Autowired
     private TaskScheduler taskScheduler;
@@ -210,7 +209,7 @@ public class LoginApiController implements LoginApi {
                         .status(user.isActive()
                                         ? UserStatus.ACTIVE
                                         : UserStatus.INACTIVE)
-                        .roles(user.getRoles()))
+                        .roles(user.getAuthorities()))
                 .map(ResponseEntity::ok);
         
     }

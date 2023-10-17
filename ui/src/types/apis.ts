@@ -1,7 +1,15 @@
 import { WakeupSseCallback } from "@vanillabp/bc-shared";
 import { OfficialTasklistApi, OfficialWorkflowlistApi } from "@vanillabp/bc-official-gui-client";
-import { MutableRefObject } from "react";
 
-export type WorkflowlistApiHook = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>) => OfficialWorkflowlistApi;
+/**
+ * This helps to initialize the given API hook late by
+ * first passing the empty reference and setting
+ * 'current' property later.
+ */
+export interface WakeupSseCallbackReference {
+  current: WakeupSseCallback | undefined;
+}
 
-export type TasklistApiHook = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>) => OfficialTasklistApi;
+export type WorkflowlistApiHook = (wakeupSseCallback?: WakeupSseCallbackReference) => OfficialWorkflowlistApi;
+
+export type TasklistApiHook = (wakeupSseCallback?: WakeupSseCallbackReference) => OfficialTasklistApi;

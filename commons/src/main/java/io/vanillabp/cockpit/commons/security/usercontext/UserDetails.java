@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.commons.utils;
+package io.vanillabp.cockpit.commons.security.usercontext;
 
 import java.util.List;
 
@@ -19,6 +19,6 @@ public interface UserDetails {
      */
     Boolean isFemale();
 
-    List<String> getRoles();
+    List<String> getAuthorities();
 
 }

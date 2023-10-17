@@ -23,4 +23,5 @@ export interface ListItem<D> {
   data: D;
   status: ListItemStatus;
   selected: boolean;
+  read?: Date;
 };
