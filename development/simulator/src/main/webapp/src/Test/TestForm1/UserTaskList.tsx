@@ -1,5 +1,4 @@
-import React from 'react';
-import { getObjectProperty, UserTaskListCell, TextListCell } from '@vanillabp/bc-shared';
+import { getObjectProperty, TextListCell, UserTaskListCell } from '@vanillabp/bc-shared';
 
 const TestForm1ListCell: UserTaskListCell = ({
   item,

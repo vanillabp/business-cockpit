@@ -1,11 +1,10 @@
 package io.vanillabp.cockpit.simulator.usertask;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper
 public abstract class OfficialTasklistApiMapper {
@@ -16,6 +15,7 @@ public abstract class OfficialTasklistApiMapper {
     @Mapping(target = "version", constant = "1")
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
+    @Mapping(target = "read", ignore = true)
     public abstract UserTask toApi(UserTaskCreatedOrUpdatedEvent event);
     
     @NoMappingMethod

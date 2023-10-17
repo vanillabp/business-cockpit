@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
-import io.vanillabp.cockpit.commons.utils.UserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.Page;
@@ -32,7 +32,7 @@ public class GuiApiController implements OfficialTasklistApi {
 	private UserTaskService userTaskService;
 
 	@Autowired
-	private UserContext userContext;
+	private ReactiveUserContext userContext;
 	
 	@Autowired
 	private GuiApiMapper mapper;
