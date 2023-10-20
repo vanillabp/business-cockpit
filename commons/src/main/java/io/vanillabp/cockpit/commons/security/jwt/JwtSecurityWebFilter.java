@@ -21,15 +21,15 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class JwtSecurityWebFilter implements WebFilter {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(JwtSecurityWebFilter.class);
     
     private final JwtProperties properties;
+
 
     private final List<ServerWebExchangeMatcher> unprotectedExchangeMatchers;
     
@@ -210,16 +210,15 @@ public class JwtSecurityWebFilter implements WebFilter {
 
         final var jwt = buildJwt(token);
 
-        final Collection<? extends GrantedAuthority> authorities;
+        final var authorities = new HashSet<GrantedAuthority>();
+        authorities.add(new SimpleGrantedAuthority(JwtUserDetails.USER_AUTHORITY_PREFIX + jwt.getSubject()));
         final var authoritiesClaims = jwt
                 .getClaimAsStringList("authorities");
         if (authoritiesClaims != null) {
-            authorities = authoritiesClaims
+            authoritiesClaims
                     .stream()
                     .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
-        } else {
-            authorities = List.of();
+                    .forEach(authorities::add);
         }
 
         return new JwtAuthenticationToken(jwt, authorities);

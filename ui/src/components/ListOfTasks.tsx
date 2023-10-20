@@ -158,7 +158,6 @@ const ListOfTasks = ({
 }) => {
 
   const { isNotPhone, isPhone } = useResponsiveScreen();
-console.log('isNotPhone', isNotPhone)
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   
@@ -180,17 +179,15 @@ console.log('isNotPhone', isNotPhone)
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        const result = await tasklistApi
-            .getUserTasks({ pageNumber: 0, pageSize: 100 });
-        setNumberOfTasks(result.page.totalElements);
+        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, 100, 0, undefined, mapToBcUserTask);
         const moduleDefinitions = result
-            .userTasks
+            .items
             .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
                 ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
         setModulesOfTasks(moduleDefinitions);
         const userTaskDefinitions: DefinitionOfUserTask = {};
         result
-            .userTasks
+            .items
             .forEach(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
         setDefinitionsOfTasks(userTaskDefinitions);
       };

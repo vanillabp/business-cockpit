@@ -1,18 +1,37 @@
-import { useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useAppContext } from '../AppContext';
-import { Box } from 'grommet';
+import { Anchor, Box } from 'grommet';
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
 
-  const { setAppHeaderTitle } = useAppContext();
+  const { setAppHeaderTitle, state } = useAppContext();
+  const navigate = useNavigate();
 
   useLayoutEffect(() => {
     setAppHeaderTitle('app');
   }, [ setAppHeaderTitle ]);
-  
+
+  useEffect(() => {
+    if (Boolean(state.currentUser)) {
+      navigate('/');
+    }
+  }, [ state, useNavigate ]);
+
   return <Box
+        align="center"
         pad="small">
-      <Box align="center">Login required!</Box>
+      <Box
+          direction='row'
+          gap='xsmall'>
+        <Anchor
+            color='accent-2'
+            weight='normal'
+            href='/login'>
+          Login
+        </Anchor>
+        required!
+      </Box>
     </Box>;
 
 }

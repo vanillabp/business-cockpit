@@ -1,9 +1,10 @@
 package io.vanillabp.cockpit.util.events;
 
-import java.time.Clock;
-import java.util.List;
-
 import org.springframework.context.ApplicationEvent;
+
+import java.time.Clock;
+import java.util.Collection;
+import java.util.List;
 
 public abstract class NotificationEvent extends ApplicationEvent {
 
@@ -13,13 +14,13 @@ public abstract class NotificationEvent extends ApplicationEvent {
     
     private final Type type;
     
-    private List<String> targetRoles;
+    private Collection<String> targetRoles;
 
     public NotificationEvent(
             final Object source,
             final Clock clock,
             final Type type,
-            final List<String> targetRoles) {
+            final Collection<String> targetRoles) {
         
         super(source, clock);
         this.type = type;
@@ -30,7 +31,7 @@ public abstract class NotificationEvent extends ApplicationEvent {
     public NotificationEvent(
             final Object source,
             final Type type,
-            List<String> targetRoles) {
+            Collection<String> targetRoles) {
         
         super(source);
         this.type = type;
@@ -42,7 +43,7 @@ public abstract class NotificationEvent extends ApplicationEvent {
         return type;
     }
 
-    public List<String> getTargetRoles() {
+    public Collection<String> getTargetRoles() {
         return targetRoles;
     }
     
@@ -55,10 +56,8 @@ public abstract class NotificationEvent extends ApplicationEvent {
         
         return targetRoles
                 .stream()
-                .flatMap(targetRole -> roles.stream().map(role -> targetRole == role))
-                .filter(hasMatchingRole -> hasMatchingRole)
-                .findFirst()
-                .isPresent();
+                .flatMap(targetRole -> roles.stream().map(targetRole::equals))
+                .anyMatch(hasMatchingRole -> hasMatchingRole);
         
     }
     

@@ -1,9 +1,9 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
+import org.springframework.messaging.SubscribableChannel;
+
 import java.util.LinkedList;
 import java.util.List;
-
-import org.springframework.messaging.SubscribableChannel;
 
 public class UpdateEmitter {
     
@@ -41,6 +41,12 @@ public class UpdateEmitter {
     
     public UpdateEmitter updateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
+        return this;
+    }
+
+    public UpdateEmitter roles(
+            final List<String> roles) {
+        this.roles = roles;
         return this;
     }
     

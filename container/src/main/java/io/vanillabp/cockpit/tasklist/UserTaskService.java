@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
@@ -15,6 +16,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -22,10 +27,19 @@ import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.stream.Collectors;
 
 @Service
 public class UserTaskService {
+
+    public static enum RetrieveItemsMode {
+        All,
+        OpenTasks,
+        OpenTasksWithoutFollowup,
+        OpenTasksWithFollowup,
+        ClosedTasksOnly
+    };
 
     private static final Sort DEFAULT_SORT =
             Sort.by(Order.asc("dueDate").nullsLast())
@@ -46,7 +60,10 @@ public class UserTaskService {
     
     @Autowired
     private MicroserviceProxyRegistry microserviceProxyRegistry;
-    
+
+    @Autowired
+    private ReactiveMongoTemplate mongoTemplate;
+
     private Disposable dbChangesSubscription;
     
     @PostConstruct
@@ -116,6 +133,7 @@ public class UserTaskService {
     }
 
     public Mono<Page<UserTask>> getUserTasks(
+            final UserDetails user,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp) {
@@ -124,17 +142,24 @@ public class UserTaskService {
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(DEFAULT_SORT);
-        
-        final var endedSince = (initialTimestamp != null
-                ? initialTimestamp
-                : OffsetDateTime.now()).toInstant();
-        
-    	return userTasks
-    	        .findActive(endedSince, pageRequest)
-    	        .collectList()
-    	        .zipWith(userTasks.countActive(endedSince))
-    	        .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
-    	
+
+        final var query = buildUserTasksQuery(
+                new Query(),
+                user,
+                initialTimestamp,
+                RetrieveItemsMode.OpenTasks);
+
+        final var numberOfUserTasks = mongoTemplate
+                .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
+        final var result = mongoTemplate
+                .find(query.with(pageRequest), UserTask.class);
+        return Mono
+                .zip(result.collectList(), numberOfUserTasks)
+                .map(results -> PageableExecutionUtils.getPage(
+                    results.getT1(),
+                    pageRequest,
+                    results::getT2));
+
     }
     
     public Flux<UserTask> getUserTasksOfWorkflow(
@@ -152,6 +177,7 @@ public class UserTaskService {
     }
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
+            final UserDetails user,
             final int size,
             final Collection<String> knownUserTasksIds,
             final OffsetDateTime initialTimestamp) {
@@ -160,14 +186,21 @@ public class UserTaskService {
                 .ofSize(size)
                 .withPage(0)
                 .withSort(DEFAULT_SORT);
-        
-        final var endedSince = initialTimestamp.toInstant();
-        
-        final var tasks = userTasks.findIdsOfActive(
-                endedSince,
-                pageRequest);
-        
-        return tasks
+        final var query = new Query();
+        query.fields().include("_id");
+
+        buildUserTasksQuery(
+                query,
+                user,
+                initialTimestamp,
+                RetrieveItemsMode.OpenTasks);
+
+        final var numberOfUserTasks = mongoTemplate
+                .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
+        final var result = mongoTemplate
+                .find(query.with(pageRequest), UserTask.class);
+
+        return result
                 .flatMapSequential(task -> {
                     if (knownUserTasksIds.contains(task.getId())) {
                         return Mono.just(task);
@@ -175,13 +208,13 @@ public class UserTaskService {
                     return userTasks.findById(task.getId());
                 })
                 .collectList()
-                .zipWith(userTasks.countActive(endedSince))
-                .map(t -> new PageImpl<>(
-                        t.getT1(),
+                .zipWith(numberOfUserTasks)
+                .map(results -> new PageImpl<>(
+                        results.getT1(),
                         Pageable
-                                .ofSize(t.getT1().isEmpty() ? 1 : t.getT1().size())
+                                .ofSize(results.getT1().isEmpty() ? 1 : results.getT1().size())
                                 .withPage(0),
-                        t.getT2()));
+                        results.getT2()));
         
     }
     
@@ -276,5 +309,68 @@ public class UserTaskService {
                 .map(savedTask -> savedTask != null);
         
     }
-    
+
+    private Query buildUserTasksQuery(
+            final Query targetQuery,
+            final UserDetails user,
+            final OffsetDateTime initialTimestamp,
+            final RetrieveItemsMode mode) {
+
+        final var subCriterias = new LinkedList<Criteria>();
+
+        // honour user's permissions
+        final var assigneeMatches = Criteria.where("assignee").is(user.getId());
+        final var candidateUsersMatches = Criteria.where("candidateUsers").in(user.getId());
+        final var candidateGroupsMatches = Criteria.where("candidateGroups").in(user.getAuthorities());
+        final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
+        final Criteria permittedTasks = new Criteria()
+                .orOperator(noAssigneeOrNoCandidate, assigneeMatches, candidateUsersMatches, candidateGroupsMatches);
+        subCriterias.add(permittedTasks);
+
+        // limit result according to list mode
+
+        // return consistent results across multiple requests of pages
+        switch (mode) {
+            case All:
+            case OpenTasks:
+            case OpenTasksWithFollowup:
+            case OpenTasksWithoutFollowup:
+                subCriterias.add(new Criteria().orOperator(
+                        Criteria.where("endedAt").exists(false),
+                        Criteria.where("endedAt").gte(initialTimestamp)));
+                break;
+            case ClosedTasksOnly:
+                subCriterias.add(new Criteria().orOperator(
+                        Criteria.where("endedAt").exists(true),
+                        Criteria.where("endedAt").lt(initialTimestamp)));
+                break;
+            default:
+                throw new RuntimeException("Unsupported mode '"
+                        + mode
+                        + "'! Did you forget to extend this switch instruction?");
+        }
+
+        // take followup-date into account
+        switch (mode) {
+            case OpenTasksWithFollowup: {
+                final Criteria inFuture = Criteria.where("followupDate").gt(initialTimestamp);
+                subCriterias.add(inFuture);
+                break;
+            }
+            case OpenTasksWithoutFollowup: {
+                final Criteria notSet = Criteria.where("followupDate").exists(false);
+                final Criteria inPast = Criteria.where("followupDate").lte(OffsetDateTime.now());
+                final Criteria excludeFollowUps = new Criteria().orOperator(notSet, inPast);
+                subCriterias.add(excludeFollowUps);
+                break;
+            }
+        }
+
+        targetQuery.addCriteria(
+                new Criteria().andOperator(subCriterias));
+
+        return targetQuery;
+
+    }
+
 }

@@ -1,11 +1,16 @@
 package io.vanillabp.cockpit.tasklist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetails;
+import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +85,26 @@ public class UserTask implements UpdateInformationAware {
 
     private Map<String, OffsetDateTime> readBy;
 
+    public Collection<String> getTargetRoles() {
+
+        final var result = new HashSet<String>();
+        if (getCandidateGroups() != null) {
+            result.addAll(getCandidateGroups());
+        }
+        if (getCandidateUsers() != null) {
+            getCandidateUsers()
+                    .forEach(user -> result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + user));
+        }
+        if (getAssignee() != null) {
+            result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + getAssignee());
+        }
+        if (result.isEmpty()) {
+            return null; // means visible to everyone
+        }
+        return result;
+
+    }
+
     public OffsetDateTime getReadAt(final String userId) {
 
         if (userId == null) {
@@ -111,6 +136,31 @@ public class UserTask implements UpdateInformationAware {
         }
         this.getReadBy().remove(userId);
 
+    }
+
+    @AccessType(AccessType.Type.PROPERTY)
+    public boolean isDangling() {
+
+        if ((getCandidateUsers() != null)
+                && !getCandidateUsers().isEmpty()) {
+            return false;
+        }
+        if ((getCandidateGroups() != null)
+                && !getCandidateGroups().isEmpty()) {
+            return false;
+        }
+        if (StringUtils.hasText(getAssignee())) {
+            return false;
+        }
+        return true;
+
+    }
+
+    /**
+     * @see #isDangling()
+     */
+    public void setDangling(boolean dangling) {
+        // ignored since 'dangling' is a derived value
     }
 
     public String getId() {

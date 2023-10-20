@@ -56,13 +56,14 @@ public class LoginApiController implements LoginApi {
         final var id = UUID.randomUUID().toString();
         
         return userContext
-                .getUserLoggedInAsMono()
+                .getUserLoggedInDetailsAsMono()
                 .flatMapMany(user -> {
 
                     final var channel = MessageChannels
                             .direct("SSE-" + user + "-" + id).get();
                     updateEmitters.put(id, UpdateEmitter
                             .withChannel(channel)
+                            .roles(user.getAuthorities())
                             .updateInterval(properties.getGuiSseUpdateInterval()));
 
                     // This ping forces the browser to treat the text/event-stream request
@@ -88,7 +89,8 @@ public class LoginApiController implements LoginApi {
     
     @Scheduled(fixedDelayString = "PT1S")
     public void updateClients() {
-        
+
+        // null-events are used to flush events collected since last interval
         updateClients(null);
         
     }
@@ -101,7 +103,11 @@ public class LoginApiController implements LoginApi {
         updateEmitters
                 .entrySet()
                 .stream()
-                .filter(emitter -> guiEvent == null || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                .filter(emitter ->
+                        // null-events are used to flush events collected since last interval
+                        guiEvent == null
+                        // non-null-events have to match the user's roles
+                        || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
                 .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
                 .forEach(emitter -> {
                     final var updateEmitter = emitter.getValue();

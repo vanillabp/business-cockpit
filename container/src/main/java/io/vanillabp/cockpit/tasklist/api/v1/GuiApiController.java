@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
-import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
@@ -63,51 +62,40 @@ public class GuiApiController implements OfficialTasklistApi {
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-		final var tasksAndUser = Mono.zip(
-				userTaskService.getUserTasks(
+		return userContext
+				.getUserLoggedInDetailsAsMono()
+				.flatMap(user -> userTaskService.getUserTasks(
+						user,
 						pageNumber,
 						pageSize,
-						timestamp),
-				userContext.getUserLoggedInAsMono());
+						timestamp)
+						.map(userTasks -> mapper.toApi(userTasks, timestamp, user.getId())))
+				.map(ResponseEntity::ok);
 
-		return tasksAndUser.map(tnu -> ResponseEntity.ok(
-		        new UserTasks()
-        				.page(new Page()
-        						.number(tnu.getT1().getNumber())
-        						.size(tnu.getT1().getSize())
-        						.totalElements(tnu.getT1().getTotalElements())
-        						.totalPages(tnu.getT1().getTotalPages()))
-        				.userTasks(mapper.toApi(tnu.getT1().getContent(), tnu.getT2()))
-        				.serverTimestamp(timestamp)));
-		
 	}
 	
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
             final Mono<UserTasksUpdate> userTasksUpdate,
             final ServerWebExchange exchange) {
-	    
-        return userTasksUpdate
-                .zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
-                        ? update.getInitialTimestamp()
-                        : OffsetDateTime.now()))
-                .flatMap(entry -> Mono.zip(
-                        userTaskService.getUserTasksUpdated(
-                                entry.getT1().getSize(),
-                                entry.getT1().getKnownUserTasksIds(),
-                                entry.getT2()),
-                        Mono.just(entry.getT2()),
-						userContext.getUserLoggedInAsMono()))
-                .map(entry -> ResponseEntity.ok(
-                        new UserTasks()
-                                .page(new Page()
-                                        .number(entry.getT1().getNumber())
-                                        .size(entry.getT1().getSize())
-                                        .totalElements(entry.getT1().getTotalElements())
-                                        .totalPages(entry.getT1().getTotalPages()))
-                                .userTasks(mapper.toApi(entry.getT1().getContent(), entry.getT3()))
-                                .serverTimestamp(entry.getT2())))
-                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
+
+		return userContext
+				.getUserLoggedInDetailsAsMono()
+				.flatMap(user -> userTasksUpdate
+						.zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
+								? update.getInitialTimestamp()
+								: OffsetDateTime.now()))
+						.flatMap(entry -> Mono.zip(
+								userTaskService.getUserTasksUpdated(
+										user,
+										entry.getT1().getSize(),
+										entry.getT1().getKnownUserTasksIds(),
+										entry.getT2()),
+								Mono.just(entry.getT2())))
+						.map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), user.getId()))
+						.map(ResponseEntity::ok)
+						.switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
+				);
             
 	}
 	
