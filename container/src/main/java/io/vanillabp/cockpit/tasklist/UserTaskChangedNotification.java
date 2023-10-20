@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.messaging.Message;
 
 import java.util.Collection;
+import java.util.List;
 
 public class UserTaskChangedNotification extends NotificationEvent {
 
@@ -82,7 +83,7 @@ public class UserTaskChangedNotification extends NotificationEvent {
                 Type.valueOf(type.name()),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                event.getBody().getTargetRoles());
+                event.getBody() == null ? List.of() : event.getBody().getTargetRoles());
         
     }
     

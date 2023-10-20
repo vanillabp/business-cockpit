@@ -310,7 +310,7 @@ public class UserTaskService {
         
     }
 
-    private Query buildUserTasksQuery(
+    public Query buildUserTasksQuery(
             final Query targetQuery,
             final UserDetails user,
             final OffsetDateTime initialTimestamp,

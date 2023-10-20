@@ -17,6 +17,8 @@ import java.util.Map;
 @Document(collection = UserTask.COLLECTION_NAME)
 public class UserTask implements UpdateInformationAware {
 
+    public static record ReadBy(String userId, OffsetDateTime timestamp) {};
+
     public static final String COLLECTION_NAME = "usertask";
     
     @Id
@@ -83,7 +85,7 @@ public class UserTask implements UpdateInformationAware {
 
     private String detailsFulltextSearch;
 
-    private Map<String, OffsetDateTime> readBy;
+    private List<ReadBy> readBy;
 
     public Collection<String> getTargetRoles() {
 
@@ -113,17 +115,24 @@ public class UserTask implements UpdateInformationAware {
         if (this.getReadBy() == null) {
             return null;
         }
-        return this.getReadBy().get(userId);
+        return this
+                .getReadBy()
+                .stream()
+                .filter(readBy -> readBy.userId().equals(userId))
+                .findFirst()
+                .map(ReadBy::timestamp)
+                .orElse(null);
 
     }
 
     public void setReadAt(
             final String userId) {
 
+        final var readBy = new ReadBy(userId, OffsetDateTime.now());
         if (this.getReadBy() == null) {
-            this.setReadBy(Map.of(userId, OffsetDateTime.now()));
+            this.setReadBy(List.of(readBy));
         } else {
-            this.getReadBy().put(userId, OffsetDateTime.now());
+            this.getReadBy().add(readBy);
         }
 
     }
@@ -412,11 +421,11 @@ public class UserTask implements UpdateInformationAware {
         this.subWorkflowId = subWorkflowId;
     }
 
-    public Map<String, OffsetDateTime> getReadBy() {
+    public List<ReadBy> getReadBy() {
         return readBy;
     }
 
-    public void setReadBy(Map<String, OffsetDateTime> readBy) {
+    public void setReadBy(List<ReadBy> readBy) {
         this.readBy = readBy;
     }
 

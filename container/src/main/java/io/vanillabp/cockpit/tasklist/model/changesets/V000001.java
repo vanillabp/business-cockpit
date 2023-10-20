@@ -1,16 +1,18 @@
 package io.vanillabp.cockpit.tasklist.model.changesets;
 
-import java.util.List;
-
-import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.stereotype.Component;
-
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component("V100_UserTask")
 @ChangesetConfiguration(author = "stephanpelikan")
@@ -19,6 +21,7 @@ public class V000001 {
     private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
     private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
     private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
+    private static final String INDEX_READ_BY = Workflow.COLLECTION_NAME + "_readBy";
 
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
@@ -108,6 +111,46 @@ public class V000001 {
         
         return null;
         
+    }
+
+    @Changeset(order = 5)
+    public String clearAndIndexReadBy(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .update(UserTask.class)
+                .apply(Update.update("readBy", null))
+                .all()
+                .block();
+
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("readBy.userId", Direction.ASC)
+                        .named(INDEX_READ_BY))
+                .block();
+
+        return "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_READ_BY + "' }";
+
+    }
+
+    @Changeset(order = 6)
+    public String setDanglingFieldAccordingToAssigneeAndCandidates(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .updateMulti(
+                        Query.query(
+                                new Criteria().norOperator(
+                                        Criteria.where("assignee").exists(true),
+                                        Criteria.where("candidateUsers.0").exists(true),
+                                        Criteria.where("candidateGroups.0").exists(true))),
+                        Update.update("dangling", Boolean.TRUE),
+                        UserTask.class)
+                .block();
+
+        return null;
+
     }
 
 }
