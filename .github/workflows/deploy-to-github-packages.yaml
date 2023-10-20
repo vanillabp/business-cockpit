@@ -37,12 +37,12 @@ jobs:
           package-type: 'npm'
           min-versions-to-keep: 0
           ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
-      - uses: actions/delete-package-versions@v4.1.1
-        with:
-          package-name: 'bc-dev-shell'
-          package-type: 'npm'
-          min-versions-to-keep: 0
-          ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
+#      - uses: actions/delete-package-versions@v4.1.1
+#        with:
+#          package-name: 'bc-dev-shell'
+#          package-type: 'npm'
+#          min-versions-to-keep: 0
+#          ignore-versions: '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$'
       - name: Publish package
         run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
         env:
