@@ -19,6 +19,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @RestController("tasklistGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
@@ -65,7 +66,9 @@ public class GuiApiController implements OfficialTasklistApi {
 		return userContext
 				.getUserLoggedInDetailsAsMono()
 				.flatMap(user -> userTaskService.getUserTasks(
-						user,
+						List.of(user.getId()),
+						List.of(user.getId()),
+						user.getAuthorities(),
 						pageNumber,
 						pageSize,
 						timestamp)
@@ -87,7 +90,9 @@ public class GuiApiController implements OfficialTasklistApi {
 								: OffsetDateTime.now()))
 						.flatMap(entry -> Mono.zip(
 								userTaskService.getUserTasksUpdated(
-										user,
+										List.of(user.getId()),
+										List.of(user.getId()),
+										user.getAuthorities(),
 										entry.getT1().getSize(),
 										entry.getT1().getKnownUserTasksIds(),
 										entry.getT2()),

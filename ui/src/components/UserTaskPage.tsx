@@ -5,20 +5,21 @@ import {
   NavigateToWorkflowFunction,
   NoUserTaskGiven,
   OpenTaskFunction,
+  TasklistApi,
   TasklistApiHook,
   useFederationModule
 } from '../index.js';
-import { OfficialTasklistApi, UserTask } from "@vanillabp/bc-official-gui-client";
+import { UserTask } from "@vanillabp/bc-official-gui-client";
 import { TranslationFunction } from "../types/translate";
 
 const loadUserTask = (
-    tasklistApi: OfficialTasklistApi,
+    tasklistApi: TasklistApi,
     userTaskId: string,
     setUserTask: (userTask: BcUserTask | null) => void,
     navigateToWorkflow: (userTask: UserTask) => void,
     openTask: (userTask: UserTask) => void,
 ) => {
-  tasklistApi.getUserTask({ userTaskId, markAsRead: true })
+  tasklistApi.getUserTask(userTaskId,true)
       .then((value: UserTask) => {
         const bcUserTask: BcUserTask = {
           ...value,

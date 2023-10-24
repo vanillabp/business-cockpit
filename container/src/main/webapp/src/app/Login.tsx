@@ -16,7 +16,7 @@ const Login = () => {
     if (Boolean(state.currentUser)) {
       navigate('/');
     }
-  }, [ state, useNavigate ]);
+  }, [ state, navigate ]);
 
   return <Box
         align="center"

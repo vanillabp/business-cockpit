@@ -4,10 +4,10 @@ import i18n from 'i18next';
 import i18next from 'i18next';
 import { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
-import { useTasklistApi } from "../../utils/apis";
 import { useGuiSse } from "../../client/guiClient";
 import { navigateToWorkflow, openTask } from "../../utils/navigate";
 import { useTranslation } from "react-i18next";
+import { useStandardTasklistApi } from "../../utils/standardApis";
 
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Tasks',
@@ -55,7 +55,7 @@ const Main = () => {
     <Routes>
       <Route path='/' element={<ListOfTasks
                                   showLoadingIndicator={ showLoadingIndicator }
-                                  useTasklistApi={ useTasklistApi }
+                                  useTasklistApi={ useStandardTasklistApi }
                                   useGuiSse={ useGuiSse }
                                   t={ t }
                                   currentLanguage={ i18next.language }

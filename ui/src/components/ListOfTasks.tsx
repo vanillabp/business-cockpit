@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { OfficialTasklistApi, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import { UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, Button, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
 import {
   BcUserTask,
@@ -24,6 +24,7 @@ import {
   RefreshItemCallbackFunction,
   ReloadCallbackFunction,
   SearchableAndSortableUpdatingList,
+  TasklistApi,
   TasklistApiHook,
   TypeOfItem,
   useFederationModules
@@ -32,7 +33,7 @@ import { TranslationFunction } from "../types/translate";
 import { FormView, Hide } from "grommet-icons";
 
 const loadUserTasks = async (
-  tasklistApi: OfficialTasklistApi,
+  tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
   pageSize: number,
   pageNumber: number,
@@ -41,7 +42,7 @@ const loadUserTasks = async (
 ): Promise<ListItems<UserTask>> => {
   
   const result = await tasklistApi
-        .getUserTasks({ pageNumber, pageSize, initialTimestamp });
+        .getUserTasks(new Date().getTime().toString(), pageNumber, pageSize, initialTimestamp);
         
   setNumberOfUserTasks(result!.page.totalElements);
 
@@ -52,7 +53,7 @@ const loadUserTasks = async (
 };
 
 const reloadUserTasks = async (
-  tasklistApi: OfficialTasklistApi,
+  tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
   existingModuleDefinitions: UserTask[] | undefined,
   setModulesOfTasks: (modules: UserTask[] | undefined) => void,
@@ -65,13 +66,11 @@ const reloadUserTasks = async (
   allSelected: boolean,
 ): Promise<ListItems<UserTask>> => {
 
-  const result = await tasklistApi.getUserTasksUpdate({
-      userTasksUpdate: {
-          size: numberOfItems,
-          knownUserTasksIds: knownItemsIds,
-          initialTimestamp
-        }
-    })
+  const result = await tasklistApi.getUserTasksUpdate(
+      new Date().getTime().toString(),
+      numberOfItems,
+      knownItemsIds,
+      initialTimestamp);
   setNumberOfUserTasks(result!.page.totalElements);
 
   const newModuleDefinitions = result.userTasks
@@ -195,7 +194,10 @@ const ListOfTasks = ({
         showLoadingIndicator(true);
         loadMetaInformation();
       }
-    }, [ userTasks, tasklistApi, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator ]);
+    },
+    // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
+    // purpose of preloading modules used by usertasks
+    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
@@ -352,7 +354,7 @@ const ListOfTasks = ({
     (refreshItemRef.current!)(userTaskMarkedIds);
     setAllSelected(false);
     userTaskMarkedIds.forEach(userTaskId => tasklistApi
-        .usertaskUserTaskIdMarkAsReadPatch({ userTaskId, unread }));
+        .markUserTaskAsRead(userTaskId, unread));
   };
   
   return (

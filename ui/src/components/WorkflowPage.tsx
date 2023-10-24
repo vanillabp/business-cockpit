@@ -4,6 +4,7 @@ import {
   NoWorkflowGiven,
   OpenTaskFunction,
   useFederationModule,
+  WorkflowlistApi,
   WorkflowlistApiHook
 } from '../index.js';
 import {
@@ -15,25 +16,23 @@ import {
 } from '@vanillabp/bc-shared';
 import { Box } from 'grommet';
 import { TranslationFunction } from "../types/translate";
-import { OfficialWorkflowlistApi } from "@vanillabp/bc-official-gui-client";
 
 const loadWorkflow = async (
     workflowId: string,
-    workflowListApi: OfficialWorkflowlistApi,
+    workflowListApi: WorkflowlistApi,
     openTask: OpenTaskFunction,
     setWorkflow: (workflow: BcWorkflow) => void,
 ) => {
-  const workflow = await workflowListApi.getWorkflow({ workflowId });
+  const workflow = await workflowListApi.getWorkflow(workflowId);
   const getUserTasksFunction: GetUserTasksFunction = async (
       activeOnly,
       limitListAccordingToCurrentUsersPermissions
   ) => {
     return (await workflowListApi
-        .getUserTasksOfWorkflow({
-          workflowId: workflow.id,
+        .getUserTasksOfWorkflow(
+          workflow.id,
           activeOnly,
-          llatcup: limitListAccordingToCurrentUsersPermissions,
-        }))
+          limitListAccordingToCurrentUsersPermissions))
         .map(userTask => ({
           ...userTask,
           open: () => openTask(userTask),

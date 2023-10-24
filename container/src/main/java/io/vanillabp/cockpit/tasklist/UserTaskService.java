@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
@@ -65,6 +65,8 @@ public class UserTaskService {
     private ReactiveMongoTemplate mongoTemplate;
 
     private Disposable dbChangesSubscription;
+
+    private ApplicationProperties properties;
     
     @PostConstruct
     public void subscribeToDbChanges() {
@@ -133,7 +135,9 @@ public class UserTaskService {
     }
 
     public Mono<Page<UserTask>> getUserTasks(
-            final UserDetails user,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp) {
@@ -145,7 +149,9 @@ public class UserTaskService {
 
         final var query = buildUserTasksQuery(
                 new Query(),
-                user,
+                assignees,
+                candidateUsers,
+                candidateGroups,
                 initialTimestamp,
                 RetrieveItemsMode.OpenTasks);
 
@@ -177,7 +183,9 @@ public class UserTaskService {
     }
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
-            final UserDetails user,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
             final int size,
             final Collection<String> knownUserTasksIds,
             final OffsetDateTime initialTimestamp) {
@@ -191,7 +199,9 @@ public class UserTaskService {
 
         buildUserTasksQuery(
                 query,
-                user,
+                assignees,
+                candidateUsers,
+                candidateGroups,
                 initialTimestamp,
                 RetrieveItemsMode.OpenTasks);
 
@@ -312,20 +322,37 @@ public class UserTaskService {
 
     public Query buildUserTasksQuery(
             final Query targetQuery,
-            final UserDetails user,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode) {
 
         final var subCriterias = new LinkedList<Criteria>();
 
         // honour user's permissions
-        final var assigneeMatches = Criteria.where("assignee").is(user.getId());
-        final var candidateUsersMatches = Criteria.where("candidateUsers").in(user.getId());
-        final var candidateGroupsMatches = Criteria.where("candidateGroups").in(user.getAuthorities());
-        final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
-        final Criteria permittedTasks = new Criteria()
-                .orOperator(noAssigneeOrNoCandidate, assigneeMatches, candidateUsersMatches, candidateGroupsMatches);
-        subCriterias.add(permittedTasks);
+        final var userRestrictions = new LinkedList<Criteria>();
+        if ((assignees != null)
+                && !assignees.isEmpty()) {
+            final var assigneeMatches = Criteria.where("assignee").in(assignees);
+            userRestrictions.add(assigneeMatches);
+        }
+        if ((candidateUsers != null)
+                && !candidateUsers.isEmpty()) {
+            final var candidateUsersMatches = Criteria.where("candidateUsers").in(candidateUsers);
+            userRestrictions.add(candidateUsersMatches);
+        }
+        if ((candidateGroups != null)
+                && !candidateGroups.isEmpty()) {
+            final var candidateGroupsMatches = Criteria.where("candidateGroups").in(candidateGroups);
+            userRestrictions.add(candidateGroupsMatches);
+        }
+        if (!userRestrictions.isEmpty()) {
+            final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
+            userRestrictions.add(noAssigneeOrNoCandidate);
+            final Criteria permittedTasks = new Criteria().orOperator(userRestrictions);
+            subCriterias.add(permittedTasks);
+        }
 
         // limit result according to list mode
 

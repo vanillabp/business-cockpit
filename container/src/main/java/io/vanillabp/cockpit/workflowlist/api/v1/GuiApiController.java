@@ -101,7 +101,7 @@ public class GuiApiController implements OfficialWorkflowlistApi {
                 .flatMap(entry -> Mono.zip(
                         workflowlistService.getWorkflowsUpdated(
                                 entry.getT1().getSize(),
-                                entry.getT1().getKnownWorkflowIds(),
+                                entry.getT1().getKnownWorkflowsIds(),
                                 entry.getT2()),
                         Mono.just(entry.getT2())))
                 .map(entry -> ResponseEntity.ok(

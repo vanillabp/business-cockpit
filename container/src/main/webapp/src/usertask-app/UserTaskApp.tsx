@@ -4,9 +4,9 @@ import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { NoUserTaskGiven, UserTaskPage } from '@vanillabp/bc-ui';
 import { navigateToWorkflow, openTask } from "../utils/navigate";
-import { useTasklistApi } from "../utils/apis";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
+import { useStandardTasklistApi } from "../utils/standardApis";
 
 i18n.addResources('en', 'usertask', {
   "module-unknown": "Unknown module",
@@ -38,7 +38,7 @@ const RouteBasedUserTaskApp = () => {
 
   return (<UserTaskPage
               userTaskId={ userTaskId }
-              useTasklistApi={ useTasklistApi }
+              useTasklistApi={ useStandardTasklistApi }
               showLoadingIndicator={ showLoadingIndicator }
               toast={ toast }
               t={ t }

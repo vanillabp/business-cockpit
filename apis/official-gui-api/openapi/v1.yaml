@@ -566,12 +566,12 @@ components:
       type: object
       required:
         - size
-        - knownWorkflowIds
+        - knownWorkflowsIds
       properties:
         size:
           type: integer
           format: int32
-        knownWorkflowIds:
+        knownWorkflowsIds:
           type: array
           items:
             type: string
