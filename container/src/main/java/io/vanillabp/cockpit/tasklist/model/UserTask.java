@@ -143,7 +143,7 @@ public class UserTask implements UpdateInformationAware {
         if (this.getReadBy() == null) {
             return;
         }
-        this.getReadBy().remove(userId);
+        this.getReadBy().removeIf(readBy -> readBy.userId.equals(userId));
 
     }
 
