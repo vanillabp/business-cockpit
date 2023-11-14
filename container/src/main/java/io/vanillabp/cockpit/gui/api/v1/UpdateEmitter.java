@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import org.springframework.messaging.SubscribableChannel;
+import org.springframework.integration.channel.DirectChannel;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -9,7 +9,7 @@ public class UpdateEmitter {
     
     private int updateInterval = 1000;
     
-    private SubscribableChannel channel;
+    private DirectChannel channel;
     
     private List<String> roles;
     
@@ -22,7 +22,7 @@ public class UpdateEmitter {
     private UpdateEmitter() { }
     
     public static UpdateEmitter withChannel(
-            final SubscribableChannel channel) {
+            final DirectChannel channel) {
         
         final var result = new UpdateEmitter();
         result.channel = channel;
@@ -31,7 +31,7 @@ public class UpdateEmitter {
         
     }
     
-    public SubscribableChannel getChannel() {
+    public DirectChannel getChannel() {
         return channel;
     }
     

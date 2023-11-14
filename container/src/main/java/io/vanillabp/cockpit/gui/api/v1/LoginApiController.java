@@ -8,9 +8,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.messaging.MessageHandler;
-import org.springframework.messaging.SubscribableChannel;
 import org.springframework.messaging.support.GenericMessage;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,7 +46,7 @@ public class LoginApiController implements LoginApi {
     @Autowired
     private TaskScheduler taskScheduler;
 
-    private Map<String, UpdateEmitter> updateEmitters = new HashMap<>();
+    private final Map<String, UpdateEmitter> updateEmitters = new HashMap<>();
     
     @RequestMapping(
             method = RequestMethod.GET,
@@ -60,11 +61,14 @@ public class LoginApiController implements LoginApi {
                 .flatMapMany(user -> {
 
                     final var channel = MessageChannels
-                            .direct("SSE-" + user + "-" + id).get();
-                    updateEmitters.put(id, UpdateEmitter
-                            .withChannel(channel)
-                            .roles(user.getAuthorities())
-                            .updateInterval(properties.getGuiSseUpdateInterval()));
+                            .direct("SSE-" + user.getId() + "-" + id)
+                            .get();
+                    synchronized (updateEmitters) {
+                        updateEmitters.put(id, UpdateEmitter
+                                .withChannel(channel)
+                                .roles(user.getAuthorities())
+                                .updateInterval(properties.getGuiSseUpdateInterval()));
+                    }
 
                     // This ping forces the browser to treat the text/event-stream request
                     // as closed and therefore the lock created in fetchApi.ts is released
@@ -79,7 +83,7 @@ public class LoginApiController implements LoginApi {
                     return Flux.create(sink -> {
                         final MessageHandler handler = message -> sink.next(
                                 ServerSentEvent.class.cast(message.getPayload()));
-                        sink.onCancel(() -> channel.unsubscribe(handler));
+                        sink.onDispose(() -> channel.unsubscribe(handler));
                         channel.subscribe(handler);
                     }, FluxSink.OverflowStrategy.BUFFER);
                     
@@ -87,7 +91,7 @@ public class LoginApiController implements LoginApi {
 
     }
     
-    @Scheduled(fixedDelayString = "PT1S")
+    @Scheduled(fixedDelayString = "PT3S")
     public void updateClients() {
 
         // null-events are used to flush events collected since last interval
@@ -98,17 +102,23 @@ public class LoginApiController implements LoginApi {
     @EventListener(classes = GuiEvent.class)
     public void updateClients(
             final GuiEvent guiEvent) {
-        
+
+        final List<Map.Entry<String, UpdateEmitter>> activeSubscribers;
+        synchronized (updateEmitters) {
+            activeSubscribers = updateEmitters
+                    .entrySet()
+                    .stream()
+                    .filter(emitter ->
+                            // null-events are used to flush events collected since last interval
+                            guiEvent == null
+                                    // non-null-events have to match the user's roles
+                                    || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                    .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
+                    .toList();
+        }
+
         final var toBeRemoved = new LinkedList<String>();
-        updateEmitters
-                .entrySet()
-                .stream()
-                .filter(emitter ->
-                        // null-events are used to flush events collected since last interval
-                        guiEvent == null
-                        // non-null-events have to match the user's roles
-                        || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
-                .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
+        activeSubscribers
                 .forEach(emitter -> {
                     final var updateEmitter = emitter.getValue();
                     updateEmitter
@@ -119,66 +129,87 @@ public class LoginApiController implements LoginApi {
                             .stream()
                             .forEach(eventEntry -> {
                                 try {
-                                    sendSseEvent(
+                                    final var hasSubscribers = sendSseEventIfSubscribersAvailable(
                                             updateEmitter.getChannel(),
                                             eventEntry.getKey().toString(),
                                             eventEntry.getValue());
+                                    if (!hasSubscribers) {
+                                        toBeRemoved.add(emitter.getKey());
+                                    }
                                 } catch (Exception e) {
                                     logger.warn("Could not send update event", e);
-                                    toBeRemoved.add(emitter.getKey());
                                 }
                             });
                 });
-        toBeRemoved.forEach(updateEmitters::remove);
-        
+        if (!toBeRemoved.isEmpty()) {
+            synchronized (updateEmitters) {
+                toBeRemoved.forEach(updateEmitters::remove);
+            }
+        }
+
     }
 
     /**
-     * SseEmitter timeouts are absolute. So we need to ping
-     * the connection and if the user closed the browser we
-     * will see an error which indicates we have to drop 
-     * this emitter. 
+     * SSE channel is closed on idle, so we ping the client.
      */
-    @Scheduled(fixedDelayString = "PT29S")
+    @Scheduled(fixedDelayString = "PT27S")
     public void cleanupUpdateEmitters() {
-        
+
+        final List<Map.Entry<String, UpdateEmitter>> activeSubscribers;
+        synchronized (updateEmitters) {
+            activeSubscribers = updateEmitters
+                    .entrySet()
+                    .stream()
+                    .toList();
+        }
         final var toBeDeleted = new LinkedList<String>();
-        updateEmitters
-                .entrySet()
+        activeSubscribers
                 .forEach(entry -> {
-                    if (!pingUpdateEmitter(entry.getValue().getChannel())) {
-                        toBeDeleted.add(entry.getKey());
-                    }
-                });
-        toBeDeleted.forEach(updateEmitters::remove);
+                        if (!pingUpdateEmitter(entry.getValue().getChannel())) {
+                            toBeDeleted.add(entry.getKey());
+                        }
+                    });
+        if (!toBeDeleted.isEmpty()) {
+            synchronized (updateEmitters) {
+                toBeDeleted.forEach(updateEmitters::remove);
+            }
+        }
         
     }
     
     private static final PingEvent pingEvent = new PingEvent();
     
     private boolean pingUpdateEmitter(
-            final SubscribableChannel channel) {
+            final DirectChannel channel) {
         
         try {
-            sendSseEvent(channel, "ping", pingEvent);
-            return true;
+            final var hasSubscribers = sendSseEventIfSubscribersAvailable(channel, "ping", pingEvent);
+            return hasSubscribers;
         } catch (Exception e) {
-            return false;
+            logger.warn(
+                    "Could not ping SSE channel '{}'!",
+                    channel.getFullChannelName(),
+                    e);
+            return true; // channel may still have subscribers
         }
         
     }
     
-    private <T> void sendSseEvent(
-            final SubscribableChannel channel,
+    private <T> boolean sendSseEventIfSubscribersAvailable(
+            final DirectChannel channel,
             final String name,
             final T payload) throws Exception {
-        
+
+        if (channel.getSubscriberCount() == 0) {
+            return false;
+        }
         channel.send(new GenericMessage<ServerSentEvent<?>>(
                 ServerSentEvent
                        .builder(payload)
                        .id(UUID.randomUUID().toString())
                        .event(name)
                        .build()));
+        return true;
         
     }
     
