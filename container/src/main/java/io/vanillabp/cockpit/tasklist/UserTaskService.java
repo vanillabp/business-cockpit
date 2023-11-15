@@ -122,6 +122,20 @@ public class UserTaskService {
 
     }
 
+    public Flux<UserTask> markAsRead(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .map(userTask -> {
+                            userTask.setReadAt(userId);
+                            return userTask;
+                        }));
+
+    }
+
     public Mono<UserTask> markAsUnread(
             final String userTaskId,
             final String userId) {
@@ -131,6 +145,20 @@ public class UserTaskService {
                     userTask.clearReadAt(userId);
                     return userTasks.save(userTask);
                 });
+
+    }
+
+    public Flux<UserTask> markAsUnread(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .map(userTask -> {
+                            userTask.clearReadAt(userId);
+                            return userTask;
+                        }));
 
     }
 

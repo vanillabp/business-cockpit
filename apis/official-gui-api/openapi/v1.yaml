@@ -10,11 +10,35 @@ security:
   - JWT: []
 
 paths:
+  /usertask/mark-as-read:
+    patch:
+      tags:
+        - officialTasklist
+      summary: mark tasks as read or unread
+      operationId: markTasksAsRead
+      parameters:
+        - in: query
+          name: unread
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskIds"
+      responses:
+        200:
+          description: Status of user task changed
+        404:
+          description: User task is unknown
   /usertask/{userTaskId}/mark-as-read:
     patch:
       tags:
         - officialTasklist
       summary: mark a task as read or unread
+      operationId: markTaskAsRead
       parameters:
         - in: path
           name: userTaskId
@@ -250,6 +274,13 @@ components:
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
+    UserTaskIds:
+      type: object
+      properties:
+        userTaskIds:
+          type: array
+          items:
+            type: string
     UserTask:
       type: object
       required:

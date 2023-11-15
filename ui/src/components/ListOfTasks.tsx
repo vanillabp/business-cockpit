@@ -353,8 +353,7 @@ const ListOfTasks = ({
         }, new Array<string>());
     (refreshItemRef.current!)(userTaskMarkedIds);
     setAllSelected(false);
-    userTaskMarkedIds.forEach(userTaskId => tasklistApi
-        .markUserTaskAsRead(userTaskId, unread));
+    tasklistApi.markUserTasksAsRead(userTaskMarkedIds, unread);
   };
   
   return (

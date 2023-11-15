@@ -5,6 +5,7 @@ import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
@@ -136,7 +137,7 @@ public class GuiApiController implements OfficialTasklistApi {
     }
 
 	@Override
-	public Mono<ResponseEntity<Void>> usertaskUserTaskIdMarkAsReadPatch(
+	public Mono<ResponseEntity<Void>> markTaskAsRead(
 			final String userTaskId,
 			final Boolean unread,
 			final ServerWebExchange exchange) {
@@ -156,6 +157,34 @@ public class GuiApiController implements OfficialTasklistApi {
 
 		return result
                 .map(userTask -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	@Override
+	public Mono<ResponseEntity<Void>> markTasksAsRead(
+			final Mono<UserTaskIds> userTaskIds,
+			final Boolean unread,
+			final ServerWebExchange exchange) {
+
+		final var currentUser = userContext
+				.getUserLoggedInAsMono();
+
+		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
+		final var inputData = Mono
+				.zip(currentUser, userTaskIds);
+		if ((unread != null) && unread) {
+			result = inputData.flatMap(tuple -> userTaskService.markAsUnread(
+					tuple.getT2().getUserTaskIds(),
+					tuple.getT1()).collectList());
+		} else {
+			result = inputData.flatMap(tuple -> userTaskService.markAsRead(
+					tuple.getT2().getUserTaskIds(),
+					tuple.getT1()).collectList());
+		}
+
+		return result
+				.map(userTasks -> ResponseEntity.ok().<Void>build())
 				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
 
 	}

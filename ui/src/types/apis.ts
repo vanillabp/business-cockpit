@@ -17,12 +17,15 @@ type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Arra
 
 type TasklistMarkAsReadCall = (userTaskId: string, unread?: boolean) => void;
 
+type TasklistMarkMultipleAsReadCall = (userTaskIds: Array<string>, unread?: boolean) => void;
+
 type GetUserTaskCall = (userTaskId: string, markAsRead?: boolean) => Promise<UserTask>;
 
 export interface TasklistApi {
   getUserTasks: TasklistApiCall,
   getUserTasksUpdate: TasklistUpdateCall,
   markUserTaskAsRead: TasklistMarkAsReadCall,
+  markUserTasksAsRead: TasklistMarkMultipleAsReadCall,
   getUserTask: GetUserTaskCall,
 }
 

@@ -13,7 +13,9 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
-        .usertaskUserTaskIdMarkAsReadPatch({ userTaskId, unread }),
+        .markTaskAsRead({ userTaskId, unread }),
+    markUserTasksAsRead: (userTaskIds, unread) => tasklistApi
+        .markTasksAsRead({ userTaskIds: { userTaskIds }, unread }),
   };
 }
 
