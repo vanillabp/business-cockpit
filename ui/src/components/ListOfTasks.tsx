@@ -366,49 +366,47 @@ const ListOfTasks = ({
           (columnsOfTasks === undefined)
               ? <Box key="list"></Box>
               : <Box key="list">
-                    <SearchableAndSortableUpdatingList
-                        showLoadingIndicator={ showLoadingIndicator }
-                        columns={ columns }
-                        itemsRef={ userTasks }
-                        updateListRef={ updateListRef }
-                        refreshItemRef={ refreshItemRef }
-                        retrieveItems={ (pageNumber, pageSize, initialTimestamp) => 
+                  <Box
+                      fill
+                      background='white'
+                      direction="row"
+                      align="center"
+                      justify="start"
+                      style={ { minHeight: '3rem', maxHeight: '3rem'} }
+                      pad={ { horizontal: 'xsmall' } }>
+                    <SetReadStatusButtons
+                        markAsRead={ () => markAsRead(false) }
+                        markAsUnread={ () => markAsRead(true) }/>
+                  </Box>
+                  <SearchableAndSortableUpdatingList
+                      showLoadingIndicator={ showLoadingIndicator }
+                      columns={ columns }
+                      itemsRef={ userTasks }
+                      updateListRef={ updateListRef }
+                      refreshItemRef={ refreshItemRef }
+                      retrieveItems={ (pageNumber, pageSize, initialTimestamp) =>
 // @ts-ignore
-                            loadUserTasks(
-                                tasklistApi,
-                                setNumberOfTasks,
-                                pageSize,
-                                pageNumber,
-                                initialTimestamp,
-                                mapToBcUserTask) }
-                        reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
+                          loadUserTasks(
+                              tasklistApi,
+                              setNumberOfTasks,
+                              pageSize,
+                              pageNumber,
+                              initialTimestamp,
+                              mapToBcUserTask) }
+                      reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
-                            reloadUserTasks(
-                                tasklistApi,
-                                setNumberOfTasks,
-                                modulesOfTasks,
-                                setModulesOfTasks,
-                                definitionsOfTasks,
-                                setDefinitionsOfTasks,
-                                numberOfItems,
-                                updatedItemsIds,
-                                initialTimestamp,
-                                mapToBcUserTask) }
-                        additionalHeader={
-                            <Box
-                                fill
-                                background='white'
-                                direction="row"
-                                align="center"
-                                justify="start"
-                                style={ { minHeight: '3rem', maxHeight: '3rem'} }
-                                pad={ { horizontal: 'xsmall' } }>
-                              <SetReadStatusButtons
-                                  markAsRead={ () => markAsRead(false) }
-                                  markAsUnread={ () => markAsRead(true) }/>
-                            </Box>
-                        }
-                      />
+                          reloadUserTasks(
+                              tasklistApi,
+                              setNumberOfTasks,
+                              modulesOfTasks,
+                              setModulesOfTasks,
+                              definitionsOfTasks,
+                              setDefinitionsOfTasks,
+                              numberOfItems,
+                              updatedItemsIds,
+                              initialTimestamp,
+                              mapToBcUserTask) }
+                    />
                   </Box>
         }
         <Box

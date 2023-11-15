@@ -36,11 +36,14 @@ const SnapScrollingDataTable = forwardRef(({
     ? <SnapScrollingGrid
           fill
           rows={ [ 'max-content', 'auto' ]}
+          style={ { overflowY: 'auto' } }
           snapDirection='horizontal'>
         <Box
             fill={ isNotPhone ? 'horizontal' : undefined }
             style={ {
-              position: 'relative',
+              position: 'sticky',
+              top: '0',
+              zIndex: 2,
               width: isPhone ? totalWidth : undefined,
               } }
             background='dark-3'
@@ -99,7 +102,6 @@ const SnapScrollingDataTable = forwardRef(({
         <Box
             style={ { position: 'relative' }}
             fill={ isNotPhone }
-            overflow={ { vertical: 'auto' } }
             ref={ ref as any }
             onScroll={ onScroll }>
           <DataTable
