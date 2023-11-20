@@ -91,7 +91,7 @@ public class LoginApiController implements LoginApi {
 
     }
     
-    @Scheduled(fixedDelayString = "PT3S")
+    @Scheduled(fixedDelayString = "${businessCockpit.guiSseUpdateInterval:500}") // every 0.5 seconds
     public void updateClients() {
 
         // null-events are used to flush events collected since last interval

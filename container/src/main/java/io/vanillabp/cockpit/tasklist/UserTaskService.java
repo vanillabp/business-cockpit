@@ -273,7 +273,7 @@ public class UserTaskService {
                 userTasks
                         .findAllById(userTaskIds)
                         .filter(userTask -> !StringUtils.hasText(userId)
-                                || userTask.getAssignee().equals(userId))
+                                || ((userTask.getAssignee() != null) && userTask.getAssignee().equals(userId)))
                         .map(userTask -> {
                             userTask.setAssignee(null);
                             return userTask;

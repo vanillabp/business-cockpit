@@ -1,6 +1,6 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, Button, CheckBox, ColumnConfig, Grid, Text, TextInput, ThemeContext, ThemeType, Tip } from 'grommet';
+import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
@@ -33,7 +33,7 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
-import { Blank, ContactInfo, FormView, Hide, User as UserIcon } from "grommet-icons";
+import { Blank, ContactInfo, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
 
 const loadUserTasks = async (
@@ -119,42 +119,43 @@ const SetReadStatusButtons = ({
   const color = disabled ? 'light-4' : 'dark-3';
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
-  return <>
-          <Button
-              hoverIndicator="light-2"
-              disabled={ disabled }
-              tip={ t('mark_as_read') }
-              onClick={ markAsRead }>
-            <Box
-                width="2rem"
-                height="2rem"
-                elevation="small"
-                align="center"
-                justify="center"
-                round={ { size: '0.4rem', corner: 'left' } }
-                border={ { color } }>
-              <FormView
-                  color={ textColor } />
-            </Box>
-          </Button>
-          <Button
-              hoverIndicator="light-2"
-              disabled={ disabled }
-              tip={ t('mark_as_unread') }
-              onClick={ markAsUnread }>
-            <Box
-                width="2rem"
-                height="2rem"
-                elevation="small"
-                align="center"
-                justify="center"
-                round={ { size: '0.4rem', corner: 'right' } }
-                border={ [ { color, side: 'right' }, { color, side: 'top' }, { color, side: 'bottom' } ] }>
-              <Hide
-                  color={ textColor } />
-            </Box>
-          </Button>
-        </>;
+  return (<Box
+              direction="row"
+              round={ { size: '0.4rem' } }
+              border={ { color } }
+              elevation="small">
+            <Tip
+                content={ t('mark_as_read') }>
+              <Box
+                  hoverIndicator="light-2"
+                  focusIndicator={ false }
+                  onClick={ markAsRead }
+                  width="2rem"
+                  height="2rem"
+                  round={ { size: '0.4rem', corner: 'left' } }
+                  align="center"
+                  justify="center">
+                <FormView
+                    color={ textColor } />
+              </Box>
+            </Tip>
+            <Tip
+                content={ t('mark_as_unread') }>
+              <Box
+                  hoverIndicator="light-2"
+                  focusIndicator={ false }
+                  onClick={ markAsUnread }
+                  width="2rem"
+                  height="2rem"
+                  round={ { size: '0.4rem', corner: 'right' } }
+                  align="center"
+                  justify="center"
+                  border={ { color, side: 'left' } }>
+                <Hide
+                    color={ textColor } />
+              </Box>
+            </Tip>
+          </Box>);
 
 }
 
@@ -172,61 +173,62 @@ const ClaimButtons = ({
   const color = disabled ? 'light-4' : 'dark-3';
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
-  return <>
-    <Button
-        hoverIndicator="light-2"
-        disabled={ disabled }
-        tip={ t('claim_tasks') }
-        onClick={ claimTasks }>
-      <Box
-          height="2rem"
-          elevation="small"
-          pad={ { horizontal: '0.4rem' } }
-          gap="0.4rem"
-          align="center"
-          direction="row"
-          round={ { size: '0.4rem', corner: 'left' } }
-          justify="center"
-          border={ { color } }>
-        <UserIcon
-            size="20rem"
-            color={ textColor } />
-        <Text
-            truncate='tip'
-            color={ textColor }>
-          { t('claim_task' ) }
-        </Text>
-      </Box>
-    </Button>
-    <Button
-        hoverIndicator="light-2"
-        disabled={ disabled }
-        tip={ t('unclaim_tasks') }
-        onClick={ unclaimTasks }>
-      <Box
-          style={ { position: 'relative' } }
-          elevation="small"
-          width="2rem"
-          height="2rem"
-          align="center"
-          justify="center"
-          round={ { size: '0.4rem', corner: 'right' } }
-          border={ [ { color, side: 'right' }, { color, side: 'top' }, { color, side: 'bottom' } ] }>
-        <UserIcon
-            style={ { position: 'absolute' } }
-            color={ textColor }
-            size="20rem" />
-        <Blank
-            style={ { position: 'absolute' } }
-            color={ textColor }
-            size="20rem">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
-          </svg>
-        </Blank>
-      </Box>
-    </Button>
-  </>;
+  return (<Box
+              direction="row"
+              elevation="small"
+              round={ { size: '0.4rem' } }
+              border={ { color } }>
+            <Tip
+                content={ t('claim_tasks') }>
+              <Box
+                  hoverIndicator="light-2"
+                  focusIndicator={ false }
+                  onClick={ claimTasks }
+                  height="2rem"
+                  pad={ { horizontal: '0.4rem' } }
+                  gap="0.4rem"
+                  round={ { size: '0.4rem', corner: 'left' } }
+                  align="center"
+                  direction="row"
+                  justify="center">
+                <UserIcon
+                    size="20rem"
+                    color={ textColor } />
+                <Text
+                    truncate='tip'
+                    color={ textColor }>
+                  { t('claim_task' ) }
+                </Text>
+              </Box>
+            </Tip>
+            <Tip
+                content={ t('unclaim_tasks') }>
+              <Box
+                  hoverIndicator="light-2"
+                  focusIndicator={ false }
+                  onClick={ unclaimTasks }
+                  round={ { size: '0.4rem', corner: 'right' } }
+                  style={ { position: 'relative' } }
+                  width="2rem"
+                  height="2rem"
+                  align="center"
+                  justify="center"
+                  border={ { color, side: 'left' } }>
+                <UserIcon
+                    style={ { position: 'absolute' } }
+                    color={ textColor }
+                    size="20rem" />
+                <Blank
+                    style={ { position: 'absolute' } }
+                    color={ textColor }
+                    size="20rem">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
+                  </svg>
+                </Blank>
+              </Box>
+            </Tip>
+          </Box>);
 
 }
 
@@ -275,8 +277,6 @@ const AssignButton = ({
     setEdit(false);
     setHide(false);
   };
-  const findUsers = async (q: string) => {
-  };
 
   useOnClickOutside(inputRef, hideEdit);
   const findUsersDebounced = useMemo(() => debounce(loadResult, 300), [ tasklistApi, currentQuery ]);
@@ -290,21 +290,21 @@ const AssignButton = ({
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
   return (
-      <Button
+      <Box
+          elevation="small"
           hoverIndicator={ edit ? "white" : "light-2" }
-          disabled={ disabled }
+          focusIndicator={ false }
+          onClick={ showEdit }
+          round={ { size: '0.4rem' } }
           style={ { position: 'relative' } }
-          onClick={ showEdit }>
+          border={ { color } }>
         <Box
             height="2rem"
             width="15rem"
-            elevation="small"
             align="center"
             justify="center"
-            round={ active ? { corner: 'top', size: '0.4rem' } : { size: '0.4rem' } }
             style={ { position: 'relative' } }
-            overflow="hidden"
-            border={ { color } }>
+            overflow="hidden">
           <Box
               gap="0.4rem"
               pad={ { horizontal: '0.4rem' } }
@@ -322,25 +322,28 @@ const AssignButton = ({
             edit
               ? <Box
                     fill
-                    background="white"
                     overflow="visible"
-                    direction="row"
-                    justify="center"
-                    pad={ { horizontal: '0.4rem', vertical: '0.4rem' } }
-                    style={ { position: "absolute", top: hide ? '3.55rem' : '-0.1rem' } }
+                    style={ { position: "absolute", top: hide ? '3.85rem' : '-0.15rem' } }
                     animation={ { type: hide ? "slideDown" : "slideUp", size: 'xlarge', duration: 700 } }
                     onAnimationEnd={ hide ? finalizeHideEdit : finalizeShowEdit  }>
-                  <TextInput
-                      plain="full"
-                      ref={ inputRef }
-                      placeholder={ t('assign_placeholder') }
-                      autoFocus={ focus }
-                      value={ query }
-                      onChange={ event => updateResult(event.target.value) }
-                      focusIndicator={ false }
-                      reverse />
-                  <ContactInfo
-                      color={ textColor } />
+                  <Box
+                      margin={ { vertical: '0.4rem', horizontal: '0.4rem' } }
+                      pad="0.1rem"
+                      direction="row"
+                      justify="center"
+                      background="white">
+                    <TextInput
+                        plain="full"
+                        ref={ inputRef }
+                        placeholder={ t('assign_placeholder') }
+                        autoFocus={ focus }
+                        value={ query }
+                        onChange={ event => updateResult(event.target.value) }
+                        focusIndicator={ false }
+                        reverse />
+                    <ContactInfo
+                        color={ textColor } />
+                  </Box>
                 </Box>
               : undefined
           }
@@ -349,9 +352,8 @@ const AssignButton = ({
           active || hide
               ? <Box
                     animation={ { type: hide ? "fadeOut" : "fadeIn", duration: 700 } }
-                    style={ { position: 'absolute', zIndex: 20 } }>
+                    style={ { position: 'absolute', zIndex: 20, top: '1.6rem', left: '-1px', right: '-1px', maxWidth: 'unset' } }>
                   <Box
-                      width="15rem"
                       background="white"
                       elevation="small"
                       direction="column"
@@ -360,10 +362,10 @@ const AssignButton = ({
                       round={ { corner: 'bottom', size: '0.4rem' } }
                       border={ [ { color, side: 'left' }, { color, side: 'bottom' }, { color, side: 'right' } ] }
                       animation={ { type: !active ? "fadeOut" : "fadeIn", duration: 700 } }
-                      style={ { position: 'relative', top: '-0.2rem', maxHeight: '10rem', overflowY: 'auto' } }>
+                      style={ { maxHeight: '10rem', overflowY: 'auto' } }>
                     { users === undefined
                           ? t('assign_loading')
-                          : users.map(user => <Box
+                          : users!.map(user => <Box
                                                             onClick={ () => assign(user.id!) }>
                                                           <User
                                                               user={ user }
@@ -375,7 +377,45 @@ const AssignButton = ({
                 </Box>
               : undefined
         }
-      </Button>);
+      </Box>);
+
+}
+
+const RefreshButton = ({
+  t,
+  disabled,
+  refresh,
+}: {
+  t: TranslationFunction,
+  disabled: boolean,
+  refresh: () => void,
+}) => {
+  const color = disabled ? 'light-4' : 'dark-3';
+  const textColor = disabled ? 'dark-4' : 'dark-1';
+
+  return (<Box
+              hoverIndicator={ disabled ? 'light-2' : "accent-1" }
+              focusIndicator={ false }
+              onClick={ refresh }
+              direction="row"
+              elevation="small"
+              background={ !disabled ? { color: "accent-1", opacity: "strong" } : undefined }
+              round={ { size: '0.4rem' } }
+              border={ { color } }>
+            <Tip
+                content={ t('refresh_tasks') }>
+              <Box
+                  height="2rem"
+                  pad={ { horizontal: '0.4rem' } }
+                  align="center"
+                  direction="row"
+                  justify="center">
+                <Refresh
+                    size="20rem"
+                    color={ textColor } />
+              </Box>
+            </Tip>
+          </Box>);
 
 }
 
@@ -404,8 +444,8 @@ const ListOfTasks = ({
   const { isNotPhone, isPhone } = useResponsiveScreen();
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
-  const theme = useContext(ThemeContext) as ThemeType;
-  
+  const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
+
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<UserTaskEvent>>>) => {
       if (!updateListRef.current) return;
@@ -443,7 +483,7 @@ const ListOfTasks = ({
     },
     // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by usertasks
-    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator ]);
+    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
@@ -484,10 +524,11 @@ const ListOfTasks = ({
       return;
     }
     setColumnsOfTasks(orderedColumns);
-  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
+  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
+  const [ refreshNecessary, setRefreshNecessary ] = useState(false);
 
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
@@ -678,6 +719,13 @@ const ListOfTasks = ({
     tasklistApi.assignTasks(userTaskMarkedIds, userId);
   };
 
+  const refreshList = () => {
+    userTasks.current = undefined;
+    setRefreshNecessary(false);
+    setColumnsOfTasks(undefined);
+    setRefreshIndicator(new Date());
+  }
+
   return (
       <Grid
           key="grid"
@@ -711,6 +759,10 @@ const ListOfTasks = ({
                         t={ t }
                         disabled={ !anySelected }
                         assign={ assign }/>
+                    <RefreshButton
+                        t={ t }
+                        refresh={ refreshList }
+                        disabled={ !refreshNecessary } />
                   </Box>
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }
@@ -718,6 +770,7 @@ const ListOfTasks = ({
                       itemsRef={ userTasks }
                       updateListRef={ updateListRef }
                       refreshItemRef={ refreshItemRef }
+                      refreshNecessaryCallback={ () => setRefreshNecessary(true) }
                       retrieveItems={ (pageNumber, pageSize, initialTimestamp) =>
 // @ts-ignore
                           loadUserTasks(

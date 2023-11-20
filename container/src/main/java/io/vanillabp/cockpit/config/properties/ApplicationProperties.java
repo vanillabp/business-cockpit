@@ -7,7 +7,7 @@ import org.springframework.lang.NonNull;
 @ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = false)
 public class ApplicationProperties {
 
-    private int guiSseUpdateInterval = 1000;
+    private int guiSseUpdateInterval = 500;
     
     @NonNull
     private String titleShort;

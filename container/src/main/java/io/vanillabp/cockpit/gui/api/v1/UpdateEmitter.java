@@ -7,7 +7,7 @@ import java.util.List;
 
 public class UpdateEmitter {
     
-    private int updateInterval = 1000;
+    private int updateInterval = 500;
     
     private DirectChannel channel;
     

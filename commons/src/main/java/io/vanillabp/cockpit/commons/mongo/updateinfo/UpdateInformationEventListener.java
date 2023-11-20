@@ -1,37 +1,45 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.data.mongodb.core.mapping.event.BeforeConvertCallback;
+import org.springframework.data.mongodb.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 
-@Order(1)
+@Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 @ConditionalOnProperty(prefix = "spring.data.mongodb", name = "uri")
-public class UpdateInformationEventListener implements BeforeConvertCallback<Object> {
+public class UpdateInformationEventListener implements ReactiveBeforeConvertCallback<Object> {
 
     @Autowired
-    private UserContext currentUser;
+    private ReactiveUserContext currentUser;
 
     @Override
-    public Object onBeforeConvert(Object entityObj, String collection) {
-        
-        final var now = OffsetDateTime.now();
+    public Publisher<Object> onBeforeConvert(
+            final Object entityObj,
+            final String collection) {
 
         if (entityObj instanceof UpdateInformationAware) {
-            
-            final var entity = (UpdateInformationAware) entityObj;
-            entity.setUpdatedAt(now);
-            entity.setUpdatedBy(currentUser.getUserLoggedIn());
-            
+
+            return currentUser
+                    .getUserLoggedInAsMono()
+                    .map(currentUser -> {
+                        final var entity = (UpdateInformationAware) entityObj;
+                        entity.setUpdatedAt(OffsetDateTime.now());
+                        entity.setUpdatedBy(currentUser);
+                        return entity;
+                    });
+
         }
-        
-        return entityObj;
-        
+
+        return Mono.just(entityObj);
+
     }
     
 }

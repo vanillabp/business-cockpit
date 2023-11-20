@@ -32,6 +32,8 @@ type RetrieveItemsFunction = <T extends ListItemData>(pageNumber: number, pageSi
 
 type ReloadItemsFunction = <T extends ListItemData>(numberOfItems: number, knownItemsIds: Array<string>, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
+type RefreshNecessaryFunction = () => void;
+
 export type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
 
 export type RefreshItemCallbackFunction = (itemIds: Array<string>) => void;
@@ -82,6 +84,7 @@ const reloadData = async <T extends ListItemData>(
   items: Array<ListItem<T>> | undefined,
   updatedItemsIds: Array<string>,
   initialTimestamp: MutableRefObject<Date | undefined>,
+  refreshNecessaryCallback?: RefreshNecessaryFunction,
 ) => {
 
   const prefill = 2; // estimate that not more than 60 items will be created at once
@@ -97,13 +100,15 @@ const reloadData = async <T extends ListItemData>(
       initialTimestamp.current);
   
   const itemsById = new Map(items!.map(item => [ item.id, item ]));
+  let anyUpdate = false;
   const mergedItems = result
       .items
       .map((item, index) => {
         const oldItem = itemsById.get(item.id)!;
-        const itemNotInUpdateResponse = item.version === 0;
+        const itemInUpdateResponse = item.version !== 0;
+        if (itemInUpdateResponse) anyUpdate = true;
 
-        const status = itemNotInUpdateResponse
+        const status = !itemInUpdateResponse
             ? oldItem.status
             : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
             ? ListItemStatus.ENDED
@@ -113,7 +118,7 @@ const reloadData = async <T extends ListItemData>(
             ? ListItemStatus.UPDATED
             : ListItemStatus.INITIAL;
 
-        const newItem = (itemNotInUpdateResponse
+        const newItem = (!itemInUpdateResponse
             ? {
                 id: item.id,
                 data: oldItem?.data,
@@ -134,6 +139,9 @@ const reloadData = async <T extends ListItemData>(
         return newItem;
       });
    setItems(mergedItems);
+   if (anyUpdate && refreshNecessaryCallback) {
+     refreshNecessaryCallback();
+   }
    
 };
 
@@ -143,6 +151,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   refreshItemRef,
   retrieveItems,
   reloadItems,
+  refreshNecessaryCallback,
   columns,
   showLoadingIndicator,
   additionalHeader,
@@ -152,6 +161,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   refreshItemRef?: MutableRefObject<RefreshItemCallbackFunction | undefined>,
   retrieveItems: RetrieveItemsFunction,
   reloadItems: ReloadItemsFunction,
+  refreshNecessaryCallback?: RefreshNecessaryFunction,
   columns: ColumnConfig<any>[],
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   additionalHeader?: ReactNode | undefined;
@@ -181,7 +191,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
           setItems,
           items,
           updatedItemsIds,
-          initialTimestamp);
+          initialTimestamp,
+          refreshNecessaryCallback);
       if (initialTimestamp.current) {
         return;
       }
@@ -219,7 +230,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
       }
       return props;
     }, {});
-   
+
   return (<Box
               fill>
             <SnapScrollingDataTable

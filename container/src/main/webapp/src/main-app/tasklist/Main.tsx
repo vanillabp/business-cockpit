@@ -33,6 +33,7 @@ i18n.addResources('en', 'tasklist', {
       "assign_task": "Assign",
       "assign_placeholder": "Min. 3 characters...",
       "assign_loading": "Loading suggestions...",
+      "refresh_tasks": "Reload tasks",
     });
 i18n.addResources('de', 'tasklist', {
       "title.long": 'Aufgaben',
@@ -58,6 +59,7 @@ i18n.addResources('de', 'tasklist', {
       "assign_task": "Zuweisen",
       "assign_placeholder": "Mind. 3 Zeichen...",
       "assign_loading": "Lade Vorschläge...",
+      "refresh_tasks": "Aufgabenliste neu laden",
     });
 
 const Main = () => {

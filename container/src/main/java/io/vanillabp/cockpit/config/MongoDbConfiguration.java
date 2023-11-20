@@ -1,10 +1,11 @@
 package io.vanillabp.cockpit.config;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.LinkedList;
-import java.util.concurrent.TimeUnit;
-
+import com.mongodb.WriteConcern;
+import com.mongodb.connection.SslSettings;
+import com.mongodb.management.JMXConnectionPoolListener;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
+import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.mongo.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -15,13 +16,10 @@ import org.springframework.data.mongodb.core.WriteResultChecking;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 
-import com.mongodb.WriteConcern;
-import com.mongodb.connection.SslSettings;
-import com.mongodb.management.JMXConnectionPoolListener;
-
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
-import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class MongoDbConfiguration {
