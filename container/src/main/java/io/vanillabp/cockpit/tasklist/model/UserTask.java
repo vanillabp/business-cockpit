@@ -107,6 +107,36 @@ public class UserTask implements UpdateInformationAware {
 
     }
 
+    public void addCandidateUser(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if (getCandidateUsers() == null) {
+            setCandidateUsers(List.of(userId));
+        } else {
+            this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
+            this.getCandidateUsers().add(userId);
+        }
+
+    }
+
+    public void removeCandidateUser(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if ((getCandidateUsers() == null)
+            || getCandidateUsers().isEmpty()) {
+            return;
+        }
+
+        this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
+
+    }
+
     public OffsetDateTime getReadAt(final String userId) {
 
         if (userId == null) {
@@ -128,11 +158,12 @@ public class UserTask implements UpdateInformationAware {
     public void setReadAt(
             final String userId) {
 
-        final var readBy = new ReadBy(userId, OffsetDateTime.now());
+        final var newReadBy = new ReadBy(userId, OffsetDateTime.now());
         if (this.getReadBy() == null) {
-            this.setReadBy(List.of(readBy));
+            this.setReadBy(List.of(newReadBy));
         } else {
-            this.getReadBy().add(readBy);
+            this.getReadBy().removeIf(readBy -> readBy.userId().equals(userId));
+            this.getReadBy().add(newReadBy);
         }
 
     }

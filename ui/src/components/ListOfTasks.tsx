@@ -1,16 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, Button, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import { Box, Button, CheckBox, ColumnConfig, Grid, Text, TextInput, ThemeContext, ThemeType, Tip } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
   Column,
+  debounce,
   EventMessage,
   EventSourceMessage,
   GuiSseHook,
   Link,
   ListItemStatus,
   ShowLoadingIndicatorFunction,
+  TextListCell,
+  useOnClickOutside,
   useResponsiveScreen,
   WakeupSseCallback
 } from "@vanillabp/bc-shared";
@@ -30,7 +33,8 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
-import { FormView, Hide } from "grommet-icons";
+import { Blank, ContactInfo, FormView, Hide, User as UserIcon } from "grommet-icons";
+import { User } from "./User.js";
 
 const loadUserTasks = async (
   tasklistApi: TasklistApi,
@@ -102,35 +106,276 @@ const reloadUserTasks = async (
 };
 
 const SetReadStatusButtons = ({
+  t,
+  disabled,
   markAsRead,
   markAsUnread,
 }: {
+  t: TranslationFunction,
+  disabled: boolean,
   markAsRead: () => void,
   markAsUnread: () => void,
 }) => {
+  const color = disabled ? 'light-4' : 'dark-3';
+  const textColor = disabled ? 'dark-4' : 'dark-1';
 
   return <>
           <Button
               hoverIndicator="light-2"
+              disabled={ disabled }
+              tip={ t('mark_as_read') }
               onClick={ markAsRead }>
             <Box
-                pad="0.2rem"
+                width="2rem"
+                height="2rem"
+                elevation="small"
+                align="center"
+                justify="center"
                 round={ { size: '0.4rem', corner: 'left' } }
-                border>
-              <FormView />
+                border={ { color } }>
+              <FormView
+                  color={ textColor } />
             </Box>
           </Button>
           <Button
               hoverIndicator="light-2"
+              disabled={ disabled }
+              tip={ t('mark_as_unread') }
               onClick={ markAsUnread }>
             <Box
-                pad="0.2rem"
+                width="2rem"
+                height="2rem"
+                elevation="small"
+                align="center"
+                justify="center"
                 round={ { size: '0.4rem', corner: 'right' } }
-                border={ [ { side: 'right' }, { side: 'top' }, { side: 'bottom' } ] }>
-              <Hide />
+                border={ [ { color, side: 'right' }, { color, side: 'top' }, { color, side: 'bottom' } ] }>
+              <Hide
+                  color={ textColor } />
             </Box>
           </Button>
         </>;
+
+}
+
+const ClaimButtons = ({
+  t,
+  disabled,
+  claimTasks,
+  unclaimTasks,
+}: {
+  t: TranslationFunction,
+  disabled: boolean,
+  claimTasks: () => void,
+  unclaimTasks: () => void,
+}) => {
+  const color = disabled ? 'light-4' : 'dark-3';
+  const textColor = disabled ? 'dark-4' : 'dark-1';
+
+  return <>
+    <Button
+        hoverIndicator="light-2"
+        disabled={ disabled }
+        tip={ t('claim_tasks') }
+        onClick={ claimTasks }>
+      <Box
+          height="2rem"
+          elevation="small"
+          pad={ { horizontal: '0.4rem' } }
+          gap="0.4rem"
+          align="center"
+          direction="row"
+          round={ { size: '0.4rem', corner: 'left' } }
+          justify="center"
+          border={ { color } }>
+        <UserIcon
+            size="20rem"
+            color={ textColor } />
+        <Text
+            truncate='tip'
+            color={ textColor }>
+          { t('claim_task' ) }
+        </Text>
+      </Box>
+    </Button>
+    <Button
+        hoverIndicator="light-2"
+        disabled={ disabled }
+        tip={ t('unclaim_tasks') }
+        onClick={ unclaimTasks }>
+      <Box
+          style={ { position: 'relative' } }
+          elevation="small"
+          width="2rem"
+          height="2rem"
+          align="center"
+          justify="center"
+          round={ { size: '0.4rem', corner: 'right' } }
+          border={ [ { color, side: 'right' }, { color, side: 'top' }, { color, side: 'bottom' } ] }>
+        <UserIcon
+            style={ { position: 'absolute' } }
+            color={ textColor }
+            size="20rem" />
+        <Blank
+            style={ { position: 'absolute' } }
+            color={ textColor }
+            size="20rem">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
+          </svg>
+        </Blank>
+      </Box>
+    </Button>
+  </>;
+
+}
+
+const AssignButton = ({
+  t,
+  tasklistApi,
+  disabled,
+  assign,
+}: {
+  t: TranslationFunction,
+  disabled: boolean,
+  tasklistApi: TasklistApi,
+  assign: (userId: string) => void,
+}) => {
+  const [ edit, setEdit ] = useState(false);
+  const [ hide, setHide ] = useState(false);
+  const [ focus, setFocus ] = useState(false);
+  const [ active, setActive ] = useState(false);
+  const [ query, setQuery ] = useState('')
+  const currentQuery = useRef<string>('');
+  const [ users, setUsers ] = useState<Array<UserDto> | undefined>(undefined);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const loadResult = async () => {
+    const result = await tasklistApi.findUsers(currentQuery.current, 10);
+    setUsers(result.users);
+  }
+  const showEdit = () => {
+    if (edit) return;
+    loadResult();
+    setEdit(true);
+    setHide(false);
+    setFocus(false);
+  }
+  const finalizeShowEdit = () => {
+    inputRef.current!.focus();
+    setActive(true);
+  }
+  const hideEdit = () => {
+    if (!edit) return;
+    setHide(true);
+    setFocus(false);
+    setActive(false);
+  }
+  const finalizeHideEdit = () => {
+    setEdit(false);
+    setHide(false);
+  };
+  const findUsers = async (q: string) => {
+  };
+
+  useOnClickOutside(inputRef, hideEdit);
+  const findUsersDebounced = useMemo(() => debounce(loadResult, 300), [ tasklistApi, currentQuery ]);
+  const updateResult = (newQuery: string) => {
+    currentQuery.current = newQuery;
+    setQuery(newQuery);
+    findUsersDebounced();
+  }
+
+  const color = disabled ? 'light-4' : 'dark-3';
+  const textColor = disabled ? 'dark-4' : 'dark-1';
+
+  return (
+      <Button
+          hoverIndicator={ edit ? "white" : "light-2" }
+          disabled={ disabled }
+          style={ { position: 'relative' } }
+          onClick={ showEdit }>
+        <Box
+            height="2rem"
+            width="15rem"
+            elevation="small"
+            align="center"
+            justify="center"
+            round={ active ? { corner: 'top', size: '0.4rem' } : { size: '0.4rem' } }
+            style={ { position: 'relative' } }
+            overflow="hidden"
+            border={ { color } }>
+          <Box
+              gap="0.4rem"
+              pad={ { horizontal: '0.4rem' } }
+              align="center"
+              direction="row">
+            <ContactInfo
+                color={ textColor }/>
+            <Text
+                truncate='tip'
+                color={ textColor }>
+              { t('assign_task') }
+            </Text>
+          </Box>
+          {
+            edit
+              ? <Box
+                    fill
+                    background="white"
+                    overflow="visible"
+                    direction="row"
+                    justify="center"
+                    pad={ { horizontal: '0.4rem', vertical: '0.4rem' } }
+                    style={ { position: "absolute", top: hide ? '3.55rem' : '-0.1rem' } }
+                    animation={ { type: hide ? "slideDown" : "slideUp", size: 'xlarge', duration: 700 } }
+                    onAnimationEnd={ hide ? finalizeHideEdit : finalizeShowEdit  }>
+                  <TextInput
+                      plain="full"
+                      ref={ inputRef }
+                      placeholder={ t('assign_placeholder') }
+                      autoFocus={ focus }
+                      value={ query }
+                      onChange={ event => updateResult(event.target.value) }
+                      focusIndicator={ false }
+                      reverse />
+                  <ContactInfo
+                      color={ textColor } />
+                </Box>
+              : undefined
+          }
+        </Box>
+        {
+          active || hide
+              ? <Box
+                    animation={ { type: hide ? "fadeOut" : "fadeIn", duration: 700 } }
+                    style={ { position: 'absolute', zIndex: 20 } }>
+                  <Box
+                      width="15rem"
+                      background="white"
+                      elevation="small"
+                      direction="column"
+                      gap="xsmall"
+                      pad={ { top: '0.6rem', bottom: '0.2rem', horizontal: '0.4rem' } }
+                      round={ { corner: 'bottom', size: '0.4rem' } }
+                      border={ [ { color, side: 'left' }, { color, side: 'bottom' }, { color, side: 'right' } ] }
+                      animation={ { type: !active ? "fadeOut" : "fadeIn", duration: 700 } }
+                      style={ { position: 'relative', top: '-0.2rem', maxHeight: '10rem', overflowY: 'auto' } }>
+                    { users === undefined
+                          ? t('assign_loading')
+                          : users.map(user => <Box
+                                                            onClick={ () => assign(user.id!) }>
+                                                          <User
+                                                              user={ user }
+                                                              isUserLoggedIn={ false }
+                                                              size='small' />
+                                                        </Box>)
+                    }
+                  </Box>
+                </Box>
+              : undefined
+        }
+      </Button>);
 
 }
 
@@ -159,6 +404,7 @@ const ListOfTasks = ({
   const { isNotPhone, isPhone } = useResponsiveScreen();
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
+  const theme = useContext(ThemeContext) as ThemeType;
   
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<UserTaskEvent>>>) => {
@@ -241,6 +487,7 @@ const ListOfTasks = ({
   }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
+  const [ anySelected, setAnySelected ] = useState(false);
 
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
@@ -264,6 +511,9 @@ const ListOfTasks = ({
                                   }, new Array<string>())
                             );
                             setAllSelected(event.currentTarget.checked);
+                            if (anySelected !== event.currentTarget.checked) {
+                              setAnySelected(event.currentTarget.checked);
+                            }
                           } } />
                     </Box>,
             render: (item: ListItem<BcUserTask>) => (
@@ -277,20 +527,26 @@ const ListOfTasks = ({
                         const currentlyAllSelected = userTasks
                             .current!
                             .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
-                        if (currentlyAllSelected != allSelected) {
+                        if (currentlyAllSelected !== allSelected) {
                           setAllSelected(currentlyAllSelected);
+                        }
+                        const currentlyAnySelected = userTasks
+                            .current!
+                            .reduce((anySelected, userTask) => anySelected || userTask.selected, false);
+                        if (anySelected !== currentlyAnySelected) {
+                          setAnySelected(currentlyAnySelected);
                         }
                       } } />
                 </Box>)
           },
           { property: 'name',
-            header: t('name'),
-            size: `calc(100% - 2.2rem${columnsOfTasks === undefined ? 'x' : columnsOfTasks!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
+            header: t('column_name'),
             render: (item: ListItem<BcUserTask>) => {
                 const title = item.data['title'][currentLanguage] || item.data['title']['en'];
               return (
                     <Box
                         fill
+                        style={ { minWidth: '10rem' } }
                         pad="xsmall">
                       <Text
                           color={ colorForEndedItemsOrUndefined(item) }
@@ -309,24 +565,53 @@ const ListOfTasks = ({
                     </Box>);
                 }
           },
-          ...(columnsOfTasks === undefined
-              ? []
-              : columnsOfTasks!.map(column => ({
-                    property: column.path,
-                    header: column.title[currentLanguage] || column.title['en'],
-                    size: column.width,
-                    plain: true,
-                    render: (item: ListItem<BcUserTask>) => <ListCell
-                                                              modulesAvailable={ modules! }
-                                                              column={ column }
-                                                              currentLanguage={ currentLanguage }
-                                                              typeOfItem={ TypeOfItem.TaskList }
-                                                              showUnreadAsBold={ true }
-                                                              t={ t }
-                                                              // @ts-ignore
-                                                              item={ item } />
-                  }))
-          )
+        { property: 'assignee',
+          header: t('column_assignee'),
+          size: '10rem',
+          plain: true,
+          render: (item: ListItem<BcUserTask>) => <TextListCell item={ item } value={ item.data.assignee } />
+        },
+        { property: 'canidateUsers',
+          header: <Box
+                      fill
+                      align="center">
+                    <Tip
+                        content={ t('column_candidates') }>
+                      <ContactInfo />
+                    </Tip>
+                  </Box>,
+          size: '3rem',
+          plain: true,
+          render: (item: ListItem<BcUserTask>) => item.data.candidateUsers && item.data.candidateUsers?.length > 0
+              ? <Box
+                    fill
+                    justify="center"
+                    align="center">
+                  <Tip
+                      content={ item.data.candidateUsers?.join(', ') }>
+                    <ContactInfo />
+                  </Tip>
+                </Box>
+              : undefined
+        },
+        ...(columnsOfTasks === undefined
+            ? []
+            : columnsOfTasks!.map(column => ({
+                  property: column.path,
+                  header: column.title[currentLanguage] || column.title['en'],
+                  size: column.width,
+                  plain: true,
+                  render: (item: ListItem<BcUserTask>) => <ListCell
+                                                            modulesAvailable={ modules! }
+                                                            column={ column }
+                                                            currentLanguage={ currentLanguage }
+                                                            typeOfItem={ TypeOfItem.TaskList }
+                                                            showUnreadAsBold={ true }
+                                                            t={ t }
+                                                            // @ts-ignore
+                                                            item={ item } />
+                }))
+        )
       ];
       
   const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
@@ -353,9 +638,46 @@ const ListOfTasks = ({
         }, new Array<string>());
     (refreshItemRef.current!)(userTaskMarkedIds);
     setAllSelected(false);
+    setAnySelected(false);
     tasklistApi.markUserTasksAsRead(userTaskMarkedIds, unread);
   };
-  
+
+  const claim = (unclaim: boolean) => {
+    const userTaskMarkedIds = userTasks
+        .current!
+        .filter(userTask => userTask.selected)
+        .map(userTask => {
+          userTask.selected = false;
+          return userTask.id;
+        })
+        .reduce((userTaskIds, userTaskId) => {
+          userTaskIds.push(userTaskId);
+          return userTaskIds;
+        }, new Array<string>());
+    (refreshItemRef.current!)(userTaskMarkedIds);
+    setAllSelected(false);
+    setAnySelected(false);
+    tasklistApi.claimTasks(userTaskMarkedIds, unclaim);
+  };
+
+  const assign = (userId: string) => {
+    const userTaskMarkedIds = userTasks
+        .current!
+        .filter(userTask => userTask.selected)
+        .map(userTask => {
+          userTask.selected = false;
+          return userTask.id;
+        })
+        .reduce((userTaskIds, userTaskId) => {
+          userTaskIds.push(userTaskId);
+          return userTaskIds;
+        }, new Array<string>());
+    (refreshItemRef.current!)(userTaskMarkedIds);
+    setAllSelected(false);
+    setAnySelected(false);
+    tasklistApi.assignTasks(userTaskMarkedIds, userId);
+  };
+
   return (
       <Grid
           key="grid"
@@ -368,14 +690,27 @@ const ListOfTasks = ({
                   <Box
                       fill
                       background='white'
-                      direction="row"
+                      direction={ isNotPhone ? "row" : "column" }
                       align="center"
                       justify="start"
+                      gap="small"
                       style={ { minHeight: '3rem', maxHeight: '3rem'} }
                       pad={ { horizontal: 'xsmall' } }>
                     <SetReadStatusButtons
+                        t={ t }
+                        disabled={ !anySelected }
                         markAsRead={ () => markAsRead(false) }
                         markAsUnread={ () => markAsRead(true) }/>
+                    <ClaimButtons
+                        t={ t }
+                        disabled={ !anySelected }
+                        claimTasks={ () => claim(false) }
+                        unclaimTasks={ () => claim(true) } />
+                    <AssignButton
+                        tasklistApi={ tasklistApi }
+                        t={ t }
+                        disabled={ !anySelected }
+                        assign={ assign }/>
                   </Box>
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }

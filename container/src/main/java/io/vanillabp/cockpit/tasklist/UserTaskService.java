@@ -21,6 +21,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -157,6 +158,124 @@ public class UserTaskService {
                         .findAllById(userTaskIds)
                         .map(userTask -> {
                             userTask.clearReadAt(userId);
+                            return userTask;
+                        }));
+
+    }
+
+    public Mono<UserTask> assignTask(
+            final String userTaskId,
+            final String userId) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    userTask.addCandidateUser(userId);
+                    return userTasks.save(userTask);
+                });
+
+    }
+
+    public Flux<UserTask> assignTask(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .map(userTask -> {
+                            userTask.addCandidateUser(userId);
+                            return userTask;
+                        }));
+
+    }
+
+    public Mono<UserTask> unassignTask(
+            final String userTaskId,
+            final String userId) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    userTask.removeCandidateUser(userId);
+                    return userTasks.save(userTask);
+                });
+
+    }
+
+    public Flux<UserTask> unassignTask(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .map(userTask -> {
+                            userTask.removeCandidateUser(userId);
+                            return userTask;
+                        }));
+
+    }
+
+    public Mono<UserTask> claimTask(
+            final String userTaskId,
+            final String userId) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    if (StringUtils.hasText(userId)
+                            && !userTask.getAssignee().equals(userId)) {
+                        userTask.setAssignee(userId);
+                        return userTasks.save(userTask);
+                    }
+                    return Mono.just(userTask);
+                });
+
+    }
+
+    public Flux<UserTask> claimTask(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        if (!StringUtils.hasText(userId)) {
+            return Flux.empty();
+        }
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .map(userTask -> {
+                            userTask.setAssignee(userId);
+                            return userTask;
+                        }));
+
+    }
+
+    public Mono<UserTask> unclaimTask(
+            final String userTaskId,
+            final String userId) {
+
+        final var userIdGiven = StringUtils.hasText(userId);
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    if (!userIdGiven
+                            || ((userTask.getAssignee() != null) && userTask.getAssignee().equals(userId))) {
+                        userTask.setAssignee(null);
+                        return userTasks.save(userTask);
+                    }
+                    return Mono.just(userTask);
+                });
+
+    }
+
+    public Flux<UserTask> unclaimTask(
+            final Collection<String> userTaskIds,
+            final String userId) {
+
+        return userTasks.saveAll(
+                userTasks
+                        .findAllById(userTaskIds)
+                        .filter(userTask -> !StringUtils.hasText(userId)
+                                || userTask.getAssignee().equals(userId))
+                        .map(userTask -> {
+                            userTask.setAssignee(null);
                             return userTask;
                         }));
 

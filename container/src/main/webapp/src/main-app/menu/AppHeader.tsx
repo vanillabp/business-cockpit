@@ -30,7 +30,7 @@ const AppHeader = () => {
   return (
     <Header
         tag='header'
-        style={ { zIndex: 1000} }
+        style={ { zIndex: 30 } }
         background={ state.intern ? 'accent-4' : 'white' }
         elevation='medium'
         height='xxsmall'

@@ -1,4 +1,4 @@
-import User from './User';
+import { User } from '@vanillabp/bc-ui';
 import { useAppContext } from '../../AppContext';
 import { Anchor, Grid, Text } from 'grommet';
 import { Logout, Projects, Task } from 'grommet-icons';
@@ -39,7 +39,8 @@ const Menu = () => {
           !Boolean(state.currentUser) ? '' :
           <>
             <User
-                user={ state.currentUser! } />
+                user={ state.currentUser! }
+                isUserLoggedIn={ true } />
             <MenuItem
                 roles={ null }
                 onClick={() => {

@@ -9,3 +9,5 @@ export * from './NoWorkflowGiven.js';
 export * from './WorkflowPage.js';
 export * from './NoUserTaskGiven.js';
 export * from './UserTaskPage.js';
+export * from './UserAvatar.js';
+export * from './User.js';

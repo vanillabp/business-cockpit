@@ -1,5 +1,5 @@
 import { WakeupSseCallback } from "@vanillabp/bc-shared";
-import { UserTask, Workflow, Workflows } from "@vanillabp/bc-official-gui-client";
+import { UserSearchResult, UserTask, Workflow, Workflows } from "@vanillabp/bc-official-gui-client";
 import { UserTasks } from "@vanillabp/bc-official-gui-client/dist/models/UserTasks";
 
 /**
@@ -19,14 +19,29 @@ type TasklistMarkAsReadCall = (userTaskId: string, unread?: boolean) => void;
 
 type TasklistMarkMultipleAsReadCall = (userTaskIds: Array<string>, unread?: boolean) => void;
 
+type TasklistClaimTaskCall = (userTaskId: string, unclaim?: boolean) => void;
+
+type TasklistClaimMultipleTasksCall = (userTaskIds: Array<string>, unclaim?: boolean) => void;
+
+type TasklistAssignTaskCall = (userTaskId: string, userId: string, unassign?: boolean) => void;
+
+type TasklistAssignMultipleTasksCall = (userTaskIds: Array<string>, userId: string, unassign?: boolean) => void;
+
 type GetUserTaskCall = (userTaskId: string, markAsRead?: boolean) => Promise<UserTask>;
+
+type FindUsersCall = (query?: string, limit?: number) => Promise<UserSearchResult>;
 
 export interface TasklistApi {
   getUserTasks: TasklistApiCall,
   getUserTasksUpdate: TasklistUpdateCall,
   markUserTaskAsRead: TasklistMarkAsReadCall,
   markUserTasksAsRead: TasklistMarkMultipleAsReadCall,
+  claimTask: TasklistClaimTaskCall,
+  claimTasks: TasklistClaimMultipleTasksCall,
+  assignTask: TasklistAssignTaskCall,
+  assignTasks: TasklistAssignMultipleTasksCall,
   getUserTask: GetUserTaskCall,
+  findUsers: FindUsersCall,
 }
 
 type GetWorkflowsApiCall = (listId: string, pageNumber: number, pageSize: number, initialTimestamp?: Date) => Promise<Workflows>;

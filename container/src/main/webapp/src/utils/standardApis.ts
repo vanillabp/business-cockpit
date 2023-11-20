@@ -16,6 +16,16 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
         .markTaskAsRead({ userTaskId, unread }),
     markUserTasksAsRead: (userTaskIds, unread) => tasklistApi
         .markTasksAsRead({ userTaskIds: { userTaskIds }, unread }),
+    claimTask: (userTaskId, unclaim) => tasklistApi
+        .claimTask({ userTaskId, unclaim }),
+    claimTasks: (userTaskIds, unclaim) => tasklistApi
+        .claimTasks({ userTaskIds: { userTaskIds }, unclaim }),
+    assignTask: (userTaskId, userId, unassign) => tasklistApi
+        .assignTask({ userTaskId, userId, unassign }),
+    assignTasks: (userTaskIds, userId, unassign) => tasklistApi
+        .assignTasks({ userTaskIds: { userTaskIds}, userId, unassign }),
+    findUsers: (query, limit) => tasklistApi
+        .findUsers({ query, limit }),
   };
 }
 

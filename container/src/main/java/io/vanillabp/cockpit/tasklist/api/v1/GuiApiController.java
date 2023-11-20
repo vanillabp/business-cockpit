@@ -3,6 +3,9 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
+import io.vanillabp.cockpit.gui.api.v1.Sex;
+import io.vanillabp.cockpit.gui.api.v1.User;
+import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
@@ -14,12 +17,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController("tasklistGuiApiController")
@@ -186,6 +191,134 @@ public class GuiApiController implements OfficialTasklistApi {
 		return result
 				.map(userTasks -> ResponseEntity.ok().<Void>build())
 				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	@Override
+	public Mono<ResponseEntity<Void>> claimTask(
+			final String userTaskId,
+			final Boolean unclaim,
+			final ServerWebExchange exchange) {
+
+		final var currentUser = userContext
+				.getUserLoggedInAsMono();
+
+		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
+		if ((unclaim != null) && unclaim) {
+			result = currentUser
+					.flatMap(userId -> userTaskService.unclaimTask(userTaskId, userId));
+		} else {
+			result = currentUser
+					.flatMap(userId -> userTaskService.claimTask(userTaskId, userId));
+
+		}
+
+		return result
+				.map(userTask -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	@Override
+	public Mono<ResponseEntity<Void>> claimTasks(
+			final Mono<UserTaskIds> userTaskIds,
+			final Boolean unclaim,
+			final ServerWebExchange exchange) {
+
+		final var currentUser = userContext
+				.getUserLoggedInAsMono();
+
+		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
+		final var inputData = Mono
+				.zip(currentUser, userTaskIds);
+		if ((unclaim != null) && unclaim) {
+			result = inputData.flatMap(tuple -> userTaskService.unclaimTask(
+					tuple.getT2().getUserTaskIds(),
+					tuple.getT1()).collectList());
+		} else {
+			result = inputData.flatMap(tuple -> userTaskService.claimTask(
+					tuple.getT2().getUserTaskIds(),
+					tuple.getT1()).collectList());
+		}
+
+		return result
+				.map(userTasks -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	@Override
+	public Mono<ResponseEntity<Void>> assignTask(
+			final String userTaskId,
+			final Boolean unassign,
+			final String userId,
+			final ServerWebExchange exchange) {
+
+		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
+		if ((unassign != null) && unassign) {
+			result = userTaskService.unassignTask(userTaskId, userId);
+		} else {
+			result = userTaskService.assignTask(userTaskId, userId);
+
+		}
+
+		return result
+				.map(userTask -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	@Override
+	public Mono<ResponseEntity<Void>> assignTasks(
+			final Mono<UserTaskIds> body,
+			final Boolean unassign,
+			final String userId,
+			final ServerWebExchange exchange) {
+
+		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
+		if ((unassign != null) && unassign) {
+			result = body.flatMap(bodyContent -> userTaskService.unassignTask(
+					bodyContent.getUserTaskIds(),
+					userId).collectList());
+		} else {
+			result = body.flatMap(bodyContent -> userTaskService.assignTask(
+					bodyContent.getUserTaskIds(),
+					userId).collectList());
+		}
+
+		return result
+				.map(userTasks -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	private static final List<User> KNOWN_USERS = List.of(
+			new User().firstName("Hans").lastName("Müller").id("hmu").sex(Sex.MALE),
+			new User().firstName("Anne").lastName("Klein").id("akl").sex(Sex.FEMALE),
+			new User().firstName("Rolf-Rüdiger").lastName("Mannheimer").id("rma").sex(Sex.MALE),
+			new User().firstName("Elisabeth").lastName("Stockinger").id("est").sex(Sex.FEMALE)
+		);
+	@Override
+	public Mono<ResponseEntity<UserSearchResult>> findUsers(
+			final String query,
+			final Integer limit,
+			final ServerWebExchange exchange) {
+
+		final var trimmedQuery = StringUtils.trimAllWhitespace(query);
+		final UserSearchResult result;
+		if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
+			result = new UserSearchResult().users(KNOWN_USERS);
+		} else {
+			result = new UserSearchResult();
+			result.setUsers(new ArrayList<>());
+			KNOWN_USERS
+					.stream()
+					.filter(user -> user.getLastName().toLowerCase().contains(trimmedQuery)
+								|| user.getFirstName().toLowerCase().contains(trimmedQuery))
+					.forEach(result::addUsersItem);
+		}
+
+		return Mono.just(ResponseEntity.ok(result));
 
 	}
 
