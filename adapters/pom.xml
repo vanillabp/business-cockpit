@@ -15,5 +15,6 @@
    <modules>
     <module>commons</module>
     <module>camunda7</module>
+    <module>camunda8</module>
   </modules>
 </project>
