@@ -29,6 +29,8 @@ import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -282,6 +284,7 @@ public class UserTaskService {
     }
 
     public Mono<Page<UserTask>> getUserTasks(
+            final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
@@ -295,12 +298,14 @@ public class UserTaskService {
                 .withSort(DEFAULT_SORT);
 
         final var query = buildUserTasksQuery(
-                new Query(),
+                Query::new,
+                notInAssignees,
                 assignees,
                 candidateUsers,
                 candidateGroups,
                 initialTimestamp,
-                RetrieveItemsMode.OpenTasks);
+                RetrieveItemsMode.OpenTasks,
+                null);
 
         final var numberOfUserTasks = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
@@ -330,6 +335,7 @@ public class UserTaskService {
     }
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
+            final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
@@ -341,16 +347,20 @@ public class UserTaskService {
                 .ofSize(size)
                 .withPage(0)
                 .withSort(DEFAULT_SORT);
-        final var query = new Query();
-        query.fields().include("_id");
 
-        buildUserTasksQuery(
-                query,
+        final var query = buildUserTasksQuery(
+                () -> {
+                    final var newQuery = new Query();
+                    newQuery.fields().include("_id");
+                    return newQuery;
+                },
+                notInAssignees,
                 assignees,
                 candidateUsers,
                 candidateGroups,
                 initialTimestamp,
-                RetrieveItemsMode.OpenTasks);
+                RetrieveItemsMode.OpenTasks,
+                null);
 
         final var numberOfUserTasks = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
@@ -468,37 +478,52 @@ public class UserTaskService {
     }
 
     public Query buildUserTasksQuery(
-            final Query targetQuery,
+            final Supplier<Query> querySupplier,
+            final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
             final OffsetDateTime initialTimestamp,
-            final RetrieveItemsMode mode) {
+            final RetrieveItemsMode mode,
+            final List<Criteria> predefinedCriterias) {
 
         final var subCriterias = new LinkedList<Criteria>();
 
         // honour user's permissions
-        final var userRestrictions = new LinkedList<Criteria>();
+
+        final var userAndRestrictions = new LinkedList<Criteria>();
+        final var userOrRestrictions = new LinkedList<Criteria>();
         if ((assignees != null)
                 && !assignees.isEmpty()) {
-            final var assigneeMatches = Criteria.where("assignee").in(assignees);
-            userRestrictions.add(assigneeMatches);
+            if (notInAssignees) {
+                final var assigneeMatches = Criteria.where("assignee").not().in(assignees);
+                userAndRestrictions.add(assigneeMatches);
+            } else {
+                final var assigneeMatches = Criteria.where("assignee").in(assignees);
+                userOrRestrictions.add(assigneeMatches);
+            }
+        } else if (notInAssignees) {
+            final var assigneeMatches = Criteria.where("assignee").exists(false);
+            userAndRestrictions.add(assigneeMatches);
         }
+
         if ((candidateUsers != null)
                 && !candidateUsers.isEmpty()) {
             final var candidateUsersMatches = Criteria.where("candidateUsers").in(candidateUsers);
-            userRestrictions.add(candidateUsersMatches);
+            userOrRestrictions.add(candidateUsersMatches);
         }
         if ((candidateGroups != null)
                 && !candidateGroups.isEmpty()) {
             final var candidateGroupsMatches = Criteria.where("candidateGroups").in(candidateGroups);
-            userRestrictions.add(candidateGroupsMatches);
+            userOrRestrictions.add(candidateGroupsMatches);
         }
-        if (!userRestrictions.isEmpty()) {
+        if (!userAndRestrictions.isEmpty()
+                || !userOrRestrictions.isEmpty()) {
             final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
-            userRestrictions.add(noAssigneeOrNoCandidate);
-            final Criteria permittedTasks = new Criteria().orOperator(userRestrictions);
+            userOrRestrictions.add(noAssigneeOrNoCandidate);
+            final Criteria permittedTasks = new Criteria().orOperator(userOrRestrictions);
             subCriterias.add(permittedTasks);
+            subCriterias.addAll(userAndRestrictions);
         }
 
         // limit result according to list mode
@@ -540,10 +565,15 @@ public class UserTaskService {
             }
         }
 
-        targetQuery.addCriteria(
-                new Criteria().andOperator(subCriterias));
+        // limit result according to predefined filters
 
-        return targetQuery;
+        if (predefinedCriterias != null) {
+            subCriterias.addAll(predefinedCriterias);
+        }
+
+        return querySupplier
+                .get()
+                .addCriteria(new Criteria().andOperator(subCriterias));
 
     }
 
