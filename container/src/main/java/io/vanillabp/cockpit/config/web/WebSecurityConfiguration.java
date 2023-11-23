@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.config.web.security.BasicServerSecurityContextRepository;
+import io.vanillabp.cockpit.users.UserDetailsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -104,14 +106,24 @@ public class WebSecurityConfiguration {
     @Bean
     @Primary
     @Profile("local")
-    public MapReactiveUserDetailsService userDetailsService() {
-        
-        final var user = User.builder()
-                .username("test")
-                .password("{noop}test")
-                .roles("TEST")
-                .build();
-        return new MapReactiveUserDetailsService(user);
+    public MapReactiveUserDetailsService userDetailsService(
+            final UserDetailsProvider userService) {
+
+        final var users = userService
+
+                .getAllUsers()
+                .stream()
+                .map(user -> User.builder()
+                        .username(user.getId())
+                        .password("{noop}test")
+                        .authorities(user
+                                .getRoles()
+                                .stream()
+                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                                .toList())
+                        .build())
+                .toList();
+        return new MapReactiveUserDetailsService(users);
         
     }
     
