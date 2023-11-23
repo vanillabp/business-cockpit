@@ -6,12 +6,14 @@ type CurrentUserProps = {
   user: UserDto;
   isUserLoggedIn?: boolean;
   size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
+  iconSize?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
 };
 
 const User = ({
   user,
   isUserLoggedIn = false,
   size = 'medium',
+  iconSize,
 }: CurrentUserProps) => (
   <Grid
       fill="horizontal"
@@ -21,7 +23,7 @@ const User = ({
     <UserAvatar
         user={ user }
         isUserLoggedIn={ isUserLoggedIn }
-        size={ size }/>
+        size={ iconSize !== undefined ? iconSize : size }/>
     <Text
         size={ size }
         truncate="tip">

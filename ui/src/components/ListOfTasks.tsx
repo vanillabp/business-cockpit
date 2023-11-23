@@ -356,23 +356,28 @@ const AssignButton = ({
                   <Box
                       background="white"
                       elevation="small"
-                      direction="column"
                       gap="xsmall"
-                      pad={ { top: '0.6rem', bottom: '0.2rem', horizontal: '0.4rem' } }
+                      pad={ { top: '0.4rem', horizontal: '0.4rem'  } }
                       round={ { corner: 'bottom', size: '0.4rem' } }
                       border={ [ { color, side: 'left' }, { color, side: 'bottom' }, { color, side: 'right' } ] }
-                      animation={ { type: !active ? "fadeOut" : "fadeIn", duration: 700 } }
-                      style={ { maxHeight: '10rem', overflowY: 'auto' } }>
-                    { users === undefined
+                      animation={ { type: !active ? "fadeOut" : "fadeIn", duration: 700 } }>
+                    <Box
+                        pad={ { top: '0.2rem' } }
+                        height={ { max: '24rem' } }
+                        overflow={ { vertical: 'auto'} }>
+                      { users === undefined
                           ? t('assign_loading')
                           : users!.map(user => <Box
-                                                            onClick={ () => assign(user.id!) }>
-                                                          <User
-                                                              user={ user }
-                                                              isUserLoggedIn={ false }
-                                                              size='small' />
-                                                        </Box>)
-                    }
+                              height={ { min: '2rem' } }
+                              onClick={ () => assign(user.id!) }>
+                            <User
+                                user={ user }
+                                isUserLoggedIn={ false }
+                                iconSize='small'
+                                size='medium' />
+                          </Box>)
+                      }
+                    </Box>
                   </Box>
                 </Box>
               : undefined
