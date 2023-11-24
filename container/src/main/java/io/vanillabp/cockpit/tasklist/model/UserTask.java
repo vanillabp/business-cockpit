@@ -107,6 +107,11 @@ public class UserTask implements UpdateInformationAware {
 
     }
 
+    public boolean hasTargetRole(
+            final String role) {
+        return getTargetRoles().contains(role);
+    }
+
     public void addCandidateUser(
             final String userId) {
 
