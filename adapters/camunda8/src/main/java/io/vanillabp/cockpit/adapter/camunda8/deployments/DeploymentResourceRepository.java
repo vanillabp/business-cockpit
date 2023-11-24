@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+@Repository(value = "BusinessCockpitDeploymentResourceRepository")
 public interface DeploymentResourceRepository extends CrudRepository<DeploymentResource, Integer> {
 
     List<DeployedBpmn> findDistinctByTypeAndDeployments_packageIdNot(String type, int packageId);

@@ -3,8 +3,8 @@ package io.vanillabp.cockpit.adapter.camunda8.deployments;
 import javax.persistence.*;
 import java.time.OffsetDateTime;
 
-@Entity
-@Table(name = "CAMUNDA8_DEPLOYMENTS")
+@Entity(name = "BusinessCockpitDeployment")
+@Table(name = "CAMUNDA8_BC_DEPLOYMENTS")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "TYPE")
 public abstract class Deployment {

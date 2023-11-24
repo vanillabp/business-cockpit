@@ -13,8 +13,8 @@ import javax.persistence.Lob;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
-@Entity
-@Table(name = "CAMUNDA8_RESOURCES")
+@Entity(name = "BusinessCockpitDeploymentResource")
+@Table(name = "CAMUNDA8_BC_RESOURCES")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "TYPE")
 public abstract class DeploymentResource {

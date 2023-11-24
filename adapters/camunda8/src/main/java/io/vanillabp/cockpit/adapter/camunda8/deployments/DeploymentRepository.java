@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+@Repository(value = "BusinessCockpitDeploymentRepository")
 public interface DeploymentRepository extends CrudRepository<Deployment, Long> {
 
     /**
