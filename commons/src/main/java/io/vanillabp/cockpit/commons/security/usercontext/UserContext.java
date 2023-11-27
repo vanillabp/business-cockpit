@@ -30,11 +30,14 @@ public class UserContext {
         if (authentication instanceof AnonymousAuthenticationToken) {
             return null;
         }
-        
-        return userDetailsProvider
-                .getUserDetails(authentication)
-                .getId();
-        
+
+        final var userDetails = userDetailsProvider
+                .getUserDetails(authentication);
+        if (userDetails != null) {
+            return userDetails.getId();
+        }
+        return null;
+
     }
 
     public UserDetails getUserLoggedInDetails() throws BcUnauthorizedException {

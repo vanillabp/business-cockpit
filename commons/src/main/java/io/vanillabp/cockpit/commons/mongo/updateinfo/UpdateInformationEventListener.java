@@ -25,15 +25,15 @@ public class UpdateInformationEventListener implements ReactiveBeforeConvertCall
             final Object entityObj,
             final String collection) {
 
-        if (entityObj instanceof UpdateInformationAware) {
+        if (entityObj instanceof UpdateInformationAware entity) {
 
             return currentUser
                     .getUserLoggedInAsMono()
+                    .switchIfEmpty(Mono.just("system"))
                     .map(currentUser -> {
-                        final var entity = (UpdateInformationAware) entityObj;
                         entity.setUpdatedAt(OffsetDateTime.now());
                         entity.setUpdatedBy(currentUser);
-                        return entity;
+                        return (Object) entity;
                     });
 
         }
