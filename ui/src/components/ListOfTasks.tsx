@@ -33,8 +33,26 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
-import { Blank, ContactInfo, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
+import {
+  Ascend,
+  Blank,
+  ContactInfo,
+  Descend,
+  FormView,
+  Hide,
+  Refresh,
+  Unsorted,
+  User as UserIcon
+} from "grommet-icons";
 import { User } from "./User.js";
+
+interface Columns {
+  [key: string]: Column;
+}
+
+interface DefinitionOfUserTask {
+  [key: string]: UserTask;
+}
 
 const loadUserTasks = async (
   tasklistApi: TasklistApi,
@@ -42,11 +60,18 @@ const loadUserTasks = async (
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
+  sort: string | undefined,
+  sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
   
-  const result = await tasklistApi
-        .getUserTasks(new Date().getTime().toString(), pageNumber, pageSize, initialTimestamp);
+  const result = await tasklistApi.getUserTasks(
+      new Date().getTime().toString(),
+      pageNumber,
+      pageSize,
+      sort,
+      sortAscending,
+      initialTimestamp);
         
   setNumberOfUserTasks(result!.page.totalElements);
 
@@ -66,6 +91,8 @@ const reloadUserTasks = async (
   numberOfItems: number,
   knownItemsIds: Array<string>,
   initialTimestamp: Date | undefined,
+  sort: string | undefined,
+  sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
   allSelected: boolean,
 ): Promise<ListItems<UserTask>> => {
@@ -424,9 +451,62 @@ const RefreshButton = ({
 
 }
 
-interface DefinitionOfUserTask {
-  [key: string]: UserTask;
-}
+const ColumnHeader = ({
+  currentLanguage,
+  column,
+  sort,
+  sortAscending,
+  setSort,
+  setSortAscending,
+}: {
+  currentLanguage: string,
+  column: Column,
+  sort?: boolean,
+  sortAscending?: boolean,
+  setSort: (column?: Column) => void,
+  setSortAscending: (ascending: boolean) => void,
+}) => {
+  console.log('IJI', column);
+  return (
+      <Box
+          direction="row"
+          justify="between"
+          align="center"
+          style={ { position: "relative" } }>
+        <Text
+            truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
+        <Box
+            align="center"
+            direction="row"
+            style={ { position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
+          {
+            !column.sortable
+                ? undefined
+                : !Boolean(sort)
+                ? <Box
+                      focusIndicator={ false }
+                      onClick={ event => setSort(column) }>
+                    <Unsorted
+                        size="32rem" />
+                  </Box>
+                : sortAscending
+                ? <Box
+                      focusIndicator={ false }
+                      onClick={ event => setSortAscending(false) }
+                      pad={ { right: '0.5rem' } }>
+                    <Ascend size="16rem" />
+                  </Box>
+                : <Box
+                      focusIndicator={ false }
+                      onClick={ event => setSort(undefined) }
+                      pad={ { right: '0.5rem' } }>
+                    <Descend size="16rem" />
+                  </Box>
+          }
+          { /* <FormFilter /> */ }
+        </Box>
+      </Box>);
+};
 
 const ListOfTasks = ({
     showLoadingIndicator,
@@ -469,7 +549,7 @@ const ListOfTasks = ({
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, 100, 0, undefined, mapToBcUserTask);
+        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, 100, 0, undefined, undefined, true, mapToBcUserTask);
         const moduleDefinitions = result
             .items
             .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
@@ -513,11 +593,11 @@ const ListOfTasks = ({
           })
         .filter(columnsOfTask => columnsOfTask !== undefined)
         .reduce((totalColumns, columnsOfTask) => {
-            columnsOfTask!.forEach(column => {
-                // @ts-ignore
-                totalColumns[column.path] = column });
+            columnsOfTask!
+                .filter(column => column.show)
+                .forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
-          }, {});
+          }, {} as Columns);
     const existingColumnsSignature = columnsOfTasks === undefined
         ? ' ' // initial state is different then updates
         : columnsOfTasks.map(c => c.path).join('|');
@@ -534,6 +614,24 @@ const ListOfTasks = ({
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
+  const [ sort, _setSort ] = useState<string | undefined>(undefined);
+  const [ sortAscending, _setSortAscending ] = useState(true);
+
+  const refreshList = () => {
+    userTasks.current = undefined;
+    setRefreshNecessary(false);
+    setColumnsOfTasks(undefined);
+    setRefreshIndicator(new Date());
+  }
+  const setSort = (column?: Column) => {
+    _setSort(column ? column.path : undefined);
+    _setSortAscending(true);
+    refreshList();
+  };
+  const setSortAscending = (sortAscending: boolean) => {
+    _setSortAscending(sortAscending);
+    refreshList();
+  }
 
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
@@ -644,9 +742,15 @@ const ListOfTasks = ({
             ? []
             : columnsOfTasks!.map(column => ({
                   property: column.path,
-                  header: column.title[currentLanguage] || column.title['en'],
                   size: column.width,
                   plain: true,
+                  header: <ColumnHeader
+                              currentLanguage={ currentLanguage }
+                              sort={ sort === column.path }
+                              setSort={ setSort }
+                              sortAscending={ sortAscending }
+                              setSortAscending={ setSortAscending }
+                              column={ column } />,
                   render: (item: ListItem<BcUserTask>) => <ListCell
                                                             modulesAvailable={ modules! }
                                                             column={ column }
@@ -724,13 +828,6 @@ const ListOfTasks = ({
     tasklistApi.assignTasks(userTaskMarkedIds, userId);
   };
 
-  const refreshList = () => {
-    userTasks.current = undefined;
-    setRefreshNecessary(false);
-    setColumnsOfTasks(undefined);
-    setRefreshIndicator(new Date());
-  }
-
   return (
       <Grid
           key="grid"
@@ -784,6 +881,8 @@ const ListOfTasks = ({
                               pageSize,
                               pageNumber,
                               initialTimestamp,
+                              sort,
+                              sortAscending,
                               mapToBcUserTask) }
                       reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
@@ -797,6 +896,8 @@ const ListOfTasks = ({
                               numberOfItems,
                               updatedItemsIds,
                               initialTimestamp,
+                              sort,
+                              sortAscending,
                               mapToBcUserTask) }
                     />
                   </Box>

@@ -41,5 +41,7 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
     void setDueDate(OffsetDateTime dueDate);
 
     void setFollowUpDate(OffsetDateTime followUpDate);
+
+    void setTemplateContext(Object templateContext);
     
 }

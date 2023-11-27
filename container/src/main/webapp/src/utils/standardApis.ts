@@ -6,8 +6,8 @@ import { useTasklistApi, useWorkflowlistApi } from "./apis";
 const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): TasklistApi => {
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   return {
-    getUserTasks: (listId, pageNumber, pageSize, initialTimestamp) => tasklistApi
-        .getUserTasks({ pageNumber, pageSize, initialTimestamp }),
+    getUserTasks: (listId, pageNumber, pageSize, sort: string | undefined, sortAscending: boolean, initialTimestamp) => tasklistApi
+        .getUserTasks({ pageNumber, pageSize, initialTimestamp, userTasksRequest: { sort, sortAscending } }),
     getUserTasksUpdate: (listId, size, knownUserTasksIds, initialTimestamp) => tasklistApi
         .getUserTasksUpdate({ userTasksUpdate: { size, knownUserTasksIds, initialTimestamp } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi

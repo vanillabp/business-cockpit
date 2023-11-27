@@ -203,6 +203,12 @@ paths:
           schema:
             type: string
             format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksRequest"
       responses:
         200:
           description: Users tasks
@@ -675,6 +681,15 @@ components:
         size:
           type: integer
           format: int32
+    UserTasksRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
     UserTasks:
       type: object
       required:

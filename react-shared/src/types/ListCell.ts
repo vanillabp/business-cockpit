@@ -8,6 +8,9 @@ export interface Column {
   path: string;
   priority: number;
   width: string;
+  show: boolean;
+  sortable: boolean;
+  filterable: boolean;
 };
 
 export enum ListItemStatus {

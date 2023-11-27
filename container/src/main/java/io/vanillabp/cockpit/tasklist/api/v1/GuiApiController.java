@@ -34,7 +34,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
-			final OffsetDateTime initialTimestamp) {
+			final OffsetDateTime initialTimestamp,
+			final String sort,
+			final boolean sortAscending) {
 
 		return userTaskService.getUserTasks(
 				false,
@@ -43,7 +45,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				currentUser.getAuthorities(),
 				pageNumber,
 				pageSize,
-				initialTimestamp);
+				initialTimestamp,
+				sort,
+				sortAscending);
 
 	}
 

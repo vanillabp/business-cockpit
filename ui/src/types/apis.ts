@@ -11,7 +11,7 @@ export interface WakeupSseCallbackReference {
   current: WakeupSseCallback | undefined;
 }
 
-type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<UserTasks>;
 
 type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, initialTimestamp?: Date) => Promise<UserTasks>;
 

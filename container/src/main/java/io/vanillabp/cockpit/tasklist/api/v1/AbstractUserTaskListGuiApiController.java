@@ -8,6 +8,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.users.UserDetails;
@@ -60,10 +61,13 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
-			final OffsetDateTime initialTimestamp);
+			final OffsetDateTime initialTimestamp,
+			final String sort,
+			final boolean sortAscending);
 
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
+			final Mono<UserTasksRequest> userTasksRequest,
             final Integer pageNumber,
             final Integer pageSize,
             final OffsetDateTime initialTimestamp,
@@ -73,14 +77,17 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-		return userContext
-				.getUserLoggedInDetailsAsMono()
-				.flatMap(user -> getUserTasks(
-						user,
+		return Mono.zip(
+						userContext.getUserLoggedInDetailsAsMono(),
+						userTasksRequest)
+				.flatMap(entry -> getUserTasks(
+						entry.getT1(),
 						pageNumber,
 						pageSize,
-						timestamp)
-						.map(userTasks -> mapper.toApi(userTasks, timestamp, user.getId())))
+						timestamp,
+						entry.getT2().getSort(),
+						entry.getT2().getSortAscending())
+						.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
 				.map(ResponseEntity::ok);
 
 	}

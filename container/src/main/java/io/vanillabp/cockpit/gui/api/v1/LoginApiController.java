@@ -64,6 +64,7 @@ public class LoginApiController implements LoginApi {
                             .direct("SSE-" + user.getId() + "-" + id)
                             .get();
                     synchronized (updateEmitters) {
+                        logger.debug("Register update Channel '{}': {}", id, user.getAuthorities());
                         updateEmitters.put(id, UpdateEmitter
                                 .withChannel(channel)
                                 .roles(user.getAuthorities())
