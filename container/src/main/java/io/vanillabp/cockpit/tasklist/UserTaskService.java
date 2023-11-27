@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -28,13 +29,20 @@ import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
 public class UserTaskService {
+
+    public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
 
     public static enum RetrieveItemsMode {
         All,
@@ -44,11 +52,22 @@ public class UserTaskService {
         ClosedTasksOnly
     };
 
-    private static final Sort DEFAULT_SORT =
-            Sort.by(Order.asc("dueDate").nullsLast())
-            .and(Sort.by("createdAt").ascending())
-            .and(Sort.by("id").ascending());
-    
+    private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
+                    Order.asc("dueDate").nullsLast(),
+                    Order.asc("createdAt"),
+                    Order.asc("id")
+            );
+    private static final List<Sort.Order> DEFAULT_ORDER_DESC= List.of(
+                    Order.desc("dueDate").nullsLast(),
+                    Order.desc("createdAt"),
+                    Order.desc("id")
+            );
+
+    private static final Set<String> sortAndFilterIndexes = new HashSet<>();
+    private static final ReadWriteLock sortAndFilterIndexesLock = new ReentrantReadWriteLock();
+    private static final Lock sortAndFilterIndexWriteLock = sortAndFilterIndexesLock.writeLock();
+    private static final Lock sortAndFilterIndexReadLock = sortAndFilterIndexesLock.readLock();
+
     @Autowired
     private Logger logger;
     
@@ -97,8 +116,23 @@ public class UserTaskService {
                 .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
 
+        try {
+            sortAndFilterIndexWriteLock.lock();
+            mongoTemplate
+                    .indexOps(UserTask.COLLECTION_NAME)
+                    .getIndexInfo()
+                    .filter(info -> info.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                    .map(info -> info.getIndexFields().get(0).getKey())
+                    .subscribe(field -> {
+                        logger.info("Read previously created sort/filter index for '{}'", field);
+                        sortAndFilterIndexes.add(field);
+                    });
+        } finally {
+            sortAndFilterIndexWriteLock.unlock();
+        }
+
     }
-    
+
     @PreDestroy
     public void cleanup() {
         
@@ -290,12 +324,26 @@ public class UserTaskService {
             final Collection<String> candidateGroups,
 			final int pageNumber,
 			final int pageSize,
-			final OffsetDateTime initialTimestamp) {
-    	
+			final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending) {
+
+        boolean isDefaultOrder = true;
+        List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
+        if ((sort != null)
+                && !sort.equals("dueDate")) {
+            final var newOrder = new LinkedList<Order>();
+            newOrder.add(sortAscending
+                    ? Order.asc(sort)
+                    : Order.desc(sort));
+            newOrder.addAll(order);
+            order = newOrder;
+            isDefaultOrder = false;
+        }
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
-                .withSort(DEFAULT_SORT);
+                .withSort(Sort.by(order));
 
         final var query = buildUserTasksQuery(
                 Query::new,
@@ -307,16 +355,55 @@ public class UserTaskService {
                 RetrieveItemsMode.OpenTasks,
                 null);
 
-        final var numberOfUserTasks = mongoTemplate
+        final var numberOfUserTasksFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
-        final var result = mongoTemplate
+        final var userTasksFound = mongoTemplate
                 .find(query.with(pageRequest), UserTask.class);
-        return Mono
-                .zip(result.collectList(), numberOfUserTasks)
+
+        final var result = Mono
+                .zip(userTasksFound.collectList(), numberOfUserTasksFound)
                 .map(results -> PageableExecutionUtils.getPage(
                     results.getT1(),
                     pageRequest,
                     results::getT2));
+        if (isDefaultOrder) {
+            return result;
+        }
+
+        try {
+            sortAndFilterIndexReadLock.lock();
+            if (sortAndFilterIndexes.contains(sort)) {
+                return result;
+            }
+        } finally {
+            sortAndFilterIndexReadLock.unlock();
+        }
+
+        try {
+            sortAndFilterIndexWriteLock.lock();
+            if (sortAndFilterIndexes.contains(sort)) {
+                return result;
+            }
+            return mongoTemplate
+                    .indexOps(UserTask.COLLECTION_NAME)
+                    .ensureIndex(new Index()
+                            .on(sort, Sort.Direction.ASC)
+                            .on("dueDate", Sort.Direction.ASC)
+                            .on("createdAt", Sort.Direction.ASC)
+                            .on("_id", Sort.Direction.ASC)
+                            .named(INDEX_CUSTOM_SORT_PREFIX + sort))
+                    .flatMap(unknown -> {
+                        sortAndFilterIndexes.add(sort);
+                        return result;
+                    })
+                    .onErrorResume(e -> {
+                        sortAndFilterIndexes.add(sort);
+                        logger.error("Could not create Mongo-DB index for sorting and filtering of tasklist", e);
+                        return result;
+                    });
+        } finally {
+            sortAndFilterIndexWriteLock.unlock();
+        }
 
     }
     
@@ -346,7 +433,7 @@ public class UserTaskService {
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
-                .withSort(DEFAULT_SORT);
+                .withSort(Sort.by(DEFAULT_ORDER_ASC));
 
         final var query = buildUserTasksQuery(
                 () -> {
