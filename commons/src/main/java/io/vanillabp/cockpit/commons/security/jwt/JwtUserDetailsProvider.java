@@ -16,12 +16,7 @@ public class JwtUserDetailsProvider implements UserDetailsProvider {
         if (authentication instanceof JwtAuthenticationToken) {
             return new JwtUserDetails((JwtAuthenticationToken) authentication);
         }
-
-        throw new RuntimeException("Unsupported authentication class '"
-                + authentication.getClass().getName()
-                + "', '"
-                + JwtAuthenticationToken.class.getName()
-                + "' expected!");
+        return null;
 
     }
 
