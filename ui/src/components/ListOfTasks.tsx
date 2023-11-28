@@ -711,7 +711,7 @@ const ListOfTasks = ({
                           show: true,
                           sortable: true,
                           filterable: true,
-                          title: { currentLanguage: t('column_title') },
+                          title: { [currentLanguage]: t('column_title') },
                           width: '',
                           priority: -1,
                         }}
