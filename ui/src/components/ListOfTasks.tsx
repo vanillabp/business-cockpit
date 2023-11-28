@@ -471,6 +471,7 @@ const ColumnHeader = ({
           direction="row"
           justify="between"
           align="center"
+          overflow="hidden"
           style={ { position: "relative" } }>
         <Text
             truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
