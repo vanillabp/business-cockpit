@@ -81,6 +81,7 @@ const Main = () => {
                                   useGuiSse={ useGuiSse }
                                   t={ t }
                                   currentLanguage={ i18next.language }
+                                  defaultSort={ 'dueDate' }
                                   openTask={
                                       (userTask) =>
                                           openTask(userTask, toast, tApp) }

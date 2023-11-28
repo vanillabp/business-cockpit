@@ -466,7 +466,6 @@ const ColumnHeader = ({
   setSort: (column?: Column) => void,
   setSortAscending: (ascending: boolean) => void,
 }) => {
-  console.log('IJI', column);
   return (
       <Box
           direction="row"
@@ -516,6 +515,8 @@ const ListOfTasks = ({
     navigateToWorkflow,
     t,
     currentLanguage,
+    defaultSort,
+    defaultSortAscending,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     useGuiSse: GuiSseHook,
@@ -524,6 +525,8 @@ const ListOfTasks = ({
     navigateToWorkflow: NavigateToWorkflowFunction,
     t: TranslationFunction,
     currentLanguage: string,
+    defaultSort?: string,
+    defaultSortAscending?: boolean,
 }) => {
 
   const { isNotPhone, isPhone } = useResponsiveScreen();
@@ -546,6 +549,7 @@ const ListOfTasks = ({
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
   const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
+  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
@@ -556,10 +560,18 @@ const ListOfTasks = ({
                 ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
         setModulesOfTasks(moduleDefinitions);
         const userTaskDefinitions: DefinitionOfUserTask = {};
-        result
+        const titleLanguages = result
             .items
-            .forEach(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+            .map(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask)
+            .flatMap(userTask => Object.keys(userTask.title))
+            .reduce((allLanguages, titleLanguage) => {
+              if (!allLanguages.includes(titleLanguage)) {
+                allLanguages.push(titleLanguage);
+              }
+              return allLanguages;
+            }, new Array<string>(currentLanguage));
         setDefinitionsOfTasks(userTaskDefinitions);
+        setLanguagesOfTitles(titleLanguages);
       };
       if (userTasks.current === undefined) {
         showLoadingIndicator(true);
@@ -568,7 +580,7 @@ const ListOfTasks = ({
     },
     // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by usertasks
-    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
+    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
   
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
@@ -614,8 +626,8 @@ const ListOfTasks = ({
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
-  const [ sort, _setSort ] = useState<string | undefined>(undefined);
-  const [ sortAscending, _setSortAscending ] = useState(true);
+  const [ sort, _setSort ] = useState<string | undefined>(defaultSort);
+  const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
     userTasks.current = undefined;
@@ -624,8 +636,16 @@ const ListOfTasks = ({
     setRefreshIndicator(new Date());
   }
   const setSort = (column?: Column) => {
-    _setSort(column ? column.path : undefined);
-    _setSortAscending(true);
+    if (column) {
+      if (column.path === 'title') {
+        _setSort('title.' + languagesOfTitles.join(',title.'))
+      } else {
+        _setSort(column.path);
+      }
+    } else {
+      _setSort(defaultSort);
+    }
+    _setSortAscending(defaultSortAscending === undefined ? true : defaultSortAscending);
     refreshList();
   };
   const setSortAscending = (sortAscending: boolean) => {
@@ -683,10 +703,30 @@ const ListOfTasks = ({
                       } } />
                 </Box>)
           },
-          { property: 'name',
-            header: t('column_name'),
+          { property: 'title',
+            header: <ColumnHeader
+                        currentLanguage={ currentLanguage }
+                        column={ {
+                          path: 'title',
+                          show: true,
+                          sortable: true,
+                          filterable: true,
+                          title: { currentLanguage: t('column_title') },
+                          width: '',
+                          priority: -1,
+                        }}
+                        sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
+                        setSort={ setSort }
+                        sortAscending={ sortAscending }
+                        setSortAscending={ setSortAscending} />,
             render: (item: ListItem<BcUserTask>) => {
-                const title = item.data['title'][currentLanguage] || item.data['title']['en'];
+              const titleLanguages = Object.keys(item.data['title']);
+              let title;
+              if (titleLanguages.includes(currentLanguage)) {
+                title = item.data['title'][currentLanguage];
+              } else {
+                title = item.data['title'][titleLanguages[0]];
+              }
               return (
                     <Box
                         fill

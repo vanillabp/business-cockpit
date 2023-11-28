@@ -28,6 +28,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -328,23 +329,31 @@ public class UserTaskService {
             final String sort,
             final boolean sortAscending) {
 
-        boolean isDefaultOrder = true;
+        // order of items
         List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
+        final List<String> nonDefaultSort;
         if ((sort != null)
                 && !sort.equals("dueDate")) {
+            nonDefaultSort = new LinkedList<>();
             final var newOrder = new LinkedList<Order>();
-            newOrder.add(sortAscending
-                    ? Order.asc(sort)
-                    : Order.desc(sort));
-            newOrder.addAll(order);
+            Arrays
+                    .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
+                    .peek(nonDefaultSort::add)
+                    .map(languageBasedSort -> sortAscending
+                            ? Order.asc(languageBasedSort)
+                            : Order.desc(languageBasedSort))
+                    .forEach(newOrder::add);
+            newOrder.addAll(order); // default order
             order = newOrder;
-            isDefaultOrder = false;
+        } else {
+            nonDefaultSort = null;
         }
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(Sort.by(order));
 
+        // build query
         final var query = buildUserTasksQuery(
                 Query::new,
                 notInAssignees,
@@ -355,21 +364,22 @@ public class UserTaskService {
                 RetrieveItemsMode.OpenTasks,
                 null);
 
+        // prepare to retrieve data on execution
         final var numberOfUserTasksFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
         final var userTasksFound = mongoTemplate
                 .find(query.with(pageRequest), UserTask.class);
-
         final var result = Mono
                 .zip(userTasksFound.collectList(), numberOfUserTasksFound)
                 .map(results -> PageableExecutionUtils.getPage(
                     results.getT1(),
                     pageRequest,
                     results::getT2));
-        if (isDefaultOrder) {
+
+        // build index before retrieving data if necessary
+        if (nonDefaultSort == null) {
             return result;
         }
-
         try {
             sortAndFilterIndexReadLock.lock();
             if (sortAndFilterIndexes.contains(sort)) {
@@ -384,14 +394,16 @@ public class UserTaskService {
             if (sortAndFilterIndexes.contains(sort)) {
                 return result;
             }
+            final var newIndex = new Index();
+            nonDefaultSort
+                    .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
+            newIndex.on("dueDate", Sort.Direction.ASC)
+                    .on("createdAt", Sort.Direction.ASC)
+                    .on("_id", Sort.Direction.ASC)
+                    .named(INDEX_CUSTOM_SORT_PREFIX + sort);
             return mongoTemplate
                     .indexOps(UserTask.COLLECTION_NAME)
-                    .ensureIndex(new Index()
-                            .on(sort, Sort.Direction.ASC)
-                            .on("dueDate", Sort.Direction.ASC)
-                            .on("createdAt", Sort.Direction.ASC)
-                            .on("_id", Sort.Direction.ASC)
-                            .named(INDEX_CUSTOM_SORT_PREFIX + sort))
+                    .ensureIndex(newIndex)
                     .flatMap(unknown -> {
                         sortAndFilterIndexes.add(sort);
                         return result;
