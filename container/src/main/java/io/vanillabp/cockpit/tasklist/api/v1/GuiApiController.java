@@ -39,6 +39,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final boolean sortAscending) {
 
 		return userTaskService.getUserTasks(
+				true,
 				false,
 				List.of(currentUser.getId()),
 				List.of(currentUser.getId()),
@@ -59,6 +60,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final OffsetDateTime initialTimestamp) {
 
 		return userTaskService.getUserTasksUpdated(
+				true,
 				false,
 				List.of(currentUser.getId()),
 				List.of(currentUser.getId()),

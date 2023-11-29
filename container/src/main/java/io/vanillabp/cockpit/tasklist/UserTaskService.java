@@ -319,6 +319,7 @@ public class UserTaskService {
     }
 
     public Mono<Page<UserTask>> getUserTasks(
+            final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
@@ -356,6 +357,7 @@ public class UserTaskService {
         // build query
         final var query = buildUserTasksQuery(
                 Query::new,
+                includeDanglingTasks,
                 notInAssignees,
                 assignees,
                 candidateUsers,
@@ -434,6 +436,7 @@ public class UserTaskService {
     }
     
     public Mono<Page<UserTask>> getUserTasksUpdated(
+            final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
@@ -453,6 +456,7 @@ public class UserTaskService {
                     newQuery.fields().include("_id");
                     return newQuery;
                 },
+                includeDanglingTasks,
                 notInAssignees,
                 assignees,
                 candidateUsers,
@@ -578,6 +582,7 @@ public class UserTaskService {
 
     public Query buildUserTasksQuery(
             final Supplier<Query> querySupplier,
+            final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
@@ -618,8 +623,10 @@ public class UserTaskService {
         }
         if (!userAndRestrictions.isEmpty()
                 || !userOrRestrictions.isEmpty()) {
-            final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
-            userOrRestrictions.add(noAssigneeOrNoCandidate);
+            if (includeDanglingTasks) {
+                final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
+                userOrRestrictions.add(noAssigneeOrNoCandidate);
+            }
             final Criteria permittedTasks = new Criteria().orOperator(userOrRestrictions);
             subCriterias.add(permittedTasks);
             subCriterias.addAll(userAndRestrictions);
