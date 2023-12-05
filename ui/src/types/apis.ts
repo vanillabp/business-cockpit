@@ -13,7 +13,7 @@ export interface WakeupSseCallbackReference {
 
 type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<UserTasks>;
 
-type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<UserTasks>;
 
 type TasklistMarkAsReadCall = (userTaskId: string, unread?: boolean) => void;
 

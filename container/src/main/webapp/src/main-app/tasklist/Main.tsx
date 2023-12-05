@@ -7,7 +7,11 @@ import { useAppContext } from "../../AppContext";
 import { useGuiSse } from "../../client/guiClient";
 import { navigateToWorkflow, openTask } from "../../utils/navigate";
 import { useTranslation } from "react-i18next";
-import { useStandardTasklistApi } from "../../utils/standardApis";
+import {
+  useCurrentUsersTasksTasklistApi,
+  useStandardTasklistApi,
+  useUsersRoleTasksTasksTasklistApi
+} from "../../utils/standardApis";
 
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Tasks',
@@ -25,6 +29,7 @@ i18n.addResources('en', 'tasklist', {
       "legend_completed": "Completed",
       "legend_updated": "Updated",
       "legend_unchanged": "Unchanged",
+      "legend_filtered": "Removed",
       "claim_task": "Claim",
       "claim_tasks": "Claim selected tasks",
       "unclaim_tasks": "Return selected tasks",
@@ -51,6 +56,7 @@ i18n.addResources('de', 'tasklist', {
       "legend_completed": "Abgeschlossen",
       "legend_updated": "Aktualisiert",
       "legend_unchanged": "Unverändert",
+      "legend_filtered": "Entfernt",
       "claim_task": "Übernehmen",
       "claim_tasks": "Gewählte Aufgaben übernehmen",
       "unclaim_tasks": "Gewählte Aufgabe zurückgeben",
@@ -62,12 +68,32 @@ i18n.addResources('de', 'tasklist', {
       "refresh_tasks": "Aufgabenliste neu laden",
     });
 
-const Main = () => {
-
-  const { setAppHeaderTitle, showLoadingIndicator, toast } = useAppContext();
+const CustomListOfTasks = ({ useTasklistApi }) => {
+  const { showLoadingIndicator, toast } = useAppContext();
   const { t: tApp } = useTranslation('app');
   const { t } = useTranslation('tasklist');
   const navigate = useNavigate();
+
+  return <ListOfTasks
+      showLoadingIndicator={showLoadingIndicator}
+      useTasklistApi={useTasklistApi}
+      useGuiSse={useGuiSse}
+      t={t}
+      currentLanguage={i18next.language}
+      defaultSort={"dueDate"}
+      openTask={
+        (userTask) =>
+            openTask(userTask, toast, tApp)}
+      navigateToWorkflow={
+        (userTask) =>
+            navigateToWorkflow(userTask, toast, tApp, navigate)}/>;
+
+}
+
+const Main = () => {
+
+  const { setAppHeaderTitle } = useAppContext();
+  const { t: tApp } = useTranslation('app');
 
   useLayoutEffect(() => {
     setAppHeaderTitle('tasklist', false);
@@ -75,19 +101,15 @@ const Main = () => {
 
   return (
     <Routes>
-      <Route path='/' element={<ListOfTasks
-                                  showLoadingIndicator={ showLoadingIndicator }
-                                  useTasklistApi={ useStandardTasklistApi }
-                                  useGuiSse={ useGuiSse }
-                                  t={ t }
-                                  currentLanguage={ i18next.language }
-                                  defaultSort={ 'dueDate' }
-                                  openTask={
-                                      (userTask) =>
-                                          openTask(userTask, toast, tApp) }
-                                  navigateToWorkflow={
-                                      (userTask) =>
-                                          navigateToWorkflow(userTask, toast, tApp, navigate) } />} />
+      <Route
+          path={ tApp('current-user') }
+          element={ <CustomListOfTasks useTasklistApi={ useCurrentUsersTasksTasklistApi } /> } />
+      <Route
+          path={ tApp('users-roles') }
+          element={ <CustomListOfTasks useTasklistApi={ useUsersRoleTasksTasksTasklistApi } /> } />
+      <Route
+          path='/'
+          element={<CustomListOfTasks useTasklistApi={ useStandardTasklistApi } /> } />
     </Routes>);
 }
 

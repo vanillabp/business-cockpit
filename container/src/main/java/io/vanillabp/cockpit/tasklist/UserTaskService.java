@@ -318,19 +318,12 @@ public class UserTaskService {
 
     }
 
-    public Mono<Page<UserTask>> getUserTasks(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-			final int pageNumber,
-			final int pageSize,
-			final OffsetDateTime initialTimestamp,
+    private static record UserTaskListOrder(List<Order> order, List<String> toBeIndexed) {}
+
+    private UserTaskListOrder getUserTaskListOrder(
             final String sort,
             final boolean sortAscending) {
 
-        // order of items
         List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
         final List<String> nonDefaultSort;
         if ((sort != null)
@@ -349,10 +342,27 @@ public class UserTaskService {
         } else {
             nonDefaultSort = null;
         }
+        return new UserTaskListOrder(order, nonDefaultSort);
+
+    }
+
+    public Mono<Page<UserTask>> getUserTasks(
+            final boolean includeDanglingTasks,
+            final boolean notInAssignees,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
+			final int pageNumber,
+			final int pageSize,
+			final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending) {
+
+        final var orderBySort = getUserTaskListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
-                .withSort(Sort.by(order));
+                .withSort(Sort.by(orderBySort.order()));
 
         // build query
         final var query = buildUserTasksQuery(
@@ -379,7 +389,7 @@ public class UserTaskService {
                     results::getT2));
 
         // build index before retrieving data if necessary
-        if (nonDefaultSort == null) {
+        if (orderBySort.toBeIndexed() == null) {
             return result;
         }
         try {
@@ -397,7 +407,8 @@ public class UserTaskService {
                 return result;
             }
             final var newIndex = new Index();
-            nonDefaultSort
+            orderBySort
+                    .toBeIndexed()
                     .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
             newIndex.on("dueDate", Sort.Direction.ASC)
                     .on("createdAt", Sort.Direction.ASC)
@@ -443,12 +454,15 @@ public class UserTaskService {
             final Collection<String> candidateGroups,
             final int size,
             final Collection<String> knownUserTasksIds,
-            final OffsetDateTime initialTimestamp) {
-        
+            final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending) {
+
+        final var orderBySort = getUserTaskListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
-                .withSort(Sort.by(DEFAULT_ORDER_ASC));
+                .withSort(Sort.by(orderBySort.order()));
 
         final var query = buildUserTasksQuery(
                 () -> {

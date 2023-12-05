@@ -221,12 +221,23 @@ paths:
         - officialTasklist
       summary: Updated list of usertasks
       operationId: getUserTasksUpdate
+      parameters:
+        - in: query
+          name: size
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTasksUpdate"
+              $ref: "#/components/schemas/UserTasksUpdateRequest"
       responses:
         200:
           description: Users tasks
@@ -706,22 +717,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserTask'
-    UserTasksUpdate:
+    UserTasksUpdateRequest:
       type: object
       required:
         - size
         - knownUserTasksIds
       properties:
-        size:
-          type: integer
-          format: int32
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
         knownUserTasksIds:
           type: array
           items:
             type: string
-        initialTimestamp:
-          type: string
-          format: date-time
     Workflows:
       type: object
       required:

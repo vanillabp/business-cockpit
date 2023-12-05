@@ -18,6 +18,7 @@ export enum ListItemStatus {
   NEW,
   UPDATED,
   ENDED,
+  REMOVED_FROM_LIST,
 };
 
 export interface ListItem<D> {

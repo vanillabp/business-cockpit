@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -107,9 +108,34 @@ public class UserTask implements UpdateInformationAware {
 
     }
 
-    public boolean hasTargetRole(
-            final String role) {
-        return getTargetRoles().contains(role);
+    public boolean hasOneOfTargetRoles(
+            final String... roles) {
+
+        if ((roles == null)
+            || (roles.length == 0)) {
+            return true;
+        }
+
+        final var targetRoles = getTargetRoles();
+        return Arrays
+                .stream(roles)
+                .anyMatch(targetRoles::contains);
+
+    }
+
+    public boolean hasOneOfTargetRoles(
+            final Collection<String> roles) {
+
+        if ((roles == null)
+                || roles.isEmpty()) {
+            return true;
+        }
+
+        final var targetRoles = getTargetRoles();
+        return roles
+                .stream()
+                .anyMatch(targetRoles::contains);
+
     }
 
     public void addCandidateUser(

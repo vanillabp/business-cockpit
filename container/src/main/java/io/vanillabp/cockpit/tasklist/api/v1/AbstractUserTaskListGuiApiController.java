@@ -9,7 +9,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
-import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.users.UserDetails;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
@@ -96,25 +96,31 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int size,
 			final Collection<String> knownUserTasksIds,
-			final OffsetDateTime initialTimestamp);
+			final OffsetDateTime initialTimestamp,
+			final String sort,
+			final boolean sortAscending);
 
-    @Override
-    public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
-            final Mono<UserTasksUpdate> userTasksUpdate,
-            final ServerWebExchange exchange) {
+	@Override
+	public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
+			final Mono<UserTasksUpdateRequest> userTasksUpdateRequest,
+			final Integer size,
+			final OffsetDateTime initialTimestamp,
+			final ServerWebExchange exchange) {
 
 		return userContext
 				.getUserLoggedInDetailsAsMono()
-				.flatMap(user -> userTasksUpdate
-						.zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
-								? update.getInitialTimestamp()
+				.flatMap(user -> userTasksUpdateRequest
+						.zipWhen(update -> Mono.just(initialTimestamp != null
+								? initialTimestamp
 								: OffsetDateTime.now()))
 						.flatMap(entry -> Mono.zip(
 								getUserTasksUpdated(
 										user,
-										entry.getT1().getSize(),
+										size,
 										entry.getT1().getKnownUserTasksIds(),
-										entry.getT2()),
+										entry.getT2(),
+										entry.getT1().getSort(),
+										entry.getT1().getSortAscending()),
 								Mono.just(entry.getT2())))
 						.map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), user.getId()))
 						.map(ResponseEntity::ok)

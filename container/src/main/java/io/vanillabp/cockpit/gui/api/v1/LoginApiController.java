@@ -68,7 +68,8 @@ public class LoginApiController implements LoginApi {
                         updateEmitters.put(id, UpdateEmitter
                                 .withChannel(channel)
                                 .roles(user.getAuthorities())
-                                .updateInterval(properties.getGuiSseUpdateInterval()));
+                                .maxItemsPerUpdate(properties.getGuiSse().getMaxItemsPerUpdate())
+                                .updateInterval(properties.getGuiSse().getUpdateInterval()));
                     }
 
                     // This ping forces the browser to treat the text/event-stream request
@@ -92,12 +93,34 @@ public class LoginApiController implements LoginApi {
 
     }
     
-    @Scheduled(fixedDelayString = "${businessCockpit.guiSseUpdateInterval:500}") // every 0.5 seconds
+    @Scheduled(fixedDelayString = "${businessCockpit.guiSse.collectingInterval:250}") // every 0.5 seconds
     public void updateClients() {
 
-        // null-events are used to flush events collected since last interval
-        updateClients(null);
-        
+        final var toBeRemoved = new LinkedList<String>();
+        updateEmitters
+                .forEach((key, updateEmitter) -> updateEmitter
+                        .consumeEvents()
+                        .stream()
+                        .collect(Collectors.groupingBy(GuiEvent::getSource))
+                        .forEach((source, event) -> {
+                            try {
+                                final var hasSubscribers = sendSseEventIfSubscribersAvailable(
+                                        updateEmitter.getChannel(),
+                                        source.toString(),
+                                        event);
+                                if (!hasSubscribers) {
+                                    toBeRemoved.add(key);
+                                }
+                            } catch (Exception e) {
+                                logger.warn("Could not send update event", e);
+                            }
+                        }));
+        if (!toBeRemoved.isEmpty()) {
+            synchronized (updateEmitters) {
+                toBeRemoved.forEach(updateEmitters::remove);
+            }
+        }
+
     }
     
     @EventListener(classes = GuiEvent.class)
@@ -106,46 +129,11 @@ public class LoginApiController implements LoginApi {
 
         final List<Map.Entry<String, UpdateEmitter>> activeSubscribers;
         synchronized (updateEmitters) {
-            activeSubscribers = updateEmitters
+            updateEmitters
                     .entrySet()
                     .stream()
-                    .filter(emitter ->
-                            // null-events are used to flush events collected since last interval
-                            guiEvent == null
-                                    // non-null-events have to match the user's roles
-                                    || guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
-                    .filter(emitter -> emitter.getValue().sendEvent(guiEvent))
-                    .toList();
-        }
-
-        final var toBeRemoved = new LinkedList<String>();
-        activeSubscribers
-                .forEach(emitter -> {
-                    final var updateEmitter = emitter.getValue();
-                    updateEmitter
-                            .consumeEvents()
-                            .stream()
-                            .collect(Collectors.groupingBy(GuiEvent::getSource))
-                            .entrySet()
-                            .stream()
-                            .forEach(eventEntry -> {
-                                try {
-                                    final var hasSubscribers = sendSseEventIfSubscribersAvailable(
-                                            updateEmitter.getChannel(),
-                                            eventEntry.getKey().toString(),
-                                            eventEntry.getValue());
-                                    if (!hasSubscribers) {
-                                        toBeRemoved.add(emitter.getKey());
-                                    }
-                                } catch (Exception e) {
-                                    logger.warn("Could not send update event", e);
-                                }
-                            });
-                });
-        if (!toBeRemoved.isEmpty()) {
-            synchronized (updateEmitters) {
-                toBeRemoved.forEach(updateEmitters::remove);
-            }
+                    .filter(emitter -> guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                    .forEach(emitter -> emitter.getValue().collectEvent(guiEvent));
         }
 
     }

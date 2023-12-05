@@ -22,15 +22,15 @@ import java.util.List;
  *     <li>which have no user or group claimed or assigned (dangling tasks)</li>
  * </ul>
  */
-@RestController("tasklistGuiApiController")
-@RequestMapping(path = "/gui/api/v1")
-public class GuiApiController extends AbstractUserTaskListGuiApiController {
+@RestController("usersRulesAssignedTasksGuiApiController")
+@RequestMapping(path = "/gui/api/v1/user-roles")
+public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskListGuiApiController {
 
 	@Autowired
 	private UserTaskService userTaskService;
 
 	@Override
-	protected Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
+	protected Mono<Page<UserTask>> getUserTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
@@ -40,9 +40,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 
 		return userTaskService.getUserTasks(
 				true,
-				false,
+				true,
 				List.of(currentUser.getId()),
-				List.of(currentUser.getId()),
+				null,
 				currentUser.getAuthorities(),
 				pageNumber,
 				pageSize,
@@ -53,7 +53,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	public Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasksUpdated(
+	public Mono<Page<UserTask>> getUserTasksUpdated(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int size,
 			final Collection<String> knownUserTasksIds,
@@ -63,9 +63,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 
 		return userTaskService.getUserTasksUpdated(
 				true,
-				false,
+				true,
 				List.of(currentUser.getId()),
-				List.of(currentUser.getId()),
+				null,
 				currentUser.getAuthorities(),
 				size,
 				knownUserTasksIds,
@@ -76,7 +76,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
+	protected Mono<UserTask> getUserTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId) {
 
@@ -85,7 +85,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
+	protected Mono<UserTask> markAsRead(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final boolean unread) {

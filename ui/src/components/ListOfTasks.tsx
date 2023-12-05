@@ -6,6 +6,7 @@ import {
   colorForEndedItemsOrUndefined,
   Column,
   debounce,
+  ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GuiSseHook,
@@ -101,6 +102,8 @@ const reloadUserTasks = async (
       new Date().getTime().toString(),
       numberOfItems,
       knownItemsIds,
+      sort,
+      sortAscending,
       initialTimestamp);
   setNumberOfUserTasks(result!.page.totalElements);
 
@@ -968,7 +971,11 @@ const ListOfTasks = ({
                 <Box
                     width="1rem"
                     height="100%"
-                    background="white" />
+                    align="center"
+                    justify="center"
+                    background="white">
+                  <Text size="xsmall">T</Text>
+                </Box>
               </Box>
               {
                 isNotPhone
@@ -989,7 +996,11 @@ const ListOfTasks = ({
                 <Box
                     width="1rem"
                     height="100%"
-                    background={ { color: 'accent-3', opacity: 0.1 } } />
+                    align="center"
+                    justify="center"
+                    background={ { color: 'accent-3', opacity: 0.1 } }>
+                  <Text size="xsmall">T</Text>
+                </Box>
               </Box>
               {
                 isNotPhone
@@ -1010,7 +1021,11 @@ const ListOfTasks = ({
                 <Box
                     width="1rem"
                     height="100%"
-                    background={ { color: 'accent-1', opacity: 0.35 } } />
+                    align="center"
+                    justify="center"
+                    background={ { color: 'accent-1', opacity: 0.35 } }>
+                  <Text size="xsmall">T</Text>
+                </Box>
               </Box>
               {
                 isNotPhone
@@ -1031,13 +1046,42 @@ const ListOfTasks = ({
                 <Box
                     width="1rem"
                     height="100%"
-                    background={ { color: 'light-2', opacity: 0.5 } } />
+                    align="center"
+                    justify="center"
+                    background={ { color: 'light-2', opacity: 0.5 } }>
+                  <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+                </Box>
               </Box>
               {
                 isNotPhone
                     ? <Box>
                       { t('legend_completed') }
                       </Box>
+                    : undefined
+              }
+            </Box>
+            <Box
+                direction="row"
+                align="center"
+                gap='xsmall'>
+              <Box
+                  direction='row'
+                  height="1rem"
+                  border={ { color: 'light-4', size: '1px' } }>
+                <Box
+                    width="1rem"
+                    height="100%"
+                    align="center"
+                    justify="center"
+                    background={ { color: 'light-2', opacity: 0.5 } }>
+                  <Text size="xsmall">T</Text>
+                </Box>
+              </Box>
+              {
+                isNotPhone
+                    ? <Box>
+                      { t('legend_filtered') }
+                    </Box>
                     : undefined
               }
             </Box>
