@@ -17,7 +17,7 @@ const UserTaskAppLayout = ({
           direction='column'
           fill>
         <Box
-            height="4rem"
+            flex="grow"
             background="light-4"
             fill='horizontal'>
           {
@@ -31,7 +31,7 @@ const UserTaskAppLayout = ({
           }
         </Box>
         <Box
-            height="2rem"
+            flex="grow"
             background="light-4"
             fill='horizontal'>
           {

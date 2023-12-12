@@ -40,7 +40,9 @@ interface UserTaskPageProps {
   openTask: OpenTaskFunction;
   navigateToWorkflow: NavigateToWorkflowFunction;
   useTasklistApi: TasklistApiHook;
-  t: TranslationFunction,
+  t: TranslationFunction;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
   children?: (userTask: BcUserTask, Form: () => ReactElement) => JSX.Element;
 };
 
@@ -53,6 +55,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     useTasklistApi,
     t,
     children,
+    header,
+    footer
 }: UserTaskPageProps) => {
 
   const tasklistApi = useTasklistApi();
@@ -126,7 +130,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
 
   const ParameterizedForm: () => ReactElement = formRef.current!;
   return children === undefined
-      ? <UserTaskAppLayout>
+      ? <UserTaskAppLayout header={header} footer={footer}>
           <ParameterizedForm />
         </UserTaskAppLayout>
       : children(userTask, ParameterizedForm);
