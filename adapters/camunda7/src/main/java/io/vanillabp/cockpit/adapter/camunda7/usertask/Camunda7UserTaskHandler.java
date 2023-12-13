@@ -1,19 +1,23 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask;
 
-import java.io.File;
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
+import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.ProcessUserTaskEvent;
+import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.UserTaskEvent;
+import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.events.*;
+import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
+import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
+import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
+import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
+import io.vanillabp.spi.service.MultiInstanceElementResolver;
+import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.MultiInstance;
+import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
+import io.vanillabp.springboot.parameters.MethodParameter;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.DelegateTask;
 import org.camunda.bpm.engine.delegate.TaskListener;
@@ -31,31 +35,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.util.StringUtils;
 
-import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskCompleted;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskCreated;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskDeleted;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.events.UserTaskUpdated;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.ProcessUserTaskEvent;
-import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.UserTaskEvent;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.EventWrapper;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
-import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
-import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
-import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
-import io.vanillabp.spi.service.MultiInstanceElementResolver;
-import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
-import io.vanillabp.springboot.adapter.MultiInstance;
-import io.vanillabp.springboot.adapter.VanillaBpProperties;
-import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
-import io.vanillabp.springboot.parameters.MethodParameter;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
@@ -143,83 +129,38 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final TaskEntity task,
             final String eventName) {
 
-        final EventWrapper eventWrapper =
+        final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
                 switch (task.getEventName()) {
-                case TaskListener.EVENTNAME_CREATE -> new UserTaskCreated(
-                        new UserTaskCreatedOrUpdatedEvent(),
-                        task.getTenantId(),
-                        properties.getI18nLanguages());
-                case TaskListener.EVENTNAME_UPDATE -> new UserTaskUpdated(
-                        new UserTaskCreatedOrUpdatedEvent(),
-                        task.getTenantId(),
-                        properties.getI18nLanguages());
-                case TaskListener.EVENTNAME_COMPLETE -> new UserTaskCompleted(
-                        new UserTaskCompletedEvent());
-                case TaskListener.EVENTNAME_DELETE -> new UserTaskDeleted(
-                        new UserTaskCancelledEvent());
-                default -> throw new RuntimeException(
-                        "Unsupported event type '"
-                        + task.getEventName()
-                        + "'!");
-                };
-                
-        try {
-            if (eventWrapper instanceof UserTaskCreated) {
-    
-                final var userTaskCreatedEvent = (UserTaskCreated) eventWrapper;
-    
-                final var execution = (ExecutionEntity) task.getExecution();
-                final var processDefinition = execution
-                        .getProcessDefinition();
-    
-                final var bpmnProcessId = processDefinition
-                        .getKey();
-                final String bpmnProcessVersion;
-                if (StringUtils.hasText(processDefinition.getVersionTag())) {
-                    bpmnProcessVersion = processDefinition.getVersionTag()
-                            + ":"
-                            + Integer.toString(processDefinition.getVersion());
-                } else {
-                    bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
-                }
-                final var bpmnProcessName = StringUtils.hasText(processDefinition.getName())
-                        ? processDefinition.getName()
-                        : processDefinition.getKey();
-                
-                final var prefilledUserTaskDetails = prefillUserTaskDetails(
-                        bpmnProcessId,
-                        bpmnProcessVersion,
-                        task,
-                        userTaskCreatedEvent);
-            
-                final var details = callUserTaskDetailsProviderMethod(
-                        task,
-                        (PrefilledUserTaskDetails) prefilledUserTaskDetails);
-                
-                fillUserTaskDetailsByCustomDetails(
-                        bpmnProcessId,
-                        bpmnProcessVersion,
-                        bpmnProcessName,
-                        task,
-                        userTaskCreatedEvent,
-                        details == null
-                                ? prefilledUserTaskDetails
-                                : details);
-                
-            } else {
-                
-                fillLifecycleEvent(task, eventWrapper);
-                
-            }
-        } catch (Exception e) {
-            logger.warn("Error processing update", e);
-            return;
-        }
+                    case TaskListener.EVENTNAME_CREATE:
+                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages());
+                        fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
+                        yield userTaskCreatedEvent;
+
+                    case TaskListener.EVENTNAME_UPDATE:
+                        UserTaskUpdatedEvent userTaskUpdatedEvent = new UserTaskUpdatedEvent(task.getTenantId(), properties.getI18nLanguages());
+                        fillUserTaskCreatedEvent(task, userTaskUpdatedEvent);
+                        yield userTaskUpdatedEvent;
+
+                    case TaskListener.EVENTNAME_COMPLETE:
+                        UserTaskCompletedEvent userTaskCompletedEvent = new UserTaskCompletedEvent();
+                        fillLifecycleEvent(task, userTaskCompletedEvent);
+                        yield userTaskCompletedEvent;
+
+                    case TaskListener.EVENTNAME_DELETE:
+                        UserTaskCancelledEvent userTaskCancelledEvent = new UserTaskCancelledEvent();
+                        fillLifecycleEvent(task, userTaskCancelledEvent);
+                        yield userTaskCancelledEvent;
+
+                    default: throw new RuntimeException(
+                            "Unsupported event type '"
+                            + task.getEventName()
+                            + "'!");
+                    };
 
         applicationEventPublisher.publishEvent(
                 new UserTaskEvent(
                         Camunda7UserTaskHandler.class,
-                        eventWrapper.getEvent(),
+                        userTaskEvent,
                         bpmsApiVersionAware.getApiVersion()));
         applicationEventPublisher.publishEvent(
                 new ProcessUserTaskEvent(
@@ -227,12 +168,53 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
     }
 
+    private void fillUserTaskCreatedEvent(TaskEntity task, UserTaskCreatedEvent userTaskCreatedEvent) {
+
+        final var execution = (ExecutionEntity) task.getExecution();
+        final var processDefinition = execution
+                .getProcessDefinition();
+
+        final var bpmnProcessId = processDefinition
+                .getKey();
+        final String bpmnProcessVersion;
+        if (StringUtils.hasText(processDefinition.getVersionTag())) {
+            bpmnProcessVersion = processDefinition.getVersionTag()
+                    + ":"
+                    + Integer.toString(processDefinition.getVersion());
+        } else {
+            bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
+        }
+        final var bpmnProcessName = StringUtils.hasText(processDefinition.getName())
+                ? processDefinition.getName()
+                : processDefinition.getKey();
+
+        final var prefilledUserTaskDetails = prefillUserTaskDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                task,
+                userTaskCreatedEvent);
+
+        final var details = callUserTaskDetailsProviderMethod(
+                task,
+                (PrefilledUserTaskDetails) prefilledUserTaskDetails);
+
+        fillUserTaskDetailsByCustomDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                bpmnProcessName,
+                task,
+                userTaskCreatedEvent,
+                details == null
+                        ? prefilledUserTaskDetails
+                        : details);
+    }
+
     private void fillUserTaskDetailsByCustomDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
             final TaskEntity delegateTask,
-            final UserTaskCreated event,
+            final UserTaskCreatedEvent event,
             final UserTaskDetails details) {
         
         // a different object was returned then provided
@@ -367,11 +349,11 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         
     }
             
-    private UserTaskCreated prefillUserTaskDetails(
+    private UserTaskCreatedEvent prefillUserTaskDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final DelegateTask delegateTask,
-            final UserTaskCreated event) {
+            final UserTaskCreatedEvent event) {
         
         final var prefilledUserTaskDetails = event;
         
@@ -432,7 +414,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
     private void fillLifecycleEvent(
             final DelegateTask delegateTask,
-            final EventWrapper event) {
+            final UserTaskLifecycleEvent event) {
         
         event.setId(
                 System.nanoTime()
@@ -446,7 +428,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                 DateTimeUtil.fromDate(delegateTask.getCreateTime()));
         event.setUserTaskId(
                 delegateTask.getId());
-        
     }
 
     @SuppressWarnings("unchecked")

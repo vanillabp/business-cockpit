@@ -5,10 +5,10 @@ import freemarker.template.TemplateException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.*;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowRestMapper;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowRestPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
@@ -196,26 +196,41 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @Bean
     public UserTaskPublishing userTaskPublishing(
             @Qualifier("bpmsApiV1")
-            final Optional<BpmsApi> bpmsApi) {
+            final Optional<BpmsApi> bpmsApi,
+            final UserTaskRestMapper userTaskRestMapper) {
 
-        return new UserTaskPublishing(
+        return new UserTaskRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
+                workflowsCockpitProperties,
+                userTaskRestMapper);
 
     }
 
     @Bean
     public WorkflowPublishing workflowPublishing(
             @Qualifier("bpmsApiV1")
-            final Optional<BpmsApi> bpmsApi) {
-        return new WorkflowPublishing(
+            final Optional<BpmsApi> bpmsApi,
+            final WorkflowRestMapper workflowRestMapper) {
+        return new WorkflowRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
+                workflowsCockpitProperties,
+                workflowRestMapper);
 
+    }
+
+    @Bean
+    public WorkflowRestMapper workflowRestMapper(){
+        return new WorkflowRestMapper();
+    }
+
+
+    @Bean
+    public UserTaskRestMapper userTaskRestMapper(){
+        return new UserTaskRestMapper();
     }
 
     private UiUriType findAndValidateUiUriTypeProperty(

@@ -6,27 +6,27 @@ public class WorkflowEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
 
-    final Object event;
+    final io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent event;
 
     final String apiVersion;
 
     public WorkflowEvent(
             final Object source,
-            final Object event,
+            final io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent event,
             final String apiVersion) {
-        
+
         super(source);
         this.event = event;
         this.apiVersion = apiVersion;
-        
+
     }
-    
-    public Object getEvent() {
+
+    public io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent getEvent() {
         return event;
     }
-    
+
     public String getApiVersion() {
         return apiVersion;
     }
-    
+
 }

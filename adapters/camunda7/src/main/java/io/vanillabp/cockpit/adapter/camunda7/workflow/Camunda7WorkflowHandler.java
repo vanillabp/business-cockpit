@@ -1,16 +1,10 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCancelled;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCompleted;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowCreated;
-import io.vanillabp.cockpit.adapter.camunda7.workflow.events.WorkflowUpdated;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
-import io.vanillabp.cockpit.adapter.common.workflow.EventWrapper;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.*;
 import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
@@ -61,7 +55,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final Object bean,
             final Method method,
             final List<MethodParameter> parameters) {
-        
+
         super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
         this.cockpitProperties = cockpitProperties;
         this.processService = processService;
@@ -69,168 +63,143 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         this.bpmsApiVersionAware = bpmsApiVersionAware;
 
         determineBusinessKeyToIdMapper();
-        
+
     }
 
     @Override
     protected Logger getLogger() {
-        
+
         return logger;
         
     }
     
-    public EventWrapper wrapProcessInstance(
+    public WorkflowEvent wrapProcessInstance(
             final HistoricProcessInstance processInstance,
             final String bpmnProcessName,
             final String bpmnProcessVersion) {
 
         final String workflowModuleId = processInstance.getTenantId();
         
-        EventWrapper eventWrapper = null;
+        WorkflowEvent workflowEvent = null;
         if (processInstance.getEndTime() != null) {
-            eventWrapper = new WorkflowCompleted(
-                    new WorkflowCompletedEvent(),
-                    bpmsApiVersionAware.getApiVersion()
-            );
+            workflowEvent = new io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent(
+                    bpmsApiVersionAware.getApiVersion());
         } else {
-            eventWrapper = new WorkflowUpdated(
-                    new WorkflowCreatedOrUpdatedEvent(),
+            workflowEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
                     cockpitProperties.getI18nLanguages(),
-                    bpmsApiVersionAware.getApiVersion()
-            );
+                    bpmsApiVersionAware.getApiVersion());
         }
-
-        try {
-            if (eventWrapper instanceof WorkflowCreated) {
-    
-                final var workflowCreatedEvent = (WorkflowCreated) eventWrapper;
-    
-                final var bpmnProcessId = processInstance.getProcessDefinitionKey();
-
-                final var prefilledWorkflowDetails = prefillWorkflowDetails(
-                        bpmnProcessId,
-                        bpmnProcessVersion,
-                        bpmnProcessName,
-                        processInstance,
-                        workflowCreatedEvent);
-
-                final var details = callWorkflowDetailsProviderMethod(
-                        processInstance.getId(),
-                        processInstance.getId(),
-                        processInstance.getBusinessKey(),
-                        (PrefilledWorkflowDetails) prefilledWorkflowDetails);
-
-                fillWorkflowDetailsByCustomDetails(
-                        bpmnProcessId,
-                        bpmnProcessVersion,
-                        bpmnProcessName,
-                        workflowCreatedEvent,
-                        details == null
-                                ? prefilledWorkflowDetails
-                                : details);
-    
-            } else {
-    
-                fillLifecycleEvent(
-                        bpmnProcessId,
-                        bpmnProcessVersion,
-                        processInstance,
-                        eventWrapper);
-    
-            }
-            
-        } catch (Exception e) {
-            logger.warn("Error processing update", e);
-            return null;
-        }
-        
-        return eventWrapper;
+        return workflowEvent;
 
     }
-    
-    public EventWrapper wrapProcessInstanceEvent(HistoricProcessInstanceEventEntity processInstanceEvent,
-                                           String bpmnProcessName,
-                                           String bpmnProcessVersion) {
+
+
+    public WorkflowEvent wrapProcessInstanceEvent(
+            HistoricProcessInstanceEventEntity processInstanceEvent,
+            String bpmnProcessName,
+            String bpmnProcessVersion
+    ) {
 
         final String workflowModuleId = processInstanceEvent.getTenantId();
 
-        EventWrapper eventWrapper = null;
+        WorkflowEvent workflowEvent;
+
         if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_START)) {
-            eventWrapper = new WorkflowCreated(
-                    new WorkflowCreatedOrUpdatedEvent(),
-                    workflowModuleId,
-                    cockpitProperties.getI18nLanguages(),
-                    bpmsApiVersionAware.getApiVersion()
-            );
+
+            WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent();
+
+            fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowCreatedEvent);
+            workflowEvent = workflowCreatedEvent;
+
         } else if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
-            if (processInstanceEvent.getDeleteReason() != null) {
-                eventWrapper = new WorkflowCancelled(
-                        new WorkflowCompletedEvent(),
-                        bpmsApiVersionAware.getApiVersion()
-                    );
-            } else {
-                eventWrapper = new WorkflowCompleted(
-                        new WorkflowCompletedEvent(),
-                        bpmsApiVersionAware.getApiVersion()
-                    );
-            }
+
+            WorkflowLifecycleEvent workflowLifecycleEvent = processInstanceEvent.getDeleteReason() != null ?
+                    new WorkflowCancelledEvent(bpmsApiVersionAware.getApiVersion()) :
+                    new WorkflowCompletedEvent(bpmsApiVersionAware.getApiVersion());
+
+            fillLifecycleEvent(bpmnProcessId, bpmnProcessVersion, processInstanceEvent, workflowLifecycleEvent);
+            workflowEvent = workflowLifecycleEvent;
+
         } else {
-            eventWrapper = new WorkflowUpdated(
-                    new WorkflowCreatedOrUpdatedEvent(),
+
+            WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
                     cockpitProperties.getI18nLanguages(),
-                    bpmsApiVersionAware.getApiVersion()
-            );
+                    bpmsApiVersionAware.getApiVersion());
+            fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
+            workflowEvent = workflowUpdatedEvent;
         }
 
-        if (eventWrapper instanceof WorkflowCreated) {
+        return workflowEvent;
 
-            final var workflowCreatedEvent = (WorkflowCreated) eventWrapper;
+    }
 
-            final var bpmnProcessId = processInstanceEvent.getProcessDefinitionKey();
 
-            final var prefilledWorkflowDetails = prefillWorkflowDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    bpmnProcessName,
-                    processInstanceEvent,
-                    workflowCreatedEvent);
+    private void fillWorkflowCreatedEvent(HistoricProcessInstance processInstance, String bpmnProcessName, String bpmnProcessVersion, WorkflowCreatedEvent workflowCreatedEvent) {
+        final var bpmnProcessId = processInstance.getProcessDefinitionKey();
 
-            final var details = callWorkflowDetailsProviderMethod(
-                    processInstanceEvent.getProcessInstanceId(),
-                    processInstanceEvent.getExecutionId(),
-                    processInstanceEvent.getBusinessKey(),
-                    (PrefilledWorkflowDetails) prefilledWorkflowDetails);
+        final var prefilledWorkflowDetails = prefillWorkflowDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                bpmnProcessName,
+                processInstance,
+                workflowCreatedEvent);
 
-            fillWorkflowDetailsByCustomDetails(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    bpmnProcessName,
-                    workflowCreatedEvent,
-                    details == null
-                            ? prefilledWorkflowDetails
-                            : details);
+        final var details = callWorkflowDetailsProviderMethod(
+                processInstance.getId(),
+                processInstance.getId(),
+                processInstance.getBusinessKey(),
+                (PrefilledWorkflowDetails) prefilledWorkflowDetails);
 
-        } else {
+        fillWorkflowDetailsByCustomDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                bpmnProcessName,
+                workflowCreatedEvent,
+                details == null
+                        ? prefilledWorkflowDetails
+                        : details);
+    }
 
-            fillLifecycleEvent(
-                    bpmnProcessId,
-                    bpmnProcessVersion,
-                    processInstanceEvent,
-                    eventWrapper);
+    private void fillWorkflowCreatedEvent(
+            HistoricProcessInstanceEventEntity processInstanceEvent,
+            String bpmnProcessName,
+            String bpmnProcessVersion,
+            WorkflowCreatedEvent workflowCreatedEvent
+    ) {
 
-        }
-        
-        return eventWrapper;
 
+        final var bpmnProcessId = processInstanceEvent.getProcessDefinitionKey();
+
+        final var prefilledWorkflowDetails = prefillWorkflowDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                bpmnProcessName,
+                processInstanceEvent,
+                workflowCreatedEvent);
+
+        final var details = callWorkflowDetailsProviderMethod(
+                processInstanceEvent.getProcessInstanceId(),
+                processInstanceEvent.getExecutionId(),
+                processInstanceEvent.getBusinessKey(),
+                (PrefilledWorkflowDetails) prefilledWorkflowDetails);
+
+        fillWorkflowDetailsByCustomDetails(
+                bpmnProcessId,
+                bpmnProcessVersion,
+                bpmnProcessName,
+                workflowCreatedEvent,
+                details == null
+                        ? prefilledWorkflowDetails
+                        : details);
     }
 
     private void fillWorkflowDetailsByCustomDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
-            WorkflowCreated event,
+            WorkflowCreatedEvent event,
             WorkflowDetails details
     ) {
         // a different object was returned then provided
@@ -313,12 +282,12 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         
     }
 
-    private WorkflowCreated prefillWorkflowDetails(
+    private WorkflowCreatedEvent prefillWorkflowDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
-            final WorkflowCreated event) {
+            final WorkflowCreatedEvent event) {
 
         final var prefilledWorkflowDetails = event;
 
@@ -339,12 +308,12 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
     }
 
-    private WorkflowCreated prefillWorkflowDetails(
+    private WorkflowCreatedEvent prefillWorkflowDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
             final HistoricProcessInstance processInstance,
-            final WorkflowCreated event) {
+            final WorkflowCreatedEvent event) {
 
         final var prefilledWorkflowDetails = event;
 
@@ -367,7 +336,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
-            final io.vanillabp.cockpit.adapter.common.workflow.EventWrapper event) {
+            final WorkflowLifecycleEvent event) {
 
         event.setId(
                 System.nanoTime()
@@ -388,7 +357,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstance processInstance,
-            final io.vanillabp.cockpit.adapter.common.workflow.EventWrapper event) {
+            final WorkflowLifecycleEvent event) {
 
         event.setId(
                 System.nanoTime()
