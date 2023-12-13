@@ -641,8 +641,9 @@ public class UserTaskService {
                 final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
                 userOrRestrictions.add(noAssigneeOrNoCandidate);
             }
-            final Criteria permittedTasks = new Criteria().orOperator(userOrRestrictions);
-            subCriterias.add(permittedTasks);
+            if (!userOrRestrictions.isEmpty()) {
+                subCriterias.add(new Criteria().orOperator(userOrRestrictions));
+            }
             subCriterias.addAll(userAndRestrictions);
         }
 
