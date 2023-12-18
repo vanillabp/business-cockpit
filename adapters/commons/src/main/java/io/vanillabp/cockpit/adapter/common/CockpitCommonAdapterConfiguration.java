@@ -5,10 +5,14 @@ import freemarker.template.TemplateException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
-import io.vanillabp.cockpit.adapter.common.usertask.*;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
-import io.vanillabp.cockpit.adapter.common.workflow.WorkflowRestMapper;
-import io.vanillabp.cockpit.adapter.common.workflow.WorkflowRestPublishing;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
@@ -194,44 +198,35 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     }
     
     @Bean
-    public UserTaskPublishing userTaskPublishing(
+    @ConditionalOnMissingBean
+    public UserTaskPublishing userTaskRestPublishing(
             @Qualifier("bpmsApiV1")
-            final Optional<BpmsApi> bpmsApi,
-            final UserTaskRestMapper userTaskRestMapper) {
+            final Optional<BpmsApi> bpmsApi) {
 
         return new UserTaskRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
                 workflowsCockpitProperties,
-                userTaskRestMapper);
+                new UserTaskRestMapperImpl());
 
     }
 
     @Bean
-    public WorkflowPublishing workflowPublishing(
+    @ConditionalOnMissingBean
+    public WorkflowPublishing workflowRestPublishing(
             @Qualifier("bpmsApiV1")
-            final Optional<BpmsApi> bpmsApi,
-            final WorkflowRestMapper workflowRestMapper) {
+            final Optional<BpmsApi> bpmsApi) {
         return new WorkflowRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
                 workflowsCockpitProperties,
-                workflowRestMapper);
-
-    }
-
-    @Bean
-    public WorkflowRestMapper workflowRestMapper(){
-        return new WorkflowRestMapper();
+                new WorkflowRestMapperImpl()
+        );
     }
 
 
-    @Bean
-    public UserTaskRestMapper userTaskRestMapper(){
-        return new UserTaskRestMapper();
-    }
 
     private UiUriType findAndValidateUiUriTypeProperty(
             final String prefix,

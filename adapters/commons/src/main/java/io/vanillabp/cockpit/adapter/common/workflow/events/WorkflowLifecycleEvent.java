@@ -1,10 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.workflow.events;
 
-import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
-
 import java.time.OffsetDateTime;
-import java.util.Objects;
 
 public class WorkflowLifecycleEvent implements WorkflowEvent {
     private String id;
@@ -17,12 +13,13 @@ public class WorkflowLifecycleEvent implements WorkflowEvent {
     private String bpmnProcessVersion;
     private String apiVersion;
 
+
     public WorkflowLifecycleEvent() {
     }
+
     public WorkflowLifecycleEvent(String apiVersion) {
         this.apiVersion = apiVersion;
     }
-
 
     @Override
     public String getId() {

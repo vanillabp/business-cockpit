@@ -1,19 +1,23 @@
-package io.vanillabp.cockpit.adapter.common.usertask;
+package io.vanillabp.cockpit.adapter.common.usertask.rest;
 
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
-public class UserTaskRestMapper {
+    @Override
     public UserTaskActivatedEvent map(io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent userTaskActivatedEvent) {
         if ( userTaskActivatedEvent == null ) {
             return null;
@@ -31,7 +35,7 @@ public class UserTaskRestMapper {
         return userTaskActivatedEvent1;
     }
 
-    
+    @Override
     public io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent map(UserTaskCancelledEvent userTaskCancelledEvent) {
         if ( userTaskCancelledEvent == null ) {
             return null;
@@ -49,7 +53,7 @@ public class UserTaskRestMapper {
         return userTaskCancelledEvent1;
     }
 
-    
+    @Override
     public io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent map(UserTaskCompletedEvent userTaskCompletedEvent) {
         if ( userTaskCompletedEvent == null ) {
             return null;
@@ -67,7 +71,7 @@ public class UserTaskRestMapper {
         return userTaskCompletedEvent1;
     }
 
-    
+    @Override
     public UserTaskSuspendedEvent map(io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent userTaskSuspendedEvent) {
         if ( userTaskSuspendedEvent == null ) {
             return null;
@@ -85,7 +89,7 @@ public class UserTaskRestMapper {
         return userTaskSuspendedEvent1;
     }
 
-    
+    @Override
     public UserTaskCreatedOrUpdatedEvent map(UserTaskCreatedEvent userTaskCreatedEvent) {
         if ( userTaskCreatedEvent == null ) {
             return null;
@@ -122,7 +126,7 @@ public class UserTaskRestMapper {
         userTaskCreatedOrUpdatedEvent.setWorkflowModuleUri( userTaskCreatedEvent.getWorkflowModuleUri() );
         userTaskCreatedOrUpdatedEvent.setTaskProviderApiUriPath( userTaskCreatedEvent.getTaskProviderApiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
-        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskCreatedEvent.getUiUriType() );
+        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
         userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );
         List<String> list = userTaskCreatedEvent.getCandidateUsers();
         if ( list != null ) {
@@ -145,7 +149,7 @@ public class UserTaskRestMapper {
         return userTaskCreatedOrUpdatedEvent;
     }
 
-    
+    @Override
     public UserTaskCreatedOrUpdatedEvent map(UserTaskUpdatedEvent userTaskCreatedEvent) {
         if ( userTaskCreatedEvent == null ) {
             return null;
@@ -182,7 +186,7 @@ public class UserTaskRestMapper {
         userTaskCreatedOrUpdatedEvent.setWorkflowModuleUri( userTaskCreatedEvent.getWorkflowModuleUri() );
         userTaskCreatedOrUpdatedEvent.setTaskProviderApiUriPath( userTaskCreatedEvent.getTaskProviderApiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
-        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskCreatedEvent.getUiUriType() );
+        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
         userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );
         List<String> list = userTaskCreatedEvent.getCandidateUsers();
         if ( list != null ) {
@@ -203,5 +207,23 @@ public class UserTaskRestMapper {
         userTaskCreatedOrUpdatedEvent.setUpdated( true );
 
         return userTaskCreatedOrUpdatedEvent;
+    }
+
+    protected UiUriType userTaskUiUriTypeToUiUriType(UserTaskUiUriType userTaskUiUriType) {
+        if ( userTaskUiUriType == null ) {
+            return null;
+        }
+
+        UiUriType uiUriType;
+
+        switch ( userTaskUiUriType ) {
+            case EXTERNAL: uiUriType = UiUriType.EXTERNAL;
+            break;
+            case WEBPACK_MF_REACT: uiUriType = UiUriType.WEBPACK_MF_REACT;
+            break;
+            default: throw new IllegalArgumentException( "Unexpected enum constant: " + userTaskUiUriType );
+        }
+
+        return uiUriType;
     }
 }

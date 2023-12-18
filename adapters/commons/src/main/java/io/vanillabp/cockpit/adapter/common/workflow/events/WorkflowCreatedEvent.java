@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.adapter.common.workflow.events;
 
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 
@@ -36,7 +35,7 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
 
   private String uiUriPath;
 
-  private UiUriType uiUriType;
+  private WorkflowUiUriType uiUriType;
 
   private String workflowProviderApiUriPath;
 
@@ -161,11 +160,11 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
     this.uiUriPath = uiUriPath;
   }
 
-  public UiUriType getUiUriType() {
+  public WorkflowUiUriType getUiUriType() {
     return uiUriType;
   }
 
-  public void setUiUriType(UiUriType uiUriType) {
+  public void setUiUriType(WorkflowUiUriType uiUriType) {
     this.uiUriType = uiUriType;
   }
 
