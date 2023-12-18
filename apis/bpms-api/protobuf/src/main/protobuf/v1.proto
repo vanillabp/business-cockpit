@@ -1,0 +1,118 @@
+syntax = 'proto3';
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "io.vanillabp.cockpit.bpms.api.protobuf.v1";
+
+message UserTaskCreatedOrUpdated{
+  string id = 1;
+  string user_task_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string bpmn_process_id = 4;
+  string task_definition = 5;
+  map<string, string> title = 6;
+  string workflow_module_id = 7;
+  string task_provider_api_uri_path = 8;
+  string ui_uri_path = 9;
+  string ui_uri_type = 10;
+  optional bool updated = 11;
+  optional string initiator = 12;
+  optional string source = 13;
+  optional string workflow_module = 14;
+  optional string comment = 15;
+  optional string bpmn_process_version = 16;
+  map<string, string> workflow_title = 17;
+  optional string workflow_id = 18;
+  optional string sub_workflow_id = 19;
+  optional string business_id = 20;
+  optional string bpmn_task_id = 21;
+  map<string, string> task_definition_title = 22;
+  optional string workflow_module_uri = 23;
+  optional string assignee = 24;
+  repeated string candidate_users = 25;
+  repeated string candidate_groups = 26;
+  optional google.protobuf.Timestamp due_date = 27;
+  optional google.protobuf.Timestamp follow_up_date = 28;
+  map<string, string> details = 29;
+  optional string full_text_search = 30;
+}
+
+message UserTaskCompleted {
+  string id = 1;
+  string user_task_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+}
+
+message UserTaskCancelledEvent {
+  string id = 1;
+  string user_task_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+}
+
+message UserTaskSuspendedEvent {
+  string id = 1;
+  string user_task_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+}
+
+message UserTaskActivatedEvent {
+  string id = 1;
+  string user_task_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+}
+
+message WorkflowCreatedOrUpdatedEvent {
+  string id = 1;
+  string workflow_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string bpmn_process_id = 4;
+  string workflow_module_uri = 5;
+  string workflow_provider_api_uri_path = 6;
+  string ui_uri_path = 7;
+  string ui_uri_type = 8;
+  optional bool updated = 9;
+  optional string business_id = 10;
+  optional string initiator = 11;
+  optional string source = 12;
+  optional string workflow_module = 13;
+  map<string, string> title = 14;
+  optional string comment = 15;
+  optional string bpmn_process_version = 16;
+  map<string, string> details = 17;
+  optional string details_fulltext_search = 18;
+}
+
+message WorkflowCompletedEvent {
+  string id = 1;
+  string workflow_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+  optional string bpmn_process_id = 7;
+  optional string bpmn_process_version = 8;
+}
+
+message WorkflowCancelledEvent {
+  string id = 1;
+  string workflow_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional string initiator = 4;
+  optional string source = 5;
+  optional string comment = 6;
+  optional string bpmn_process_id = 7;
+  optional string bpmn_process_version = 8;
+}
