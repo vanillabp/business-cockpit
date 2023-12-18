@@ -1,10 +1,18 @@
-package io.vanillabp.cockpit.adapter.common.usertask;
+package io.vanillabp.cockpit.adapter.common.usertask.rest;
 
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.events.*;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,20 +35,20 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
 
     private final UserTasksWorkflowProperties workflowsCockpitProperties;
 
-    private final UserTaskRestMapper userTaskRestMapper;
+    private final UserTaskRestMapper userTaskMapper;
 
     public UserTaskRestPublishing(
             final String workerId,
             final Optional<BpmsApi> bpmsApiV1,
             final CockpitProperties properties,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
-            final UserTaskRestMapper userTaskRestMapper) {
+            final UserTaskRestMapper userTaskMapper) {
 
         this.workerId = workerId;
         this.bpmsApiV1 = bpmsApiV1;
         this.properties = properties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
-        this.userTaskRestMapper = userTaskRestMapper;
+        this.userTaskMapper = userTaskMapper;
         
     }
 
@@ -89,33 +97,33 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
         events.forEach(eventObject -> {
 
             if (eventObject instanceof UserTaskUpdatedEvent userTaskUpdatedEvent){
-
-                final var event = this.userTaskRestMapper.map(userTaskUpdatedEvent);
-                sendUserTaskCreatedOrUpdatedEvent(event);
+                editUserTaskCreatedOrUpdatedEvent(userTaskUpdatedEvent);
+                final var event = this.userTaskMapper.map(userTaskUpdatedEvent);
+                bpmsApiV1.get().userTaskUpdatedEvent(event.getUserTaskId(), event);
 
             } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
-
-                final var event = this.userTaskRestMapper.map(userTaskCreatedEvent);
-                sendUserTaskCreatedOrUpdatedEvent(event);
+                editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
+                final var event = this.userTaskMapper.map(userTaskCreatedEvent);
+                bpmsApiV1.get().userTaskCreatedEvent(event);
 
             } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
                 
-                final var event = userTaskRestMapper.map(userTaskCompletedEvent);
+                final var event = userTaskMapper.map(userTaskCompletedEvent);
                 bpmsApiV1.get().userTaskCompletedEvent(event.getUserTaskId(), event);
                 
             } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
                 
-                final var event = userTaskRestMapper.map(userTaskCancelledEvent);
+                final var event = userTaskMapper.map(userTaskCancelledEvent);
                 bpmsApiV1.get().userTaskCancelledEvent(event.getUserTaskId(), event);
                 
             } else if (eventObject instanceof UserTaskActivatedEvent userTaskActivatedEvent) {
                 
-                final var event = userTaskRestMapper.map(userTaskActivatedEvent);
+                final var event = userTaskMapper.map(userTaskActivatedEvent);
                 bpmsApiV1.get().userTaskActivatedEvent(event.getUserTaskId(), event);
                 
             } else if (eventObject instanceof UserTaskSuspendedEvent userTaskSuspendedEvent) {
 
-                final var event = userTaskRestMapper.map(userTaskSuspendedEvent);
+                final var event = userTaskMapper.map(userTaskSuspendedEvent);
                 bpmsApiV1.get().userTaskSuspendedEvent(event.getUserTaskId(), event);
                 
             } else {
@@ -131,7 +139,7 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
         
     }
 
-    private void sendUserTaskCreatedOrUpdatedEvent(UserTaskCreatedOrUpdatedEvent eventObject) {
+    private void editUserTaskCreatedOrUpdatedEvent(UserTaskCreatedEvent eventObject) {
         final var event = eventObject;
         event.setSource(workerId);
 
@@ -176,17 +184,11 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
         if (!StringUtils.hasText(uiUriType)) {
             uiUriType = properties.getUiUriType();
         }
-        event.setUiUriType(UiUriType.fromValue(uiUriType));
+        event.setUiUriType(UserTaskUiUriType.fromValue(uiUriType));
         event.setWorkflowModuleUri(
                 StringUtils.hasText(workflowsProperties.getWorkflowModuleUri())
                         ? workflowsProperties.getWorkflowModuleUri()
                         : commonWorkflowsProperties.getWorkflowModuleUri());
-
-        if (Boolean.FALSE.equals(event.getUpdated())) {
-            bpmsApiV1.get().userTaskCreatedEvent(event);
-        } else {
-            bpmsApiV1.get().userTaskUpdatedEvent(event.getUserTaskId(), event);
-        }
     }
 
 }

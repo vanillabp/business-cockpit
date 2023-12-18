@@ -1,11 +1,13 @@
 package io.vanillabp.cockpit.adapter.common.usertask.events;
 
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, PrefilledUserTaskDetails {
     private String id;
@@ -48,7 +50,7 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     private String uiUriPath;
 
-    private UiUriType uiUriType;
+    private UserTaskUiUriType uiUriType;
 
     private String assignee;
 
@@ -259,11 +261,11 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
         this.uiUriPath = uiUriPath;
     }
 
-    public UiUriType getUiUriType() {
+    public UserTaskUiUriType getUiUriType() {
         return uiUriType;
     }
 
-    public void setUiUriType(UiUriType uiUriType) {
+    public void setUiUriType(UserTaskUiUriType uiUriType) {
         this.uiUriType = uiUriType;
     }
 

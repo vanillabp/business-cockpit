@@ -1,11 +1,13 @@
-package io.vanillabp.cockpit.adapter.common.workflow;
+package io.vanillabp.cockpit.adapter.common.workflow.rest;
 
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUiUriType;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.*;
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +16,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Optional;
 
-public class WorkflowRestPublishing implements WorkflowPublishing{
+public class WorkflowRestPublishing implements WorkflowPublishing {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkflowRestPublishing.class);
 
@@ -26,19 +28,19 @@ public class WorkflowRestPublishing implements WorkflowPublishing{
 
     private final UserTasksWorkflowProperties workflowsCockpitProperties;
 
-    private final WorkflowRestMapper workflowRestMapper;
+    private final WorkflowRestMapper workflowMapper;
 
     public WorkflowRestPublishing(
             final String workerId,
             final Optional<BpmsApi> bpmsApiV1,
             final CockpitProperties properties,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
-            final WorkflowRestMapper workflowRestMapper) {
+            final WorkflowRestMapper workflowMapper) {
         this.workerId = workerId;
         this.bpmsApiV1 = bpmsApiV1;
         this.properties = properties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
-        this.workflowRestMapper = workflowRestMapper;
+        this.workflowMapper = workflowMapper;
     }
 
     @PostConstruct
@@ -81,22 +83,24 @@ public class WorkflowRestPublishing implements WorkflowPublishing{
             .forEach(eventObject -> {
                 if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
 
-                    final var event = workflowRestMapper.map(workflowUpdatedEvent);
-                    sendWorkflowCreatedOrUpdatedEvent(event);
+                    editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);
+                    final var event = workflowMapper.map(workflowUpdatedEvent);
+                    bpmsApiV1.get().workflowUpdatedEvent(event.getWorkflowId(), event);
 
                 } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
 
-                    final var event = workflowRestMapper.map(workflowCreatedEvent);
-                    sendWorkflowCreatedOrUpdatedEvent(event);
+                    editWorkflowCreatedOrUpdatedEvent(workflowCreatedEvent);
+                    final var event = workflowMapper.map(workflowCreatedEvent);
+                    bpmsApiV1.get().workflowCreatedEvent(event);
 
                 } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent workflowCancelledEvent){
 
-                    final var event = workflowRestMapper.map(workflowCancelledEvent);
+                    final var event = workflowMapper.map(workflowCancelledEvent);
                     bpmsApiV1.get().workflowCancelledEvent(event.getWorkflowId(), event);
 
                 } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
 
-                    final var event = workflowRestMapper.map(workflowCompletedEvent);
+                    final var event = workflowMapper.map(workflowCompletedEvent);
                     bpmsApiV1.get().workflowCompletedEvent(event.getWorkflowId(), event);
                 }
                 // else if suspended
@@ -110,7 +114,7 @@ public class WorkflowRestPublishing implements WorkflowPublishing{
         });
     }
 
-    private void sendWorkflowCreatedOrUpdatedEvent(WorkflowCreatedOrUpdatedEvent eventObject) {
+    private void editWorkflowCreatedOrUpdatedEvent(WorkflowCreatedEvent eventObject) {
         final var event = eventObject;
         event.setSource(workerId);
 
@@ -149,16 +153,11 @@ public class WorkflowRestPublishing implements WorkflowPublishing{
         if (!StringUtils.hasText(uiUriType)) {
             uiUriType = properties.getUiUriType();
         }
-        event.setUiUriType(UiUriType.fromValue(uiUriType));
+        event.setUiUriType(WorkflowUiUriType.fromValue(uiUriType));
         event.setWorkflowModuleUri(
                 StringUtils.hasText(workflowsProperties.getWorkflowModuleUri())
                         ? workflowsProperties.getWorkflowModuleUri()
                         : commonWorkflowsProperties.getWorkflowModuleUri());
-        if (Boolean.FALSE.equals(event.getUpdated())) {
-            bpmsApiV1.get().workflowCreatedEvent(event);
-        } else {
-            bpmsApiV1.get().workflowUpdatedEvent(event.getWorkflowId(), event);
-        }
     }
 
 }
