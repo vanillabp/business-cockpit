@@ -160,4 +160,7 @@ export const theme: ThemeType = {
           background: "white"
       }
   },
+  layer: {
+    zIndex: '100',
+  },
 };

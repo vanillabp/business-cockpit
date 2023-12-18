@@ -1,7 +1,49 @@
 import { Box, Drop } from 'grommet';
-import React, { PropsWithChildren, useState, useRef } from 'react';
+import React, { PropsWithChildren, useRef, useState } from 'react';
 import { Copy } from 'grommet-icons';
 import { BackgroundType, EdgeSizeType } from 'grommet/utils';
+
+type ButtonSizeType = 'xxsmall' | 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge' | string;
+
+interface CopyClipbardButtonProps {
+  content?: string;
+  color?: string;
+  background?: BackgroundType;
+  onCopy?: () => any;
+  size?: ButtonSizeType;
+};
+
+const CopyClipboardButton = ({
+    content,
+    color = 'white',
+    background = { color: 'rgba(0, 0, 0, 0.45)' },
+    onCopy,
+    size = 'medium',
+}: CopyClipbardButtonProps) => {
+  const copyContent = async (data: string) => {
+    try {
+      await navigator.clipboard.writeText(data);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+    if (onCopy) {
+      onCopy();
+    }
+  };
+
+  return (
+      <Box
+          flex={ false }
+          round="xsmall"
+          background={ background }
+          margin={ { left: 'xsmall' } }
+          pad="xsmall">
+        <Copy
+            color={ color }
+            size={ size }
+            onClick={ () => copyContent(content!) } />
+      </Box>);
+};
 
 interface CopyClipbardProps {
   content?: string;
@@ -14,7 +56,7 @@ interface CopyClipbardProps {
 const CopyClipboard = ({
   content,
   size = 'medium',
-  background = { color: 'rgba(0, 0, 0, 0.45)' },
+  background,
   color = 'white',
   children,
 }: PropsWithChildren<CopyClipbardProps>) => {
@@ -38,14 +80,6 @@ const CopyClipboard = ({
         hideTimer.current = 0;
       }, 200);
   };
-  const copyContent = async (data: string) => {
-      try {
-        await navigator.clipboard.writeText(data);
-        setOver(false);
-      } catch (err) {
-        console.error('Failed to copy: ', err);
-      }
-    };
   const sizeFactor =
     size === "xxsmall"
       ? 0.3
@@ -79,20 +113,15 @@ const CopyClipboard = ({
               target={ targetRef.current }
               stretch={ false }
               align={ { left: 'right' } }>
-            <Box
-                flex={ false }
-                round="xsmall"
-                background={ background }
-                margin={ { left: 'xsmall' } }
-                pad="xsmall">
-              <Copy
-                  color={ color }
-                  size={ iconSize }
-                  onClick={ () => copyContent(content!) } />
-             </Box>
+            <CopyClipboardButton
+                content={ content }
+                color={ color }
+                onCopy={ () => setOver(false) }
+                size={ iconSize }
+                background={ background } />
           </Drop>
         }
       </span>);
 };
 
-export { CopyClipboard };
+export { CopyClipboard, CopyClipboardButton };

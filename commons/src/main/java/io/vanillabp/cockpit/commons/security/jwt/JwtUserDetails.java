@@ -8,6 +8,8 @@ import java.util.List;
 
 public class JwtUserDetails implements UserDetails {
 
+    public static final String USER_AUTHORITY_PREFIX = "USER_";
+
     private final JwtAuthenticationToken authenticationToken;
 
     public JwtUserDetails(
@@ -24,7 +26,7 @@ public class JwtUserDetails implements UserDetails {
     @Override
     public String getId() {
 
-        return getJwt().getId();
+        return getJwt().getSubject();
         
     }
     

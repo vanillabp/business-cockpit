@@ -25,7 +25,15 @@ const useTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>)
 
 };
 
+const useSpecializedTasklistApi = (kind: string, wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialTasklistApi => {
+
+  const { dispatch } = useAppContext();
+  return useMemo(() => getTasklistGuiApi(dispatch, wakeupSseCallback?.current, kind), [ kind, dispatch, wakeupSseCallback ]);
+
+};
+
 export {
   useWorkflowlistApi,
   useTasklistApi,
+  useSpecializedTasklistApi,
 };

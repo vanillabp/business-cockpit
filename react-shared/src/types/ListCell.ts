@@ -8,6 +8,9 @@ export interface Column {
   path: string;
   priority: number;
   width: string;
+  show: boolean;
+  sortable: boolean;
+  filterable: boolean;
 };
 
 export enum ListItemStatus {
@@ -15,6 +18,7 @@ export enum ListItemStatus {
   NEW,
   UPDATED,
   ENDED,
+  REMOVED_FROM_LIST,
 };
 
 export interface ListItem<D> {

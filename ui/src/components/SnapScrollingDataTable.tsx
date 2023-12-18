@@ -1,4 +1,4 @@
-import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Text } from 'grommet';
+import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Grid, Text } from 'grommet';
 import { SnapAlignBox, SnapScrollingGrid } from './SnapScrolling.js';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import React, { forwardRef, PropsWithChildren, ReactElement, ReactNode, UIEventHandler } from 'react';
@@ -11,8 +11,10 @@ interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<
   columns: ColumnConfig<TRowType>[];
 };
 
-const calculateColumWidth = (width: string, column: any) =>
-    width !== '' ? width + ' + ' + column.size : column.size;
+const calculateColumWidth = (width: string, column: any) => {
+  const columnSize = column.size ? column.size : '10rem';
+  return width !== '' ? width + ' + ' + columnSize : columnSize;
+}
 
 const SnapScrollingDataTable = forwardRef(({
     phoneMargin,
@@ -27,34 +29,36 @@ const SnapScrollingDataTable = forwardRef(({
   const { isPhone, isNotPhone } = useResponsiveScreen();
 
   const columnsWidth = columns.reduce(calculateColumWidth, '');
-  const tableWidth = `calc(${columnsWidth})`;
-  const totalWidth = `calc(${columnsWidth} + 2 * ${phoneMargin})`;
-  
+  const tableWidth = `max(${columnsWidth}, 100%)`;
+  const totalWidth = `calc(max(${columnsWidth}, 100%) + 2 * ${phoneMargin})`;
+
   const dataTableColumns = columns.map(column => ({ ...column, header: undefined }));
-  
   return (columns
     ? <SnapScrollingGrid
           fill
           rows={ [ 'max-content', 'auto' ]}
-          snapDirection='horizontal'>
+          style={ { overflow: 'auto' } }
+          snapDirection='horizontal'
+          onScroll={ onScroll }>
         <Box
             fill={ isNotPhone ? 'horizontal' : undefined }
             style={ {
-              position: 'relative',
-              width: isPhone ? totalWidth : undefined,
+              position: 'sticky',
+              top: '0',
+              zIndex: 2,
+              minWidth: isPhone ? totalWidth : tableWidth,
               } }
             background='dark-3'
             align="center">
           {
             additionalHeader
           }
-          <Box
+          <Grid
               fill
-              direction='row'
+              columns={ columns.map(column => column.size ? column.size : 'auto') }
               style={
                 isNotPhone
                     ? {
-                        maxWidth: tableWidth,
                         maxHeight: headerHeight,
                         minHeight: headerHeight,
                         marginLeft: 'auto',
@@ -76,7 +80,6 @@ const SnapScrollingDataTable = forwardRef(({
                   align="left"
                   justify='center'
                   height="100%"
-                  width={ column.size }
                   border={
                       index === 0
                           ? undefined
@@ -94,26 +97,19 @@ const SnapScrollingDataTable = forwardRef(({
                       : column.header as ReactElement
                 }
               </SnapAlignBox>)
-            }</Box>
+            }</Grid>
         </Box>
-        <Box
-            style={ { position: 'relative' }}
-            fill={ isNotPhone }
-            overflow={ { vertical: 'auto' } }
+        <DataTable
             ref={ ref as any }
-            onScroll={ onScroll }>
-          <DataTable
-              ref={ undefined as any }
-              fill
-              pad='none'
-              style={ {
-                maxWidth: tableWidth,
-                marginLeft: 'auto',
-                marginRight: 'auto'
-              } }
-              columns={ dataTableColumns }
-              { ...props } />
-        </Box>
+            fill={ isNotPhone }
+            pad='none'
+            style={ {
+              minWidth: tableWidth,
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            } }
+            columns={ dataTableColumns }
+            { ...props } />
         { children }
       </SnapScrollingGrid>
     : <></>);

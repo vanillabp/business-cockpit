@@ -5,9 +5,9 @@ import i18next from 'i18next';
 import { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
 import { useGuiSse } from "../../client/guiClient";
-import { useWorkflowlistApi } from "../../utils/apis";
 import { navigateToWorkflow, openTask } from "../../utils/navigate";
 import { useTranslation } from "react-i18next";
+import { useStandardWorkflowlistApi } from "../../utils/standardApis";
 
 i18n.addResources('en', 'workflowlist', {
       "title.long": 'Workflows',
@@ -42,7 +42,7 @@ const RouteBasedWorkflowPage = () => {
               showLoadingIndicator={ showLoadingIndicator }
               toast={ toast }
               t={ t }
-              useWorkflowlistApi={ useWorkflowlistApi }
+              useWorkflowlistApi={ useStandardWorkflowlistApi }
               openTask={
                 (userTask) =>
                     openTask(userTask, toast, tApp) } />)
@@ -63,7 +63,7 @@ const Main = () => {
     <Routes>
       <Route index element={<ListOfWorkflows
                                 showLoadingIndicator={ showLoadingIndicator }
-                                useWorkflowlistApi={ useWorkflowlistApi }
+                                useWorkflowlistApi={ useStandardWorkflowlistApi }
                                 useGuiSse={ useGuiSse }
                                 currentLanguage={ i18next.language }
                                 t={ t }

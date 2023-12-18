@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { OfficialWorkflowlistApi, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
+import { Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
 import {
   BcUserTask,
@@ -27,12 +27,13 @@ import {
   SearchableAndSortableUpdatingList,
   TypeOfItem,
   useFederationModules,
+  WorkflowlistApi,
   WorkflowlistApiHook
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
 
 const loadWorkflows = async (
-  workflowlistApi: OfficialWorkflowlistApi,
+  workflowlistApi: WorkflowlistApi,
   setNumberOfWorkflows: (number: number) => void,
   pageSize: number,
   pageNumber: number,
@@ -40,7 +41,7 @@ const loadWorkflows = async (
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
   const result = await workflowlistApi
-        .getWorkflows({ pageNumber, pageSize, initialTimestamp });
+        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
 
@@ -51,7 +52,7 @@ const loadWorkflows = async (
 };
 
 const reloadWorkflows = async (
-  workflowlistApi: OfficialWorkflowlistApi,
+  workflowlistApi: WorkflowlistApi,
   setNumberOfWorkflows: (number: number) => void,
   existingModuleDefinitions: Workflow[] | undefined,
   setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
@@ -63,13 +64,11 @@ const reloadWorkflows = async (
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
 
-  const result = await workflowlistApi.getWorkflowsUpdate({
-      workflowsUpdate: {
-          size: numberOfItems,
-          knownWorkflowIds: knownItemsIds,
-          initialTimestamp
-        }
-    })
+  const result = await workflowlistApi.getWorkflowsUpdate(
+      new Date().getTime().toString(),
+      numberOfItems,
+      knownItemsIds,
+      initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
 
@@ -141,7 +140,7 @@ const ListOfWorkflows = ({
   useEffect(() => {
       const loadMetaInformation = async () => {
         const result = await workflowlistApi
-            .getWorkflows({ pageNumber: 0, pageSize: 100 });
+            .getWorkflows(new Date().getTime().toString(), 0, 100);
         setNumberOfWorkflows(result.page.totalElements);
         const moduleDefinitions = result
             .workflows
@@ -158,7 +157,10 @@ const ListOfWorkflows = ({
         showLoadingIndicator(true);
         loadMetaInformation();
       }
-    }, [ workflows, workflowlistApi, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator ]);
+    },
+    // workflowlistApi is not part of dependency because it changes one time but this is irrelevant to the
+    // purpose of preloading modules used by workflows
+    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator ]);
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
@@ -274,11 +276,10 @@ const ListOfWorkflows = ({
           limitListAccordingToCurrentUsersPermissions
         ) => {
           return (await workflowlistApi
-              .getUserTasksOfWorkflow({
-                  workflowId: workflow.id,
+              .getUserTasksOfWorkflow(
+                  workflow.id,
                   activeOnly,
-                  llatcup: limitListAccordingToCurrentUsersPermissions,
-              }))
+                  limitListAccordingToCurrentUsersPermissions))
               .map(userTask => ({
                 ...userTask,
                 open: () => openTask(userTask),

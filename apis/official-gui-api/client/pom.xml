@@ -55,7 +55,6 @@
             </goals>
             <configuration>
               <inputSpec>${project.basedir}/../openapi/v1.yaml</inputSpec>
-              <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
               <output>${project.basedir}/src</output>
               <generatorName>typescript-fetch</generatorName>
               <configOptions>

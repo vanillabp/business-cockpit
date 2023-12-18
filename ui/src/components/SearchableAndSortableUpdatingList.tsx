@@ -1,7 +1,7 @@
 import React, { MutableRefObject, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from './SnapScrollingDataTable.js';
-import { ListItemStatus, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
+import { keepOldItemsInArray, ListItemStatus, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
 
 const itemsBatchSize = 30;
 
@@ -31,6 +31,8 @@ export interface ListItems<T extends ListItemData> {
 type RetrieveItemsFunction = <T extends ListItemData>(pageNumber: number, pageSize: number, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
 
 type ReloadItemsFunction = <T extends ListItemData>(numberOfItems: number, knownItemsIds: Array<string>, initialTimestamp: Date | undefined) => Promise<ListItems<T>>;
+
+type RefreshNecessaryFunction = () => void;
 
 export type ReloadCallbackFunction = (updatedItemsIds: Array<string>) => Promise<void>;
 
@@ -82,6 +84,7 @@ const reloadData = async <T extends ListItemData>(
   items: Array<ListItem<T>> | undefined,
   updatedItemsIds: Array<string>,
   initialTimestamp: MutableRefObject<Date | undefined>,
+  refreshNecessaryCallback?: RefreshNecessaryFunction,
 ) => {
 
   const prefill = 2; // estimate that not more than 60 items will be created at once
@@ -91,49 +94,52 @@ const reloadData = async <T extends ListItemData>(
 
   const result = await reloadItems(
       size,
-      items!
+      items!  // only request items updated or unknown
           .filter(item => !updatedItemsIds.includes(item.id))
           .map(item => item.id),
       initialTimestamp.current);
   
-  const itemsById = new Map(items!.map(item => [ item.id, item ]));
-  const mergedItems = result
+  const mappedResult = result
       .items
-      .map((item, index) => {
-        const oldItem = itemsById.get(item.id)!;
-        const itemNotInUpdateResponse = item.version === 0;
+      .map((item, index) => ({
+          id: item.id,
+          data: item,
+          number: 1 + index,
+          selected: false,
+          status: item.version === 0 // item in update response,
+              ? undefined
+              : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
+              ? ListItemStatus.ENDED
+              : item.createdAt.getTime() > initialTimestamp.current!.getTime()
+              ? ListItemStatus.NEW
+              : item.updatedAt.getTime() > initialTimestamp.current!.getTime()
+              ? ListItemStatus.UPDATED
+              : ListItemStatus.INITIAL,
+          read: item.read,
+        }) as ListItem<T>);
+  let anyUpdate = false;
+  const mergedItems = keepOldItemsInArray(
+      mappedResult,
+      items!,
+      item => item.id,
+      (newItem, oldItem, index) => {
+          const itemInUpdateResponse = newItem?.status !== undefined;
+          const result = itemInUpdateResponse ? newItem! : oldItem!;
+          if (newItem === undefined) {
+            result.status = ListItemStatus.REMOVED_FROM_LIST;
+            anyUpdate = true;
+          } else if (itemInUpdateResponse) {
+            anyUpdate = true;
+          }
+          result.number = index + 1;
+          return result;
+        }
+      );
 
-        const status = itemNotInUpdateResponse
-            ? oldItem.status
-            : Boolean(item.endedAt) && item.endedAt!.getTime() > initialTimestamp.current!.getTime()
-            ? ListItemStatus.ENDED
-            : item.createdAt.getTime() > initialTimestamp.current!.getTime()
-            ? ListItemStatus.NEW
-            : item.updatedAt.getTime() > initialTimestamp.current!.getTime()
-            ? ListItemStatus.UPDATED
-            : ListItemStatus.INITIAL;
-
-        const newItem = (itemNotInUpdateResponse
-            ? {
-                id: item.id,
-                data: oldItem?.data,
-                number: 1 + index,
-                selected: oldItem?.selected,
-                status: oldItem?.status,
-                read: oldItem?.read,
-              }
-            : {
-                id: item.id,
-                data: item,
-                number: 1 + index,
-                selected: oldItem?.selected,
-                status,
-                read: item.read,
-              }
-            ) as ListItem<T>;
-        return newItem;
-      });
    setItems(mergedItems);
+   if (anyUpdate && refreshNecessaryCallback) {
+     refreshNecessaryCallback();
+   }
    
 };
 
@@ -143,6 +149,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   refreshItemRef,
   retrieveItems,
   reloadItems,
+  refreshNecessaryCallback,
   columns,
   showLoadingIndicator,
   additionalHeader,
@@ -152,6 +159,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   refreshItemRef?: MutableRefObject<RefreshItemCallbackFunction | undefined>,
   retrieveItems: RetrieveItemsFunction,
   reloadItems: ReloadItemsFunction,
+  refreshNecessaryCallback?: RefreshNecessaryFunction,
   columns: ColumnConfig<any>[],
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   additionalHeader?: ReactNode | undefined;
@@ -181,7 +189,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
           setItems,
           items,
           updatedItemsIds,
-          initialTimestamp);
+          initialTimestamp,
+          refreshNecessaryCallback);
       if (initialTimestamp.current) {
         return;
       }
@@ -213,13 +222,15 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
                     ? { color: 'accent-1', opacity: 0.15 }
                     : item.status === ListItemStatus.ENDED
                     ? { color: 'light-2', opacity: 0.5 }
+                    : item.status === ListItemStatus.REMOVED_FROM_LIST
+                    ? { color: 'light-2', opacity: 0.5 }
                     : undefined
               }
           };
       }
       return props;
     }, {});
-   
+
   return (<Box
               fill>
             <SnapScrollingDataTable
