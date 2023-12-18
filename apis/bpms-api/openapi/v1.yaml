@@ -420,7 +420,6 @@ components:
       - id
       - userTaskId
       - timestamp
-      - title
       properties:
         id:
           type: string
@@ -551,7 +550,6 @@ components:
         - id
         - workflowId
         - timestamp
-        - title
       properties:
         id:
           type: string
