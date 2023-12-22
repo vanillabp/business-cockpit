@@ -15,7 +15,9 @@ public interface UserTaskDetails {
     Map<String, String> getWorkflowTitle();
 
     Map<String, String> getTitle();
-    
+
+    String getTaskDefinition();
+
     Map<String, String> getTaskDefinitionTitle();
     
     String getAssignee();
