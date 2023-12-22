@@ -1,5 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration,\
-  io.vanillabp.cockpit.commons.mongo.BusinessCockpitMongoDbAutoConfiguration,\
-  io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContextConfiguration,\
-  io.vanillabp.cockpit.commons.security.usercontext.UserContextConfiguration
+  io.vanillabp.cockpit.commons.mongo.BusinessCockpitMongoDbAutoConfiguration
