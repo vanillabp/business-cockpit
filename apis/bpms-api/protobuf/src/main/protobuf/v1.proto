@@ -5,7 +5,7 @@ import "google/protobuf/timestamp.proto";
 option java_multiple_files = true;
 option java_package = "io.vanillabp.cockpit.bpms.api.protobuf.v1";
 
-message UserTaskCreatedOrUpdated{
+message UserTaskCreatedOrUpdatedEvent {
   string id = 1;
   string user_task_id = 2;
   google.protobuf.Timestamp timestamp = 3;
@@ -35,10 +35,10 @@ message UserTaskCreatedOrUpdated{
   optional google.protobuf.Timestamp due_date = 27;
   optional google.protobuf.Timestamp follow_up_date = 28;
   map<string, string> details = 29;
-  optional string full_text_search = 30;
+  optional string details_fulltext_search = 30;
 }
 
-message UserTaskCompleted {
+message UserTaskCompletedEvent {
   string id = 1;
   string user_task_id = 2;
   google.protobuf.Timestamp timestamp = 3;
