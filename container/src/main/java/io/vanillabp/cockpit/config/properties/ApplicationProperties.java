@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.config.properties;
 
+import io.vanillabp.cockpit.commons.kafka.KafkaTopicProperties;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
@@ -22,6 +23,8 @@ public class ApplicationProperties {
     private String applicationUri;
     
     private JwtProperties jwt = new JwtProperties();
+
+    private KafkaTopicProperties kafkaTopics = new KafkaTopicProperties();
     
     public int getGuiSseUpdateInterval() {
         return guiSseUpdateInterval;
@@ -70,5 +73,11 @@ public class ApplicationProperties {
     public void setJwt(JwtProperties jwt) {
         this.jwt = jwt;
     }
-    
+
+    public KafkaTopicProperties getKafkaTopics() {
+        return kafkaTopics;
+    }
+    public void setKafkaTopics(KafkaTopicProperties kafkaTopicProperties){
+        kafkaTopics = kafkaTopicProperties;
+    }
 }
