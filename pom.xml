@@ -38,7 +38,6 @@
           <configuration>
             <classifier>runnable</classifier>
             <executable>true</executable>
-            <fork>true</fork>
           </configuration>
         </plugin>
         <plugin>
@@ -147,6 +146,12 @@
         <version>2022.0.2</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.kafka</groupId>
+        <artifactId>spring-kafka-test</artifactId>
+        <version>3.0.4</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mapstruct</groupId>
