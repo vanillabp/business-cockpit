@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -48,10 +49,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import javax.annotation.PostConstruct;
 
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
-@AutoConfigureAfter(WorkflowModulePropertiesConfiguration.class)
+@AutoConfigureAfter(value = {WorkflowModulePropertiesConfiguration.class, CockpitCommonAdapterKafkaConfiguration.class})
 @EnableConfigurationProperties({ CockpitProperties.class, UserTasksWorkflowProperties.class })
 public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase {
 
@@ -225,8 +227,6 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                 new WorkflowRestMapperImpl()
         );
     }
-
-
 
     private UiUriType findAndValidateUiUriTypeProperty(
             final String prefix,
