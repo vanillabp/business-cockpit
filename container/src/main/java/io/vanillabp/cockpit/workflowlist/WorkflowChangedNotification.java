@@ -8,6 +8,8 @@ import org.bson.Document;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.messaging.Message;
 
+import java.util.Collection;
+
 public class WorkflowChangedNotification extends NotificationEvent {
 
     private static final long serialVersionUID = 1L;
@@ -16,12 +18,13 @@ public class WorkflowChangedNotification extends NotificationEvent {
 
     public WorkflowChangedNotification(
             final Type type,
-            final String workflowId) {
+            final String workflowId,
+            final Collection<String> targetRoles) {
         
         super(
                 "Workflow",
                 type,
-                null);
+                targetRoles);
         
         this.workflowId = workflowId;
         
@@ -32,7 +35,7 @@ public class WorkflowChangedNotification extends NotificationEvent {
     
         final OperationType type;
         // Since CosmosDB for MongoDB does not support OperationType yet it is
-        // necessary to derived the OperationType from the document's content.
+        // necessary to derive the OperationType from the document's content.
         // see https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
         if (message.getRaw().getOperationTypeString() == null) {
             if (message.getBody().getCreatedAt().equals(message.getBody().getUpdatedAt())) {
@@ -50,7 +53,8 @@ public class WorkflowChangedNotification extends NotificationEvent {
         return new WorkflowChangedNotification(
                 Type.valueOf(type.name()),
                 message.getRaw().getDocumentKey().get(
-                        message.getRaw().getDocumentKey().getFirstKey()).asString().getValue());
+                        message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
+                null);
         
     }
     
@@ -77,7 +81,8 @@ public class WorkflowChangedNotification extends NotificationEvent {
         return new WorkflowChangedNotification(
                 Type.valueOf(type.name()),
                 event.getRaw().getDocumentKey().get(
-                        event.getRaw().getDocumentKey().getFirstKey()).asString().getValue());
+                        event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
+                null);
         
     }
 

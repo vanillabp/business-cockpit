@@ -1,13 +1,13 @@
-import { Sex, User as UserDto, User } from '../client/gui';
+import { Sex, User as UserDto } from '@vanillabp/bc-official-gui-client';
 import { User as UserMale, UserFemale } from 'grommet-icons';
 import { Anchor, Avatar, Box, Text } from 'grommet';
 import { BorderType } from 'grommet/utils';
 import { useRef, useState } from 'react';
 import { useOnClickOutside, useResponsiveScreen } from '@vanillabp/bc-shared';
-import { useAppContext } from '../AppContext';
 
 type UserAvatarProps = {
   user: UserDto;
+  isUserLoggedIn?: boolean;
   border?: BorderType;
   size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
 };
@@ -18,11 +18,10 @@ const hashCode = (value: string) => value
 
 const UserAvatar = ({
   user,
+  isUserLoggedIn = false,
   border,
   size = 'medium',
 }: UserAvatarProps) => {
-
-  const { state } = useAppContext();
 
   const backgroundColor = user.id
       ? `hsl(${ (hashCode(user.id) * 207) % 360 }, 70%, 45%)`
@@ -54,7 +53,7 @@ const UserAvatar = ({
     symbolSize = `${ intSize * 0.65 }px`;
   }
   
-  const [ showDetails, setShowDetails ] = useState<User | undefined>(undefined);
+  const [ showDetails, setShowDetails ] = useState<UserDto | undefined>(undefined);
   const ref = useRef(null);
   useOnClickOutside(ref, event => {
       if (!showDetails) return;
@@ -63,7 +62,7 @@ const UserAvatar = ({
       setShowDetails(undefined);
     });
   const loadAndShowDetails = async () => {
-    if (state.currentUser!.id === user.id) return;
+    if (isUserLoggedIn) return;
     // const details = await loginApi.getUserDetails({ memberId: user.memberId! });
     setShowDetails(user);
   };
@@ -111,7 +110,7 @@ const UserAvatar = ({
               : undefined
         }
         <Avatar
-            style={ { zIndex: (state.currentUser!.id !== user.id) && showDetails ? 20 : undefined } }
+            style={ { zIndex: (!isUserLoggedIn) && showDetails ? 20 : undefined } }
             background={ backgroundColor }
             size={ size }
             border={ border }

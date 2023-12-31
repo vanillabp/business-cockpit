@@ -5,20 +5,21 @@ import {
   NavigateToWorkflowFunction,
   NoUserTaskGiven,
   OpenTaskFunction,
+  TasklistApi,
   TasklistApiHook,
   useFederationModule
 } from '../index.js';
-import { OfficialTasklistApi, UserTask } from "@vanillabp/bc-official-gui-client";
+import { UserTask } from "@vanillabp/bc-official-gui-client";
 import { TranslationFunction } from "../types/translate";
 
 const loadUserTask = (
-    tasklistApi: OfficialTasklistApi,
+    tasklistApi: TasklistApi,
     userTaskId: string,
     setUserTask: (userTask: BcUserTask | null) => void,
     navigateToWorkflow: (userTask: UserTask) => void,
     openTask: (userTask: UserTask) => void,
 ) => {
-  tasklistApi.getUserTask({ userTaskId, markAsRead: true })
+  tasklistApi.getUserTask(userTaskId,true)
       .then((value: UserTask) => {
         const bcUserTask: BcUserTask = {
           ...value,
@@ -39,7 +40,9 @@ interface UserTaskPageProps {
   openTask: OpenTaskFunction;
   navigateToWorkflow: NavigateToWorkflowFunction;
   useTasklistApi: TasklistApiHook;
-  t: TranslationFunction,
+  t: TranslationFunction;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
   children?: (userTask: BcUserTask, Form: () => ReactElement) => JSX.Element;
 };
 
@@ -52,6 +55,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     useTasklistApi,
     t,
     children,
+    header,
+    footer
 }: UserTaskPageProps) => {
 
   const tasklistApi = useTasklistApi();
@@ -125,7 +130,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
 
   const ParameterizedForm: () => ReactElement = formRef.current!;
   return children === undefined
-      ? <UserTaskAppLayout>
+      ? <UserTaskAppLayout header={header} footer={footer}>
           <ParameterizedForm />
         </UserTaskAppLayout>
       : children(userTask, ParameterizedForm);

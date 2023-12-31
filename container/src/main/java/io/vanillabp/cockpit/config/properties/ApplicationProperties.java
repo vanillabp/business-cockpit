@@ -2,14 +2,15 @@ package io.vanillabp.cockpit.config.properties;
 
 import io.vanillabp.cockpit.commons.kafka.KafkaTopicProperties;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
 
 @ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = false)
 public class ApplicationProperties {
 
-    private int guiSseUpdateInterval = 1000;
-    
+    private GuiSseProperties guiSse = new GuiSseProperties();
+
     @NonNull
     private String titleShort;
     
@@ -25,13 +26,13 @@ public class ApplicationProperties {
     private JwtProperties jwt = new JwtProperties();
 
     private KafkaTopicProperties kafkaTopics = new KafkaTopicProperties();
-    
-    public int getGuiSseUpdateInterval() {
-        return guiSseUpdateInterval;
+
+    public GuiSseProperties getGuiSse() {
+        return guiSse;
     }
-    
-    public void setGuiSseUpdateInterval(int guiSseUpdateInterval) {
-        this.guiSseUpdateInterval = guiSseUpdateInterval;
+
+    public void setGuiSse(GuiSseProperties guiSse) {
+        this.guiSse = guiSse;
     }
 
     public String getTitleShort() {

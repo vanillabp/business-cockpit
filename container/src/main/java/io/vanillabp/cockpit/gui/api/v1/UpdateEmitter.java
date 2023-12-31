@@ -1,95 +1,103 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
+import org.springframework.integration.channel.DirectChannel;
+
 import java.util.LinkedList;
 import java.util.List;
 
-import org.springframework.messaging.SubscribableChannel;
-
 public class UpdateEmitter {
-    
-    private int updateInterval = 1000;
-    
-    private SubscribableChannel channel;
-    
+
+    private final DirectChannel channel;
+
+    private int updateInterval;
+
+    private int maxItemsPerUpdate;
+
     private List<String> roles;
-    
+
     private long lastCommit;
     
     private List<GuiEvent> events;
-    
-    private List<GuiEvent> toBeSent = new LinkedList<>();
-    
-    private UpdateEmitter() { }
-    
+
+    private UpdateEmitter(
+            final DirectChannel channel) {
+
+        this.channel = channel;
+
+    }
+
     public static UpdateEmitter withChannel(
-            final SubscribableChannel channel) {
-        
-        final var result = new UpdateEmitter();
-        result.channel = channel;
+            final DirectChannel channel) {
+
+        final var result = new UpdateEmitter(channel);
         result.events = new LinkedList<>();
         return result;
-        
+
     }
-    
-    public SubscribableChannel getChannel() {
+
+    public UpdateEmitter maxItemsPerUpdate(
+            final int maxItemsPerUpdate) {
+        this.maxItemsPerUpdate = maxItemsPerUpdate;
+        return this;
+    }
+
+    public DirectChannel getChannel() {
         return channel;
     }
     
     public List<String> getRoles() {
         return roles;
     }
-    
+
+    public UpdateEmitter roles(
+            final List<String> roles) {
+        this.roles = roles;
+        return this;
+    }
+
     public UpdateEmitter updateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
         return this;
     }
-    
-    public boolean sendEvent(
+
+    public void collectEvent(
             final GuiEvent event) {
 
-        synchronized (this) { // use this as a first mutex
-            
-            if (event != null) {
-                events.add(event);
-            }
+        if (event == null) {
+            return;
+        }
+
+        synchronized (channel) {
+            events.add(event);
+        }
+
+    }
+
+    public List<GuiEvent> consumeEvents() {
+
+        synchronized (channel) {
             if (events.isEmpty()) {
-                return false;
+                return List.of();
             }
-            
+
             final var now = System.currentTimeMillis();
             final var elapsed = now - lastCommit;
             if (elapsed > updateInterval) {
                 lastCommit = now;
-                synchronized (channel) { // use channel as a second mutex
-                    if (events.isEmpty()) {
-                        return false;
-                    }
-                    if (toBeSent.isEmpty()) {
-                        toBeSent = events;
-                    } else {
-                        toBeSent.addAll(events);
-                    }
+                final List<GuiEvent> result;
+                if (events.size() > maxItemsPerUpdate) {
+                    result = events.subList(0, maxItemsPerUpdate);
+                    events = events.subList(maxItemsPerUpdate, events.size());
+                } else {
+                    result = events;
+                    events = new LinkedList<>();
                 }
-                events = new LinkedList<>();
-                return true;
+                return result;
             }
-            
-            return false;
-            
+
+            return List.of();
         }
-        
+
     }
 
-    public List<GuiEvent> consumeEvents() {
-        
-        synchronized (channel) { // use channel as a second mutex
-            final var result = toBeSent;
-            if (!toBeSent.isEmpty()) {
-                toBeSent = new LinkedList<>();
-            }
-            return result;
-        }
-        
-    }
-    
 };

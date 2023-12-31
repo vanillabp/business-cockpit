@@ -1,6 +1,6 @@
 import { ListItem, ListItemData, Module, ModuleDefinition } from '../index.js';
 import { Column, DefaultListCell, DefaultListCellAwareProps, WarningListCell } from '@vanillabp/bc-shared';
-import { FC } from "react";
+import { FC, memo } from "react";
 import { TranslationFunction } from "../types/translate";
 
 export enum TypeOfItem {
@@ -49,19 +49,33 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
       return <WarningListCell
           message={ t('typeofitem_unsupported') } />;
     }
-    Cell = module.UserTaskListCell!;
+    Cell = memo(
+        module.UserTaskListCell!,
+        (prevProps, nextProps) => {
+          if (prevProps.column !== nextProps.column) return false;
+          if (prevProps.showUnreadAsBold !== nextProps.showUnreadAsBold) return false;
+          if (prevProps.item.id !== nextProps.item.id) return false;
+          return (prevProps.item?.data.version === nextProps.item?.data.version);
+        });
   } else if (typeOfItem === TypeOfItem.WorkflowList) {
     if (!Boolean(module.WorkflowListCell)) {
       console.warn(`Workflow-module ${module.workflowModule} has no UserTaskListCell defined!`);
       return <WarningListCell
           message={ t('typeofitem_unsupported') } />;
     }
-    Cell = module.WorkflowListCell!;
+    Cell = memo(
+        module.WorkflowListCell!,
+        (prevProps, nextProps) => {
+          if (prevProps.column !== nextProps.column) return false;
+          if (prevProps.showUnreadAsBold !== nextProps.showUnreadAsBold) return false;
+          if (prevProps.item.id !== nextProps.item.id) return false;
+          return (prevProps.item?.data.version === nextProps.item?.data.version);
+        });
   } else {
     return <WarningListCell
         message={ t('typeofitem_unsupported') } />;
   }
-  
+
   return <Cell
             item={ item }
             column={ column }

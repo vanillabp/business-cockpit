@@ -1,7 +1,16 @@
-import { ColumnsOfUserTaskFunction } from '@vanillabp/bc-shared';
-import { userTaskListColumns as TestForm1_userTaskListColumns, taskDefinition as TestForm1_taskDefinition } from './TestForm1';
-import { userTaskListColumns as TestForm2_userTaskListColumns, taskDefinition as TestForm2_taskDefinition } from './TestForm2';
-import { userTaskListColumns as TestForm3_userTaskListColumns, taskDefinition as TestForm3_taskDefinition } from './TestForm3';
+import { Column, ColumnsOfUserTaskFunction } from '@vanillabp/bc-shared';
+import {
+  taskDefinition as TestForm1_taskDefinition,
+  userTaskListColumns as TestForm1_userTaskListColumns
+} from './TestForm1';
+import {
+  taskDefinition as TestForm2_taskDefinition,
+  userTaskListColumns as TestForm2_userTaskListColumns
+} from './TestForm2';
+import {
+  taskDefinition as TestForm3_taskDefinition,
+  userTaskListColumns as TestForm3_userTaskListColumns
+} from './TestForm3';
 
 const bpmnProcessId = 'Test';
 
@@ -16,19 +25,18 @@ const userTaskListColumns: ColumnsOfUserTaskFunction = userTask => {
   return undefined;
 }
 
-const workflowListColumns = [
+const workflowListColumns: Array<Column> = [
   {
-    id: 'ID1',
     title: {
       'de': 'ID 1',
       'en': 'id 1'
     },
     path: 'details.test1.testId1',
-    showAsColumn: true,
+    width: '10rem',
+    priority: 1,
+    show: true,
     sortable: true,
     filterable: true,
-    width: '10rem',
-    priority: 1
   }
 ];
 

@@ -1,169 +1,166 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
-import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
-import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
-import io.vanillabp.cockpit.gui.api.v1.Page;
-import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
-import io.vanillabp.cockpit.gui.api.v1.UserTasks;
-import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdate;
-import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.model.UserTask;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
 
+/**
+ * A tasklist API controller which gives access to the tasks
+ * <ul>
+ *     <li>the user has claimed</li>
+ *     <li>the user is assigned to</li>
+ *     <li>the user is part of a group which is assigned to</li>
+ *     <li>which have no user or group claimed or assigned (dangling tasks)</li>
+ * </ul>
+ */
 @RestController("tasklistGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
-public class GuiApiController implements OfficialTasklistApi {
-
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
+public class GuiApiController extends AbstractUserTaskListGuiApiController {
 
 	@Autowired
 	private UserTaskService userTaskService;
 
-	@Autowired
-	private ReactiveUserContext userContext;
-	
-	@Autowired
-	private GuiApiMapper mapper;
-	
-    @EventListener(classes = UserTaskChangedNotification.class)
-    public void updateClients(
-            final UserTaskChangedNotification notification) {
-        
-        applicationEventPublisher.publishEvent(
-                new GuiEvent(
-                        notification.getSource(),
-                        notification.getTargetRoles(),
-                        new UserTaskEvent()
-                                .name("UserTask")
-                                .id(notification.getUserTaskId())
-                                .type(notification.getType().toString())));
-        
-    }
+	@Override
+	protected Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final int pageNumber,
+			final int pageSize,
+			final OffsetDateTime initialTimestamp,
+			final String sort,
+			final boolean sortAscending) {
 
-    @Override
-    public Mono<ResponseEntity<UserTasks>> getUserTasks(
-            final Integer pageNumber,
-            final Integer pageSize,
-            final OffsetDateTime initialTimestamp,
-            final ServerWebExchange exchange) {
-		
-        final var timestamp = initialTimestamp != null
-                ? initialTimestamp
-                : OffsetDateTime.now();
+		return userTaskService.getUserTasks(
+				true,
+				false,
+				List.of(currentUser.getId()),
+				List.of(currentUser.getId()),
+				currentUser.getAuthorities(),
+				pageNumber,
+				pageSize,
+				initialTimestamp,
+				sort,
+				sortAscending);
 
-		final var tasksAndUser = Mono.zip(
-				userTaskService.getUserTasks(
-						pageNumber,
-						pageSize,
-						timestamp),
-				userContext.getUserLoggedInAsMono());
-
-		return tasksAndUser.map(tnu -> ResponseEntity.ok(
-		        new UserTasks()
-        				.page(new Page()
-        						.number(tnu.getT1().getNumber())
-        						.size(tnu.getT1().getSize())
-        						.totalElements(tnu.getT1().getTotalElements())
-        						.totalPages(tnu.getT1().getTotalPages()))
-        				.userTasks(mapper.toApi(tnu.getT1().getContent(), tnu.getT2()))
-        				.serverTimestamp(timestamp)));
-		
 	}
-	
-    @Override
-    public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
-            final Mono<UserTasksUpdate> userTasksUpdate,
-            final ServerWebExchange exchange) {
-	    
-        return userTasksUpdate
-                .zipWhen(update -> Mono.just(update.getInitialTimestamp() != null
-                        ? update.getInitialTimestamp()
-                        : OffsetDateTime.now()))
-                .flatMap(entry -> Mono.zip(
-                        userTaskService.getUserTasksUpdated(
-                                entry.getT1().getSize(),
-                                entry.getT1().getKnownUserTasksIds(),
-                                entry.getT2()),
-                        Mono.just(entry.getT2()),
-						userContext.getUserLoggedInAsMono()))
-                .map(entry -> ResponseEntity.ok(
-                        new UserTasks()
-                                .page(new Page()
-                                        .number(entry.getT1().getNumber())
-                                        .size(entry.getT1().getSize())
-                                        .totalElements(entry.getT1().getTotalElements())
-                                        .totalPages(entry.getT1().getTotalPages()))
-                                .userTasks(mapper.toApi(entry.getT1().getContent(), entry.getT3()))
-                                .serverTimestamp(entry.getT2())))
-                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
-            
-	}
-	
-    @Override
-    public Mono<ResponseEntity<UserTask>> getUserTask(
-            final String userTaskId,
-			final Boolean markAsRead,
-            final ServerWebExchange exchange) {
-
-		final var taskAndUser = Mono.zip(
-				userTaskService.getUserTask(userTaskId),
-				userContext.getUserLoggedInAsMono());
-
-        return taskAndUser
-				.flatMap(tnu -> {
-					final var readAt = tnu.getT1().getReadAt(tnu.getT2());
-					final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> userTask;
-					if ((markAsRead == null)        // not required to
-							|| !markAsRead          // mark as read or
-							|| (readAt != null)) {  // already read by current user
-						userTask = Mono.just(tnu.getT1());
-					} else {                        // to be marked as read by current user
-						userTask = userTaskService
-								.markAsRead(tnu.getT1().getId(), tnu.getT2());
-					}
-					return Mono.zip(userTask, Mono.just(tnu.getT2()));
-				})
-				.map(tnu -> mapper.toApi(tnu.getT1(), tnu.getT2())
-				)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
-
-    }
 
 	@Override
-	public Mono<ResponseEntity<Void>> usertaskUserTaskIdMarkAsReadPatch(
+	public Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasksUpdated(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final int size,
+			final Collection<String> knownUserTasksIds,
+			final OffsetDateTime initialTimestamp,
+			final String sort,
+			final boolean sortAscending) {
+
+		return userTaskService.getUserTasksUpdated(
+				true,
+				false,
+				List.of(currentUser.getId()),
+				List.of(currentUser.getId()),
+				currentUser.getAuthorities(),
+				size,
+				knownUserTasksIds,
+				initialTimestamp,
+				sort,
+				sortAscending);
+
+	}
+
+	@Override
+	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId) {
+
+		return userTaskService.getUserTask(userTaskId);
+
+	}
+
+	@Override
+	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
-			final Boolean unread,
-			final ServerWebExchange exchange) {
+			final boolean unread) {
 
-		final var currentUser = userContext
-				.getUserLoggedInAsMono();
-
-		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
-		if ((unread != null) && unread) {
-			result = currentUser
-					.flatMap(userId -> userTaskService.markAsUnread(userTaskId, userId));
-		} else {
-			result = currentUser
-					.flatMap(userId -> userTaskService.markAsRead(userTaskId, userId));
-
+		if (unread) {
+			return userTaskService.markAsUnread(userTaskId, currentUser.getId());
 		}
+		return userTaskService.markAsRead(userTaskId, currentUser.getId());
 
-		return result
-                .map(userTask -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+	}
+
+	@Override
+	protected Flux<UserTask> markAsRead(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final List<String> userTaskIds,
+			final boolean unread) {
+
+		if (unread) {
+			return userTaskService.markAsUnread(userTaskIds, currentUser.getId());
+		}
+		return userTaskService.markAsRead(userTaskIds, currentUser.getId());
+
+	}
+
+	@Override
+	protected Mono<UserTask> claimTask(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId,
+			final boolean unclaim) {
+
+		if (unclaim) {
+			return userTaskService.unclaimTask(userTaskId, currentUser.getId());
+		}
+		return userTaskService.claimTask(userTaskId, currentUser.getId());
+
+	}
+
+	@Override
+	protected Flux<UserTask> claimTasks(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final List<String> userTaskIds,
+			final boolean unclaim) {
+
+		if (unclaim) {
+			return userTaskService.unclaimTask(userTaskIds, currentUser.getId());
+		}
+		return userTaskService.claimTask(userTaskIds, currentUser.getId());
+
+	}
+
+	@Override
+	protected Mono<UserTask> assignTask(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId,
+			final String userId,
+			final boolean unassign) {
+
+		if (unassign) {
+			return userTaskService.unassignTask(userTaskId, userId);
+		}
+		return userTaskService.assignTask(userTaskId, userId);
+
+	}
+
+	@Override
+	protected Flux<UserTask> assignTasks(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final List<String> userTaskIds,
+			final String userId,
+			final boolean unassign) {
+
+		if (unassign) {
+			return userTaskService.unassignTask(userTaskIds, userId);
+		}
+		return userTaskService.assignTask(userTaskIds, userId);
 
 	}
 

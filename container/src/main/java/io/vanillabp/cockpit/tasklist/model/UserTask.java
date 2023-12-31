@@ -1,16 +1,24 @@
 package io.vanillabp.cockpit.tasklist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetails;
+import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 @Document(collection = UserTask.COLLECTION_NAME)
 public class UserTask implements UpdateInformationAware {
+
+    public static record ReadBy(String userId, OffsetDateTime timestamp) {};
 
     public static final String COLLECTION_NAME = "usertask";
     
@@ -78,7 +86,87 @@ public class UserTask implements UpdateInformationAware {
 
     private String detailsFulltextSearch;
 
-    private Map<String, OffsetDateTime> readBy;
+    private List<ReadBy> readBy;
+
+    public Collection<String> getTargetRoles() {
+
+        final var result = new HashSet<String>();
+        if (getCandidateGroups() != null) {
+            result.addAll(getCandidateGroups());
+        }
+        if (getCandidateUsers() != null) {
+            getCandidateUsers()
+                    .forEach(user -> result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + user));
+        }
+        if (getAssignee() != null) {
+            result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + getAssignee());
+        }
+        if (result.isEmpty()) {
+            return null; // means visible to everyone
+        }
+        return result;
+
+    }
+
+    public boolean hasOneOfTargetRoles(
+            final String... roles) {
+
+        if ((roles == null)
+            || (roles.length == 0)) {
+            return true;
+        }
+
+        final var targetRoles = getTargetRoles();
+        return Arrays
+                .stream(roles)
+                .anyMatch(targetRoles::contains);
+
+    }
+
+    public boolean hasOneOfTargetRoles(
+            final Collection<String> roles) {
+
+        if ((roles == null)
+                || roles.isEmpty()) {
+            return true;
+        }
+
+        final var targetRoles = getTargetRoles();
+        return roles
+                .stream()
+                .anyMatch(targetRoles::contains);
+
+    }
+
+    public void addCandidateUser(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if (getCandidateUsers() == null) {
+            setCandidateUsers(List.of(userId));
+        } else {
+            this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
+            this.getCandidateUsers().add(userId);
+        }
+
+    }
+
+    public void removeCandidateUser(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if ((getCandidateUsers() == null)
+            || getCandidateUsers().isEmpty()) {
+            return;
+        }
+
+        this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
+
+    }
 
     public OffsetDateTime getReadAt(final String userId) {
 
@@ -88,17 +176,25 @@ public class UserTask implements UpdateInformationAware {
         if (this.getReadBy() == null) {
             return null;
         }
-        return this.getReadBy().get(userId);
+        return this
+                .getReadBy()
+                .stream()
+                .filter(readBy -> readBy.userId().equals(userId))
+                .findFirst()
+                .map(ReadBy::timestamp)
+                .orElse(null);
 
     }
 
     public void setReadAt(
             final String userId) {
 
+        final var newReadBy = new ReadBy(userId, OffsetDateTime.now());
         if (this.getReadBy() == null) {
-            this.setReadBy(Map.of(userId, OffsetDateTime.now()));
+            this.setReadBy(List.of(newReadBy));
         } else {
-            this.getReadBy().put(userId, OffsetDateTime.now());
+            this.getReadBy().removeIf(readBy -> readBy.userId().equals(userId));
+            this.getReadBy().add(newReadBy);
         }
 
     }
@@ -109,8 +205,33 @@ public class UserTask implements UpdateInformationAware {
         if (this.getReadBy() == null) {
             return;
         }
-        this.getReadBy().remove(userId);
+        this.getReadBy().removeIf(readBy -> readBy.userId.equals(userId));
 
+    }
+
+    @AccessType(AccessType.Type.PROPERTY)
+    public boolean isDangling() {
+
+        if ((getCandidateUsers() != null)
+                && !getCandidateUsers().isEmpty()) {
+            return false;
+        }
+        if ((getCandidateGroups() != null)
+                && !getCandidateGroups().isEmpty()) {
+            return false;
+        }
+        if (StringUtils.hasText(getAssignee())) {
+            return false;
+        }
+        return true;
+
+    }
+
+    /**
+     * @see #isDangling()
+     */
+    public void setDangling(boolean dangling) {
+        // ignored since 'dangling' is a derived value
     }
 
     public String getId() {
@@ -362,11 +483,11 @@ public class UserTask implements UpdateInformationAware {
         this.subWorkflowId = subWorkflowId;
     }
 
-    public Map<String, OffsetDateTime> getReadBy() {
+    public List<ReadBy> getReadBy() {
         return readBy;
     }
 
-    public void setReadBy(Map<String, OffsetDateTime> readBy) {
+    public void setReadBy(List<ReadBy> readBy) {
         this.readBy = readBy;
     }
 

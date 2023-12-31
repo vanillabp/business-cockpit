@@ -10,11 +10,35 @@ security:
   - JWT: []
 
 paths:
+  /usertask/mark-as-read:
+    patch:
+      tags:
+        - officialTasklist
+      summary: mark tasks as read or unread
+      operationId: markTasksAsRead
+      parameters:
+        - in: query
+          name: unread
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskIds"
+      responses:
+        200:
+          description: Usertask changed successfully
+        404:
+          description: User task is unknown
   /usertask/{userTaskId}/mark-as-read:
     patch:
       tags:
         - officialTasklist
       summary: mark a task as read or unread
+      operationId: markTaskAsRead
       parameters:
         - in: path
           name: userTaskId
@@ -28,7 +52,107 @@ paths:
             type: boolean
       responses:
         200:
-          description: Status of user task changed
+          description: Usertask changed successfully
+        404:
+          description: User task is unknown
+  /usertask/assign:
+    patch:
+      tags:
+        - officialTasklist
+      summary: assign or unassign tasks to a user
+      operationId: assignTasks
+      parameters:
+        - in: query
+          name: unassign
+          required: false
+          schema:
+            type: boolean
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskIds"
+      responses:
+        200:
+          description: Usertask changed successfully
+        404:
+          description: User task is unknown
+  /usertask/{userTaskId}/assign:
+    patch:
+      tags:
+        - officialTasklist
+      summary: assign or unassign a task to a user
+      operationId: assignTask
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: unassign
+          required: false
+          schema:
+            type: boolean
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Usertask changed successfully
+        404:
+          description: User task is unknown
+  /usertask/claim:
+    patch:
+      tags:
+        - officialTasklist
+      summary: claim or unclaim tasks to the current user
+      operationId: claimTasks
+      parameters:
+        - in: query
+          name: unclaim
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskIds"
+      responses:
+        200:
+          description: Usertask changed successfully
+        404:
+          description: User task is unknown
+  /usertask/{userTaskId}/claim:
+    patch:
+      tags:
+        - officialTasklist
+      summary: claim or unclaim a task to the current user
+      operationId: claimTask
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: unclaim
+          required: false
+          schema:
+            type: boolean
+      responses:
+        200:
+          description: Usertask changed successfully
         404:
           description: User task is unknown
   /usertask/{userTaskId}:
@@ -79,6 +203,12 @@ paths:
           schema:
             type: string
             format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksRequest"
       responses:
         200:
           description: Users tasks
@@ -91,12 +221,23 @@ paths:
         - officialTasklist
       summary: Updated list of usertasks
       operationId: getUserTasksUpdate
+      parameters:
+        - in: query
+          name: size
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserTasksUpdate"
+              $ref: "#/components/schemas/UserTasksUpdateRequest"
       responses:
         200:
           description: Users tasks
@@ -104,6 +245,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
+  /user:
+    post:
+      tags:
+        - officialTasklist
+      summary: Find users
+      operationId: findUsers
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Users tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResult'
   /workflow/{workflowId}/usertasks:
     get:
       tags:
@@ -205,6 +368,7 @@ paths:
                   $ref: '#/components/schemas/Workflow'
           404:
             description: Unknown workflow
+
           
 components:
   schemas:
@@ -245,11 +409,25 @@ components:
           items:
             type:
               string
+    UserSearchResult:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
     UiUriType:
       type: string
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
+    UserTaskIds:
+      type: object
+      properties:
+        userTaskIds:
+          type: array
+          items:
+            type: string
     UserTask:
       type: object
       required:
@@ -514,6 +692,15 @@ components:
         size:
           type: integer
           format: int32
+    UserTasksRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
     UserTasks:
       type: object
       required:
@@ -530,22 +717,22 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UserTask'
-    UserTasksUpdate:
+    UserTasksUpdateRequest:
       type: object
       required:
         - size
         - knownUserTasksIds
       properties:
-        size:
-          type: integer
-          format: int32
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
         knownUserTasksIds:
           type: array
           items:
             type: string
-        initialTimestamp:
-          type: string
-          format: date-time
     Workflows:
       type: object
       required:
@@ -566,12 +753,12 @@ components:
       type: object
       required:
         - size
-        - knownWorkflowIds
+        - knownWorkflowsIds
       properties:
         size:
           type: integer
           format: int32
-        knownWorkflowIds:
+        knownWorkflowsIds:
           type: array
           items:
             type: string

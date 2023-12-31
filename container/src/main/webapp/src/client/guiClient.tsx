@@ -30,11 +30,12 @@ const getLoginGuiApi = (
 };
 
 const getTasklistGuiApi = (
-  dispatch: Dispatch<ToastAction>,
-  wakeupSseCallback?: WakeupSseCallback
+    dispatch: Dispatch<ToastAction>,
+    wakeupSseCallback?: WakeupSseCallback,
+    kind?: string,
 ): OfficialTasklistApi => {
   const config = new OfficialApiConfiguration({
-    basePath: '/gui/api/v1',
+    basePath: `/gui/api/v1${kind !== undefined ? `/${kind}` : ''}`,
     fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
   });
   return new OfficialTasklistApi(config);

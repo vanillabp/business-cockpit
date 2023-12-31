@@ -1,7 +1,7 @@
-import User from './User';
+import { User } from '@vanillabp/bc-ui';
 import { useAppContext } from '../../AppContext';
-import { Anchor, Box, Grid, Text } from 'grommet';
-import { Logout, Projects, Stakeholder, Task } from 'grommet-icons';
+import { Anchor, Grid, Text } from 'grommet';
+import { Logout, Projects, Task } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
@@ -39,20 +39,8 @@ const Menu = () => {
           !Boolean(state.currentUser) ? '' :
           <>
             <User
-                user={ state.currentUser! } />
-            {
-              state.currentUser!.roles!.length !== 0
-                  ? <Box
-                        align="center"
-                        gap='small'
-                        direction='row'>
-                      <Stakeholder />
-                      <Box>{
-                        state.currentUser!.roles!.map(role => t(role)).join(', ')
-                      }</Box>
-                    </Box>
-                  : <></>
-            }
+                user={ state.currentUser! }
+                isUserLoggedIn={ true } />
             <MenuItem
                 roles={ null }
                 onClick={() => {

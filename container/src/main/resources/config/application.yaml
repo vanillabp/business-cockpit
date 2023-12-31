@@ -5,8 +5,9 @@ logging:
 spring:
   webflux:
     static-path-pattern: "/**"
-  resources:
-    static-locations: "classpath:/static/"
+  web:
+    resources:
+      static-locations: "classpath:/static/"
 
 server:
   compression:

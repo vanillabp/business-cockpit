@@ -42,7 +42,7 @@
     "webpack-dev-server": "4.15.1"
   },
   "scripts": {
-    "start": "GENERATE_SOURCEMAP=false && cross-env BUILD_PATH=../../../target/classes/static craco start",
+    "start": "cross-env GENERATE_SOURCEMAP=false && cross-env BUILD_PATH=../../../target/classes/static craco start",
     "build": "cross-env BUILD_PATH=../../../target/classes/static craco build",
     "postbuild": "cross-env compress-cra -d ../../../target/classes/static",
     "test": "craco test",

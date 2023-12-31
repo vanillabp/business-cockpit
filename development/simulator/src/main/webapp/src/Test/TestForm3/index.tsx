@@ -1,31 +1,31 @@
+import { Column } from '@vanillabp/bc-shared';
+
 const taskDefinition = 'TestForm3';
 
-const userTaskListColumns = [
+const userTaskListColumns: Array<Column> = [
   {
-    id: 'dueDate',
     title: {
       'de': 'Fällig',
       'en': 'due'
     },
     path: 'dueDate',
-    showAsColumn: true,
+    width: '10rem',
+    priority: 99,
+    show: true,
     sortable: true,
     filterable: true,
-    width: '10rem',
-    priority: 99
   },
   {
-    id: 'ID2',
     title: {
       'de': 'ID 2',
       'en': 'id 2'
     },
     path: 'details.test1.testId2',
-    showAsColumn: true,
-    sortable: true,
-    filterable: true,
     width: '10rem',
-    priority: 2
+    priority: 2,
+    show: true,
+    sortable: false,
+    filterable: false,
   }
 ];
 

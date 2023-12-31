@@ -1,8 +1,8 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import java.util.List;
-
 import org.springframework.context.ApplicationEvent;
+
+import java.util.Collection;
 
 public class GuiEvent extends ApplicationEvent {
 
@@ -10,11 +10,11 @@ public class GuiEvent extends ApplicationEvent {
     
     private Object event;
     
-    private List<String> targetRoles;
+    private Collection<String> targetRoles;
 
     public GuiEvent(
             final Object source,
-            final List<String> targetRoles,
+            final Collection<String> targetRoles,
             final Object event) {
         
         super(source);
@@ -27,12 +27,12 @@ public class GuiEvent extends ApplicationEvent {
         return event;
     }
 
-    public List<String> getTargetRoles() {
+    public Collection<String> getTargetRoles() {
         return targetRoles;
     }
     
     public boolean matchesTargetRoles(
-            final List<String> roles) {
+            final Collection<String> roles) {
         
         if (targetRoles == null) {
             return true;
@@ -40,10 +40,8 @@ public class GuiEvent extends ApplicationEvent {
         
         return targetRoles
                 .stream()
-                .flatMap(targetRole -> roles.stream().map(role -> targetRole == role))
-                .filter(hasMatchingRole -> hasMatchingRole)
-                .findFirst()
-                .isPresent();
+                .flatMap(targetRole -> roles.stream().map(targetRole::equals))
+                .anyMatch(hasMatchingRole -> hasMatchingRole);
         
     }
 

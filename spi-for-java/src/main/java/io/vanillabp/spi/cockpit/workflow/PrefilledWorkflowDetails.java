@@ -24,4 +24,7 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
     void setDetailsFulltextSearch(String detailsFulltextSearch);
 
     void setI18nLanguages(List<String> i18nLanguages);
+
+    void setTemplateContext(Object templateContext);
+
 }
