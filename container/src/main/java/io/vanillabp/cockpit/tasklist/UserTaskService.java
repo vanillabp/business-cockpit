@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -365,16 +364,17 @@ public class UserTaskService {
                 .withSort(Sort.by(orderBySort.order()));
 
         // build query
-        final var query = buildUserTasksQuery(
-                Query::new,
-                includeDanglingTasks,
-                notInAssignees,
-                assignees,
-                candidateUsers,
-                candidateGroups,
-                initialTimestamp,
-                RetrieveItemsMode.OpenTasks,
-                null);
+        final var query = new Query();
+        query.addCriteria(
+                buildUserTasksCriteria(
+                        includeDanglingTasks,
+                        notInAssignees,
+                        assignees,
+                        candidateUsers,
+                        candidateGroups,
+                        initialTimestamp,
+                        RetrieveItemsMode.OpenTasks,
+                        null));
 
         // prepare to retrieve data on execution
         final var numberOfUserTasksFound = mongoTemplate
@@ -464,20 +464,18 @@ public class UserTaskService {
                 .withPage(0)
                 .withSort(Sort.by(orderBySort.order()));
 
-        final var query = buildUserTasksQuery(
-                () -> {
-                    final var newQuery = new Query();
-                    newQuery.fields().include("_id");
-                    return newQuery;
-                },
-                includeDanglingTasks,
-                notInAssignees,
-                assignees,
-                candidateUsers,
-                candidateGroups,
-                initialTimestamp,
-                RetrieveItemsMode.OpenTasks,
-                null);
+        final var query = new Query();
+        query.fields().include("_id");
+        query.addCriteria(
+                buildUserTasksCriteria(
+                        includeDanglingTasks,
+                        notInAssignees,
+                        assignees,
+                        candidateUsers,
+                        candidateGroups,
+                        initialTimestamp,
+                        RetrieveItemsMode.OpenTasks,
+                        null));
 
         final var numberOfUserTasks = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
@@ -594,8 +592,7 @@ public class UserTaskService {
         
     }
 
-    public Query buildUserTasksQuery(
-            final Supplier<Query> querySupplier,
+    public Criteria buildUserTasksCriteria(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
@@ -692,9 +689,7 @@ public class UserTaskService {
             subCriterias.addAll(predefinedCriterias);
         }
 
-        return querySupplier
-                .get()
-                .addCriteria(new Criteria().andOperator(subCriterias));
+        return new Criteria().andOperator(subCriterias);
 
     }
 
