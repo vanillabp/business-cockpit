@@ -23,6 +23,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "readBy", ignore = true)
     @Mapping(target = "readAt", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
     @Mapping(target = "candidateUsers", source = "candidateUsersList")
     @Mapping(target = "candidateGroups", source = "candidateGroupsList")
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
@@ -35,6 +37,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "readBy", ignore = true)
     @Mapping(target = "readAt", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
     @Mapping(target = "candidateUsers", source = "candidateUsersList")
     @Mapping(target = "candidateGroups", source = "candidateGroupsList")
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
