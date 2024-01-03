@@ -22,7 +22,7 @@ jobs:
       - id: get-package-id
         run: |
           VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions)
-          ID=$(echo $VERSIONS | jq '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
           echo "PACKAGE_ID=${ID}" >> $GITHUB_ENV
       - uses: actions/delete-package-versions@v4.1.1
         with:
@@ -51,7 +51,7 @@ jobs:
       - id: get-package-id
         run: |
           VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-shared/versions)
-          ID=$(echo $VERSIONS | jq '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
           echo "PACKAGE_ID=${ID}" >> $GITHUB_ENV
       - uses: actions/delete-package-versions@v4.1.1
         with:
@@ -80,7 +80,7 @@ jobs:
       - id: get-package-id
         run: |
           VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-ui/versions)
-          ID=$(echo $VERSIONS | jq '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
           echo "PACKAGE_ID=${ID}" >> $GITHUB_ENV
       - uses: actions/delete-package-versions@v4.1.1
         with:
@@ -109,7 +109,7 @@ jobs:
       - id: get-package-id
         run: |
           VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-dev-shell/versions)
-          ID=$(echo $VERSIONS | jq '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
           echo "PACKAGE_ID=${ID}" >> $GITHUB_ENV
       - uses: actions/delete-package-versions@v4.1.1
         with:
