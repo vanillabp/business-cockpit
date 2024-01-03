@@ -8,6 +8,15 @@ jobs:
       contents: read
       packages: write
     steps:
+      - uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            pom.xml
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: 'maven'
       - id: get-version
         uses: jactions/maven-version@v1.2.0
       - run: |
