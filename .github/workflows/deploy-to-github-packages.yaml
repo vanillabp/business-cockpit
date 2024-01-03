@@ -9,7 +9,7 @@ jobs:
       packages: write
     steps:
       - id: get-version
-        uses: jactions/maven-version@v1
+        uses: jactions/maven-version@v1.2.0
       - run: |
           the_secret=${{ steps.get-version.outputs.version }}
           echo "::notice::$the_secret"
