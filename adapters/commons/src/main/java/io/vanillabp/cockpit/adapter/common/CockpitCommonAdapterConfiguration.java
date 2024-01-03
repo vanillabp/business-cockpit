@@ -8,7 +8,11 @@ import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
@@ -27,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +40,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
@@ -44,10 +50,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
-@AutoConfigureAfter(WorkflowModulePropertiesConfiguration.class)
+@AutoConfigureAfter(value = {WorkflowModulePropertiesConfiguration.class, CockpitCommonAdapterKafkaConfiguration.class})
 @EnableConfigurationProperties({ CockpitProperties.class, UserTasksWorkflowProperties.class })
 public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase {
 
@@ -194,28 +198,32 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     }
     
     @Bean
-    public UserTaskPublishing userTaskPublishing(
+    @ConditionalOnMissingBean(UserTaskPublishing.class)
+    public UserTaskPublishing userTaskRestPublishing(
             @Qualifier("bpmsApiV1")
             final Optional<BpmsApi> bpmsApi) {
 
-        return new UserTaskPublishing(
+        return new UserTaskRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
+                workflowsCockpitProperties,
+                new UserTaskRestMapperImpl());
 
     }
 
     @Bean
-    public WorkflowPublishing workflowPublishing(
+    @ConditionalOnMissingBean(WorkflowPublishing.class)
+    public WorkflowPublishing workflowRestPublishing(
             @Qualifier("bpmsApiV1")
             final Optional<BpmsApi> bpmsApi) {
-        return new WorkflowPublishing(
+        return new WorkflowRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
-
+                workflowsCockpitProperties,
+                new WorkflowRestMapperImpl()
+        );
     }
 
     private UiUriType findAndValidateUiUriTypeProperty(

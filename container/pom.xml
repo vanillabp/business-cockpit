@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>business-cockpit-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>container</artifactId>
@@ -182,6 +182,10 @@
       <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
+    <dependency>
       <groupId>jakarta.validation</groupId>
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
@@ -198,5 +202,10 @@
       <artifactId>official-gui-api-server-reactive</artifactId>
       <version>${project.version}</version>
     </dependency>
+      <dependency>
+          <groupId>io.vanillabp.businesscockpit</groupId>
+          <artifactId>bpms-protobuf-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
   </dependencies>
 </project>

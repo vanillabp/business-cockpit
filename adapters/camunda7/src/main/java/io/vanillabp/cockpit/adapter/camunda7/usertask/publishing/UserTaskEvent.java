@@ -6,22 +6,21 @@ public class UserTaskEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
 
-    final Object event;
+    final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent event;
     
     final String apiVersion;
     
     public UserTaskEvent(
             final Object source,
-            final Object event,
+            final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent event,
             final String apiVersion) {
-        
+
         super(source);
         this.event = event;
         this.apiVersion = apiVersion;
-        
     }
     
-    public Object getEvent() {
+    public io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent getEvent() {
         return event;
     }
     

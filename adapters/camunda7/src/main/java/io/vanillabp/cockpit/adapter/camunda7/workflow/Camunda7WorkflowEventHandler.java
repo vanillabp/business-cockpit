@@ -5,7 +5,6 @@ import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.ProcessWorkflow
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowAfterTransactionEvent;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.workflow.EventWrapper;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RepositoryService;
@@ -25,6 +24,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 public class Camunda7WorkflowEventHandler {
     private static final Logger logger = LoggerFactory
@@ -81,6 +81,7 @@ public class Camunda7WorkflowEventHandler {
             final HistoricProcessInstanceEventEntity processInstanceEvent) {
         
         final var eventWrapper = processProcessInstanceHistoryEvent(processInstanceEvent);
+
         if (eventWrapper == null) {
             return;
         }
@@ -88,12 +89,12 @@ public class Camunda7WorkflowEventHandler {
         applicationEventPublisher.publishEvent(
                 new WorkflowEvent(
                         Camunda7WorkflowEventHandler.class,
-                        eventWrapper.getEvent(),
+                        eventWrapper,
                         eventWrapper.getApiVersion()));
         
     }
 
-    private EventWrapper processProcessInstanceHistoryEvent(HistoricProcessInstance processInstance) {
+    private io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent processProcessInstanceHistoryEvent(HistoricProcessInstance processInstance) {
 
         // Only operate on root process instances
         if (processInstance.getSuperProcessInstanceId() != null) {
@@ -121,7 +122,7 @@ public class Camunda7WorkflowEventHandler {
         
     }
 
-    private EventWrapper processProcessInstanceHistoryEvent(HistoricProcessInstanceEventEntity processInstanceEvent) {
+    private io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent processProcessInstanceHistoryEvent(HistoricProcessInstanceEventEntity processInstanceEvent) {
 
         // Only operate on root process instances
         if (processInstanceEvent.getSuperProcessInstanceId() != null) {
@@ -222,11 +223,11 @@ public class Camunda7WorkflowEventHandler {
                     .list()
                     .stream()
                     .map(this::processProcessInstanceHistoryEvent)
+                    .filter(Objects::nonNull)
+                    .filter(workflowEvent -> workflowEvent.getApiVersion() != null)
                     .collect(Collectors.groupingBy(
-                            EventWrapper::getApiVersion,
-                            Collectors.mapping(
-                                    EventWrapper::getEvent, Collectors.toList()
-                            )))
+                            io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent::getApiVersion,
+                            Collectors.toList()))
                     .forEach(workflowPublishing::publish);
 
         } finally {

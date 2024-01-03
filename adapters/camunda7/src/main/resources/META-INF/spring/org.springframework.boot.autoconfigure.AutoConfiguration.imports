@@ -1,0 +1,3 @@
+io.vanillabp.cockpit.adapter.camunda7.Camunda7AdapterConfiguration
+io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration
+io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterKafkaConfiguration
