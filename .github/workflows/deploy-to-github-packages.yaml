@@ -116,31 +116,31 @@ jobs:
           package-name: 'bc-dev-shell'
           package-type: 'npm'
           package-version-ids: ${{ env.RELEASE_VERSION }}
-publish:
-  runs-on: ubuntu-latest
-  needs: delete-snapshot-npm-package-4
-  permissions:
-    contents: read
-    packages: write
-  steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'adopt'
-        cache: 'maven'
-    - uses: actions/setup-node@v3
-      with:
-        node-version: '18.x'
-        registry-url: 'https://npm.pkg.github.com'
-        scope: '@vanillabp'
-        always-auth: true
-    - name: Publish package
-      run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
-      env:
-        USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
-        USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        npm_config_userconfig: ${{ github.workspace }}/.npmrc
-        CI: false
+  publish:
+    runs-on: ubuntu-latest
+    needs: delete-snapshot-npm-package-4
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: 'maven'
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@vanillabp'
+          always-auth: true
+      - name: Publish package
+        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
+        env:
+          USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
+          USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_userconfig: ${{ github.workspace }}/.npmrc
+          CI: false
