@@ -112,7 +112,7 @@ jobs:
           ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
        - run: |
-          echo "|${{ env.PACKAGE_ID }}|"
+           echo "|${{ env.PACKAGE_ID }}|"
 #      - uses: actions/delete-package-versions@v4.1.1
 #        with:
 #          package-name: 'bc-dev-shell'
