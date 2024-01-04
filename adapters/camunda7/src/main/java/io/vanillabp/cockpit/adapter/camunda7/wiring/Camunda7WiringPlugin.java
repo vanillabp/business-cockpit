@@ -25,7 +25,17 @@ public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
     @Override
     public void preInit(
             final ProcessEngineConfigurationImpl configuration) {
-        
+
+        /* prepared for getting https://github.com/camunda/camunda-bpm-platform/pull/4025
+        // As we need cockpit-task-listeners to be executed after vanilla-bp-wiring-task-listeners this listener
+        // is a POST parse listener and vanilla-bp-wiring-task-listeners is a pre parse listener:
+        if (configuration.getCustomPostBPMNParseListeners() == null) {
+            configuration.setCustomPostBPMNParseListeners(new LinkedList<>());
+        }
+        configuration
+                .getCustomPostBPMNParseListeners()
+                .add(wiringBpmnParseListener);
+        */
         if (configuration.getCustomPreBPMNParseListeners() == null) {
             configuration.setCustomPreBPMNParseListeners(new LinkedList<>());
         }

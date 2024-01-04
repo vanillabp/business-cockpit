@@ -244,8 +244,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
         final var result = new Camunda7BusinessCockpitService<WA>(
                 taskService,
                 runtimeService,
-                workflowAggregate ->
-                        springDataUtil.getId(workflowAggregate),
+                springDataUtil::getId,
                 workflowAggregateRepository,
                 workflowAggregateClass,
                 parseWorkflowAggregateIdFromBusinessKey,
