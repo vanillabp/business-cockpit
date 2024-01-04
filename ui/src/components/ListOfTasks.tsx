@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
+import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
@@ -39,6 +39,7 @@ import {
   Blank,
   ContactInfo,
   Descend,
+  FormTrash,
   FormView,
   Hide,
   Refresh,
@@ -657,6 +658,11 @@ const ListOfTasks = ({
     refreshList();
   }
 
+  const unassign = (userTaskId: string, userId: string) => {
+    tasklistApi.assignTask(userTaskId, userId, true);
+  };
+
+  const [ showCandidateUsersHover, setShowCandidateUsersHover ] = useState<string | undefined>(undefined);
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
           { property: 'id',
@@ -770,17 +776,45 @@ const ListOfTasks = ({
                   </Box>,
           size: '3rem',
           plain: true,
-          render: (item: ListItem<BcUserTask>) => item.data.candidateUsers && item.data.candidateUsers?.length > 0
-              ? <Box
+          render: (item: ListItem<BcUserTask>) => {
+            const targetRef = useRef<HTMLDivElement>(null);
+            return item.data.candidateUsers && item.data.candidateUsers?.length > 0
+                ? <Box
                     fill
                     justify="center"
                     align="center">
-                  <Tip
-                      content={ item.data.candidateUsers?.join(', ') }>
+                  <Box
+                      onMouseEnter={ () => setShowCandidateUsersHover(item.id) }
+                      ref={ targetRef }>
                     <ContactInfo />
-                  </Tip>
+                  </Box>
+                  {
+                      showCandidateUsersHover
+                          && showCandidateUsersHover === item.id
+                          && <Drop
+                                inline
+                                round="xsmall"
+                                onMouseLeave={ () => setShowCandidateUsersHover(undefined) }
+                                target={ targetRef }>
+                              <Box
+                                  direction="column"
+                                  margin="xsmall"
+                                  gap="xsmall">
+                                {
+                                  item.data.candidateUsers?.map(user => <Box
+                                                                                    direction="row"
+                                                                                    align="center"
+                                                                                    justify="center">
+                                                                                  { user }
+                                                                                  <FormTrash onClick={ () => unassign(item.id, user) } />
+                                                                                </Box>)
+                                }
+                              </Box>
+                            </Drop>
+                  }
                 </Box>
-              : undefined
+                : undefined
+          }
         },
         ...(columnsOfTasks === undefined
             ? []

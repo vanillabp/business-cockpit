@@ -320,7 +320,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
 		if ((unassign != null) && unassign) {
 			result = currentUser
-					.flatMap(user -> assignTask(user, userTaskId, null, true));
+					.flatMap(user -> assignTask(user, userTaskId, userId, true));
 		} else {
 			result = currentUser
 					.flatMap(user -> assignTask(user, userTaskId, userId, false));
