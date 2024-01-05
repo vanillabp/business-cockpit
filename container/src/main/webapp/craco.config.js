@@ -40,6 +40,11 @@ module.exports = {
               singleton: true,
               requiredVersion: dependencies["react-router-dom"],
             },
+            grommet: {
+              eager: true,
+              singleton: true,
+              requiredVersion: dependencies["grommet"],
+            },
           },
         }),
       ]

@@ -15,7 +15,6 @@ type CurrentScreen = {
 const useResponsiveScreen = (): CurrentScreen => {
 
   const size = useContext(ResponsiveContext);
-  
   return {
       isPhone: size === 'small',
       isNotPhone: size !== 'small',
