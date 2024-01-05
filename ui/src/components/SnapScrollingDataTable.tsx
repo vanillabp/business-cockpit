@@ -9,10 +9,11 @@ interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<
   phoneMargin: string;
   onScroll?: UIEventHandler<any> | undefined;
   columns: ColumnConfig<TRowType>[];
+  minWidthOfAutoColumn?: string;
 };
 
-const calculateColumWidth = (width: string, column: any) => {
-  const columnSize = column.size ? column.size : '10rem';
+const calculateColumWidth = (minWidthOfAutoColumn: string | undefined, width: string, column: any) => {
+  const columnSize = column.size ? column.size : minWidthOfAutoColumn;
   return width !== '' ? width + ' + ' + columnSize : columnSize;
 }
 
@@ -23,14 +24,14 @@ const SnapScrollingDataTable = forwardRef(({
     columns,
     onScroll,
     children,
+    minWidthOfAutoColumn,
     ...props
   }: SnapScrollingDataTableProps, ref) => {
 
   const { isPhone, isNotPhone } = useResponsiveScreen();
 
-  const columnsWidth = columns.reduce(calculateColumWidth, '');
-  const tableWidth = `max(${columnsWidth}, 100%)`;
-  const totalWidth = `calc(max(${columnsWidth}, 100%) + 2 * ${phoneMargin})`;
+  const columnsWidth = columns.reduce((width, column) => calculateColumWidth(minWidthOfAutoColumn, width, column), '');
+  const tableWidth = `max(calc(${columnsWidth}), 100%)`;
 
   const dataTableColumns = columns.map(column => ({ ...column, header: undefined }));
   return (columns
@@ -41,12 +42,12 @@ const SnapScrollingDataTable = forwardRef(({
           snapDirection='horizontal'
           onScroll={ onScroll }>
         <Box
-            fill={ isNotPhone ? 'horizontal' : undefined }
+            width={ '100%' }
             style={ {
               position: 'sticky',
               top: '0',
               zIndex: 2,
-              minWidth: isPhone ? totalWidth : tableWidth,
+              minWidth: 'auto'
               } }
             background='dark-3'
             align="center">
@@ -75,7 +76,7 @@ const SnapScrollingDataTable = forwardRef(({
                     : undefined }>{
             columns.map((column, index) =>
               <SnapAlignBox
-                  // pad={ { horizontal: isPhone ? 'medium' : 'xxsmall' } }
+                  style={ { minWidth: column.size === undefined ? minWidthOfAutoColumn : column.size } }
                   key={ `column${index}` }
                   align="left"
                   justify='center'

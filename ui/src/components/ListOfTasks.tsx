@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
 import {
@@ -48,12 +48,18 @@ import {
 } from "grommet-icons";
 import { User } from "./User.js";
 
+const minWidthOfTitleColumn = '20rem';
+
 interface Columns {
   [key: string]: Column;
 }
 
 interface DefinitionOfUserTask {
   [key: string]: UserTask;
+}
+
+interface ColumnWidthAdjustments {
+  [key: string]: number
 }
 
 const loadUserTasks = async (
@@ -203,6 +209,7 @@ const ClaimButtons = ({
 }) => {
   const color = disabled ? 'light-4' : 'dark-3';
   const textColor = disabled ? 'dark-4' : 'dark-1';
+  const { isNotPhone } = useResponsiveScreen();
 
   return (<Box
               direction="row"
@@ -225,11 +232,15 @@ const ClaimButtons = ({
                 <UserIcon
                     size="20rem"
                     color={ textColor } />
-                <Text
-                    truncate='tip'
-                    color={ textColor }>
-                  { t('claim_task' ) }
-                </Text>
+                {
+                  isNotPhone && (
+                        <Text
+                            truncate='tip'
+                            color={ textColor }>
+                          { t('claim_task' ) }
+                        </Text>
+                    )
+                }
               </Box>
             </Tip>
             <Tip
@@ -399,6 +410,7 @@ const AssignButton = ({
                       { users === undefined
                           ? t('assign_loading')
                           : users!.map(user => <Box
+                              key={ user.id }
                               height={ { min: '2rem' } }
                               onClick={ () => assign(user.id!) }>
                             <User
@@ -458,6 +470,8 @@ const RefreshButton = ({
 const ColumnHeader = ({
   currentLanguage,
   column,
+  minWidth,
+  setColumnWidthAdjustment,
   sort,
   sortAscending,
   setSort,
@@ -465,49 +479,88 @@ const ColumnHeader = ({
 }: {
   currentLanguage: string,
   column: Column,
+  minWidth?: string,
+  setColumnWidthAdjustment: (column: string, adjustment: number) => void,
   sort?: boolean,
   sortAscending?: boolean,
   setSort: (column?: Column) => void,
   setSortAscending: (ascending: boolean) => void,
 }) => {
+  const resize = useRef(-1);
+  const [ widthAdjustment, setWidthAdjustment ] = useState(0);
+  const startResize = (event: ReactMouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    resize.current = event.clientX;
+    document.body.style.cursor = 'col-resize';
+  };
+  const moveHandler = useCallback((ev: MouseEvent) => {
+    if (resize.current == -1) return;
+    const adjustment = widthAdjustment + (ev.clientX - resize.current);
+    setColumnWidthAdjustment(column.path, adjustment);
+  }, [ resize, setColumnWidthAdjustment, widthAdjustment, column.path ]);
+  const upHandler = useCallback((ev: MouseEvent) => {
+    if (resize.current == -1) return;
+    document.body.style.cursor = 'default';
+    const adjustment = widthAdjustment + (ev.clientX - resize.current);
+    resize.current = -1;
+    setWidthAdjustment(adjustment);
+  }, [ resize, setWidthAdjustment, widthAdjustment ]);
+  useEffect(() => {
+    window.addEventListener("mousemove", moveHandler);
+    window.addEventListener("mouseup", upHandler);
+    return () => {
+      window.removeEventListener("mousemove", moveHandler);
+      window.removeEventListener("mouseup", upHandler);
+    }
+  }, [ setColumnWidthAdjustment, widthAdjustment, setWidthAdjustment ]);
   return (
       <Box
-          direction="row"
-          justify="between"
-          align="center"
-          overflow="hidden"
-          style={ { position: "relative" } }>
-        <Text
-            truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
+          style={ { minWidth, position: "relative" } }>
+        <Box
+            direction="row"
+            justify="between"
+            align="center"
+            overflow="hidden"
+            style={ { position: "relative" } }>
+          <Text
+              truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
+          <Box
+              align="center"
+              direction="row"
+              style={ { position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
+            {
+              !column.sortable
+                  ? undefined
+                  : !Boolean(sort)
+                  ? <Box
+                        focusIndicator={ false }
+                        onClick={ event => setSort(column) }>
+                      <Unsorted
+                          size="32rem" />
+                    </Box>
+                  : sortAscending
+                  ? <Box
+                        focusIndicator={ false }
+                        onClick={ event => setSortAscending(false) }
+                        pad={ { right: '0.5rem' } }>
+                      <Ascend size="16rem" />
+                    </Box>
+                  : <Box
+                        focusIndicator={ false }
+                        onClick={ event => setSort(undefined) }
+                        pad={ { right: '0.5rem' } }>
+                      <Descend size="16rem" />
+                    </Box>
+            }
+            { /* <FormFilter /> */ }
+          </Box>
+        </Box>
         <Box
             align="center"
-            direction="row"
-            style={ { position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
-          {
-            !column.sortable
-                ? undefined
-                : !Boolean(sort)
-                ? <Box
-                      focusIndicator={ false }
-                      onClick={ event => setSort(column) }>
-                    <Unsorted
-                        size="32rem" />
-                  </Box>
-                : sortAscending
-                ? <Box
-                      focusIndicator={ false }
-                      onClick={ event => setSortAscending(false) }
-                      pad={ { right: '0.5rem' } }>
-                    <Ascend size="16rem" />
-                  </Box>
-                : <Box
-                      focusIndicator={ false }
-                      onClick={ event => setSort(undefined) }
-                      pad={ { right: '0.5rem' } }>
-                    <Descend size="16rem" />
-                  </Box>
-          }
-          { /* <FormFilter /> */ }
+            onMouseDown={ startResize }
+            style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
+          &nbsp;
         </Box>
       </Box>);
 };
@@ -662,7 +715,15 @@ const ListOfTasks = ({
     tasklistApi.assignTask(userTaskId, userId, true);
   };
 
-  const [ showCandidateUsersHover, setShowCandidateUsersHover ] = useState<string | undefined>(undefined);
+  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
+  const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
+  const getColumnSize = (column: string, width: string) => `max(2rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
+  const setColumnWidthAdjustment = (column: string, adjustment: number) => {
+    const current = columnWidthAdjustments[column];
+    if (current === adjustment) return;
+    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
+  };
+
   const columns: ColumnConfig<ListItem<BcUserTask>>[] =
       [
           { property: 'id',
@@ -725,10 +786,12 @@ const ListOfTasks = ({
                           width: '',
                           priority: -1,
                         }}
+                        setColumnWidthAdjustment={ setColumnWidthAdjustment }
                         sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
                         setSort={ setSort }
                         sortAscending={ sortAscending }
                         setSortAscending={ setSortAscending} />,
+            plain: true,
             render: (item: ListItem<BcUserTask>) => {
               const titleLanguages = Object.keys(item.data['title']);
               let title;
@@ -740,7 +803,7 @@ const ListOfTasks = ({
               return (
                     <Box
                         fill
-                        style={ { minWidth: '10rem' } }
+                        style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } }
                         pad="xsmall">
                       <Text
                           color={ colorForEndedItemsOrUndefined(item) }
@@ -760,8 +823,23 @@ const ListOfTasks = ({
                 }
           },
         { property: 'assignee',
-          header: t('column_assignee'),
-          size: '10rem',
+          header: <ColumnHeader
+              currentLanguage={ currentLanguage }
+              column={ {
+                path: 'assignee',
+                show: true,
+                sortable: false,
+                filterable: false,
+                title: { [currentLanguage]: t('column_assignee') },
+                width: '',
+                priority: -1,
+              }}
+              setColumnWidthAdjustment={ setColumnWidthAdjustment }
+              sort={ false }
+              setSort={ setSort }
+              sortAscending={ sortAscending }
+              setSortAscending={ setSortAscending} />,
+          size: getColumnSize("assignee", "10rem"),
           plain: true,
           render: (item: ListItem<BcUserTask>) => <TextListCell item={ item } value={ item.data.assignee } />
         },
@@ -784,17 +862,17 @@ const ListOfTasks = ({
                     justify="center"
                     align="center">
                   <Box
-                      onMouseEnter={ () => setShowCandidateUsersHover(item.id) }
+                      onMouseEnter={ () => setDropIdentifier(item.id) }
                       ref={ targetRef }>
                     <ContactInfo />
                   </Box>
                   {
-                      showCandidateUsersHover
-                          && showCandidateUsersHover === item.id
+                      dropIdentifier
+                          && dropIdentifier === item.id
                           && <Drop
                                 inline
                                 round="xsmall"
-                                onMouseLeave={ () => setShowCandidateUsersHover(undefined) }
+                                onMouseLeave={ () => setDropIdentifier(undefined) }
                                 target={ targetRef }>
                               <Box
                                   direction="column"
@@ -820,10 +898,11 @@ const ListOfTasks = ({
             ? []
             : columnsOfTasks!.map(column => ({
                   property: column.path,
-                  size: column.width,
+                  size: getColumnSize(column.path, column.width),
                   plain: true,
                   header: <ColumnHeader
                               currentLanguage={ currentLanguage }
+                              setColumnWidthAdjustment={ setColumnWidthAdjustment }
                               sort={ sort === column.path }
                               setSort={ setSort }
                               sortAscending={ sortAscending }
@@ -918,7 +997,7 @@ const ListOfTasks = ({
                   <Box
                       fill
                       background='white'
-                      direction={ isNotPhone ? "row" : "column" }
+                      direction="row"
                       align="center"
                       justify="start"
                       gap="small"
@@ -946,6 +1025,7 @@ const ListOfTasks = ({
                   </Box>
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }
+                      minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
                       columns={ columns }
                       itemsRef={ userTasks }
                       updateListRef={ updateListRef }

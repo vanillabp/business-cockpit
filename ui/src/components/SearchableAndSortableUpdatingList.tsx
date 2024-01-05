@@ -153,6 +153,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   columns,
   showLoadingIndicator,
   additionalHeader,
+  minWidthOfAutoColumn,
 }: {
   itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
   updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
@@ -162,7 +163,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   refreshNecessaryCallback?: RefreshNecessaryFunction,
   columns: ColumnConfig<any>[],
   showLoadingIndicator: ShowLoadingIndicatorFunction,
-  additionalHeader?: ReactNode | undefined;
+  additionalHeader?: ReactNode,
+  minWidthOfAutoColumn?: string,
 }) => {
   const [ items, _setItems ] = useState<Array<ListItem<T>> | undefined>(undefined);
   const initialTimestamp = useRef<Date | undefined>(undefined);
@@ -236,6 +238,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
             <SnapScrollingDataTable
                 fill
                 pin
+                minWidthOfAutoColumn={ minWidthOfAutoColumn }
                 additionalHeader={ additionalHeader }
                 border={ { body: { side: 'bottom', color: 'light-3' } } }
                 rowProps={ colorRowAccordingToUpdateStatus }
