@@ -1,6 +1,5 @@
 import React from "react";
-import { Box, Layer } from "grommet";
-import { Cycle } from "grommet-icons";
+import { Box, Layer, Spinner } from "grommet";
 
 export type ShowLoadingIndicatorFunction = (show: boolean) => void;
 
@@ -16,11 +15,16 @@ const LoadingIndicator = () => (
           background={ { color: 'rgba(0, 0, 0, 0.3)' } }>
         <Box
             animation="rotateRight"
-            pad='medium'>
-          <Cycle
-              style={ { marginTop: '3px' } }
-              color="white"
-              size="large" />
+            pad="medium">
+          <Spinner
+              size="medium"
+              border={[
+                { side: 'all', color: 'rgba(0, 0, 0, 0)', size: 'medium' },
+                { side: 'right', color: 'white', size: 'medium' },
+                { side: 'top', color: 'white', size: 'medium' },
+                { side: 'left', color: 'white', size: 'medium' },
+              ]}
+          />
         </Box>
       </Box>
     </Layer>);
