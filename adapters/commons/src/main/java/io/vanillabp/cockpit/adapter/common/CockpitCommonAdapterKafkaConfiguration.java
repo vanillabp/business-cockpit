@@ -33,13 +33,16 @@ import org.springframework.kafka.support.converter.RecordMessageConverter;
 import java.util.Map;
 
 @AutoConfiguration
+@AutoConfigureBefore(KafkaAutoConfiguration.class)
 @EnableConfigurationProperties({
         CockpitProperties.class,
         UserTasksWorkflowProperties.class,
         KafkaProperties.class
 })
 @ConditionalOnClass(KafkaTemplate.class)
-@AutoConfigureBefore(KafkaAutoConfiguration.class)
+@ConditionalOnProperty(
+        prefix = CockpitProperties.PREFIX + ".kafka-topics",
+        name = {"workflow", "user-task"})
 public class CockpitCommonAdapterKafkaConfiguration {
 
     @Value("${workerId}")
@@ -56,9 +59,8 @@ public class CockpitCommonAdapterKafkaConfiguration {
 
 
     @Bean
-    @ConditionalOnProperty(CockpitProperties.PREFIX + ".kafka-topics.user-task")
     public UserTaskPublishing userTaskKafkaPublishing(
-            @Qualifier("cockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
 
         return new UserTaskKafkaPublishing(
                 workerId,
@@ -70,9 +72,8 @@ public class CockpitCommonAdapterKafkaConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(CockpitProperties.PREFIX + ".kafka-topics.workflow")
     public WorkflowPublishing workflowKafkaPublishing(
-            @Qualifier("cockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
 
         return new WorkflowKafkaPublishing(
                 workerId,
@@ -84,8 +85,8 @@ public class CockpitCommonAdapterKafkaConfiguration {
     }
 
     @Bean
-    public KafkaTemplate<String, byte[]> cockpitKafkaTemplate(
-            @Qualifier("cockpitKafkaProducerFactory") ProducerFactory<String, byte[]> kafkaProducerFactory,
+    public KafkaTemplate<String, byte[]> businessCockpitKafkaTemplate(
+            @Qualifier("businessCockpitKafkaProducerFactory") ProducerFactory<String, byte[]> kafkaProducerFactory,
             ObjectProvider<RecordMessageConverter> messageConverter) {
 
         PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
@@ -98,7 +99,7 @@ public class CockpitCommonAdapterKafkaConfiguration {
     }
 
     @Bean
-    public DefaultKafkaProducerFactory<String, byte[]> cockpitKafkaProducerFactory(
+    public DefaultKafkaProducerFactory<String, byte[]> businessCockpitKafkaProducerFactory(
             ObjectProvider<DefaultKafkaProducerFactoryCustomizer> customizers) {
         Map<String, Object> configs = this.kafkaProperties.buildProducerProperties();
 
