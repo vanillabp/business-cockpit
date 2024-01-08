@@ -15,6 +15,7 @@ i18n.addResources('en', 'workflowlist', {
       "total": "Total:",
       "no": "No.",
       "name": "Workflow",
+      "column_title": "Name",
       "module-unknown": "Unknown module",
       "retry-loading-module-hint": "Unfortunately, the workflow cannot be shown at the moment!",
       "retry-loading-module": "Retry loading...",
@@ -26,6 +27,7 @@ i18n.addResources('de', 'workflowlist', {
       "total": "Anzahl:",
       "no": "Nr.",
       "name": "Vorgang",
+      "column_title": "Name",
       "module-unknown": "Unbekanntes Modul",
       "retry-loading-module-hint": "Leider ist derzeit kein Zugriff auf den Vorgang möglich!",
       "retry-loading-module": "Laden nochmals probieren...",
@@ -52,7 +54,7 @@ const Main = () => {
 
   const { setAppHeaderTitle, showLoadingIndicator, toast } = useAppContext();
   const { t: tApp } = useTranslation('app');
-  const { t } = useTranslation('tasklist');
+  const { t } = useTranslation('workflowlist');
   const navigate = useNavigate();
 
   useLayoutEffect(() => {
@@ -67,6 +69,7 @@ const Main = () => {
                                 useGuiSse={ useGuiSse }
                                 currentLanguage={ i18next.language }
                                 t={ t }
+                                defaultSort={ 'title' }
                                 openTask={
                                   (userTask) =>
                                       openTask(userTask, toast, tApp) }

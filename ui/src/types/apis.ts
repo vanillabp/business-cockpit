@@ -44,9 +44,9 @@ export interface TasklistApi {
   findUsers: FindUsersCall,
 }
 
-type GetWorkflowsApiCall = (listId: string, pageNumber: number, pageSize: number, initialTimestamp?: Date) => Promise<Workflows>;
+type GetWorkflowsApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<Workflows>;
 
-type GetWorkflowsUpdateApiCall = (listId: string, size: number, knownWorkflowsIds: Array<string>, initialTimestamp?: Date) => Promise<Workflows>;
+type GetWorkflowsUpdateApiCall = (listId: string, size: number, knownWorkflowsIds: Array<string>, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<Workflows>;
 
 type GetUserTasksOfWorkflowApiCall = (workflowId: string, activeOnlyRequested?: boolean, limitListAccordingToCurrentUsersPermissions?: boolean) => Promise<Array<UserTask>>;
 

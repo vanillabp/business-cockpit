@@ -322,6 +322,12 @@ paths:
           schema:
             type: string
             format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowsRequest"
       responses:
         200:
           description: Workflows
@@ -339,7 +345,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/WorkflowsUpdate"
+              $ref: "#/components/schemas/WorkflowsUpdateRequest"
       responses:
         200:
           description: Users tasks
@@ -733,6 +739,15 @@ components:
           type: array
           items:
             type: string
+    WorkflowsRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
     Workflows:
       type: object
       required:
@@ -749,7 +764,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Workflow'
-    WorkflowsUpdate:
+    WorkflowsUpdateRequest:
       type: object
       required:
         - size
@@ -762,6 +777,12 @@ components:
           type: array
           items:
             type: string
+        query:
+          type: string
+        sort:
+          type: string
+        sortAscending:
+          type: boolean
         initialTimestamp:
           type: string
           format: date-time

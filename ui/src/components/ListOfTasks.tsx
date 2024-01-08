@@ -1,4 +1,4 @@
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
 import {
@@ -34,19 +34,9 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
-import {
-  Ascend,
-  Blank,
-  ContactInfo,
-  Descend,
-  FormTrash,
-  FormView,
-  Hide,
-  Refresh,
-  Unsorted,
-  User as UserIcon
-} from "grommet-icons";
+import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
+import { ListColumnHeader } from "./ListColumnHeader.js";
 
 const minWidthOfTitleColumn = '20rem';
 
@@ -467,104 +457,6 @@ const RefreshButton = ({
 
 }
 
-const ColumnHeader = ({
-  currentLanguage,
-  column,
-  minWidth,
-  setColumnWidthAdjustment,
-  sort,
-  sortAscending,
-  setSort,
-  setSortAscending,
-}: {
-  currentLanguage: string,
-  column: Column,
-  minWidth?: string,
-  setColumnWidthAdjustment: (column: string, adjustment: number) => void,
-  sort?: boolean,
-  sortAscending?: boolean,
-  setSort: (column?: Column) => void,
-  setSortAscending: (ascending: boolean) => void,
-}) => {
-  const resize = useRef(-1);
-  const [ widthAdjustment, setWidthAdjustment ] = useState(0);
-  const startResize = (event: ReactMouseEvent) => {
-    event.stopPropagation();
-    event.preventDefault();
-    resize.current = event.clientX;
-    document.body.style.cursor = 'col-resize';
-  };
-  const moveHandler = useCallback((ev: MouseEvent) => {
-    if (resize.current == -1) return;
-    const adjustment = widthAdjustment + (ev.clientX - resize.current);
-    setColumnWidthAdjustment(column.path, adjustment);
-  }, [ resize, setColumnWidthAdjustment, widthAdjustment, column.path ]);
-  const upHandler = useCallback((ev: MouseEvent) => {
-    if (resize.current == -1) return;
-    document.body.style.cursor = 'default';
-    const adjustment = widthAdjustment + (ev.clientX - resize.current);
-    resize.current = -1;
-    setWidthAdjustment(adjustment);
-  }, [ resize, setWidthAdjustment, widthAdjustment ]);
-  useEffect(() => {
-    window.addEventListener("mousemove", moveHandler);
-    window.addEventListener("mouseup", upHandler);
-    return () => {
-      window.removeEventListener("mousemove", moveHandler);
-      window.removeEventListener("mouseup", upHandler);
-    }
-  }, [ setColumnWidthAdjustment, widthAdjustment, setWidthAdjustment ]);
-  return (
-      <Box
-          style={ { minWidth, position: "relative" } }>
-        <Box
-            direction="row"
-            justify="between"
-            align="center"
-            overflow="hidden"
-            style={ { position: "relative" } }>
-          <Text
-              truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
-          <Box
-              align="center"
-              direction="row"
-              style={ { position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
-            {
-              !column.sortable
-                  ? undefined
-                  : !Boolean(sort)
-                  ? <Box
-                        focusIndicator={ false }
-                        onClick={ event => setSort(column) }>
-                      <Unsorted
-                          size="32rem" />
-                    </Box>
-                  : sortAscending
-                  ? <Box
-                        focusIndicator={ false }
-                        onClick={ event => setSortAscending(false) }
-                        pad={ { right: '0.5rem' } }>
-                      <Ascend size="16rem" />
-                    </Box>
-                  : <Box
-                        focusIndicator={ false }
-                        onClick={ event => setSort(undefined) }
-                        pad={ { right: '0.5rem' } }>
-                      <Descend size="16rem" />
-                    </Box>
-            }
-            { /* <FormFilter /> */ }
-          </Box>
-        </Box>
-        <Box
-            align="center"
-            onMouseDown={ startResize }
-            style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.5rem' } }>
-          &nbsp;
-        </Box>
-      </Box>);
-};
-
 const ListOfTasks = ({
     showLoadingIndicator,
     useGuiSse,
@@ -717,7 +609,7 @@ const ListOfTasks = ({
 
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: string, width: string) => `max(2rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
+  const getColumnSize = (column: string, width: string) => `max(4rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
   const setColumnWidthAdjustment = (column: string, adjustment: number) => {
     const current = columnWidthAdjustments[column];
     if (current === adjustment) return;
@@ -775,7 +667,7 @@ const ListOfTasks = ({
                 </Box>)
           },
           { property: 'title',
-            header: <ColumnHeader
+            header: <ListColumnHeader
                         currentLanguage={ currentLanguage }
                         column={ {
                           path: 'title',
@@ -823,7 +715,7 @@ const ListOfTasks = ({
                 }
           },
         { property: 'assignee',
-          header: <ColumnHeader
+          header: <ListColumnHeader
               currentLanguage={ currentLanguage }
               column={ {
                 path: 'assignee',
@@ -900,7 +792,7 @@ const ListOfTasks = ({
                   property: column.path,
                   size: getColumnSize(column.path, column.width),
                   plain: true,
-                  header: <ColumnHeader
+                  header: <ListColumnHeader
                               currentLanguage={ currentLanguage }
                               setColumnWidthAdjustment={ setColumnWidthAdjustment }
                               sort={ sort === column.path }

@@ -15,23 +15,46 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 @Service
 public class WorkflowlistService {
 
+    public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
+
+    private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
+            Order.asc("createdAt"),
+            Order.asc("id")
+    );
+    private static final List<Sort.Order> DEFAULT_ORDER_DESC= List.of(
+            Order.desc("createdAt"),
+            Order.desc("id")
+    );
+
+    private static final Set<String> sortAndFilterIndexes = new HashSet<>();
+    private static final ReadWriteLock sortAndFilterIndexesLock = new ReentrantReadWriteLock();
+    private static final Lock sortAndFilterIndexWriteLock = sortAndFilterIndexesLock.writeLock();
+    private static final Lock sortAndFilterIndexReadLock = sortAndFilterIndexesLock.readLock();
+
     @Autowired
     private Logger logger;
-
-    private static final Sort DEFAULT_SORT =
-            Sort.by(Order.asc("createdAt").nullsLast())
-            .and(Sort.by("id").ascending());
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -44,6 +67,9 @@ public class WorkflowlistService {
 
     @Autowired
     private MicroserviceProxyRegistry microserviceProxyRegistry;
+
+    @Autowired
+    private ReactiveMongoTemplate mongoTemplate;
 
     private Disposable dbChangesSubscription;
 
@@ -80,35 +106,111 @@ public class WorkflowlistService {
     public Mono<Page<Workflow>> getWorkflows(
             final int pageNumber,
             final int pageSize,
-            final OffsetDateTime initialTimestamp) {
+            final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending) {
 
+        final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
                 .withPage(pageNumber)
-                .withSort(DEFAULT_SORT);
+                .withSort(Sort.by(orderBySort.order()));
         
         final var endedSince = (initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now()).toInstant();
         
-        return workflowRepository
+        final var result = workflowRepository
                 .findActive(endedSince, pageRequest)
                 .collectList()
                 .zipWith(workflowRepository.countActive(endedSince))
-                .map(t -> new PageImpl<>(t.getT1(), pageRequest, t.getT2()));
+                .map(results -> PageableExecutionUtils.getPage(
+                        results.getT1(),
+                        pageRequest,
+                        results::getT2));
+
+        // build index before retrieving data if necessary
+        if (orderBySort.toBeIndexed() == null) {
+            return result;
+        }
+        try {
+            sortAndFilterIndexReadLock.lock();
+            if (sortAndFilterIndexes.contains(sort)) {
+                return result;
+            }
+        } finally {
+            sortAndFilterIndexReadLock.unlock();
+        }
+
+        try {
+            sortAndFilterIndexWriteLock.lock();
+            if (sortAndFilterIndexes.contains(sort)) {
+                return result;
+            }
+            final var newIndex = new Index();
+            orderBySort
+                    .toBeIndexed()
+                    .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
+            newIndex.on("createdAt", Sort.Direction.ASC)
+                    .on("_id", Sort.Direction.ASC)
+                    .named(INDEX_CUSTOM_SORT_PREFIX + sort);
+            return mongoTemplate
+                    .indexOps(Workflow.COLLECTION_NAME)
+                    .ensureIndex(newIndex)
+                    .flatMap(unknown -> {
+                        sortAndFilterIndexes.add(sort);
+                        return result;
+                    })
+                    .onErrorResume(e -> {
+                        sortAndFilterIndexes.add(sort);
+                        logger.error("Could not create Mongo-DB index for sorting and filtering of workflowlist", e);
+                        return result;
+                    });
+        } finally {
+            sortAndFilterIndexWriteLock.unlock();
+        }
 
     }
 
+    private static record WorkflowListOrder(List<Order> order, List<String> toBeIndexed) {}
 
+    private WorkflowlistService.WorkflowListOrder getWorkflowListOrder(
+            final String sort,
+            final boolean sortAscending) {
+
+        List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
+        final List<String> nonDefaultSort;
+        if ((sort != null)
+                && !sort.equals("dueDate")) {
+            nonDefaultSort = new LinkedList<>();
+            final var newOrder = new LinkedList<Order>();
+            Arrays
+                    .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
+                    .peek(nonDefaultSort::add)
+                    .map(languageBasedSort -> sortAscending
+                            ? Order.asc(languageBasedSort)
+                            : Order.desc(languageBasedSort))
+                    .forEach(newOrder::add);
+            newOrder.addAll(order); // default order
+            order = newOrder;
+        } else {
+            nonDefaultSort = null;
+        }
+        return new WorkflowlistService.WorkflowListOrder(order, nonDefaultSort);
+
+    }
     public Mono<Page<Workflow>> getWorkflowsUpdated(
             final int size,
             final Collection<String> knownWorkflowIds,
-            final OffsetDateTime initialTimestamp) {
+            final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending) {
 
+        final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
-                .withSort(DEFAULT_SORT);
+                .withSort(Sort.by(orderBySort.order()));
 
         final var endedSince = initialTimestamp.toInstant();
         

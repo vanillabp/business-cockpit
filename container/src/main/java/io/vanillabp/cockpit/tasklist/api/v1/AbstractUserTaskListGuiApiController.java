@@ -87,7 +87,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						timestamp,
 						entry.getT2().getSort(),
 						entry.getT2().getSortAscending())
-						.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
+				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
 				.map(ResponseEntity::ok);
 
 	}

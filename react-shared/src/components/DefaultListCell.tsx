@@ -97,6 +97,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     if (column.path === 'dueDate') {
       value = toLocaleDateString(item.data.dueDate);
       tip = toLocaleStringWithoutSeconds(item.data.dueDate);
+      align = 'right';
     } else {
       value = toLocaleTimeStringWithoutSeconds(propertyValue);
     }
@@ -108,10 +109,12 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     if (dateMatch) {
       if (propertyValue.length === 10) {
         value = toLocaleDateString(new Date(Date.parse(propertyValue as string)));
+        align = 'right';
       } else if (column.path.endsWith('.dueDate')) {
         const tmpDate = new Date(Date.parse(propertyValue as string));
         value = toLocaleDateString(tmpDate);
         tip = toLocaleStringWithoutSeconds(tmpDate);
+        align = 'right';
       } else {
         const tmpDate = new Date(Date.parse(propertyValue as string));
         value = toLocaleStringWithoutSeconds(tmpDate);

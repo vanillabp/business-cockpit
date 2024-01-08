@@ -23,6 +23,7 @@ import {
   ModuleDefinition,
   NavigateToWorkflowFunction,
   OpenTaskFunction,
+  RefreshItemCallbackFunction,
   ReloadCallbackFunction,
   SearchableAndSortableUpdatingList,
   TypeOfItem,
@@ -31,6 +32,13 @@ import {
   WorkflowlistApiHook
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
+import { ListColumnHeader } from "./ListColumnHeader.js";
+
+const minWidthOfTitleColumn = '20rem';
+
+interface ColumnWidthAdjustments {
+  [key: string]: number
+}
 
 const loadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
@@ -38,10 +46,12 @@ const loadWorkflows = async (
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
+  sort: string | undefined,
+  sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
   const result = await workflowlistApi
-        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, initialTimestamp);
+        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
 
@@ -61,6 +71,8 @@ const reloadWorkflows = async (
   numberOfItems: number,
   knownItemsIds: Array<string>,
   initialTimestamp: Date | undefined,
+  sort: string | undefined,
+  sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
 
@@ -68,6 +80,8 @@ const reloadWorkflows = async (
       new Date().getTime().toString(),
       numberOfItems,
       knownItemsIds,
+      sort,
+      sortAscending,
       initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
@@ -106,6 +120,8 @@ const ListOfWorkflows = ({
   openTask,
   navigateToWorkflow,
   currentLanguage,
+  defaultSort,
+  defaultSortAscending,
   t,
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
@@ -114,6 +130,8 @@ const ListOfWorkflows = ({
   openTask: OpenTaskFunction,
   navigateToWorkflow: NavigateToWorkflowFunction,
   currentLanguage: string,
+  defaultSort?: string,
+  defaultSortAscending?: boolean,
   t: TranslationFunction,
 }) => {
 
@@ -121,6 +139,7 @@ const ListOfWorkflows = ({
 
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
+  const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<WorkflowEvent>>>) => {
@@ -132,26 +151,35 @@ const ListOfWorkflows = ({
       updateList,
       /^Workflow$/
   );
+  const refreshItemRef = useRef<RefreshItemCallbackFunction | undefined>(undefined);
 
   const workflows = useRef<Array<ListItem<Workflow>> | undefined>(undefined);
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
   const [ modulesOfWorkflows, setModulesOfWorkflows ] = useState<Workflow[] | undefined>(undefined);
+  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
         const result = await workflowlistApi
-            .getWorkflows(new Date().getTime().toString(), 0, 100);
-        setNumberOfWorkflows(result.page.totalElements);
+            .getWorkflows(new Date().getTime().toString(), 0, 100, undefined, true);
         const moduleDefinitions = result
             .workflows
             .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
                 ? moduleDefinitions : moduleDefinitions.concat(workflow), new Array<Workflow>());
         setModulesOfWorkflows(moduleDefinitions);
         const workflowDefinitions: DefinitionOfWorkflow = {};
-        result
+        const titleLanguages = result
             .workflows
-            .forEach(workflow => workflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow);
+            .map(workflow => workflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow)
+            .flatMap(workflow => Object.keys(workflow.title))
+            .reduce((allLanguages, titleLanguage) => {
+              if (!allLanguages.includes(titleLanguage)) {
+                allLanguages.push(titleLanguage);
+              }
+              return allLanguages;
+            }, new Array<string>(currentLanguage));
         setDefinitionsOfWorkflows(workflowDefinitions);
+        setLanguagesOfTitles(titleLanguages);
       };
       if (workflows.current === undefined) {
         showLoadingIndicator(true);
@@ -160,7 +188,7 @@ const ListOfWorkflows = ({
     },
     // workflowlistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by workflows
-    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator ]);
+    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
@@ -203,12 +231,51 @@ const ListOfWorkflows = ({
       return;
     }
     setColumnsOfWorkflows(orderedColumns);
-  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows ]);
+  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator ]);
+
+  const [ allSelected, setAllSelected ] = useState(false);
+  const [ anySelected, setAnySelected ] = useState(false);
+  const [ refreshNecessary, setRefreshNecessary ] = useState(false);
+  const [ sort, _setSort ] = useState<string | undefined>(defaultSort);
+  const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
+
+  const refreshList = () => {
+    workflows.current = undefined;
+    setRefreshNecessary(false);
+    setColumnsOfWorkflows(undefined);
+    setRefreshIndicator(new Date());
+  }
+  const setSort = (column?: Column) => {
+    if (column) {
+      if (column.path === 'title') {
+        _setSort('title.' + languagesOfTitles.join(',title.'))
+      } else {
+        _setSort(column.path);
+      }
+    } else {
+      _setSort(defaultSort);
+    }
+    _setSortAscending(defaultSortAscending === undefined ? true : defaultSortAscending);
+    refreshList();
+  };
+  const setSortAscending = (sortAscending: boolean) => {
+    _setSortAscending(sortAscending);
+    refreshList();
+  }
 
   const openWorkflow = async (workflow: Workflow) => {
     navigateToWorkflow(workflow);
   };
-    
+
+  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
+  const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
+  const getColumnSize = (column: string, width: string) => `max(4rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
+  const setColumnWidthAdjustment = (column: string, adjustment: number) => {
+    const current = columnWidthAdjustments[column];
+    if (current === adjustment) return;
+    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
+  };
+
   const columns: ColumnConfig<ListItem<BcWorkflow>>[] =
       [
           { property: 'id',
@@ -218,22 +285,77 @@ const ListOfWorkflows = ({
             plain: true,
             header: <Box
                         align="center">
-                      <CheckBox />
+                      <CheckBox
+                          checked={ allSelected }
+                          onChange={ event => {
+                            (refreshItemRef.current!)(
+                                workflows
+                                    .current!
+                                    .reduce((allItemIds, item) => {
+                                      item.selected = event.currentTarget.checked;
+                                      allItemIds.push(item.id);
+                                      return allItemIds;
+                                    }, new Array<string>())
+                            );
+                            setAllSelected(event.currentTarget.checked);
+                            if (anySelected !== event.currentTarget.checked) {
+                              setAnySelected(event.currentTarget.checked);
+                            }
+                          } } />
                     </Box>,
-            render: (_item: ListItem<BcWorkflow>) => (
+            render: (item: ListItem<BcWorkflow>) => (
                 <Box
                     align="center">
-                  <CheckBox />
+                  <CheckBox
+                      checked={ item.selected }
+                      onChange={ event => {
+                        item.selected = event.currentTarget.checked;
+                        (refreshItemRef.current!)([ item.id ]);
+                        const currentlyAllSelected = workflows
+                            .current!
+                            .reduce((allSelected, workflow) => allSelected && workflow.selected, true);
+                        if (currentlyAllSelected !== allSelected) {
+                          setAllSelected(currentlyAllSelected);
+                        }
+                        const currentlyAnySelected = workflows
+                            .current!
+                            .reduce((anySelected, workflow) => anySelected || workflow.selected, false);
+                        if (anySelected !== currentlyAnySelected) {
+                          setAnySelected(currentlyAnySelected);
+                        }
+                      } } />
                 </Box>)
           },
           { property: 'name',
-            header: t('name'),
-            size: `calc(100% - 2.2rem${columnsOfWorkflows === undefined ? 'x' : columnsOfWorkflows!.reduce((r, column) => `${r} - ${column.width}`, '')})`,
+            header: <ListColumnHeader
+                currentLanguage={ currentLanguage }
+                column={ {
+                  path: 'title',
+                  show: true,
+                  sortable: true,
+                  filterable: true,
+                  title: { [currentLanguage]: t('column_title') },
+                  width: '',
+                  priority: -1,
+                }}
+                setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
+                setSort={ setSort }
+                sortAscending={ sortAscending }
+                setSortAscending={ setSortAscending} />,
+            plain: true,
             render: (item: ListItem<BcWorkflow>) => {
-                const title = item.data['title'][currentLanguage] || item.data['title']['en'];
+                const titleLanguages = Object.keys(item.data['title']);
+                let title;
+                if (titleLanguages.includes(currentLanguage)) {
+                  title = item.data['title'][currentLanguage];
+                } else {
+                  title = item.data['title'][titleLanguages[0]];
+                }
                 return (
                     <Box
                         fill
+                        style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } }
                         pad="xsmall">
                       <Text
                           color={ colorForEndedItemsOrUndefined(item) }
@@ -255,8 +377,15 @@ const ListOfWorkflows = ({
               ? []
               : columnsOfWorkflows!.map(column => ({
                     property: column.path,
-                    header: column.title[currentLanguage] || column.title['en'],
-                    size: column.width,
+                    header: <ListColumnHeader
+                        currentLanguage={ currentLanguage }
+                        setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                        sort={ sort === column.path }
+                        setSort={ setSort }
+                        sortAscending={ sortAscending }
+                        setSortAscending={ setSortAscending }
+                        column={ column } />,
+                    size: getColumnSize(column.path, column.width),
                     plain: true,
                     render: (item: ListItem<BcWorkflow>) => <ListCell
                                                               modulesAvailable={ modules! }
@@ -291,42 +420,53 @@ const ListOfWorkflows = ({
           getUserTasks: getUserTasksFunction,
         };
     };
-  
+
   return (
       <Grid
           rows={ [ 'auto', '2rem' ] }
           fill>
-        <Box>
-          <SearchableAndSortableUpdatingList
-              t={ t }
-              showLoadingIndicator={ showLoadingIndicator }
-              columns={ columns }
-              itemsRef={ workflows }
-              updateListRef= { updateListRef }
-              retrieveItems={ (pageNumber, pageSize, initialTimestamp) => 
+        {
+          (columnsOfWorkflows === undefined)
+              ? <Box key="list"></Box>
+              : <Box key="list">
+                  <SearchableAndSortableUpdatingList
+                      t={ t }
+                      showLoadingIndicator={ showLoadingIndicator }
+                      minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
+                      columns={ columns }
+                      itemsRef={ workflows }
+                      updateListRef= { updateListRef }
+                      refreshItemRef={ refreshItemRef }
+                      refreshNecessaryCallback={ () => setRefreshNecessary(true) }
+                      retrieveItems={ (pageNumber, pageSize, initialTimestamp) =>
 // @ts-ignore
-                  loadWorkflows(
-                      workflowlistApi,
-                      setNumberOfWorkflows,
-                      pageSize,
-                      pageNumber,
-                      initialTimestamp,
-                      mapToBcWorkflow) }
-              reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
+                          loadWorkflows(
+                              workflowlistApi,
+                              setNumberOfWorkflows,
+                              pageSize,
+                              pageNumber,
+                              initialTimestamp,
+                              sort,
+                              sortAscending,
+                              mapToBcWorkflow) }
+                      reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
-                  reloadWorkflows(
-                      workflowlistApi,
-                      setNumberOfWorkflows,
-                      modulesOfWorkflows,
-                      setModulesOfWorkflows,
-                      definitionsOfWorkflows,
-                      setDefinitionsOfWorkflows,
-                      numberOfItems,
-                      updatedItemsIds,
-                      initialTimestamp,
-                      mapToBcWorkflow) }
-            />
-        </Box>
+                          reloadWorkflows(
+                              workflowlistApi,
+                              setNumberOfWorkflows,
+                              modulesOfWorkflows,
+                              setModulesOfWorkflows,
+                              definitionsOfWorkflows,
+                              setDefinitionsOfWorkflows,
+                              numberOfItems,
+                              updatedItemsIds,
+                              initialTimestamp,
+                              sort,
+                              sortAscending,
+                              mapToBcWorkflow) }
+                    />
+                </Box>
+        }
         <Box
             direction='row'
             justify='between'

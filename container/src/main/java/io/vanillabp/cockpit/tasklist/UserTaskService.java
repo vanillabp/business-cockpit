@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
-import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
@@ -88,8 +87,6 @@ public class UserTaskService {
 
     private Disposable dbChangesSubscription;
 
-    private ApplicationProperties properties;
-    
     @PostConstruct
     public void subscribeToDbChanges() {
         

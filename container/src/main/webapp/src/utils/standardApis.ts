@@ -58,10 +58,10 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
 const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): WorkflowlistApi => {
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   return {
-    getWorkflows: (listId, pageNumber, pageSize, initialTimestamp) => workflowlistApi
-        .getWorkflows({ pageNumber, pageSize, initialTimestamp }),
-    getWorkflowsUpdate: (listId, size, knownWorkflowsIds, initialTimestamp) => workflowlistApi
-        .getWorkflowsUpdate({ workflowsUpdate: { size, knownWorkflowsIds, initialTimestamp } }),
+    getWorkflows: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => workflowlistApi
+        .getWorkflows({ pageNumber, pageSize, initialTimestamp, workflowsRequest: { sort, sortAscending } }),
+    getWorkflowsUpdate: (listId, size, knownWorkflowsIds, sort, sortAscending, initialTimestamp) => workflowlistApi
+        .getWorkflowsUpdate({ workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, initialTimestamp } }),
     getWorkflow: workflowId => workflowlistApi
         .getWorkflow({ workflowId }),
     getUserTasksOfWorkflow: (workflowId, activeOnlyRequested, limitListAccordingToCurrentUsersPermissions) => workflowlistApi
