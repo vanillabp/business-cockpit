@@ -7,12 +7,13 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
-@Mapper
+@Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
 public abstract class ProtobufUserTaskMapper {
 
     @Mapping(target = "id", source = "userTaskId")

@@ -184,6 +184,7 @@
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>
@@ -202,10 +203,11 @@
       <artifactId>official-gui-api-server-reactive</artifactId>
       <version>${project.version}</version>
     </dependency>
-      <dependency>
-          <groupId>io.vanillabp.businesscockpit</groupId>
-          <artifactId>bpms-protobuf-api</artifactId>
-        <version>${project.version}</version>
-      </dependency>
+    <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>bpms-protobuf-api</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
 </project>

@@ -8,27 +8,26 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
-@Controller
-@Profile("kafka")
 public class KafkaUserTaskController {
 
-    @Autowired
-    private ProtobufUserTaskMapper protobufUserTaskMapper;
+    private final ProtobufUserTaskMapper protobufUserTaskMapper;
 
-    @Autowired
-    private UserTaskService userTaskService;
+    private final UserTaskService userTaskService;
 
     private static final String CLIENT_ID = "user-task-client";
+
+    public KafkaUserTaskController(UserTaskService userTaskService,
+                                   ProtobufUserTaskMapper protobufUserTaskMapper) {
+        this.protobufUserTaskMapper = protobufUserTaskMapper;
+        this.userTaskService = userTaskService;
+    }
 
 
     @KafkaListener(topics = "${business-cockpit.kafka-topics.user-task}",

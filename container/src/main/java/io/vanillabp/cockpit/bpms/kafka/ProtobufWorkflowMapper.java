@@ -6,11 +6,12 @@ import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
 import java.time.OffsetDateTime;
 
-@Mapper
+@Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
 public abstract class ProtobufWorkflowMapper {
 
     @Mapping(target = "id", source = "workflowId")

@@ -7,27 +7,26 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
-@Controller
-@Profile("kafka")
 public class KafkaWorkflowController {
 
-    @Autowired
-    private ProtobufWorkflowMapper workflowMapper;
+    private final ProtobufWorkflowMapper workflowMapper;
 
-    @Autowired
-    private WorkflowlistService workflowlistService;
+    private final WorkflowlistService workflowlistService;
 
     private static final String CLIENT_ID = "workflow-client";
+
+    public KafkaWorkflowController(WorkflowlistService workflowlistService,
+                                   ProtobufWorkflowMapper workflowMapper) {
+        this.workflowlistService = workflowlistService;
+        this.workflowMapper = workflowMapper;
+    }
 
 
     @KafkaListener(topics = "${business-cockpit.kafka-topics.workflow}",
