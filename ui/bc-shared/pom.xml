@@ -4,12 +4,12 @@
 
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>business-cockpit-parent</artifactId>
+    <artifactId>ui</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
   <packaging>pom</packaging>
-  <artifactId>react-shared</artifactId>
+  <artifactId>bc-shared</artifactId>
   <name>Used to build '@vanillabp/bc-shared' npm package</name>
 
   <build>

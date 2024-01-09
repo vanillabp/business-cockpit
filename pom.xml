@@ -19,7 +19,6 @@
     <module>commons</module>
     <module>openapi-generator-fixes</module>
     <module>apis</module>
-    <module>react-shared</module>
     <module>ui</module>
     <module>container</module>
     <module>development</module>
@@ -37,7 +36,6 @@
           <configuration>
             <classifier>runnable</classifier>
             <executable>true</executable>
-            <fork>true</fork>
           </configuration>
         </plugin>
         <plugin>
