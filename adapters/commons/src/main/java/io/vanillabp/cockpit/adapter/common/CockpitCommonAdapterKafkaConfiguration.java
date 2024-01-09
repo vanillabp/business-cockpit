@@ -11,7 +11,6 @@ import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowProtobufMapper
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,16 +18,13 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.kafka.DefaultKafkaProducerFactoryCustomizer;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
-import org.springframework.kafka.support.converter.RecordMessageConverter;
 
 import java.util.Map;
 
@@ -86,34 +82,18 @@ public class CockpitCommonAdapterKafkaConfiguration {
 
     @Bean
     public KafkaTemplate<String, byte[]> businessCockpitKafkaTemplate(
-            @Qualifier("businessCockpitKafkaProducerFactory") ProducerFactory<String, byte[]> kafkaProducerFactory,
-            ObjectProvider<RecordMessageConverter> messageConverter) {
-
-        PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
-        KafkaTemplate<String, byte[]> kafkaTemplate = new KafkaTemplate<>(kafkaProducerFactory);
-        messageConverter.ifUnique(kafkaTemplate::setMessageConverter);
-
-        map.from(this.kafkaProperties.getTemplate().getDefaultTopic()).to(kafkaTemplate::setDefaultTopic);
-        map.from(this.kafkaProperties.getTemplate().getTransactionIdPrefix()).to(kafkaTemplate::setTransactionIdPrefix);
-        return kafkaTemplate;
+            @Qualifier("businessCockpitKafkaProducerFactory") ProducerFactory<String, byte[]> kafkaProducerFactory) {
+        return new KafkaTemplate<>(kafkaProducerFactory);
     }
 
     @Bean
-    public DefaultKafkaProducerFactory<String, byte[]> businessCockpitKafkaProducerFactory(
-            ObjectProvider<DefaultKafkaProducerFactoryCustomizer> customizers) {
+    public DefaultKafkaProducerFactory<String, byte[]> businessCockpitKafkaProducerFactory() {
         Map<String, Object> configs = this.kafkaProperties.buildProducerProperties();
 
         configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
 
-        DefaultKafkaProducerFactory<String, byte[]> factory = new DefaultKafkaProducerFactory<>(
-                configs);
-        String transactionIdPrefix = this.kafkaProperties.getProducer().getTransactionIdPrefix();
-        if (transactionIdPrefix != null) {
-            factory.setTransactionIdPrefix(transactionIdPrefix);
-        }
-        customizers.orderedStream().forEach((customizer) -> customizer.customize(factory));
-        return factory;
+        return new DefaultKafkaProducerFactory<>(configs);
     }
 
 }

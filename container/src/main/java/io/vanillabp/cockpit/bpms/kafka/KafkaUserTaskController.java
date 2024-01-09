@@ -31,7 +31,7 @@ public class KafkaUserTaskController {
 
 
     @KafkaListener(topics = "${business-cockpit.kafka-topics.user-task}",
-            clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID,
+            clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX)
     public void consumeUserTaskEvent(ConsumerRecord<String, byte[]> record) {
         try {
