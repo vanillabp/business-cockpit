@@ -1,7 +1,7 @@
 name: Publish to GitHub Packages
 on: push
 jobs:
-  delete-snapshot-npm-package-1:
+  delete-snapshot-npm-bc-official-gui-client:
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
@@ -29,10 +29,10 @@ jobs:
           package-name: 'bc-official-gui-client'
           package-type: 'npm'
           package-version-ids: ${{ env.PACKAGE_ID }}
-  delete-snapshot-npm-package-2:
+  delete-snapshot-npm-bc-shared:
     runs-on: ubuntu-latest
     continue-on-error: true
-    needs: delete-snapshot-npm-package-1
+    needs: delete-snapshot-npm-bc-official-gui-client
     permissions:
       contents: read
       packages: write
@@ -58,10 +58,10 @@ jobs:
           package-name: 'bc-shared'
           package-type: 'npm'
           package-version-ids: ${{ env.PACKAGE_ID }}
-  delete-snapshot-npm-package-3:
+  delete-snapshot-npm-bc-ui:
     runs-on: ubuntu-latest
     continue-on-error: true
-    needs: delete-snapshot-npm-package-2
+    needs: delete-snapshot-npm-bc-shared
     permissions:
       contents: read
       packages: write
@@ -87,10 +87,10 @@ jobs:
           package-name: 'bc-ui'
           package-type: 'npm'
           package-version-ids: ${{ env.PACKAGE_ID }}
-  delete-snapshot-npm-package-4:
+  delete-snapshot-npm-bc-dev-shell:
     runs-on: ubuntu-latest
     continue-on-error: true
-    needs: delete-snapshot-npm-package-3
+    needs: delete-snapshot-npm-bc-ui
     permissions:
       contents: read
       packages: write
@@ -116,9 +116,67 @@ jobs:
           package-name: 'bc-dev-shell'
           package-type: 'npm'
           package-version-ids: ${{ env.PACKAGE_ID }}
+  delete-snapshot-npm-bc-ui-types:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: delete-snapshot-npm-bc-dev-shell
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            pom.xml
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: 'maven'
+      - id: get-version
+        uses: jactions/maven-version@v1.2.0
+      - id: get-package-id
+        run: |
+          VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-ui-types/versions)
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
+      - uses: actions/delete-package-versions@v4.1.1
+        with:
+          package-name: 'bc-ui-types'
+          package-type: 'npm'
+          package-version-ids: ${{ env.PACKAGE_ID }}
+  delete-snapshot-npm-bc-ui-grommet:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: delete-snapshot-npm-bc-ui-types
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            pom.xml
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: 'maven'
+      - id: get-version
+        uses: jactions/maven-version@v1.2.0
+      - id: get-package-id
+        run: |
+          VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-ui-grommet/versions)
+          ID=$(echo $VERSIONS | jq --exit-status '.[] | select(.name == "${{ steps.get-version.outputs.version }}") | .id')
+          echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
+      - uses: actions/delete-package-versions@v4.1.1
+        with:
+          package-name: 'bc-ui-grommet'
+          package-type: 'npm'
+          package-version-ids: ${{ env.PACKAGE_ID }}
   publish:
     runs-on: ubuntu-latest
-    needs: delete-snapshot-npm-package-4
+    needs: delete-snapshot-npm-bc-ui-grommet
     permissions:
       contents: read
       packages: write

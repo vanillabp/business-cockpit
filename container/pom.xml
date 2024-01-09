@@ -99,7 +99,7 @@
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-ui</arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-ui @vanillabp/bc-ui-grommet</arguments>
             </configuration>
           </execution>
         </executions>

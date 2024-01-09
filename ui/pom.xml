@@ -13,8 +13,11 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>bc-ui-types</module>
         <module>bc-shared</module>
         <module>bc-ui</module>
+        <module>bc-ui-grommet</module>
+        <module>bc-ui-material</module>
     </modules>
 </project>
 

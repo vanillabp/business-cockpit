@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
+import { BcUiButton, BcUiButtonGroup, BcUiHide, BcUiShow, } from "@vanillabp/bc-ui-types";
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
@@ -34,7 +35,7 @@ import {
   useFederationModules
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
-import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
+import { Blank, ContactInfo, FormTrash, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
 import { ListColumnHeader } from "./ListColumnHeader.js";
 
@@ -143,46 +144,20 @@ const SetReadStatusButtons = ({
   markAsRead: () => void,
   markAsUnread: () => void,
 }) => {
-  const color = disabled ? 'light-4' : 'dark-3';
-  const textColor = disabled ? 'dark-4' : 'dark-1';
-
-  return (<Box
-              direction="row"
-              round={ { size: '0.4rem' } }
-              border={ { color } }
-              elevation="small">
-            <Tip
-                content={ t('mark_as_read') }>
-              <Box
-                  hoverIndicator="light-2"
-                  focusIndicator={ false }
-                  onClick={ markAsRead }
-                  width="2rem"
-                  height="2rem"
-                  round={ { size: '0.4rem', corner: 'left' } }
-                  align="center"
-                  justify="center">
-                <FormView
-                    color={ textColor } />
-              </Box>
-            </Tip>
-            <Tip
-                content={ t('mark_as_unread') }>
-              <Box
-                  hoverIndicator="light-2"
-                  focusIndicator={ false }
-                  onClick={ markAsUnread }
-                  width="2rem"
-                  height="2rem"
-                  round={ { size: '0.4rem', corner: 'right' } }
-                  align="center"
-                  justify="center"
-                  border={ { color, side: 'left' } }>
-                <Hide
-                    color={ textColor } />
-              </Box>
-            </Tip>
-          </Box>);
+  return (
+      <BcUiButtonGroup
+          size="small"
+          color="secondary"
+          disabled={ disabled }>
+        <BcUiButton
+            icon={ <BcUiShow color="secondary" /> }
+            onClick={ markAsRead }
+            tip={ t('mark_as_read') } />
+        <BcUiButton
+            icon={ <BcUiHide color="secondary" /> }
+            onClick={ markAsUnread }
+            tip={ t('mark_as_unread') } />
+      </BcUiButtonGroup>);
 
 }
 

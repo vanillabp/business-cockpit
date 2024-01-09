@@ -4,6 +4,7 @@ const { dependencies } = require('./package.json');
 const path = require("path");
 
 const aliases = {
+  '@vanillabp/bc-ui-types': path.join(path.resolve(__dirname, '.'), "node_modules", "@vanillabp", "bc-ui-grommet"),
   'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
   'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
   'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom"),

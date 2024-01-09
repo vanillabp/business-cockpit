@@ -10,8 +10,8 @@
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>bc-ui</artifactId>
-  <name>Used to build '@vanillabp/bc-ui' npm package</name>
+  <artifactId>bc-ui-types</artifactId>
+  <name>Used to build '@vanillabp/bc-ui-types' npm package</name>
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
@@ -48,16 +48,6 @@
           <workingDirectory>${project.basedir}</workingDirectory>
         </configuration>
         <executions>
-          <execution>
-            <id>link-dependent-packages</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <configuration>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-ui-types</arguments>
-            </configuration>
-          </execution>
           <execution>
             <id>link-for-other-packages</id>
             <phase>generate-resources</phase>
