@@ -51,24 +51,15 @@ public class UserTaskKafkaPublishing implements UserTaskPublishing {
     }
 
     @Override
-    public void publish(String apiVersion, List<UserTaskEvent> events) {
-
-        if (apiVersion.equals("v1")) {
-            try {
-                events.forEach(this::processEventV1);
-            } catch (Exception e) {
-                logger.error("Could not publish events", e);
-            }
-        } else {
-            throw new RuntimeException(
-                    "Unsupported BPMS-API version '"
-                            + apiVersion
-                            + "'! The event is to old to be processed!");
+    public void publish(List<UserTaskEvent> events) {
+        try {
+            events.forEach(this::processEvent);
+        } catch (Exception e) {
+            logger.error("Could not publish events", e);
         }
-
     }
 
-    private void processEventV1(UserTaskEvent eventObject) {
+    private void processEvent(UserTaskEvent eventObject) {
 
         if (eventObject instanceof UserTaskUpdatedEvent userTaskUpdatedEvent){
 

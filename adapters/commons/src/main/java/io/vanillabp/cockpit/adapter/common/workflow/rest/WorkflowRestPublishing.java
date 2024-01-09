@@ -22,7 +22,7 @@ public class WorkflowRestPublishing implements WorkflowPublishing {
 
     private String workerId;
 
-    private final Optional<BpmsApi> bpmsApiV1;
+    private final Optional<BpmsApi> bpmsApi;
 
     private final CockpitProperties properties;
 
@@ -32,12 +32,12 @@ public class WorkflowRestPublishing implements WorkflowPublishing {
 
     public WorkflowRestPublishing(
             final String workerId,
-            final Optional<BpmsApi> bpmsApiV1,
+            final Optional<BpmsApi> bpmsApi,
             final CockpitProperties properties,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final WorkflowRestMapper workflowMapper) {
         this.workerId = workerId;
-        this.bpmsApiV1 = bpmsApiV1;
+        this.bpmsApi = bpmsApi;
         this.properties = properties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.workflowMapper = workflowMapper;
@@ -46,7 +46,7 @@ public class WorkflowRestPublishing implements WorkflowPublishing {
     @PostConstruct
     @javax.annotation.PostConstruct
     public void validateAutowiring() {
-        if (bpmsApiV1.isPresent()) {
+        if (bpmsApi.isPresent()) {
             return;
         }
         
@@ -58,60 +58,46 @@ public class WorkflowRestPublishing implements WorkflowPublishing {
     }
     
     public void publish(
-            final String apiVersion,
             final List<WorkflowEvent> events) {
-        
-        if (apiVersion.equals("v1")) {
-            
-            try {
-                processEventV1(events);
-            } catch (Exception e) {
-                logger.error("Could not publish events", e);
-            }
-            
-        } else {
-            throw new RuntimeException(
-                    "Unsupported BPMS-API version '"
-                    + apiVersion
-                    + "'! The event is to old to be processed!");
+        try {
+            events.forEach(this::processEvent);
+        } catch (Exception e) {
+            logger.error("Could not publish events", e);
         }
     }
     
-    private void processEventV1(
-            final List<?> events) {
-        events
-            .forEach(eventObject -> {
-                if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
+    private void processEvent(
+            final WorkflowEvent eventObject) {
+        if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
 
-                    editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);
-                    final var event = workflowMapper.map(workflowUpdatedEvent);
-                    bpmsApiV1.get().workflowUpdatedEvent(event.getWorkflowId(), event);
+            editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);
+            final var event = workflowMapper.map(workflowUpdatedEvent);
+            bpmsApi.get().workflowUpdatedEvent(event.getWorkflowId(), event);
 
-                } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
+        } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
 
-                    editWorkflowCreatedOrUpdatedEvent(workflowCreatedEvent);
-                    final var event = workflowMapper.map(workflowCreatedEvent);
-                    bpmsApiV1.get().workflowCreatedEvent(event);
+            editWorkflowCreatedOrUpdatedEvent(workflowCreatedEvent);
+            final var event = workflowMapper.map(workflowCreatedEvent);
+            bpmsApi.get().workflowCreatedEvent(event);
 
-                } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent workflowCancelledEvent){
+        } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent workflowCancelledEvent){
 
-                    final var event = workflowMapper.map(workflowCancelledEvent);
-                    bpmsApiV1.get().workflowCancelledEvent(event.getWorkflowId(), event);
+            final var event = workflowMapper.map(workflowCancelledEvent);
+            bpmsApi.get().workflowCancelledEvent(event.getWorkflowId(), event);
 
-                } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
+        } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
 
-                    final var event = workflowMapper.map(workflowCompletedEvent);
-                    bpmsApiV1.get().workflowCompletedEvent(event.getWorkflowId(), event);
-                }
-                // else if suspended
-                // else if activated
-                else {
-                    throw new RuntimeException(
-                            "Unsupported event type '"
-                            + eventObject.getClass().getName()
-                            + "'!");
-                }
-        });
+            final var event = workflowMapper.map(workflowCompletedEvent);
+            bpmsApi.get().workflowCompletedEvent(event.getWorkflowId(), event);
+        }
+        // else if suspended
+        // else if activated
+        else {
+            throw new RuntimeException(
+                    "Unsupported event type '"
+                    + eventObject.getClass().getName()
+                    + "'!");
+        }
     }
 
     private void editWorkflowCreatedOrUpdatedEvent(WorkflowCreatedEvent eventObject) {

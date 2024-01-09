@@ -11,14 +11,9 @@ public class WorkflowLifecycleEvent implements WorkflowEvent {
     private String comment;
     private String bpmnProcessId;
     private String bpmnProcessVersion;
-    private String apiVersion;
 
 
     public WorkflowLifecycleEvent() {
-    }
-
-    public WorkflowLifecycleEvent(String apiVersion) {
-        this.apiVersion = apiVersion;
     }
 
     @Override
@@ -89,14 +84,5 @@ public class WorkflowLifecycleEvent implements WorkflowEvent {
 
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         this.bpmnProcessVersion = bpmnProcessVersion;
-    }
-
-    @Override
-    public String getApiVersion() {
-        return apiVersion;
-    }
-
-    public void setApiVersion(String apiVersion) {
-        this.apiVersion = apiVersion;
     }
 }

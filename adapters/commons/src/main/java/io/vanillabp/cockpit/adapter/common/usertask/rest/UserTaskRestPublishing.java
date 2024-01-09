@@ -70,72 +70,53 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
 
     @Override
     public void publish(
-            final String apiVersion,
             final List<UserTaskEvent> events) {
-        
-        if (apiVersion.equals("v1")) {
-            
-            try {
-                processEventV1(events);
-            } catch (Exception e) {
-                logger.error("Could not publish events", e);
-            }
-            
-        } else {
-            
-            throw new RuntimeException(
-                    "Unsupported BPMS-API version '"
-                    + apiVersion
-                    + "'! The event is to old to be processed!");
-            
+        try {
+            events.forEach(this::processEvent);
+        } catch (Exception e) {
+            logger.error("Could not publish events", e);
         }
     }
     
-    public void processEventV1(
-            final List<?> events) {
+    public void processEvent(UserTaskEvent eventObject) {
 
-        events.forEach(eventObject -> {
+        if (eventObject instanceof UserTaskUpdatedEvent userTaskUpdatedEvent){
+            editUserTaskCreatedOrUpdatedEvent(userTaskUpdatedEvent);
+            final var event = this.userTaskMapper.map(userTaskUpdatedEvent);
+            bpmsApiV1.get().userTaskUpdatedEvent(event.getUserTaskId(), event);
 
-            if (eventObject instanceof UserTaskUpdatedEvent userTaskUpdatedEvent){
-                editUserTaskCreatedOrUpdatedEvent(userTaskUpdatedEvent);
-                final var event = this.userTaskMapper.map(userTaskUpdatedEvent);
-                bpmsApiV1.get().userTaskUpdatedEvent(event.getUserTaskId(), event);
+        } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
+            editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
+            final var event = this.userTaskMapper.map(userTaskCreatedEvent);
+            bpmsApiV1.get().userTaskCreatedEvent(event);
 
-            } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
-                editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
-                final var event = this.userTaskMapper.map(userTaskCreatedEvent);
-                bpmsApiV1.get().userTaskCreatedEvent(event);
+        } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
 
-            } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
-                
-                final var event = userTaskMapper.map(userTaskCompletedEvent);
-                bpmsApiV1.get().userTaskCompletedEvent(event.getUserTaskId(), event);
-                
-            } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
-                
-                final var event = userTaskMapper.map(userTaskCancelledEvent);
-                bpmsApiV1.get().userTaskCancelledEvent(event.getUserTaskId(), event);
-                
-            } else if (eventObject instanceof UserTaskActivatedEvent userTaskActivatedEvent) {
-                
-                final var event = userTaskMapper.map(userTaskActivatedEvent);
-                bpmsApiV1.get().userTaskActivatedEvent(event.getUserTaskId(), event);
-                
-            } else if (eventObject instanceof UserTaskSuspendedEvent userTaskSuspendedEvent) {
+            final var event = userTaskMapper.map(userTaskCompletedEvent);
+            bpmsApiV1.get().userTaskCompletedEvent(event.getUserTaskId(), event);
 
-                final var event = userTaskMapper.map(userTaskSuspendedEvent);
-                bpmsApiV1.get().userTaskSuspendedEvent(event.getUserTaskId(), event);
-                
-            } else {
-                
-                throw new RuntimeException(
-                        "Unsupported event type '"
-                        + eventObject.getClass().getName()
-                        + "'!");
-                
-            }
-            
-        });
+        } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
+
+            final var event = userTaskMapper.map(userTaskCancelledEvent);
+            bpmsApiV1.get().userTaskCancelledEvent(event.getUserTaskId(), event);
+
+        } else if (eventObject instanceof UserTaskActivatedEvent userTaskActivatedEvent) {
+
+            final var event = userTaskMapper.map(userTaskActivatedEvent);
+            bpmsApiV1.get().userTaskActivatedEvent(event.getUserTaskId(), event);
+
+        } else if (eventObject instanceof UserTaskSuspendedEvent userTaskSuspendedEvent) {
+
+            final var event = userTaskMapper.map(userTaskSuspendedEvent);
+            bpmsApiV1.get().userTaskSuspendedEvent(event.getUserTaskId(), event);
+
+        } else {
+
+            throw new RuntimeException(
+                    "Unsupported event type '"
+                    + eventObject.getClass().getName()
+                    + "'!");
+        }
         
     }
 

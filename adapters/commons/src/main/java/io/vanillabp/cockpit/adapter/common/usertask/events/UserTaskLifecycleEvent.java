@@ -16,8 +16,6 @@ public class UserTaskLifecycleEvent implements UserTaskEvent {
 
   private String comment;
 
-  private String apiVersion;
-
   public UserTaskLifecycleEvent() {
   }
 
@@ -75,14 +73,5 @@ public class UserTaskLifecycleEvent implements UserTaskEvent {
     this.comment = comment;
   }
 
-  @Override
-  public String getApiVersion() {
-    return apiVersion;
-  }
-
-  @Override
-  public void setApiVersion(String apiVersion) {
-    this.apiVersion = apiVersion;
-  }
 }
 

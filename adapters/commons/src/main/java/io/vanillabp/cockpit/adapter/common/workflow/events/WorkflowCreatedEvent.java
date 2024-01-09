@@ -45,15 +45,13 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
 
   private List<String> i18nLanguages;
 
-  private String apiVersion;
 
   public WorkflowCreatedEvent() {
   }
 
-  public WorkflowCreatedEvent(String workflowModuleId, List<String> i18nLanguages, String apiVersion) {
+  public WorkflowCreatedEvent(String workflowModuleId, List<String> i18nLanguages) {
     this.workflowModule = workflowModuleId;
     this.i18nLanguages = i18nLanguages;
-    this.apiVersion = apiVersion;
   }
 
   public String getId() {
@@ -210,13 +208,5 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
     this.i18nLanguages = i18nLanguages;
   }
 
-  @Override
-  public String getApiVersion() {
-    return apiVersion;
-  }
-
-  public void setApiVersion(String apiVersion) {
-    this.apiVersion = apiVersion;
-  }
 }
 

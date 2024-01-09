@@ -89,8 +89,7 @@ public class Camunda7WorkflowEventHandler {
         applicationEventPublisher.publishEvent(
                 new WorkflowEvent(
                         Camunda7WorkflowEventHandler.class,
-                        eventWrapper,
-                        eventWrapper.getApiVersion()));
+                        eventWrapper));
         
     }
 
@@ -180,15 +179,12 @@ public class Camunda7WorkflowEventHandler {
 
         try {
 
-            events
+            List<io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent> workflowEvents = events
                     .get()
                     .stream()
-                    .collect(Collectors.groupingBy(
-                            WorkflowEvent::getApiVersion,
-                            Collectors.mapping(
-                                    WorkflowEvent::getEvent, Collectors.toList()
-                            )))
-                    .forEach(workflowPublishing::publish);
+                    .map(WorkflowEvent::getEvent)
+                    .toList();
+            workflowPublishing.publish(workflowEvents);
 
         } finally {
 
@@ -217,18 +213,15 @@ public class Camunda7WorkflowEventHandler {
         
         try {
 
-            historyService
+            List<io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent> workflowEvents = historyService
                     .createHistoricProcessInstanceQuery()
                     .processInstanceIds(new HashSet<String>(workflowsAfterTransaction.get()))
                     .list()
                     .stream()
                     .map(this::processProcessInstanceHistoryEvent)
                     .filter(Objects::nonNull)
-                    .filter(workflowEvent -> workflowEvent.getApiVersion() != null)
-                    .collect(Collectors.groupingBy(
-                            io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent::getApiVersion,
-                            Collectors.toList()))
-                    .forEach(workflowPublishing::publish);
+                    .toList();
+            workflowPublishing.publish(workflowEvents);
 
         } finally {
             

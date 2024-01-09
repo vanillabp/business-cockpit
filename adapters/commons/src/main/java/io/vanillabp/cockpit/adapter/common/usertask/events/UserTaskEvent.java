@@ -17,10 +17,4 @@ public interface UserTaskEvent {
     OffsetDateTime getTimestamp();
 
     void setTimestamp(OffsetDateTime timestamp);
-
-
-    String getApiVersion();
-
-    void setApiVersion(String apiVersion);
-
 }

@@ -18,7 +18,6 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import org.camunda.bpm.engine.HistoryService;
@@ -123,7 +122,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
-            @Qualifier("BpmsApi") ApiVersionAware bpmsApiVersionAware,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Camunda7UserTaskEventHandler camunda7UserTaskEventHandler) throws Exception {
         
@@ -133,7 +131,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
                 workflowsCockpitProperties,
                 applicationEventPublisher,
                 templating,
-                bpmsApiVersionAware,
                 connectableServices,
                 new UserTaskMethodParameterFactory(),
                 camunda7UserTaskEventHandler);
@@ -147,7 +144,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            @Qualifier("BpmsApi") ApiVersionAware bpmsApiVersionAware,
             final Camunda7WorkflowEventHandler workflowEventListener) {
         return new Camunda7WorkflowWiring(
                 applicationContext,
@@ -156,7 +152,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
                 getConnectableServices(),
-                bpmsApiVersionAware,
                 templating,
                 workflowEventListener
         );

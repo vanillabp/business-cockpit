@@ -8,7 +8,6 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.events.*;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
@@ -53,8 +52,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     
     private final ApplicationEventPublisher applicationEventPublisher;
     
-    private final ApiVersionAware bpmsApiVersionAware;
-    
+
     private final AdapterAwareProcessService<?> processService;
     
     private final String bpmnProcessId;
@@ -70,7 +68,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final UserTaskProperties userTaskProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             final Optional<Configuration> templating,
-            final ApiVersionAware bpmsApiVersionAware,
             final String bpmnProcessId,
             final AdapterAwareProcessService<?> processService,
             final CrudRepository<Object, Object> workflowAggregateRepository,
@@ -87,8 +84,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
-        this.bpmsApiVersionAware = bpmsApiVersionAware;
-        
+
         if (this.templating.isEmpty()
                 && !StringUtils.hasText(workflowProperties.getBpmnDescriptionLanguage())
                 && ((userTaskProperties == null)
@@ -160,8 +156,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         applicationEventPublisher.publishEvent(
                 new UserTaskEvent(
                         Camunda7UserTaskHandler.class,
-                        userTaskEvent,
-                        bpmsApiVersionAware.getApiVersion()));
+                        userTaskEvent));
         applicationEventPublisher.publishEvent(
                 new ProcessUserTaskEvent(
                         Camunda7UserTaskHandler.class));

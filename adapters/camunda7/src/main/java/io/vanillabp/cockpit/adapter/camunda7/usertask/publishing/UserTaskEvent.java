@@ -8,24 +8,17 @@ public class UserTaskEvent extends ApplicationEvent {
 
     final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent event;
     
-    final String apiVersion;
-    
+
     public UserTaskEvent(
             final Object source,
-            final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent event,
-            final String apiVersion) {
+            final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent event) {
 
         super(source);
         this.event = event;
-        this.apiVersion = apiVersion;
     }
     
     public io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent getEvent() {
         return event;
     }
-    
-    public String getApiVersion() {
-        return apiVersion;
-    }
-    
+
 }

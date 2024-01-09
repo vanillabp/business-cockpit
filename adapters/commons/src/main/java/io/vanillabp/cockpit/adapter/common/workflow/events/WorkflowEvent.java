@@ -18,5 +18,4 @@ public interface WorkflowEvent {
 
     void setTimestamp(OffsetDateTime timestamp);
 
-    String getApiVersion();
 }

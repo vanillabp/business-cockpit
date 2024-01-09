@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface UserTaskPublishing {
 
-    void publish(String apiVersion, final List<UserTaskEvent> events);
+    void publish(final List<UserTaskEvent> events);
 }

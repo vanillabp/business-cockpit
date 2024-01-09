@@ -45,24 +45,15 @@ public class WorkflowKafkaPublishing implements WorkflowPublishing {
     }
 
     @Override
-    public void publish(String apiVersion, List<WorkflowEvent> events) {
-
-        if (apiVersion.equals("v1")) {
-            try {
-                events.forEach(this::processEventV1);
-            } catch (Exception e) {
-                logger.error("Could not publish events", e);
-            }
-        } else {
-            throw new RuntimeException(
-                    "Unsupported BPMS-API version '"
-                            + apiVersion
-                            + "'! The event is to old to be processed!");
+    public void publish(List<WorkflowEvent> events) {
+        try {
+            events.forEach(this::processEvent);
+        } catch (Exception e) {
+            logger.error("Could not publish events", e);
         }
-
     }
 
-    private void processEventV1(WorkflowEvent eventObject) {
+    private void processEvent(WorkflowEvent eventObject) {
         if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
 
             editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);

@@ -70,9 +70,6 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     private List<String> i18nLanguages;
 
-    private String apiVersion;
-
-
     public UserTaskCreatedEvent(
             final String workflowModuleId,
             final List<String> i18nLanguages) {
@@ -350,14 +347,5 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
         this.i18nLanguages = i18nLanguages;
     }
 
-    @Override
-    public String getApiVersion() {
-        return apiVersion;
-    }
-
-    @Override
-    public void setApiVersion(String apiVersion) {
-        this.apiVersion = apiVersion;
-    }
 }
 

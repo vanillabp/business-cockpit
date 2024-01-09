@@ -18,7 +18,6 @@ import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
@@ -267,14 +266,6 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
         configureFeignBuilder(apiClient.getClass(), apiClient.getFeignBuilder(), config);
 
         return apiClient.buildClient(BpmsApi.class);
-        
-    }
-    
-    @Bean
-    @Qualifier("BpmsApi")
-    public ApiVersionAware bpmsApiVersion() {
-        
-        return () -> "v1";
         
     }
     
