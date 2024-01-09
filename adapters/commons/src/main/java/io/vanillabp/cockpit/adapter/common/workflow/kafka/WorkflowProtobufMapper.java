@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 @SuppressWarnings("DuplicatedCode")
 public class WorkflowProtobufMapper {
 
+    private final String API_VERSION = "1.0";
+
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent map(
             WorkflowCreatedEvent workflowCreatedEvent) {
 
@@ -43,6 +45,7 @@ public class WorkflowProtobufMapper {
 
         // required parameters
         builder.setId(workflowUpdatedEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowUpdatedEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowUpdatedEvent.getTimestamp()));
         builder.setBpmnProcessId(workflowUpdatedEvent.getBpmnProcessId());
@@ -70,6 +73,7 @@ public class WorkflowProtobufMapper {
 
         // required properties
         builder.setId(workflowEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));
 
@@ -95,6 +99,7 @@ public class WorkflowProtobufMapper {
 
         // required properties
         builder.setId(workflowEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));
 

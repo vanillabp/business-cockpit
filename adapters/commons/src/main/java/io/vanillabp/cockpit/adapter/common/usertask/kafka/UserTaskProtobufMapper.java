@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 @SuppressWarnings("DuplicatedCode")
 public class UserTaskProtobufMapper {
 
+    private final String API_VERSION = "1.0";
+
     public UserTaskCreatedOrUpdatedEvent map(UserTaskCreatedEvent userTaskCreatedEvent){
         UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
         this.addUserTaskCreatedInfo(builder, userTaskCreatedEvent);
@@ -35,6 +37,7 @@ public class UserTaskProtobufMapper {
     private void addUserTaskCreatedInfo(UserTaskCreatedOrUpdatedEvent.Builder builder, UserTaskCreatedEvent userTaskCreatedEvent){
         // required parameters
         builder.setId(userTaskCreatedEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskCreatedEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskCreatedEvent.getTimestamp()));
         builder.setBpmnProcessId(userTaskCreatedEvent.getBpmnProcessId());
@@ -96,6 +99,7 @@ public class UserTaskProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent.newBuilder();
 
         builder.setId(userTaskCompletedEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskCompletedEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskCompletedEvent.getTimestamp()));
 
@@ -115,6 +119,7 @@ public class UserTaskProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent.newBuilder();
 
         builder.setId(userTaskEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
 
@@ -135,6 +140,7 @@ public class UserTaskProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent.newBuilder();
 
         builder.setId(userTaskEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
 
@@ -155,6 +161,7 @@ public class UserTaskProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent.newBuilder();
 
         builder.setId(userTaskEvent.getId());
+        builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
 
