@@ -9,6 +9,7 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -16,10 +17,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.StringOperators;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
@@ -36,6 +42,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class WorkflowlistService {
+
+    public enum RetrieveItemsMode {
+        All,
+        Active,
+        Inactive
+    };
+
+    public record KwicResult(@Id String item, int count) {};
 
     public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
 
@@ -115,15 +129,22 @@ public class WorkflowlistService {
                 .ofSize(pageSize)
                 .withPage(pageNumber)
                 .withSort(Sort.by(orderBySort.order()));
-        
-        final var endedSince = (initialTimestamp != null
+
+        final var endedSince = initialTimestamp != null
                 ? initialTimestamp
-                : OffsetDateTime.now()).toInstant();
-        
-        final var result = workflowRepository
-                .findActive(endedSince, pageRequest)
-                .collectList()
-                .zipWith(workflowRepository.countActive(endedSince))
+                : OffsetDateTime.now();
+
+        final var query = new Query();
+        query.addCriteria(
+                buildWorkflowlistCriteria(endedSince, RetrieveItemsMode.Active, null));
+
+        // prepare to retrieve data on execution
+        final var numberOfWorkflowsFound = mongoTemplate
+                .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
+        final var workflowsFound = mongoTemplate
+                .find(query.with(pageRequest), Workflow.class);
+        final var result = Mono
+                .zip(workflowsFound.collectList(), numberOfWorkflowsFound)
                 .map(results -> PageableExecutionUtils.getPage(
                         results.getT1(),
                         pageRequest,
@@ -212,11 +233,17 @@ public class WorkflowlistService {
                 .withPage(0)
                 .withSort(Sort.by(orderBySort.order()));
 
-        final var endedSince = initialTimestamp.toInstant();
-        
-        final var workflows = workflowRepository.findIdsOfActive(endedSince, pageRequest);
+        final var query = new Query();
+        query.fields().include("_id");
+        query.addCriteria(
+                buildWorkflowlistCriteria(initialTimestamp, RetrieveItemsMode.Active, null));
 
-        return workflows
+        final var numberOfWorkflows = mongoTemplate
+                .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
+        final var result = mongoTemplate
+                .find(query.with(pageRequest), Workflow.class);
+
+        return result
                 .flatMapSequential(workflow -> {
                     if (knownWorkflowIds.contains(workflow.getId())) {
                         return Mono.just(workflow);
@@ -224,7 +251,7 @@ public class WorkflowlistService {
                     return workflowRepository.findById(workflow.getId());
                 })
                 .collectList()
-                .zipWith(workflowRepository.countActive(endedSince))
+                .zipWith(numberOfWorkflows)
                 .map(t -> new PageImpl<>(
                         t.getT1(),
                         Pageable
@@ -325,6 +352,81 @@ public class WorkflowlistService {
                                 Workflow::getWorkflowModuleUri)))
                 .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
+
+    }
+
+    public Flux<KwicResult> kwic(
+            final String path,
+            final String query) {
+
+        /*
+        db.workflow.aggregate([
+            { $match: { 'title.de': { $regex: 'i', $options: 'i' } } },
+            { $addFields: { 'matches': { $regexFindAll: { input: '$title.de', regex: '(\S*i\S*)', options: 'i' } } } },
+            { $project: { '_id': 0, 'matches.captures': 1 } },
+            { $unwind: '$captures' },
+            { $unwind: '$captures' },
+            { $group: { _id: '$captures', count: { $sum: 1 } } }
+        ])
+         */
+        final var groupedQuery = "(\\S*" + query + "\\S*)"; // find entire words
+        return mongoTemplate
+                .aggregate(
+                        Aggregation.newAggregation(
+                                // limit results according to regexp
+                                Aggregation.match(new Criteria(path).regex(query, "i")),
+                                // add words matching as a new field
+                                Aggregation.addFields().addFieldWithValue("matches", StringOperators.RegexFindAll.valueOf(path).regex(groupedQuery).options("i")).build(),
+                                // drop fields not necessary
+                                Aggregation.project().andExclude("_id").andInclude("matches.captures"),
+                                // unwind result from find 'all'
+                                Aggregation.unwind("captures"),
+                                // unwind result from regex group -> may be used in future for other groups if necessary
+                                Aggregation.unwind("captures"),
+                                // group and count words found
+                                Aggregation.group("captures").count().as("count")
+                        ),
+                        Workflow.class,
+                        KwicResult.class);
+
+    }
+
+    public Criteria buildWorkflowlistCriteria(
+            final OffsetDateTime initialTimestamp,
+            final RetrieveItemsMode mode,
+            final List<Criteria> predefinedCriterias) {
+
+        final var subCriterias = new LinkedList<Criteria>();
+
+        // limit result according to list mode
+
+        // return consistent results across multiple requests of pages
+        switch (mode) {
+            case All:
+                break;
+            case Active:
+                subCriterias.add(new Criteria().orOperator(
+                        Criteria.where("endedAt").exists(false),
+                        Criteria.where("endedAt").gte(initialTimestamp)));
+                break;
+            case Inactive:
+                subCriterias.add(new Criteria().orOperator(
+                        Criteria.where("endedAt").exists(true),
+                        Criteria.where("endedAt").lt(initialTimestamp)));
+                break;
+            default:
+                throw new RuntimeException("Unsupported mode '"
+                        + mode
+                        + "'! Did you forget to extend this switch instruction?");
+        }
+
+        // limit result according to predefined filters
+
+        if (predefinedCriterias != null) {
+            subCriterias.addAll(predefinedCriterias);
+        }
+
+        return new Criteria().andOperator(subCriterias);
 
     }
 

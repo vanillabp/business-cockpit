@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.workflowlist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
+import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.data.domain.Page;
@@ -62,5 +64,7 @@ public abstract class GuiApiMapper {
                 + workflow.getWorkflowModule();
         
     }
-    
+
+    public abstract KwicResult toApi(WorkflowlistService.KwicResult result);
+
 }

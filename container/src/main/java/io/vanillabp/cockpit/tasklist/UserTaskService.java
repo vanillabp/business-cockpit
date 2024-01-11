@@ -646,6 +646,7 @@ public class UserTaskService {
         // return consistent results across multiple requests of pages
         switch (mode) {
             case All:
+                break;
             case OpenTasks:
             case OpenTasksWithFollowup:
             case OpenTasksWithoutFollowup:

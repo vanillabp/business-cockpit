@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
+import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
@@ -138,5 +139,20 @@ public class GuiApiController implements OfficialWorkflowlistApi {
                                 .map(t -> userTaskMapper.toApi(t, userId))));
         
     }
-    
+
+    @Override
+    public Mono<ResponseEntity<KwicResults>> getKwicResults(
+            final String path,
+            final String query,
+            final ServerWebExchange exchange) {
+
+        return workflowlistService
+                .kwic(path, query)
+                .map(mapper::toApi)
+                .collectList()
+                .map(result -> new KwicResults().result(result))
+                .map(ResponseEntity::ok);
+
+    }
+
 }

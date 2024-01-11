@@ -335,6 +335,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Workflows'
+    options:
+      tags:
+        - officialWorkflowlist
+      summary: Kwic results
+      operationId: getKwicResults
+      parameters:
+        - in: query
+          name: path
+          schema:
+            type: string
+        - in: query
+          name: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KwicResults'
     put:
       tags:
         - officialWorkflowlist
@@ -786,3 +807,23 @@ components:
         initialTimestamp:
           type: string
           format: date-time
+    KwicResult:
+      type: object
+      required:
+        - item
+        - count
+      properties:
+        item:
+          type: string
+        count:
+          type: integer
+          format: int32
+    KwicResults:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/KwicResult'
