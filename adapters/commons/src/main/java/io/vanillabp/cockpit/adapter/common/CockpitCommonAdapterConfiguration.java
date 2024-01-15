@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.common;
 
 import freemarker.cache.TemplateLookupStrategy;
+import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
@@ -43,7 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import javax.annotation.PostConstruct;
 
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
@@ -321,7 +321,9 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                 config.setTemplateLookupStrategy(TemplateLookupStrategy.DEFAULT_2_3_0);
                 config.setLocalizedLookup(true);
                 config.setRecognizeStandardFileExtensions(true);
-                config.setObjectWrapper(new Java8ObjectWrapper(FREEMARKER_VERSION));
+                final var objectWrapper = new Java8ObjectWrapper(FREEMARKER_VERSION);
+                objectWrapper.setExposureLevel(BeansWrapper.EXPOSE_PROPERTIES_ONLY);
+                config.setObjectWrapper(objectWrapper);
             };
 
         };
