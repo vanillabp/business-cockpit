@@ -1,16 +1,15 @@
 package io.vanillabp.cockpit.workflowlist.model.changesets;
 
-import java.util.List;
-
+import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
 
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
-import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import java.util.List;
 
 @Component("V100_Workflow")
 @ChangesetConfiguration(author = "gwieshammer")
@@ -19,6 +18,7 @@ public class V000001 {
     private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
     private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
     private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
+    private static final String INDEX_FULLTEXT = Workflow.COLLECTION_NAME + "_fulltext";
 
     @Changeset(order = 1000)
     public List<String> createWorkflowCollection(
@@ -85,6 +85,21 @@ public class V000001 {
         
         return null;
         
+    }
+
+    @Changeset(order = 1004, author = "stephanpelikan")
+    public String createDetailsFulltextSearchIndex(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("detailsFulltextSearch", Direction.ASC)
+                        .named(INDEX_FULLTEXT))
+                .block();
+
+        return null;
+
     }
 
 }

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.KwicResult;
+import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
@@ -30,8 +31,14 @@ public abstract class GuiApiMapper {
     @Mapping(target = "page.totalElements", source = "data.totalElements")
     @Mapping(target = "workflows", expression = "java(toApi(data.getContent()))")
     @Mapping(target = "serverTimestamp", source = "timestamp")
+    @Mapping(target = "requestId", source = "requestId")
     public abstract Workflows toApi(Page<io.vanillabp.cockpit.workflowlist.model.Workflow> data,
-                                    OffsetDateTime timestamp);
+                                    OffsetDateTime timestamp,
+                                    String requestId);
+
+    public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
+
+    public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
     @NoMappingMethod
     protected String proxiedUiUri(

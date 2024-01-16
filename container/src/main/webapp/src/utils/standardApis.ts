@@ -2,7 +2,7 @@ import { MutableRefObject } from "react";
 import { WakeupSseCallback } from "@vanillabp/bc-shared";
 import { TasklistApi, WorkflowlistApi } from "@vanillabp/bc-ui";
 import { useSpecializedTasklistApi, useTasklistApi, useWorkflowlistApi } from "./apis";
-import { OfficialTasklistApi } from "@vanillabp/bc-official-gui-client";
+import { OfficialTasklistApi, SearchQuery } from "@vanillabp/bc-official-gui-client";
 
 const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi => {
   return {
@@ -58,17 +58,21 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
 const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): WorkflowlistApi => {
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   return {
-    getWorkflows: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => workflowlistApi
-        .getWorkflows({ pageNumber, pageSize, initialTimestamp, workflowsRequest: { sort, sortAscending } }),
-    getWorkflowsUpdate: (listId, size, knownWorkflowsIds, sort, sortAscending, initialTimestamp) => workflowlistApi
-        .getWorkflowsUpdate({ workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, initialTimestamp } }),
+    getWorkflows: (requestId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
+        .getWorkflows({ requestId, workflowsRequest: { sort, sortAscending, searchQueries, pageNumber, pageSize, initialTimestamp } }),
+    getWorkflowsUpdate: (requestId, size, knownWorkflowsIds, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
+        .getWorkflowsUpdate({ requestId, workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, initialTimestamp, searchQueries } }),
     getWorkflow: workflowId => workflowlistApi
         .getWorkflow({ workflowId }),
     getUserTasksOfWorkflow: (workflowId, activeOnlyRequested, limitListAccordingToCurrentUsersPermissions) => workflowlistApi
         .getUserTasksOfWorkflow({
             workflowId,
             activeOnly: activeOnlyRequested === undefined ? true : activeOnlyRequested,
-            llatcup: limitListAccordingToCurrentUsersPermissions === undefined ? true : limitListAccordingToCurrentUsersPermissions})
+            llatcup: limitListAccordingToCurrentUsersPermissions === undefined ? true : limitListAccordingToCurrentUsersPermissions}),
+    kwicWorkflows: async (query: string, path?: string, searchQueries?: Array<SearchQuery>) => {
+        const result = await workflowlistApi.getKwicResults({ path, query, kwicRequest: { searchQueries } })
+        return result.result;
+      },
   };
 }
 

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
+import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
@@ -65,23 +67,27 @@ public class GuiApiController implements OfficialWorkflowlistApi {
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflows(
             final Mono<WorkflowsRequest> workflowsRequest,
-            final Integer pageNumber,
-            final Integer pageSize,
-            final OffsetDateTime initialTimestamp,
+            final String requestId,
             final ServerWebExchange exchange) {
 
-        final var timestamp = initialTimestamp != null
-                ? initialTimestamp
-                : OffsetDateTime.now();
+        if (workflowsRequest == null) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
 
         return workflowsRequest
-                .flatMap(request -> workflowlistService.getWorkflows(
-                        pageNumber,
-                        pageSize,
-                        timestamp,
-                        request.getSort(),
-                        request.getSortAscending())
-                .map(workflows -> mapper.toApi(workflows, timestamp)))
+                .zipWhen(request -> Mono.just(request.getInitialTimestamp() != null
+                        ? request.getInitialTimestamp()
+                        : OffsetDateTime.now()))
+                .flatMap(entry -> Mono.zip(
+                        workflowlistService.getWorkflows(
+                                entry.getT1().getPageNumber(),
+                                entry.getT1().getPageSize(),
+                                entry.getT2(),
+                                mapper.toModel(entry.getT1().getSearchQueries()),
+                                entry.getT1().getSort(),
+                                entry.getT1().getSortAscending()),
+                        Mono.just(entry.getT2())))
+                .map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), requestId))
                 .map(ResponseEntity::ok);
 
     }
@@ -89,6 +95,7 @@ public class GuiApiController implements OfficialWorkflowlistApi {
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflowsUpdate(
             final Mono<WorkflowsUpdateRequest> workflowsUpdateRequest,
+            final String requestId,
             final ServerWebExchange exchange) {
 
         return workflowsUpdateRequest
@@ -100,10 +107,11 @@ public class GuiApiController implements OfficialWorkflowlistApi {
                                 entry.getT1().getSize(),
                                 entry.getT1().getKnownWorkflowsIds(),
                                 entry.getT2(),
+                                mapper.toModel(entry.getT1().getSearchQueries()),
                                 entry.getT1().getSort(),
                                 entry.getT1().getSortAscending()),
                         Mono.just(entry.getT2())))
-                .map(entry -> mapper.toApi(entry.getT1(), entry.getT2()))
+                .map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), requestId))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
 
@@ -142,12 +150,17 @@ public class GuiApiController implements OfficialWorkflowlistApi {
 
     @Override
     public Mono<ResponseEntity<KwicResults>> getKwicResults(
+            final Mono<KwicRequest> kwicRequest,
             final String path,
             final String query,
             final ServerWebExchange exchange) {
 
+        final var effectivePath = StringUtils.hasText(path)
+                ? path
+                : "detailsFulltextSearch";
+
         return workflowlistService
-                .kwic(path, query)
+                .kwic(null, effectivePath, query)
                 .map(mapper::toApi)
                 .collectList()
                 .map(result -> new KwicResults().result(result))

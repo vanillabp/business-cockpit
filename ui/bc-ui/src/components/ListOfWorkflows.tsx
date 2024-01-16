@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, CheckBox, ColumnConfig, Grid, Text } from 'grommet';
+import { ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
+import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput } from 'grommet';
 import {
   BcUserTask,
   BcWorkflow,
   colorForEndedItemsOrUndefined,
   Column,
+  debounce,
   EventMessage,
   EventSourceMessage,
   GetUserTasksFunction,
@@ -33,8 +34,14 @@ import {
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
 import { ListColumnHeader } from "./ListColumnHeader.js";
+import { Clear, Search } from "grommet-icons";
 
 const minWidthOfTitleColumn = '20rem';
+
+interface Suggestion {
+  label: ReactNode;
+  value: string | undefined;
+}
 
 interface ColumnWidthAdjustments {
   [key: string]: number
@@ -46,12 +53,13 @@ const loadWorkflows = async (
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
+  searchQueries: Array<SearchQuery>,
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
   const result = await workflowlistApi
-        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, initialTimestamp);
+        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
 
@@ -71,6 +79,7 @@ const reloadWorkflows = async (
   numberOfItems: number,
   knownItemsIds: Array<string>,
   initialTimestamp: Date | undefined,
+  searchQueries: Array<SearchQuery>,
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
@@ -82,6 +91,7 @@ const reloadWorkflows = async (
       knownItemsIds,
       sort,
       sortAscending,
+      searchQueries,
       initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
@@ -108,6 +118,143 @@ const reloadWorkflows = async (
       items: result.workflows.map(workflow => mapToBcWorkflow(workflow))
     };
 };
+
+const FulltextSearch = ({
+  t,
+  initialQuery = '',
+  workflowlistApi,
+  kwic,
+  searchQueries,
+  focus = false,
+}: {
+  t: TranslationFunction,
+  initialQuery?: string,
+  workflowlistApi: WorkflowlistApi,
+  kwic: (query?: string) => void,
+  searchQueries: Array<SearchQuery>,
+  focus?: boolean,
+}) => {
+  const { isPhone } = useResponsiveScreen();
+  const textFieldRef = useRef<HTMLInputElement>(null);
+  const [ query, setQuery ] = useState(initialQuery)
+  const currentQuery = useRef<string>(initialQuery);
+  const [ suggestions, setSuggestions ] =
+      useState<Array<Suggestion> | undefined>(undefined);
+  const ignoreKeyEnter = useRef(false);
+
+  useEffect(() => {
+    if (!focus) return;
+    if (!textFieldRef.current) return;
+    textFieldRef.current.focus();
+  }, [textFieldRef, focus]);
+
+  const select = (value: string, suggestion: boolean) => {
+    if (suggestion) {
+      ignoreKeyEnter.current  = true;
+    } else if (ignoreKeyEnter.current) {
+      ignoreKeyEnter.current = false;
+      return;
+    }
+    if (value === undefined) return;
+    setSuggestions(undefined);
+    setQuery(value);
+    currentQuery.current = value;
+    kwic(value);
+  };
+  const loadResult = async () => {
+    const result = await workflowlistApi.kwicWorkflows(
+        currentQuery.current,
+        undefined,
+        searchQueries);
+    const newSuggestions = result
+        .map(r => ({
+          value: r.item,
+          label: <Box
+                    direction="row"
+                    justify="between"
+                    pad="small">
+                  <Text
+                      weight="bold"
+                      truncate="tip">
+                    { r.item }
+                  </Text>
+                  <Box
+                      align="right">
+                    { r.count }
+                  </Box>
+                 </Box> }));
+    setSuggestions(
+        newSuggestions.length > 20
+            ? [ ...newSuggestions.slice(0, 20), { value: undefined, label: <Box pad="small">{ t('kwic_to-many-hits') }</Box> } ]
+            : newSuggestions);
+  }
+  const kwicDebounced = useMemo(() => debounce(loadResult, 300), [ workflowlistApi, currentQuery ]);
+  const updateResult = (newQuery: string) => {
+    currentQuery.current = newQuery;
+    setQuery(newQuery);
+    if (newQuery.length < 3) {
+      if (suggestions) {
+        setSuggestions(undefined);
+      }
+      return;
+    }
+    kwicDebounced();
+  };
+  const clear = () => {
+    currentQuery.current = '';
+    setQuery('');
+    setSuggestions(undefined);
+    textFieldRef.current!.focus();
+    kwic(undefined);
+  };
+
+  return (
+      <Box
+          width={ isPhone ? "100%" : "min(100%, 30rem)" }
+          elevation="small"
+          alignContent="center"
+          hoverIndicator={ "white" }
+          focusIndicator={ false }
+          round={ { size: '0.4rem' } }
+          border={ { color: "dark-4" } }>
+        <Grid
+            columns={ [ 'auto', '2rem' ] }
+            fill>
+          <Box
+              pad={ { horizontal: '0.4rem', vertical: '0.25rem' } }
+              direction="row"
+              justify="center">
+            <TextInput
+                plain="full"
+                ref={ textFieldRef }
+                value={ query }
+                placeholder={ t('kwic_placeholder') }
+                onKeyDown={ event => event.key === 'Enter' ? select(query, false) : undefined }
+                onChange={ event => updateResult(event.target.value) }
+                suggestions={ suggestions === undefined
+                    ? []
+                    : suggestions.length === 0
+                        ? [ { value: undefined, label: <Box pad="small">{ t('kwic_no-hit') }</Box> } ]
+                        : suggestions }
+                onSuggestionSelect={ x => select(x.suggestion.value, true) }
+                focusIndicator={ false }
+                reverse />
+          </Box>
+          <Box
+              align="center"
+              justify="center">
+            {
+              Boolean(query)
+                  ? <Clear
+                      onMouseUp={ clear }
+                      color="dark-4" />
+                  : <Search
+                      color="dark-4" />
+            }
+          </Box>
+        </Grid>
+      </Box>);
+}
 
 interface DefinitionOfWorkflow {
   [key: string]: Workflow;
@@ -140,6 +287,8 @@ const ListOfWorkflows = ({
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
+  const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>([]);
+  const kwicInProgress = useRef(false);
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<WorkflowEvent>>>) => {
@@ -161,7 +310,7 @@ const ListOfWorkflows = ({
   useEffect(() => {
       const loadMetaInformation = async () => {
         const result = await workflowlistApi
-            .getWorkflows(new Date().getTime().toString(), 0, 100, undefined, true);
+            .getWorkflows(new Date().getTime().toString(), 0, 100, undefined, true, searchQueries);
         const moduleDefinitions = result
             .workflows
             .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
@@ -245,6 +394,23 @@ const ListOfWorkflows = ({
     setColumnsOfWorkflows(undefined);
     setRefreshIndicator(new Date());
   }
+
+  const kwic = (value?: string) => {
+    const newSearchQueries = searchQueries
+        .filter(query => query.path !== undefined);
+    if ((value !== undefined)
+        && (value.trim().length > 0)) {
+      newSearchQueries.push({ path: undefined, query: value });
+    }
+    setSearchQueries(newSearchQueries);
+    kwicInProgress.current = true;
+    refreshList();
+  };
+
+  useLayoutEffect(() => {
+    kwicInProgress.current = false;
+  }, [ kwicInProgress ]);
+
   const setSort = (column?: Column) => {
     if (column) {
       if (column.path === 'title') {
@@ -421,6 +587,10 @@ const ListOfWorkflows = ({
         };
     };
 
+  const initialKwicQuery = searchQueries
+      .filter(query => query.path === undefined)
+      .map(query => query.query);
+
   return (
       <Grid
           rows={ [ 'auto', '2rem' ] }
@@ -429,6 +599,23 @@ const ListOfWorkflows = ({
           (columnsOfWorkflows === undefined)
               ? <Box key="list"></Box>
               : <Box key="list">
+                  <Box
+                      fill
+                      background='white'
+                      direction="row"
+                      align="center"
+                      justify="start"
+                      gap="small"
+                      style={ { minHeight: '3rem', maxHeight: '3rem'} }
+                      pad={ { horizontal: 'xsmall' } }>
+                    <FulltextSearch
+                        t={ t }
+                        workflowlistApi={ workflowlistApi }
+                        initialQuery={ initialKwicQuery.length === 0 ? undefined : initialKwicQuery[0] }
+                        kwic={ kwic }
+                        focus={ kwicInProgress.current }
+                        searchQueries={ searchQueries } />
+                  </Box>
                   <SearchableAndSortableUpdatingList
                       t={ t }
                       showLoadingIndicator={ showLoadingIndicator }
@@ -446,6 +633,7 @@ const ListOfWorkflows = ({
                               pageSize,
                               pageNumber,
                               initialTimestamp,
+                              searchQueries,
                               sort,
                               sortAscending,
                               mapToBcWorkflow) }
@@ -461,6 +649,7 @@ const ListOfWorkflows = ({
                               numberOfItems,
                               updatedItemsIds,
                               initialTimestamp,
+                              searchQueries,
                               sort,
                               sortAscending,
                               mapToBcWorkflow) }

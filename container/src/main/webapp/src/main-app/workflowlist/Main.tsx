@@ -19,7 +19,10 @@ i18n.addResources('en', 'workflowlist', {
       "module-unknown": "Unknown module",
       "retry-loading-module-hint": "Unfortunately, the workflow cannot be shown at the moment!",
       "retry-loading-module": "Retry loading...",
-      "does-not-exist": "The requested workflow does not exist!"
+      "does-not-exist": "The requested workflow does not exist!",
+      "kwic_to-many-hits": "More than 20 hits...",
+      "kwic_placeholder": "Enter 3 characters...",
+      "kwic_no-hit": "No hit",
     });
 i18n.addResources('de', 'workflowlist', {
       "title.long": 'Vorgänge',
@@ -31,7 +34,10 @@ i18n.addResources('de', 'workflowlist', {
       "module-unknown": "Unbekanntes Modul",
       "retry-loading-module-hint": "Leider ist derzeit kein Zugriff auf den Vorgang möglich!",
       "retry-loading-module": "Laden nochmals probieren...",
-      "does-not-exist": "Der angeforderte Vorgang existiert nicht!"
+      "does-not-exist": "Der angeforderte Vorgang existiert nicht!",
+      "kwic_to-many-hits": "Mehr als 20 Treffer...",
+      "kwic_placeholder": "Tippe mehr als 3 Zeichen...",
+      "kwic_no-hit": "Kein Treffer",
     });
 
 const RouteBasedWorkflowPage = () => {

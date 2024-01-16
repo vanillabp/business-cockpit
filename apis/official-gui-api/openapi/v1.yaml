@@ -308,20 +308,9 @@ paths:
       operationId: getWorkflows
       parameters:
         - in: query
-          name: pageNumber
-          schema:
-            type: integer
-            format: int32
-        - in: query
-          name: pageSize
-          schema:
-            type: integer
-            format: int32
-        - in: query
-          name: initialTimestamp
+          name: requestId
           schema:
             type: string
-            format: date-time
       requestBody:
         required: true
         content:
@@ -349,6 +338,12 @@ paths:
           name: query
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KwicRequest"
       responses:
         200:
           description: Workflows
@@ -361,6 +356,11 @@ paths:
         - officialWorkflowlist
       summary: Updated list of workflows
       operationId: getWorkflowsUpdate
+      parameters:
+        - in: query
+          name: requestId
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -448,6 +448,15 @@ components:
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
+    SearchQuery:
+      type: object
+      required:
+        - query # missing path means "fulltext"
+      properties:
+        path:
+          type: string
+        query:
+          type: string
     UserTaskIds:
       type: object
       properties:
@@ -763,8 +772,19 @@ components:
     WorkflowsRequest:
       type: object
       properties:
-        query:
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        initialTimestamp:
           type: string
+          format: date-time
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
         sortAscending:
@@ -776,6 +796,8 @@ components:
         - page
         - workflows
       properties:
+        requestId:
+          type: string
         serverTimestamp:
           type: string
           format: date-time
@@ -798,8 +820,10 @@ components:
           type: array
           items:
             type: string
-        query:
-          type: string
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
         sortAscending:
@@ -807,6 +831,13 @@ components:
         initialTimestamp:
           type: string
           format: date-time
+    KwicRequest:
+      type: object
+      properties:
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
     KwicResult:
       type: object
       required:
