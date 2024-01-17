@@ -23,6 +23,7 @@ i18n.addResources('en', 'workflowlist', {
       "kwic_to-many-hits": "More than 20 hits...",
       "kwic_placeholder": "Enter 3 characters...",
       "kwic_no-hit": "No hit",
+      "kwic_tooltip": "The words entered are treated case-sensitive",
     });
 i18n.addResources('de', 'workflowlist', {
       "title.long": 'Vorgänge',
@@ -38,6 +39,7 @@ i18n.addResources('de', 'workflowlist', {
       "kwic_to-many-hits": "Mehr als 20 Treffer...",
       "kwic_placeholder": "Tippe mehr als 3 Zeichen...",
       "kwic_no-hit": "Kein Treffer",
+      "kwic_tooltip": "Bitte geben Sie für Suchbegriffe die korrekte Groß-/Kleinschreibung an",
     });
 
 const RouteBasedWorkflowPage = () => {

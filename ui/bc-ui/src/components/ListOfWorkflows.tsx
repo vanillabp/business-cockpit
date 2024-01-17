@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput } from 'grommet';
+import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   BcWorkflow,
@@ -172,7 +172,7 @@ const FulltextSearch = ({
           label: <Box
                     direction="row"
                     justify="between"
-                    pad="small">
+                    pad="xsmall">
                   <Text
                       weight="bold"
                       truncate="tip">
@@ -185,7 +185,7 @@ const FulltextSearch = ({
                  </Box> }));
     setSuggestions(
         newSuggestions.length > 20
-            ? [ ...newSuggestions.slice(0, 20), { value: undefined, label: <Box pad="small">{ t('kwic_to-many-hits') }</Box> } ]
+            ? [ ...newSuggestions.slice(0, 20), { value: undefined, label: <Box pad="xsmall">{ t('kwic_to-many-hits') }</Box> } ]
             : newSuggestions);
   }
   const kwicDebounced = useMemo(() => debounce(loadResult, 300), [ workflowlistApi, currentQuery ]);
@@ -234,24 +234,27 @@ const FulltextSearch = ({
                 suggestions={ suggestions === undefined
                     ? []
                     : suggestions.length === 0
-                        ? [ { value: undefined, label: <Box pad="small">{ t('kwic_no-hit') }</Box> } ]
+                        ? [ { value: undefined, label: <Box pad="xsmall">{ t('kwic_no-hit') }</Box> } ]
                         : suggestions }
                 onSuggestionSelect={ x => select(x.suggestion.value, true) }
                 focusIndicator={ false }
                 reverse />
           </Box>
-          <Box
-              align="center"
-              justify="center">
-            {
-              Boolean(query)
-                  ? <Clear
-                      onMouseUp={ clear }
-                      color="dark-4" />
-                  : <Search
-                      color="dark-4" />
-            }
-          </Box>
+          <Tip
+              content={ t('kwic_tooltip') }>
+            <Box
+                align="center"
+                justify="center">
+              {
+                Boolean(query)
+                    ? <Clear
+                        onMouseUp={ clear }
+                        color="dark-4" />
+                    : <Search
+                        color="dark-4" />
+              }
+            </Box>
+          </Tip>
         </Grid>
       </Box>);
 }
