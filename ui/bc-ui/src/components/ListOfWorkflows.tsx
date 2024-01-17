@@ -596,29 +596,28 @@ const ListOfWorkflows = ({
 
   return (
       <Grid
-          rows={ [ 'auto', '2rem' ] }
+          rows={ [ '3rem', 'auto', '2rem' ] }
           fill>
+        <Box
+            fill
+            background='white'
+            direction="row"
+            align="center"
+            justify="start"
+            gap="small"
+            pad={ { horizontal: 'xsmall' } }>
+          <FulltextSearch
+              t={ t }
+              workflowlistApi={ workflowlistApi }
+              initialQuery={ initialKwicQuery.length === 0 ? undefined : initialKwicQuery[0] }
+              kwic={ kwic }
+              focus={ kwicInProgress.current }
+              searchQueries={ searchQueries } />
+        </Box>
         {
           (columnsOfWorkflows === undefined)
               ? <Box key="list"></Box>
               : <Box key="list">
-                  <Box
-                      fill
-                      background='white'
-                      direction="row"
-                      align="center"
-                      justify="start"
-                      gap="small"
-                      style={ { minHeight: '3rem', maxHeight: '3rem'} }
-                      pad={ { horizontal: 'xsmall' } }>
-                    <FulltextSearch
-                        t={ t }
-                        workflowlistApi={ workflowlistApi }
-                        initialQuery={ initialKwicQuery.length === 0 ? undefined : initialKwicQuery[0] }
-                        kwic={ kwic }
-                        focus={ kwicInProgress.current }
-                        searchQueries={ searchQueries } />
-                  </Box>
                   <SearchableAndSortableUpdatingList
                       t={ t }
                       showLoadingIndicator={ showLoadingIndicator }

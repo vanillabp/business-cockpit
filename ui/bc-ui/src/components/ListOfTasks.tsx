@@ -880,41 +880,40 @@ const ListOfTasks = ({
   return (
       <Grid
           key="grid"
-          rows={ [ 'auto', '2rem' ] }
+          rows={ [ '3rem', 'auto', '2rem' ] }
           fill>
+        <Box
+            fill
+            background='white'
+            direction="row"
+            align="center"
+            justify="start"
+            gap="small"
+            pad={ { horizontal: 'xsmall' } }>
+          <SetReadStatusButtons
+              t={ t }
+              disabled={ !anySelected }
+              markAsRead={ () => markAsRead(false) }
+              markAsUnread={ () => markAsRead(true) }/>
+          <ClaimButtons
+              t={ t }
+              disabled={ !anySelected }
+              claimTasks={ () => claim(false) }
+              unclaimTasks={ () => claim(true) } />
+          <AssignButton
+              tasklistApi={ tasklistApi }
+              t={ t }
+              disabled={ !anySelected }
+              assign={ assign }/>
+          <RefreshButton
+              t={ t }
+              refresh={ refreshList }
+              disabled={ !refreshNecessary } />
+        </Box>
         {
           (columnsOfTasks === undefined)
               ? <Box key="list"></Box>
               : <Box key="list">
-                  <Box
-                      fill
-                      background='white'
-                      direction="row"
-                      align="center"
-                      justify="start"
-                      gap="small"
-                      style={ { minHeight: '3rem', maxHeight: '3rem'} }
-                      pad={ { horizontal: 'xsmall' } }>
-                    <SetReadStatusButtons
-                        t={ t }
-                        disabled={ !anySelected }
-                        markAsRead={ () => markAsRead(false) }
-                        markAsUnread={ () => markAsRead(true) }/>
-                    <ClaimButtons
-                        t={ t }
-                        disabled={ !anySelected }
-                        claimTasks={ () => claim(false) }
-                        unclaimTasks={ () => claim(true) } />
-                    <AssignButton
-                        tasklistApi={ tasklistApi }
-                        t={ t }
-                        disabled={ !anySelected }
-                        assign={ assign }/>
-                    <RefreshButton
-                        t={ t }
-                        refresh={ refreshList }
-                        disabled={ !refreshNecessary } />
-                  </Box>
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
