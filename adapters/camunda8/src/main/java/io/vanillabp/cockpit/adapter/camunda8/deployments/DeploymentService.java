@@ -57,9 +57,11 @@ public class DeploymentService {
         bpmn.setFileId(fileId);
         bpmn.setResource(outStream.toByteArray());
         bpmn.setResourceName(resourceName);
-        
-        return deploymentResourceRepository.save(bpmn);
-        
+
+        // TODO: actually store bpmn
+        // return deploymentResourceRepository.save(bpmn);
+        return bpmn;
+
     }
     
     public DeployedProcess addProcess(
@@ -83,8 +85,10 @@ public class DeploymentService {
         deployedProcess.setBpmnProcessId(camunda8DeployedProcess.getBpmnProcessId());
         deployedProcess.setDeployedResource(bpmn);
         deployedProcess.setPublishedAt(OffsetDateTime.now());
-        
-        return deploymentRepository.save(deployedProcess);
+
+        // TODO: actually store process
+//        return deploymentRepository.save(deployedProcess);
+        return deployedProcess;
         
     }
 
