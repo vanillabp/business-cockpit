@@ -80,9 +80,11 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         if (processInstance.getEndTime() != null) {
             workflowEvent = new io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent();
         } else {
-            workflowEvent = new WorkflowUpdatedEvent(
+            WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
                     cockpitProperties.getI18nLanguages());
+            fillWorkflowCreatedEvent(processInstance, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
+            workflowEvent = workflowUpdatedEvent;
         }
         return workflowEvent;
 
@@ -101,7 +103,10 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_START)) {
 
-            WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent();
+            WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
+                    workflowModuleId,
+                    cockpitProperties.getI18nLanguages()
+            );
 
             fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowCreatedEvent);
             workflowEvent = workflowCreatedEvent;

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.common.workflow.events;
 
 import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
+import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 
 import java.time.OffsetDateTime;
@@ -8,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
+public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, PrefilledWorkflowDetails {
   private String id;
 
   private String workflowId;
@@ -44,6 +45,12 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
   private String detailsFulltextSearch;
 
   private List<String> i18nLanguages;
+
+  private Object templateContext;
+
+  private String eventId;
+
+  private OffsetDateTime eventTimestamp;
 
 
   public WorkflowCreatedEvent() {
@@ -126,6 +133,24 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
     this.comment = comment;
   }
 
+  @Override
+  public String getEventId() {
+    return eventId;
+  }
+
+  public void setEventId(String eventId){
+    this.eventId = eventId;
+  }
+
+  @Override
+  public OffsetDateTime getEventTimestamp() {
+    return eventTimestamp;
+  }
+
+  public void setEventTimestamp(OffsetDateTime eventTimestamp){
+    this.eventTimestamp = eventTimestamp;
+  }
+
   public String getBpmnProcessId() {
     return bpmnProcessId;
   }
@@ -199,13 +224,17 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails {
     return i18nLanguages;
   }
 
-  @Override
-  public Object getTemplateContext() {
-    return null;
-  }
-
   public void setI18nLanguages(List<String> i18nLanguages) {
     this.i18nLanguages = i18nLanguages;
+  }
+
+  @Override
+  public Object getTemplateContext() {
+    return this.templateContext;
+  }
+  @Override
+  public void setTemplateContext(Object templateContext) {
+    this.templateContext = templateContext;
   }
 
 }
