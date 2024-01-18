@@ -56,15 +56,27 @@ public class WorkflowProtobufMapper {
         builder.setWorkflowProviderApiUriPath(workflowUpdatedEvent.getWorkflowProviderApiUriPath());
 
         // optional parameters
-        builder.setBusinessId(workflowUpdatedEvent.getBusinessId());
-        builder.setInitiator(workflowUpdatedEvent.getInitiator());
-        builder.setSource(workflowUpdatedEvent.getSource());
-        builder.putAllTitle(workflowUpdatedEvent.getTitle());
-        builder.setComment(workflowUpdatedEvent.getComment());
-        builder.setBpmnProcessVersion(workflowUpdatedEvent.getBpmnProcessVersion());
-        builder.setWorkflowModuleUri(workflowUpdatedEvent.getWorkflowModuleUri());
-        builder.putAllDetails(mapDetails(workflowUpdatedEvent.getDetails()));
-        builder.setDetailsFulltextSearch(workflowUpdatedEvent.getDetailsFulltextSearch());
+        Optional.ofNullable(workflowUpdatedEvent.getBusinessId())
+                        .ifPresent(builder::setBusinessId);
+        Optional.ofNullable(workflowUpdatedEvent.getInitiator())
+                .ifPresent(builder::setInitiator);
+        Optional.ofNullable(workflowUpdatedEvent.getSource())
+                .ifPresent(builder::setSource);
+        Optional.ofNullable(workflowUpdatedEvent.getTitle())
+                .ifPresent(builder::putAllTitle);
+        Optional.ofNullable(workflowUpdatedEvent.getComment())
+                .ifPresent(builder::setComment);
+        Optional.ofNullable(workflowUpdatedEvent.getBpmnProcessVersion())
+                .ifPresent(builder::setBpmnProcessVersion);
+        Optional.ofNullable(workflowUpdatedEvent.getWorkflowModuleUri())
+                .ifPresent(builder::setWorkflowModuleUri);
+        Optional.ofNullable(workflowUpdatedEvent.getDetails())
+                .map(this::mapDetails)
+                .ifPresent(builder::putAllDetails);
+        Optional.ofNullable(workflowUpdatedEvent.getDetailsFulltextSearch())
+                .ifPresent(builder::setDetailsFulltextSearch);
+        Optional.ofNullable(workflowUpdatedEvent.getComment())
+                .ifPresent(builder::setComment);
     }
 
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowEvent) {
