@@ -69,16 +69,7 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
     }
 
     @Override
-    public void publish(
-            final List<UserTaskEvent> events) {
-        try {
-            events.forEach(this::processEvent);
-        } catch (Exception e) {
-            logger.error("Could not publish events", e);
-        }
-    }
-    
-    public void processEvent(UserTaskEvent eventObject) {
+    public void publish(UserTaskEvent eventObject) {
 
         if (eventObject instanceof UserTaskUpdatedEvent userTaskUpdatedEvent){
             editUserTaskCreatedOrUpdatedEvent(userTaskUpdatedEvent);

@@ -56,17 +56,9 @@ public class WorkflowRestPublishing implements WorkflowPublishing {
                 + CockpitProperties.PREFIX
                 + ".stream' to define were to send user task events to!");
     }
-    
+
+    @Override
     public void publish(
-            final List<WorkflowEvent> events) {
-        try {
-            events.forEach(this::processEvent);
-        } catch (Exception e) {
-            logger.error("Could not publish events", e);
-        }
-    }
-    
-    private void processEvent(
             final WorkflowEvent eventObject) {
         if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
 

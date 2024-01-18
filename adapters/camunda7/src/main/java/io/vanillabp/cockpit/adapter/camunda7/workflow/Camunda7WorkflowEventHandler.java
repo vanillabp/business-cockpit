@@ -178,13 +178,11 @@ public class Camunda7WorkflowEventHandler {
     public void handle(final ProcessWorkflowEvent triggerEvent) {
 
         try {
-
-            List<io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent> workflowEvents = events
+            events
                     .get()
                     .stream()
                     .map(WorkflowEvent::getEvent)
-                    .toList();
-            workflowPublishing.publish(workflowEvents);
+                    .forEach(workflowPublishing::publish);
 
         } finally {
 
@@ -212,16 +210,14 @@ public class Camunda7WorkflowEventHandler {
             final ProcessWorkflowAfterTransactionEvent event) {
         
         try {
-
-            List<io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent> workflowEvents = historyService
+            historyService
                     .createHistoricProcessInstanceQuery()
                     .processInstanceIds(new HashSet<String>(workflowsAfterTransaction.get()))
                     .list()
                     .stream()
                     .map(this::processProcessInstanceHistoryEvent)
                     .filter(Objects::nonNull)
-                    .toList();
-            workflowPublishing.publish(workflowEvents);
+                    .forEach(workflowPublishing::publish);
 
         } finally {
             

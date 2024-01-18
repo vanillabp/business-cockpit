@@ -45,15 +45,7 @@ public class WorkflowKafkaPublishing implements WorkflowPublishing {
     }
 
     @Override
-    public void publish(List<WorkflowEvent> events) {
-        try {
-            events.forEach(this::processEvent);
-        } catch (Exception e) {
-            logger.error("Could not publish events", e);
-        }
-    }
-
-    private void processEvent(WorkflowEvent eventObject) {
+    public void publish(WorkflowEvent eventObject) {
         if(eventObject instanceof WorkflowUpdatedEvent workflowUpdatedEvent){
 
             editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);

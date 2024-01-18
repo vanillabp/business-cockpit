@@ -38,13 +38,11 @@ public class Camunda7UserTaskEventPublisher {
             final ProcessUserTaskEvent triggerEvent) {
         
         try {
-
-            List<io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent> userTaskEvents = events
+            events
                     .get()
                     .stream()
                     .map(UserTaskEvent::getEvent)
-                    .toList();
-            userTaskPublishing.publish(userTaskEvents);
+                    .forEach(userTaskPublishing::publish);
 
         } finally {
             
