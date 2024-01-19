@@ -59,7 +59,7 @@ type GetUserTasksOfWorkflowApiCall = (workflowId: string, activeOnlyRequested?: 
 
 type GetWorkflowApiCall = (workflowId: string) => Promise<Workflow>;
 
-type KwicWorkflowsApiCall = (query: string, path?: string /* undefined => fulltext */, searchQueries?: Array<SearchQuery>) => Promise<Array<KwicResult>>;
+type KwicWorkflowsApiCall = (query: string, path?: string /* undefined => fulltext */, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<Array<KwicResult>>;
 
 export interface WorkflowlistApi {
   getUserTasksOfWorkflow: GetUserTasksOfWorkflowApiCall,

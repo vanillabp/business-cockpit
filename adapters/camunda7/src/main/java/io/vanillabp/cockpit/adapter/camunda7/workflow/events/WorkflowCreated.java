@@ -1,13 +1,13 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow.events;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-
 import io.vanillabp.cockpit.adapter.common.workflow.EventWrapper;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 
 public class WorkflowCreated
         implements PrefilledWorkflowDetails, EventWrapper {
@@ -151,6 +151,16 @@ public class WorkflowCreated
 
     public void setTitle(Map<String, String> title) {
         event.setTitle(title);
+    }
+
+    @Override
+    public void setAccessibleToUsers(List<String> accessibleToUsers) {
+        event.setAccessibleToUsers(accessibleToUsers);
+    }
+
+    @Override
+    public void setAccessibleToGroups(List<String> accessibleToGroups) {
+        event.setAccessibleToGroups(accessibleToGroups);
     }
 
     public Map<String, Object> getDetails() {

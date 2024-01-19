@@ -1,17 +1,20 @@
 package io.vanillabp.cockpit.workflowlist.model;
 
-import java.time.OffsetDateTime;
-import java.util.Map;
-
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.tasklist.model.UiUriType;
+import io.vanillabp.cockpit.util.candidates.CandidatesAware;
+import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+
 
 @Document(collection = Workflow.COLLECTION_NAME)
-public class Workflow implements UpdateInformationAware {
+public class Workflow extends CandidatesAware implements UpdateInformationAware {
 
     public static final String COLLECTION_NAME = "workflow";
 
@@ -55,9 +58,75 @@ public class Workflow implements UpdateInformationAware {
 
     private UiUriType uiUriType;
 
+    private List<String> accessibleToUsers;
+
+    private List<String> accessibleToGroups;
+
     private Map<String, Object> details = null;
 
     private String detailsFulltextSearch;
+
+    @Override
+    protected List<String> getGroups() {
+        return getAccessibleToGroups();
+    }
+
+    @Override
+    protected List<String> getUsers() {
+        return getAccessibleToUsers();
+    }
+
+    public void addUserForAccess(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if (getUsers() == null) {
+            setAccessibleToUsers(List.of(userId));
+        } else {
+            this.getUsers().removeIf(candidate -> candidate.equals(userId));
+            this.getUsers().add(userId);
+        }
+
+    }
+
+    public void removeUserForAccess(
+            final String userId) {
+
+        if (userId == null) {
+            return;
+        }
+        if ((getUsers() == null)
+                || getUsers().isEmpty()) {
+            return;
+        }
+
+        this.getUsers().removeIf(candidate -> candidate.equals(userId));
+
+    }
+
+    @AccessType(AccessType.Type.PROPERTY)
+    public boolean isDangling() {
+
+        if ((getAccessibleToUsers() != null)
+                && !getAccessibleToUsers().isEmpty()) {
+            return false;
+        }
+        if ((getAccessibleToGroups() != null)
+                && !getAccessibleToGroups().isEmpty()) {
+            return false;
+        }
+        return true;
+
+    }
+
+    /**
+     * @see #isDangling()
+     */
+    public void setDangling(boolean dangling) {
+        // ignored since 'dangling' is a derived value
+    }
 
     public String getId() {
         return id;
@@ -228,4 +297,21 @@ public class Workflow implements UpdateInformationAware {
     public void setDetailsFulltextSearch(String detailsFulltextSearch) {
         this.detailsFulltextSearch = detailsFulltextSearch;
     }
+
+    public List<String> getAccessibleToGroups() {
+        return accessibleToGroups;
+    }
+
+    public void setAccessibleToGroups(List<String> accessibleToGroups) {
+        this.accessibleToGroups = accessibleToGroups;
+    }
+
+    public List<String> getAccessibleToUsers() {
+        return accessibleToUsers;
+    }
+
+    public void setAccessibleToUsers(List<String> accessibleToUsers) {
+        this.accessibleToUsers = accessibleToUsers;
+    }
+
 }

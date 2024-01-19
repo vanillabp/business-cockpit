@@ -189,16 +189,6 @@ paths:
       operationId: getUserTasks
       parameters:
         - in: query
-          name: pageNumber
-          schema:
-            type: integer
-            format: int32
-        - in: query
-          name: pageSize
-          schema:
-            type: integer
-            format: int32
-        - in: query
           name: initialTimestamp
           schema:
             type: string
@@ -311,6 +301,11 @@ paths:
           name: requestId
           schema:
             type: string
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       requestBody:
         required: true
         content:
@@ -330,6 +325,11 @@ paths:
       summary: Kwic results
       operationId: getKwicResults
       parameters:
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
         - in: query
           name: path
           schema:
@@ -361,6 +361,11 @@ paths:
           name: requestId
           schema:
             type: string
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
       requestBody:
         required: true
         content:
@@ -687,6 +692,16 @@ components:
           type: string
           description: An URI pointing to the workflow-modules's own API (maybe used by workflow pages)
           example: http://localhost:8080/wm/what-ever/
+        accessibleToUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        accessibleToGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
         details:
           type: object
           description: Properties for individual searches
@@ -731,6 +746,12 @@ components:
     UserTasksRequest:
       type: object
       properties:
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
         query:
           type: string
         sort:
@@ -778,9 +799,6 @@ components:
         pageSize:
           type: integer
           format: int32
-        initialTimestamp:
-          type: string
-          format: date-time
         searchQueries:
           type: array
           items:
@@ -828,9 +846,6 @@ components:
           type: string
         sortAscending:
           type: boolean
-        initialTimestamp:
-          type: string
-          format: date-time
     KwicRequest:
       type: object
       properties:

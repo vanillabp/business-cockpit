@@ -1,21 +1,16 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
-import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
-import io.vanillabp.cockpit.tasklist.UserTaskChangedNotification;
 import io.vanillabp.cockpit.users.UserDetails;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -30,9 +25,6 @@ import java.util.List;
 
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
-    @Autowired
-    private ApplicationEventPublisher applicationEventPublisher;
-
 	@Autowired
 	private ReactiveUserContext userContext;
 
@@ -42,21 +34,6 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 	@Autowired
 	private UserDetailsProvider userDetailsProvider;
 	
-    @EventListener(classes = UserTaskChangedNotification.class)
-    public void updateClients(
-            final UserTaskChangedNotification notification) {
-        
-        applicationEventPublisher.publishEvent(
-                new GuiEvent(
-                        notification.getSource(),
-                        notification.getTargetRoles(),
-                        new UserTaskEvent()
-                                .name("UserTask")
-                                .id(notification.getUserTaskId())
-                                .type(notification.getType().toString())));
-        
-    }
-
 	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int pageNumber,
@@ -68,8 +45,6 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
 			final Mono<UserTasksRequest> userTasksRequest,
-            final Integer pageNumber,
-            final Integer pageSize,
             final OffsetDateTime initialTimestamp,
             final ServerWebExchange exchange) {
 		
@@ -82,8 +57,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						userTasksRequest)
 				.flatMap(entry -> getUserTasks(
 						entry.getT1(),
-						pageNumber,
-						pageSize,
+						entry.getT2().getPageNumber(),
+						entry.getT2().getPageSize(),
 						timestamp,
 						entry.getT2().getSort(),
 						entry.getT2().getSortAscending())

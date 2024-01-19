@@ -27,4 +27,8 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
 
     void setTemplateContext(Object templateContext);
 
+    void setAccessibleToUsers(List<String> accessibleToUsers);
+
+    void setAccessibleToGroups(List<String> accessibleToGroups);
+
 }

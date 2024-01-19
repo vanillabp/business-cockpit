@@ -14,6 +14,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
     
     @Mapping(target = "id", ignore = true)
@@ -22,6 +24,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
     
 }

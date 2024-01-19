@@ -123,6 +123,9 @@ public class WorkflowlistService {
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
+            final boolean includeDanglingWorkflows,
+            final Collection<String> accessibleToUsers,
+            final Collection<String> accessibleToGroups,
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
@@ -140,7 +143,13 @@ public class WorkflowlistService {
         final var query = new Query();
         final var searchCriteria = buildSearchCriteria(searchQueries);
         query.addCriteria(
-                buildWorkflowlistCriteria(endedSince, RetrieveItemsMode.Active, searchCriteria));
+                buildWorkflowlistCriteria(
+                        includeDanglingWorkflows,
+                        accessibleToUsers,
+                        accessibleToGroups,
+                        endedSince,
+                        RetrieveItemsMode.Active,
+                        searchCriteria));
 
         // prepare to retrieve data on execution
         final var numberOfWorkflowsFound = mongoTemplate
@@ -225,6 +234,9 @@ public class WorkflowlistService {
 
     }
     public Mono<Page<Workflow>> getWorkflowsUpdated(
+            final boolean includeDanglingWorkflows,
+            final Collection<String> accessibleToUsers,
+            final Collection<String> accessibleToGroups,
             final int size,
             final Collection<String> knownWorkflowIds,
             final OffsetDateTime initialTimestamp,
@@ -242,7 +254,13 @@ public class WorkflowlistService {
         query.fields().include("_id");
         final var searchCriteria = buildSearchCriteria(searchQueries);
         query.addCriteria(
-                buildWorkflowlistCriteria(initialTimestamp, RetrieveItemsMode.Active, searchCriteria));
+                buildWorkflowlistCriteria(
+                        includeDanglingWorkflows,
+                        accessibleToUsers,
+                        accessibleToGroups,
+                        initialTimestamp,
+                        RetrieveItemsMode.Active,
+                        searchCriteria));
 
         final var numberOfWorkflows = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
@@ -362,7 +380,11 @@ public class WorkflowlistService {
     }
 
     public Flux<KwicResult> kwic(
-            final Criteria predefinedCriterias,
+            final OffsetDateTime endedSince,
+            final boolean includeDanglingWorkflows,
+            final Collection<String> accessibleToUsers,
+            final Collection<String> accessibleToGroups,
+            final Collection<SearchQuery> searchQueries,
             final String path,
             final String query) {
 
@@ -370,6 +392,18 @@ public class WorkflowlistService {
                 || (query.length() < 3)) {
             return Flux.empty();
         }
+
+        final var searchCriteria = new LinkedList<Criteria>();
+        searchCriteria.addAll(buildSearchCriteria(searchQueries));
+        searchCriteria.add(new Criteria(path).regex(query));
+        final var match =
+                buildWorkflowlistCriteria(
+                        includeDanglingWorkflows,
+                        accessibleToUsers,
+                        accessibleToGroups,
+                        endedSince,
+                        RetrieveItemsMode.Active,
+                        searchCriteria);
 
         /*
         db.workflow.aggregate([
@@ -381,13 +415,7 @@ public class WorkflowlistService {
             { $group: { _id: '$captures', count: { $sum: 1 } } }
         ])
          */
-        final var regexMatch = new Criteria(path).regex(query);
-        final var match = predefinedCriterias != null
-                ? new Criteria().andOperator(
-                        predefinedCriterias,
-                        regexMatch
-                    )
-                : regexMatch;
+
         final var groupedQuery = "(\\S*" + query + "\\S*)"; // find entire words
         return mongoTemplate
                 .aggregate(
@@ -425,7 +453,7 @@ public class WorkflowlistService {
 
         if ((searchQueries == null)
                 || searchQueries.isEmpty()) {
-            return null;
+            return List.of();
         }
 
         return searchQueries
@@ -438,11 +466,36 @@ public class WorkflowlistService {
     }
 
     public Criteria buildWorkflowlistCriteria(
+            final boolean includeDanglingWorkflows,
+            final Collection<String> accessibleToUsers,
+            final Collection<String> accessibleToGroups,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode,
             final List<Criteria> predefinedCriterias) {
 
         final var subCriterias = new LinkedList<Criteria>();
+
+        // limit result according to users and groups
+
+        final var userOrRestrictions = new LinkedList<Criteria>();
+        if ((accessibleToUsers != null)
+                && !accessibleToUsers.isEmpty()) {
+            final var candidateUsersMatches = Criteria.where("accessibleToUsers").in(accessibleToUsers);
+            userOrRestrictions.add(candidateUsersMatches);
+        }
+        if ((accessibleToGroups != null)
+                && !accessibleToGroups.isEmpty()) {
+            final var candidateGroupsMatches = Criteria.where("accessibleToGroups").in(accessibleToGroups);
+            userOrRestrictions.add(candidateGroupsMatches);
+        }
+
+        if (!userOrRestrictions.isEmpty()) {
+            if (includeDanglingWorkflows) {
+                final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
+                userOrRestrictions.add(noAssigneeOrNoCandidate);
+            }
+            subCriterias.add(new Criteria().orOperator(userOrRestrictions));
+        }
 
         // limit result according to list mode
 
@@ -468,7 +521,8 @@ public class WorkflowlistService {
 
         // limit result according to predefined filters
 
-        if (predefinedCriterias != null) {
+        if ((predefinedCriterias != null)
+                && !predefinedCriterias.isEmpty()) {
             subCriterias.addAll(predefinedCriterias);
         }
 

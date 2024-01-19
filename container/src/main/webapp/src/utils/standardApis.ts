@@ -7,7 +7,7 @@ import { OfficialTasklistApi, SearchQuery } from "@vanillabp/bc-official-gui-cli
 const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi => {
   return {
     getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasks({ pageNumber, pageSize, initialTimestamp, userTasksRequest: { sort, sortAscending } }),
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
     getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
         .getUserTasksUpdate({ size, initialTimestamp, userTasksUpdateRequest: { knownUserTasksIds, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
@@ -33,7 +33,7 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   return {
     getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasks({ pageNumber, pageSize, initialTimestamp, userTasksRequest: { sort, sortAscending } }),
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
     getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
         .getUserTasksUpdate({ size, initialTimestamp, userTasksUpdateRequest: { knownUserTasksIds, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
@@ -59,9 +59,9 @@ const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupS
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   return {
     getWorkflows: (requestId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
-        .getWorkflows({ requestId, workflowsRequest: { sort, sortAscending, searchQueries, pageNumber, pageSize, initialTimestamp } }),
+        .getWorkflows({ requestId, initialTimestamp, workflowsRequest: { sort, sortAscending, searchQueries, pageNumber, pageSize } }),
     getWorkflowsUpdate: (requestId, size, knownWorkflowsIds, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
-        .getWorkflowsUpdate({ requestId, workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, initialTimestamp, searchQueries } }),
+        .getWorkflowsUpdate({ requestId, initialTimestamp, workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, searchQueries } }),
     getWorkflow: workflowId => workflowlistApi
         .getWorkflow({ workflowId }),
     getUserTasksOfWorkflow: (workflowId, activeOnlyRequested, limitListAccordingToCurrentUsersPermissions) => workflowlistApi
@@ -69,8 +69,8 @@ const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupS
             workflowId,
             activeOnly: activeOnlyRequested === undefined ? true : activeOnlyRequested,
             llatcup: limitListAccordingToCurrentUsersPermissions === undefined ? true : limitListAccordingToCurrentUsersPermissions}),
-    kwicWorkflows: async (query: string, path?: string, searchQueries?: Array<SearchQuery>) => {
-        const result = await workflowlistApi.getKwicResults({ path, query, kwicRequest: { searchQueries } })
+    kwicWorkflows: async (query: string, path?: string, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => {
+        const result = await workflowlistApi.getKwicResults({ initialTimestamp, path, query, kwicRequest: { searchQueries } })
         return result.result;
       },
   };

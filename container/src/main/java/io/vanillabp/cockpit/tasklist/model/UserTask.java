@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.tasklist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetails;
+import io.vanillabp.cockpit.util.candidates.CandidatesAware;
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -9,14 +10,12 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.util.StringUtils;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
 @Document(collection = UserTask.COLLECTION_NAME)
-public class UserTask implements UpdateInformationAware {
+public class UserTask extends CandidatesAware implements UpdateInformationAware {
 
     public static record ReadBy(String userId, OffsetDateTime timestamp) {};
 
@@ -88,53 +87,26 @@ public class UserTask implements UpdateInformationAware {
 
     private List<ReadBy> readBy;
 
+    @Override
+    protected List<String> getGroups() {
+        return getCandidateGroups();
+    }
+
+    @Override
+    protected List<String> getUsers() {
+        return getCandidateUsers();
+    }
+
     public Collection<String> getTargetRoles() {
 
-        final var result = new HashSet<String>();
-        if (getCandidateGroups() != null) {
-            result.addAll(getCandidateGroups());
-        }
-        if (getCandidateUsers() != null) {
-            getCandidateUsers()
-                    .forEach(user -> result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + user));
+        final var result = super.getTargetRoles();
+        if (result == null) {
+            return null;
         }
         if (getAssignee() != null) {
             result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + getAssignee());
         }
-        if (result.isEmpty()) {
-            return null; // means visible to everyone
-        }
         return result;
-
-    }
-
-    public boolean hasOneOfTargetRoles(
-            final String... roles) {
-
-        if ((roles == null)
-            || (roles.length == 0)) {
-            return true;
-        }
-
-        final var targetRoles = getTargetRoles();
-        return Arrays
-                .stream(roles)
-                .anyMatch(targetRoles::contains);
-
-    }
-
-    public boolean hasOneOfTargetRoles(
-            final Collection<String> roles) {
-
-        if ((roles == null)
-                || roles.isEmpty()) {
-            return true;
-        }
-
-        final var targetRoles = getTargetRoles();
-        return roles
-                .stream()
-                .anyMatch(targetRoles::contains);
 
     }
 
@@ -144,11 +116,11 @@ public class UserTask implements UpdateInformationAware {
         if (userId == null) {
             return;
         }
-        if (getCandidateUsers() == null) {
+        if (getUsers() == null) {
             setCandidateUsers(List.of(userId));
         } else {
-            this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
-            this.getCandidateUsers().add(userId);
+            this.getUsers().removeIf(candidate -> candidate.equals(userId));
+            this.getUsers().add(userId);
         }
 
     }
@@ -159,12 +131,12 @@ public class UserTask implements UpdateInformationAware {
         if (userId == null) {
             return;
         }
-        if ((getCandidateUsers() == null)
-            || getCandidateUsers().isEmpty()) {
+        if ((getUsers() == null)
+                || getUsers().isEmpty()) {
             return;
         }
 
-        this.getCandidateUsers().removeIf(candidate -> candidate.equals(userId));
+        this.getUsers().removeIf(candidate -> candidate.equals(userId));
 
     }
 

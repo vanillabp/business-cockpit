@@ -384,9 +384,7 @@ components:
           description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: /remoteEntry.js
         uiUriType:
-          type: string
           $ref: '#/components/schemas/UiUriType'
-          example: WEBPACK_MF_REACT
         assignee:
           type: string
           example: driverA
@@ -524,13 +522,21 @@ components:
           description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: /remoteEntry.js
         uiUriType:
-          type: string
           $ref: '#/components/schemas/UiUriType'
-          example: WEBPACK_MF_REACT
         workflowProviderApiUriPath:
           type: string
           description: A path added to workflowModuleUri to build a URI for the workflow-provider API
           example: /api/v1/workflow-details-provider
+        accessibleToUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        accessibleToGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
         details:
           type: object
           description: Properties for individual searches
