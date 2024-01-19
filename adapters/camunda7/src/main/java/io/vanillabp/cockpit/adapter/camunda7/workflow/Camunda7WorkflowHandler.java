@@ -78,7 +78,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         
         WorkflowEvent workflowEvent = null;
         if (processInstance.getEndTime() != null) {
-            workflowEvent = new io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent();
+            WorkflowCompletedEvent workflowCompletedEvent = new WorkflowCompletedEvent();
+            fillLifecycleEvent(bpmnProcessId, bpmnProcessVersion, processInstance, workflowCompletedEvent);
+            workflowEvent = workflowCompletedEvent;
         } else {
             WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
