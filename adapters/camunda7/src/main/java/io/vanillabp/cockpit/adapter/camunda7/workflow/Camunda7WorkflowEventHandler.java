@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Objects;
 
 public class Camunda7WorkflowEventHandler {
@@ -208,11 +207,21 @@ public class Camunda7WorkflowEventHandler {
             phase = TransactionPhase.AFTER_COMMIT)
     public void processEventsAfterTransaction(
             final ProcessWorkflowAfterTransactionEvent event) {
-        
+
+        /* events are collected in a thread-local property and are
+         * processed once the first after-commit event fires.
+         * the reason for this is to remove duplicates. Since the
+         * first event publishes all, all the other events have to be
+         * ignored.
+         */
+        if (workflowsAfterTransaction.get().isEmpty()) {
+            return;
+        }
         try {
+
             historyService
                     .createHistoricProcessInstanceQuery()
-                    .processInstanceIds(new HashSet<String>(workflowsAfterTransaction.get()))
+                    .processInstanceIds(new HashSet<String>(workflowsAfterTransaction.get().stream().distinct().toList()))
                     .list()
                     .stream()
                     .map(this::processProcessInstanceHistoryEvent)

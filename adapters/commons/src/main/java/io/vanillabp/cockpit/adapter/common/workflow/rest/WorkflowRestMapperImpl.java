@@ -84,6 +84,8 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
             workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
         }
         workflowCreatedOrUpdatedEvent.setDetailsFulltextSearch( workflowCreatedEvent.getDetailsFulltextSearch() );
+        workflowCreatedOrUpdatedEvent.setAccessibleToUsers( workflowCreatedEvent.getAccessibleToUsers() );
+        workflowCreatedOrUpdatedEvent.setAccessibleToGroups( workflowCreatedEvent.getAccessibleToGroups() );
 
         workflowCreatedOrUpdatedEvent.setUpdated( false );
 
@@ -121,6 +123,8 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
             workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
         }
         workflowCreatedOrUpdatedEvent.setDetailsFulltextSearch( workflowUpdatedEvent.getDetailsFulltextSearch() );
+        workflowCreatedOrUpdatedEvent.setAccessibleToUsers( workflowUpdatedEvent.getAccessibleToUsers() );
+        workflowCreatedOrUpdatedEvent.setAccessibleToGroups( workflowUpdatedEvent.getAccessibleToGroups() );
 
         workflowCreatedOrUpdatedEvent.setUpdated( true );
 

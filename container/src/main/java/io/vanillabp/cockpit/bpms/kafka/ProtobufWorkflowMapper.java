@@ -20,6 +20,10 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
+    @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList")
+    @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList")
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
 
     @Mapping(target = "id", ignore = true)
@@ -28,6 +32,10 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetRoles", ignore = true)
+    @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList")
+    @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList")
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
     public OffsetDateTime map(Timestamp value) {

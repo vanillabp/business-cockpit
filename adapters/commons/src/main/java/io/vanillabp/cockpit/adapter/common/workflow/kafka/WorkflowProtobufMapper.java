@@ -10,6 +10,7 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -77,6 +78,14 @@ public class WorkflowProtobufMapper {
                 .ifPresent(builder::setDetailsFulltextSearch);
         Optional.ofNullable(workflowUpdatedEvent.getComment())
                 .ifPresent(builder::setComment);
+        Optional.ofNullable(workflowUpdatedEvent.getAccessibleToUsers())
+                .stream()
+                .flatMap(Collection::stream)
+                .forEach(builder::addAccessibleToUsers);
+        Optional.ofNullable(workflowUpdatedEvent.getAccessibleToGroups())
+                .stream()
+                .flatMap(Collection::stream)
+                .forEach(builder::addAccessibleToGroups);
     }
 
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowEvent) {

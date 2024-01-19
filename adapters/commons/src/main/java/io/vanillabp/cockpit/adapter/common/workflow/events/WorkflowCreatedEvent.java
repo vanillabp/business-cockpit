@@ -52,6 +52,9 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
 
   private OffsetDateTime eventTimestamp;
 
+  private List<String> accessibleToUsers;
+
+  private List<String> accessibleToGroups;
 
   public WorkflowCreatedEvent() {
   }
@@ -235,6 +238,24 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
   @Override
   public void setTemplateContext(Object templateContext) {
     this.templateContext = templateContext;
+  }
+
+  public List<String> getAccessibleToUsers() {
+    return accessibleToUsers;
+  }
+
+  @Override
+  public void setAccessibleToUsers(List<String> accessibleToUsers) {
+    this.accessibleToUsers = accessibleToUsers;
+  }
+
+  public List<String> getAccessibleToGroups() {
+    return accessibleToGroups;
+  }
+
+  @Override
+  public void setAccessibleToGroups(List<String> accessibleToGroups) {
+    this.accessibleToGroups = accessibleToGroups;
   }
 
 }

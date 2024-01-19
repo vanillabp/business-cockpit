@@ -99,6 +99,8 @@ message WorkflowCreatedOrUpdatedEvent {
   optional string bpmn_process_version = 17;
   map<string, string> details = 18;
   optional string details_fulltext_search = 19;
+  repeated string accessible_to_users = 20;
+  repeated string accessible_to_groups = 21;
 }
 
 message WorkflowCompletedEvent {
