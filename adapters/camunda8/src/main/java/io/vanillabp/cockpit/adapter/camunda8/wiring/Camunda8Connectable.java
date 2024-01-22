@@ -1,35 +1,28 @@
 package io.vanillabp.cockpit.adapter.camunda8.wiring;
 
 import io.camunda.zeebe.model.bpmn.instance.Process;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeLoopCharacteristics;
 import io.vanillabp.springboot.adapter.Connectable;
 
 public class Camunda8Connectable implements Connectable {
-    
-    public enum Type {
-        TASK, USERTASK
-    };
-
     private final Process process;
 
     private final String elementId;
-    
-    private final Type type;
 
     private final String taskDefinition;
+
+    private final String title;
+
     
     public Camunda8Connectable(
             final Process process,
             final String elementId,
-            final Type type,
             final String taskDefinition,
-            final ZeebeLoopCharacteristics loopCharacteristics) {
+            final String title) {
 
         this.process = process;
         this.elementId = elementId;
         this.taskDefinition = taskDefinition;
-        this.type = type;
-
+        this.title = title;
     }
     
     @Override
@@ -37,12 +30,6 @@ public class Camunda8Connectable implements Connectable {
 
         return elementId;
 
-    }
-    
-    public Type getType() {
-        
-        return type;
-        
     }
     
     @Override
@@ -64,6 +51,10 @@ public class Camunda8Connectable implements Connectable {
 
         return taskDefinition;
 
+    }
+
+    public String getTitle() {
+        return title;
     }
     
 }

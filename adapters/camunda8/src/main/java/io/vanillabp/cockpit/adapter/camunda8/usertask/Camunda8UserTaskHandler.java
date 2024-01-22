@@ -26,6 +26,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,28 +43,13 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     private final ApplicationEventPublisher applicationEventPublisher;
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
     private final AdapterAwareProcessService<?> processService;
+    private final String taskDefinition;
+    private final String taskTitle;
 
     @Override
     protected Logger getLogger() {
         return logger;
     }
-
-
-    /*
-            final String taskDefinition,
-            final CockpitProperties properties,
-            final UserTasksProperties workflowProperties,
-            final UserTaskProperties userTaskProperties,
-            final ApplicationEventPublisher applicationEventPublisher,
-            final Optional<Configuration> templating,
-            final ApiVersionAware bpmsApiVersionAware,
-            final String bpmnProcessId,
-            final AdapterAwareProcessService<?> processService,
-            final CrudRepository<Object, Object> workflowAggregateRepository,
-            final Object bean,
-            final Method method,
-            final List<MethodParameter> parameters) {
-     */
 
     public Camunda8UserTaskHandler(
             String taskDefinition,
@@ -72,7 +58,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             UserTaskProperties userTaskProperties,
             ApplicationEventPublisher applicationEventPublisher,
             Optional<Configuration> templating,
-            String bpmnProcessId,
+            String taskTitle,
             AdapterAwareProcessService<?> processService,
             CrudRepository<Object, Object> workflowAggregateRepository,
             Object bean,
@@ -80,7 +66,8 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             List<MethodParameter> parameters) {
 
         super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
-
+        this.taskDefinition = taskDefinition;
+        this.taskTitle = taskTitle;
         this.properties = properties;
         this.userTaskProperties = userTaskProperties;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -138,7 +125,10 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             default -> throw new RuntimeException("Unsupported event type '" + intent + "'!");
         };
 
-        applicationEventPublisher.publishEvent(userTaskEvent);
+        applicationEventPublisher.publishEvent(
+                new io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.UserTaskEvent(
+                        Camunda8UserTaskHandler.class,
+                        userTaskEvent));
 
         applicationEventPublisher.publishEvent(
                 new ProcessUserTaskEvent(Camunda8UserTaskHandler.class));
@@ -176,14 +166,12 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
     private UserTaskCreatedEvent getUserTaskCreatedEvent(Schema.JobRecord jobRecord) {
+
+        // TODO: correct tenant from event (not possible with current redis exporter)
         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
-                jobRecord.getWorker(),  // TODO: correct string
+                "demo",
                 properties.getI18nLanguages()
         );
-        userTaskCreatedEvent.setTimestamp(OffsetDateTime.now());
-
-        // TODO: use timestamp from job record
-        //   jobRecord.getMetadata().getTimestamp();
 
         prefillCreatedEvent(userTaskCreatedEvent, jobRecord);
 
@@ -202,6 +190,22 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             userTaskCreatedEvent.setI18nLanguages(properties.getI18nLanguages());
         }
 
+        if (templating.isEmpty()) {
+            fillUserTaskWithTemplatingDeactivated(
+                    jobRecord.getBpmnProcessId(),
+                    taskTitle,
+                    userTaskCreatedEvent,
+                    prefilledUserTaskDetails
+            );
+        } else {
+            fillUserTaskWithTemplatingActivated(
+                    jobRecord.getBpmnProcessId(),
+                    taskTitle,
+                    userTaskCreatedEvent,
+                    prefilledUserTaskDetails
+            );
+        }
+
         return userTaskCreatedEvent;
     }
 
@@ -209,11 +213,49 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     private void prefillCreatedEvent(UserTaskCreatedEvent eventWrapper,
                                      Schema.JobRecord jobRecord) {
 
+        // TODO: process instance key correct?
+        eventWrapper.setId(
+                System.nanoTime() +
+                        "@" +
+                        jobRecord.getProcessInstanceKey());
+
+        eventWrapper.setUserTaskId(
+                String.valueOf(jobRecord.getElementInstanceKey()));
+
+        // TODO: use timestamp from job record
+        //   jobRecord.getMetadata().getTimestamp();
+        eventWrapper.setTimestamp(OffsetDateTime.now());
+
         eventWrapper.setBpmnProcessId(jobRecord.getBpmnProcessId());
         eventWrapper.setBpmnProcessVersion(
                 String.valueOf(jobRecord.getWorkflowDefinitionVersion()));
-        eventWrapper.setBpmnTaskId(
-                jobRecord.getElementId());
+        eventWrapper.setTaskDefinition(taskDefinition);
+
+        // TODO: what is businessId in C8?
+        eventWrapper.setBusinessId(
+                String.valueOf(jobRecord.getProcessInstanceKey()));
+
+        eventWrapper.setBpmnTaskId(jobRecord.getElementId());
+
+        eventWrapper.setWorkflowId(
+                String.valueOf(jobRecord.getProcessInstanceKey()));
+        eventWrapper.setSubWorkflowId(
+                String.valueOf(jobRecord.getProcessInstanceKey()));
+
+        eventWrapper.setTitle(new HashMap<>());
+        eventWrapper.setWorkflowTitle(new HashMap<>());
+        eventWrapper.setTaskDefinitionTitle(new HashMap<>());
+
+//        prefilledUserTaskDetails.setCandidateUsers(
+//                candidates.getKey());
+//        prefilledUserTaskDetails.setCandidateGroups(
+//                candidates.getValue());
+
+//        prefilledUserTaskDetails.setDueDate(
+//                DateTimeUtil.fromDate(delegateTask.getDueDate()));
+//        prefilledUserTaskDetails.setFollowUpDate(
+//                DateTimeUtil.fromDate(delegateTask.getFollowUpDate()));
+
     }
 
 
@@ -331,15 +373,16 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
 
-    private void fillUserTaskWithTemplatingActivated(
+    private void fillUserTaskWithTemplatingDeactivated(
             String bpmnProcessName,
             String taskName,
             UserTaskCreatedEvent event,
             UserTaskDetails details) {
 
-        final var language = StringUtils.hasText(userTaskProperties.getBpmnDescriptionLanguage())
-                ? userTaskProperties.getBpmnDescriptionLanguage()
-                : workflowProperties.getBpmnDescriptionLanguage();
+        final String language =
+                userTaskProperties != null && StringUtils.hasText(userTaskProperties.getBpmnDescriptionLanguage())
+                        ? userTaskProperties.getBpmnDescriptionLanguage()
+                        : workflowProperties.getBpmnDescriptionLanguage();
 
         if ((details.getWorkflowTitle() == null)
                 || details.getWorkflowTitle().isEmpty()) {
@@ -367,7 +410,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
 
-    private void fillUserTaskWithTemplatingDeactivated(
+    private void fillUserTaskWithTemplatingActivated(
             String bpmnProcessName,
             String taskName,
             UserTaskCreatedEvent event,
@@ -399,7 +442,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                     setTextInEvent(
                             language,
                             locale,
-                            StringUtils.hasText(userTaskProperties.getTemplatesPath())
+                            userTaskProperties != null && StringUtils.hasText(userTaskProperties.getTemplatesPath())
                                     ? userTaskProperties.getTemplatesPath()
                                     + File.separator
                                     + "title.ftl"
@@ -413,7 +456,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                     setTextInEvent(
                             language,
                             locale,
-                            StringUtils.hasText(userTaskProperties.getTemplatesPath())
+                            userTaskProperties != null && StringUtils.hasText(userTaskProperties.getTemplatesPath())
                                     ? userTaskProperties.getTemplatesPath()
                                     + File.separator
                                     + "task-definition-title.ftl"

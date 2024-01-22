@@ -15,7 +15,6 @@ import io.vanillabp.cockpit.adapter.camunda8.deployments.DeployedBpmn;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
-import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8Connectable.Type;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
@@ -180,7 +179,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
         executableProcesses
                 .stream()
-                .flatMap(process -> connectablesForType(process, model, UserTask.class))
+                .flatMap(process -> getUserTaskConnectables(process, model))
                 .forEach(connectable -> {
                     camunda8UserTaskWiring.wireTask(workflowModuleId, connectable);
                 });
@@ -188,71 +187,42 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     }
 
 
-    public Stream<Camunda8Connectable> connectablesForType(
+    public Stream<Camunda8Connectable> getUserTaskConnectables(
             final Process process,
-            final BpmnModelInstanceImpl model,
-            final Class<? extends BaseElement> type) {
+            final BpmnModelInstanceImpl model) {
 
-        final var kind = UserTask.class.isAssignableFrom(type) ? Type.USERTASK : Type.TASK;
-
-        final var stream = model
-                .getModelElementsByType(type)
+        return model
+                .getModelElementsByType(UserTask.class)
                 .stream()
                 .filter(element -> Objects.equals(getOwningProcess(element), process))
                 .map(element -> new Camunda8Connectable(
                         process,
                         element.getId(),
-                        kind,
-                        getTaskDefinition(kind, element),
-                        element.getSingleExtensionElement(ZeebeLoopCharacteristics.class)))
+                        getFormKey(element),
+                        getTaskName(element)))
                 .filter(Camunda8Connectable::isExecutableProcess);
-
-        if (kind == Type.USERTASK) {
-            return stream;
-        }
-
-        return stream.filter(connectable -> connectable.getTaskDefinition() != null);
-
     }
 
 
-    static Process getOwningProcess(
+    private static Process getOwningProcess(
             final ModelElementInstance element) {
 
         if (element instanceof Process) {
             return (Process) element;
         }
 
-        final var parent = element.getParentElement();
-        if (parent == null) {
-            return null;
-        }
-
-        return getOwningProcess(parent);
-
+        ModelElementInstance parent = element.getParentElement();
+        return parent == null ? null : getOwningProcess(parent);
     }
 
-    private String getTaskDefinition(
-            final Type kind,
-            final BaseElement element) {
-
-        if (kind == Type.USERTASK) {
-
-            final var formDefinition = element.getSingleExtensionElement(ZeebeFormDefinition.class);
-            if (formDefinition == null) {
-                return null;
-            }
-            return formDefinition.getFormKey();
-
-        }
-
-        final var taskDefinition = element.getSingleExtensionElement(ZeebeTaskDefinition.class);
-        if (taskDefinition == null) {
-            return null;
-        }
-        return taskDefinition.getType();
-
+    private String getFormKey(final BaseElement element) {
+        final ZeebeFormDefinition formDefinition = element.getSingleExtensionElement(ZeebeFormDefinition.class);
+        return formDefinition == null ? null : formDefinition.getFormKey();
     }
 
-
+    private String getTaskName(
+            final BaseElement element
+    ){
+        return element.getAttributeValue("name");
+    }
 }
