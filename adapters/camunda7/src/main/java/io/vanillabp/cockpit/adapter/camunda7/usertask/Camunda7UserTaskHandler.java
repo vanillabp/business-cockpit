@@ -1,15 +1,21 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda7.service.UserTaskImpl;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.ProcessUserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.UserTaskEvent;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.events.*;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskLifecycleEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
+import io.vanillabp.spi.cockpit.usertask.UserTask;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.service.MultiInstanceElementResolver;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
@@ -37,7 +43,13 @@ import org.springframework.util.StringUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -160,6 +172,15 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         applicationEventPublisher.publishEvent(
                 new ProcessUserTaskEvent(
                         Camunda7UserTaskHandler.class));
+
+    }
+
+    public UserTask getUserTask(
+            final TaskEntity task) {
+
+        final var userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages());
+        fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
+        return new UserTaskImpl(userTaskCreatedEvent);
 
     }
 
