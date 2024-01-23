@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.adapter.common.usertask.kafka;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
@@ -19,6 +21,12 @@ import java.util.stream.Collectors;
 public class UserTaskProtobufMapper {
 
     private final String API_VERSION = "1.0";
+
+    private final ObjectMapper objectMapper;
+
+    public UserTaskProtobufMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     public UserTaskCreatedOrUpdatedEvent map(UserTaskCreatedEvent userTaskCreatedEvent){
         UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
@@ -191,7 +199,13 @@ public class UserTaskProtobufMapper {
                 .stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        stringObjectEntry -> stringObjectEntry.getValue().toString()
+                        stringObjectEntry -> {
+                            try {
+                                return objectMapper.writeValueAsString(stringObjectEntry.getValue());
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException("Could not parse user task details to JSON.", e);
+                            }
+                        }
                 ));
     }
 }

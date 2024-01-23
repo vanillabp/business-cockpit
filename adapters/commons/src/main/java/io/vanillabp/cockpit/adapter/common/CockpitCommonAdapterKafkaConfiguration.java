@@ -1,6 +1,10 @@
 package io.vanillabp.cockpit.adapter.common;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.kafka.UserTaskKafkaPublishing;
@@ -27,6 +31,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
 import java.util.Map;
+import java.util.TimeZone;
 
 @AutoConfiguration
 @AutoConfigureBefore(KafkaAutoConfiguration.class)
@@ -56,26 +61,28 @@ public class CockpitCommonAdapterKafkaConfiguration {
 
     @Bean
     public UserTaskPublishing userTaskKafkaPublishing(
-            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate,
+            @Qualifier("businessCockpitProtobufObjectMapper") ObjectMapper objectMapper) {
 
         return new UserTaskKafkaPublishing(
                 workerId,
                 properties,
                 workflowsCockpitProperties,
-                new UserTaskProtobufMapper(),
+                new UserTaskProtobufMapper(objectMapper),
                 kafkaTemplate
         );
     }
 
     @Bean
     public WorkflowPublishing workflowKafkaPublishing(
-            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate,
+            @Qualifier("businessCockpitProtobufObjectMapper") ObjectMapper objectMapper) {
 
         return new WorkflowKafkaPublishing(
                 workerId,
                 properties,
                 workflowsCockpitProperties,
-                new WorkflowProtobufMapper(),
+                new WorkflowProtobufMapper(objectMapper),
                 kafkaTemplate
         );
     }
@@ -94,6 +101,23 @@ public class CockpitCommonAdapterKafkaConfiguration {
         configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
 
         return new DefaultKafkaProducerFactory<>(configs);
+    }
+
+    @Bean
+    @Qualifier("businessCockpitProtobufObjectMapper")
+    public ObjectMapper businessCockpitProtobufObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        objectMapper.enable(SerializationFeature.WRITE_DATES_WITH_CONTEXT_TIME_ZONE);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+
+        objectMapper.setTimeZone(TimeZone.getTimeZone("UTC"));
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        objectMapper.registerModule(new JavaTimeModule());
+        return objectMapper;
     }
 
 }
