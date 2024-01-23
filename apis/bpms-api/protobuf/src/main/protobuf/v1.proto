@@ -35,7 +35,37 @@ message UserTaskCreatedOrUpdatedEvent {
   repeated string candidate_groups = 27;
   optional google.protobuf.Timestamp due_date = 28;
   optional google.protobuf.Timestamp follow_up_date = 29;
-  map<string, string> details = 30;
+
+  message SimpleValue {
+    oneof These {
+      int32 intValue = 1;
+      string stringValue = 2;
+      bool boolValue = 3;
+      double doubleValue = 4;
+    }
+  }
+
+  // maybe use ComplexValue instead and remove SimpleValue message
+  message SimpleArrayValue {
+    repeated SimpleValue simpleValue = 1;
+  }
+
+  message ComplexValue {
+    oneof These {
+      int32 intValue = 1;
+      string stringValue = 2;
+      bool boolValue = 3;
+      double doubleValue = 4;
+      Details detailsValue = 5;
+      SimpleArrayValue simpleValue= 6;
+    }
+  }
+
+  message Details {
+    map<string, ComplexValue> details = 1;
+  }
+
+  optional Details details = 30;
   optional string details_fulltext_search = 31;
 }
 
@@ -97,7 +127,37 @@ message WorkflowCreatedOrUpdatedEvent {
   map<string, string> title = 15;
   optional string comment = 16;
   optional string bpmn_process_version = 17;
-  map<string, string> details = 18;
+
+  message SimpleValue {
+    oneof These {
+      int32 intValue = 1;
+      string stringValue = 2;
+      bool boolValue = 3;
+      double doubleValue = 4;
+    }
+  }
+
+  // maybe use ComplexValue instead and remove SimpleValue message
+  message SimpleArrayValue {
+    repeated SimpleValue simpleValue = 1;
+  }
+
+  message ComplexValue {
+    oneof These {
+      int32 intValue = 1;
+      string stringValue = 2;
+      bool boolValue = 3;
+      double doubleValue = 4;
+      Details detailsValue = 5;
+      SimpleArrayValue simpleValue= 6;
+    }
+  }
+
+  message Details {
+    map<string, ComplexValue> details = 1;
+  }
+
+  optional Details details = 18;
   optional string details_fulltext_search = 19;
   repeated string accessible_to_users = 20;
   repeated string accessible_to_groups = 21;
