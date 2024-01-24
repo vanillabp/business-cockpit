@@ -14,6 +14,7 @@
     <version.protobuf>3.25.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
+    <version.jupiter>5.10.1</version.jupiter>
   </properties>
 
   <modules>
@@ -30,6 +31,28 @@
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.2.5</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.junit.platform</groupId>
+              <artifactId>junit-platform-surefire-provider</artifactId>
+              <version>1.3.2</version>
+            </dependency>
+            <dependency>
+              <!-- I need to add this dependency -->
+              <groupId>org.apache.maven.surefire</groupId>
+              <artifactId>surefire-api</artifactId>
+              <version>3.2.5</version>
+            </dependency>
+            <dependency>
+              <groupId>org.junit.jupiter</groupId>
+              <artifactId>junit-jupiter-api</artifactId>
+              <version>${version.jupiter}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
@@ -181,7 +204,7 @@
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter</artifactId>
         <scope>test</scope>
-        <version>5.10.1</version>
+        <version>${version.jupiter}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
