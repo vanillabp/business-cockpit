@@ -9,14 +9,15 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUiUriType;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-public class WorkflowKafkaPublishing implements WorkflowPublishing {
+public class WorkflowKafkaPublishing implements io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkflowKafkaPublishing.class);
 
@@ -50,23 +51,31 @@ public class WorkflowKafkaPublishing implements WorkflowPublishing {
 
             editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);
             var event = workflowMapper.map(workflowUpdatedEvent);
-            this.sendWorkflowEvent(event.getClass(), event.toByteArray());
+            this.sendWorkflowEvent(
+                    event.getWorkflowId(),
+                    builder -> builder.setWorkflowCreatedOrUpdated(event));
 
         } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
 
             editWorkflowCreatedOrUpdatedEvent(workflowCreatedEvent);
             var event = workflowMapper.map(workflowCreatedEvent);
-            this.sendWorkflowEvent(event.getClass(), event.toByteArray());
+            this.sendWorkflowEvent(
+                    event.getWorkflowId(),
+                    builder -> builder.setWorkflowCreatedOrUpdated(event));
 
         } else if(eventObject instanceof WorkflowCancelledEvent workflowCancelledEvent){
 
             var event = workflowMapper.map(workflowCancelledEvent);
-            this.sendWorkflowEvent(event.getClass(), event.toByteArray());
+            this.sendWorkflowEvent(
+                    event.getWorkflowId(),
+                    builder -> builder.setWorkflowCancelled(event));
 
         } else if(eventObject instanceof WorkflowCompletedEvent workflowCompletedEvent) {
 
             var event = workflowMapper.map(workflowCompletedEvent);
-            this.sendWorkflowEvent(event.getClass(), event.toByteArray());
+            this.sendWorkflowEvent(
+                    event.getWorkflowId(),
+                    builder -> builder.setWorkflowCompleted(event));
 
         }
         // else if suspended
@@ -125,11 +134,17 @@ public class WorkflowKafkaPublishing implements WorkflowPublishing {
                         : commonWorkflowsProperties.getWorkflowModuleUri());
     }
 
+    private void sendWorkflowEvent(final String workflowId,
+                                   final Consumer<BcEvent.Builder> eventSupplier) {
 
-    private void sendWorkflowEvent(Class<?> eventClass, byte[] eventStream) {
+        final var event = BcEvent.newBuilder();
+        eventSupplier.accept(event);
+
         kafkaTemplate.send(
                 properties.getKafkaTopics().getWorkflow(),
-                eventClass.getName(),
-                eventStream);
+                workflowId,
+                event.build().toByteArray());
+
     }
+
 }

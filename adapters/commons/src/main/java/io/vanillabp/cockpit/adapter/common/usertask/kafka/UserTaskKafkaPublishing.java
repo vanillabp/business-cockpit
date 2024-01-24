@@ -12,12 +12,13 @@ import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public class UserTaskKafkaPublishing implements UserTaskPublishing {
 
@@ -57,33 +58,46 @@ public class UserTaskKafkaPublishing implements UserTaskPublishing {
 
             editUserTaskCreatedOrUpdatedEvent(userTaskUpdatedEvent);
             var event = this.userTaskMapper.map(userTaskUpdatedEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskCreatedOrUpdated(event));
 
         } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
 
             editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
             var event = this.userTaskMapper.map(userTaskCreatedEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskCreatedOrUpdated(event));
 
         } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
 
             var event = userTaskMapper.map(userTaskCompletedEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            BcEvent.newBuilder().setUserTaskCompleted(event);
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskCompleted(event));
 
         } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
 
             var event = userTaskMapper.map(userTaskCancelledEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskCancelled(event));
 
         } else if (eventObject instanceof UserTaskActivatedEvent userTaskActivatedEvent) {
 
             var event = userTaskMapper.map(userTaskActivatedEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskActivated(event));
 
         } else if (eventObject instanceof UserTaskSuspendedEvent userTaskSuspendedEvent) {
 
             var event = userTaskMapper.map(userTaskSuspendedEvent);
-            sendUserTaskEvent(event.getClass(), event.toByteArray());
+            sendUserTaskEvent(
+                    event.getUserTaskId(),
+                    builder -> builder.setUserTaskSuspended(event));
 
         } else {
 
@@ -148,11 +162,17 @@ public class UserTaskKafkaPublishing implements UserTaskPublishing {
     }
 
 
-    private void sendUserTaskEvent(Class<?> eventClass, byte[] eventStream) {
+    private void sendUserTaskEvent(final String userTaskId,
+                                   final Consumer<BcEvent.Builder> eventSupplier) {
+
+        final var event = BcEvent.newBuilder();
+        eventSupplier.accept(event);
+
         kafkaTemplate.send(
                 properties.getKafkaTopics().getUserTask(),
-                eventClass.getName(),
-                eventStream);
+                userTaskId,
+                event.build().toByteArray());
+
     }
 
 }

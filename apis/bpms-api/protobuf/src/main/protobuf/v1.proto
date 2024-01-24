@@ -5,6 +5,42 @@ import "google/protobuf/timestamp.proto";
 option java_multiple_files = true;
 option java_package = "io.vanillabp.cockpit.bpms.api.protobuf.v1";
 
+message DetailsValue {
+  oneof These {
+    bool nullValue = 1;
+    string numericValue = 2;
+    string stringValue = 3;
+    bool boolValue = 4;
+    DetailsMap mapValue = 5;
+  }
+}
+
+message DetailsMap {
+  map<string, DetailsArrayValue> details = 1;
+}
+
+message DetailsArrayValue {
+  bool isArray = 1;
+  repeated DetailsValue arrayValues = 2;
+}
+
+message Details {
+  map<string, DetailsArrayValue> details = 1;
+}
+
+message BcEvent {
+  oneof event {
+    UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated = 1;
+    UserTaskCompletedEvent userTaskCompleted = 2;
+    UserTaskCancelledEvent userTaskCancelled = 3;
+    UserTaskSuspendedEvent userTaskSuspended = 4;
+    UserTaskActivatedEvent userTaskActivated = 5;
+    WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdated = 6;
+    WorkflowCompletedEvent workflowCompleted = 7;
+    WorkflowCancelledEvent workflowCancelled = 8;
+  }
+}
+
 message UserTaskCreatedOrUpdatedEvent {
   string id = 1;
   string api_version = 2;
@@ -35,37 +71,7 @@ message UserTaskCreatedOrUpdatedEvent {
   repeated string candidate_groups = 27;
   optional google.protobuf.Timestamp due_date = 28;
   optional google.protobuf.Timestamp follow_up_date = 29;
-
-  message SimpleValue {
-    oneof These {
-      int32 intValue = 1;
-      string stringValue = 2;
-      bool boolValue = 3;
-      double doubleValue = 4;
-    }
-  }
-
-  // maybe use ComplexValue instead and remove SimpleValue message
-  message SimpleArrayValue {
-    repeated SimpleValue simpleValue = 1;
-  }
-
-  message ComplexValue {
-    oneof These {
-      int32 intValue = 1;
-      string stringValue = 2;
-      bool boolValue = 3;
-      double doubleValue = 4;
-      Details detailsValue = 5;
-      SimpleArrayValue simpleValue= 6;
-    }
-  }
-
-  message Details {
-    map<string, ComplexValue> details = 1;
-  }
-
-  optional Details details = 30;
+  optional DetailsMap details = 30;
   optional string details_fulltext_search = 31;
 }
 
@@ -127,37 +133,7 @@ message WorkflowCreatedOrUpdatedEvent {
   map<string, string> title = 15;
   optional string comment = 16;
   optional string bpmn_process_version = 17;
-
-  message SimpleValue {
-    oneof These {
-      int32 intValue = 1;
-      string stringValue = 2;
-      bool boolValue = 3;
-      double doubleValue = 4;
-    }
-  }
-
-  // maybe use ComplexValue instead and remove SimpleValue message
-  message SimpleArrayValue {
-    repeated SimpleValue simpleValue = 1;
-  }
-
-  message ComplexValue {
-    oneof These {
-      int32 intValue = 1;
-      string stringValue = 2;
-      bool boolValue = 3;
-      double doubleValue = 4;
-      Details detailsValue = 5;
-      SimpleArrayValue simpleValue= 6;
-    }
-  }
-
-  message Details {
-    map<string, ComplexValue> details = 1;
-  }
-
-  optional Details details = 18;
+  DetailsMap details = 18;
   optional string details_fulltext_search = 19;
   repeated string accessible_to_users = 20;
   repeated string accessible_to_groups = 21;

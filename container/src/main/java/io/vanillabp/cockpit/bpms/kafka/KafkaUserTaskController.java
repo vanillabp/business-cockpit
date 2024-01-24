@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.bpms.kafka;
 
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
@@ -35,10 +36,12 @@ public class KafkaUserTaskController {
             groupId = KAFKA_CONSUMER_PREFIX)
     public void consumeUserTaskEvent(ConsumerRecord<String, byte[]> record) {
         try {
-            if (record.key().equals(UserTaskCreatedOrUpdatedEvent.class.getName())) {
+            final var event = BcEvent.parseFrom(record.value());
+
+            if (event.hasUserTaskCreatedOrUpdated()) {
 
                 UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated =
-                        UserTaskCreatedOrUpdatedEvent.parseFrom(record.value());
+                        event.getUserTaskCreatedOrUpdated();
 
                 if(userTaskCreatedOrUpdated.getUpdated()) {
                     handleUserTaskUpdateEvent(userTaskCreatedOrUpdated);
@@ -46,15 +49,15 @@ public class KafkaUserTaskController {
                     handleUserTaskCreated(userTaskCreatedOrUpdated);
                 }
 
-            } else if (record.key().equals(UserTaskCompletedEvent.class.getName())) {
+            } else if (event.hasUserTaskCompleted()) {
 
                 handleUserTaskCompletedEvent(
-                        UserTaskCompletedEvent.parseFrom(record.value()));
+                        event.getUserTaskCompleted());
 
-            } else if(record.key().equals(UserTaskCancelledEvent.class.getName())) {
+            } else if (event.hasUserTaskCancelled()) {
 
                 handleUserTaskCancelledEvent(
-                        UserTaskCancelledEvent.parseFrom(record.value()));
+                        event.getUserTaskCancelled());
 
             } else {
                 throw new RuntimeException(

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
@@ -28,16 +29,17 @@ public class KafkaWorkflowController {
         this.workflowMapper = workflowMapper;
     }
 
-
     @KafkaListener(topics = "${business-cockpit.kafka-topics.workflow}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX)
     public void consumeWorkflowEvent(ConsumerRecord<String, byte[]> record) {
         try {
-            if (record.key().equals(WorkflowCreatedOrUpdatedEvent.class.getName())) {
+            final var event = BcEvent.parseFrom(record.value());
+
+            if (event.hasWorkflowCreatedOrUpdated()) {
 
                 WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent =
-                        WorkflowCreatedOrUpdatedEvent.parseFrom(record.value());
+                        event.getWorkflowCreatedOrUpdated();
 
                 if (workflowCreatedOrUpdatedEvent.getUpdated()){
                     this.handleWorkflowUpdatedEvent(workflowCreatedOrUpdatedEvent);
@@ -45,15 +47,15 @@ public class KafkaWorkflowController {
                     this.handleWorkflowCreatedEvent(workflowCreatedOrUpdatedEvent);
                 }
 
-            } else if (record.key().equals(WorkflowCompletedEvent.class.getName())) {
+            } else if (event.hasWorkflowCompleted()) {
 
                 this.handleWorkflowCompletedEvent(
-                        WorkflowCompletedEvent.parseFrom(record.value()));
+                        event.getWorkflowCompleted());
 
-            } else if (record.key().equals(WorkflowCancelledEvent.class.getName())) {
+            } else if (event.hasWorkflowCancelled()) {
 
                 this.handleWorkflowCancelledEvent(
-                        WorkflowCancelledEvent.parseFrom(record.value()));
+                        event.getWorkflowCancelled());
 
             } else {
                 throw new RuntimeException(

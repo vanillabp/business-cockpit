@@ -1,13 +1,14 @@
 package io.vanillabp.cockpit.adapter.common.workflow.kafka;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
+import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 
 import java.time.Instant;
@@ -15,7 +16,6 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("DuplicatedCode")
 public class WorkflowProtobufMapper {
@@ -80,8 +80,8 @@ public class WorkflowProtobufMapper {
         Optional.ofNullable(workflowUpdatedEvent.getWorkflowModuleUri())
                 .ifPresent(builder::setWorkflowModuleUri);
         Optional.ofNullable(workflowUpdatedEvent.getDetails())
-                .map(this::mapDetails)
-                .ifPresent(builder::putAllDetails);
+                .map(this::mapDetailsToProtobuf)
+                .ifPresent(builder::setDetails);
         Optional.ofNullable(workflowUpdatedEvent.getDetailsFulltextSearch())
                 .ifPresent(builder::setDetailsFulltextSearch);
         Optional.ofNullable(workflowUpdatedEvent.getComment())
@@ -155,20 +155,12 @@ public class WorkflowProtobufMapper {
                 .build();
     }
 
-    public Map<String, String> mapDetails(Map<String, Object> stringMap){
-        return stringMap
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        stringObjectEntry -> {
-                            try {
-                                return objectMapper.writeValueAsString(stringObjectEntry.getValue());
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException("Could not parse workflow details to JSON.", e);
-                            }
-                        }
-                ));
+    public DetailsMap mapDetailsToProtobuf(
+            final Map<String, Object> details) {
+
+        final var tree = objectMapper.valueToTree(details);
+        return DetailsConverter.mapDetailsJsonToProtobuf(tree);
+
     }
 
 }

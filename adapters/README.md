@@ -4,7 +4,7 @@
 
 The business cockpit adapters are the way-to-go for automatically sending user-task and workflow information from your BPMS application to the business cockpit. They also allow you to add additional event-driven logic to your application via annotations. 
 
-Currently there is a Camunda 7 adapter available and a Camunda 8 adapter in development. 
+Currently, there is a Camunda 7 adapter available and a Camunda 8 adapter in development. 
 
 ## Event propagation to Business Cockpit
 
@@ -45,3 +45,16 @@ vanillabp:
 ```
 
 All other connection properties for Kafka can be set as in the standard Spring Boot autoconfiguration (see [here](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.integration))
+
+Additionally, optional Maven dependencies have to be added:
+
+```xml
+<dependency>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>bpms-protobuf-api</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+```

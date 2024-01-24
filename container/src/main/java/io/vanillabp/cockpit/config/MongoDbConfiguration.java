@@ -4,6 +4,8 @@ import com.mongodb.WriteConcern;
 import com.mongodb.connection.SslSettings;
 import com.mongodb.management.JMXConnectionPoolListener;
 import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
+import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +20,7 @@ import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
@@ -53,10 +55,11 @@ public class MongoDbConfiguration {
     @Bean
     public MongoCustomConversions customConversions() {
         
-        final var converters = new LinkedList<>();
-        
-        converters.add(new OffsetDateTimeReadConverter());
-        converters.add(new OffsetDateTimeWriteConverter());
+        final var converters = List.of(
+                new OffsetDateTimeReadConverter(),
+                new OffsetDateTimeWriteConverter(),
+                new BigDecimalReadConverter(),
+                new BigDecimalWriteConverter());
         
         return new MongoCustomConversions(converters);
         

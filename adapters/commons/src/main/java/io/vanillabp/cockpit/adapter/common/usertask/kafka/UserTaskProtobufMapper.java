@@ -1,21 +1,21 @@
 package io.vanillabp.cockpit.adapter.common.usertask.kafka;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
+import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("DuplicatedCode")
 public class UserTaskProtobufMapper {
@@ -93,8 +93,9 @@ public class UserTaskProtobufMapper {
         Optional.ofNullable(userTaskCreatedEvent.getFollowUpDate())
                 .map(this::mapTimeStamp)
                 .ifPresent(builder::setFollowUpDate);
-        builder.putAllDetails(
-                mapDetails(userTaskCreatedEvent.getDetails()));
+        Optional.ofNullable(userTaskCreatedEvent.getDetails())
+                .map(this::mapDetailsToProtobuf)
+                .ifPresent(builder::setDetails);
         Optional.ofNullable(userTaskCreatedEvent.getDetailsFulltextSearch())
                 .ifPresent(builder::setDetailsFulltextSearch);
     }
@@ -193,19 +194,12 @@ public class UserTaskProtobufMapper {
                 .build();
     }
 
-    public Map<String, String> mapDetails(Map<String, Object> stringMap){
-        return stringMap
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        stringObjectEntry -> {
-                            try {
-                                return objectMapper.writeValueAsString(stringObjectEntry.getValue());
-                            } catch (JsonProcessingException e) {
-                                throw new RuntimeException("Could not parse user task details to JSON.", e);
-                            }
-                        }
-                ));
+    public DetailsMap mapDetailsToProtobuf(
+            final Map<String, Object> details) {
+
+        final var tree = objectMapper.valueToTree(details);
+        return DetailsConverter.mapDetailsJsonToProtobuf(tree);
+
     }
+
 }

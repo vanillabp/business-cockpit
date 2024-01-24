@@ -177,6 +177,12 @@
         <artifactId>protobuf-java</artifactId>
         <version>${version.protobuf}</version>
       </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+        <version>5.10.1</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
