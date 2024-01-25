@@ -49,21 +49,19 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
     }
 
 
-
-
     @Override
     public Class<WA> getWorkflowAggregateClass() {
-        return null;
+        return workflowAggregateClass;
     }
 
     @Override
     public CrudRepository<WA, ?> getWorkflowAggregateRepository() {
-        return null;
+        return workflowAggregateRepository;
     }
 
     @Override
     public void setParent(AdapterAwareBusinessCockpitService<WA> parent) {
-
+        this.parent = parent;
     }
 
     @Override

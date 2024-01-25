@@ -12,11 +12,15 @@ import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandl
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTaskEventPublisher;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8DeploymentAdapter;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
@@ -32,6 +36,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.repository.CrudRepository;
 
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -59,9 +64,17 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     }
 
     @Bean
+    public Camunda8WorkflowEventHandler camunda8WorkflowEventHandler(
+            final ApplicationEventPublisher applicationEventPublisher,
+            final WorkflowPublishing workflowPublishing){
+        return new Camunda8WorkflowEventHandler(applicationEventPublisher, workflowPublishing);
+    }
+
+    @Bean
     public SpringRedisClient springRedisClient(SpringRedisClientProperties springRedisClientProperties,
-                                               Camunda8UserTaskEventHandler camunda8UserTaskEventHandler){
-        return new SpringRedisClient(springRedisClientProperties, camunda8UserTaskEventHandler);
+                                               Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
+                                               Camunda8WorkflowEventHandler camunda8WorkflowEventHandler){
+        return new SpringRedisClient(springRedisClientProperties, camunda8UserTaskEventHandler, camunda8WorkflowEventHandler);
     }
 
     @Bean
@@ -71,6 +84,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8UserTaskEventPublisher(
                 userTaskPublishing);
     }
+
 
     @Bean
     public Camunda8UserTaskWiring camunda8UserTaskWiring(
@@ -95,6 +109,27 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     }
 
     @Bean
+    public Camunda8WorkflowWiring camunda8WorkflowWiring(
+            final ApplicationContext applicationContext,
+            final CockpitProperties cockpitProperties,
+            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
+            final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
+            final Optional<Configuration> templating,
+            final Camunda8WorkflowEventHandler workflowEventListener){
+        return new Camunda8WorkflowWiring(
+                applicationContext,
+                cockpitProperties,
+                workflowsCockpitProperties,
+                new WorkflowMethodParameterFactory(),
+                connectableServices,
+                getConnectableServices(),
+                templating,
+                workflowEventListener
+        );
+    }
+
+    @Bean
     public DeploymentService camunda8BusinessCockpitDeploymentService(
             final SpringDataUtil springDataUtil,
             final DeploymentRepository deploymentRepository,
@@ -111,12 +146,14 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8DeploymentAdapter camunda8BusinessCockpitDeploymentAdapter(
             VanillaBpProperties properties,
             @Qualifier("camunda8BusinessCockpitDeploymentService") DeploymentService deploymentService,
-            Camunda8UserTaskWiring camunda8UserTaskWiring){
+            Camunda8UserTaskWiring camunda8UserTaskWiring,
+            Camunda8WorkflowWiring camunda8WorkflowWiring){
 
         return new Camunda8DeploymentAdapter(
                 properties,
                 deploymentService,
-                camunda8UserTaskWiring);
+                camunda8UserTaskWiring,
+                camunda8WorkflowWiring);
     }
 
     @Override

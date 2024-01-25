@@ -6,6 +6,7 @@ import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.lettuce.core.RedisClient;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.zeebe.exporter.proto.Schema;
 import io.zeebe.redis.connect.java.ZeebeRedis;
 import jakarta.annotation.PreDestroy;
@@ -21,11 +22,14 @@ public class SpringRedisClient {
     private final ZeebeRedis zeebeRedis;
     private final RedisClient redisClient;
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
+    private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
 
     Logger logger = LoggerFactory.getLogger(SpringRedisClient.class);
 
 
-    public SpringRedisClient(SpringRedisClientProperties redisConfig, Camunda8UserTaskEventHandler camunda8UserTaskEventHandler) {
+    public SpringRedisClient(SpringRedisClientProperties redisConfig,
+                             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
+                             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler) {
 
         redisClient = RedisClient.create(redisConfig.getUri());
         zeebeRedis = ZeebeRedis.newBuilder(redisClient)
@@ -34,9 +38,12 @@ public class SpringRedisClient {
                 .addDeploymentListener(this::onDeployment)
                 .addIncidentListener(this::onIncident)
                 .addJobListener(this::onJob)
+                .addProcessInstanceCreationListener(this::onProcessInstanceCreation)
                 .build();
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
+        this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
     }
+
 
     private void onDeployment(Schema.DeploymentRecord deploymentRecord){
 
@@ -79,6 +86,13 @@ public class SpringRedisClient {
         logger.info("An incident happened for process with id {}", incidentRecord.getBpmnProcessId());
     }
 
+    private void onProcessInstanceCreation(Schema.ProcessInstanceCreationRecord processInstanceCreationRecord) {
+        logger.debug("Process Instance Creation Record: {}", processInstanceCreationRecord.toString());
+        if(processInstanceCreationRecord.getMetadata().getKey() != -1){
+            camunda8WorkflowEventHandler.notify(processInstanceCreationRecord);
+        }
+    }
+
     private void onJob(Schema.JobRecord jobRecord){
         logger.debug("Job Record: {}", jobRecord.toString());
         logger.info("Job with id {} and type {} opened", jobRecord.getElementId(), jobRecord.getType());
@@ -86,6 +100,7 @@ public class SpringRedisClient {
             camunda8UserTaskEventHandler.notify(jobRecord);
         }
     }
+
 
     @PreDestroy
     void shutdownClient(){

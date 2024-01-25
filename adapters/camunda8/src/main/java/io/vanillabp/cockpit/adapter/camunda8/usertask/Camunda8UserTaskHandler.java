@@ -38,7 +38,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda8UserTaskHandler.class);
 
-    private final CockpitProperties properties;
+    private final CockpitProperties cockpitProperties;
     private final UserTaskProperties userTaskProperties;
     private final ApplicationEventPublisher applicationEventPublisher;
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
@@ -53,7 +53,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     public Camunda8UserTaskHandler(
             String taskDefinition,
-            CockpitProperties properties,
+            CockpitProperties cockpitProperties,
             UserTasksProperties workflowProperties,
             UserTaskProperties userTaskProperties,
             ApplicationEventPublisher applicationEventPublisher,
@@ -68,7 +68,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
         this.taskDefinition = taskDefinition;
         this.taskTitle = taskTitle;
-        this.properties = properties;
+        this.cockpitProperties = cockpitProperties;
         this.userTaskProperties = userTaskProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
@@ -170,7 +170,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         // TODO: correct tenant from event (not possible with current redis exporter)
         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
                 "demo",
-                properties.getI18nLanguages()
+                cockpitProperties.getI18nLanguages()
         );
 
         prefillCreatedEvent(userTaskCreatedEvent, jobRecord);
@@ -187,7 +187,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         if ((userTaskCreatedEvent.getI18nLanguages() == null)
                 || userTaskCreatedEvent.getI18nLanguages().isEmpty()){
-            userTaskCreatedEvent.setI18nLanguages(properties.getI18nLanguages());
+            userTaskCreatedEvent.setI18nLanguages(cockpitProperties.getI18nLanguages());
         }
 
         if (templating.isEmpty()) {
@@ -222,13 +222,15 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         eventWrapper.setUserTaskId(
                 String.valueOf(jobRecord.getElementInstanceKey()));
 
-        // TODO: use timestamp from job record
-        //   jobRecord.getMetadata().getTimestamp();
-        eventWrapper.setTimestamp(OffsetDateTime.now());
+        eventWrapper.setTimestamp(
+                OffsetDateTime.now());
 
-        eventWrapper.setBpmnProcessId(jobRecord.getBpmnProcessId());
+        eventWrapper.setBpmnProcessId(
+                jobRecord.getBpmnProcessId());
+
         eventWrapper.setBpmnProcessVersion(
                 String.valueOf(jobRecord.getWorkflowDefinitionVersion()));
+
         eventWrapper.setTaskDefinition(taskDefinition);
 
         // TODO: what is businessId in C8?
@@ -239,6 +241,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         eventWrapper.setWorkflowId(
                 String.valueOf(jobRecord.getProcessInstanceKey()));
+
         eventWrapper.setSubWorkflowId(
                 String.valueOf(jobRecord.getProcessInstanceKey()));
 

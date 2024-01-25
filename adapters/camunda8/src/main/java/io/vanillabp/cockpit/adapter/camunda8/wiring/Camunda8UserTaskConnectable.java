@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.adapter.camunda8.wiring;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.vanillabp.springboot.adapter.Connectable;
 
-public class Camunda8Connectable implements Connectable {
+public class Camunda8UserTaskConnectable implements Connectable {
     private final Process process;
 
     private final String elementId;
@@ -13,7 +13,7 @@ public class Camunda8Connectable implements Connectable {
     private final String title;
 
     
-    public Camunda8Connectable(
+    public Camunda8UserTaskConnectable(
             final Process process,
             final String elementId,
             final String taskDefinition,

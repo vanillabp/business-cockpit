@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
-import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8Connectable;
+import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.zeebe.exporter.proto.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,14 +13,14 @@ public class Camunda8UserTaskEventHandler{
     private static final Logger logger = LoggerFactory
             .getLogger(Camunda8UserTaskEventHandler.class);
     
-    private final Map<Camunda8Connectable, Camunda8UserTaskHandler> taskHandlers;
+    private final Map<Camunda8UserTaskConnectable, Camunda8UserTaskHandler> taskHandlers;
 
     public Camunda8UserTaskEventHandler() {
         this.taskHandlers = new HashMap<>();
     }
 
     public void addTaskHandler(
-            final Camunda8Connectable connectable,
+            final Camunda8UserTaskConnectable connectable,
             final Camunda8UserTaskHandler taskHandler) {
         
         taskHandlers.put(connectable, taskHandler);
@@ -30,7 +30,7 @@ public class Camunda8UserTaskEventHandler{
     public void notify(
             final Schema.JobRecord task) {
 
-        final var connectableFound = new Camunda8Connectable[1];
+        final var connectableFound = new Camunda8UserTaskConnectable[1];
         taskHandlers
                 .entrySet()
                 .stream()

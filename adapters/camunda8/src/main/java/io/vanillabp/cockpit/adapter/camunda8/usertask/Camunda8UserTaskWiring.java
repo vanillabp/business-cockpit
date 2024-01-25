@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8Connectable;
+import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8Connectable, UserTaskMethodParameterFactory> {
+public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> {
 
     private final CockpitProperties properties;
 
@@ -64,7 +64,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8Conne
     
     public void wireTask(
             final String workflowModuleId,
-            final Camunda8Connectable connectable) {
+            final Camunda8UserTaskConnectable connectable) {
 
         final var workflowAggregateAndServiceClass =
                 determineAndValidateWorkflowAggregateAndServiceClass(
@@ -101,7 +101,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8Conne
     }
     
     protected boolean methodMatchesTaskDefinition(
-            final Camunda8Connectable connectable,
+            final Camunda8UserTaskConnectable connectable,
             final Method method,
             final UserTaskDetailsProvider annotation) {
 
@@ -114,7 +114,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8Conne
             final String workflowModuleId,
             final AdapterAwareProcessService<?> processService,
             final Object bean,
-            final Camunda8Connectable connectable,
+            final Camunda8UserTaskConnectable connectable,
             final Method method,
             final List<MethodParameter> parameters) {
         
@@ -148,7 +148,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8Conne
     }
 
     private void registerCamunda8UserTaskHandler(
-            Camunda8Connectable connectable,
+            Camunda8UserTaskConnectable connectable,
             UserTasksProperties userTasksProperties,
             final AdapterAwareProcessService<?> processService,
             final Object bean,

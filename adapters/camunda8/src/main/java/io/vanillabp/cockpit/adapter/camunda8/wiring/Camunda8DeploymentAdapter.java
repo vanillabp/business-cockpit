@@ -7,14 +7,13 @@ import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeFormDefinition;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeLoopCharacteristics;
-import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskDefinition;
 import io.camunda.zeebe.spring.client.event.ZeebeClientCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeployedBpmn;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
@@ -44,16 +43,20 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final Camunda8UserTaskWiring camunda8UserTaskWiring;
 
+    private final Camunda8WorkflowWiring camunda8WorkflowWiring;
+
     private ZeebeClient client;
 
     public Camunda8DeploymentAdapter(
             final VanillaBpProperties properties,
             final DeploymentService deploymentService,
-            Camunda8UserTaskWiring camunda8UserTaskWiring) {
+            final Camunda8UserTaskWiring camunda8UserTaskWiring,
+            final Camunda8WorkflowWiring camunda8WorkflowWiring) {
 
         super(properties);
         this.deploymentService = deploymentService;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
+        this.camunda8WorkflowWiring = camunda8WorkflowWiring;
     }
 
     @Override
@@ -126,17 +129,19 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .reduce((first, second) -> second);
 
 //        if (hasDeployables[0]) {
-//            final var deployedResources = deploymentCommand
+//            final DeploymentEvent deployedResources = deploymentCommand
 //                    .map(command -> command.send().join())
 //                    .orElseThrow();
 //
 //            // BPMNs which are part of the current package will stored
 //            deployedResources
 //                    .getProcesses()
-//                    .forEach(process ->  deploymentService.addProcess(
-//                                    deploymentHashCode[0],
-//                                    process,
-//                                    deployedProcesses.get(process.getBpmnProcessId())).getDefinitionKey());
+//                    .forEach(process ->  {
+//                        deploymentService.addProcess(
+//                                deploymentHashCode[0],
+//                                process,
+//                                deployedProcesses.get(process.getBpmnProcessId())).getDefinitionKey();
+//                    });
 //
 //        }
 
@@ -173,21 +178,31 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .filter(Process::isExecutable)
                 .toList();
 
-        executableProcesses.forEach(process -> {
-            deployedProcesses.put(process.getId(), bpmn);
-        });
-
         executableProcesses
-                .stream()
-                .flatMap(process -> getUserTaskConnectables(process, model))
-                .forEach(connectable -> {
-                    camunda8UserTaskWiring.wireTask(workflowModuleId, connectable);
-                });
+                .forEach(process -> deployedProcesses.put(process.getId(), bpmn));
+
+        wireWorkflows(workflowModuleId, executableProcesses);
+        wireUserTasks(workflowModuleId, model, executableProcesses);
 
     }
 
+    private void wireWorkflows(String workflowModuleId, List<Process> executableProcesses) {
+        executableProcesses
+                .stream()
+                .map(process -> new Camunda8WorkflowConnectable(process.getId(), process.getName()))
+                .forEach(connectable -> camunda8WorkflowWiring.wireWorkflow(workflowModuleId, connectable));
+    }
 
-    public Stream<Camunda8Connectable> getUserTaskConnectables(
+    private void wireUserTasks(String workflowModuleId, BpmnModelInstanceImpl model, List<Process> executableProcesses) {
+        executableProcesses
+                .stream()
+                .flatMap(process -> getUserTaskConnectables(process, model))
+                .forEach(connectable ->
+                        camunda8UserTaskWiring.wireTask(workflowModuleId, connectable));
+    }
+
+
+    public Stream<Camunda8UserTaskConnectable> getUserTaskConnectables(
             final Process process,
             final BpmnModelInstanceImpl model) {
 
@@ -195,12 +210,12 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .getModelElementsByType(UserTask.class)
                 .stream()
                 .filter(element -> Objects.equals(getOwningProcess(element), process))
-                .map(element -> new Camunda8Connectable(
+                .map(element -> new Camunda8UserTaskConnectable(
                         process,
                         element.getId(),
                         getFormKey(element),
                         getTaskName(element)))
-                .filter(Camunda8Connectable::isExecutableProcess);
+                .filter(Camunda8UserTaskConnectable::isExecutableProcess);
     }
 
 
