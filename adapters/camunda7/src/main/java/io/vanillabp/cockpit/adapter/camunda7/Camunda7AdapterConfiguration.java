@@ -19,6 +19,7 @@ import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParam
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RepositoryService;
@@ -31,6 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -119,6 +121,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Bean
     public Camunda7UserTaskWiring cockpitCamunda7UserTaskWiring(
             final ApplicationContext applicationContext,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
@@ -127,6 +130,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
         
         return new Camunda7UserTaskWiring(
                 applicationContext,
+                springBeanUtil,
                 cockpitProperties,
                 workflowsCockpitProperties,
                 applicationEventPublisher,
@@ -140,6 +144,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Bean
     public Camunda7WorkflowWiring cockpitCamunda7WorkflowWiring(
             final ApplicationContext applicationContext,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
@@ -147,6 +152,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             final Camunda7WorkflowEventHandler workflowEventListener) {
         return new Camunda7WorkflowWiring(
                 applicationContext,
+                springBeanUtil,
                 cockpitProperties,
                 workflowsCockpitProperties,
                 new WorkflowMethodParameterFactory(),
@@ -155,6 +161,15 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
                 templating,
                 workflowEventListener
         );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SpringBeanUtil vanillabpSpringBeanUtil(
+            final ApplicationContext applicationContext) {
+
+        return new SpringBeanUtil(applicationContext);
+
     }
 
     @Bean

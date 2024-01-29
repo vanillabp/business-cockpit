@@ -1,14 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask;
 
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.repository.CrudRepository;
-
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
@@ -19,7 +10,16 @@ import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.parameters.MethodParameter;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.repository.CrudRepository;
+
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Connectable, UserTaskMethodParameterFactory> {
 
@@ -39,6 +39,7 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
     
     public Camunda7UserTaskWiring(
             final ApplicationContext applicationContext,
+            final SpringBeanUtil springBeanUtil,
             final CockpitProperties properties,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
@@ -47,7 +48,7 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
             final UserTaskMethodParameterFactory methodParameterFactory,
             final Camunda7UserTaskEventHandler userTaskEventHandler) throws Exception {
         
-        super(applicationContext, methodParameterFactory);
+        super(applicationContext, springBeanUtil, methodParameterFactory);
         this.connectableServices = connectableServices;
         this.properties = properties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;

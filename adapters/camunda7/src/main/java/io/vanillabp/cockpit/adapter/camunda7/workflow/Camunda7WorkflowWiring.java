@@ -9,8 +9,8 @@ import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
-import io.vanillabp.spi.service.WorkflowService;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.ConnectBean;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.context.ApplicationContext;
@@ -42,6 +42,7 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
 
     public Camunda7WorkflowWiring(
             final ApplicationContext applicationContext,
+            final SpringBeanUtil springBeanUtil,
             final CockpitProperties cockpitProperties,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final WorkflowMethodParameterFactory methodParameterFactory,
@@ -49,7 +50,7 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
             final Collection<Camunda7BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda7WorkflowEventHandler workflowEventListener) {
-        super(applicationContext, methodParameterFactory);
+        super(applicationContext, springBeanUtil, methodParameterFactory);
         this.cockpitProperties = cockpitProperties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.connectableServices = connectableServices;
@@ -108,7 +109,7 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         StringBuilder foundMethodNames = new StringBuilder();
         AtomicInteger matchingMethods = new AtomicInteger(0);
 
-        this.applicationContext.getBeansWithAnnotation(WorkflowService.class).entrySet().stream().filter((bean) -> {
+        this.springBeanUtil.getWorkflowAnnotatedBeans().entrySet().stream().filter((bean) -> {
             return this.isAboutConnectableProcess(bpmnProcessId, bean.getValue());
         }).forEach((bean) -> {
             this.connectWorkflowDetailProviderBean(foundMethodNames, matchingMethods, (String)bean.getKey(), bean.getValue(), validateParameters, connect);

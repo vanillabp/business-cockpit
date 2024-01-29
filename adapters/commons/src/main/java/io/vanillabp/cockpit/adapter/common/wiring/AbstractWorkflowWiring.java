@@ -5,6 +5,7 @@ import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParam
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.context.ApplicationContext;
@@ -17,9 +18,10 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
 
     public AbstractWorkflowWiring(
             final ApplicationContext applicationContext,
+            final SpringBeanUtil springBeanUtil,
             final M methodParameterFactory) {
 
-        super(applicationContext, methodParameterFactory);
+        super(applicationContext, springBeanUtil, methodParameterFactory);
         
     }
     
