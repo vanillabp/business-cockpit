@@ -1,10 +1,11 @@
-package io.vanillabp.cockpit.adapter.camunda8.redis;
+package io.vanillabp.cockpit.adapter.camunda8.receiver.redis;
 
 
 import com.google.protobuf.ByteString;
 import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.lettuce.core.RedisClient;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.zeebe.exporter.proto.Schema;
@@ -39,9 +40,15 @@ public class SpringRedisClient {
                 .addIncidentListener(this::onIncident)
                 .addJobListener(this::onJob)
                 .addProcessInstanceCreationListener(this::onProcessInstanceCreation)
+                .addProcessInstanceListener(this::onProcessInstanceEvent)
+                .addProcessEventListener(this::onProcessEvent)
                 .build();
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
+    }
+
+    private void onProcessEvent(Schema.ProcessEventRecord processEventRecord) {
+        logger.info("Process event record: \n{}", processEventRecord.toString());
     }
 
 
@@ -86,21 +93,50 @@ public class SpringRedisClient {
         logger.info("An incident happened for process with id {}", incidentRecord.getBpmnProcessId());
     }
 
-    private void onProcessInstanceCreation(Schema.ProcessInstanceCreationRecord processInstanceCreationRecord) {
+    private void onProcessInstanceCreation(
+            Schema.ProcessInstanceCreationRecord processInstanceCreationRecord) {
+
         logger.debug("Process Instance Creation Record: {}", processInstanceCreationRecord.toString());
         if(processInstanceCreationRecord.getMetadata().getKey() != -1){
-            camunda8WorkflowEventHandler.notify(processInstanceCreationRecord);
+            camunda8WorkflowEventHandler.notify(
+                    WorkflowEventProtobufMapper.map(processInstanceCreationRecord));
         }
     }
+
+    private void onProcessInstanceEvent(
+            Schema.ProcessInstanceRecord processInstanceRecord) {
+
+        logger.debug("Process Instance event detected:\n{}", processInstanceRecord.toString());
+        String intent = processInstanceRecord.getMetadata().getIntent();
+        if(processInstanceRecord.hasMetadata() &&
+                (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED")) &&
+                processInstanceRecord.getBpmnElementType().equals("PROCESS")){
+            camunda8WorkflowEventHandler.notify(
+                    WorkflowEventProtobufMapper.map(processInstanceRecord));
+        }
+    }
+
 
     private void onJob(Schema.JobRecord jobRecord){
-        logger.debug("Job Record: {}", jobRecord.toString());
+        if(!jobRecord.getMetadata().getRecordType().equals(Schema.RecordMetadata.RecordType.EVENT)) {
+            return;
+        }
+
+        if(!jobRecord.getType().equals("io.camunda.zeebe:userTask")) {
+            return;
+        }
+
         logger.info("Job with id {} and type {} opened", jobRecord.getElementId(), jobRecord.getType());
-        if(jobRecord.getType().equals("io.camunda.zeebe:userTask")){
-            camunda8UserTaskEventHandler.notify(jobRecord);
+        logger.debug("Job Record: {}", jobRecord);
+
+        if(jobRecord.getMetadata().getIntent().equals("CREATED")) {
+            camunda8UserTaskEventHandler.notify(
+                    UserTaskEventProtobufMapper.mapToUserTaskCreatedInformation(jobRecord));
+        } else {
+            camunda8UserTaskEventHandler.notify(
+                    UserTaskEventProtobufMapper.mapToUserTaskLifecycleInformation(jobRecord));
         }
     }
-
 
     @PreDestroy
     void shutdownClient(){

@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.adapter.camunda8.redis;
+package io.vanillabp.cockpit.adapter.camunda8.receiver.redis;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

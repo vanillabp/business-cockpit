@@ -5,8 +5,8 @@ import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentResourceRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
-import io.vanillabp.cockpit.adapter.camunda8.redis.SpringRedisClient;
-import io.vanillabp.cockpit.adapter.camunda8.redis.SpringRedisClientProperties;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.redis.SpringRedisClient;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.redis.SpringRedisClientProperties;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
@@ -14,6 +14,7 @@ import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTas
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
@@ -95,7 +96,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            final Camunda8UserTaskEventHandler userTaskEventHandler
+            final Camunda8UserTaskEventHandler userTaskEventHandler,
+            final ProcessInstanceRepository processInstanceRepository
     ) throws Exception {
         return new Camunda8UserTaskWiring(
                 applicationContext,
@@ -104,7 +106,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 applicationEventPublisher,
                 templating,
                 connectableServices,
-                userTaskEventHandler
+                userTaskEventHandler,
+                processInstanceRepository
         );
     }
 
@@ -116,7 +119,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
-            final Camunda8WorkflowEventHandler workflowEventListener){
+            final Camunda8WorkflowEventHandler workflowEventListener,
+            final ProcessInstanceRepository processInstanceRepository){
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 cockpitProperties,
@@ -125,7 +129,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 connectableServices,
                 getConnectableServices(),
                 templating,
-                workflowEventListener
+                workflowEventListener,
+                processInstanceRepository
         );
     }
 

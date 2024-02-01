@@ -1,8 +1,6 @@
-package io.vanillabp.cockpit.adapter.camunda8.workflow;
+package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
-import java.util.Optional;
-
-public class CreatedEventInformation {
+public class Camunda8WorkflowCreatedEvent {
     private long key;
 
     private long timestamp;

@@ -1,9 +1,15 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowLifecycleEvent;
@@ -39,6 +45,8 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     private final String bpmnProcessName;
 
+    private final ProcessInstanceRepository processInstanceRepository;
+
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
 
 
@@ -49,6 +57,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessName,
             final Optional<Configuration> templating,
+            final ProcessInstanceRepository processInstanceRepository,
             final CrudRepository<Object, Object> workflowAggregateRepository,
             final Object bean,
             final Method method,
@@ -59,6 +68,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
         this.bpmnProcessName = bpmnProcessName;
+        this.processInstanceRepository = processInstanceRepository;
 
         determineBusinessKeyToIdMapper();
     }
@@ -69,35 +79,67 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     }
 
 
+    public WorkflowEvent processLifeCycleEvent(
+            final Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
 
-    public WorkflowEvent processCreatedEvent(
-            final CreatedEventInformation createdEventInformation) {
+        WorkflowLifecycleEvent workflowCreatedEvent =
+                switch (camunda8WorkflowLifeCycleEvent.getIntent()) {
+                    case CANCELLED -> new WorkflowCancelledEvent();
+                    case COMPLETED -> new WorkflowCompletedEvent();
+                };
+        fillLifecycleEvent(camunda8WorkflowLifeCycleEvent, workflowCreatedEvent);
 
-        final String workflowModuleId = createdEventInformation.getTenantId();
-
-        WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
-                workflowModuleId,
-                List.of(workflowProperties.getBpmnDescriptionLanguage())
-        );
-        fillWorkflowCreatedEvent(createdEventInformation, workflowCreatedEvent);
         return workflowCreatedEvent;
     }
 
 
+    private void fillLifecycleEvent(
+            final Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent,
+            final WorkflowLifecycleEvent event) {
+
+        event.setId(System.nanoTime() + "@" +
+                workflowLifeCycleEvent.getProcessInstanceKey() + "#" +
+                workflowLifeCycleEvent.getKey());
+
+        event.setComment(
+                workflowLifeCycleEvent.getDeleteReason());
+        event.setTimestamp(
+                OffsetDateTime.now());
+        event.setWorkflowId(
+                String.valueOf(workflowLifeCycleEvent.getProcessInstanceKey()));
+
+        event.setInitiator(null); // TODO
+        event.setBpmnProcessId(workflowLifeCycleEvent.getBpmnProcessId());
+        event.setBpmnProcessVersion(workflowLifeCycleEvent.getBpmnProcessVersion());
+    }
+
+    public WorkflowEvent processCreatedEvent(
+            final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
+
+        WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
+                camunda8WorkflowCreatedEvent.getTenantId(),
+                List.of(workflowProperties.getBpmnDescriptionLanguage())
+        );
+        fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowCreatedEvent);
+        saveBusinessKeyProcessInstanceConnection(camunda8WorkflowCreatedEvent);
+
+        return workflowCreatedEvent;
+    }
+
     public void fillWorkflowCreatedEvent(
-            CreatedEventInformation createdEventInformation,
+            Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent,
             WorkflowCreatedEvent workflowCreatedEvent
     ) {
 
         prefillWorkflowDetails(
-                createdEventInformation,
+                camunda8WorkflowCreatedEvent,
                 workflowCreatedEvent);
 
-        String processInstanceKey = String.valueOf(createdEventInformation.getProcessInstanceKey());
+        String processInstanceKey = String.valueOf(camunda8WorkflowCreatedEvent.getProcessInstanceKey());
 
         final WorkflowDetails details = callWorkflowDetailsProviderMethod(
                 processInstanceKey,
-                createdEventInformation.getBusinessKey(),
+                camunda8WorkflowCreatedEvent.getBusinessKey(),
                 workflowCreatedEvent);
 
         fillWorkflowDetailsByCustomDetails(
@@ -105,6 +147,58 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                 details == null
                         ? workflowCreatedEvent
                         : details);
+    }
+
+
+    private void prefillWorkflowDetails(
+            final Camunda8WorkflowCreatedEvent workflowCreatedEvent,
+            final WorkflowCreatedEvent event) {
+
+        event.setId(System.nanoTime() + "@" +
+                workflowCreatedEvent.getProcessInstanceKey() + "#" +
+                workflowCreatedEvent.getKey());
+
+        event.setTimestamp(
+                OffsetDateTime.now());
+        event.setBpmnProcessId(
+                workflowCreatedEvent.getBpmnProcessId());
+        event.setBpmnProcessVersion(
+                String.valueOf(workflowCreatedEvent.getVersion()));
+        event.setWorkflowId(
+                String.valueOf(workflowCreatedEvent.getProcessInstanceKey()));
+        event.setBusinessId(
+                workflowCreatedEvent.getBusinessKey());
+        event.setTitle(new HashMap<>());
+    }
+
+    @SuppressWarnings("unchecked")
+    private WorkflowDetails callWorkflowDetailsProviderMethod(
+            final String processInstanceId,
+            final String businessKey,
+            final PrefilledWorkflowDetails prefilledWorkflowDetails) {
+
+        try {
+            logger.trace("Will handle workflow '{}' ('{}')",
+                    processInstanceId,
+                    bpmnProcessId);
+
+            final var workflowAggregateId = parseWorkflowAggregateIdFromBusinessKey.apply(businessKey);
+            final var workflowAggregateCache = new WorkflowAggregateCache();
+
+            return super.execute(
+                    workflowAggregateCache,
+                    workflowAggregateId,
+                    true,
+                    (args, param) -> processPrefilledWorkflowDetailsParameter(
+                            args,
+                            param,
+                            () -> prefilledWorkflowDetails)
+            );
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void fillWorkflowDetailsByCustomDetails(
@@ -191,102 +285,14 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     }
 
-    private void prefillWorkflowDetails(
-            final CreatedEventInformation createdEventInformation,
-            final WorkflowCreatedEvent event) {
-
-        event.setId(buildEventId(createdEventInformation));
-        event.setTimestamp(OffsetDateTime.now());
-
-        event.setBpmnProcessId(
-                createdEventInformation.getBpmnProcessId());
-        event.setBpmnProcessVersion(
-                String.valueOf(createdEventInformation.getVersion()));
-        event.setWorkflowId(
-                String.valueOf(createdEventInformation.getProcessInstanceKey()));
-
-        event.setBusinessId(createdEventInformation.getBusinessKey());
-        event.setTitle(new HashMap<>());
+    private void saveBusinessKeyProcessInstanceConnection(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
+        ProcessInstanceEntity processInstanceEntity =
+                new ProcessInstanceEntity(
+                        camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
+                        camunda8WorkflowCreatedEvent.getBusinessKey());
+        processInstanceRepository.save(processInstanceEntity);
     }
 
-    private void fillLifecycleEvent(
-            final String bpmnProcessId,
-            final String bpmnProcessVersion,
-            final LifeCycleEventInformation lifeCycleEventInformation,
-            final WorkflowLifecycleEvent event) {
-
-        event.setId(buildEventId(lifeCycleEventInformation));
-        event.setComment(lifeCycleEventInformation.getDeleteReason());
-        event.setTimestamp(OffsetDateTime.now());
-
-        String workflowId = lifeCycleEventInformation
-                .getProcessInstanceId()
-                .orElse(lifeCycleEventInformation.getId());
-        event.setWorkflowId(workflowId);
-
-        event.setInitiator(null); // TODO
-        event.setBpmnProcessId(bpmnProcessId);
-        event.setBpmnProcessVersion(bpmnProcessVersion);
-    }
-
-    private static String buildEventId(CreatedEventInformation createdEventInformation) {
-        return System.nanoTime() +
-                "@" +
-                createdEventInformation.getProcessInstanceKey() +
-                "#" +
-                createdEventInformation.getKey();
-    }
-
-    private static String buildEventId(LifeCycleEventInformation lifeCycleEventInformation) {
-        return lifeCycleEventInformation
-                .getProcessInstanceId()
-                .map(processInstanceId -> buildEventId(lifeCycleEventInformation.getId(), processInstanceId))
-                .orElse(buildEventId(lifeCycleEventInformation.getId()));
-    }
-
-    private static String buildEventId(String id, String processInstanceId) {
-        return System.nanoTime() + "@" + processInstanceId + "#" + id;
-    }
-    private static String buildEventId(String id) {
-        return System.nanoTime() + "@" + id;
-    }
-
-    @SuppressWarnings("unchecked")
-    private WorkflowDetails callWorkflowDetailsProviderMethod(
-            final String processInstanceId,
-            final String businessKey,
-            final PrefilledWorkflowDetails prefilledWorkflowDetails) {
-
-        try {
-
-            logger.trace("Will handle workflow '{}' ('{}')",
-                    processInstanceId,
-                    bpmnProcessId);
-
-            final var workflowAggregateId = parseWorkflowAggregateIdFromBusinessKey.apply(businessKey);
-            final var workflowAggregateCache = new WorkflowAggregateCache();
-
-            return super.execute(
-                    workflowAggregateCache,
-                    workflowAggregateId,
-                    true,
-                    (args, param) -> processPrefilledWorkflowDetailsParameter(
-                            args,
-                            param,
-                            () -> prefilledWorkflowDetails)
-            );
-
-        } catch (RuntimeException e) {
-
-            throw e;
-
-        } catch (Exception e) {
-
-            throw new RuntimeException(e);
-
-        }
-
-    }
 
     // TODO GWI - refactor, copy of Camunda7UserTaskHandler
     private void determineBusinessKeyToIdMapper() {

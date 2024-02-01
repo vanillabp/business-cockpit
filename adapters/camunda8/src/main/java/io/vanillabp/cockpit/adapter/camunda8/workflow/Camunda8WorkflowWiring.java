@@ -4,6 +4,7 @@ import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
@@ -41,6 +42,9 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final Optional<Configuration> templating;
 
+    private final ProcessInstanceRepository processInstanceRepository;
+
+
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final CockpitProperties cockpitProperties,
@@ -49,7 +53,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
-            final Camunda8WorkflowEventHandler workflowEventListener) {
+            final Camunda8WorkflowEventHandler workflowEventListener,
+            final ProcessInstanceRepository processInstanceRepository) {
         super(applicationContext, methodParameterFactory);
         this.cockpitProperties = cockpitProperties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
@@ -57,6 +62,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
+        this.processInstanceRepository = processInstanceRepository;
     }
 
     public void wireWorkflow(String workflowModuleId, Camunda8WorkflowConnectable connectable) {
@@ -224,6 +230,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 bpmnProcessId,
                 connectable.processName(),
                 templating,
+                processInstanceRepository,
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository(),
                 bean,
                 method,

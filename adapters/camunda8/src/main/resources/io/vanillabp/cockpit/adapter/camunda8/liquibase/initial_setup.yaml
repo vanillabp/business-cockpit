@@ -105,3 +105,16 @@ databaseChangeLog:
               - column:
                   name: RESOURCE
             indexName: IDX_C8_BC_D_RESOURCE
+        - createTable:
+            tableName: CAMUNDA8_BC_PROCESS_INSTANCES
+            columns:
+              - column:
+                  name: PROCESS_INSTANCE_KEY
+                  type: long
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: BUSINESS_KEY
+                  type: varchar(255)
+                  constraints:
+                    nullable: false

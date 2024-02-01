@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
@@ -38,6 +39,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final Camunda8UserTaskEventHandler userTaskEventHandler;
 
+    private final ProcessInstanceRepository processInstanceRepository;
+
     private final Method noopUserTaskMethod;
 
     public Camunda8UserTaskWiring(
@@ -48,7 +51,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            final Camunda8UserTaskEventHandler userTaskEventHandler) throws Exception {
+            final Camunda8UserTaskEventHandler userTaskEventHandler,
+            final ProcessInstanceRepository processInstanceRepository) throws Exception {
         
         super(applicationContext, new UserTaskMethodParameterFactory());
         this.connectableServices = connectableServices;
@@ -57,6 +61,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
+        this.processInstanceRepository = processInstanceRepository;
 
         noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
 
@@ -171,6 +176,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 templating,
                 connectable.getTitle(),
                 processService,
+                processInstanceRepository,
                 workflowAggregateRepository,
                 bean,
                 method,

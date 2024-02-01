@@ -1,13 +1,17 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
-import io.zeebe.exporter.proto.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
+@Transactional
 public class Camunda8UserTaskEventHandler{
 
     private static final Logger logger = LoggerFactory
@@ -26,45 +30,52 @@ public class Camunda8UserTaskEventHandler{
         taskHandlers.put(connectable, taskHandler);
         
     }
-    
-    public void notify(
-            final Schema.JobRecord task) {
 
-        final var connectableFound = new Camunda8UserTaskConnectable[1];
+    public void notify(
+            final Camunda8UserTaskCreatedEvent userTaskCreatedEvent) {
+        notify(
+                userTaskCreatedEvent.getElementId(),
+                userTaskCreatedEvent.getBpmnProcessId(),
+                userTaskCreatedEvent.getFormKey(),
+                camunda8UserTaskHandler -> camunda8UserTaskHandler.notify(userTaskCreatedEvent)
+        );
+    }
+
+    public void notify(
+            final Camunda8UserTaskLifecycleEvent lifecycleEvent) {
+        notify(
+                lifecycleEvent.getElementId(),
+                lifecycleEvent.getBpmnProcessId(),
+                lifecycleEvent.getFormKey(),
+                camunda8UserTaskHandler -> camunda8UserTaskHandler.notify(lifecycleEvent)
+        );
+    }
+
+    
+    private void notify(
+            String elementId,
+            String bpmnProcessId,
+            String taskDefinition,
+            Consumer<Camunda8UserTaskHandler> camunda8UserTaskHandlerConsumer) {
+
         taskHandlers
                 .entrySet()
                 .stream()
-                // TODO use correct connectible
-//                .filter(entry -> {
-//                    final var connectable = entry.getKey();
-//
-//                    if (!connectable.getBpmnProcessId().equals(bpmnProcessId)) {
-//                        return false;
-//                    }
-//
-//                    final var element = execution.getBpmnModelElementInstance();
-//                    if (element == null) {
-//                        return false;
-//                    }
-//
-//                    return connectable.applies(
-//                            element.getId(),
-//                            ((UserTask) element).getCamundaFormKey());
-//                })
-                // found handler-reference
+                .filter(entry -> entry.getKey().getBpmnProcessId().equals(bpmnProcessId))
+                .filter(entry -> entry.getKey().getTaskDefinition().equals(taskDefinition))
                 .findFirst()
                 .map(Map.Entry::getValue)
                 .ifPresentOrElse(
-                        handler -> handler.notify(task),
+                        camunda8UserTaskHandlerConsumer,
                         () -> logger.debug(
                                 "Unmapped event '{}'! "
                                 + "If you need to process this event add a parameter "
                                 + "'@TaskEvent Event event' to the method annotated by "
                                 + "'@UserTaskDetailsProvider(taskDefinition = \"{}\") in any class "
                                 + "annotated by '@WorkflowService(bpmnProcess = @BpmnProcess(bpmnProcessId = \"{}\"))'.",
-                                task.getElementId(),
-                                connectableFound[0].getTaskDefinition(),
-                                connectableFound[0].getBpmnProcessId()));
+                                elementId,
+                                taskDefinition,
+                                bpmnProcessId));
 
     }
 }
