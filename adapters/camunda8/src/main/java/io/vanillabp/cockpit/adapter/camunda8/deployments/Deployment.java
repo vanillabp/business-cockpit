@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
@@ -17,6 +18,7 @@ import java.time.OffsetDateTime;
 @Table(name = "CAMUNDA8_BC_DEPLOYMENTS")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "TYPE")
+@IdClass(DeploymentId.class)
 public abstract class Deployment {
 
     /** the key of the deployed process */
@@ -25,9 +27,13 @@ public abstract class Deployment {
     private long definitionKey;
 
     /** the version of the deployed process */
-    @Version
+    @Id
     @Column(name = "VERSION")
     private int version;
+
+    @Version
+    @Column(name = "RECORD_VERSION")
+    private int recordVersion;
 
     @Column(name = "PACKAGE_ID")
     private int packageId;
@@ -56,6 +62,14 @@ public abstract class Deployment {
 
     public void setVersion(int version) {
         this.version = version;
+    }
+
+    public int getRecordVersion() {
+        return recordVersion;
+    }
+
+    public void setRecordVersion(int recordVersion) {
+        this.recordVersion = recordVersion;
     }
 
     public int getPackageId() {

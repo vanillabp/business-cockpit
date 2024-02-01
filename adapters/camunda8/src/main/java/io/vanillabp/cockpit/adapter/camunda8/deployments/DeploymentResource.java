@@ -12,6 +12,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity(name = "BusinessCockpitDeploymentResource")
 @Table(name = "CAMUNDA8_BC_RESOURCES")
@@ -22,6 +23,10 @@ public abstract class DeploymentResource {
     @Id
     @Column(name = "ID")
     private int fileId;
+
+    @Version
+    @Column(name = "RECORD_VERSION")
+    private int recordVersion;
 
     @Column(name = "RESOURCE_NAME")
     private String resourceName;
@@ -42,6 +47,14 @@ public abstract class DeploymentResource {
 
     public void setFileId(int fileId) {
         this.fileId = fileId;
+    }
+
+    public int getRecordVersion() {
+        return recordVersion;
+    }
+
+    public void setRecordVersion(int recordVersion) {
+        this.recordVersion = recordVersion;
     }
 
     public byte[] getResource() {

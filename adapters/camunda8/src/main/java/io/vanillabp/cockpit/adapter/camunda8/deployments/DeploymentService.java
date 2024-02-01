@@ -16,13 +16,6 @@ import java.util.List;
 import java.util.Map;
 
 public class DeploymentService {
-
-    private static final Logger logger = LoggerFactory.getLogger(DeploymentService.class);
-
-    private final BpmnParser bpmnParser = new BpmnParser();
-
-    private final SpringDataUtil springDataUtil;
-
     private final DeploymentRepository deploymentRepository;
     
     private final DeploymentResourceRepository deploymentResourceRepository;
@@ -30,11 +23,9 @@ public class DeploymentService {
     private final Map<Long, io.camunda.zeebe.model.bpmn.instance.Process> cachedProcesses = new HashMap<>();
 
     public DeploymentService(
-            final SpringDataUtil springDataUtil,
             final DeploymentRepository deploymentRepository,
             final DeploymentResourceRepository deploymentResourceRepository) {
 
-        this.springDataUtil = springDataUtil;
         this.deploymentRepository = deploymentRepository;
         this.deploymentResourceRepository = deploymentResourceRepository;
         
@@ -58,9 +49,7 @@ public class DeploymentService {
         bpmn.setResource(outStream.toByteArray());
         bpmn.setResourceName(resourceName);
 
-        // TODO: actually store bpmn
-        // return deploymentResourceRepository.save(bpmn);
-        return bpmn;
+        return deploymentResourceRepository.save(bpmn);
 
     }
     
@@ -70,10 +59,8 @@ public class DeploymentService {
             final DeployedBpmn bpmn) {
         
         final var versionedId = camunda8DeployedProcess.getProcessDefinitionKey();
-        
-        final var previous = deploymentRepository.findById(versionedId);
-        if ((previous.isPresent())
-                && (previous.get().getPackageId() == packageId)) {
+        final var previous = deploymentRepository.findByDefinitionKey(versionedId);
+        if (previous.isPresent()) {
             return (DeployedProcess) previous.get();
         }
 
@@ -86,10 +73,7 @@ public class DeploymentService {
         deployedProcess.setDeployedResource(bpmn);
         deployedProcess.setPublishedAt(OffsetDateTime.now());
 
-        // TODO: actually store process
-//        return deploymentRepository.save(deployedProcess);
-        return deployedProcess;
-        
+        return deploymentRepository.save(deployedProcess);
     }
 
     public List<DeployedBpmn> getBpmnNotOfPackage(final int packageId) {
@@ -99,53 +83,4 @@ public class DeploymentService {
                 packageId);
 
     }
-
-    public io.camunda.zeebe.model.bpmn.instance.Process getProcess(
-            final long processDefinitionKey) {
-        
-        synchronized (cachedProcesses) {
-            
-            final var cached = cachedProcesses.get(processDefinitionKey);
-            if (cached != null) {
-                return cached;
-            }
-           
-            final var deployedProcess = (DeployedProcess) springDataUtil
-                    .unproxy(deploymentRepository
-                            .findById(processDefinitionKey)
-                            .orElseThrow());
-            final var deployedResource = deployedProcess.getDeployedResource();
-            
-            try (final var inputStream = new ByteArrayInputStream(
-                    deployedResource.getResource())) {
-
-                bpmnParser
-                        .parseModelFromStream(inputStream)
-                        .getModelElementsByType(io.camunda.zeebe.model.bpmn.instance.Process.class)
-                        .stream()
-                        .filter(io.camunda.zeebe.model.bpmn.instance.Process::isExecutable)
-                        .map(process -> {
-                            final var key = deployedResource
-                                    .getDeployments()
-                                    .stream()
-                                    .filter(deployment -> ((DeployedProcess) deployment)
-                                            .getBpmnProcessId()
-                                            .equals(process.getId()))
-                                    .findFirst()
-                                    .get()
-                                    .getDefinitionKey();
-                            return Map.entry(key, process);
-                        })
-                        .forEach(entry -> cachedProcesses.put(entry.getKey(), entry.getValue()));
-
-            } catch (Exception e) {
-                logger.warn("Could not parse stored BPMN resource '{}'!", deployedResource.getResourceName());
-            }
-            
-            return cachedProcesses.get(processDefinitionKey);
-
-        }
-        
-    }
-
 }

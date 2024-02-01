@@ -54,6 +54,9 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Value("${workerId}")
     private String workerId;
 
+    @Value("${spring.application.name:@null}")
+    private String applicationName;
+
     @Override
     public String getAdapterId() {
         return ADAPTER_ID;
@@ -136,12 +139,10 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
     @Bean
     public DeploymentService camunda8BusinessCockpitDeploymentService(
-            final SpringDataUtil springDataUtil,
             final DeploymentRepository deploymentRepository,
             final DeploymentResourceRepository deploymentResourceRepository) {
 
         return new DeploymentService(
-                springDataUtil,
                 deploymentRepository,
                 deploymentResourceRepository
         );
@@ -155,6 +156,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             Camunda8WorkflowWiring camunda8WorkflowWiring){
 
         return new Camunda8DeploymentAdapter(
+                applicationName,
                 properties,
                 deploymentService,
                 camunda8UserTaskWiring,

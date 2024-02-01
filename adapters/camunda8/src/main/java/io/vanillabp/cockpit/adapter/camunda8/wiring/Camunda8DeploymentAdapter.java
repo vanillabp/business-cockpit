@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.wiring;
 
 import io.camunda.zeebe.client.ZeebeClient;
+import io.camunda.zeebe.client.api.response.DeploymentEvent;
 import io.camunda.zeebe.model.bpmn.impl.BpmnModelInstanceImpl;
 import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
@@ -45,9 +46,12 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final Camunda8WorkflowWiring camunda8WorkflowWiring;
 
+    private final String applicationName;
+
     private ZeebeClient client;
 
     public Camunda8DeploymentAdapter(
+            final String applicationName,
             final VanillaBpProperties properties,
             final DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
@@ -55,6 +59,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
         super(properties);
         this.deploymentService = deploymentService;
+        this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
         this.camunda8WorkflowWiring = camunda8WorkflowWiring;
     }
@@ -128,22 +133,24 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .filter(Objects::nonNull)
                 .reduce((first, second) -> second);
 
-//        if (hasDeployables[0]) {
-//            final DeploymentEvent deployedResources = deploymentCommand
-//                    .map(command -> command.send().join())
-//                    .orElseThrow();
-//
-//            // BPMNs which are part of the current package will stored
-//            deployedResources
-//                    .getProcesses()
-//                    .forEach(process ->  {
-//                        deploymentService.addProcess(
-//                                deploymentHashCode[0],
-//                                process,
-//                                deployedProcesses.get(process.getBpmnProcessId())).getDefinitionKey();
-//                    });
-//
-//        }
+        if (hasDeployables[0]) {
+            final var tenantId = workflowModuleId == null ? applicationName : workflowModuleId;
+            final DeploymentEvent deployedResources = deploymentCommand
+                    .map(command -> tenantId == null ? command : command.tenantId(tenantId))
+                    .map(command -> command.send().join())
+                    .orElseThrow();
+
+            // BPMNs which are part of the current package will stored
+            deployedResources
+                    .getProcesses()
+                    .forEach(process ->  {
+                        deploymentService.addProcess(
+                                deploymentHashCode[0],
+                                process,
+                                deployedProcesses.get(process.getBpmnProcessId()));
+                    });
+
+        }
 
         // BPMNs which were deployed in the past need to be forced to be parsed for wiring
         deploymentService
