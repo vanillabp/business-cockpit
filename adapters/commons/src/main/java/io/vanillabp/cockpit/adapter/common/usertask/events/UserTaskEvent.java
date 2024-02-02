@@ -4,9 +4,9 @@ import java.time.OffsetDateTime;
 
 public interface UserTaskEvent {
 
-    String getId();
+    String getEventId();
 
-    void setId(String id);
+    void setEventId(String id);
 
 
     String getComment();

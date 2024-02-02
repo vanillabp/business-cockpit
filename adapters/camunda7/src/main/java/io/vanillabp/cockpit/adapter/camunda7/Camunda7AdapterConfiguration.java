@@ -22,6 +22,7 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import org.camunda.bpm.engine.HistoryService;
+import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
@@ -48,10 +49,6 @@ import java.util.function.Function;
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
 @AutoConfigureBefore(
         value = { CamundaBpmAutoConfiguration.class },
-        // according to https://github.com/camunda/camunda-bpm-platform/blob/204b40921f7749a916b28c1073e0dc8df5c27134/engine/src/main/java/org/camunda/bpm/engine/impl/task/TaskDefinition.java#L181
-        // built-in-task-listeners will always be added to the beginning of the list
-        // of task-listeners. As we need cockpit-task-listeners to be executed after
-        // vanilla-bp-wiring-task-listeners this module has to be initialized first.
         name = { "io.vanillabp.camunda7.Camunda7AdapterConfiguration" })
 public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camunda7BusinessCockpitService<?>> {
     
@@ -75,6 +72,10 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Autowired
     @Lazy
     private RepositoryService repositoryService;
+
+    @Autowired
+    @Lazy
+    private ProcessEngine processEngine;
 
     @Autowired
     private CockpitProperties cockpitProperties;
@@ -185,6 +186,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier) {
         
         return new Camunda7WiringPlugin(
+                cockpitProperties,
                 wiringBpmnParseListener,
                 historyEventProducerSupplier);
         
@@ -252,6 +254,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
         }
         
         final var result = new Camunda7BusinessCockpitService<WA>(
+                processEngine,
                 taskService,
                 runtimeService,
                 springDataUtil::getId,

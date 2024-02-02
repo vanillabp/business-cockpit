@@ -53,7 +53,7 @@ public class WorkflowProtobufMapper {
             WorkflowCreatedOrUpdatedEvent.Builder builder) {
 
         // required parameters
-        builder.setId(workflowUpdatedEvent.getId());
+        builder.setId(workflowUpdatedEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowUpdatedEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowUpdatedEvent.getTimestamp()));
@@ -101,7 +101,7 @@ public class WorkflowProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent.newBuilder();
 
         // required properties
-        builder.setId(workflowEvent.getId());
+        builder.setId(workflowEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));
@@ -127,7 +127,7 @@ public class WorkflowProtobufMapper {
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent.newBuilder();
 
         // required properties
-        builder.setId(workflowEvent.getId());
+        builder.setId(workflowEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setWorkflowId(workflowEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));

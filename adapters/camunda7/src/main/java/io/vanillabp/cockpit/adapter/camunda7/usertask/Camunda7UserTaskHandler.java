@@ -373,7 +373,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         
         final var prefilledUserTaskDetails = event;
         
-        prefilledUserTaskDetails.setId(
+        prefilledUserTaskDetails.setEventId(
                 System.nanoTime()
                 + "@"
                 + delegateTask.getProcessInstanceId()
@@ -432,7 +432,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final DelegateTask delegateTask,
             final UserTaskLifecycleEvent event) {
         
-        event.setId(
+        event.setEventId(
                 System.nanoTime()
                 + "@"
                 + delegateTask.getProcessInstanceId()

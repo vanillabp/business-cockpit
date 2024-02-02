@@ -6,9 +6,11 @@ import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowEventHandl
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
+import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.delegate.TaskListener;
+import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.springframework.data.repository.CrudRepository;
@@ -33,10 +35,13 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
     private final TaskService taskService;
     
     private final RuntimeService runtimeService;
+
+    private final ProcessEngine processEngine;
     
     private final Camunda7WorkflowEventHandler workflowEventHandler;
     
     public Camunda7BusinessCockpitService(
+            final ProcessEngine processEngine,
             final TaskService taskService,
             final RuntimeService runtimeService,
             final Function<WA, ?> getWorkflowAggregateId,
@@ -51,6 +56,7 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
         this.getWorkflowAggregateId = getWorkflowAggregateId;
         this.parseWorkflowAggregateIdFromBusinessKey = parseWorkflowAggregateIdFromBusinessKey;
         this.userTaskEventHandler = userTaskEventHandler;
+        this.processEngine = processEngine;
         this.taskService = taskService;
         this.runtimeService = runtimeService;
         this.workflowEventHandler = workflowEventHandler;
@@ -139,14 +145,17 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
             final WA workflowAggregate,
             final String userTaskId) {
 
-        return Optional
-                .ofNullable(
-                        taskService
-                                .createTaskQuery()
-                                .taskId(userTaskId)
-                                .singleResult())
-                .map(task -> (TaskEntity) task)
-                .map(userTaskEventHandler::getUserTask);
+        return ((ProcessEngineConfigurationImpl) processEngine
+                .getProcessEngineConfiguration())
+                .getCommandExecutorTxRequired()
+                .execute(commandContext -> Optional
+                            .ofNullable(
+                                    taskService
+                                            .createTaskQuery()
+                                            .taskId(userTaskId)
+                                            .singleResult())
+                        .map(task -> (TaskEntity) task)
+                        .map(userTaskEventHandler::getUserTask));
 
     }
 

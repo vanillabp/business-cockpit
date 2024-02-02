@@ -4,7 +4,12 @@ import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
-import io.vanillabp.cockpit.adapter.common.workflow.events.*;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowLifecycleEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
@@ -291,7 +296,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         final var prefilledWorkflowDetails = event;
 
-        prefilledWorkflowDetails.setId(
+        prefilledWorkflowDetails.setEventId(
                 System.nanoTime()
                         + "@"
                         + processInstanceEvent.getProcessInstanceId()
@@ -317,7 +322,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         final var prefilledWorkflowDetails = event;
 
-        prefilledWorkflowDetails.setId(
+        prefilledWorkflowDetails.setEventId(
                 System.nanoTime()
                         + "@"
                         + processInstance.getId());
@@ -338,7 +343,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final HistoricProcessInstanceEventEntity processInstanceEvent,
             final WorkflowLifecycleEvent event) {
 
-        event.setId(
+        event.setEventId(
                 System.nanoTime()
                         + "@"
                         + processInstanceEvent.getProcessInstanceId()
@@ -359,7 +364,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final HistoricProcessInstance processInstance,
             final WorkflowLifecycleEvent event) {
 
-        event.setId(
+        event.setEventId(
                 System.nanoTime()
                         + "@"
                         + processInstance.getId());

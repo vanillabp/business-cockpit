@@ -29,7 +29,7 @@ public class KafkaWorkflowController {
         this.workflowMapper = workflowMapper;
     }
 
-    @KafkaListener(topics = "${business-cockpit.kafka-topics.workflow}",
+    @KafkaListener(topics = "${bpms-api.kafka-topics.workflow}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX)
     public void consumeWorkflowEvent(ConsumerRecord<String, byte[]> record) {

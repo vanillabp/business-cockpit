@@ -49,7 +49,9 @@ public class Camunda7UserTaskEventHandler implements TaskListener {
     public io.vanillabp.spi.cockpit.usertask.UserTask getUserTask(
             final TaskEntity task) {
 
-        return handleProcessEntity(task, handler -> handler.getUserTask(task));
+        return handleProcessEntity(
+                task,
+                handler -> handler.getUserTask(task));
 
     }
 
@@ -74,7 +76,7 @@ public class Camunda7UserTaskEventHandler implements TaskListener {
                         return false;
                     }
 
-                    final var element = execution.getBpmnModelElementInstance();
+                    final var element = task.getBpmnModelElementInstance();
                     if (element == null) {
                         return false;
                     }

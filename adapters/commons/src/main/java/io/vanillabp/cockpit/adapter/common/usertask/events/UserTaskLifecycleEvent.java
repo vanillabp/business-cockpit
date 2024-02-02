@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 
 public class UserTaskLifecycleEvent implements UserTaskEvent {
 
-  private String id;
+  private String eventId;
 
   private String userTaskId;
 
@@ -20,13 +20,13 @@ public class UserTaskLifecycleEvent implements UserTaskEvent {
   }
 
   @Override
-  public String getId() {
-    return id;
+  public String getEventId() {
+    return eventId;
   }
 
   @Override
-  public void setId(String id) {
-    this.id = id;
+  public void setEventId(String eventId) {
+    this.eventId = eventId;
   }
 
   public String getUserTaskId() {
