@@ -272,6 +272,8 @@ const ListOfWorkflows = ({
   currentLanguage,
   defaultSort,
   defaultSortAscending,
+
+  columns,
   t,
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
@@ -282,6 +284,7 @@ const ListOfWorkflows = ({
   currentLanguage: string,
   defaultSort?: string,
   defaultSortAscending?: boolean,
+  columns?: string[];
   t: TranslationFunction,
 }) => {
 
@@ -375,14 +378,15 @@ const ListOfWorkflows = ({
     const existingColumnsSignature = columnsOfWorkflows === undefined
         ? ' ' // initial state is different then updates
         : columnsOfWorkflows.map(c => c.path).join('|');
-    const orderedColumns = (Object
+    const columnsToShow = (Object
         .values(totalColumns) as Array<Column>)
+        .filter(column => (columns === undefined) || columns.includes(column.path))
         .sort((a, b) => a.priority - b.priority);
-    const newColumnsSignature = orderedColumns.map(c => c.path).join('|');
+    const newColumnsSignature = columnsToShow.map(c => c.path).join('|');
     if (existingColumnsSignature === newColumnsSignature) {
       return;
     }
-    setColumnsOfWorkflows(orderedColumns);
+    setColumnsOfWorkflows(columnsToShow);
   }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
@@ -445,7 +449,7 @@ const ListOfWorkflows = ({
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
   };
 
-  const columns: ColumnConfig<ListItem<BcWorkflow>>[] =
+  const columnsOfList: ColumnConfig<ListItem<BcWorkflow>>[] =
       [
           { property: 'id',
             primary: true,
@@ -622,7 +626,7 @@ const ListOfWorkflows = ({
                       t={ t }
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
-                      columns={ columns }
+                      columns={ columnsOfList }
                       itemsRef={ workflows }
                       updateListRef= { updateListRef }
                       refreshItemRef={ refreshItemRef }
