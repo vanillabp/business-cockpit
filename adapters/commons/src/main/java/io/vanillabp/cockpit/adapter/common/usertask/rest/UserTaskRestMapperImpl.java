@@ -25,7 +25,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
         UserTaskActivatedEvent userTaskActivatedEvent1 = new UserTaskActivatedEvent();
 
-        userTaskActivatedEvent1.setId( userTaskActivatedEvent.getId() );
+        userTaskActivatedEvent1.setId( userTaskActivatedEvent.getEventId() );
         userTaskActivatedEvent1.setUserTaskId( userTaskActivatedEvent.getUserTaskId() );
         userTaskActivatedEvent1.setInitiator( userTaskActivatedEvent.getInitiator() );
         userTaskActivatedEvent1.setTimestamp( userTaskActivatedEvent.getTimestamp() );
@@ -43,7 +43,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
         io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent userTaskCancelledEvent1 = new io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent();
 
-        userTaskCancelledEvent1.setId( userTaskCancelledEvent.getId() );
+        userTaskCancelledEvent1.setId( userTaskCancelledEvent.getEventId() );
         userTaskCancelledEvent1.setUserTaskId( userTaskCancelledEvent.getUserTaskId() );
         userTaskCancelledEvent1.setInitiator( userTaskCancelledEvent.getInitiator() );
         userTaskCancelledEvent1.setTimestamp( userTaskCancelledEvent.getTimestamp() );
@@ -61,7 +61,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
         io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent userTaskCompletedEvent1 = new io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent();
 
-        userTaskCompletedEvent1.setId( userTaskCompletedEvent.getId() );
+        userTaskCompletedEvent1.setId( userTaskCompletedEvent.getEventId() );
         userTaskCompletedEvent1.setUserTaskId( userTaskCompletedEvent.getUserTaskId() );
         userTaskCompletedEvent1.setInitiator( userTaskCompletedEvent.getInitiator() );
         userTaskCompletedEvent1.setTimestamp( userTaskCompletedEvent.getTimestamp() );
@@ -79,7 +79,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
         UserTaskSuspendedEvent userTaskSuspendedEvent1 = new UserTaskSuspendedEvent();
 
-        userTaskSuspendedEvent1.setId( userTaskSuspendedEvent.getId() );
+        userTaskSuspendedEvent1.setId( userTaskSuspendedEvent.getEventId() );
         userTaskSuspendedEvent1.setUserTaskId( userTaskSuspendedEvent.getUserTaskId() );
         userTaskSuspendedEvent1.setInitiator( userTaskSuspendedEvent.getInitiator() );
         userTaskSuspendedEvent1.setTimestamp( userTaskSuspendedEvent.getTimestamp() );

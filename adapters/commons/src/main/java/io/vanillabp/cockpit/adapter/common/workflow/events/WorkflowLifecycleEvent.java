@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.adapter.common.workflow.events;
 import java.time.OffsetDateTime;
 
 public class WorkflowLifecycleEvent implements WorkflowEvent {
-    private String id;
+    private String eventId;
     private String workflowId;
     private String initiator;
     private OffsetDateTime timestamp;
@@ -17,13 +17,13 @@ public class WorkflowLifecycleEvent implements WorkflowEvent {
     }
 
     @Override
-    public String getId() {
-        return id;
+    public String getEventId() {
+        return eventId;
     }
 
     @Override
-    public void setId(String id) {
-        this.id = id;
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 
     public String getWorkflowId() {

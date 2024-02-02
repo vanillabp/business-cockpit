@@ -21,7 +21,9 @@ public class CockpitProperties {
     private boolean userTasksEnabled = true;
 
     private boolean workflowListEnabled = true;
-    
+
+    private boolean before7203 = true;
+
     private String templateLoaderPath;
 
     private JwtProperties jwt = new JwtProperties();
@@ -90,5 +92,13 @@ public class CockpitProperties {
 
     public void setKafkaTopics(KafkaTopicProperties kafkaTopics) {
         this.kafkaTopics = kafkaTopics;
+    }
+
+    public boolean isBefore7203() {
+        return before7203;
+    }
+
+    public void setBefore7203(boolean before7203) {
+        this.before7203 = before7203;
     }
 }

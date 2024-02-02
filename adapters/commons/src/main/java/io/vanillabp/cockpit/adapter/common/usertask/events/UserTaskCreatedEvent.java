@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, PrefilledUserTaskDetails {
-    private String id;
+    private String eventId;
 
     private String userTaskId;
 
@@ -79,12 +79,12 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     @Override
     public String getId() {
-        return id;
+        return userTaskId;
     }
 
     @Override
-    public void setId(String id) {
-        this.id = id;
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 
     public String getUserTaskId() {
@@ -142,7 +142,7 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     @Override
     public String getEventId() {
-        return id;
+        return eventId;
     }
 
     @Override

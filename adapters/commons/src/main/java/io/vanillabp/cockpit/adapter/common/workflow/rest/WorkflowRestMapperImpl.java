@@ -21,7 +21,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
 
         io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent workflowCancelledEvent1 = new io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent();
 
-        workflowCancelledEvent1.setId( workflowCancelledEvent.getId() );
+        workflowCancelledEvent1.setId( workflowCancelledEvent.getEventId() );
         workflowCancelledEvent1.setWorkflowId( workflowCancelledEvent.getWorkflowId() );
         workflowCancelledEvent1.setInitiator( workflowCancelledEvent.getInitiator() );
         workflowCancelledEvent1.setTimestamp( workflowCancelledEvent.getTimestamp() );
@@ -41,7 +41,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
 
         WorkflowCompletedEvent workflowCompletedEvent1 = new WorkflowCompletedEvent();
 
-        workflowCompletedEvent1.setId( workflowCompletedEvent.getId() );
+        workflowCompletedEvent1.setId( workflowCompletedEvent.getEventId() );
         workflowCompletedEvent1.setWorkflowId( workflowCompletedEvent.getWorkflowId() );
         workflowCompletedEvent1.setInitiator( workflowCompletedEvent.getInitiator() );
         workflowCompletedEvent1.setTimestamp( workflowCompletedEvent.getTimestamp() );
@@ -61,7 +61,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
 
         WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent = new WorkflowCreatedOrUpdatedEvent();
 
-        workflowCreatedOrUpdatedEvent.setId( workflowCreatedEvent.getId() );
+        workflowCreatedOrUpdatedEvent.setId( workflowCreatedEvent.getEventId() );
         workflowCreatedOrUpdatedEvent.setWorkflowId( workflowCreatedEvent.getWorkflowId() );
         workflowCreatedOrUpdatedEvent.setBusinessId( workflowCreatedEvent.getBusinessId() );
         workflowCreatedOrUpdatedEvent.setInitiator( workflowCreatedEvent.getInitiator() );
@@ -100,7 +100,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
 
         WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent = new WorkflowCreatedOrUpdatedEvent();
 
-        workflowCreatedOrUpdatedEvent.setId( workflowUpdatedEvent.getId() );
+        workflowCreatedOrUpdatedEvent.setId( workflowUpdatedEvent.getEventId() );
         workflowCreatedOrUpdatedEvent.setWorkflowId( workflowUpdatedEvent.getWorkflowId() );
         workflowCreatedOrUpdatedEvent.setBusinessId( workflowUpdatedEvent.getBusinessId() );
         workflowCreatedOrUpdatedEvent.setInitiator( workflowUpdatedEvent.getInitiator() );

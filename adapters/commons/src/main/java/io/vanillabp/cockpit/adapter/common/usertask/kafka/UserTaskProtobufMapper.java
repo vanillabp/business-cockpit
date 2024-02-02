@@ -107,7 +107,7 @@ public class UserTaskProtobufMapper {
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent.newBuilder();
 
-        builder.setId(userTaskCompletedEvent.getId());
+        builder.setId(userTaskCompletedEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskCompletedEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskCompletedEvent.getTimestamp()));
@@ -127,7 +127,7 @@ public class UserTaskProtobufMapper {
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent.newBuilder();
 
-        builder.setId(userTaskEvent.getId());
+        builder.setId(userTaskEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
@@ -148,7 +148,7 @@ public class UserTaskProtobufMapper {
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent.newBuilder();
 
-        builder.setId(userTaskEvent.getId());
+        builder.setId(userTaskEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
@@ -169,7 +169,7 @@ public class UserTaskProtobufMapper {
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent.newBuilder();
 
-        builder.setId(userTaskEvent.getId());
+        builder.setId(userTaskEvent.getEventId());
         builder.setApiVersion(API_VERSION);
         builder.setUserTaskId(userTaskEvent.getUserTaskId());
         builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));

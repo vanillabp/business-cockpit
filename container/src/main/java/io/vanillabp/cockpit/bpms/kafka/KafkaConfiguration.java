@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
+import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -7,15 +8,17 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.mapstruct.factory.Mappers;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 
 import java.util.Map;
 
 @AutoConfiguration
-@Profile("kafka")
+@ConditionalOnProperty(
+        prefix = BpmsApiProperties.PREFIX + ".kafka-topics",
+        name = {"workflow", "user-task"})
 public class KafkaConfiguration {
 
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit";

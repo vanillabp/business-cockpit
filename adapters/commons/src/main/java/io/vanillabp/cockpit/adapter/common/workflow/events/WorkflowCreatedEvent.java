@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, PrefilledWorkflowDetails {
-  private String id;
+  private String eventId;
 
   private String workflowId;
 
@@ -48,8 +48,6 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
 
   private Object templateContext;
 
-  private String eventId;
-
   private OffsetDateTime eventTimestamp;
 
   private List<String> accessibleToUsers;
@@ -62,14 +60,6 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
   public WorkflowCreatedEvent(String workflowModuleId, List<String> i18nLanguages) {
     this.workflowModule = workflowModuleId;
     this.i18nLanguages = i18nLanguages;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
   }
 
   public String getWorkflowId() {

@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.config.properties;
 
-import io.vanillabp.cockpit.commons.kafka.KafkaTopicProperties;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -24,8 +23,6 @@ public class ApplicationProperties {
     private String applicationUri;
     
     private JwtProperties jwt = new JwtProperties();
-
-    private KafkaTopicProperties kafkaTopics = new KafkaTopicProperties();
 
     public GuiSseProperties getGuiSse() {
         return guiSse;
@@ -75,10 +72,4 @@ public class ApplicationProperties {
         this.jwt = jwt;
     }
 
-    public KafkaTopicProperties getKafkaTopics() {
-        return kafkaTopics;
-    }
-    public void setKafkaTopics(KafkaTopicProperties kafkaTopicProperties){
-        kafkaTopics = kafkaTopicProperties;
-    }
 }
