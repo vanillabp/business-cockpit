@@ -80,6 +80,8 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
             item={ item }
             column={ column }
             showUnreadAsBold={ showUnreadAsBold }
+            currentLanguage={ currentLanguage }
+            defaultLanguage={ defaultLanguage }
             defaultCell={ DefaultListCell } />;
   
 }
