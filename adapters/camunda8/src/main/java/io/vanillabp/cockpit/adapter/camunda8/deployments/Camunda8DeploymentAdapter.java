@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.adapter.camunda8.wiring;
+package io.vanillabp.cockpit.adapter.camunda8.deployments;
 
 import io.camunda.zeebe.client.ZeebeClient;
 import io.camunda.zeebe.client.api.response.DeploymentEvent;
@@ -10,10 +10,10 @@ import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeFormDefinition;
 import io.camunda.zeebe.spring.client.event.ZeebeClientCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.DeployedBpmn;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
+import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
+import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
@@ -119,7 +119,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                 inputStream.hashCode(),
                                 resource.getDescription());
 
-                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model, false);
+                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model);
                         deploymentHashCode[0] = inputStream.getTotalHashCode();
 
                         hasDeployables[0] = true;
@@ -163,7 +163,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                 bpmn.getResourceName(), workflowModuleId);
                         final var model = bpmnParser.parseModelFromStream(inputStream);
 
-                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model, true);
+                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model);
 
                     } catch (IOException e) {
                         throw new RuntimeException(e.getMessage());
@@ -176,8 +176,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final String workflowModuleId,
             final Map<String, DeployedBpmn> deployedProcesses,
             final DeployedBpmn bpmn,
-            final BpmnModelInstanceImpl model,
-            final boolean oldVersionBpmn) {
+            final BpmnModelInstanceImpl model) {
 
         List<Process> executableProcesses = model
                 .getModelElementsByType(Process.class)

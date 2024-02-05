@@ -11,7 +11,7 @@ import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitServ
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTaskEventPublisher;
-import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8DeploymentAdapter;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
