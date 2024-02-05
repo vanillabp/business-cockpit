@@ -5,3 +5,4 @@ export * from './now-hook.js';
 export * from './responsiveUtils.js';
 export * from './timeUtils.js';
 export * from './objectUtils.js';
+export * from './i18n.js';

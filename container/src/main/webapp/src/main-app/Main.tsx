@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react';
 import { useAppContext } from '../AppContext';
 import { Box } from 'grommet';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18next';
+import { i18n } from '@vanillabp/bc-shared';
 
 i18n.addResources('en', 'main/welcome', {
     "hello": "Welcome to {{title}}"

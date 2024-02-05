@@ -34,14 +34,16 @@ public class Camunda7UserTaskEventHandler implements TaskListener {
         notify((TaskEntity) delegateTask, delegateTask.getEventName());
         
     }
-    
+
+    private static final Object dummyReturnValue = new Object();
+
     public void notify(
             final TaskEntity task,
             final String eventName) {
 
         handleProcessEntity(task, handler -> {
                 handler.notify(task, eventName);
-                return null;
+                return dummyReturnValue; // action needs to return something, otherwise misleading warning is printed
             });
 
     }

@@ -272,7 +272,6 @@ const ListOfWorkflows = ({
   currentLanguage,
   defaultSort,
   defaultSortAscending,
-
   columns,
   t,
 }: {
@@ -356,9 +355,7 @@ const ListOfWorkflows = ({
     }
     const totalColumns = Object
         .keys(definitionsOfWorkflows)
-        .map(definition => {
-          return definitionsOfWorkflows[definition]
-          })
+        .map(definition => definitionsOfWorkflows[definition])
         .map(definition => {
             const columnsOfWorkflow = modules
                 .filter(m => m !== undefined)
