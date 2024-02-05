@@ -138,7 +138,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     private void fillLifecycleEvent(UserTaskLifecycleEvent userTaskLifecycleEvent,
                                     Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent) {
 
-        userTaskLifecycleEvent.setId(
+        userTaskLifecycleEvent.setEventId(
                 System.nanoTime()
                         + "@"
                         + camunda8UserTaskLifecycleEvent.getProcessInstanceKey()
@@ -240,7 +240,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         ) {
 
         // TODO: process instance key correct?
-        userTaskCreatedEvent.setId(
+        userTaskCreatedEvent.setEventId(
                 System.nanoTime() +
                         "@" +
                         jobRecord.getProcessInstanceKey());

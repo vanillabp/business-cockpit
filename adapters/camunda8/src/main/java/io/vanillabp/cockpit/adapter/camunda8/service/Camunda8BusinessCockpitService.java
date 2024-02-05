@@ -3,8 +3,10 @@ package io.vanillabp.cockpit.adapter.camunda8.service;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
+import io.vanillabp.spi.cockpit.usertask.UserTask;
 import org.springframework.data.repository.CrudRepository;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServiceImplementation<WA> {
@@ -66,11 +68,17 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     @Override
     public void aggregateChanged(WA workflowAggregate) {
-
+        // TODO CKO
     }
 
     @Override
     public void aggregateChanged(WA workflowAggregate, String... userTaskIds) {
+        // TODO CKO
+    }
 
+    @Override
+    public Optional<UserTask> getUserTask(WA workflowAggregate, String userTaskId) {
+        // TODO CKO
+        return Optional.empty();
     }
 }

@@ -14,6 +14,7 @@ import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
@@ -46,6 +47,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
     public Camunda8UserTaskWiring(
             final ApplicationContext applicationContext,
             final CockpitProperties properties,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
@@ -54,7 +56,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             final Camunda8UserTaskEventHandler userTaskEventHandler,
             final ProcessInstanceRepository processInstanceRepository) throws Exception {
         
-        super(applicationContext, new UserTaskMethodParameterFactory());
+        super(applicationContext, springBeanUtil, new UserTaskMethodParameterFactory());
         this.connectableServices = connectableServices;
         this.properties = properties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;

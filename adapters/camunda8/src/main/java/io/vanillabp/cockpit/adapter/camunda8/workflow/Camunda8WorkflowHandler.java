@@ -97,7 +97,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent,
             final WorkflowLifecycleEvent event) {
 
-        event.setId(System.nanoTime() + "@" +
+        event.setEventId(System.nanoTime() + "@" +
                 workflowLifeCycleEvent.getProcessInstanceKey() + "#" +
                 workflowLifeCycleEvent.getKey());
 
@@ -154,7 +154,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final Camunda8WorkflowCreatedEvent workflowCreatedEvent,
             final WorkflowCreatedEvent event) {
 
-        event.setId(System.nanoTime() + "@" +
+        event.setEventId(System.nanoTime() + "@" +
                 workflowCreatedEvent.getProcessInstanceKey() + "#" +
                 workflowCreatedEvent.getKey());
 

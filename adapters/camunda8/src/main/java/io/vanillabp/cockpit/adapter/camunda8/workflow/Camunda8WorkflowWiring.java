@@ -13,6 +13,7 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.spi.service.WorkflowService;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.ConnectBean;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.springframework.context.ApplicationContext;
@@ -48,6 +49,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final CockpitProperties cockpitProperties,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -55,7 +57,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
             final ProcessInstanceRepository processInstanceRepository) {
-        super(applicationContext, methodParameterFactory);
+        super(applicationContext, springBeanUtil, methodParameterFactory);
         this.cockpitProperties = cockpitProperties;
         this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.connectableServices = connectableServices;

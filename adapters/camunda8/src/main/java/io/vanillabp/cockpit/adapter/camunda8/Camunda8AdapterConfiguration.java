@@ -23,6 +23,7 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -94,6 +95,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8UserTaskWiring camunda8UserTaskWiring(
             final ApplicationContext applicationContext,
             final CockpitProperties properties,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
@@ -105,6 +107,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8UserTaskWiring(
                 applicationContext,
                 properties,
+                springBeanUtil,
                 workflowsCockpitProperties,
                 applicationEventPublisher,
                 templating,
@@ -118,6 +121,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8WorkflowWiring camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final CockpitProperties cockpitProperties,
+            final SpringBeanUtil springBeanUtil,
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
@@ -127,6 +131,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 cockpitProperties,
+                springBeanUtil,
                 workflowsCockpitProperties,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
