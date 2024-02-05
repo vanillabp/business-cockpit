@@ -1,7 +1,6 @@
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { ListOfWorkflows, WorkflowPage } from '@vanillabp/bc-ui';
-import i18n from 'i18next';
-import i18next from 'i18next';
+import { i18n } from '@vanillabp/bc-shared';
 import { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
 import { useGuiSse } from "../../client/guiClient";
@@ -75,7 +74,7 @@ const Main = () => {
                                 showLoadingIndicator={ showLoadingIndicator }
                                 useWorkflowlistApi={ useStandardWorkflowlistApi }
                                 useGuiSse={ useGuiSse }
-                                currentLanguage={ i18next.language }
+                                currentLanguage={ i18n.language }
                                 t={ t }
                                 defaultSort={ 'title' }
                                 openTask={

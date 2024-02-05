@@ -1,7 +1,6 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { ListOfTasks } from '@vanillabp/bc-ui';
-import i18n from 'i18next';
-import i18next from 'i18next';
+import { i18n } from '@vanillabp/bc-shared';
 import { useLayoutEffect } from "react";
 import { useAppContext } from "../../AppContext";
 import { useGuiSse } from "../../client/guiClient";
@@ -79,7 +78,7 @@ const CustomListOfTasks = ({ useTasklistApi }) => {
       useTasklistApi={useTasklistApi}
       useGuiSse={useGuiSse}
       t={t}
-      currentLanguage={i18next.language}
+      currentLanguage={i18n.language}
       defaultSort={"dueDate"}
       openTask={
         (userTask) =>

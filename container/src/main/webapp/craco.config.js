@@ -45,6 +45,16 @@ module.exports = {
               singleton: true,
               requiredVersion: dependencies["grommet"],
             },
+            i18next: {
+              eager: true,
+              singleton: true,
+              requiredVersion: dependencies["i18next"],
+            },
+            "react-i18next": {
+              eager: true,
+              singleton: true,
+              requiredVersion: dependencies["react-i18next"],
+            },
           },
         }),
       ]

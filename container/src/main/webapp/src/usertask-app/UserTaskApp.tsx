@@ -1,10 +1,10 @@
-import React, { useLayoutEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { Box } from 'grommet';
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useAppContext } from '../AppContext';
 import { NoUserTaskGiven, UserTaskPage } from '@vanillabp/bc-ui';
+import { i18n } from '@vanillabp/bc-shared';
 import { navigateToWorkflow, openTask } from "../utils/navigate";
-import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 import { useStandardTasklistApi } from "../utils/standardApis";
 import Footer from './Footer';

@@ -1,15 +1,16 @@
-import React, { FC } from 'react';
 import { Box, Text, TextExtendedProps } from 'grommet';
+import { ColorType } from 'grommet/utils/index.js';
+import { TFunction } from 'i18next';
+import React, { FC } from 'react';
+import { useTranslation } from "react-i18next";
 import { Column, ListItem, ListItemStatus } from '../types/index.js';
 import {
   getObjectProperty,
+  i18n,
   toLocaleDateString,
   toLocaleStringWithoutSeconds,
-  toLocaleTimeStringWithoutSeconds
+  toLocaleTimeStringWithoutSeconds,
 } from '../utils/index.js';
-import { ColorType } from 'grommet/utils/index.js';
-import { useTranslation } from "react-i18next";
-import i18n, { TFunction } from 'i18next';
 
 i18n.addResources('en', 'default-list-cell', {
   "boolean-true": 'Yes',

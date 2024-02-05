@@ -4,7 +4,7 @@ import { Anchor, Grid, Text } from 'grommet';
 import { Logout, Projects, Task } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
-import i18n from 'i18next';
+import { i18n } from '@vanillabp/bc-shared';
 import { useNavigate } from 'react-router-dom';
 
 i18n.addResources('en', 'menu', {
