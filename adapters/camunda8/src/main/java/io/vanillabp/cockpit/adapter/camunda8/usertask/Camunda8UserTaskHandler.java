@@ -174,7 +174,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 .orElseThrow();
     }
 
-    private UserTaskCreatedEvent fillUserTaskCreatedEvent(
+    private void fillUserTaskCreatedEvent(
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent,
             UserTaskCreatedEvent userTaskCreatedEvent) {
 
@@ -183,55 +183,30 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         prefillCreatedEvent(userTaskCreatedEvent, camunda8UserTaskCreatedEvent, businessKey);
 
-//        UserTaskDetails prefilledUserTaskDetails = this.callUserTaskDetailsProviderMethod(
-//                camunda8UserTaskCreatedEvent,
-//                userTaskCreatedEvent
-//        );
+        UserTaskDetails prefilledUserTaskDetails = this.callUserTaskDetailsProviderMethod(
+                camunda8UserTaskCreatedEvent,
+                userTaskCreatedEvent,
+                businessKey
+        );
 
-//        if(prefilledUserTaskDetails != null && prefilledUserTaskDetails != userTaskCreatedEvent){
-//            addDataToPrefilledEvent(userTaskCreatedEvent, prefilledUserTaskDetails);
-//        }
+        if(prefilledUserTaskDetails == null){
+            prefilledUserTaskDetails = userTaskCreatedEvent;
+        } else if(prefilledUserTaskDetails != userTaskCreatedEvent){
+            addDataToPrefilledEvent(userTaskCreatedEvent, prefilledUserTaskDetails);
+        }
 
         if ((userTaskCreatedEvent.getI18nLanguages() == null)
                 || userTaskCreatedEvent.getI18nLanguages().isEmpty()){
             userTaskCreatedEvent.setI18nLanguages(cockpitProperties.getI18nLanguages());
         }
 
-//        if (templating.isEmpty()) {
-//            fillUserTaskWithTemplatingDeactivated(
-//                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
-//                    taskTitle,
-//                    userTaskCreatedEvent,
-//                    prefilledUserTaskDetails
-//            );
-//        } else {
-//            fillUserTaskWithTemplatingActivated(
-//                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
-//                    taskTitle,
-//                    userTaskCreatedEvent,
-//                    prefilledUserTaskDetails
-//            );
-//        }
-
-        if (templating.isEmpty()) {
-            fillUserTaskWithTemplatingDeactivated(
-                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
-                    taskTitle,
-                    userTaskCreatedEvent,
-                    userTaskCreatedEvent
-            );
-        } else {
-            fillUserTaskWithTemplatingActivated(
-                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
-                    taskTitle,
-                    userTaskCreatedEvent,
-                    userTaskCreatedEvent
-            );
-        }
-
-
-        return userTaskCreatedEvent;
+        filluserTaskDetailsByCustomDetails(
+                camunda8UserTaskCreatedEvent,
+                userTaskCreatedEvent,
+                prefilledUserTaskDetails);
     }
+
+
 
 
     private void prefillCreatedEvent(UserTaskCreatedEvent userTaskCreatedEvent,
@@ -281,54 +256,48 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     }
 
-//
-//    @SuppressWarnings("unchecked")
-//    private UserTaskDetails callUserTaskDetailsProviderMethod(
-//            final Camunda8UserTaskCreatedEvent delegateTask,
-//            final PrefilledUserTaskDetails prefilledUserTaskDetails) {
-//
-//
-//        try {
-//
-//            logger.trace("Will handle user-task '{}' of workflow '{}' ('{}') by execution '{}'",
-//                    delegateTask.getElementId(),
-//                    delegateTask.getProcessInstanceKey(),
-//                    delegateTask.getBpmnProcessId(),
-//                    delegateTask.getElementInstanceKey());
-//
-//            final var workflowAggregateId = parseWorkflowAggregateIdFromBusinessKey
-//                    .apply(delegateTask.getBusinessKey());
-//
-//            final var workflowAggregateCache = new WorkflowAggregateCache();
-//
-//            return super.execute(
-//                    workflowAggregateCache,
-//                    workflowAggregateId,
-//                    true,
-//                    (args, param) -> processTaskParameter(
-//                            args,
-//                            param,
-//                            taskParameter -> execution.getVariableLocal(taskParameter)),
-//                    (args, param) -> processTaskIdParameter(
-//                            args,
-//                            param,
-//                            () -> delegateTask.getId()),
-//                    (args, param) -> processPrefilledUserTaskDetailsParameter(
-//                            args,
-//                            param,
-//                            () -> prefilledUserTaskDetails))
-//
-//        } catch (RuntimeException e) {
-//
-//            throw e;
-//
-//        } catch (Exception e) {
-//
-//            throw new RuntimeException(e);
-//
-//        }
-//
-//    }
+
+    @SuppressWarnings("unchecked")
+    private UserTaskDetails callUserTaskDetailsProviderMethod(
+            final Camunda8UserTaskCreatedEvent delegateTask,
+            final PrefilledUserTaskDetails prefilledUserTaskDetails,
+            final String businessKey) {
+        try {
+
+            Object parsedBusinessKey = parseWorkflowAggregateIdFromBusinessKey.apply(businessKey);
+
+            logger.trace("Will handle user-task '{}' of workflow '{}' ('{}') by execution '{}'",
+                    delegateTask.getElementId(),
+                    delegateTask.getProcessInstanceKey(),
+                    delegateTask.getBpmnProcessId(),
+                    delegateTask.getElementInstanceKey());;
+
+            final var workflowAggregateCache = new WorkflowAggregateCache();
+
+            return super.execute(
+                    workflowAggregateCache,
+                    parsedBusinessKey,
+                    true,
+                    (args, param) -> processTaskIdParameter(
+                            args,
+                            param,
+                            () -> String.valueOf(delegateTask.getKey())),
+                    (args, param) -> processPrefilledUserTaskDetailsParameter(
+                            args,
+                            param,
+                            () -> prefilledUserTaskDetails));
+
+        } catch (RuntimeException e) {
+
+            throw e;
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+
+        }
+
+    }
 
     private void addDataToPrefilledEvent(UserTaskCreatedEvent event,
                                          UserTaskDetails details) {
@@ -355,6 +324,23 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 details.getUiUriPath());
     }
 
+    private void filluserTaskDetailsByCustomDetails(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent, UserTaskCreatedEvent userTaskCreatedEvent, UserTaskDetails prefilledUserTaskDetails) {
+        if (templating.isEmpty()) {
+            fillUserTaskWithTemplatingDeactivated(
+                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
+                    taskTitle,
+                    userTaskCreatedEvent,
+                    prefilledUserTaskDetails
+            );
+        } else {
+            fillUserTaskWithTemplatingActivated(
+                    camunda8UserTaskCreatedEvent.getBpmnProcessId(),
+                    taskTitle,
+                    userTaskCreatedEvent,
+                    prefilledUserTaskDetails
+            );
+        }
+    }
 
     private void fillUserTaskWithTemplatingDeactivated(
             String bpmnProcessName,
