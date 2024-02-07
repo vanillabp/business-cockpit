@@ -3,7 +3,7 @@
 
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
@@ -11,6 +11,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.java>17</version.java>
     <version.org.mapstruct>1.5.5.Final</version.org.mapstruct>
+    <version.protobuf>3.25.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
   </properties>
@@ -146,6 +147,12 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.springframework.kafka</groupId>
+        <artifactId>spring-kafka-test</artifactId>
+        <version>3.0.4</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.mapstruct</groupId>
         <artifactId>mapstruct</artifactId>
         <version>${version.org.mapstruct}</version>
@@ -159,6 +166,22 @@
         <groupId>io.vanillabp</groupId>
         <artifactId>spring-boot-support</artifactId>
         <version>1.0.5</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+        <version>5.10.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

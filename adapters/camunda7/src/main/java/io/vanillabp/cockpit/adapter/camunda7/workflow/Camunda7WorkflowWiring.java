@@ -7,7 +7,6 @@ import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.spi.service.WorkflowService;
@@ -37,8 +36,6 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
 
     private final Collection<Camunda7BusinessCockpitService<?>> connectableCockpitServices;
 
-    private final ApiVersionAware bpmsApiVersionAware;
-
     private final Camunda7WorkflowEventHandler workflowEventListener;
 
     private final Optional<Configuration> templating;
@@ -50,7 +47,6 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda7BusinessCockpitService<?>> connectableCockpitServices,
-            final ApiVersionAware bpmsApiVersionAware,
             final Optional<Configuration> templating,
             final Camunda7WorkflowEventHandler workflowEventListener) {
         super(applicationContext, methodParameterFactory);
@@ -58,7 +54,6 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
-        this.bpmsApiVersionAware = bpmsApiVersionAware;
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
     }
@@ -221,7 +216,6 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         final var workflowHandler = new Camunda7WorkflowHandler(
                 cockpitProperties,
                 workflowProperties,
-                bpmsApiVersionAware,
                 processService,
                 bpmnProcessId,
                 templating,

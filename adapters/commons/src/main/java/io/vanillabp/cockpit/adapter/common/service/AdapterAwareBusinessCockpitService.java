@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.common.service;
 
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
+import io.vanillabp.spi.cockpit.usertask.UserTask;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.adapter.VanillaBpProperties.WorkflowAndModuleAdapters;
 import org.springframework.data.repository.CrudRepository;
@@ -9,6 +10,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -192,6 +194,17 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
                 .get(determinePrimaryAdapterId())
                 .aggregateChanged(workflowAggregate);
         
+    }
+
+    @Override
+    public Optional<UserTask> getUserTask(
+            final WA workflowAggregate,
+            final String userTaskId) {
+
+        return bcServicesByAdapter
+                .get(determinePrimaryAdapterId())
+                .getUserTask(workflowAggregate, userTaskId);
+
     }
 
 }

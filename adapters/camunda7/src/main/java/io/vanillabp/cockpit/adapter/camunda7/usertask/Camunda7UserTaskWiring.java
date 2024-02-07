@@ -15,7 +15,6 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
@@ -36,8 +35,6 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
     
     private final Camunda7UserTaskEventHandler userTaskEventHandler;
 
-    private final ApiVersionAware bpmsApiVersionAware;
-    
     private final Method noopUserTaskMethod;
     
     public Camunda7UserTaskWiring(
@@ -46,7 +43,6 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
             final UserTasksWorkflowProperties workflowsCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             final Optional<Configuration> templating,
-            final ApiVersionAware bpmsApiVersionAware,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final UserTaskMethodParameterFactory methodParameterFactory,
             final Camunda7UserTaskEventHandler userTaskEventHandler) throws Exception {
@@ -58,8 +54,7 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
-        this.bpmsApiVersionAware = bpmsApiVersionAware;
-        
+
         noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
 
     }
@@ -165,7 +160,6 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
                 userTaskProperties,
                 applicationEventPublisher,
                 templating,
-                bpmsApiVersionAware,
                 connectable.getBpmnProcessId(),
                 processService,
                 (CrudRepository<Object, Object>) repository,

@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>simulator</artifactId>
@@ -126,6 +126,15 @@
       <groupId>com.devskiller</groupId>
       <artifactId>jfairy</artifactId>
       <version>0.6.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka-test</artifactId>
+      <scope>compile</scope><!-- use embedded Kafka meant to be used for tests -->
     </dependency>
   </dependencies>
 </project>

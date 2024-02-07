@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.adapter.camunda7.usertask.publishing;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.transaction.event.TransactionPhase;
@@ -39,15 +38,12 @@ public class Camunda7UserTaskEventPublisher {
             final ProcessUserTaskEvent triggerEvent) {
         
         try {
-            
             events
                     .get()
                     .stream()
-                    .collect(Collectors.groupingBy(
-                            UserTaskEvent::getApiVersion,
-                            Collectors.mapping(UserTaskEvent::getEvent, Collectors.toList())))
+                    .map(UserTaskEvent::getEvent)
                     .forEach(userTaskPublishing::publish);
-            
+
         } finally {
             
             events.get().clear();

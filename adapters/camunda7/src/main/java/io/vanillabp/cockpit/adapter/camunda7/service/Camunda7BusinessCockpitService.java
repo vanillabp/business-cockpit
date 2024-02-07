@@ -5,6 +5,7 @@ import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7UserTaskEventHandl
 import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
+import io.vanillabp.spi.cockpit.usertask.UserTask;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.delegate.TaskListener;
@@ -12,6 +13,7 @@ import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
 import org.camunda.bpm.engine.runtime.ProcessInstance;
 import org.springframework.data.repository.CrudRepository;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServiceImplementation<WA> {
@@ -113,7 +115,7 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
                 .stream()
                 .filter(pi -> (pi.getRootProcessInstanceId() == null) || pi.getRootProcessInstanceId().equals(pi.getId()))
                 .map(ProcessInstance::getId)
-                .forEach(pid -> workflowEventHandler.triggerEventAfterTransaction(pid));
+                .forEach(workflowEventHandler::triggerEventAfterTransaction);
         
     }
 
@@ -131,5 +133,21 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
                         TaskListener.EVENTNAME_UPDATE));
         
     }
-    
+
+    @Override
+    public Optional<UserTask> getUserTask(
+            final WA workflowAggregate,
+            final String userTaskId) {
+
+        return Optional
+                .ofNullable(
+                        taskService
+                                .createTaskQuery()
+                                .taskId(userTaskId)
+                                .singleResult())
+                .map(task -> (TaskEntity) task)
+                .map(userTaskEventHandler::getUserTask);
+
+    }
+
 }

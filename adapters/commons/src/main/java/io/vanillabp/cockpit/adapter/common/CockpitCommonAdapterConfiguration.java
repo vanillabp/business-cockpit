@@ -9,12 +9,15 @@ import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestMapperImpl;
+import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
-import io.vanillabp.cockpit.commons.rest.adapter.versioning.ApiVersionAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
@@ -28,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -44,10 +48,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import javax.annotation.PostConstruct;
 
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
-@AutoConfigureAfter(WorkflowModulePropertiesConfiguration.class)
+@AutoConfigureAfter(value = {WorkflowModulePropertiesConfiguration.class, CockpitCommonAdapterKafkaConfiguration.class})
 @EnableConfigurationProperties({ CockpitProperties.class, UserTasksWorkflowProperties.class })
 public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase {
 
@@ -194,28 +199,32 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     }
     
     @Bean
-    public UserTaskPublishing userTaskPublishing(
+    @ConditionalOnMissingBean
+    public UserTaskPublishing userTaskRestPublishing(
             @Qualifier("bpmsApiV1")
             final Optional<BpmsApi> bpmsApi) {
 
-        return new UserTaskPublishing(
+        return new UserTaskRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
+                workflowsCockpitProperties,
+                new UserTaskRestMapperImpl());
 
     }
 
     @Bean
-    public WorkflowPublishing workflowPublishing(
+    @ConditionalOnMissingBean
+    public WorkflowPublishing workflowRestPublishing(
             @Qualifier("bpmsApiV1")
             final Optional<BpmsApi> bpmsApi) {
-        return new WorkflowPublishing(
+        return new WorkflowRestPublishing(
                 workerId,
                 bpmsApi,
                 properties,
-                workflowsCockpitProperties);
-
+                workflowsCockpitProperties,
+                new WorkflowRestMapperImpl()
+        );
     }
 
     private UiUriType findAndValidateUiUriTypeProperty(
@@ -257,14 +266,6 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
         configureFeignBuilder(apiClient.getClass(), apiClient.getFeignBuilder(), config);
 
         return apiClient.buildClient(BpmsApi.class);
-        
-    }
-    
-    @Bean
-    @Qualifier("BpmsApi")
-    public ApiVersionAware bpmsApiVersion() {
-        
-        return () -> "v1";
         
     }
     

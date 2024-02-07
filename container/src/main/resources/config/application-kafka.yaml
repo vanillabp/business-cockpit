@@ -1,0 +1,4 @@
+business-cockpit:
+  kafka-topics:
+    workflow: "workflows"
+    user-task: "user-tasks"

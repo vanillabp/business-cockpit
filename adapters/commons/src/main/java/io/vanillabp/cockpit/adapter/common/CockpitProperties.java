@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.adapter.common;
 
+import io.vanillabp.cockpit.commons.kafka.KafkaTopicProperties;
 import io.vanillabp.cockpit.commons.rest.adapter.Client;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -24,6 +25,8 @@ public class CockpitProperties {
     private String templateLoaderPath;
 
     private JwtProperties jwt = new JwtProperties();
+
+    private KafkaTopicProperties kafkaTopics = new KafkaTopicProperties();
     
     public Client getClient() {
         return client;
@@ -81,4 +84,11 @@ public class CockpitProperties {
         this.jwt = jwt;
     }
 
+    public KafkaTopicProperties getKafkaTopics() {
+        return kafkaTopics;
+    }
+
+    public void setKafkaTopics(KafkaTopicProperties kafkaTopics) {
+        this.kafkaTopics = kafkaTopics;
+    }
 }
