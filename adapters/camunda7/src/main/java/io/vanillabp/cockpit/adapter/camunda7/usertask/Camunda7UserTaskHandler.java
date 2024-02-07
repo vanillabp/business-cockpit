@@ -43,6 +43,7 @@ import org.springframework.util.StringUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -381,8 +382,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                 + delegateTask.getId());
         prefilledUserTaskDetails.setUserTaskId(
                 delegateTask.getId());
-        prefilledUserTaskDetails.setTimestamp(
-                DateTimeUtil.fromDate(delegateTask.getCreateTime()));
+        prefilledUserTaskDetails.setTimestamp(OffsetDateTime.now());
         prefilledUserTaskDetails.setBpmnProcessId(
                 bpmnProcessId);
         prefilledUserTaskDetails.setBpmnProcessVersion(
@@ -440,8 +440,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                 + delegateTask.getId());
         event.setComment(
                 delegateTask.getDeleteReason());
-        event.setTimestamp(
-                DateTimeUtil.fromDate(delegateTask.getCreateTime()));
+        event.setTimestamp(OffsetDateTime.now());
         event.setUserTaskId(
                 delegateTask.getId());
     }

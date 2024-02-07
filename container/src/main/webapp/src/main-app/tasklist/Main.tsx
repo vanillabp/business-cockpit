@@ -101,10 +101,10 @@ const Main = () => {
   return (
     <Routes>
       <Route
-          path={ tApp('current-user') }
+          path={ tApp('url-tasklist-for-current-user') }
           element={ <CustomListOfTasks useTasklistApi={ useCurrentUsersTasksTasklistApi } /> } />
       <Route
-          path={ tApp('users-roles') }
+          path={ tApp('url-tasklist-by-users-roles') }
           element={ <CustomListOfTasks useTasklistApi={ useUsersRoleTasksTasksTasklistApi } /> } />
       <Route
           path='/'

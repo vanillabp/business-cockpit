@@ -27,6 +27,8 @@ i18n.addResources('en', appNs, {
       "url-tasklist": "tasks",
       "url-usertask": "task",
       "url-workflowlist": "workflows",
+      "url-tasklist-for-current-user": "mine",
+      "url-tasklist-by-users-roles": "for-my-roles",
       "unsupported-ui-uri-type_title": "Open item",
       "unsupported-ui-uri-type_message": "Internal error: The item refers to an unsupported UI-URI-type!",
     });
@@ -42,6 +44,8 @@ i18n.addResources('de', appNs, {
       "url-tasklist": "aufgaben",
       "url-usertask": "aufgabe",
       "url-workflowlist": "vorgaenge",
+      "url-tasklist-for-current-user": "meine",
+      "url-tasklist-by-users-roles": "fuer-meine-rollen",
       "unsupported-ui-uri-type_title": "Element öffnen",
       "unsupported-ui-uri-type_message": "Internes Problem: Das Element bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
     });
