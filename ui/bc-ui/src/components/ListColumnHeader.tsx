@@ -1,9 +1,11 @@
 import { Column } from "@vanillabp/bc-shared";
 import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Box, Text } from "grommet";
-import { Ascend, Descend, Unsorted } from "grommet-icons";
+import { Box, CheckBox, Text, Tip } from "grommet";
+import { Ascend, ContactInfo, Descend, Unsorted } from "grommet-icons";
+import { TranslationFunction } from "../types/translate";
 
 const ListColumnHeader = ({
+  t,
   currentLanguage,
   column,
   minWidth,
@@ -12,7 +14,10 @@ const ListColumnHeader = ({
   sortAscending,
   setSort,
   setSortAscending,
+  allSelected,
+  selectAll
 }: {
+  t: TranslationFunction,
   currentLanguage: string,
   column: Column,
   minWidth?: string,
@@ -21,6 +26,8 @@ const ListColumnHeader = ({
   sortAscending?: boolean,
   setSort: (column?: Column) => void,
   setSortAscending: (ascending: boolean) => void,
+  allSelected: boolean;
+  selectAll: (select: boolean) => void;
 }) => {
   const resize = useRef(-1);
   const [ widthAdjustment, setWidthAdjustment ] = useState(0);
@@ -50,6 +57,26 @@ const ListColumnHeader = ({
       window.removeEventListener("mouseup", upHandler);
     }
   }, [ setColumnWidthAdjustment, widthAdjustment, setWidthAdjustment ]);
+  if (column.path === 'id') {
+    return (
+        <Box
+            align="center">
+          <CheckBox
+              checked={ allSelected }
+              onChange={ event => selectAll(event.currentTarget.checked) } />
+        </Box>);
+  }
+  if (column.path === 'candidateUsers') {
+    return (
+        <Box
+            fill
+            align="center">
+          <Tip
+              content={ t('column_candidates') }>
+            <ContactInfo />
+          </Tip>
+        </Box>);
+  }
   return (
       <Box
           style={ { minWidth, position: "relative" } }>

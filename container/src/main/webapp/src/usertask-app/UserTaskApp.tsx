@@ -9,6 +9,8 @@ import { useTranslation } from "react-i18next";
 import { useStandardTasklistApi } from "../utils/standardApis";
 import Footer from './Footer';
 import Header from './Header';
+import { UserTask } from "@vanillabp/bc-official-gui-client";
+import { useTasklistApi } from "../utils/apis";
 
 i18n.addResources('en', 'usertask', {
   "module-unknown": "Unknown module",
@@ -31,12 +33,16 @@ const RouteBasedUserTaskApp = () => {
   const { t } = useTranslation('usertask');
   const { t: tApp } = useTranslation('app');
   const navigate = useNavigate();
+  const tasklistApi = useTasklistApi();
 
   if (userTaskId === undefined) {
     return <NoUserTaskGiven
               t={ t }
               showLoadingIndicator={ showLoadingIndicator } />;
   }
+
+  const assignTask = (userTask: UserTask, userId: string, unassign: boolean) =>
+      tasklistApi.assignTask({ userTaskId, userId, unassign });
 
   return (
     <UserTaskPage
@@ -47,6 +53,7 @@ const RouteBasedUserTaskApp = () => {
       t={ t }
       openTask={ (userTask) => openTask(userTask, toast, tApp) }
       navigateToWorkflow={ (userTask) => navigateToWorkflow(userTask, toast, tApp, navigate) }
+      assignTask={ assignTask }
       header={ <Header/> }
       footer={ <Footer/> }
     />

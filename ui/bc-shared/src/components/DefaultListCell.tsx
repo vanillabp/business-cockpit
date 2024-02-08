@@ -1,7 +1,7 @@
-import { Box, Text, TextExtendedProps } from 'grommet';
+import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
 import { ColorType } from 'grommet/utils/index.js';
 import { TFunction } from 'i18next';
-import React, { FC } from 'react';
+import React, { FC, PropsWithChildren } from 'react';
 import { useTranslation } from "react-i18next";
 import { Column, ListItem, ListItemStatus } from '../types/index.js';
 import {
@@ -11,6 +11,7 @@ import {
   toLocaleStringWithoutSeconds,
   toLocaleTimeStringWithoutSeconds,
 } from '../utils/index.js';
+import { BackgroundType } from "grommet/utils";
 
 i18n.addResources('en', 'default-list-cell', {
   "boolean-true": 'Yes',
@@ -34,12 +35,42 @@ const colorForEndedItemsOrUndefined = (item: ListItem<any>): ColorType => {
       : ENDED_FONT_COLOR;
 };
 
+interface ListCellProps extends BoxExtendedProps {
+  background?: BackgroundType;
+  align?: Alignment;
+}
+
+const ListCell: React.FC<PropsWithChildren<ListCellProps>> = ({
+  background,
+  align,
+  children,
+  ...props
+}) => (
+    <Box
+        fill
+        align="center"
+        direction='row'
+        justify={ align === 'left'
+            ? 'start'
+            : align === 'right'
+                ? 'end'
+                : 'center' }
+        background={ background }
+        pad="xxsmall"
+        gap="xsmall"
+        { ...props }>
+      {
+        children
+      }
+    </Box>);
+
 interface TextListCellProps extends TextExtendedProps {
   item: ListItem<any>;
   value?: string | String;
-  align?: Alignment;
   tip?: string;
   showUnreadAsBold?: boolean;
+  background?: BackgroundType;
+  align?: Alignment;
 }
 
 const TextListCell: React.FC<TextListCellProps> = ({
@@ -48,21 +79,14 @@ const TextListCell: React.FC<TextListCellProps> = ({
   align = 'left',
   tip,
   showUnreadAsBold = false,
+  background,
   ...props
 }) => {
   const color = colorForEndedItemsOrUndefined(item);
   return (
-    <Box
-        fill
-        align="center"
-        direction='row'
-        justify={ align === 'left'
-            ? 'start'
-            : align === 'right'
-            ? 'end'
-            : 'center' }
-        pad="xxsmall"
-        gap="xsmall">
+    <ListCell
+        background={ background }
+        align={ align }>
       {
         tip === undefined
             ? <Text
@@ -81,7 +105,7 @@ const TextListCell: React.FC<TextListCellProps> = ({
                 { value }
               </Text>
       }
-    </Box>);
+    </ListCell>);
 }
 
 export interface DefaultListCellProps<D> {
@@ -90,6 +114,7 @@ export interface DefaultListCellProps<D> {
   showUnreadAsBold?: boolean;
   defaultLanguage?: string;
   currentLanguage: string;
+  selectItem: (select: boolean) => void,
 }
 
 export interface DefaultListCellAwareProps<T> extends DefaultListCellProps<T> {
@@ -149,12 +174,24 @@ const render = (
   return { value, align };
 }
 
+const colorRowAccordingToUpdateStatus = <T extends ListItem<any>, >(item: T): BackgroundType | undefined => (
+    item.status === ListItemStatus.NEW
+        ? { color: 'accent-3', opacity: 0.1 }
+        : item.status === ListItemStatus.UPDATED
+        ? { color: 'accent-1', opacity: 0.15 }
+        : item.status === ListItemStatus.ENDED
+        ? { color: 'light-2', opacity: 0.5 }
+        : item.status === ListItemStatus.REMOVED_FROM_LIST
+        ? { color: 'light-2', opacity: 0.5 }
+        : undefined);
+
 const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     item,
     column,
     showUnreadAsBold,
     currentLanguage,
     defaultLanguage,
+    selectItem,
 }) => {
   const { t } = useTranslation("default-list-cell");
   let propertyValue = getObjectProperty(item.data, column.path);
@@ -210,12 +247,14 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
       value = propertyValue;
     }
   }
+  const background = colorRowAccordingToUpdateStatus(item);
   return <TextListCell
       item={ item }
       value={ value }
       tip={ tip }
       showUnreadAsBold={ showUnreadAsBold }
+      background={ background }
       align={ align } />;
 }
 
-export { DefaultListCell, TextListCell, colorForEndedItemsOrUndefined };
+export { DefaultListCell, TextListCell, ListCell, colorForEndedItemsOrUndefined, colorRowAccordingToUpdateStatus };

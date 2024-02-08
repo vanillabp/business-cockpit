@@ -2,10 +2,12 @@ import { UserTask } from "@vanillabp/bc-official-gui-client";
 
 export type OpenUserTaskFunction = () => void;
 export type OpenWorkflowFunction = () => void;
+export type UnassignFunction = (userId: string) => void;
 
 export interface BcUserTask extends UserTask {
   
   open: OpenUserTaskFunction;
   navigateToWorkflow: OpenWorkflowFunction;
+  unassign: UnassignFunction;
   
 };

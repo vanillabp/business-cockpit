@@ -154,6 +154,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   showLoadingIndicator,
   additionalHeader,
   minWidthOfAutoColumn,
+  applyBackgroundColor,
+  showColumnHeaders = true,
 }: {
   itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
   updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
@@ -165,6 +167,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   additionalHeader?: ReactNode,
   minWidthOfAutoColumn?: string,
+  applyBackgroundColor?: boolean,
+  showColumnHeaders?: boolean,
 }) => {
   const [ items, _setItems ] = useState<Array<ListItem<T>> | undefined>(undefined);
   const initialTimestamp = useRef<Date | undefined>(undefined);
@@ -241,11 +245,12 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
                 minWidthOfAutoColumn={ minWidthOfAutoColumn }
                 additionalHeader={ additionalHeader }
                 border={ { body: { side: 'bottom', color: 'light-3' } } }
-                rowProps={ colorRowAccordingToUpdateStatus }
+                rowProps={ applyBackgroundColor ? colorRowAccordingToUpdateStatus : undefined }
                 size='100%'
                 columns={ columns }
                 step={ itemsBatchSize }
                 headerHeight={ headerHeight }
+                showColumnHeaders={ showColumnHeaders }
                 phoneMargin={ phoneMargin }
                 onMore={ () => loadItems(retrieveItems, setItems, items, initialTimestamp) }
                 data={ items }

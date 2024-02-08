@@ -10,6 +10,7 @@ interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<
   onScroll?: UIEventHandler<any> | undefined;
   columns: ColumnConfig<TRowType>[];
   minWidthOfAutoColumn?: string;
+  showColumnHeaders?: boolean;
 };
 
 const calculateColumWidth = (minWidthOfAutoColumn: string | undefined, width: string, column: any) => {
@@ -25,6 +26,7 @@ const SnapScrollingDataTable = forwardRef(({
     onScroll,
     children,
     minWidthOfAutoColumn,
+    showColumnHeaders = true,
     ...props
   }: SnapScrollingDataTableProps, ref) => {
 
@@ -54,51 +56,55 @@ const SnapScrollingDataTable = forwardRef(({
           {
             additionalHeader
           }
-          <Grid
-              fill
-              columns={ columns.map(column => column.size ? column.size : 'auto') }
-              style={
-                isNotPhone
-                    ? {
-                        maxHeight: headerHeight,
-                        minHeight: headerHeight,
-                        marginLeft: 'auto',
-                        marginRight: 'auto',
-                        zIndex: '2',
-                      }
-                    : {
-                        maxHeight: headerHeight,
-                        minHeight: headerHeight,
-                    } }
-              pad={
-                isPhone
-                    ? { horizontal: phoneMargin }
-                    : undefined }>{
-            columns.map((column, index) =>
-              <SnapAlignBox
-                  style={ { minWidth: column.size === undefined ? minWidthOfAutoColumn : column.size } }
-                  key={ `column${index}` }
-                  align="left"
-                  justify='center'
-                  height="100%"
-                  border={
-                      index === 0
-                          ? undefined
-                          : { side: 'left' }
-                  }
-                  pad='xsmall'
-                  snapAlign='center'>
-                {
-                  column.header instanceof String
-                      ? <Text
-                            color='light-2'
-                            truncate='tip'>{
-                          column.header
-                        }</Text>
-                      : column.header as ReactElement
-                }
-              </SnapAlignBox>)
-            }</Grid>
+          {
+            showColumnHeaders
+                ? <Grid
+                      fill
+                      columns={ columns.map(column => column.size ? column.size : 'auto') }
+                      style={
+                        isNotPhone
+                            ? {
+                              maxHeight: headerHeight,
+                              minHeight: headerHeight,
+                              marginLeft: 'auto',
+                              marginRight: 'auto',
+                              zIndex: '2',
+                            }
+                            : {
+                              maxHeight: headerHeight,
+                              minHeight: headerHeight,
+                            } }
+                      pad={
+                        isPhone
+                            ? { horizontal: phoneMargin }
+                            : undefined }>{
+                    columns.map((column, index) =>
+                        <SnapAlignBox
+                            style={ { minWidth: column.size === undefined ? minWidthOfAutoColumn : column.size } }
+                            key={ `column${index}` }
+                            align="left"
+                            justify='center'
+                            height="100%"
+                            border={
+                              index === 0
+                                  ? undefined
+                                  : { side: 'left' }
+                            }
+                            pad='xsmall'
+                            snapAlign='center'>
+                          {
+                            column.header instanceof String
+                                ? <Text
+                                    color='light-2'
+                                    truncate='tip'>{
+                                  column.header
+                                }</Text>
+                                : column.header as ReactElement
+                          }
+                        </SnapAlignBox>)
+                  }</Grid>
+                : undefined
+          }
         </Box>
         <DataTable
             ref={ ref as any }

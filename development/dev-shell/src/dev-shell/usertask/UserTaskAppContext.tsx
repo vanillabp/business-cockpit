@@ -1,4 +1,4 @@
-import React, { useMemo, MutableRefObject, PropsWithChildren, useContext } from 'react';
+import React, { MutableRefObject, PropsWithChildren, useContext, useMemo } from 'react';
 import { getOfficialTasklistApi } from '../client/guiClient.js';
 import { BcUserTask, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { useParams } from 'react-router-dom';
@@ -42,6 +42,7 @@ const loadUserTask = (
                   ...value,
                   open: () => openTask(value?.id!),
                   navigateToWorkflow: () => openWorkflow(value?.workflowId!),
+                  unassign: userId => {},
                 } as BcUserTask;
               resolve(userTask);
             }).catch((error: any) => {

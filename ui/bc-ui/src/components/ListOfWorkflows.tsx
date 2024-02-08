@@ -498,6 +498,7 @@ const ListOfWorkflows = ({
           },
           { property: 'name',
             header: <ListColumnHeader
+                t={ t }
                 currentLanguage={ currentLanguage }
                 column={ {
                   path: 'title',
@@ -507,11 +508,14 @@ const ListOfWorkflows = ({
                   title: { [currentLanguage]: t('column_title') },
                   width: '',
                   priority: -1,
+                  resizeable: true,
                 }}
                 setColumnWidthAdjustment={ setColumnWidthAdjustment }
                 sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
                 setSort={ setSort }
                 sortAscending={ sortAscending }
+                selectAll={ (select: boolean) => {} }
+                allSelected={ false }
                 setSortAscending={ setSortAscending} />,
             plain: true,
             render: (item: ListItem<BcWorkflow>) => {
@@ -548,13 +552,16 @@ const ListOfWorkflows = ({
               : columnsOfWorkflows!.map(column => ({
                     property: column.path,
                     header: <ListColumnHeader
+                        t={ t }
                         currentLanguage={ currentLanguage }
                         setColumnWidthAdjustment={ setColumnWidthAdjustment }
                         sort={ sort === column.path }
                         setSort={ setSort }
                         sortAscending={ sortAscending }
                         setSortAscending={ setSortAscending }
-                        column={ column } />,
+                        column={ column }
+                        selectAll={ (select: boolean) => {} }
+                        allSelected={ false } />,
                     size: getColumnSize(column.path, column.width),
                     plain: true,
                     render: (item: ListItem<BcWorkflow>) => <ListCell
@@ -621,6 +628,7 @@ const ListOfWorkflows = ({
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
                       t={ t }
+                      applyBackgroundColor
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
                       columns={ columnsOfList }

@@ -11,6 +11,7 @@ export interface Column {
   show: boolean;
   sortable: boolean;
   filterable: boolean;
+  resizeable: boolean;
 };
 
 export enum ListItemStatus {

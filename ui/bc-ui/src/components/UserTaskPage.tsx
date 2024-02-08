@@ -1,6 +1,7 @@
 import { FC, ReactElement, useEffect, useRef, useState } from 'react';
 import { BcUserTask, ShowLoadingIndicatorFunction, ToastFunction, UserTaskAppLayout } from '@vanillabp/bc-shared';
 import {
+  AssignTaskFunction,
   ModuleDefinition,
   NavigateToWorkflowFunction,
   NoUserTaskGiven,
@@ -18,6 +19,7 @@ const loadUserTask = (
     setUserTask: (userTask: BcUserTask | null) => void,
     navigateToWorkflow: (userTask: UserTask) => void,
     openTask: (userTask: UserTask) => void,
+    unassign: (userTask: UserTask, userId: string) => void,
 ) => {
   tasklistApi.getUserTask(userTaskId,true)
       .then((value: UserTask) => {
@@ -25,6 +27,7 @@ const loadUserTask = (
           ...value,
           open: () => openTask(value),
           navigateToWorkflow: () => navigateToWorkflow(value),
+          unassign: userId => unassign(value, userId),
         };
         setUserTask(bcUserTask);
       }).catch((error: any) => {
@@ -39,6 +42,7 @@ interface UserTaskPageProps {
   toast: ToastFunction;
   openTask: OpenTaskFunction;
   navigateToWorkflow: NavigateToWorkflowFunction;
+  assignTask: AssignTaskFunction;
   useTasklistApi: TasklistApiHook;
   t: TranslationFunction;
   header?: React.ReactNode;
@@ -53,6 +57,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     openTask,
     navigateToWorkflow,
     useTasklistApi,
+    assignTask,
     t,
     children,
     header,
@@ -72,7 +77,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
         userTaskId,
         setUserTask,
         userTask => navigateToWorkflow(userTask),
-        userTask => openTask(userTask));
+        userTask => openTask(userTask),
+        (userTask, userId) => assignTask(userTask, userId, true));
   }, [ userTaskId ]); //eslint-disable-line react-hooks/exhaustive-deps -- should only be executed on change of userTaskId
 
   const module = useFederationModule(userTask as ModuleDefinition, 'UserTaskForm');
@@ -103,7 +109,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
             userTaskId,
             setUserTask,
             userTask => navigateToWorkflow(userTask),
-            userTask => openTask(userTask)) }/>;
+            userTask => openTask(userTask),
+            (userTask, userId) => assignTask(userTask, userId, true)) }/>;
   }
 
   document.title = userTask!.title.de;

@@ -1,7 +1,7 @@
-import React, { useMemo, MutableRefObject, PropsWithChildren, useContext, useRef } from 'react';
+import React, { MutableRefObject, PropsWithChildren, useContext, useMemo } from 'react';
 import { getOfficialWorkflowlistApi } from '../client/guiClient.js';
 import { BcUserTask, BcWorkflow, GetUserTasksFunction, WakeupSseCallback } from '@vanillabp/bc-shared';
-import { NavigateFunction, useNavigate, useParams } from 'react-router-dom';
+import { NavigateFunction, useParams } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
 import { OfficialWorkflowlistApi, Workflow } from '@vanillabp/bc-official-gui-client';
 import { useTranslation } from 'react-i18next';
@@ -56,6 +56,7 @@ const loadWorkflow = (
                         ...userTask,
                         open: () => openTask(userTask.id),
                         navigateToWorkflow: () => openWorkflow(userTask.workflowId!),
+                        unassign: userId => {},
                       }) as BcUserTask);
                 };
               workflow = {

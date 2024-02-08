@@ -1,27 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
+  colorRowAccordingToUpdateStatus,
   Column,
   debounce,
+  DefaultListCell,
+  DefaultListCellProps,
   ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GuiSseHook,
   Link,
+  ListCell as StyledListCell,
   ListItemStatus,
   ShowLoadingIndicatorFunction,
-  TextListCell,
   useOnClickOutside,
   useResponsiveScreen,
-  WakeupSseCallback
+  WakeupSseCallback,
 } from "@vanillabp/bc-shared";
 import {
   ListCell,
   ListItem,
   ListItems,
+  ListOfTasksHeaderFooterFunction,
   ModuleDefinition,
   NavigateToWorkflowFunction,
   OpenTaskFunction,
@@ -457,6 +461,345 @@ const RefreshButton = ({
 
 }
 
+const DefaultFooter = ({
+  t,
+  isPhone,
+  isTablet,
+  numberOfTasks
+}: {
+  t: TranslationFunction,
+  isPhone: boolean,
+  isTablet: boolean,
+  numberOfTasks: number
+}) => {
+
+  const isNotPhone = !isPhone;
+
+  return (
+      <Box
+          key="footer"
+          direction='row'
+          justify='between'
+          align="center">
+        <Box
+            pad='xsmall'>
+          { t('total') } { numberOfTasks }
+        </Box>
+        <Box
+            direction='row'
+            gap='medium'
+            pad='xsmall'
+            align="center">
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background="white">
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_unchanged') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'accent-3', opacity: 0.1 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_new') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'accent-1', opacity: 0.35 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_updated') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'light-2', opacity: 0.5 } }>
+                <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_completed') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'light-2', opacity: 0.5 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_filtered') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+        </Box>
+      </Box>);
+
+}
+
+const DefaultHeader = ({
+  tasklistApi,
+  t,
+  refresh,
+  refreshDisabled,
+  markAsRead,
+  markAsUnread,
+  markAsReadDisabled,
+  claimTasks,
+  unclaimTasks,
+  claimTasksDisabled,
+  assignTasks,
+  assignDisabled
+}: {
+  tasklistApi: TasklistApi,
+  t: TranslationFunction,
+  refresh: () => void,
+  refreshDisabled: boolean,
+  markAsRead: () => void,
+  markAsUnread: () => void,
+  markAsReadDisabled: boolean,
+  claimTasks: () => void,
+  unclaimTasks: () => void,
+  claimTasksDisabled: boolean,
+  assignTasks: (userId: string) => void,
+  assignDisabled: boolean,
+}) => {
+
+  return (
+      <Box
+          fill
+          background='white'
+          direction="row"
+          align="center"
+          justify="start"
+          gap="small"
+          pad={ { horizontal: 'xsmall' } }>
+        <SetReadStatusButtons
+            t={ t }
+            disabled={ markAsReadDisabled }
+            markAsRead={ markAsRead }
+            markAsUnread={ markAsUnread }/>
+        <ClaimButtons
+            t={ t }
+            disabled={ claimTasksDisabled }
+            claimTasks={ claimTasks }
+            unclaimTasks={ unclaimTasks } />
+        <AssignButton
+            tasklistApi={ tasklistApi }
+            t={ t }
+            disabled={ assignDisabled }
+            assign={ assignTasks }/>
+        <RefreshButton
+            t={ t }
+            refresh={ refresh }
+            disabled={ refreshDisabled } />
+      </Box>);
+
+}
+
+const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  item,
+}) => {
+
+  const targetRef = useRef<HTMLDivElement>(null);
+  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
+  const background = colorRowAccordingToUpdateStatus(item);
+
+  return (
+      <StyledListCell
+          background={ background }
+          align="center">
+        {
+            item.data.candidateUsers && item.data.candidateUsers?.length > 0
+                ? <>
+                    <Box
+                        onMouseEnter={ () => setDropIdentifier(item.id) }
+                        ref={ targetRef }>
+                      <ContactInfo />
+                    </Box>
+                    {
+                      dropIdentifier
+                          && dropIdentifier === item.id
+                          && <Drop
+                              inline
+                              round="xsmall"
+                              onMouseLeave={ () => setDropIdentifier(undefined) }
+                              target={ targetRef }>
+                              <Box
+                                  direction="column"
+                                  margin="xsmall"
+                                  gap="xsmall">
+                                {
+                                  item.data.candidateUsers?.map(user => <Box
+                                      direction="row"
+                                      align="center"
+                                      justify="center">
+                                    { user }
+                                    <FormTrash onClick={ () => item.data.unassign(user) } />
+                                  </Box>)
+                                }
+                              </Box>
+                          </Drop>
+                    }
+                  </>
+                : undefined
+        }
+      </StyledListCell>);
+
+}
+
+const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  item,
+  selectItem,
+}) => {
+  const background = colorRowAccordingToUpdateStatus(item);
+  return (
+      <StyledListCell
+          background={ background }
+          align="center">
+        <CheckBox
+            checked={ item.selected }
+            onChange={ event => selectItem(event.currentTarget.checked) } />
+      </StyledListCell>);
+}
+
+const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  item,
+  currentLanguage,
+}) => {
+  const titleLanguages = Object.keys(item.data['title']);
+  let title;
+  if (titleLanguages.includes(currentLanguage)) {
+    title = item.data['title'][currentLanguage];
+  } else {
+    title = item.data['title'][titleLanguages[0]];
+  }
+  const background = colorRowAccordingToUpdateStatus(item);
+  return (
+      <StyledListCell
+          align="left"
+          background={ background }
+          style={ { minWidth: minWidthOfTitleColumn } } /* style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } } */ >
+        <Text
+            color={ colorForEndedItemsOrUndefined(item) }
+            weight={ item.read === undefined ? 'bold' : 'normal' }
+            truncate="tip">
+          {
+            item.status === ListItemStatus.ENDED
+                ? <>{ title }</>
+                : <Link
+                    // @ts-ignore
+                    onClick={ item.data.open }>
+                  { title }
+                </Link>
+          }
+        </Text>
+      </StyledListCell>);
+}
+
+const UserTaskDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
+
+  let Cell: FC<DefaultListCellProps<BcUserTask>>;
+  if (column.path === 'id') {
+    Cell = SelectDefaultListCell;
+  } else if (column.path === 'candidateUsers') {
+    Cell = CandidateUsersListCell;
+  } else if (column.path.startsWith('title.')) {
+    Cell = TitleDefaultListCell;
+  } else {
+    Cell = DefaultListCell;
+  }
+
+  return (
+      <Cell
+          column={ column }
+          { ...props } />);
+
+};
+
 const ListOfTasks = ({
     showLoadingIndicator,
     useGuiSse,
@@ -467,6 +810,12 @@ const ListOfTasks = ({
     currentLanguage,
     defaultSort,
     defaultSortAscending,
+    columns,
+    children,
+    headerHeight = '3rem',
+    footer,
+    footerHeight = '2rem',
+    showColumnHeaders = true,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     useGuiSse: GuiSseHook,
@@ -477,9 +826,15 @@ const ListOfTasks = ({
     currentLanguage: string,
     defaultSort?: string,
     defaultSortAscending?: boolean,
+    columns?: string[];
+    children?: ListOfTasksHeaderFooterFunction,
+    headerHeight?: string,
+    footer?: ListOfTasksHeaderFooterFunction,
+    footerHeight?: string,
+    showColumnHeaders?: boolean,
 }) => {
 
-  const { isNotPhone, isPhone } = useResponsiveScreen();
+  const { isPhone, isTablet } = useResponsiveScreen();
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
@@ -531,8 +886,8 @@ const ListOfTasks = ({
     // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by usertasks
     [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
-  
-  const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined); 
+
+  const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined);
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
   useEffect(() => {
     if (modules === undefined) {
@@ -560,17 +915,66 @@ const ListOfTasks = ({
                 .forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
           }, {} as Columns);
+    if (totalColumns.id === undefined) {
+      totalColumns.id = {
+          title: { [currentLanguage]: 'id' },
+          path: 'id',
+          width: '2.2rem',
+          priority: -1,
+          show: true,
+          sortable: false,
+          filterable: false,
+          resizeable: false,
+        };
+    }
+    if (totalColumns.title === undefined) {
+      totalColumns.title = {
+          title: { [currentLanguage]: t('column_title') },
+          path: 'title.' + currentLanguage,
+          width: '',
+          priority: 0,
+          show: true,
+          sortable: true,
+          filterable: true,
+          resizeable: true,
+        };
+    }
+    if (totalColumns.assignee === undefined) {
+      totalColumns.assignee = {
+          path: 'assignee',
+          show: true,
+          sortable: false,
+          filterable: false,
+          title: { [currentLanguage]: t('column_assignee') },
+          width: '10rem',
+          resizeable: true,
+          priority: 1,
+        };
+    }
+    if (totalColumns.candidateUsers === undefined) {
+      totalColumns.candidateUsers = {
+        path: 'candidateUsers',
+        show: true,
+        sortable: false,
+        filterable: false,
+        title: { [currentLanguage]: t('column_candidateUsers') },
+        width: '3rem',
+        resizeable: false,
+        priority: 2,
+      };
+    }
     const existingColumnsSignature = columnsOfTasks === undefined
         ? ' ' // initial state is different then updates
         : columnsOfTasks.map(c => c.path).join('|');
-    const orderedColumns = (Object
+    const columnsToShow = (Object
         .values(totalColumns) as Array<Column>)
+        .filter(column => (columns === undefined) || columns.includes(column.path))
         .sort((a, b) => a.priority - b.priority);
-    const newColumnsSignature = orderedColumns.map(c => c.path).join('|');
+    const newColumnsSignature = columnsToShow.map(c => c.path).join('|');
     if (existingColumnsSignature === newColumnsSignature) {
       return;
     }
-    setColumnsOfTasks(orderedColumns);
+    setColumnsOfTasks(columnsToShow);
   }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
@@ -587,7 +991,7 @@ const ListOfTasks = ({
   }
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path === 'title') {
+      if (column.path.startsWith('title.')) {
         _setSort('title.' + languagesOfTitles.join(',title.'))
       } else {
         _setSort(column.path);
@@ -607,217 +1011,91 @@ const ListOfTasks = ({
     tasklistApi.assignTask(userTaskId, userId, true);
   };
 
-  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: string, width: string) => `max(4rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
+  const getColumnSize = (column: Column | string, width: string) => {
+    const columnPath = typeof column === 'string' ? column : column.path;
+    const resizeable = typeof column === 'string' ? true : column.resizeable;
+    return resizeable
+        ? `max(4rem, calc(${width} + ${columnWidthAdjustments[columnPath] ? columnWidthAdjustments[columnPath] : 0}px))`
+        : width;
+  };
   const setColumnWidthAdjustment = (column: string, adjustment: number) => {
     const current = columnWidthAdjustments[column];
     if (current === adjustment) return;
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
   };
 
-  const columns: ColumnConfig<ListItem<BcUserTask>>[] =
-      [
-          { property: 'id',
-            primary: true,
-            pin: true,
-            size: '2.2rem',
-            plain: true,
-            header: <Box
-                        align="center">
-                      <CheckBox
-                          checked={ allSelected }
-                          onChange={ event => {
-                            (refreshItemRef.current!)(
-                              userTasks
-                                  .current!
-                                  .reduce((allItemIds, item) => {
-                                    item.selected = event.currentTarget.checked;
-                                    allItemIds.push(item.id);
-                                    return allItemIds;
-                                  }, new Array<string>())
-                            );
-                            setAllSelected(event.currentTarget.checked);
-                            if (anySelected !== event.currentTarget.checked) {
-                              setAnySelected(event.currentTarget.checked);
-                            }
-                          } } />
-                    </Box>,
-            render: (item: ListItem<BcUserTask>) => (
-                <Box
-                    align="center">
-                  <CheckBox
-                      checked={ item.selected }
-                      onChange={ event => {
-                        item.selected = event.currentTarget.checked;
-                        (refreshItemRef.current!)([ item.id ]);
-                        const currentlyAllSelected = userTasks
-                            .current!
-                            .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
-                        if (currentlyAllSelected !== allSelected) {
-                          setAllSelected(currentlyAllSelected);
-                        }
-                        const currentlyAnySelected = userTasks
-                            .current!
-                            .reduce((anySelected, userTask) => anySelected || userTask.selected, false);
-                        if (anySelected !== currentlyAnySelected) {
-                          setAnySelected(currentlyAnySelected);
-                        }
-                      } } />
-                </Box>)
-          },
-          { property: 'title',
-            header: <ListColumnHeader
-                        currentLanguage={ currentLanguage }
-                        column={ {
-                          path: 'title',
-                          show: true,
-                          sortable: true,
-                          filterable: true,
-                          title: { [currentLanguage]: t('column_title') },
-                          width: '',
-                          priority: -1,
-                        }}
-                        setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                        sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
-                        setSort={ setSort }
-                        sortAscending={ sortAscending }
-                        setSortAscending={ setSortAscending} />,
-            plain: true,
-            render: (item: ListItem<BcUserTask>) => {
-              const titleLanguages = Object.keys(item.data['title']);
-              let title;
-              if (titleLanguages.includes(currentLanguage)) {
-                title = item.data['title'][currentLanguage];
-              } else {
-                title = item.data['title'][titleLanguages[0]];
-              }
-              return (
-                    <Box
-                        fill
-                        style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } }
-                        pad="xsmall">
-                      <Text
-                          color={ colorForEndedItemsOrUndefined(item) }
-                          weight={ item.read === undefined ? 'bold' : 'normal' }
-                          truncate="tip">
-                        {
-                          item.status === ListItemStatus.ENDED
-                              ? <>{ title }</>
-                              : <Link
-                                    // @ts-ignore
-                                    onClick={ item.data.open }>
-                                  { title }
-                                </Link>
-                        }
-                      </Text>
-                    </Box>);
-                }
-          },
-        { property: 'assignee',
-          header: <ListColumnHeader
-              currentLanguage={ currentLanguage }
-              column={ {
-                path: 'assignee',
-                show: true,
-                sortable: false,
-                filterable: false,
-                title: { [currentLanguage]: t('column_assignee') },
-                width: '',
-                priority: -1,
-              }}
-              setColumnWidthAdjustment={ setColumnWidthAdjustment }
-              sort={ false }
-              setSort={ setSort }
-              sortAscending={ sortAscending }
-              setSortAscending={ setSortAscending} />,
-          size: getColumnSize("assignee", "10rem"),
-          plain: true,
-          render: (item: ListItem<BcUserTask>) => <TextListCell item={ item } value={ item.data.assignee } />
-        },
-        { property: 'canidateUsers',
-          header: <Box
-                      fill
-                      align="center">
-                    <Tip
-                        content={ t('column_candidates') }>
-                      <ContactInfo />
-                    </Tip>
-                  </Box>,
-          size: '3rem',
-          plain: true,
-          render: (item: ListItem<BcUserTask>) => {
-            const targetRef = useRef<HTMLDivElement>(null);
-            return item.data.candidateUsers && item.data.candidateUsers?.length > 0
-                ? <Box
-                    fill
-                    justify="center"
-                    align="center">
-                  <Box
-                      onMouseEnter={ () => setDropIdentifier(item.id) }
-                      ref={ targetRef }>
-                    <ContactInfo />
-                  </Box>
-                  {
-                      dropIdentifier
-                          && dropIdentifier === item.id
-                          && <Drop
-                                inline
-                                round="xsmall"
-                                onMouseLeave={ () => setDropIdentifier(undefined) }
-                                target={ targetRef }>
-                              <Box
-                                  direction="column"
-                                  margin="xsmall"
-                                  gap="xsmall">
-                                {
-                                  item.data.candidateUsers?.map(user => <Box
-                                                                                    direction="row"
-                                                                                    align="center"
-                                                                                    justify="center">
-                                                                                  { user }
-                                                                                  <FormTrash onClick={ () => unassign(item.id, user) } />
-                                                                                </Box>)
-                                }
-                              </Box>
-                            </Drop>
-                  }
-                </Box>
-                : undefined
-          }
-        },
-        ...(columnsOfTasks === undefined
-            ? []
-            : columnsOfTasks!.map(column => ({
-                  property: column.path,
-                  size: getColumnSize(column.path, column.width),
-                  plain: true,
-                  header: <ListColumnHeader
-                              currentLanguage={ currentLanguage }
-                              setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                              sort={ sort === column.path }
-                              setSort={ setSort }
-                              sortAscending={ sortAscending }
-                              setSortAscending={ setSortAscending }
-                              column={ column } />,
-                  render: (item: ListItem<BcUserTask>) => <ListCell
-                                                            modulesAvailable={ modules! }
-                                                            column={ column }
-                                                            currentLanguage={ currentLanguage }
-                                                            typeOfItem={ TypeOfItem.TaskList }
-                                                            showUnreadAsBold={ true }
-                                                            t={ t }
-                                                            // @ts-ignore
-                                                            item={ item } />
-                }))
-        )
-      ];
-      
+  const selectAll = (select: boolean) => {
+    (refreshItemRef.current!)(
+        userTasks
+            .current!
+            .reduce((allItemIds, item) => {
+              item.selected = select;
+              allItemIds.push(item.id);
+              return allItemIds;
+            }, new Array<string>())
+    );
+    setAllSelected(select);
+    if (anySelected !== select) {
+      setAnySelected(select);
+    }
+  };
+  const selectItem = (item: ListItem<BcUserTask>, select: boolean) => {
+    item.selected = select;
+    (refreshItemRef.current!)([ item.id ]);
+    const currentlyAllSelected = userTasks
+        .current!
+        .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
+    if (currentlyAllSelected !== allSelected) {
+      setAllSelected(currentlyAllSelected);
+    }
+    const currentlyAnySelected = userTasks
+        .current!
+        .reduce((anySelected, userTask) => anySelected || userTask.selected, false);
+    if (anySelected !== currentlyAnySelected) {
+      setAnySelected(currentlyAnySelected);
+    }
+  };
+
+  // @ts-ignore
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfTasks === undefined
+      ? []
+      : columnsOfTasks!.map(column => ({
+        property: column.path,
+        size: column.width === '' ? undefined : getColumnSize(column, column.width),
+        plain: true,
+        header: <ListColumnHeader
+            t={ t }
+            currentLanguage={ currentLanguage }
+            setColumnWidthAdjustment={ setColumnWidthAdjustment }
+            sort={ sort === column.path }
+            setSort={ setSort }
+            sortAscending={ sortAscending }
+            setSortAscending={ setSortAscending }
+            column={ column }
+            allSelected={ allSelected }
+            selectAll={ selectAll } />,
+        render: (item: ListItem<BcUserTask>) => <ListCell
+            modulesAvailable={ modules! }
+            column={ column }
+            currentLanguage={ currentLanguage }
+            typeOfItem={ TypeOfItem.TaskList }
+            showUnreadAsBold={ true }
+            t={ t }
+            // @ts-ignore
+            item={ item }
+            // @ts-ignore
+            selectItem={ selectItem }
+            // @ts-ignore
+            defaultListCell={ UserTaskDefaultListCell } />
+      }));
+
   const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
       return {
           ...userTask,
           open: () => openTask(userTask),
           navigateToWorkflow: () => navigateToWorkflow(userTask),
+          unassign: userId => unassign(userTask.id, userId),
         };
     };
 
@@ -877,39 +1155,39 @@ const ListOfTasks = ({
     tasklistApi.assignTasks(userTaskMarkedIds, userId);
   };
 
+  const defaultFooter = () =>
+      <DefaultFooter
+          isPhone={ isPhone }
+          isTablet={ isTablet }
+          numberOfTasks={ numberOfTasks }
+          t={ t } />;
+  const defaultHeader = () =>
+      <DefaultHeader
+          tasklistApi={ tasklistApi }
+          t={ t }
+          refresh={ refreshList }
+          refreshDisabled={ !refreshNecessary }
+          markAsRead={ () => markAsRead(false) }
+          markAsUnread={ () => markAsRead(true) }
+          markAsReadDisabled={ !anySelected }
+          claimTasks={ () => claim(false) }
+          unclaimTasks={ () => claim(true) }
+          claimTasksDisabled={ !anySelected }
+          assignTasks={ assign }
+          assignDisabled={ !anySelected } />;
+
   return (
       <Grid
           key="grid"
-          rows={ [ '3rem', 'auto', '2rem' ] }
+          rows={ [ headerHeight, 'auto', footerHeight ] }
           fill>
-        <Box
-            fill
-            background='white'
-            direction="row"
-            align="center"
-            justify="start"
-            gap="small"
-            pad={ { horizontal: 'xsmall' } }>
-          <SetReadStatusButtons
-              t={ t }
-              disabled={ !anySelected }
-              markAsRead={ () => markAsRead(false) }
-              markAsUnread={ () => markAsRead(true) }/>
-          <ClaimButtons
-              t={ t }
-              disabled={ !anySelected }
-              claimTasks={ () => claim(false) }
-              unclaimTasks={ () => claim(true) } />
-          <AssignButton
-              tasklistApi={ tasklistApi }
-              t={ t }
-              disabled={ !anySelected }
-              assign={ assign }/>
-          <RefreshButton
-              t={ t }
-              refresh={ refreshList }
-              disabled={ !refreshNecessary } />
-        </Box>
+        {
+          children !== undefined
+              ? children(isPhone, isTablet, numberOfTasks, selectAll, allSelected, refreshList, !refreshNecessary,
+                  () => markAsRead(false), () => markAsRead(true), !anySelected,
+                  () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
+              : defaultHeader()
+        }
         {
           (columnsOfTasks === undefined)
               ? <Box key="list"></Box>
@@ -917,8 +1195,9 @@ const ListOfTasks = ({
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
-                      columns={ columns }
+                      columns={ columnsOfList }
                       itemsRef={ userTasks }
+                      showColumnHeaders={ showColumnHeaders }
                       updateListRef={ updateListRef }
                       refreshItemRef={ refreshItemRef }
                       refreshNecessaryCallback={ () => setRefreshNecessary(true) }
@@ -951,147 +1230,13 @@ const ListOfTasks = ({
                     />
                   </Box>
         }
-        <Box
-            key="footer"
-            direction='row'
-            justify='between'
-            align="center">
-          <Box
-              pad='xsmall'>
-            { t('total') } { numberOfTasks }
-          </Box>
-          <Box
-              direction='row'
-              gap='medium'
-              pad='xsmall'
-              align="center">
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    align="center"
-                    justify="center"
-                    background="white">
-                  <Text size="xsmall">T</Text>
-                </Box>
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                      { t('legend_unchanged') }
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    align="center"
-                    justify="center"
-                    background={ { color: 'accent-3', opacity: 0.1 } }>
-                  <Text size="xsmall">T</Text>
-                </Box>
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                      { t('legend_new') }
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    align="center"
-                    justify="center"
-                    background={ { color: 'accent-1', opacity: 0.35 } }>
-                  <Text size="xsmall">T</Text>
-                </Box>
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                      { t('legend_updated') }
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    align="center"
-                    justify="center"
-                    background={ { color: 'light-2', opacity: 0.5 } }>
-                  <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
-                </Box>
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                      { t('legend_completed') }
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    align="center"
-                    justify="center"
-                    background={ { color: 'light-2', opacity: 0.5 } }>
-                  <Text size="xsmall">T</Text>
-                </Box>
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                      { t('legend_filtered') }
-                    </Box>
-                    : undefined
-              }
-            </Box>
-          </Box>
-        </Box>
+        {
+          footer !== undefined
+              ? footer(isPhone, isTablet, numberOfTasks, selectAll, allSelected, refreshList, !refreshNecessary,
+                  () => markAsRead(false), () => markAsRead(true), !anySelected,
+                  () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
+              : defaultFooter()
+        }
       </Grid>);
       
 };
