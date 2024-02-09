@@ -1,5 +1,11 @@
 import { ListItem, ListItemData, Module, ModuleDefinition } from '../index.js';
-import { Column, DefaultListCellAwareProps, DefaultListCellProps, WarningListCell } from '@vanillabp/bc-shared';
+import {
+  Column,
+  DefaultListCellAwareProps,
+  DefaultListCellProps,
+  useResponsiveScreen,
+  WarningListCell
+} from '@vanillabp/bc-shared';
 import { FC, memo } from "react";
 import { TranslationFunction } from "../types/translate";
 
@@ -20,6 +26,7 @@ interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
   column: Column;
   defaultLanguage?: string;
   currentLanguage: string;
+  nameOfList?: string;
   typeOfItem: TypeOfItem;
   item: ListItem<T>;
   t: TranslationFunction;
@@ -33,6 +40,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   column,
   defaultLanguage = 'en',
   currentLanguage,
+  nameOfList,
   typeOfItem,
   item,
   t,
@@ -40,6 +48,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   defaultListCell,
   selectItem,
 }: ListCellParameters<T>) => {
+  const { isPhone, isTablet } = useResponsiveScreen();
 
   const module = modulesAvailable.find((module => item.data.workflowModule === module.workflowModule));
   if ((module === undefined)
@@ -95,6 +104,9 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
             currentLanguage={ currentLanguage }
             defaultLanguage={ defaultLanguage }
             defaultCell={ defaultListCell }
+            nameOfList={ nameOfList }
+            isPhone={ isPhone }
+            isTablet={ isTablet }
             selectItem={ (select: boolean) => selectItem(item, select) } />;
   
 }

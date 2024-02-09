@@ -2,6 +2,7 @@ import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Grid, Text } from
 import { SnapAlignBox, SnapScrollingGrid } from './SnapScrolling.js';
 import { useResponsiveScreen } from "@vanillabp/bc-shared";
 import React, { forwardRef, PropsWithChildren, ReactElement, ReactNode, UIEventHandler } from 'react';
+import { BackgroundType, ColorType } from "grommet/utils";
 
 interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<Omit<DataTableExtendedProps<TRowType>, 'columns'>> {
   additionalHeader?: ReactNode | undefined;
@@ -11,6 +12,8 @@ interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<
   columns: ColumnConfig<TRowType>[];
   minWidthOfAutoColumn?: string;
   showColumnHeaders?: boolean;
+  columnHeaderBackground?: BackgroundType,
+  columnHeaderSeparator?: ColorType | null,
 };
 
 const calculateColumWidth = (minWidthOfAutoColumn: string | undefined, width: string, column: any) => {
@@ -27,7 +30,9 @@ const SnapScrollingDataTable = forwardRef(({
     children,
     minWidthOfAutoColumn,
     showColumnHeaders = true,
-    ...props
+    columnHeaderBackground = 'dark-3',
+    columnHeaderSeparator,
+  ...props
   }: SnapScrollingDataTableProps, ref) => {
 
   const { isPhone, isNotPhone } = useResponsiveScreen();
@@ -51,7 +56,7 @@ const SnapScrollingDataTable = forwardRef(({
               zIndex: 2,
               minWidth: 'auto'
               } }
-            background='dark-3'
+            background={ columnHeaderBackground }
             align="center">
           {
             additionalHeader
@@ -86,9 +91,9 @@ const SnapScrollingDataTable = forwardRef(({
                             justify='center'
                             height="100%"
                             border={
-                              index === 0
+                              (index === 0) || (columnHeaderSeparator === null)
                                   ? undefined
-                                  : { side: 'left' }
+                                  : { side: 'left', color: columnHeaderSeparator }
                             }
                             pad='xsmall'
                             snapAlign='center'>

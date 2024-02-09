@@ -2,6 +2,7 @@ import React, { MutableRefObject, ReactNode, useCallback, useEffect, useRef, use
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from './SnapScrollingDataTable.js';
 import { keepOldItemsInArray, ListItemStatus, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
+import { BackgroundType, ColorType } from "grommet/utils";
 
 const itemsBatchSize = 30;
 
@@ -156,6 +157,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   minWidthOfAutoColumn,
   applyBackgroundColor,
   showColumnHeaders = true,
+  columnHeaderBackground = 'dark-3',
+  columnHeaderSeparator,
 }: {
   itemsRef: MutableRefObject<Array<ListItem<T>> | undefined>,
   updateListRef: MutableRefObject<ReloadCallbackFunction | undefined>,
@@ -169,6 +172,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   minWidthOfAutoColumn?: string,
   applyBackgroundColor?: boolean,
   showColumnHeaders?: boolean,
+  columnHeaderBackground?: BackgroundType,
+  columnHeaderSeparator?: ColorType | null,
 }) => {
   const [ items, _setItems ] = useState<Array<ListItem<T>> | undefined>(undefined);
   const initialTimestamp = useRef<Date | undefined>(undefined);
@@ -251,6 +256,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
                 step={ itemsBatchSize }
                 headerHeight={ headerHeight }
                 showColumnHeaders={ showColumnHeaders }
+                columnHeaderBackground={ columnHeaderBackground }
+                columnHeaderSeparator={ columnHeaderSeparator }
                 phoneMargin={ phoneMargin }
                 onMore={ () => loadItems(retrieveItems, setItems, items, initialTimestamp) }
                 data={ items }

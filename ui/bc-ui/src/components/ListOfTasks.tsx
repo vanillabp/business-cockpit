@@ -9,6 +9,7 @@ import {
   debounce,
   DefaultListCell,
   DefaultListCellProps,
+  DefaultListHeaderAwareProps,
   ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
@@ -41,6 +42,7 @@ import { TranslationFunction } from "../types/translate";
 import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
 import { ListColumnHeader } from "./ListColumnHeader.js";
+import { BackgroundType, ColorType } from "grommet/utils";
 
 const minWidthOfTitleColumn = '20rem';
 
@@ -810,12 +812,16 @@ const ListOfTasks = ({
     currentLanguage,
     defaultSort,
     defaultSortAscending,
+    name,
     columns,
     children,
     headerHeight = '3rem',
     footer,
     footerHeight = '2rem',
     showColumnHeaders = true,
+    columnHeader,
+    columnHeaderBackground = 'dark-3',
+    columnHeaderSeparator,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     useGuiSse: GuiSseHook,
@@ -826,12 +832,16 @@ const ListOfTasks = ({
     currentLanguage: string,
     defaultSort?: string,
     defaultSortAscending?: boolean,
+    name?: string,
     columns?: string[];
     children?: ListOfTasksHeaderFooterFunction,
     headerHeight?: string,
     footer?: ListOfTasksHeaderFooterFunction,
     footerHeight?: string,
     showColumnHeaders?: boolean,
+    columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
+    columnHeaderBackground?: BackgroundType,
+    columnHeaderSeparator?: ColorType | null,
 }) => {
 
   const { isPhone, isTablet } = useResponsiveScreen();
@@ -1067,6 +1077,8 @@ const ListOfTasks = ({
         header: <ListColumnHeader
             t={ t }
             currentLanguage={ currentLanguage }
+            nameOfList={ name }
+            columnHeader={ columnHeader }
             setColumnWidthAdjustment={ setColumnWidthAdjustment }
             sort={ sort === column.path }
             setSort={ setSort }
@@ -1079,6 +1091,7 @@ const ListOfTasks = ({
             modulesAvailable={ modules! }
             column={ column }
             currentLanguage={ currentLanguage }
+            nameOfList={ name }
             typeOfItem={ TypeOfItem.TaskList }
             showUnreadAsBold={ true }
             t={ t }
@@ -1198,6 +1211,8 @@ const ListOfTasks = ({
                       columns={ columnsOfList }
                       itemsRef={ userTasks }
                       showColumnHeaders={ showColumnHeaders }
+                      columnHeaderBackground={ columnHeaderBackground }
+                      columnHeaderSeparator={ columnHeaderSeparator }
                       updateListRef={ updateListRef }
                       refreshItemRef={ refreshItemRef }
                       refreshNecessaryCallback={ () => setRefreshNecessary(true) }

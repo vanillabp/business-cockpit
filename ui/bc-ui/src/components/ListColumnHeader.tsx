@@ -1,13 +1,14 @@
-import { Column } from "@vanillabp/bc-shared";
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
-import { Box, CheckBox, Text, Tip } from "grommet";
-import { Ascend, ContactInfo, Descend, Unsorted } from "grommet-icons";
+import { Column, DefaultListHeader, DefaultListHeaderAwareProps, useResponsiveScreen } from "@vanillabp/bc-shared";
+import { FC, MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Box } from "grommet";
 import { TranslationFunction } from "../types/translate";
 
 const ListColumnHeader = ({
   t,
   currentLanguage,
   column,
+  nameOfList,
+  columnHeader,
   minWidth,
   setColumnWidthAdjustment,
   sort,
@@ -20,7 +21,9 @@ const ListColumnHeader = ({
   t: TranslationFunction,
   currentLanguage: string,
   column: Column,
+  nameOfList?: string,
   minWidth?: string,
+  columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
   setColumnWidthAdjustment: (column: string, adjustment: number) => void,
   sort?: boolean,
   sortAscending?: boolean,
@@ -29,6 +32,8 @@ const ListColumnHeader = ({
   allSelected: boolean;
   selectAll: (select: boolean) => void;
 }) => {
+  const { isPhone, isTablet } = useResponsiveScreen();
+
   const resize = useRef(-1);
   const [ widthAdjustment, setWidthAdjustment ] = useState(0);
   const startResize = (event: ReactMouseEvent) => {
@@ -57,26 +62,7 @@ const ListColumnHeader = ({
       window.removeEventListener("mouseup", upHandler);
     }
   }, [ setColumnWidthAdjustment, widthAdjustment, setWidthAdjustment ]);
-  if (column.path === 'id') {
-    return (
-        <Box
-            align="center">
-          <CheckBox
-              checked={ allSelected }
-              onChange={ event => selectAll(event.currentTarget.checked) } />
-        </Box>);
-  }
-  if (column.path === 'candidateUsers') {
-    return (
-        <Box
-            fill
-            align="center">
-          <Tip
-              content={ t('column_candidates') }>
-            <ContactInfo />
-          </Tip>
-        </Box>);
-  }
+  const Header = columnHeader!;
   return (
       <Box
           style={ { minWidth, position: "relative" } }>
@@ -86,48 +72,45 @@ const ListColumnHeader = ({
             align="center"
             overflow="hidden"
             style={ { position: "relative" } }>
-          <Text
-              truncate="tip">{ column.title[currentLanguage] || column.title['en'] }</Text>
-          <Box
-              align="center"
-              direction="row"
-              justify="end"
-              style={ { maxHeight: '1.5rem', minWidth: '2rem' } }>
-            {
-              !column.sortable
-                  ? undefined
-                  : !Boolean(sort)
-                      ? <Box
-                          overflow="hidden"
-                          focusIndicator={ false }
-                          width="1.6rem"
-                          onClick={ event => setSort(column) }>
-                        <Unsorted
-                            size="32rem" />
-                      </Box>
-                      : sortAscending
-                          ? <Box
-                              focusIndicator={ false }
-                              onClick={ event => setSortAscending(false) }
-                              pad={ { right: '0.5rem' } }>
-                            <Ascend size="16rem" />
-                          </Box>
-                          : <Box
-                              focusIndicator={ false }
-                              onClick={ event => setSort(undefined) }
-                              pad={ { right: '0.5rem' } }>
-                            <Descend size="16rem" />
-                          </Box>
-            }
-            { /* <FormFilter /> */ }
-          </Box>
+          {
+            columnHeader !== undefined
+                ? <Header
+                      column={ column }
+                      defaultHeader={ DefaultListHeader }
+                      currentLanguage={ currentLanguage }
+                      nameOfList={ nameOfList }
+                      isPhone={ isPhone }
+                      isTablet={ isTablet }
+                      selectAll={ selectAll }
+                      allSelected={ allSelected }
+                      sort={ sort }
+                      sortAscending={ sortAscending }
+                      setSort={ setSort }
+                      setSortAscending={ setSortAscending } />
+                : <DefaultListHeader
+                    column={ column }
+                    currentLanguage={ currentLanguage }
+                    nameOfList={ nameOfList }
+                    isPhone={ isPhone }
+                    isTablet={ isTablet }
+                    selectAll={ selectAll }
+                    allSelected={ allSelected }
+                    sort={ sort }
+                    sortAscending={ sortAscending }
+                    setSort={ setSort }
+                    setSortAscending={ setSortAscending } />
+          }
         </Box>
-        <Box
-            align="center"
-            onMouseDown={ startResize }
-            style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.35rem' } }>
-          &nbsp;
-        </Box>
+        {
+          column.resizeable
+              ? <Box
+                    align="center"
+                    onMouseDown={ startResize }
+                    style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.35rem' } }>
+                  &nbsp;
+                </Box>
+              : undefined
+        }
       </Box>);
 };
 

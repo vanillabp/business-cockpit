@@ -114,7 +114,10 @@ export interface DefaultListCellProps<D> {
   showUnreadAsBold?: boolean;
   defaultLanguage?: string;
   currentLanguage: string;
-  selectItem: (select: boolean) => void,
+  nameOfList?: string;
+  selectItem: (select: boolean) => void;
+  isPhone: boolean;
+  isTablet: boolean;
 }
 
 export interface DefaultListCellAwareProps<T> extends DefaultListCellProps<T> {
