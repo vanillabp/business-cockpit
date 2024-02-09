@@ -440,10 +440,10 @@ const ListOfWorkflows = ({
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
   const getColumnSize = (column: string, width: string) => `max(4rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
-  const setColumnWidthAdjustment = (column: string, adjustment: number) => {
-    const current = columnWidthAdjustments[column];
+  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
+    const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
-    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
+    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
   };
 
   const columnsOfList: ColumnConfig<ListItem<BcWorkflow>>[] =
@@ -510,6 +510,7 @@ const ListOfWorkflows = ({
                   priority: -1,
                   resizeable: true,
                 }}
+                hasColumnWidthAdjustment={ columnWidthAdjustments['title'] !== undefined }
                 setColumnWidthAdjustment={ setColumnWidthAdjustment }
                 sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
                 setSort={ setSort }
@@ -554,6 +555,7 @@ const ListOfWorkflows = ({
                     header: <ListColumnHeader
                         t={ t }
                         currentLanguage={ currentLanguage }
+                        hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
                         setColumnWidthAdjustment={ setColumnWidthAdjustment }
                         sort={ sort === column.path }
                         setSort={ setSort }

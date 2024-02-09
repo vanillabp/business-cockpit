@@ -220,8 +220,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
     }, [ showLoadingIndicator, items, retrieveItems, reloadItems, setItems, initialTimestamp, updateListRef ]);
   
   const headerHeight = 'auto';
-  const phoneMargin = '0';
-  
+
   const colorRowAccordingToUpdateStatus = items?.reduce((props, item) => {
       if (item.status !== ListItemStatus.INITIAL) {
         return {
@@ -245,7 +244,6 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   return (<Box
               fill>
             <SnapScrollingDataTable
-                fill
                 pin
                 minWidthOfAutoColumn={ minWidthOfAutoColumn }
                 additionalHeader={ additionalHeader }
@@ -258,7 +256,6 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
                 showColumnHeaders={ showColumnHeaders }
                 columnHeaderBackground={ columnHeaderBackground }
                 columnHeaderSeparator={ columnHeaderSeparator }
-                phoneMargin={ phoneMargin }
                 onMore={ () => loadItems(retrieveItems, setItems, items, initialTimestamp) }
                 data={ items }
                 replace />

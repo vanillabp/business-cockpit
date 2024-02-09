@@ -9,7 +9,7 @@ const ListColumnHeader = ({
   column,
   nameOfList,
   columnHeader,
-  minWidth,
+  hasColumnWidthAdjustment,
   setColumnWidthAdjustment,
   sort,
   sortAscending,
@@ -22,9 +22,9 @@ const ListColumnHeader = ({
   currentLanguage: string,
   column: Column,
   nameOfList?: string,
-  minWidth?: string,
   columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
-  setColumnWidthAdjustment: (column: string, adjustment: number) => void,
+  hasColumnWidthAdjustment: boolean,
+  setColumnWidthAdjustment: (column: Column, adjustment: number) => void,
   sort?: boolean,
   sortAscending?: boolean,
   setSort: (column?: Column) => void,
@@ -45,7 +45,7 @@ const ListColumnHeader = ({
   const moveHandler = useCallback((ev: MouseEvent) => {
     if (resize.current == -1) return;
     const adjustment = widthAdjustment + (ev.clientX - resize.current);
-    setColumnWidthAdjustment(column.path, adjustment);
+    setColumnWidthAdjustment(column, adjustment);
   }, [ resize, setColumnWidthAdjustment, widthAdjustment, column.path ]);
   const upHandler = useCallback((ev: MouseEvent) => {
     if (resize.current == -1) return;
@@ -65,7 +65,15 @@ const ListColumnHeader = ({
   const Header = columnHeader!;
   return (
       <Box
-          style={ { minWidth, position: "relative" } }>
+          style={ { position: "relative" } }
+          ref={ element => {
+            if (element === null) return;
+            if (hasColumnWidthAdjustment) return;
+            if (column.width !== '') return;
+            setColumnWidthAdjustment(
+                column,
+                element!.getBoundingClientRect().width);
+          } }>
         <Box
             direction="row"
             justify="between"
@@ -106,7 +114,7 @@ const ListColumnHeader = ({
               ? <Box
                     align="center"
                     onMouseDown={ startResize }
-                    style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.35rem' } }>
+                    style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.2rem', zIndex: 1000 } }>
                   &nbsp;
                 </Box>
               : undefined

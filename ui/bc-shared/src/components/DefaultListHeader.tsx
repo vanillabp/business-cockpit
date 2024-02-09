@@ -34,6 +34,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
   if (column.path === 'id') {
     return (
         <Box
+            pad="xsmall"
             align="center">
           <CheckBox
               checked={ allSelected }
@@ -43,6 +44,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
   if (column.path === 'candidateUsers') {
     return (
         <Box
+            pad="xsmall"
             fill
             align="center">
           <Tip
@@ -52,7 +54,11 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
         </Box>);
   }
   return (
-      <>
+      <Box
+          fill
+          direction="row"
+          justify="between"
+          pad="xsmall">
         <Text
             truncate="tip">
           { column.title[currentLanguage] || column.title['en'] }
@@ -90,7 +96,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
           }
           { /* <FormFilter /> */ }
         </Box>
-      </>);
+      </Box>);
 }
 
 export { DefaultListHeader };

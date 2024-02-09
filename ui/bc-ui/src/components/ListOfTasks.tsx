@@ -763,8 +763,7 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   return (
       <StyledListCell
           align="left"
-          background={ background }
-          style={ { minWidth: minWidthOfTitleColumn } } /* style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } } */ >
+          background={ background }>
         <Text
             color={ colorForEndedItemsOrUndefined(item) }
             weight={ item.read === undefined ? 'bold' : 'normal' }
@@ -1022,17 +1021,23 @@ const ListOfTasks = ({
   };
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: Column | string, width: string) => {
-    const columnPath = typeof column === 'string' ? column : column.path;
-    const resizeable = typeof column === 'string' ? true : column.resizeable;
-    return resizeable
-        ? `max(4rem, calc(${width} + ${columnWidthAdjustments[columnPath] ? columnWidthAdjustments[columnPath] : 0}px))`
-        : width;
+  const getColumnSize = (column: Column) => {
+    return !column.resizeable
+        ? column.width
+        : column.width !== ''
+        ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
+        : columnWidthAdjustments[column.path]
+        ? `${columnWidthAdjustments[column.path]}px`
+        : undefined;
   };
-  const setColumnWidthAdjustment = (column: string, adjustment: number) => {
-    const current = columnWidthAdjustments[column];
+  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
+    if (column.width === '') {
+      column.width = `${adjustment}px`;
+      return;
+    }
+    const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
-    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column]: adjustment })
+    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
   };
 
   const selectAll = (select: boolean) => {
@@ -1072,13 +1077,14 @@ const ListOfTasks = ({
       ? []
       : columnsOfTasks!.map(column => ({
         property: column.path,
-        size: column.width === '' ? undefined : getColumnSize(column, column.width),
+        size: getColumnSize(column),
         plain: true,
         header: <ListColumnHeader
             t={ t }
             currentLanguage={ currentLanguage }
             nameOfList={ name }
             columnHeader={ columnHeader }
+            hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
             setColumnWidthAdjustment={ setColumnWidthAdjustment }
             sort={ sort === column.path }
             setSort={ setSort }
@@ -1207,7 +1213,7 @@ const ListOfTasks = ({
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
                       showLoadingIndicator={ showLoadingIndicator }
-                      minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
+                      minWidthOfAutoColumn={ minWidthOfTitleColumn }
                       columns={ columnsOfList }
                       itemsRef={ userTasks }
                       showColumnHeaders={ showColumnHeaders }
