@@ -20,3 +20,16 @@ export type ListOfTasksHeaderFooterFunction = (
 ) => ReactNode | undefined;
 
 export type AssignTaskFunction = (userTask: UserTask, userId: string, unassign: boolean) => void;
+
+export type ListOfWorkflowsHeaderFooterFunction = (
+    isPhone: boolean,
+    isTablet: boolean,
+    numberOfWorkflows: number,
+    selectAll: (select: boolean) => void,
+    allSelected: boolean,
+    refresh: () => void,
+    refreshDisabled: boolean,
+    initialKwicQuery: (columnPath?: string) => string,
+    limitListToKwic: (columnPath: string | undefined, query?: string) => void,
+    kwic: (columnPath: string | undefined, query: string) => Promise<Array<{ item: string, count: number }>>,
+) => ReactNode | undefined;

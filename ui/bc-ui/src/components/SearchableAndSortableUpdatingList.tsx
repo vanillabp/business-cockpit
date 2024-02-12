@@ -155,7 +155,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   showLoadingIndicator,
   additionalHeader,
   minWidthOfAutoColumn,
-  applyBackgroundColor,
+  applyBackgroundColor = true,
   showColumnHeaders = true,
   columnHeaderBackground = 'dark-3',
   columnHeaderSeparator,

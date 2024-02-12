@@ -34,6 +34,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
   if (column.path === 'id') {
     return (
         <Box
+            fill
             pad="xsmall"
             align="center">
           <CheckBox

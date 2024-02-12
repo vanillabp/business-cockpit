@@ -23,6 +23,7 @@ i18n.addResources('en', 'workflowlist', {
       "kwic_placeholder": "Enter 3 characters...",
       "kwic_no-hit": "No hit",
       "kwic_tooltip": "The words entered are treated case-sensitive",
+      "refresh_workflows": "Refresh list",
     });
 i18n.addResources('de', 'workflowlist', {
       "title.long": 'Vorgänge',
@@ -39,6 +40,7 @@ i18n.addResources('de', 'workflowlist', {
       "kwic_placeholder": "Tippe mehr als 3 Zeichen...",
       "kwic_no-hit": "Kein Treffer",
       "kwic_tooltip": "Bitte geben Sie für Suchbegriffe die korrekte Groß-/Kleinschreibung an",
+      "refresh_workflows": "Liste neu laden",
     });
 
 const RouteBasedWorkflowPage = () => {
@@ -77,6 +79,7 @@ const Main = () => {
                                 currentLanguage={ i18n.language }
                                 t={ t }
                                 defaultSort={ 'title' }
+                                excludeIdColumn
                                 openTask={
                                   (userTask) =>
                                       openTask(userTask, toast, tApp) }

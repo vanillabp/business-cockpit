@@ -56,7 +56,7 @@ const ListCell: React.FC<PropsWithChildren<ListCellProps>> = ({
                 ? 'end'
                 : 'center' }
         background={ background }
-        pad="xxsmall"
+        pad="xsmall"
         gap="xsmall"
         { ...props }>
       {

@@ -1,18 +1,21 @@
-import { ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { FC, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   BcWorkflow,
-  colorForEndedItemsOrUndefined,
+  colorRowAccordingToUpdateStatus,
   Column,
   debounce,
+  DefaultListCell,
+  DefaultListCellProps,
+  DefaultListHeaderAwareProps,
+  ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GetUserTasksFunction,
   GuiSseHook,
-  Link,
-  ListItemStatus,
+  ListCell as StyledListCell,
   ShowLoadingIndicatorFunction,
   useResponsiveScreen,
   WakeupSseCallback
@@ -21,6 +24,7 @@ import {
   ListCell,
   ListItem,
   ListItems,
+  ListOfWorkflowsHeaderFooterFunction,
   ModuleDefinition,
   NavigateToWorkflowFunction,
   OpenTaskFunction,
@@ -34,13 +38,22 @@ import {
 } from '../index.js';
 import { TranslationFunction } from "../types/translate";
 import { ListColumnHeader } from "./ListColumnHeader.js";
-import { Clear, Search } from "grommet-icons";
+import { Clear, Refresh, Search } from "grommet-icons";
+import { BackgroundType, ColorType } from "grommet/utils";
 
 const minWidthOfTitleColumn = '20rem';
+
+interface Columns {
+  [key: string]: Column;
+}
 
 interface Suggestion {
   label: ReactNode;
   value: string | undefined;
+}
+
+interface DefinitionOfWorkflow {
+  [key: string]: Workflow;
 }
 
 interface ColumnWidthAdjustments {
@@ -58,6 +71,7 @@ const loadWorkflows = async (
   sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
 ): Promise<ListItems<Workflow>> => {
+
   const result = await workflowlistApi
         .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
 
@@ -67,6 +81,7 @@ const loadWorkflows = async (
       serverTimestamp: result.serverTimestamp,
       items: result.workflows.map(workflow => mapToBcWorkflow(workflow))
     };
+
 };
 
 const reloadWorkflows = async (
@@ -96,16 +111,14 @@ const reloadWorkflows = async (
 
   setNumberOfWorkflows(result!.page.totalElements);
 
-  const newModuleDefinitions = result
-      .workflows
+  const newModuleDefinitions = result.workflows
       .filter(workflow => workflow.workflowModule !== undefined)
       .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
           ? moduleDefinitions : moduleDefinitions.concat(workflow), existingModuleDefinitions || []);
   if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
     setModulesOfWorkflows(newModuleDefinitions);
     const newWorkflowDefinitions: DefinitionOfWorkflow = { ...existingWorkflowDefinitions };
-    result
-        .workflows
+    result.workflows
         .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow);
     if ((existingWorkflowDefinitions === undefined)
         || Object.keys(existingWorkflowDefinitions).length !== Object.keys(newWorkflowDefinitions).length) {
@@ -117,37 +130,36 @@ const reloadWorkflows = async (
       serverTimestamp: result.serverTimestamp,
       items: result.workflows.map(workflow => mapToBcWorkflow(workflow))
     };
+
 };
 
 const FulltextSearch = ({
   t,
-  initialQuery = '',
-  workflowlistApi,
+  initialQuery,
+  limitListToKwic,
   kwic,
-  searchQueries,
-  focus = false,
+  // focus = false,
 }: {
   t: TranslationFunction,
-  initialQuery?: string,
-  workflowlistApi: WorkflowlistApi,
-  kwic: (query?: string) => void,
-  searchQueries: Array<SearchQuery>,
-  focus?: boolean,
+  initialQuery: (columnPath?: string) => string,
+  limitListToKwic: (columnPath: string | undefined, query?: string) => void,
+  kwic: (columnPath: string | undefined, query: string) => Promise<Array<{ item: string, count: number }>>,
+  // focus?: boolean,
 }) => {
   const { isPhone } = useResponsiveScreen();
   const textFieldRef = useRef<HTMLInputElement>(null);
   const [ query, setQuery ] = useState(initialQuery)
-  const currentQuery = useRef<string>(initialQuery);
+  const currentQuery = useRef<string>(initialQuery(undefined));
   const [ suggestions, setSuggestions ] =
       useState<Array<Suggestion> | undefined>(undefined);
   const ignoreKeyEnter = useRef(false);
-
+/*
   useEffect(() => {
     if (!focus) return;
     if (!textFieldRef.current) return;
     textFieldRef.current.focus();
   }, [textFieldRef, focus]);
-
+*/
   const select = (value: string, suggestion: boolean) => {
     if (suggestion) {
       ignoreKeyEnter.current  = true;
@@ -159,36 +171,32 @@ const FulltextSearch = ({
     setSuggestions(undefined);
     setQuery(value);
     currentQuery.current = value;
-    kwic(value);
+    limitListToKwic(undefined, value);
   };
-  const loadResult = async () => {
-    const result = await workflowlistApi.kwicWorkflows(
-        currentQuery.current,
-        undefined,
-        searchQueries);
-    const newSuggestions = result
-        .map(r => ({
-          value: r.item,
-          label: <Box
-                    direction="row"
-                    justify="between"
-                    pad="xsmall">
-                  <Text
-                      weight="bold"
-                      truncate="tip">
-                    { r.item }
-                  </Text>
-                  <Box
-                      align="right">
-                    { r.count }
-                  </Box>
-                 </Box> }));
-    setSuggestions(
-        newSuggestions.length > 20
-            ? [ ...newSuggestions.slice(0, 20), { value: undefined, label: <Box pad="xsmall">{ t('kwic_to-many-hits') }</Box> } ]
-            : newSuggestions);
-  }
-  const kwicDebounced = useMemo(() => debounce(loadResult, 300), [ workflowlistApi, currentQuery ]);
+  const kwicDebounced = useMemo(() => debounce(async () => {
+      const result = await kwic(undefined, currentQuery.current);
+      const newSuggestions = result
+          .map(r => ({
+            value: r.item,
+            label: <Box
+                direction="row"
+                justify="between"
+                pad="xsmall">
+              <Text
+                  weight="bold"
+                  truncate="tip">
+                { r.item }
+              </Text>
+              <Box
+                  align="right">
+                { r.count }
+              </Box>
+            </Box> }));
+      setSuggestions(
+          newSuggestions.length > 20
+              ? [ ...newSuggestions.slice(0, 20), { value: undefined, label: <Box pad="xsmall">{ t('kwic_to-many-hits') }</Box> } ]
+              : newSuggestions);
+    }, 300), [ currentQuery, setSuggestions ]);
   const updateResult = (newQuery: string) => {
     currentQuery.current = newQuery;
     setQuery(newQuery);
@@ -205,7 +213,7 @@ const FulltextSearch = ({
     setQuery('');
     setSuggestions(undefined);
     textFieldRef.current!.focus();
-    kwic(undefined);
+    limitListToKwic(undefined, undefined);
   };
 
   return (
@@ -259,9 +267,283 @@ const FulltextSearch = ({
       </Box>);
 }
 
-interface DefinitionOfWorkflow {
-  [key: string]: Workflow;
+const RefreshButton = ({
+  t,
+  disabled,
+  refresh,
+}: {
+  t: TranslationFunction,
+  disabled: boolean,
+  refresh: () => void,
+}) => {
+  const color = disabled ? 'light-4' : 'dark-3';
+  const textColor = disabled ? 'dark-4' : 'dark-1';
+
+  return (<Box
+      hoverIndicator={ disabled ? 'light-2' : "accent-1" }
+      focusIndicator={ false }
+      onClick={ refresh }
+      direction="row"
+      elevation="small"
+      background={ !disabled ? { color: "accent-1", opacity: "strong" } : undefined }
+      round={ { size: '0.4rem' } }
+      border={ { color } }>
+    <Tip
+        content={ t('refresh_workflows') }>
+      <Box
+          height="2rem"
+          pad={ { horizontal: '0.4rem' } }
+          align="center"
+          direction="row"
+          justify="center">
+        <Refresh
+            size="20rem"
+            color={ textColor } />
+      </Box>
+    </Tip>
+  </Box>);
+
 }
+
+const DefaultFooter = ({
+  t,
+  isPhone,
+  isTablet,
+  numberOfWorkflows
+}: {
+  t: TranslationFunction,
+  isPhone: boolean,
+  isTablet: boolean,
+  numberOfWorkflows: number
+}) => {
+
+  const isNotPhone = !isPhone;
+
+  return (
+      <Box
+          key="footer"
+          direction='row'
+          justify='between'
+          align="center">
+        <Box
+            pad='xsmall'>
+          { t('total') } { numberOfWorkflows }
+        </Box>
+        <Box
+            direction='row'
+            gap='medium'
+            pad='xsmall'
+            align="center">
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background="white">
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_unchanged') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'accent-3', opacity: 0.1 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_new') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'accent-1', opacity: 0.35 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_updated') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'light-2', opacity: 0.5 } }>
+                <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_completed') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+          <Box
+              direction="row"
+              align="center"
+              gap='xsmall'>
+            <Box
+                direction='row'
+                height="1rem"
+                border={ { color: 'light-4', size: '1px' } }>
+              <Box
+                  width="1rem"
+                  height="100%"
+                  align="center"
+                  justify="center"
+                  background={ { color: 'light-2', opacity: 0.5 } }>
+                <Text size="xsmall">T</Text>
+              </Box>
+            </Box>
+            {
+              isNotPhone
+                  ? <Box>
+                    { t('legend_filtered') }
+                  </Box>
+                  : undefined
+            }
+          </Box>
+        </Box>
+      </Box>);
+
+}
+
+const DefaultHeader = ({
+    t,
+    isPhone,
+    isTablet,
+    numberOfWorkflows,
+    selectAll,
+    allSelected,
+    refresh,
+    refreshDisabled,
+    initialKwicQuery,
+    limitListToKwic,
+    kwic
+}: {
+    t: TranslationFunction,
+    isPhone: boolean,
+    isTablet: boolean,
+    numberOfWorkflows: number,
+    selectAll: (select: boolean) => void,
+    allSelected: boolean,
+    refresh: () => void,
+    refreshDisabled: boolean,
+    initialKwicQuery: (columnPath?: string) => string,
+    limitListToKwic: (columnPath: string | undefined, query?: string) => void,
+    kwic: (columnPath: string | undefined, query: string) => Promise<Array<{ item: string, count: number }>>,
+}) => {
+
+  return (
+      <Box
+          fill
+          background='white'
+          direction="row"
+          align="center"
+          justify="start"
+          gap="small"
+          pad={ { horizontal: 'xsmall' } }>
+        <FulltextSearch
+            t={ t }
+            initialQuery={ initialKwicQuery }
+            limitListToKwic={ limitListToKwic }
+            kwic={ kwic }
+            // focus={ kwicInProgress.current }
+        />
+        <RefreshButton
+            t={ t }
+            refresh={ refresh }
+            disabled={ refreshDisabled } />
+      </Box>);
+
+}
+
+const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  item,
+  selectItem,
+}) => {
+  const background = colorRowAccordingToUpdateStatus(item);
+  return (
+      <StyledListCell
+          background={ background }
+          align="center">
+        <CheckBox
+            checked={ item.selected }
+            onChange={ event => selectItem(event.currentTarget.checked) } />
+      </StyledListCell>);
+}
+
+const WorkflowDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
+
+  let Cell: FC<DefaultListCellProps<BcUserTask>>;
+  if (column.path === 'id') {
+     Cell = SelectDefaultListCell;
+  } else {
+    Cell = DefaultListCell;
+  }
+
+  return (
+      <Cell
+          column={ column }
+          { ...props } />);
+
+};
 
 const ListOfWorkflows = ({
   showLoadingIndicator,
@@ -272,8 +554,19 @@ const ListOfWorkflows = ({
   currentLanguage,
   defaultSort,
   defaultSortAscending,
+  name,
   columns,
+  children,
+  headerHeight = '3rem',
+  footer,
+  footerHeight = '2rem',
   t,
+  applyBackgroundColor = true,
+  showColumnHeaders = true,
+  excludeIdColumn = false,
+  columnHeader,
+  columnHeaderBackground = 'dark-3',
+  columnHeaderSeparator,
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   useGuiSse: GuiSseHook,
@@ -283,17 +576,27 @@ const ListOfWorkflows = ({
   currentLanguage: string,
   defaultSort?: string,
   defaultSortAscending?: boolean,
+  name?: string,
   columns?: string[];
+  children?: ListOfWorkflowsHeaderFooterFunction,
+  headerHeight?: string,
+  footer?: ListOfWorkflowsHeaderFooterFunction,
+  footerHeight?: string,
+  applyBackgroundColor?: boolean,
+  showColumnHeaders?: boolean,
+  excludeIdColumn?: boolean,
+  columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
+  columnHeaderBackground?: BackgroundType,
+  columnHeaderSeparator?: ColorType | null,
   t: TranslationFunction,
 }) => {
 
-  const { isNotPhone } = useResponsiveScreen();
+  const { isPhone, isTablet, isNotPhone } = useResponsiveScreen();
 
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
   const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>([]);
-  const kwicInProgress = useRef(false);
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<WorkflowEvent>>>) => {
@@ -367,11 +670,34 @@ const ListOfWorkflows = ({
           })
         .filter(columnsOfWorkflow => columnsOfWorkflow !== undefined)
         .reduce((totalColumns, columnsOfWorkflow) => {
-            columnsOfWorkflow!.forEach(column => {
-                // @ts-ignore
-                totalColumns[column.path] = column });
+            columnsOfWorkflow!
+                .forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
-          }, {});
+          }, {} as Columns);
+    if (totalColumns.id === undefined && !excludeIdColumn) {
+      totalColumns.id = {
+        title: { [currentLanguage]: 'id' },
+        path: 'id',
+        width: '2.2rem',
+        priority: -1,
+        show: true,
+        sortable: false,
+        filterable: false,
+        resizeable: false,
+      };
+    }
+    if (totalColumns.title === undefined) {
+      totalColumns.title = {
+        title: { [currentLanguage]: t('column_title') },
+        path: 'title.' + currentLanguage,
+        width: '',
+        priority: 0,
+        show: true,
+        sortable: true,
+        filterable: true,
+        resizeable: true,
+      };
+    }
     const existingColumnsSignature = columnsOfWorkflows === undefined
         ? ' ' // initial state is different then updates
         : columnsOfWorkflows.map(c => c.path).join('|');
@@ -399,22 +725,6 @@ const ListOfWorkflows = ({
     setRefreshIndicator(new Date());
   }
 
-  const kwic = (value?: string) => {
-    const newSearchQueries = searchQueries
-        .filter(query => query.path !== undefined);
-    if ((value !== undefined)
-        && (value.trim().length > 0)) {
-      newSearchQueries.push({ path: undefined, query: value });
-    }
-    setSearchQueries(newSearchQueries);
-    kwicInProgress.current = true;
-    refreshList();
-  };
-
-  useLayoutEffect(() => {
-    kwicInProgress.current = false;
-  }, [ kwicInProgress ]);
-
   const setSort = (column?: Column) => {
     if (column) {
       if (column.path === 'title') {
@@ -437,146 +747,90 @@ const ListOfWorkflows = ({
     navigateToWorkflow(workflow);
   };
 
-  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: string, width: string) => `max(4rem, calc(${width} + ${columnWidthAdjustments[column] ? columnWidthAdjustments[column] : 0}px))`;
+  const getColumnSize = (column: Column) => {
+    return !column.resizeable
+        ? column.width
+        : column.width !== ''
+            ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
+            : columnWidthAdjustments[column.path]
+                ? `${columnWidthAdjustments[column.path]}px`
+                : undefined;
+  };
   const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
+    if (column.width === '') {
+      column.width = `${adjustment}px`;
+      return;
+    }
     const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
   };
 
-  const columnsOfList: ColumnConfig<ListItem<BcWorkflow>>[] =
-      [
-          { property: 'id',
-            primary: true,
-            pin: true,
-            size: '2.2rem',
-            plain: true,
-            header: <Box
-                        align="center">
-                      <CheckBox
-                          checked={ allSelected }
-                          onChange={ event => {
-                            (refreshItemRef.current!)(
-                                workflows
-                                    .current!
-                                    .reduce((allItemIds, item) => {
-                                      item.selected = event.currentTarget.checked;
-                                      allItemIds.push(item.id);
-                                      return allItemIds;
-                                    }, new Array<string>())
-                            );
-                            setAllSelected(event.currentTarget.checked);
-                            if (anySelected !== event.currentTarget.checked) {
-                              setAnySelected(event.currentTarget.checked);
-                            }
-                          } } />
-                    </Box>,
-            render: (item: ListItem<BcWorkflow>) => (
-                <Box
-                    align="center">
-                  <CheckBox
-                      checked={ item.selected }
-                      onChange={ event => {
-                        item.selected = event.currentTarget.checked;
-                        (refreshItemRef.current!)([ item.id ]);
-                        const currentlyAllSelected = workflows
-                            .current!
-                            .reduce((allSelected, workflow) => allSelected && workflow.selected, true);
-                        if (currentlyAllSelected !== allSelected) {
-                          setAllSelected(currentlyAllSelected);
-                        }
-                        const currentlyAnySelected = workflows
-                            .current!
-                            .reduce((anySelected, workflow) => anySelected || workflow.selected, false);
-                        if (anySelected !== currentlyAnySelected) {
-                          setAnySelected(currentlyAnySelected);
-                        }
-                      } } />
-                </Box>)
-          },
-          { property: 'name',
-            header: <ListColumnHeader
-                t={ t }
-                currentLanguage={ currentLanguage }
-                column={ {
-                  path: 'title',
-                  show: true,
-                  sortable: true,
-                  filterable: true,
-                  title: { [currentLanguage]: t('column_title') },
-                  width: '',
-                  priority: -1,
-                  resizeable: true,
-                }}
-                hasColumnWidthAdjustment={ columnWidthAdjustments['title'] !== undefined }
-                setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                sort={ sort?.startsWith('title.') } // like 'title.de,title.en'
-                setSort={ setSort }
-                sortAscending={ sortAscending }
-                selectAll={ (select: boolean) => {} }
-                allSelected={ false }
-                setSortAscending={ setSortAscending} />,
-            plain: true,
-            render: (item: ListItem<BcWorkflow>) => {
-                const titleLanguages = Object.keys(item.data['title']);
-                let title;
-                if (titleLanguages.includes(currentLanguage)) {
-                  title = item.data['title'][currentLanguage];
-                } else {
-                  title = item.data['title'][titleLanguages[0]];
-                }
-                return (
-                    <Box
-                        fill
-                        style={ { minWidth: getColumnSize('title', minWidthOfTitleColumn) } }
-                        pad="xsmall">
-                      <Text
-                          color={ colorForEndedItemsOrUndefined(item) }
-                          truncate="tip">
-                        {
-                          item.status === ListItemStatus.ENDED
-                              ? <>{ title }</>
-                              : <Link
-                                    // @ts-ignore
-                                    onClick={ () => openWorkflow(item.data) }>
-                                  { title }
-                                </Link>
-                        }
-                      </Text>
-                    </Box>);
-              }
-          },
-          ...(columnsOfWorkflows === undefined
-              ? []
-              : columnsOfWorkflows!.map(column => ({
-                    property: column.path,
-                    header: <ListColumnHeader
-                        t={ t }
-                        currentLanguage={ currentLanguage }
-                        hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-                        setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                        sort={ sort === column.path }
-                        setSort={ setSort }
-                        sortAscending={ sortAscending }
-                        setSortAscending={ setSortAscending }
-                        column={ column }
-                        selectAll={ (select: boolean) => {} }
-                        allSelected={ false } />,
-                    size: getColumnSize(column.path, column.width),
-                    plain: true,
-                    render: (item: ListItem<BcWorkflow>) => <ListCell
-                                                              modulesAvailable={ modules! }
-                                                              column={ column }
-                                                              currentLanguage={ currentLanguage }
-                                                              t={ t }
-                                                              typeOfItem={ TypeOfItem.WorkflowList }
-                                                              // @ts-ignore
-                                                              item={ item } />
-                  }))
-          )
-      ];
+  const selectAll = (select: boolean) => {
+    (refreshItemRef.current!)(
+        workflows.current!
+            .reduce((allItemIds, item) => {
+              item.selected = select;
+              allItemIds.push(item.id);
+              return allItemIds;
+            }, new Array<string>())
+    );
+    setAllSelected(select);
+    if (anySelected !== select) {
+      setAnySelected(select);
+    }
+  };
+  const selectItem = (item: ListItem<BcWorkflow>, select: boolean) => {
+    item.selected = select;
+    (refreshItemRef.current!)([ item.id ]);
+    const currentlyAllSelected = workflows.current!
+        .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
+    if (currentlyAllSelected !== allSelected) {
+      setAllSelected(currentlyAllSelected);
+    }
+    const currentlyAnySelected = workflows.current!
+        .reduce((anySelected, userTask) => anySelected || userTask.selected, false);
+    if (anySelected !== currentlyAnySelected) {
+      setAnySelected(currentlyAnySelected);
+    }
+  };
+
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfWorkflows === undefined
+      ? []
+      : columnsOfWorkflows!.map(column => ({
+        property: column.path,
+        size: getColumnSize(column),
+        plain: true,
+        header: <ListColumnHeader
+            t={ t }
+            currentLanguage={ currentLanguage }
+            nameOfList={ name }
+            columnHeader={ columnHeader }
+            hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+            setColumnWidthAdjustment={ setColumnWidthAdjustment }
+            sort={ sort === column.path }
+            setSort={ setSort }
+            sortAscending={ sortAscending }
+            setSortAscending={ setSortAscending }
+            column={ column }
+            allSelected={ allSelected }
+            selectAll={ selectAll } />,
+        render: (item: ListItem<BcUserTask>) => <ListCell
+            modulesAvailable={ modules! }
+            column={ column }
+            currentLanguage={ currentLanguage }
+            nameOfList={ name }
+            typeOfItem={ TypeOfItem.WorkflowList }
+            showUnreadAsBold={ false }
+            t={ t }
+            // @ts-ignore
+            item={ item }
+            // @ts-ignore
+            selectItem={ selectItem }
+            // @ts-ignore
+            defaultListCell={ WorkflowDefaultListCell } />
+      }));
   
   const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
       const getUserTasksFunction: GetUserTasksFunction = async (
@@ -600,39 +854,75 @@ const ListOfWorkflows = ({
         };
     };
 
-  const initialKwicQuery = searchQueries
-      .filter(query => query.path === undefined)
-      .map(query => query.query);
+  const initialKwicQuery = (columnPath?: string) => {
+      const query = searchQueries
+          .filter(query => query.path === columnPath)
+          .map(query => query.query);
+      if (query.length === 0) return '';
+      return query[0];
+  }
+  // const kwicInProgress = useRef(false);
+  // useLayoutEffect(() => {
+  //   kwicInProgress.current = false;
+  // }, [ kwicInProgress ]);
+  const setKwic = (columnPath: string | undefined, value?: string) => {
+    const newSearchQueries = searchQueries
+        .filter(query => query.path !== columnPath);
+    if ((value !== undefined)
+        && (value.trim().length > 0)) {
+      newSearchQueries.push({ path: columnPath, query: value });
+    }
+    setSearchQueries(newSearchQueries);
+    // kwicInProgress.current = true;
+    refreshList();
+  };
+  const kwic = async (columnPath: string | undefined, query: string) => {
+    return await workflowlistApi.kwicWorkflows(
+        query,
+        columnPath,
+        searchQueries);
+  };
 
+  const defaultHeader = () =>
+      <DefaultHeader
+          t={ t }
+          isPhone={ isPhone }
+          isTablet={ isTablet }
+          numberOfWorkflows={ numberOfWorkflows }
+          selectAll={ select => {} }
+          allSelected={ allSelected }
+          refresh={ refreshList }
+          refreshDisabled={ !refreshNecessary }
+          initialKwicQuery={ initialKwicQuery }
+          limitListToKwic={ setKwic }
+          kwic={ kwic } />;
+  const defaultFooter = () =>
+      <DefaultFooter
+          isPhone={ isPhone }
+          isTablet={ isTablet }
+          numberOfWorkflows={ numberOfWorkflows }
+          t={ t } />;
   return (
       <Grid
-          rows={ [ '3rem', 'auto', '2rem' ] }
+          rows={ [ headerHeight, 'auto', footerHeight ] }
           fill>
-        <Box
-            fill
-            background='white'
-            direction="row"
-            align="center"
-            justify="start"
-            gap="small"
-            pad={ { horizontal: 'xsmall' } }>
-          <FulltextSearch
-              t={ t }
-              workflowlistApi={ workflowlistApi }
-              initialQuery={ initialKwicQuery.length === 0 ? undefined : initialKwicQuery[0] }
-              kwic={ kwic }
-              focus={ kwicInProgress.current }
-              searchQueries={ searchQueries } />
-        </Box>
+        {
+          children !== undefined
+              ? children(isPhone, isTablet, numberOfWorkflows, selectAll, allSelected, refreshList, !refreshNecessary,
+                    initialKwicQuery, setKwic, kwic)
+              : defaultHeader()
+        }
         {
           (columnsOfWorkflows === undefined)
               ? <Box key="list"></Box>
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
-                      t={ t }
-                      applyBackgroundColor
+                      applyBackgroundColor={ applyBackgroundColor }
                       showLoadingIndicator={ showLoadingIndicator }
-                      minWidthOfAutoColumn={ getColumnSize('title', minWidthOfTitleColumn) }
+                      minWidthOfAutoColumn={ minWidthOfTitleColumn }
+                      showColumnHeaders={ showColumnHeaders }
+                      columnHeaderBackground={ columnHeaderBackground }
+                      columnHeaderSeparator={ columnHeaderSeparator }
                       columns={ columnsOfList }
                       itemsRef={ workflows }
                       updateListRef= { updateListRef }
@@ -669,105 +959,11 @@ const ListOfWorkflows = ({
                     />
                 </Box>
         }
-        <Box
-            direction='row'
-            justify='between'
-            align="center">
-          <Box
-              pad='xsmall'>
-            { t('total') } { numberOfWorkflows }
-          </Box>
-          <Box
-              direction='row'
-              gap='medium'
-              pad='xsmall'
-              align="center">
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background="white" />
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                        Unverändert
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-3', opacity: 0.1 } } />
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                        Neu
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'accent-1', opacity: 0.15 } } />
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                        Aktualisiert
-                      </Box>
-                    : undefined
-              }
-            </Box>
-            <Box
-                direction="row"
-                align="center"
-                gap='xsmall'>
-              <Box
-                  direction='row'
-                  height="1rem"
-                  border={ { color: 'light-4', size: '1px' } }>
-                <Box
-                    width="1rem"
-                    height="100%"
-                    background={ { color: 'light-2', opacity: 0.5 } } />
-              </Box>
-              {
-                isNotPhone
-                    ? <Box>
-                        Abgeschlossen
-                      </Box>
-                    : undefined
-              }
-            </Box>
-          </Box>
-        </Box>
+        {
+          footer !== undefined
+              ? footer(isPhone, isTablet, numberOfWorkflows, selectAll, allSelected, refreshList, !refreshNecessary, initialKwicQuery, setKwic, kwic)
+              : defaultFooter()
+        }
       </Grid>);
 };
 

@@ -817,7 +817,9 @@ const ListOfTasks = ({
     headerHeight = '3rem',
     footer,
     footerHeight = '2rem',
+    applyBackgroundColor = true,
     showColumnHeaders = true,
+    excludeIdColumn = false,
     columnHeader,
     columnHeaderBackground = 'dark-3',
     columnHeaderSeparator,
@@ -837,7 +839,9 @@ const ListOfTasks = ({
     headerHeight?: string,
     footer?: ListOfTasksHeaderFooterFunction,
     footerHeight?: string,
+    applyBackgroundColor?: boolean,
     showColumnHeaders?: boolean,
+    excludeIdColumn?: boolean,
     columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
     columnHeaderBackground?: BackgroundType,
     columnHeaderSeparator?: ColorType | null,
@@ -924,7 +928,7 @@ const ListOfTasks = ({
                 .forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
           }, {} as Columns);
-    if (totalColumns.id === undefined) {
+    if (totalColumns.id === undefined && !excludeIdColumn) {
       totalColumns.id = {
           title: { [currentLanguage]: 'id' },
           path: 'id',
@@ -1042,8 +1046,7 @@ const ListOfTasks = ({
 
   const selectAll = (select: boolean) => {
     (refreshItemRef.current!)(
-        userTasks
-            .current!
+        userTasks.current!
             .reduce((allItemIds, item) => {
               item.selected = select;
               allItemIds.push(item.id);
@@ -1058,14 +1061,12 @@ const ListOfTasks = ({
   const selectItem = (item: ListItem<BcUserTask>, select: boolean) => {
     item.selected = select;
     (refreshItemRef.current!)([ item.id ]);
-    const currentlyAllSelected = userTasks
-        .current!
+    const currentlyAllSelected = userTasks.current!
         .reduce((allSelected, userTask) => allSelected && userTask.selected, true);
     if (currentlyAllSelected !== allSelected) {
       setAllSelected(currentlyAllSelected);
     }
-    const currentlyAnySelected = userTasks
-        .current!
+    const currentlyAnySelected = userTasks.current!
         .reduce((anySelected, userTask) => anySelected || userTask.selected, false);
     if (anySelected !== currentlyAnySelected) {
       setAnySelected(currentlyAnySelected);
@@ -1212,6 +1213,7 @@ const ListOfTasks = ({
               ? <Box key="list"></Box>
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
+                      applyBackgroundColor={ applyBackgroundColor }
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ minWidthOfTitleColumn }
                       columns={ columnsOfList }
