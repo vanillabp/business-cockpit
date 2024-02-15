@@ -1,63 +1,50 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.server.context.ServerSecurityContextRepository;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
-public abstract class JwtServerSecurityContextRepository implements ServerSecurityContextRepository {
-    
-    protected final JwtProperties properties;
+public class JwtServerSecurityContextRepository implements ServerSecurityContextRepository {
+
+    private static final Logger logger = LoggerFactory.getLogger(JwtServerSecurityContextRepository.class);
+
+    private final JwtProperties properties;
+    private final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper;
     
     public JwtServerSecurityContextRepository(
-            final JwtProperties properties) {
+            final JwtProperties properties,
+            final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
 
         this.properties = properties;
+        this.jwtMapper = jwtMapper;
         
     }
-    
-    protected abstract Logger getLogger();
-    
+
     @Override
     public Mono<Void> save(
             final ServerWebExchange exchange,
             final SecurityContext context) {
 
-        try {
+        if (!exchange
+                .getRequest()
+                .getCookies()
+                .getOrDefault(properties.getCookie().getName(), List.of())
+                .isEmpty()) {
+            return Mono.empty();
+        }
 
-            if (!exchange
-                    .getRequest()
-                    .getCookies()
-                    .getOrDefault(properties.getCookie().getName(), List.of())
-                    .isEmpty()) {
-                return Mono.empty();
-            }
-
-            final var expiresDuration = Duration
-                    .parse(properties.getCookie().getExpiresDuration());
-            final var expiresAt = Instant
-                    .now()
-                    .plus(expiresDuration)
-                    .plusSeconds(10); // buffer
-            
-            final var token = buildToken(context, expiresAt);
-            exchange
+        jwtMapper
+                .toToken(context)
+                .ifPresent(token -> exchange
                     .getResponse()
                     .beforeCommit(() ->
                             Mono.defer(() -> {
@@ -66,8 +53,8 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
                                         .addCookie(
                                                 ResponseCookie
                                                         .from(properties.getCookie().getName())
-                                                        .value(token)
-                                                        .maxAge(expiresDuration)
+                                                        .value(token.getKey())
+                                                        .maxAge(Duration.between(Instant.now(), token.getValue()))
                                                         .domain(properties.getCookie().getDomain())
                                                         .path(properties.getCookie().getPath())
                                                         .sameSite(getSecurityCookieSameSiteFromEnum())
@@ -75,14 +62,9 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
                                                         .httpOnly(true)
                                                         .build());
                                 return Mono.empty();
-                            }));
+                            })));
 
-            return Mono.empty();
-
-        } catch (Exception e) {
-            getLogger().error("Could not build JWT token", e);
-            return Mono.error(e);
-        }
+        return Mono.empty();
 
     }
 
@@ -98,7 +80,7 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
             return Mono.empty();
         }
         if (cookies.size() > 1) {
-            getLogger().warn("Got more than one cookie named '{}': {}. Will use the first!",
+            logger.warn("Got more than one cookie named '{}': {}. Will use the first!",
                     cookies,
                     properties.getCookie().getName());
         }
@@ -106,10 +88,8 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
         final var token = cookies
                 .get(0)
                 .getValue();
-        final var jwt = buildJwt(token);
-        
-        final var securityContext = SecurityContextHolder.createEmptyContext();
-        
+        final var securityContext = jwtMapper.toSecurityContext(token);
+
         return Mono.just(securityContext);
 
     }
@@ -121,50 +101,6 @@ public abstract class JwtServerSecurityContextRepository implements ServerSecuri
             return null;
         }
         return sameSite.attributeValue();
-        
-    }
-
-    protected abstract JwtEncoderParameters getJwtEncoderParameters(
-            final SecurityContext context,
-            final Instant expiresAt);
-    
-    private String buildToken(
-            final SecurityContext context,
-            final Instant expiresAt) {
-
-        final var jwk = new OctetSequenceKey
-                .Builder(properties.getHmacSHA256())
-                .keyID(UUID.randomUUID().toString())
-                .algorithm(JWSAlgorithm.HS256)
-                .build();
-
-        final var encoder = new NimbusJwtEncoder(
-                (jwkSelector, securityContext) -> List.of(jwk));
-        
-        return encoder
-                .encode(getJwtEncoderParameters(context, expiresAt))
-                .getTokenValue();
-        
-    }
-    
-    private Jwt buildJwt(
-            final String token) {
-
-        final var jwk = new OctetSequenceKey
-                .Builder(properties.getHmacSHA256())
-                .keyID(UUID.randomUUID().toString())
-                .algorithm(JWSAlgorithm.HS256)
-                .build();
-
-        final var key = new SecretKeySpec(
-                properties.getHmacSHA256(), "HMACSHA256");
-        
-        final var decoder = NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-        
-        return decoder.decode(token);
         
     }
 

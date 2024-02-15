@@ -1,11 +1,14 @@
 package io.vanillabp.cockpit.config.web;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
+import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityWebFilter;
+import io.vanillabp.cockpit.commons.security.jwt.JwtServerSecurityContextRepository;
 import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
-import io.vanillabp.cockpit.config.web.security.BasicServerSecurityContextRepository;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -14,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -51,12 +55,32 @@ public class WebSecurityConfiguration {
     @Autowired
     private ApplicationProperties properties;
 
-    private JwtSecurityWebFilter jwtSecurityFilter() {
+    private JwtSecurityWebFilter jwtSecurityFilter(
+            final JwtServerSecurityContextRepository jwtServerSecurityContextRepository) {
 
         return new JwtSecurityWebFilter(
                 properties.getJwt(),
+                jwtServerSecurityContextRepository,
                 appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
                 staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher);
+
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
+
+        return new JwtAuthenticationTokenMapper(properties.getJwt());
+
+    }
+
+    @Bean
+    public JwtServerSecurityContextRepository jwtServerSecurityContextRepository(
+            final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
+
+        return new JwtServerSecurityContextRepository(
+                properties.getJwt(),
+                jwtMapper);
 
     }
 
@@ -65,6 +89,8 @@ public class WebSecurityConfiguration {
     @ConditionalOnMissingBean(name = "guiHttpSecurity")
     public SecurityWebFilterChain guiHttpSecurity(
             final ServerHttpSecurity http,
+            final JwtServerSecurityContextRepository jwtServerSecurityContextRepository,
+            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
             final MapReactiveUserDetailsService userDetailsService) {
         
         final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
@@ -82,14 +108,13 @@ public class WebSecurityConfiguration {
                                 .authenticated()
                         .and()
                 .httpBasic()
-                        .securityContextRepository(
-                                new BasicServerSecurityContextRepository(properties.getJwt()))
+                        .securityContextRepository(jwtServerSecurityContextRepository)
                         .authenticationEntryPoint(basicEntryPoint)
                         .and()
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(jwtLogoutSuccessHandler()))
-                .addFilterAfter(jwtSecurityFilter(), SecurityWebFiltersOrder.HTTP_BASIC);
+                .addFilterAfter(jwtSecurityFilter(jwtServerSecurityContextRepository), SecurityWebFiltersOrder.HTTP_BASIC);
             
         return http.build();
         

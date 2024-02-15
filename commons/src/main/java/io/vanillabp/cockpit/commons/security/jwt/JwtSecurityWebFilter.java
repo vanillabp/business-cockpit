@@ -3,25 +3,14 @@ package io.vanillabp.cockpit.commons.security.jwt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseCookie;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 public class JwtSecurityWebFilter implements WebFilter {
@@ -30,14 +19,17 @@ public class JwtSecurityWebFilter implements WebFilter {
     
     private final JwtProperties properties;
 
-
     private final List<ServerWebExchangeMatcher> unprotectedExchangeMatchers;
+
+    private final JwtServerSecurityContextRepository jwtSecurityContextRepository;
     
     public JwtSecurityWebFilter(
             final JwtProperties properties,
+            final JwtServerSecurityContextRepository jwtSecurityContextRepository,
             final ServerWebExchangeMatcher... unprotectedExchangeMatchers) {
 
         this.properties = properties;
+        this.jwtSecurityContextRepository = jwtSecurityContextRepository;
         this.unprotectedExchangeMatchers = Arrays.asList(unprotectedExchangeMatchers);
 
     }
@@ -47,22 +39,19 @@ public class JwtSecurityWebFilter implements WebFilter {
             final ServerWebExchange exchange,
             final WebFilterChain chain) {
 
-        JwtAuthenticationToken auth = null;
         try {
-            auth = processJwtToken(exchange);
+            final var securityContext = jwtSecurityContextRepository.load(exchange);
+            return securityContext
+                    .hasElement()
+                    .flatMap(hasSecurityContext -> hasSecurityContext
+                            ? chain.filter(exchange)
+                                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(securityContext))
+                            : chain.filter(exchange));
         } catch (Exception e) {
             logger.error("Cannot process JWT token", e);
             clearCookie(properties, exchange);
-        }
-        if (auth == null) {
             return chain.filter(exchange);
         }
-
-        final var securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(auth);
-        return chain
-                .filter(exchange)
-                .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
 
         /*
         return unprotectedExchangeMatchers
@@ -143,101 +132,6 @@ public class JwtSecurityWebFilter implements WebFilter {
                         return Mono.empty();
                     }));
 
-    }
-    
-    private String resolveToken(
-            final ServerHttpRequest request) {
-
-        // Common user requests
-        final var cookies = request.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-
-        final var cookieValues = cookies.get(properties.getCookie().getName());
-        if ((cookieValues == null) || cookieValues.isEmpty()) {
-            return null;
-        }
-        
-        if (cookieValues.size() > 1) {
-            logger.warn("Got more than one cookie named '{}': {}. Will use the first!",
-                    cookies,
-                    properties.getCookie().getName());
-        }
-
-        return cookieValues
-                .get(0)
-                .getValue();
-
-    }
-
-    private String resolveToken(
-            final ServerHttpResponse request) {
-
-        // Common user requests
-        final var cookies = request.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-
-        final var cookieValues = cookies.get(properties.getCookie().getName());
-        if ((cookieValues == null) || cookieValues.isEmpty()) {
-            return null;
-        }
-
-        if (cookieValues.size() > 1) {
-            logger.warn("Got more than one cookie named '{}': {}. Will use the first!",
-                    cookies,
-                    properties.getCookie().getName());
-        }
-
-        return cookieValues
-                .get(0)
-                .getValue();
-
-    }
-
-    private JwtAuthenticationToken processJwtToken(
-            final ServerWebExchange exchange) {
-
-        String token = resolveToken(exchange.getRequest());
-        if (!StringUtils.hasText(token)) {
-            token = resolveToken(exchange.getResponse());
-        }
-        if (!StringUtils.hasText(token)) {
-            return null;
-        }
-
-        final var jwt = buildJwt(token);
-
-        final var authorities = new HashSet<GrantedAuthority>();
-        authorities.add(new SimpleGrantedAuthority(JwtUserDetails.USER_AUTHORITY_PREFIX + jwt.getSubject()));
-        final var authoritiesClaims = jwt
-                .getClaimAsStringList("authorities");
-        if (authoritiesClaims != null) {
-            authoritiesClaims
-                    .stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .forEach(authorities::add);
-        }
-
-        return new JwtAuthenticationToken(jwt, authorities);
-                
-    }
-
-    private Jwt buildJwt(
-            final String token) {
-
-        final var key = new SecretKeySpec(
-                properties.getHmacSHA256(), "HMACSHA256");
-        
-        final var decoder = NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-        
-        return decoder.decode(token);
-        
     }
 
 }

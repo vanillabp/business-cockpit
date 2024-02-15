@@ -1,5 +1,8 @@
 package io.vanillabp.cockpit.simulator.config;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
@@ -38,22 +41,33 @@ public class WebSecurityConfiguration {
 
     @Bean
     @Order(99)
-    protected SecurityFilterChain configure(final HttpSecurity http) throws Exception {
+    protected SecurityFilterChain configure(
+            final HttpSecurity http,
+            final PassiveJwtSecurityFilter jwtSecurityFilter) throws Exception {
 
         http
                 .csrf().disable()
                 .cors().disable()
                 .anonymous().disable()
-                .addFilterAfter(jwtSecurityFilter(), BasicAuthenticationFilter.class);
+                .addFilterAfter(jwtSecurityFilter, BasicAuthenticationFilter.class);
             
         return http.build();
         
     }
 
-    private PassiveJwtSecurityFilter jwtSecurityFilter() {
+    @Bean
+    public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
+
+        return new JwtAuthenticationTokenMapper(properties.getJwt());
+
+    }
+
+    @Bean
+    public PassiveJwtSecurityFilter jwtSecurityFilter(
+            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {
 
         return new PassiveJwtSecurityFilter(
-                properties.getJwt());
+                properties.getJwt(), jwtMapper);
 
     }
 

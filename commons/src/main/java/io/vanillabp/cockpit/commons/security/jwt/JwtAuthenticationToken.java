@@ -25,15 +25,21 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
     @Override
     public Object getPrincipal() {
 
-        return ((Jwt) getDetails()).getSubject();
+        return getJwt().getSubject();
 
     }
     
     @Override
     public Object getCredentials() {
         
-        return ((Jwt) getDetails()).getTokenValue();
+        return getJwt().getTokenValue();
         
+    }
+
+    public Jwt getJwt() {
+
+        return (Jwt) getDetails();
+
     }
 
 }
