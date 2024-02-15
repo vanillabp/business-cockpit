@@ -1,5 +1,11 @@
 import { FC, ReactElement, useEffect, useRef, useState } from 'react';
-import { BcUserTask, ShowLoadingIndicatorFunction, ToastFunction, UserTaskAppLayout } from '@vanillabp/bc-shared';
+import {
+  BcUserTask,
+  ShowLoadingIndicatorFunction,
+  ToastFunction,
+  TranslationFunction,
+  UserTaskAppLayout
+} from '@vanillabp/bc-shared';
 import {
   AssignTaskFunction,
   ModuleDefinition,
@@ -11,7 +17,6 @@ import {
   useFederationModule
 } from '../index.js';
 import { UserTask } from "@vanillabp/bc-official-gui-client";
-import { TranslationFunction } from "../types/translate";
 
 const loadUserTask = (
     tasklistApi: TasklistApi,

@@ -4,6 +4,7 @@ import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet
 import {
   BcUserTask,
   BcWorkflow,
+  colorForEndedItemsOrUndefined,
   colorRowAccordingToUpdateStatus,
   Column,
   debounce,
@@ -15,10 +16,12 @@ import {
   EventSourceMessage,
   GetUserTasksFunction,
   GuiSseHook,
+  Link,
   ListCell as StyledListCell,
   ShowLoadingIndicatorFunction,
+  TranslationFunction,
   useResponsiveScreen,
-  WakeupSseCallback
+  WakeupSseCallback,
 } from "@vanillabp/bc-shared";
 import {
   ListCell,
@@ -36,7 +39,6 @@ import {
   WorkflowlistApi,
   WorkflowlistApiHook
 } from '../index.js';
-import { TranslationFunction } from "../types/translate";
 import { ListColumnHeader } from "./ListColumnHeader.js";
 import { Clear, Refresh, Search } from "grommet-icons";
 import { BackgroundType, ColorType } from "grommet/utils";
@@ -529,11 +531,42 @@ const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
       </StyledListCell>);
 }
 
+const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  item,
+  currentLanguage,
+}) => {
+  const titleLanguages = Object.keys(item.data['title']);
+  let title;
+  if (titleLanguages.includes(currentLanguage)) {
+    title = item.data['title'][currentLanguage];
+  } else {
+    title = item.data['title'][titleLanguages[0]];
+  }
+  const background = colorRowAccordingToUpdateStatus(item);
+  return (
+      <StyledListCell
+          align="left"
+          background={ background }>
+        <Text
+            color={ colorForEndedItemsOrUndefined(item) }
+            weight={ item.read === undefined ? 'bold' : 'normal' }
+            truncate="tip">
+          <Link
+              // @ts-ignore
+              onClick={ item.data.navigateToWorkflow }>
+            { title }
+          </Link>
+        </Text>
+      </StyledListCell>);
+}
+
 const WorkflowDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
 
   let Cell: FC<DefaultListCellProps<BcUserTask>>;
   if (column.path === 'id') {
      Cell = SelectDefaultListCell;
+  } else if (column.path.startsWith('title.')) {
+    Cell = TitleDefaultListCell;
   } else {
     Cell = DefaultListCell;
   }
@@ -743,10 +776,6 @@ const ListOfWorkflows = ({
     refreshList();
   }
 
-  const openWorkflow = async (workflow: Workflow) => {
-    navigateToWorkflow(workflow);
-  };
-
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
   const getColumnSize = (column: Column) => {
     return !column.resizeable
@@ -850,6 +879,7 @@ const ListOfWorkflows = ({
         };
       return {
           ...workflow,
+          navigateToWorkflow: () => navigateToWorkflow(workflow),
           getUserTasks: getUserTasksFunction,
         };
     };

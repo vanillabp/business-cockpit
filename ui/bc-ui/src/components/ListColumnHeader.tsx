@@ -1,7 +1,12 @@
-import { Column, DefaultListHeader, DefaultListHeaderAwareProps, useResponsiveScreen } from "@vanillabp/bc-shared";
+import {
+  Column,
+  DefaultListHeader,
+  DefaultListHeaderAwareProps,
+  TranslationFunction,
+  useResponsiveScreen
+} from "@vanillabp/bc-shared";
 import { FC, MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "grommet";
-import { TranslationFunction } from "../types/translate";
 
 const ListColumnHeader = ({
   t,

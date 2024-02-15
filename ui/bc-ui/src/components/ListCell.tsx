@@ -3,11 +3,11 @@ import {
   Column,
   DefaultListCellAwareProps,
   DefaultListCellProps,
+  TranslationFunction,
   useResponsiveScreen,
-  WarningListCell
+  WarningListCell,
 } from '@vanillabp/bc-shared';
 import { FC, memo } from "react";
-import { TranslationFunction } from "../types/translate";
 
 export enum TypeOfItem {
   TaskList,
@@ -98,6 +98,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
         message={ t('typeofitem_unsupported') } />;
   }
   return <Cell
+            t={ t }
             item={ item }
             column={ column }
             showUnreadAsBold={ showUnreadAsBold }

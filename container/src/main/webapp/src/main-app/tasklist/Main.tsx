@@ -15,6 +15,8 @@ import {
 i18n.addResources('en', 'tasklist', {
       "title.long": 'Tasks',
       "title.short": 'Tasks',
+      "boolean-true": 'Yes',
+      "boolean-false": 'No',
       "total": "Total:",
       "column_no": "No.",
       "column_title": "Task",
@@ -42,6 +44,8 @@ i18n.addResources('en', 'tasklist', {
 i18n.addResources('de', 'tasklist', {
       "title.long": 'Aufgaben',
       "title.short": 'Aufgaben',
+      "boolean-true": 'Ja',
+      "boolean-false": 'Nein',
       "total": "Anzahl:",
       "column_no": "Nr.",
       "column_title": "Aufgabe",

@@ -1,26 +1,14 @@
 import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
 import { ColorType } from 'grommet/utils/index.js';
-import { TFunction } from 'i18next';
 import React, { FC, PropsWithChildren } from 'react';
-import { useTranslation } from "react-i18next";
-import { Column, ListItem, ListItemStatus } from '../types/index.js';
+import { Column, ListItem, ListItemStatus, TranslationFunction } from '../types/index.js';
 import {
   getObjectProperty,
-  i18n,
   toLocaleDateString,
   toLocaleStringWithoutSeconds,
   toLocaleTimeStringWithoutSeconds,
 } from '../utils/index.js';
 import { BackgroundType } from "grommet/utils";
-
-i18n.addResources('en', 'default-list-cell', {
-  "boolean-true": 'Yes',
-  "boolean-false": 'No',
-});
-i18n.addResources('en', 'default-list-cell', {
-  "boolean-true": 'Ja',
-  "boolean-false": 'Nein',
-});
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 
@@ -109,6 +97,7 @@ const TextListCell: React.FC<TextListCellProps> = ({
 }
 
 export interface DefaultListCellProps<D> {
+  t: TranslationFunction;
   item: ListItem<D>;
   column: Column;
   showUnreadAsBold?: boolean;
@@ -129,7 +118,7 @@ type RenderResult = {
   align: Alignment;
 }
 const render = (
-    t: TFunction,
+    t: TranslationFunction,
     propertyValue: any,
     currentLanguage: string,
     defaultLanguage?: string): RenderResult => {
@@ -194,61 +183,21 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     showUnreadAsBold,
     currentLanguage,
     defaultLanguage,
+    t,
     selectItem,
 }) => {
-  const { t } = useTranslation("default-list-cell");
   let propertyValue = getObjectProperty(item.data, column.path);
-  let value;
-  let tip;
   let align: Alignment = 'left';
-  if (typeof propertyValue === 'object') { // check for { "de": "whatever" }
-    let langValue = propertyValue[currentLanguage];
-    if (langValue !== undefined) {
-      propertyValue = langValue;
-    } else if (defaultLanguage !== undefined) {
-      langValue = propertyValue[defaultLanguage];
-      if (langValue !== undefined) {
-        propertyValue = langValue;
-      }
-    }
-  }
-  if (propertyValue === undefined) {
-    value = '';
-  } else if (propertyValue instanceof Date) {
-    if (column.path === 'dueDate') {
-      value = toLocaleDateString(item.data.dueDate);
-      tip = toLocaleStringWithoutSeconds(item.data.dueDate);
-      align = 'right';
-    } else {
-      value = toLocaleTimeStringWithoutSeconds(propertyValue);
-    }
-  } else if (typeof propertyValue === 'number') {
-    value = (propertyValue as Number).toLocaleString(window.navigator.language);
+  let value: string | undefined;
+  let tip: string | undefined;
+  if (column.path === 'dueDate') {
+    value = toLocaleDateString(item.data.dueDate);
+    tip = toLocaleStringWithoutSeconds(item.data.dueDate);
     align = 'right';
-  } else if (typeof propertyValue === "boolean") {
-    if (propertyValue) {
-      value = t('boolean-true');
-    } else {
-      value = t('boolean-false');
-    }
-  } else if (typeof propertyValue === 'string') {
-    const dateMatch = DATE_REGEXP.exec(propertyValue as string);
-    if (dateMatch) {
-      if (propertyValue.length === 10) {
-        value = toLocaleDateString(new Date(Date.parse(propertyValue as string)));
-        align = 'right';
-      } else if (column.path.endsWith('.dueDate')) {
-        const tmpDate = new Date(Date.parse(propertyValue as string));
-        value = toLocaleDateString(tmpDate);
-        tip = toLocaleStringWithoutSeconds(tmpDate);
-        align = 'right';
-      } else {
-        const tmpDate = new Date(Date.parse(propertyValue as string));
-        value = toLocaleStringWithoutSeconds(tmpDate);
-      }
-    } else {
-      value = propertyValue;
-    }
+  } else {
+    const { value: v, align: a } = render(t, propertyValue, currentLanguage, defaultLanguage);
+    value = v;
+    align = a;
   }
   const background = colorRowAccordingToUpdateStatus(item);
   return <TextListCell

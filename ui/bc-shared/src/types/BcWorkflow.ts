@@ -5,9 +5,11 @@ export type GetUserTasksFunction = (
   activeOnly: boolean,
   limitListAccordingToCurrentUsersPermissions: boolean,
 ) => Promise<Array<BcUserTask>>;
+export type NavigateToWorkflowFunction = () => void;
 
 export interface BcWorkflow extends Workflow {
-  
+
+  navigateToWorkflow: NavigateToWorkflowFunction;
   getUserTasks: GetUserTasksFunction;
   
 };

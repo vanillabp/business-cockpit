@@ -12,10 +12,10 @@ import {
   BcWorkflow,
   GetUserTasksFunction,
   ShowLoadingIndicatorFunction,
-  ToastFunction
+  ToastFunction,
+  TranslationFunction
 } from '@vanillabp/bc-shared';
 import { Box } from 'grommet';
-import { TranslationFunction } from "../types/translate";
 
 const loadWorkflow = async (
     workflowId: string,
@@ -41,6 +41,7 @@ const loadWorkflow = async (
   };
   const bcWorkflows: BcWorkflow = {
     ...workflow,
+    navigateToWorkflow: () => {},
     getUserTasks: getUserTasksFunction
   };
   setWorkflow(bcWorkflows);

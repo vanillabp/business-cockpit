@@ -61,6 +61,7 @@ const loadWorkflow = (
                 };
               workflow = {
                   ...value,
+                  navigateToWorkflow: () => openWorkflow(workflowId),
                   getUserTasks: getUserTasksFunction,
                 };
               resolve(workflow);

@@ -18,6 +18,7 @@ import {
   ListCell as StyledListCell,
   ListItemStatus,
   ShowLoadingIndicatorFunction,
+  TranslationFunction,
   useOnClickOutside,
   useResponsiveScreen,
   WakeupSseCallback,
@@ -38,7 +39,6 @@ import {
   TypeOfItem,
   useFederationModules
 } from '../index.js';
-import { TranslationFunction } from "../types/translate";
 import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
 import { ListColumnHeader } from "./ListColumnHeader.js";
