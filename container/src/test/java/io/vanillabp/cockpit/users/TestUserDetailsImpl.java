@@ -1,10 +1,10 @@
 package io.vanillabp.cockpit.users;
 
-import java.util.Collection;
+import java.util.List;
 
 public class TestUserDetailsImpl extends UserDetailsImpl {
-    public TestUserDetailsImpl(String id, UserStatus status, String email, String firstName, String lastName, String avatar, Sex sex, Collection<String> roles) {
-        super(id, status, email, firstName, lastName, avatar, sex, roles);
+    public TestUserDetailsImpl(String id, boolean active, String email, String firstName, String lastName, String avatar, Boolean female, List<String> authorities) {
+        super(id, active, email, firstName, lastName, avatar, female, authorities);
     }
 
 }

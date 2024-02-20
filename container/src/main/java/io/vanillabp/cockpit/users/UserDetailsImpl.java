@@ -1,26 +1,26 @@
 package io.vanillabp.cockpit.users;
 
-import java.util.Collection;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+
+import java.util.List;
 
 class UserDetailsImpl implements UserDetails {
     private String id;
-    private UserStatus status;
     private String email;
     private String firstName;
     private String lastName;
     private String avatar;
-    private Sex sex;
-    private Collection<String> roles;
+    private boolean active;
+    private Boolean female;
+    private List<String> authorities;
 
-    public UserDetailsImpl(String id, UserStatus status, String email, String firstName, String lastName, String avatar, Sex sex, Collection<String> roles) {
+    public UserDetailsImpl(String id, boolean active, String email, String firstName, String lastName, String avatar, Boolean female, List<String> authorities) {
         this.id = id;
-        this.status = status;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.avatar = avatar;
-        this.sex = sex;
-        this.roles = roles;
+        this.authorities = authorities;
     }
 
     @Override
@@ -29,8 +29,8 @@ class UserDetailsImpl implements UserDetails {
     }
 
     @Override
-    public UserStatus getStatus() {
-        return status;
+    public boolean isActive() {
+        return active;
     }
 
     @Override
@@ -39,27 +39,22 @@ class UserDetailsImpl implements UserDetails {
     }
 
     @Override
-    public String getFirstName() {
-        return firstName;
-    }
-
-    @Override
     public String getLastName() {
         return lastName;
     }
 
     @Override
-    public String getAvatar() {
-        return avatar;
+    public String getFirstName() {
+        return firstName;
     }
 
     @Override
-    public Sex getSex() {
-        return sex;
+    public Boolean isFemale() {
+        return female;
     }
 
     @Override
-    public Collection<String> getRoles() {
-        return roles;
+    public List<String> getAuthorities() {
+        return authorities;
     }
 };

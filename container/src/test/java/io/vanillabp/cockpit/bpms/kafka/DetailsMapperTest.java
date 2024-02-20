@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.users.TestUserDetailsImpl;
-import io.vanillabp.cockpit.users.UserDetails;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -155,7 +154,7 @@ public class DetailsMapperTest {
 
         final var complex = new TestUserDetailsImpl(
                 "4711",
-                UserDetails.UserStatus.Inactive,
+                false,
                 "a@b",
                 "First",
                 "Last",
@@ -175,13 +174,12 @@ public class DetailsMapperTest {
         Assertions.assertNotNull(result);
         final var target = (Map<String, Object>) result.get("test1");
         Assertions.assertEquals(complex.getId(), target.get("id"));
-        Assertions.assertEquals(complex.getStatus().toString(), target.get("status"));
+        Assertions.assertEquals(complex.isActive(), target.get("active"));
         Assertions.assertEquals(complex.getEmail(), target.get("email"));
         Assertions.assertEquals(complex.getFirstName(), target.get("firstName"));
         Assertions.assertEquals(complex.getLastName(), target.get("lastName"));
-        Assertions.assertNull(complex.getAvatar());
-        Assertions.assertNull(complex.getSex());
-        Assertions.assertEquals(complex.getRoles(), target.get("roles"));
+        Assertions.assertNull(complex.isFemale());
+        Assertions.assertEquals(complex.getAuthorities(), target.get("authorities"));
 
     }
 

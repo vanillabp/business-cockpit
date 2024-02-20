@@ -1,12 +1,12 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.Sex;
 import io.vanillabp.cockpit.gui.api.v1.User;
 import io.vanillabp.cockpit.gui.api.v1.UserStatus;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
-import io.vanillabp.cockpit.users.UserDetails;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -48,39 +48,35 @@ public abstract class GuiApiMapper {
                                     OffsetDateTime timestamp,
                                     String userId);
 
+    @Mapping(target = "avatar", ignore = true)
+    @Mapping(target = "sex", expression = "java(sexToApi(user))")
+    @Mapping(target = "status", expression = "java(statusToApi(user))")
+    @Mapping(target = "roles", source = "authorities")
     public abstract User toApi(UserDetails user);
 
-    public UserStatus toApi(UserDetails.UserStatus userStatus) {
+    public UserStatus statusToApi(UserDetails userDetails) {
 
-        if (userStatus == null) {
+        if (userDetails == null) {
             return null;
-        } else if (userStatus == UserDetails.UserStatus.Active) {
-            return UserStatus.ACTIVE;
-        } else if (userStatus == UserDetails.UserStatus.Inactive) {
-            return UserStatus.INACTIVE;
         }
-        throw new RuntimeException(
-                "Unsupported user-status '"
-                + userStatus
-                + "'! Did you forget to extend this if-statement?");
+        if (userDetails.isActive()) {
+            return UserStatus.ACTIVE;
+        }
+        return UserStatus.INACTIVE;
 
     }
 
-    public Sex toApi(UserDetails.Sex sex) {
+    public Sex sexToApi(UserDetails userDetails) {
 
-        if (sex == null) {
+        if (userDetails == null) {
             return null;
-        } else if (sex == UserDetails.Sex.Male) {
-            return Sex.MALE;
-        } else if (sex == UserDetails.Sex.Female) {
-            return Sex.FEMALE;
-        } else if (sex == UserDetails.Sex.Other) {
-            return Sex.OTHER;
         }
-        throw new RuntimeException(
-                "Unsupported user's sex '"
-                        + sex
-                        + "'! Did you forget to extend this if-statement?");
+        if (userDetails.isFemale() == null) {
+            return Sex.OTHER;
+        } else if (userDetails.isFemale()) {
+            return Sex.FEMALE;
+        }
+        return Sex.MALE;
 
     }
 

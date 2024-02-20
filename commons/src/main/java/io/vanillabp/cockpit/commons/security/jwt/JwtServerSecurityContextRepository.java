@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 public class JwtServerSecurityContextRepository implements ServerSecurityContextRepository {
 
@@ -33,14 +32,6 @@ public class JwtServerSecurityContextRepository implements ServerSecurityContext
     public Mono<Void> save(
             final ServerWebExchange exchange,
             final SecurityContext context) {
-
-        if (!exchange
-                .getRequest()
-                .getCookies()
-                .getOrDefault(properties.getCookie().getName(), List.of())
-                .isEmpty()) {
-            return Mono.empty();
-        }
 
         jwtMapper
                 .toToken(context)

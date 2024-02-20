@@ -1,16 +1,18 @@
 package io.vanillabp.cockpit.users;
 
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+
 import java.util.List;
 import java.util.Optional;
 
 public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
     private static final List<UserDetails> KNOWN_USERS = List.of(
-            new UserDetailsImpl("hmu", UserDetails.UserStatus.Active, "hmu@test.com", "Hans", "Müller", null, UserDetails.Sex.Male, List.of("TEST")),
-            new UserDetailsImpl("akl", UserDetails.UserStatus.Active, "akl@test.com", "Anne", "Klein", null, UserDetails.Sex.Female, List.of("TEST")),
-            new UserDetailsImpl("rma", UserDetails.UserStatus.Active, "rma@test.com", "Rolf-Rüdiger", "Mannheimer", null, UserDetails.Sex.Male, List.of("TEST")),
-            new UserDetailsImpl("est", UserDetails.UserStatus.Active, "est@test.com", "Elisabeth", "Stockinger", null, UserDetails.Sex.Other, List.of("TEST")),
-            new UserDetailsImpl("test", UserDetails.UserStatus.Active, "test@test.com", "Test", "Tester", null, UserDetails.Sex.Other, List.of("TEST"))
+            new UserDetailsImpl("hmu", true, "hmu@test.com", "Hans", "Müller", null, Boolean.FALSE, List.of("TEST")),
+            new UserDetailsImpl("akl", true, "akl@test.com", "Anne", "Klein", null, Boolean.TRUE, List.of("TEST")),
+            new UserDetailsImpl("rma", true, "rma@test.com", "Rolf-Rüdiger", "Mannheimer", null, Boolean.FALSE, List.of("TEST")),
+            new UserDetailsImpl("est", true, "est@test.com", "Elisabeth", "Stockinger", null, null, List.of("TEST")),
+            new UserDetailsImpl("test", true, "test@test.com", "Test", "Tester", null, null, List.of("TEST"))
     );
 
     @Override

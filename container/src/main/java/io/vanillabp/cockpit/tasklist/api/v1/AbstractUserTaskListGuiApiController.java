@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
@@ -8,7 +9,6 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
-import io.vanillabp.cockpit.users.UserDetails;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

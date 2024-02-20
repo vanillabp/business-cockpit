@@ -142,7 +142,7 @@ public class WebSecurityConfiguration {
                         .username(user.getId())
                         .password("{noop}test")
                         .authorities(user
-                                .getRoles()
+                                .getAuthorities()
                                 .stream()
                                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                                 .toList())
