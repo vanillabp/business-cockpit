@@ -42,9 +42,35 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
     }
 
     @Override
+    public List<UserDetails> findUsers(String query, List<String> excludeUsersIds) {
+
+        return KNOWN_USERS
+                .stream()
+                .filter(user -> !excludeUsersIds.contains(user.getId()))
+                .filter(user -> {
+                    if (user.getFirstName().toLowerCase().contains(query)) return true;
+                    if (user.getLastName().toLowerCase().contains(query)) return true;
+                    if (user.getEmail().toLowerCase().contains(query)) return true;
+                    return false;
+                })
+                .toList();
+
+    }
+
+    @Override
     public List<UserDetails> getAllUsers() {
 
         return KNOWN_USERS;
+
+    }
+
+    @Override
+    public List<UserDetails> getAllUsers(List<String> excludeUsersIds) {
+
+        return KNOWN_USERS
+                .stream()
+                .filter(user -> !excludeUsersIds.contains(user.getId()))
+                .toList();
 
     }
 

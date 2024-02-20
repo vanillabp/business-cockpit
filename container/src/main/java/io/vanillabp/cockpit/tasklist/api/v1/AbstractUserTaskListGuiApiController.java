@@ -347,23 +347,27 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Integer limit,
 			final ServerWebExchange exchange) {
 
-		final var trimmedQuery = StringUtils.trimAllWhitespace(query);
-		final Collection<UserDetails> users;
-		if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
-			users = userDetailsProvider.getAllUsers();
-		} else {
-			users = userDetailsProvider.findUsers(trimmedQuery);
-		}
+		return userContext
+				.getUserLoggedInAsMono()
+				.map(userId -> {
+						final var trimmedQuery = StringUtils.trimAllWhitespace(query);
+						final Collection<UserDetails> users;
+						if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
+							users = userDetailsProvider.getAllUsers(List.of(userId));
+						} else {
+							users = userDetailsProvider.findUsers(trimmedQuery);
+						}
 
-		final var result = new UserSearchResult();
-		result.setUsers(new ArrayList<>());
-		users
-				.stream()
-				.limit(limit)
-				.map(mapper::toApi)
-				.forEach(result::addUsersItem);
-
-		return Mono.just(ResponseEntity.ok(result));
+						final var result = new UserSearchResult();
+						result.setUsers(new ArrayList<>());
+						users
+								.stream()
+								.limit(limit)
+								.map(mapper::toApi)
+								.forEach(result::addUsersItem);
+						return result;
+				})
+				.map(ResponseEntity::ok);
 
 	}
 
