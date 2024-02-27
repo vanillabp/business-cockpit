@@ -9,7 +9,7 @@ import java.util.Map;
 
 public abstract class AdapterConfigurationBase<P extends BusinessCockpitServiceImplementation<?>> {
 
-    private Map<Class<?>, P> connectableServices = new HashMap<>();
+    private final Map<Class<?>, P> connectableServices = new HashMap<>();
 
     public abstract String getAdapterId();
     

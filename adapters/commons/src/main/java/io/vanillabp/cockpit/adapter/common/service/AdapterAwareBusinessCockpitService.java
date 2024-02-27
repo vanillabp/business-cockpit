@@ -3,16 +3,15 @@ package io.vanillabp.cockpit.adapter.common.service;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-import io.vanillabp.springboot.adapter.VanillaBpProperties.WorkflowAndModuleAdapters;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A business-cockpit service which is aware of multiple adapter-specific business-cockpit services.
@@ -22,8 +21,8 @@ import java.util.stream.Collectors;
  * adapters, the action should complete successfully.
  * <p>
  * @see VanillaBpProperties#getDefaultAdapter()
- * @see VanillaBpProperties#getWorkflows()
- * @see WorkflowAndModuleAdapters#getAdapter()
+ * @see VanillaBpProperties.WorkflowModuleAdapterProperties#getDefaultAdapter()
+ * @see VanillaBpProperties.WorkflowAdapterProperties#getDefaultAdapter()
  */
 public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitService<WA> {
 
@@ -31,11 +30,13 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
 
     private final Map<String, BusinessCockpitServiceImplementation<WA>> bcServicesByAdapter;
 
+    private final List<String> wiredAdapterIds = new LinkedList<>();
+
     private String workflowModuleId;
 
     private String primaryBpmnProcessId;
     
-    private Set<String> bpmnProcessIds = new HashSet<>();
+    private final Set<String> bpmnProcessIds = new HashSet<>();
 
     private final Class<?> workflowAggregateIdClass;
     
@@ -100,16 +101,16 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
     public void wire(
             final String adapterId,
             final String workflowModuleId,
-            final String bpmnProcessId) {
+            final String bpmnProcessId,
+            final boolean isPrimary) {
         
         if ((this.workflowModuleId != null)
                 && (workflowModuleId != null)
                 && !this.workflowModuleId.equals(workflowModuleId)) {
             
-            final var listOfAdapters = bcServicesByAdapter
-                    .keySet()
-                    .stream()
-                    .collect(Collectors.joining("', '"));
+            final var listOfAdapters = String.join(
+                    "', '",
+                    bcServicesByAdapter.keySet());
             
             throw new RuntimeException("Wiring the workflowModuleId '"
                     + workflowModuleId
@@ -128,10 +129,9 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
         if (bpmnProcessIds.contains(bpmnProcessId)
                 && !bcServicesByAdapter.containsKey(adapterId)) {
             
-            final var listOfAdapters = bcServicesByAdapter
-                    .keySet()
-                    .stream()
-                    .collect(Collectors.joining("', '"));
+            final var listOfAdapters = String.join(
+                    "', '",
+                    bcServicesByAdapter.keySet());
             
             throw new RuntimeException("Wiring the bpmnProcessId '"
                     + bpmnProcessId
@@ -152,26 +152,32 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
         if (this.workflowModuleId == null) {
             this.workflowModuleId = workflowModuleId;
         }
+
+        if (isPrimary) {
+            this.primaryBpmnProcessId = bpmnProcessId;
+        }
+
+        wiredAdapterIds.add(adapterId);
+        if (wiredAdapterIds.size() == bcServicesByAdapter.size()) { // all adapters wired for this service
+            properties.validatePropertiesFor(
+                    wiredAdapterIds,
+                    workflowModuleId,
+                    bpmnProcessId);
+        }
+
         this.bpmnProcessIds.add(bpmnProcessId);
         
     }
 
-    private List<String> determineAdapterIds() {
+    private List<String> getAdapterIds() {
         
-        return properties
-                .getWorkflows()
-                .stream()
-                .filter(workflow -> workflow.matchesAny(workflowModuleId, bpmnProcessIds))
-                .findFirst()
-                .map(WorkflowAndModuleAdapters::getAdapter)
-                .filter(adapter -> !adapter.isEmpty())
-                .orElse(properties.getDefaultAdapter());
+        return properties.getDefaultAdapterFor(workflowModuleId, primaryBpmnProcessId);
 
     }
     
     private String determinePrimaryAdapterId() {
         
-        return determineAdapterIds().get(0);
+        return getAdapterIds().get(0);
         
     }
     

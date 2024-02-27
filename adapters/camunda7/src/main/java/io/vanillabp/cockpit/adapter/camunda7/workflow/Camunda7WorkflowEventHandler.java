@@ -4,7 +4,7 @@ import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.ProcessWorkflow
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.ProcessWorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowAfterTransactionEvent;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowEvent;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RepositoryService;
@@ -33,18 +33,18 @@ public class Camunda7WorkflowEventHandler {
     private final static ThreadLocal<List<String>> workflowsAfterTransaction = ThreadLocal.withInitial(() -> new LinkedList<>());
     
     private final WorkflowPublishing workflowPublishing;
-    private final CockpitProperties cockpitProperties;
+    private final VanillaBpCockpitProperties properties;
     private final RepositoryService repositoryService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final HistoryService historyService;
 
     public Camunda7WorkflowEventHandler(
-            final CockpitProperties cockpitProperties,
+            final VanillaBpCockpitProperties properties,
             final HistoryService historyService,
             final RepositoryService repositoryService,
             final WorkflowPublishing workflowPublishing,
             final ApplicationEventPublisher applicationEventPublisher) {
-        this.cockpitProperties = cockpitProperties;
+        this.properties = properties;
         this.repositoryService = repositoryService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.workflowPublishing = workflowPublishing;
@@ -58,7 +58,7 @@ public class Camunda7WorkflowEventHandler {
     @EventListener
     public void listenProcessInstanceEvents(HistoricProcessInstanceEventEntity processInstanceEvent) {
         
-        if (!cockpitProperties.isWorkflowListEnabled()) {
+        if (!properties.getCockpit().isWorkflowListEnabled()) {
             return;
         }
 

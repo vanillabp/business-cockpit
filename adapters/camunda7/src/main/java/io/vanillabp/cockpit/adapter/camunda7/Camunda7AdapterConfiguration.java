@@ -11,10 +11,9 @@ import io.vanillabp.cockpit.adapter.camunda7.wiring.WiringBpmnParseListener;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda7.workflow.Camunda7WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
@@ -78,7 +77,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     private ProcessEngine processEngine;
 
     @Autowired
-    private CockpitProperties cockpitProperties;
+    private VanillaBpCockpitProperties properties;
     
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -103,7 +102,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             final Camunda7WorkflowWiring workflowWiring) {
         
         return new WiringBpmnParseListener(
-                cockpitProperties.isUserTasksEnabled(),
+                properties.getCockpit().isUserTasksEnabled(),
                 userTaskWiring,
                 userTaskEventHandler,
                 workflowWiring);
@@ -123,7 +122,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda7UserTaskWiring cockpitCamunda7UserTaskWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -132,8 +130,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda7UserTaskWiring(
                 applicationContext,
                 springBeanUtil,
-                cockpitProperties,
-                workflowsCockpitProperties,
+                properties,
                 applicationEventPublisher,
                 templating,
                 connectableServices,
@@ -146,7 +143,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda7WorkflowWiring cockpitCamunda7WorkflowWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -154,8 +150,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda7WorkflowWiring(
                 applicationContext,
                 springBeanUtil,
-                cockpitProperties,
-                workflowsCockpitProperties,
+                properties,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
                 getConnectableServices(),
@@ -186,7 +181,6 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier) {
         
         return new Camunda7WiringPlugin(
-                cockpitProperties,
                 wiringBpmnParseListener,
                 historyEventProducerSupplier);
         
@@ -196,7 +190,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda7WorkflowEventHandler cockpitCamunda7WorkflowEventHandler() {
 
         return new Camunda7WorkflowEventHandler(
-                cockpitProperties,
+                properties,
                 historyService,
                 repositoryService,
                 workflowPublishing,

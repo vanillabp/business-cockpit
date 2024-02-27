@@ -51,7 +51,8 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
     protected abstract BCS connectToBpms(
             String workflowModuleId,
             Class<?> workflowAggregateClass,
-            String bpmnProcessId);
+            String bpmnProcessId,
+            boolean isPrimary);
     
     public BCS wireService(
             final String workflowModuleId,
@@ -60,11 +61,18 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
         final var workflowAggregateAndServiceClass =
                 determineAndValidateWorkflowAggregateAndServiceClass(bpmnProcessId);
         final var workflowAggregateClass = workflowAggregateAndServiceClass.getKey();
-        
+        final var workflowServiceClass = workflowAggregateAndServiceClass.getValue();
+
+        final var isPrimaryProcessWiring = isPrimaryProcessWiring(
+                workflowModuleId,
+                bpmnProcessId,
+                workflowServiceClass);
+
         return connectToBpms(
                 workflowModuleId,
                 workflowAggregateClass,
-                bpmnProcessId);
+                bpmnProcessId,
+                isPrimaryProcessWiring);
         
     }
     

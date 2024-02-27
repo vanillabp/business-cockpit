@@ -62,11 +62,11 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
         this.workflowEventHandler = workflowEventHandler;
 
     }
-    
 
     public void wire(
             final String workflowModuleId,
-            final String bpmnProcessId) {
+            final String bpmnProcessId,
+            final boolean isPrimary) {
 
         if (parent == null) {
             throw new RuntimeException("Not yet wired! If this occurs Spring Boot dependency of either "
@@ -78,7 +78,8 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
         parent.wire(
                 Camunda7AdapterConfiguration.ADAPTER_ID,
                 workflowModuleId,
-                bpmnProcessId);
+                bpmnProcessId,
+                isPrimary);
         
     }
     

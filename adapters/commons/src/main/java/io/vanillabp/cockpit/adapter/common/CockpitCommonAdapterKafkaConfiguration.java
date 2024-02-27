@@ -5,13 +5,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.kafka.UserTaskKafkaPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.kafka.UserTaskProtobufMapper;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowKafkaPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowProtobufMapper;
+import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -24,7 +25,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -35,15 +35,10 @@ import java.util.TimeZone;
 
 @AutoConfiguration
 @AutoConfigureBefore(KafkaAutoConfiguration.class)
-@EnableConfigurationProperties({
-        CockpitProperties.class,
-        UserTasksWorkflowProperties.class,
-        KafkaProperties.class
-})
 @ConditionalOnClass(KafkaTemplate.class)
 @ConditionalOnProperty(
-        prefix = CockpitProperties.PREFIX + ".kafka-topics",
-        name = {"workflow", "user-task"})
+        prefix = VanillaBpProperties.PREFIX + ".cockpit.kafka",
+        name = {"user-task-topic", "workflow-topic"})
 public class CockpitCommonAdapterKafkaConfiguration {
 
     @Value("${workerId}")
@@ -53,11 +48,7 @@ public class CockpitCommonAdapterKafkaConfiguration {
     private KafkaProperties kafkaProperties;
 
     @Autowired
-    private CockpitProperties properties;
-
-    @Autowired
-    private UserTasksWorkflowProperties workflowsCockpitProperties;
-
+    private VanillaBpCockpitProperties properties;
 
     @Bean
     public UserTaskPublishing userTaskKafkaPublishing(
@@ -67,7 +58,6 @@ public class CockpitCommonAdapterKafkaConfiguration {
         return new UserTaskKafkaPublishing(
                 workerId,
                 properties,
-                workflowsCockpitProperties,
                 new UserTaskProtobufMapper(objectMapper),
                 kafkaTemplate
         );
@@ -81,7 +71,6 @@ public class CockpitCommonAdapterKafkaConfiguration {
         return new WorkflowKafkaPublishing(
                 workerId,
                 properties,
-                workflowsCockpitProperties,
                 new WorkflowProtobufMapper(objectMapper),
                 kafkaTemplate
         );

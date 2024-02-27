@@ -3,8 +3,7 @@ package io.vanillabp.cockpit.adapter.camunda7.workflow;
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda7.service.Camunda7BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7Connectable;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
@@ -28,9 +27,7 @@ import java.util.function.BiFunction;
 
 public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Connectable, WorkflowMethodParameterFactory, Camunda7BusinessCockpitService<?>> {
 
-    private final CockpitProperties cockpitProperties;
-    
-    private final UserTasksWorkflowProperties workflowsCockpitProperties;
+    private final VanillaBpCockpitProperties properties;
 
     private final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices;
 
@@ -43,16 +40,14 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
     public Camunda7WorkflowWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
-            final CockpitProperties cockpitProperties,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            final VanillaBpCockpitProperties properties,
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda7BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda7WorkflowEventHandler workflowEventListener) {
         super(applicationContext, springBeanUtil, methodParameterFactory);
-        this.cockpitProperties = cockpitProperties;
-        this.workflowsCockpitProperties = workflowsCockpitProperties;
+        this.properties = properties;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
@@ -79,7 +74,8 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
     protected Camunda7BusinessCockpitService<?> connectToBpms(
             final String workflowModuleId,
             final Class<?> workflowAggregateClass,
-            final String bpmnProcessId) {
+            final String bpmnProcessId,
+            final boolean isPrimary) {
 
         final var bcService = connectableCockpitServices
                 .stream()
@@ -91,7 +87,8 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         if (bcService != null) {
             bcService.wire(
                     workflowModuleId,
-                    bpmnProcessId);
+                    bpmnProcessId,
+                    isPrimary);
         }
         
         return bcService;
@@ -206,17 +203,9 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
                             + "' which is mandatory for methods providing user-task details!");
         }
 
-        final var workflowProperties = workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> props.matches(workflowModuleId, bpmnProcessId))
-                .findFirst()
-                .get();
-
         @SuppressWarnings("unchecked")
         final var workflowHandler = new Camunda7WorkflowHandler(
-                cockpitProperties,
-                workflowProperties,
+                properties,
                 processService,
                 bpmnProcessId,
                 templating,

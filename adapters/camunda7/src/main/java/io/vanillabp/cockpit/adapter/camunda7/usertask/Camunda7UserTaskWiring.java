@@ -1,9 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
@@ -23,10 +21,8 @@ import java.util.Optional;
 
 public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Connectable, UserTaskMethodParameterFactory> {
 
-    private final CockpitProperties properties;
-    
-    private final UserTasksWorkflowProperties workflowsCockpitProperties;
-    
+    private final VanillaBpCockpitProperties properties;
+
     private final ApplicationEventPublisher applicationEventPublisher;
     
     private final Optional<Configuration> templating;
@@ -40,8 +36,7 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
     public Camunda7UserTaskWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
-            final CockpitProperties properties,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            final VanillaBpCockpitProperties properties,
             final ApplicationEventPublisher applicationEventPublisher,
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -51,7 +46,6 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
         super(applicationContext, springBeanUtil, methodParameterFactory);
         this.connectableServices = connectableServices;
         this.properties = properties;
-        this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
@@ -138,27 +132,11 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
         }
         
         final var repository = processService.getWorkflowAggregateRepository();
-
-        final var userTasksProperties = new UserTasksProperties[1];
-        final var userTaskProperties = workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> props.matches(workflowModuleId, connectable.getBpmnProcessId()))
-                .findFirst()
-                .map(p -> {
-                    userTasksProperties[0] = p;
-                    return p;
-                })
-                .get()
-                .getUserTasks()
-                .get(connectable.getTaskDefinition());
                 
         @SuppressWarnings("unchecked")
         final var taskHandler = new Camunda7UserTaskHandler(
                 connectable.getTaskDefinition(),
                 properties,
-                userTasksProperties[0],
-                userTaskProperties,
                 applicationEventPublisher,
                 templating,
                 connectable.getBpmnProcessId(),

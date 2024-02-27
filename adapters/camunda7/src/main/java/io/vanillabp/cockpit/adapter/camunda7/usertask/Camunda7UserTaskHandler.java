@@ -4,10 +4,8 @@ import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda7.service.UserTaskImpl;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.ProcessUserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda7.usertask.publishing.UserTaskEvent;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
@@ -20,7 +18,6 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.service.MultiInstanceElementResolver;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.MultiInstance;
-import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
@@ -40,7 +37,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.util.StringUtils;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -50,21 +46,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda7UserTaskHandler.class);
     
-    private final CockpitProperties properties;
-    
-    private final UserTaskProperties userTaskProperties;
-    
     private final ApplicationEventPublisher applicationEventPublisher;
-    
 
     private final AdapterAwareProcessService<?> processService;
     
@@ -76,9 +67,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     
     public Camunda7UserTaskHandler(
             final String taskDefinition,
-            final CockpitProperties properties,
-            final UserTasksProperties workflowProperties,
-            final UserTaskProperties userTaskProperties,
+            final VanillaBpCockpitProperties properties,
             final ApplicationEventPublisher applicationEventPublisher,
             final Optional<Configuration> templating,
             final String bpmnProcessId,
@@ -88,41 +77,22 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final Method method,
             final List<MethodParameter> parameters) {
         
-        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
+        super(properties, templating, workflowAggregateRepository, bean, method, parameters);
         this.taskDefinition = taskDefinition;
-        this.properties = properties;
-        this.userTaskProperties = userTaskProperties != null
-                ? userTaskProperties
-                : new UserTaskProperties();
         this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
 
-        if (this.templating.isEmpty()
-                && !StringUtils.hasText(workflowProperties.getBpmnDescriptionLanguage())
-                && ((userTaskProperties == null)
-                        || !StringUtils.hasText(workflowProperties.getBpmnDescriptionLanguage()))) {
-                    
-            throw new RuntimeException(
-                    "Templating is inactive because property '"
-                    + CockpitProperties.PREFIX
-                    + ".template-loader-path' has no value. It is mandatory to set either '"
-                    + VanillaBpProperties.PREFIX
-                    + ".workflows[workflow-module-id="
-                    + workflowProperties.getWorkflowModuleId()
-                    + ", bpmn-process-id="
-                    + workflowProperties.getBpmnProcessId()
-                    + "].bpmn-description-language' or '"
-                    + VanillaBpProperties.PREFIX
-                    + ".workflows[workflow-module-id="
-                    + workflowProperties.getWorkflowModuleId()
-                    + ", bpmn-process-id="
-                    + workflowProperties.getBpmnProcessId()
-                    + "].user-tasks["
-                    + taskDefinition
-                    + "].bpmn-description-language'!");
+        if (this.templating.isEmpty()) {
+            try {
+                properties
+                        .getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Since templating is inactive the language used for texts in BPMN needs to be defined!", e);
+            }
         }
-        
+
         determineBusinessKeyToIdMapper();
         
     }
@@ -138,15 +108,16 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final TaskEntity task,
             final String eventName) {
 
+        final var i18nLanguages = properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId);
         final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
                 switch (task.getEventName()) {
                     case TaskListener.EVENTNAME_CREATE:
-                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages());
+                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
                         yield userTaskCreatedEvent;
 
                     case TaskListener.EVENTNAME_UPDATE:
-                        UserTaskUpdatedEvent userTaskUpdatedEvent = new UserTaskUpdatedEvent(task.getTenantId(), properties.getI18nLanguages());
+                        UserTaskUpdatedEvent userTaskUpdatedEvent = new UserTaskUpdatedEvent(task.getTenantId(), i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskUpdatedEvent);
                         yield userTaskUpdatedEvent;
 
@@ -179,7 +150,8 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     public UserTask getUserTask(
             final TaskEntity task) {
 
-        final var userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages());
+        final var userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages(
+                processService.getWorkflowModuleId(), bpmnProcessId));
         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
         return new UserTaskImpl(userTaskCreatedEvent);
 
@@ -264,14 +236,12 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         if ((event.getI18nLanguages() == null)
                 || event.getI18nLanguages().isEmpty()){
             event.setI18nLanguages(
-                     properties.getI18nLanguages());
+                     properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId));
         }
         
         if (templating.isEmpty()) {
 
-            final var language = StringUtils.hasText(userTaskProperties.getBpmnDescriptionLanguage())
-                    ? userTaskProperties.getBpmnDescriptionLanguage()
-                    : workflowProperties.getBpmnDescriptionLanguage();
+            final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
             if ((details.getWorkflowTitle() == null)
                     || details.getWorkflowTitle().isEmpty()) {
@@ -299,6 +269,10 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             
         } else {
 
+            final var templatesPathes = List.of(
+                    properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId, taskDefinition),
+                    properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
+
             event
                     .getI18nLanguages()
                     .forEach(language -> {
@@ -316,37 +290,32 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                 language,
                                 locale,
                                 "workflow-title.ftl",
-                                () -> details.getWorkflowTitle(),
-                                () -> event.getWorkflowTitle(),
+                                details::getWorkflowTitle,
+                                event::getWorkflowTitle,
                                 bpmnProcessName,
+                                templatesPathes,
                                 details.getTemplateContext(),
                                 errorLoggingContext);
 
                         setTextInEvent(
                                 language,
                                 locale,
-                                StringUtils.hasText(userTaskProperties.getTemplatesPath())
-                                        ? userTaskProperties.getTemplatesPath()
-                                                + File.separator
-                                                + "title.ftl"
-                                        : "title.ftl",
-                                () -> details.getTitle(),
-                                () -> event.getTitle(),
+                                "title.ftl",
+                                details::getTitle,
+                                event::getTitle,
                                 delegateTask.getName(),
+                                templatesPathes,
                                 details.getTemplateContext(),
                                 errorLoggingContext);
                         
                         setTextInEvent(
                                 language,
                                 locale,
-                                StringUtils.hasText(userTaskProperties.getTemplatesPath())
-                                ? userTaskProperties.getTemplatesPath()
-                                        + File.separator
-                                        + "task-definition-title.ftl"
-                                : "task-definition-title.ftl",
-                                () -> details.getTaskDefinitionTitle(),
-                                () -> event.getTaskDefinitionTitle(),
+                                "task-definition-title.ftl",
+                                details::getTaskDefinitionTitle,
+                                event::getTaskDefinitionTitle,
                                 delegateTask.getName(),
+                                templatesPathes,
                                 details.getTemplateContext(),
                                 errorLoggingContext);
                         
@@ -356,9 +325,10 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                                 "details-fulltext-search.ftl",
                                                 e),
                                         locale,
+                                        templatesPathes,
                                         details.getDetailsFulltextSearch(),
                                         details.getTemplateContext(),
-                                        () -> delegateTask.getName()));
+                                        delegateTask::getName));
                         
                     });
 
@@ -481,11 +451,11 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                     (args, param) -> processTaskParameter(
                             args,
                             param,
-                            taskParameter -> execution.getVariableLocal(taskParameter)),
+                            execution::getVariableLocal),
                     (args, param) -> processTaskIdParameter(
                             args,
                             param,
-                            () -> delegateTask.getId()),
+                            delegateTask::getId),
                     (args, param) -> processPrefilledUserTaskDetailsParameter(
                             args,
                             param,
@@ -533,17 +503,17 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         if (String.class.isAssignableFrom(workflowAggregateIdClass)) {
             parseWorkflowAggregateIdFromBusinessKey = businessKey -> businessKey;
         } else if (int.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Integer.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Integer::valueOf;
         } else if (long.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Long.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Long::valueOf;
         } else if (float.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Float.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Float::valueOf;
         } else if (double.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Double.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Double::valueOf;
         } else if (byte.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Byte.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Byte::valueOf;
         } else if (BigInteger.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> new BigInteger(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = BigInteger::new;
         } else {
             try {
                 final var valueOfMethod = workflowAggregateIdClass.getMethod("valueOf", String.class);
@@ -656,9 +626,9 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                     }
                     return true;
                 })
-                .filter(candidate -> candidate.getUserId() != null)
                 .map(IdentityLink::getUserId)
-                .collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .toList();
         
         return Map.entry(users, groups);
 

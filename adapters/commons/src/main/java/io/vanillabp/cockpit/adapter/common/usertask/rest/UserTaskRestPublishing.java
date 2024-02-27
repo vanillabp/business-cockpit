@@ -1,53 +1,35 @@
 package io.vanillabp.cockpit.adapter.common.usertask.rest;
 
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishingBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
-import java.util.List;
 import java.util.Optional;
 
-public class UserTaskRestPublishing implements UserTaskPublishing {
-
-    private static final Logger logger = LoggerFactory.getLogger(UserTaskRestPublishing.class);
-
-    private static final UserTaskProperties EMPTY_PROPERTIES = new UserTaskProperties();
-
-    private String workerId;
+public class UserTaskRestPublishing extends UserTaskPublishingBase implements UserTaskPublishing {
 
     private final Optional<BpmsApi> bpmsApiV1;
-
-    private final CockpitProperties properties;
-
-    private final UserTasksWorkflowProperties workflowsCockpitProperties;
 
     private final UserTaskRestMapper userTaskMapper;
 
     public UserTaskRestPublishing(
             final String workerId,
             final Optional<BpmsApi> bpmsApiV1,
-            final CockpitProperties properties,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            final VanillaBpCockpitProperties properties,
             final UserTaskRestMapper userTaskMapper) {
 
-        this.workerId = workerId;
+        super(workerId, properties);
         this.bpmsApiV1 = bpmsApiV1;
-        this.properties = properties;
-        this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.userTaskMapper = userTaskMapper;
         
     }
@@ -61,10 +43,10 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
         }
         
         throw new RuntimeException("You have to configure either '"
-                + CockpitProperties.PREFIX
-                + ".client' or '"
-                + CockpitProperties.PREFIX
-                + ".stream' to define were to send user task events to!");
+                + VanillaBpProperties.PREFIX
+                + ".cockpit.rest' or '"
+                + VanillaBpProperties.PREFIX
+                + ".cockpit.kafka' to define were to send user task events to!");
         
     }
 
@@ -109,58 +91,6 @@ public class UserTaskRestPublishing implements UserTaskPublishing {
                     + "'!");
         }
         
-    }
-
-    private void editUserTaskCreatedOrUpdatedEvent(UserTaskCreatedEvent eventObject) {
-        final var event = eventObject;
-        event.setSource(workerId);
-
-        final var commonWorkflowsProperties = workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> props.matches(event.getWorkflowModule()))
-                .findFirst()
-                .get();
-        final var workflowsProperties = workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> !props.matches(event.getWorkflowModule()))
-                .filter(props -> props.matches(event.getWorkflowModule(), event.getBpmnProcessId()))
-                .findFirst()
-                .get();
-        final var userTaskProperties = workflowsProperties
-                .getUserTasks()
-                .getOrDefault(event.getTaskDefinition(), EMPTY_PROPERTIES);
-
-        event.setTaskProviderApiUriPath(
-                StringUtils.hasText(workflowsProperties.getTaskProviderApiPath())
-                        ? workflowsProperties.getTaskProviderApiPath()
-                        : commonWorkflowsProperties.getTaskProviderApiPath());
-        var uiUriPath = workflowsProperties.getUiUriPath();
-        if (!StringUtils.hasText(uiUriPath)) {
-            uiUriPath = commonWorkflowsProperties.getUiUriPath();
-        }
-        if (!StringUtils.hasText(uiUriPath)) {
-            uiUriPath = event.getUiUriPath();
-        } else if (StringUtils.hasText(event.getUiUriPath())) {
-            uiUriPath += event.getUiUriPath();
-        }
-        event.setUiUriPath(uiUriPath.replace("//", "/"));
-        var uiUriType = userTaskProperties.getUiUriType();
-        if (!StringUtils.hasText(uiUriType)) {
-            uiUriType = workflowsProperties.getUiUriType();
-        }
-        if (!StringUtils.hasText(uiUriType)) {
-            uiUriType = commonWorkflowsProperties.getUiUriType();
-        }
-        if (!StringUtils.hasText(uiUriType)) {
-            uiUriType = properties.getUiUriType();
-        }
-        event.setUiUriType(UserTaskUiUriType.fromValue(uiUriType));
-        event.setWorkflowModuleUri(
-                StringUtils.hasText(workflowsProperties.getWorkflowModuleUri())
-                        ? workflowsProperties.getWorkflowModuleUri()
-                        : commonWorkflowsProperties.getWorkflowModuleUri());
     }
 
 }

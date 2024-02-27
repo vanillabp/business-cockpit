@@ -1,27 +1,23 @@
 package io.vanillabp.cockpit.adapter.camunda7.wiring;
 
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
 import org.camunda.bpm.engine.impl.cfg.AbstractProcessEnginePlugin;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.persistence.deploy.Deployer;
 import org.camunda.bpm.engine.impl.persistence.entity.DeploymentEntity;
+import org.camunda.bpm.engine.impl.util.ParseUtil;
 
 import java.util.LinkedList;
 
 public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
-
-    private final CockpitProperties cockpitProperties;
 
     private final WiringBpmnParseListener wiringBpmnParseListener;
     
     private final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier;
     
     public Camunda7WiringPlugin(
-            final CockpitProperties cockpitProperties,
             final WiringBpmnParseListener wiringBpmnParseListener,
             final Camunda7HistoryEventProducerSupplier historyEventProducerSupplier) {
 
-        this.cockpitProperties = cockpitProperties;
         this.wiringBpmnParseListener = wiringBpmnParseListener;
         this.historyEventProducerSupplier = historyEventProducerSupplier;
         
@@ -31,7 +27,16 @@ public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
     public void preInit(
             final ProcessEngineConfigurationImpl configuration) {
 
-        if (cockpitProperties.isBefore7203()) {
+        final var engineInfo = ParseUtil.parseProcessEngineVersion(true);
+        final var versionParts = engineInfo.getVersion().split("\\.");
+        final var majorVersion = Integer.parseInt(versionParts[0]);
+        final var minorVersion = Integer.parseInt(versionParts[1]);
+        final var patchVersion = Integer.parseInt(versionParts[2]);
+
+        final var before_7_20_3 = (majorVersion <= 7)
+                && (minorVersion <= 20)
+                && (patchVersion < 3);
+        if (before_7_20_3) {
             // before 7.20.3-ee builtin listeners were registered in the wrong order
             if (configuration.getCustomPreBPMNParseListeners() == null) {
                 configuration.setCustomPreBPMNParseListeners(new LinkedList<>());

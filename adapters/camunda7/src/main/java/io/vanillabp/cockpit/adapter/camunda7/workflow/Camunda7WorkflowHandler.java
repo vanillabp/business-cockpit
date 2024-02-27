@@ -1,8 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda7.workflow;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
@@ -38,9 +37,6 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda7WorkflowHandler.class);
 
-    private final CockpitProperties cockpitProperties;
-
-
     private final AdapterAwareProcessService<?> processService;
 
     private final String bpmnProcessId;
@@ -48,8 +44,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
     
     public Camunda7WorkflowHandler(
-            final CockpitProperties cockpitProperties,
-            final UserTasksProperties workflowProperties,
+            final VanillaBpCockpitProperties properties,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
             final Optional<Configuration> templating,
@@ -58,8 +53,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final Method method,
             final List<MethodParameter> parameters) {
 
-        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
-        this.cockpitProperties = cockpitProperties;
+        super(properties, templating, workflowAggregateRepository, bean, method, parameters);
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
 
@@ -89,7 +83,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         } else {
             WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
-                    cockpitProperties.getI18nLanguages());
+                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId));
             fillWorkflowCreatedEvent(processInstance, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
             workflowEvent = workflowUpdatedEvent;
         }
@@ -112,7 +106,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
             WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
                     workflowModuleId,
-                    cockpitProperties.getI18nLanguages()
+                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId)
             );
 
             fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowCreatedEvent);
@@ -131,7 +125,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
             WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
-                    cockpitProperties.getI18nLanguages());
+                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId));
             fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
             workflowEvent = workflowUpdatedEvent;
         }
@@ -228,12 +222,12 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         if ((event.getI18nLanguages() == null)
                 || event.getI18nLanguages().isEmpty()){
             event.setI18nLanguages(
-                    cockpitProperties.getI18nLanguages());
+                    properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId));
         }
 
         if (templating.isEmpty()) {
 
-            final var language = workflowProperties.getBpmnDescriptionLanguage();
+            final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
             if ((details.getTitle() == null)
                     || details.getTitle().isEmpty()) {
@@ -249,39 +243,43 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             
         } else {
 
+            final var templatesPathes = List.of(properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
+
             event
-            .getI18nLanguages()
-            .forEach(language -> {
-                final var locale = Locale.forLanguageTag(language);
+                    .getI18nLanguages()
+                    .forEach(language -> {
+                        final var locale = Locale.forLanguageTag(language);
 
-                final BiFunction<String, Exception, Object[]> errorLoggingContext
-                        = (name, e) -> new Object[] {
-                            name,
-                            event.getWorkflowId(),
-                            e
-                        };
+                        final BiFunction<String, Exception, Object[]> errorLoggingContext
+                                = (name, e) -> new Object[] {
+                                    name,
+                                    event.getWorkflowId(),
+                                    e
+                                };
 
-                setTextInEvent(
-                        language,
-                        locale,
-                        "workflow-title.ftl",
-                        () -> details.getTitle(),
-                        () -> event.getTitle(),
-                        bpmnProcessName,
-                        details.getTemplateContext(),
-                        errorLoggingContext);
-                
-                event.setDetailsFulltextSearch(
-                        renderText(
-                                e -> errorLoggingContext.apply(
-                                        "details-fulltext-search.ftl",
-                                        e),
+                        setTextInEvent(
+                                language,
                                 locale,
-                                details.getDetailsFulltextSearch(),
+                                "workflow-title.ftl",
+                                () -> details.getTitle(),
+                                () -> event.getTitle(),
+                                bpmnProcessName,
+                                templatesPathes,
                                 details.getTemplateContext(),
-                                () -> bpmnProcessName));
-                
-            });
+                                errorLoggingContext);
+
+                        event.setDetailsFulltextSearch(
+                                renderText(
+                                        e -> errorLoggingContext.apply(
+                                                "details-fulltext-search.ftl",
+                                                e),
+                                        locale,
+                                        templatesPathes,
+                                        details.getDetailsFulltextSearch(),
+                                        details.getTemplateContext(),
+                                        () -> bpmnProcessName));
+
+                    });
             
         }
         

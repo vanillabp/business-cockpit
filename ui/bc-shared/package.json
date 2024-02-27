@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-shared",
-  "version": "0.0.2-SNAPSHOT",
+  "version": "0.0.3-SNAPSHOT",
   "sideEffects": false,
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +12,7 @@
   ],
   "dependencies": {
     "@microsoft/fetch-event-source": "2.0.1",
-    "@vanillabp/bc-official-gui-client": "0.0.2-SNAPSHOT",
+    "@vanillabp/bc-official-gui-client": "0.0.3-SNAPSHOT",
     "react-cookie": "4.1.1",
     "usehooks-ts": "2.7.1"
   },
