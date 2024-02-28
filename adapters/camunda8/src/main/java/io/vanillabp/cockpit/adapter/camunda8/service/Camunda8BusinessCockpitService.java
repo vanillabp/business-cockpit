@@ -32,14 +32,14 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
         this.parseWorkflowAggregateIdFromBusinessKey = parseWorkflowAggregateIdFromBusinessKey;
     }
 
-
     public void wire(
             final String workflowModuleId,
-            final String bpmnProcessId) {
+            final String bpmnProcessId,
+            boolean isPrimary) {
 
         if (parent == null) {
             throw new RuntimeException("Not yet wired! If this occurs Spring Boot dependency of either "
-                    + "VanillaBP Spring Boot support or Camunda7 adapter was changed introducing this "
+                    + "VanillaBP Spring Boot support or Camunda8 adapter was changed introducing this "
                     + "lack of wiring. Please report a Github issue!");
 
         }
@@ -47,7 +47,8 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
         parent.wire(
                 Camunda8AdapterConfiguration.ADAPTER_ID,
                 workflowModuleId,
-                bpmnProcessId);
+                bpmnProcessId,
+                isPrimary);
     }
 
 

@@ -57,7 +57,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring) {
 
-        super(properties);
+        super(properties, applicationName);
         this.deploymentService = deploymentService;
         this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;

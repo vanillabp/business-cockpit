@@ -6,7 +6,7 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLif
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.ProcessUserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.*;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
@@ -25,7 +25,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.util.StringUtils;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -40,15 +39,13 @@ import java.util.function.Function;
 public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda8UserTaskHandler.class);
-
-    private final CockpitProperties cockpitProperties;
-    private final UserTaskProperties userTaskProperties;
     private final ApplicationEventPublisher applicationEventPublisher;
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
     private final AdapterAwareProcessService<?> processService;
     private final ProcessInstanceRepository processInstanceRepository;
     private final String taskDefinition;
     private final String taskTitle;
+    private final String bpmnProcessId;
 
     @Override
     protected Logger getLogger() {
@@ -57,11 +54,10 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     public Camunda8UserTaskHandler(
             String taskDefinition,
-            CockpitProperties cockpitProperties,
-            UserTasksProperties workflowProperties,
-            UserTaskProperties userTaskProperties,
+            VanillaBpCockpitProperties cockpitProperties,
             ApplicationEventPublisher applicationEventPublisher,
             Optional<Configuration> templating,
+            String bpmnProcessId,
             String taskTitle,
             AdapterAwareProcessService<?> processService,
             ProcessInstanceRepository processInstanceRepository,
@@ -70,11 +66,10 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             Method method,
             List<MethodParameter> parameters) {
 
-        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
+        super(cockpitProperties, templating, workflowAggregateRepository, bean, method, parameters);
+        this.bpmnProcessId = bpmnProcessId;
         this.taskDefinition = taskDefinition;
         this.taskTitle = taskTitle;
-        this.cockpitProperties = cockpitProperties;
-        this.userTaskProperties = userTaskProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
         this.processInstanceRepository = processInstanceRepository;
@@ -157,9 +152,11 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
     public void notify(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
+
+        final var i18nLanguages = properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId);
         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
                 "demo",
-                cockpitProperties.getI18nLanguages()
+                i18nLanguages
         );
         this.fillUserTaskCreatedEvent(camunda8UserTaskCreatedEvent, userTaskCreatedEvent);
         publishEvent(userTaskCreatedEvent);
@@ -197,7 +194,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         if ((userTaskCreatedEvent.getI18nLanguages() == null)
                 || userTaskCreatedEvent.getI18nLanguages().isEmpty()){
-            userTaskCreatedEvent.setI18nLanguages(cockpitProperties.getI18nLanguages());
+            userTaskCreatedEvent.setI18nLanguages(
+                    properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId)
+            );
         }
 
         filluserTaskDetailsByCustomDetails(
@@ -348,10 +347,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             UserTaskCreatedEvent event,
             UserTaskDetails details) {
 
-        final String language =
-                userTaskProperties != null && StringUtils.hasText(userTaskProperties.getBpmnDescriptionLanguage())
-                        ? userTaskProperties.getBpmnDescriptionLanguage()
-                        : workflowProperties.getBpmnDescriptionLanguage();
+        final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
         if ((details.getWorkflowTitle() == null)
                 || details.getWorkflowTitle().isEmpty()) {
@@ -385,6 +381,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             UserTaskCreatedEvent event,
             UserTaskDetails details) {
 
+        final var templatesPaths = List.of(
+                properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId, taskDefinition),
+                properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
         event
                 .getI18nLanguages()
                 .forEach(language -> {
@@ -405,34 +404,29 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                             details::getWorkflowTitle,
                             event::getWorkflowTitle,
                             bpmnProcessName,
+                            templatesPaths,
                             details.getTemplateContext(),
                             errorLoggingContext);
 
                     setTextInEvent(
                             language,
                             locale,
-                            userTaskProperties != null && StringUtils.hasText(userTaskProperties.getTemplatesPath())
-                                    ? userTaskProperties.getTemplatesPath()
-                                    + File.separator
-                                    + "title.ftl"
-                                    : "title.ftl",
+                            "title.ftl",
                             details::getTitle,
                             event::getTitle,
                             taskName,
+                            templatesPaths,
                             details.getTemplateContext(),
                             errorLoggingContext);
 
                     setTextInEvent(
                             language,
                             locale,
-                            userTaskProperties != null && StringUtils.hasText(userTaskProperties.getTemplatesPath())
-                                    ? userTaskProperties.getTemplatesPath()
-                                    + File.separator
-                                    + "task-definition-title.ftl"
-                                    : "task-definition-title.ftl",
+                            "task-definition-title.ftl",
                             details::getTaskDefinitionTitle,
                             event::getTaskDefinitionTitle,
                             taskName,
+                            templatesPaths,
                             details.getTemplateContext(),
                             errorLoggingContext);
 
@@ -442,6 +436,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                                             "details-fulltext-search.ftl",
                                             e),
                                     locale,
+                                    templatesPaths,
                                     details.getDetailsFulltextSearch(),
                                     details.getTemplateContext(),
                                     () -> taskName));

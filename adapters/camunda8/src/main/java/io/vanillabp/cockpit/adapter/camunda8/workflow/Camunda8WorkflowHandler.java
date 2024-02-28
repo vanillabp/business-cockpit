@@ -5,8 +5,7 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
@@ -37,7 +36,7 @@ import java.util.function.Function;
 public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     private static final Logger logger = LoggerFactory.getLogger(Camunda8WorkflowHandler.class);
 
-    private final CockpitProperties cockpitProperties;
+    private final VanillaBpCockpitProperties cockpitProperties;
 
     private final AdapterAwareProcessService<?> processService;
 
@@ -51,8 +50,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
 
     public Camunda8WorkflowHandler(
-            final CockpitProperties cockpitProperties,
-            final UserTasksProperties workflowProperties,
+            final VanillaBpCockpitProperties cockpitProperties,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
             final String bpmnProcessName,
@@ -63,7 +61,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final Method method,
             final List<MethodParameter> parameters) {
 
-        super(workflowProperties, templating, workflowAggregateRepository, bean, method, parameters);
+        super(cockpitProperties, templating, workflowAggregateRepository, bean, method, parameters);
         this.cockpitProperties = cockpitProperties;
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
@@ -116,9 +114,11 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     public WorkflowEvent processCreatedEvent(
             final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
 
+        final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
+
         WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
                 camunda8WorkflowCreatedEvent.getTenantId(),
-                List.of(workflowProperties.getBpmnDescriptionLanguage())
+                List.of(language)
         );
         fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowCreatedEvent);
         saveBusinessKeyProcessInstanceConnection(camunda8WorkflowCreatedEvent);
@@ -226,12 +226,12 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         if ((event.getI18nLanguages() == null)
                 || event.getI18nLanguages().isEmpty()){
             event.setI18nLanguages(
-                    cockpitProperties.getI18nLanguages());
+                    cockpitProperties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId));
         }
 
         if (templating.isEmpty()) {
 
-            final var language = workflowProperties.getBpmnDescriptionLanguage();
+            final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
             if ((details.getTitle() == null)
                     || details.getTitle().isEmpty()) {
@@ -246,6 +246,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             }
 
         } else {
+            final var templatesPathes = List.of(properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
 
             event
                     .getI18nLanguages()
@@ -266,6 +267,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                 details::getTitle,
                                 event::getTitle,
                                 bpmnProcessName,
+                                templatesPathes,
                                 details.getTemplateContext(),
                                 errorLoggingContext);
 
@@ -275,6 +277,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                                 "details-fulltext-search.ftl",
                                                 e),
                                         locale,
+                                        templatesPathes,
                                         details.getDetailsFulltextSearch(),
                                         details.getTemplateContext(),
                                         () -> bpmnProcessName));

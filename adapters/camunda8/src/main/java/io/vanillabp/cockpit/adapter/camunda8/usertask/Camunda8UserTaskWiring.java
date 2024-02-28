@@ -4,10 +4,7 @@ import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTaskProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
@@ -28,9 +25,7 @@ import java.util.Optional;
 
 public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> {
 
-    private final CockpitProperties properties;
-
-    private final UserTasksWorkflowProperties workflowsCockpitProperties;
+    private final VanillaBpCockpitProperties vanillaBpCockpitProperties;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -46,9 +41,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     public Camunda8UserTaskWiring(
             final ApplicationContext applicationContext,
-            final CockpitProperties properties,
             final SpringBeanUtil springBeanUtil,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
+            final VanillaBpCockpitProperties vanillaBpCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
@@ -58,8 +52,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         
         super(applicationContext, springBeanUtil, new UserTaskMethodParameterFactory());
         this.connectableServices = connectableServices;
-        this.properties = properties;
-        this.workflowsCockpitProperties = workflowsCockpitProperties;
+        this.vanillaBpCockpitProperties = vanillaBpCockpitProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
@@ -138,44 +131,16 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                     + "' which is mandatory for methods providing user-task details!");
         }
 
-        workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> props.matches(workflowModuleId, connectable.getBpmnProcessId()))
-                .findFirst()
-                .ifPresent(userTasksProperties ->
-                        registerCamunda8UserTaskHandler(
-                                connectable,
-                                userTasksProperties,
-                                processService,
-                                bean,
-                                method,
-                                parameters
-                    ));
-    }
-
-    private void registerCamunda8UserTaskHandler(
-            Camunda8UserTaskConnectable connectable,
-            UserTasksProperties userTasksProperties,
-            final AdapterAwareProcessService<?> processService,
-            final Object bean,
-            final Method method,
-            final List<MethodParameter> parameters
-    ){
-
-        UserTaskProperties userTaskProperties =
-                userTasksProperties.getUserTasks().get(connectable.getTaskDefinition());
-
         CrudRepository<Object, Object> workflowAggregateRepository =
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository();
 
+
         Camunda8UserTaskHandler taskHandler = new Camunda8UserTaskHandler(
                 connectable.getTaskDefinition(),
-                properties,
-                userTasksProperties,
-                userTaskProperties,
+                vanillaBpCockpitProperties,
                 applicationEventPublisher,
                 templating,
+                connectable.getBpmnProcessId(),
                 connectable.getTitle(),
                 processService,
                 processInstanceRepository,

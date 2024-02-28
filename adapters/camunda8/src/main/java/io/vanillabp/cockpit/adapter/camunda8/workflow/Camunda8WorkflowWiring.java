@@ -5,8 +5,7 @@ import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitServ
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
-import io.vanillabp.cockpit.adapter.common.CockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.UserTasksWorkflowProperties;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
@@ -31,9 +30,7 @@ import java.util.function.BiFunction;
 
 public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserTaskConnectable, WorkflowMethodParameterFactory, Camunda8BusinessCockpitService<?>> {
 
-    private final CockpitProperties cockpitProperties;
-
-    private final UserTasksWorkflowProperties workflowsCockpitProperties;
+    private final VanillaBpCockpitProperties cockpitProperties;
 
     private final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices;
 
@@ -48,9 +45,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
-            final CockpitProperties cockpitProperties,
+            final VanillaBpCockpitProperties cockpitProperties,
             final SpringBeanUtil springBeanUtil,
-            final UserTasksWorkflowProperties workflowsCockpitProperties,
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
@@ -59,7 +55,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final ProcessInstanceRepository processInstanceRepository) {
         super(applicationContext, springBeanUtil, methodParameterFactory);
         this.cockpitProperties = cockpitProperties;
-        this.workflowsCockpitProperties = workflowsCockpitProperties;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
@@ -83,12 +78,14 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         );
 
     }
-    
+
+
     @Override
     protected Camunda8BusinessCockpitService<?> connectToBpms(
-            final String workflowModuleId,
-            final Class<?> workflowAggregateClass,
-            final String bpmnProcessId) {
+            String workflowModuleId,
+            Class<?> workflowAggregateClass,
+            String bpmnProcessId,
+            boolean isPrimary) {
 
         final var bcService = connectableCockpitServices
                 .stream()
@@ -100,12 +97,13 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         if (bcService != null) {
             bcService.wire(
                     workflowModuleId,
-                    bpmnProcessId);
+                    bpmnProcessId,
+                    isPrimary);
         }
-        
-        return bcService;
 
+        return bcService;
     }
+
 
     // from io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring.wireTask(T connectable, boolean allowNoMethodFound, BiFunction<Method, A, Boolean> methodMatchesTaskDefinition, BiFunction<Method, A, Boolean> methodMatchesElementId, BiFunction<Method, A, List<MethodParameter>> validateParameters, ConnectBean connect)
     protected boolean superWireWorkflow(
@@ -217,17 +215,9 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
         String bpmnProcessId = connectable.bpmnProcessId();
 
-        final var workflowProperties = workflowsCockpitProperties
-                .getWorkflows()
-                .stream()
-                .filter(props -> props.matches(workflowModuleId, bpmnProcessId))
-                .findFirst()
-                .get();
-
         @SuppressWarnings("unchecked")
         final var workflowHandler = new Camunda8WorkflowHandler(
                 cockpitProperties,
-                workflowProperties,
                 processService,
                 bpmnProcessId,
                 connectable.processName(),
@@ -239,4 +229,5 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 parameters);
         workflowEventListener.addWorkflowHandler(bpmnProcessId, workflowHandler);
     }
+
 }
