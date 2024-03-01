@@ -20,7 +20,7 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     private String source;
 
-    private String workflowModule;
+    private String workflowModuleId;
 
     private String comment;
 
@@ -73,7 +73,7 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
     public UserTaskCreatedEvent(
             final String workflowModuleId,
             final List<String> i18nLanguages) {
-        this.workflowModule = workflowModuleId;
+        this.workflowModuleId = workflowModuleId;
         this.i18nLanguages = i18nLanguages;
     }
 
@@ -122,12 +122,12 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
         this.source = source;
     }
 
-    public String getWorkflowModule() {
-        return workflowModule;
+    public String getWorkflowModuleId() {
+        return workflowModuleId;
     }
 
-    public void setWorkflowModule(String workflowModule) {
-        this.workflowModule = workflowModule;
+    public void setWorkflowModuleId(String workflowModuleId) {
+        this.workflowModuleId = workflowModuleId;
     }
 
     @Override

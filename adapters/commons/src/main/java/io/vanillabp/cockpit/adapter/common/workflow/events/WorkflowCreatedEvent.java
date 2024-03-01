@@ -22,7 +22,7 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
 
   private String source;
 
-  private String workflowModule;
+  private String workflowModuleId;
 
   private Map<String, String> title = new HashMap<>();
 
@@ -58,7 +58,7 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
   }
 
   public WorkflowCreatedEvent(String workflowModuleId, List<String> i18nLanguages) {
-    this.workflowModule = workflowModuleId;
+    this.workflowModuleId = workflowModuleId;
     this.i18nLanguages = i18nLanguages;
   }
 
@@ -102,12 +102,12 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
     this.source = source;
   }
 
-  public String getWorkflowModule() {
-    return workflowModule;
+  public String getWorkflowModuleId() {
+    return workflowModuleId;
   }
 
-  public void setWorkflowModule(String workflowModule) {
-    this.workflowModule = workflowModule;
+  public void setWorkflowModuleId(String workflowModuleId) {
+    this.workflowModuleId = workflowModuleId;
   }
 
   public Map<String, String> getTitle() {

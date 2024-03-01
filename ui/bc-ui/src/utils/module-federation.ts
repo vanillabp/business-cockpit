@@ -16,7 +16,7 @@ export enum UiUriType {
 };
 
 export interface ModuleDefinition {
-  workflowModule: string;
+  workflowModuleId: string;
   uiUriType: UiUriType;
   uiUri: string;
 };
@@ -34,7 +34,7 @@ export interface WorkflowCellProps {
 
 export interface Module {
   moduleId: string;
-  workflowModule: string;
+  workflowModuleId: string;
   retry?: (callback?: () => void) => void;
   buildVersion?: string;
   buildTimestamp?: Date;
@@ -140,10 +140,10 @@ const loadModule = (
     try {
       if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
         detachScript(moduleId);
-        const webpackModule =  await fetchModule(moduleDefinition.workflowModule, moduleDefinition.uiUri, useCase);
+        const webpackModule =  await fetchModule(moduleDefinition.workflowModuleId, moduleDefinition.uiUri, useCase);
         module = {
           ...webpackModule,
-          workflowModule: moduleDefinition.workflowModule,
+          workflowModuleId: moduleDefinition.workflowModuleId,
           moduleId
         };
         modules[moduleId] = module;
@@ -166,7 +166,7 @@ const loadModule = (
   if (Object.keys(modules).includes(moduleId)) {
     module = modules[moduleId];
   } else {
-    module = { moduleId, workflowModule: moduleDefinition.workflowModule };
+    module = { moduleId, workflowModuleId: moduleDefinition.workflowModuleId };
     modules[moduleId] = module;
   }
   
@@ -211,7 +211,7 @@ const useFederationModule = (
   useCase: UseCase
 ): Module | undefined => {
   
-  const moduleId = moduleDefinition !== undefined ? `${moduleDefinition.workflowModule}#${useCase}` : 'undefined';
+  const moduleId = moduleDefinition !== undefined ? `${moduleDefinition.workflowModuleId}#${useCase}` : 'undefined';
   const [module, setModule] = useState(modules[moduleId]);
   
   useEffect(() => {
@@ -247,17 +247,17 @@ const useFederationModules = (
       
       const distinctModuleDefinitions = moduleDefinitions
           .reduce(
-              (moduleIds, userTask) => moduleIds.includes(userTask.workflowModule)
-                  ? moduleIds : moduleIds.concat(userTask.workflowModule),
+              (moduleIds, userTask) => moduleIds.includes(userTask.workflowModuleId)
+                  ? moduleIds : moduleIds.concat(userTask.workflowModuleId),
               new Array<string>())
-          .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModule === moduleId)!);
+          .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModuleId === moduleId)!);
 
       const result: Module[] = [];
       distinctModuleDefinitions
           .forEach((moduleDefinition, i) => {
               result[i] = {
-                moduleId: `${moduleDefinition.workflowModule}#${useCase}`,
-                workflowModule: moduleDefinition.workflowModule
+                moduleId: `${moduleDefinition.workflowModuleId}#${useCase}`,
+                workflowModuleId: moduleDefinition.workflowModuleId
               }
           });
       

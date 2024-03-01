@@ -288,6 +288,7 @@ components:
       - bpmnProcessId
       - taskDefinition
       - title
+      - workflowModuleId
       - workflowModuleUri
       - taskProviderApiUriPath
       - uiUriPath
@@ -314,7 +315,7 @@ components:
         source:
           type: string
           description: name of the source system sending this event
-        workflowModule:
+        workflowModuleId:
           type: string
           description: The workflow module sending this event
         comment:
@@ -461,6 +462,7 @@ components:
         - workflowId
         - timestamp
         - bpmnProcessId
+        - workflowModuleId
         - workflowModuleUri
         - workflowProviderApiUriPath
         - uiUriPath
@@ -491,7 +493,7 @@ components:
         source:
           type: string
           description: name of the source system sending this event
-        workflowModule:
+        workflowModuleId:
           type: string
           description: The workflow module sending this event
         title:

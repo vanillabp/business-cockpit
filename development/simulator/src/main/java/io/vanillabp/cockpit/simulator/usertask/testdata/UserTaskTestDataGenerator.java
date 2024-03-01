@@ -336,8 +336,8 @@ public class UserTaskTestDataGenerator implements Runnable {
                 result.getTaskDefinition());
         result.setTimestamp(OffsetDateTime.now());
         
-        result.setWorkflowModule("TestModule");
-        result.setWorkflowModuleUri("http://localhost:8079/wm/TestModule");
+        result.setWorkflowModuleId("TestModule");
+        result.setWorkflowModuleUri("http://localhost:8079/TestModule");
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
         result.setTaskProviderApiUriPath("/task-provider/v1");

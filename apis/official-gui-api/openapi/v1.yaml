@@ -475,7 +475,7 @@ components:
       - id
       - createdAt
       - updatedAt
-      - workflowModule
+      - workflowModuleId
       - bpmnProcessId
       - taskDefinition
       - title
@@ -509,7 +509,7 @@ components:
           format: date-time
           description: The time the task was ended
           example: 2019-05-21T13:30:26.202Z
-        workflowModule:
+        workflowModuleId:
           type: string
           description: The workflow module of this usertask
         comment:
@@ -624,7 +624,7 @@ components:
         - id
         - createdAt
         - updatedAt
-        - workflowModule
+        - workflowModuleId
         - bpmnProcessId
         - title
         - workflowModuleUri
@@ -657,7 +657,7 @@ components:
           format: date-time
           description: The time the task was ended
           example: 2019-05-21T13:30:26.202Z
-        workflowModule:
+        workflowModuleId:
           type: string
           description: The workflow module of this usertask
         comment:

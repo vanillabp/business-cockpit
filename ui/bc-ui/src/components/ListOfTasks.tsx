@@ -111,7 +111,7 @@ const reloadUserTasks = async (
   setNumberOfUserTasks(result!.page.totalElements);
 
   const newModuleDefinitions = result.userTasks
-      .filter(userTask => userTask.workflowModule !== undefined)
+      .filter(userTask => userTask.workflowModuleId !== undefined)
       .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
           ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
   if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
@@ -119,7 +119,7 @@ const reloadUserTasks = async (
     const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
     result.userTasks
         .filter(userTask => userTask.taskDefinition !== undefined)
-        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask);
+        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask);
     if ((existingUserTaskDefinitions === undefined)
         || Object.keys(existingUserTaskDefinitions).length !== Object.keys(newUserTaskDefinitions).length) {
       setDefinitionsOfTasks(newUserTaskDefinitions);
@@ -880,7 +880,7 @@ const ListOfTasks = ({
         const userTaskDefinitions: DefinitionOfUserTask = {};
         const titleLanguages = result
             .items
-            .map(userTask => userTaskDefinitions[`${userTask.workflowModule}#${userTask.taskDefinition}`] = userTask)
+            .map(userTask => userTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask)
             .flatMap(userTask => Object.keys(userTask.title))
             .reduce((allLanguages, titleLanguage) => {
               if (!allLanguages.includes(titleLanguage)) {
@@ -915,7 +915,7 @@ const ListOfTasks = ({
         .map(definition => {
             const columnsOfProcess = modules
                 .filter(m => m !== undefined)
-                .filter(m => m.workflowModule === definition.workflowModule)
+                .filter(m => m.workflowModuleId === definition.workflowModuleId)
                 .filter(m => m.userTaskListColumns !== undefined)
                 .map(m => m.userTaskListColumns!(definition));
             if (columnsOfProcess.length === 0) return undefined;

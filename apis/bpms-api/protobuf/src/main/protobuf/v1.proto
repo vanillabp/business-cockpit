@@ -56,7 +56,6 @@ message UserTaskCreatedOrUpdatedEvent {
   optional bool updated = 12;
   optional string initiator = 13;
   optional string source = 14;
-  optional string workflow_module = 15;
   optional string comment = 16;
   optional string bpmn_process_version = 17;
   map<string, string> workflow_title = 18;
@@ -129,7 +128,7 @@ message WorkflowCreatedOrUpdatedEvent {
   optional string business_id = 11;
   optional string initiator = 12;
   optional string source = 13;
-  optional string workflow_module = 14;
+  optional string workflow_module_id = 14;
   map<string, string> title = 15;
   optional string comment = 16;
   optional string bpmn_process_version = 17;

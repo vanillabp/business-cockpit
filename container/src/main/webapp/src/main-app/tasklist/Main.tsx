@@ -89,7 +89,7 @@ const CustomListOfTasks = ({ useTasklistApi }) => {
             openTask(userTask, toast, tApp)}
       navigateToWorkflow={
         (userTask) =>
-            navigateToWorkflow(userTask, toast, tApp, navigate)}/>;
+            navigateToWorkflow(userTask, toast, tApp, navigate) } />;
 
 }
 

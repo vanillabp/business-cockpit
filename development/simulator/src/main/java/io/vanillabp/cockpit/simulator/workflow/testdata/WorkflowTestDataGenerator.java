@@ -1,5 +1,15 @@
 package io.vanillabp.cockpit.simulator.workflow.testdata;
 
+import com.devskiller.jfairy.Fairy;
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
+import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
+import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,17 +18,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import com.devskiller.jfairy.Fairy;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class WorkflowTestDataGenerator implements Runnable {
 
@@ -227,8 +226,8 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setBpmnProcessVersion("0");
 
         result.setTimestamp(OffsetDateTime.now());
-        result.setWorkflowModule("TestModule");
-        result.setWorkflowModuleUri("http://localhost:8079/wm/TestModule");
+        result.setWorkflowModuleId("TestModule");
+        result.setWorkflowModuleUri("http://localhost:8079/TestModule");
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
         result.setWorkflowProviderApiUriPath("/workflow-details-provider/v1");

@@ -50,7 +50,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
 }: ListCellParameters<T>) => {
   const { isPhone, isTablet } = useResponsiveScreen();
 
-  const module = modulesAvailable.find((module => item.data.workflowModule === module.workflowModule));
+  const module = modulesAvailable.find((module => item.data.workflowModuleId === module.workflowModuleId));
   if ((module === undefined)
       && !isVanillaBpColumn(column)) {
     return <WarningListCell
@@ -67,7 +67,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   let Cell: FC<DefaultListCellAwareProps<any>>;
   if (typeOfItem === TypeOfItem.TaskList) {
     if (!Boolean(module?.UserTaskListCell)) {
-      console.warn(`Workflow-module ${item.data.workflowModule} has no UserTaskListCell defined!`);
+      console.warn(`Workflow-module ${item.data.workflowModuleId} has no UserTaskListCell defined!`);
       Cell = defaultListCell;
     } else {
       Cell = memo(
@@ -81,7 +81,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
     }
   } else if (typeOfItem === TypeOfItem.WorkflowList) {
     if (!Boolean(module?.WorkflowListCell)) {
-      console.warn(`Workflow-module ${item.data.workflowModule} has no WorkflowListCell defined!`);
+      console.warn(`Workflow-module ${item.data.workflowModuleId} has no WorkflowListCell defined!`);
       Cell = defaultListCell;
     } else {
       Cell = memo(

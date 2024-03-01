@@ -1,10 +1,5 @@
 package io.vanillabp.cockpit.util.microserviceproxy;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
@@ -12,8 +7,12 @@ import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.ApplicationEventPublisher;
-
 import reactor.core.publisher.Flux;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MicroserviceProxyRegistry implements RouteLocator {
 
@@ -64,7 +63,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
                                         predicateSpec -> predicateSpec
                                                 .path(WORKFLOW_MODULES_PATH_PREFIX + entry.getKey() + "/**")
                                                 .filters(f -> f.rewritePath(
-                                                        WORKFLOW_MODULES_PATH_PREFIX, "/"))
+                                                        WORKFLOW_MODULES_PATH_PREFIX + entry.getKey(), "/"))
                                                 .uri(entry.getValue())))
                     )
                     .collectList()

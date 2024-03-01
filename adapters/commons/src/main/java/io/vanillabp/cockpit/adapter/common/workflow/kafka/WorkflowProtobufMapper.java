@@ -58,7 +58,7 @@ public class WorkflowProtobufMapper {
         builder.setWorkflowId(workflowUpdatedEvent.getWorkflowId());
         builder.setTimestamp(mapTimestamp(workflowUpdatedEvent.getTimestamp()));
         builder.setBpmnProcessId(workflowUpdatedEvent.getBpmnProcessId());
-        builder.setWorkflowModule(workflowUpdatedEvent.getWorkflowModule());
+        builder.setWorkflowModuleId(workflowUpdatedEvent.getWorkflowModuleId());
         builder.setWorkflowProviderApiUriPath(workflowUpdatedEvent.getWorkflowProviderApiUriPath());
         builder.setUiUriPath(workflowUpdatedEvent.getUiUriPath());
         builder.setUiUriType(workflowUpdatedEvent.getUiUriType().getValue());

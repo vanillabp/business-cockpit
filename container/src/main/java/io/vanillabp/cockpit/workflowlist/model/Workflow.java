@@ -36,7 +36,7 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private String source;
 
-    private String workflowModule;
+    private String workflowModuleId;
 
     private String comment;
 
@@ -194,12 +194,12 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
         this.source = source;
     }
 
-    public String getWorkflowModule() {
-        return workflowModule;
+    public String getWorkflowModuleId() {
+        return workflowModuleId;
     }
 
-    public void setWorkflowModule(String workflowModule) {
-        this.workflowModule = workflowModule;
+    public void setWorkflowModuleId(String workflowModuleId) {
+        this.workflowModuleId = workflowModuleId;
     }
 
     public String getComment() {

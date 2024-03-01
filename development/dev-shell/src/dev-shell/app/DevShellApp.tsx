@@ -7,17 +7,17 @@ import '../i18n.js';
 import { CurrentUser } from './CurrentUser.js';
 import { GuiSseProvider } from '../client/guiClient.js';
 import {
-  MessageToast,
-  useKeepNowUpToDate,
-  theme,
-  UserTaskForm,
-  UserTaskAppLayout,
-  WorkflowPage,
-  UserTaskListCell,
   ColumnsOfUserTaskFunction,
   ColumnsOfWorkflowFunction,
+  LoadingIndicator,
+  MessageToast,
+  theme,
+  useKeepNowUpToDate,
+  UserTaskAppLayout,
+  UserTaskForm,
+  UserTaskListCell,
   WorkflowListCell,
-  LoadingIndicator
+  WorkflowPage
 } from '@vanillabp/bc-shared';
 import { Header as UserTaskHeader } from '../usertask/Header.js';
 import { Header as WorkflowHeader } from '../workflow/Header.js';
@@ -26,6 +26,7 @@ import { UserTaskAppContextConsumer, UserTaskAppContextProvider } from '../usert
 import { WorkflowAppContextConsumer, WorkflowAppContextProvider } from '../workflow/WorkflowAppContext.js';
 import { WorkflowAppLayout } from '../workflow/WorkflowAppLayout.js';
 import { Main } from './Main.js';
+import { List } from "../usertask/List.js";
 
 const appNs = 'app';
 
@@ -134,7 +135,12 @@ const DevShellApp = ({
                       <Route
                           path={ t('url-list') as string }
                           element={
-                              <div>List</div>
+                            <UserTaskAppContextConsumer>
+                              { (userTask) => <List
+                                  userTask={ userTask }
+                                  userTaskColumns={ userTaskListColumns(userTask) }
+                                  UserTaskListCell={ userTaskListCell } /> }
+                            </UserTaskAppContextConsumer>
                         } />
                     </Route>
                     <Route

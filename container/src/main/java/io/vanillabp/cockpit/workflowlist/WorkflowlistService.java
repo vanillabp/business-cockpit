@@ -100,7 +100,7 @@ public class WorkflowlistService {
                 .save(workflow)
                 .doOnNext(item -> microserviceProxyRegistry
                         .registerMicroservice(
-                                item.getWorkflowModule(),
+                                item.getWorkflowModuleId(),
                                 item.getWorkflowModuleUri()))
                 .map(item -> Boolean.TRUE)
                 .onErrorResume(e -> {
@@ -372,7 +372,7 @@ public class WorkflowlistService {
                 .map(modulesAndUris -> modulesAndUris
                         .stream()
                         .collect(Collectors.toMap(
-                                Workflow::getWorkflowModule,
+                                Workflow::getWorkflowModuleId,
                                 Workflow::getWorkflowModuleUri)))
                 .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();

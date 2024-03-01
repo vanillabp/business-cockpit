@@ -114,14 +114,14 @@ const reloadWorkflows = async (
   setNumberOfWorkflows(result!.page.totalElements);
 
   const newModuleDefinitions = result.workflows
-      .filter(workflow => workflow.workflowModule !== undefined)
+      .filter(workflow => workflow.workflowModuleId !== undefined)
       .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
           ? moduleDefinitions : moduleDefinitions.concat(workflow), existingModuleDefinitions || []);
   if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
     setModulesOfWorkflows(newModuleDefinitions);
     const newWorkflowDefinitions: DefinitionOfWorkflow = { ...existingWorkflowDefinitions };
     result.workflows
-        .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow);
+        .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow);
     if ((existingWorkflowDefinitions === undefined)
         || Object.keys(existingWorkflowDefinitions).length !== Object.keys(newWorkflowDefinitions).length) {
       setDefinitionsOfWorkflows(newWorkflowDefinitions);
@@ -660,7 +660,7 @@ const ListOfWorkflows = ({
         const workflowDefinitions: DefinitionOfWorkflow = {};
         const titleLanguages = result
             .workflows
-            .map(workflow => workflowDefinitions[`${workflow.workflowModule}#${workflow.bpmnProcessId}`] = workflow)
+            .map(workflow => workflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow)
             .flatMap(workflow => Object.keys(workflow.title))
             .reduce((allLanguages, titleLanguage) => {
               if (!allLanguages.includes(titleLanguage)) {
@@ -695,7 +695,7 @@ const ListOfWorkflows = ({
         .map(definition => {
             const columnsOfWorkflow = modules
                 .filter(m => m !== undefined)
-                .filter(m => m.workflowModule === definition.workflowModule)
+                .filter(m => m.workflowModuleId === definition.workflowModuleId)
                 .filter(m => m.workflowListColumns !== undefined)
                 .map(module => module.workflowListColumns!(definition));
             if (columnsOfWorkflow.length === 0) return undefined;

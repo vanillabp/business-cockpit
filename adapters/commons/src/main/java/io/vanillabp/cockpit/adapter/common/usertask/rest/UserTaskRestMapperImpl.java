@@ -102,7 +102,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         userTaskCreatedOrUpdatedEvent.setInitiator( userTaskCreatedEvent.getInitiator() );
         userTaskCreatedOrUpdatedEvent.setTimestamp( userTaskCreatedEvent.getTimestamp() );
         userTaskCreatedOrUpdatedEvent.setSource( userTaskCreatedEvent.getSource() );
-        userTaskCreatedOrUpdatedEvent.setWorkflowModule( userTaskCreatedEvent.getWorkflowModule() );
+        userTaskCreatedOrUpdatedEvent.setWorkflowModuleId( userTaskCreatedEvent.getWorkflowModuleId() );
         userTaskCreatedOrUpdatedEvent.setComment( userTaskCreatedEvent.getComment() );
         userTaskCreatedOrUpdatedEvent.setBpmnProcessId( userTaskCreatedEvent.getBpmnProcessId() );
         userTaskCreatedOrUpdatedEvent.setBpmnProcessVersion( userTaskCreatedEvent.getBpmnProcessVersion() );
@@ -162,7 +162,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         userTaskCreatedOrUpdatedEvent.setInitiator( userTaskCreatedEvent.getInitiator() );
         userTaskCreatedOrUpdatedEvent.setTimestamp( userTaskCreatedEvent.getTimestamp() );
         userTaskCreatedOrUpdatedEvent.setSource( userTaskCreatedEvent.getSource() );
-        userTaskCreatedOrUpdatedEvent.setWorkflowModule( userTaskCreatedEvent.getWorkflowModule() );
+        userTaskCreatedOrUpdatedEvent.setWorkflowModuleId( userTaskCreatedEvent.getWorkflowModuleId() );
         userTaskCreatedOrUpdatedEvent.setComment( userTaskCreatedEvent.getComment() );
         userTaskCreatedOrUpdatedEvent.setBpmnProcessId( userTaskCreatedEvent.getBpmnProcessId() );
         userTaskCreatedOrUpdatedEvent.setBpmnProcessVersion( userTaskCreatedEvent.getBpmnProcessVersion() );

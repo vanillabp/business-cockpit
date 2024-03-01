@@ -52,7 +52,7 @@ public abstract class GuiApiMapper {
         }
         
         return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
-                + workflow.getWorkflowModule()
+                + workflow.getWorkflowModuleId()
                 + (workflow.getUiUriPath().startsWith("/")
                         ? workflow.getUiUriPath()
                         : "/" + workflow.getUiUriPath());
@@ -68,7 +68,7 @@ public abstract class GuiApiMapper {
         }
         
         return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
-                + workflow.getWorkflowModule();
+                + workflow.getWorkflowModuleId();
         
     }
 

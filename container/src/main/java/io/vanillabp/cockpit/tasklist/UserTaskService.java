@@ -108,7 +108,7 @@ public class UserTaskService {
                 .map(modulesAndUris -> modulesAndUris
                         .stream()
                         .collect(Collectors.toMap(
-                                UserTask::getWorkflowModule,
+                                UserTask::getWorkflowModuleId,
                                 UserTask::getWorkflowModuleUri)))
                 .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
@@ -558,7 +558,7 @@ public class UserTaskService {
                 .save(userTask)
                 .doOnNext(task -> microserviceProxyRegistry
                         .registerMicroservice(
-                                task.getWorkflowModule(),
+                                task.getWorkflowModuleId(),
                                 task.getWorkflowModuleUri()))
                 .map(task -> Boolean.TRUE)
                 .onErrorResume(e -> {

@@ -67,7 +67,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
         workflowCreatedOrUpdatedEvent.setInitiator( workflowCreatedEvent.getInitiator() );
         workflowCreatedOrUpdatedEvent.setTimestamp( workflowCreatedEvent.getTimestamp() );
         workflowCreatedOrUpdatedEvent.setSource( workflowCreatedEvent.getSource() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModule( workflowCreatedEvent.getWorkflowModule() );
+        workflowCreatedOrUpdatedEvent.setWorkflowModuleId( workflowCreatedEvent.getWorkflowModuleId() );
         Map<String, String> map = workflowCreatedEvent.getTitle();
         if ( map != null ) {
             workflowCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map ) );
@@ -106,7 +106,7 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
         workflowCreatedOrUpdatedEvent.setInitiator( workflowUpdatedEvent.getInitiator() );
         workflowCreatedOrUpdatedEvent.setTimestamp( workflowUpdatedEvent.getTimestamp() );
         workflowCreatedOrUpdatedEvent.setSource( workflowUpdatedEvent.getSource() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModule( workflowUpdatedEvent.getWorkflowModule() );
+        workflowCreatedOrUpdatedEvent.setWorkflowModuleId( workflowUpdatedEvent.getWorkflowModuleId() );
         Map<String, String> map = workflowUpdatedEvent.getTitle();
         if ( map != null ) {
             workflowCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map ) );
