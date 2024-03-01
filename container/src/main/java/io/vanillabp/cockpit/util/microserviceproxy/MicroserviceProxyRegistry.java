@@ -7,8 +7,10 @@ import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
@@ -60,11 +62,20 @@ public class MicroserviceProxyRegistry implements RouteLocator {
                                         entry.getKey()))
                                 .map(entry -> routesBuilder.route(
                                         entry.getKey(),
-                                        predicateSpec -> predicateSpec
-                                                .path(WORKFLOW_MODULES_PATH_PREFIX + entry.getKey() + "/**")
-                                                .filters(f -> f.rewritePath(
-                                                        WORKFLOW_MODULES_PATH_PREFIX + entry.getKey(), "/"))
-                                                .uri(entry.getValue())))
+                                        predicateSpec -> {
+                                            final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX + entry.getKey() + "/";
+                                            final var uri = URI.create(entry.getValue());
+                                            final var targetUri = UriComponentsBuilder.fromUri(uri).replacePath("").toUriString();
+                                            final var targetPath = uri.getPath() == null
+                                                    ? "/"
+                                                    : uri.getPath().endsWith("/")
+                                                    ? uri.getPath()
+                                                    : uri.getPath() + "/";
+                                            return predicateSpec
+                                                    .path(proxyPath + "**")
+                                                    .filters(f -> f.rewritePath(proxyPath, targetPath))
+                                                    .uri(targetUri);
+                                        }))
                     )
                     .collectList()
                     .flatMapMany(builders -> routesBuilder.build().getRoutes());

@@ -16,8 +16,8 @@ public interface UserTaskRepository extends ReactiveMongoRepository<UserTask, St
     Flux<UserTask> findActiveByWorkflowId(String workflowId);
 
     @Aggregation({
-            "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",
-            "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
+            "{ $sort:{ workflowModuleId: 1, workflowModuleUri: 1 } }",
+            "{ $group:{ _id: '$workflowModuleId', workflowModuleId: { '$first': '$workflowModuleId' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
         })
     Flux<UserTask> findAllWorkflowModulesAndUris();
     

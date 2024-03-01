@@ -9,8 +9,8 @@ import reactor.core.publisher.Flux;
 public interface WorkflowRepository extends ReactiveMongoRepository<Workflow, String> {
 
     @Aggregation({
-            "{ $sort:{ workflowModule: 1, workflowModuleUri: 1 } }",
-            "{ $group:{ _id: '$workflowModule', workflowModule: { '$first': '$workflowModule' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
+            "{ $sort:{ workflowModuleId: 1, workflowModuleUri: 1 } }",
+            "{ $group:{ _id: '$workflowModuleId', workflowModuleId: { '$first': '$workflowModuleId' }, workflowModuleUri: { '$first': '$workflowModuleUri' } } }"
         })
     Flux<Workflow> findAllWorkflowModulesAndUris();
 
