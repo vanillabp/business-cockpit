@@ -2,7 +2,6 @@ import { Box, ColumnConfig, DataTable, DataTableExtendedProps, Grid, Text } from
 import { SnapAlignBox, SnapScrollingGrid } from './SnapScrolling.js';
 import React, { forwardRef, PropsWithChildren, ReactElement, ReactNode, UIEventHandler } from 'react';
 import { BackgroundType, ColorType } from "grommet/utils";
-import styled from "styled-components";
 
 interface SnapScrollingDataTableProps<TRowType = any> extends PropsWithChildren<Omit<DataTableExtendedProps<TRowType>, 'columns' | 'ref'>> {
   additionalHeader?: ReactNode | undefined;
@@ -19,12 +18,6 @@ const calculateColumWidth = (minWidthOfAutoColumn: string | undefined, width: st
   const columnSize = column.size ? column.size : minWidthOfAutoColumn;
   return width !== '' ? width + ' + ' + columnSize : columnSize;
 }
-
-const StyledDataTable = styled(DataTable)`
-  tr {
-    width: unset;
-  }
-`;
 
 const SnapScrollingDataTable = forwardRef(({
     headerHeight,
@@ -107,7 +100,7 @@ const SnapScrollingDataTable = forwardRef(({
                 : undefined
           }
         </Box>
-        <StyledDataTable
+        <DataTable
             pad='none'
             width={ columnsWidth }
             columns={ dataTableColumns }

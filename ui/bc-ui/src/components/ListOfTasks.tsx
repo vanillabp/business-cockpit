@@ -817,6 +817,7 @@ const ListOfTasks = ({
     headerHeight = '3rem',
     footer,
     footerHeight = '2rem',
+    rowSeparator = true,
     applyBackgroundColor = true,
     showColumnHeaders = true,
     excludeIdColumn = false,
@@ -839,6 +840,7 @@ const ListOfTasks = ({
     headerHeight?: string,
     footer?: ListOfTasksHeaderFooterFunction,
     footerHeight?: string,
+    rowSeparator?: boolean | string,
     applyBackgroundColor?: boolean,
     showColumnHeaders?: boolean,
     excludeIdColumn?: boolean,
@@ -1213,6 +1215,7 @@ const ListOfTasks = ({
               ? <Box key="list"></Box>
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
+                      rowSeparator={ rowSeparator }
                       applyBackgroundColor={ applyBackgroundColor }
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ minWidthOfTitleColumn }

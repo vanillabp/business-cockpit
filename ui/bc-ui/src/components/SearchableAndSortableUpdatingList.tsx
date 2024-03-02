@@ -155,6 +155,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   showLoadingIndicator,
   additionalHeader,
   minWidthOfAutoColumn,
+  rowSeparator,
   applyBackgroundColor = true,
   showColumnHeaders = true,
   columnHeaderBackground = 'dark-3',
@@ -170,6 +171,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   additionalHeader?: ReactNode,
   minWidthOfAutoColumn?: string,
+  rowSeparator?: boolean | string,
   applyBackgroundColor?: boolean,
   showColumnHeaders?: boolean,
   columnHeaderBackground?: BackgroundType,
@@ -247,7 +249,9 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
                 pin
                 minWidthOfAutoColumn={ minWidthOfAutoColumn }
                 additionalHeader={ additionalHeader }
-                border={ { body: { side: 'bottom', color: 'light-3' } } }
+                border={ rowSeparator
+                    ? { body: { side: 'bottom', color: typeof rowSeparator === 'string' ? rowSeparator : 'light-3' } }
+                    : undefined }
                 rowProps={ applyBackgroundColor ? colorRowAccordingToUpdateStatus : undefined }
                 size='100%'
                 columns={ columns }

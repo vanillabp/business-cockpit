@@ -594,6 +594,7 @@ const ListOfWorkflows = ({
   footer,
   footerHeight = '2rem',
   t,
+  rowSeparator,
   applyBackgroundColor = true,
   showColumnHeaders = true,
   excludeIdColumn = false,
@@ -615,6 +616,7 @@ const ListOfWorkflows = ({
   headerHeight?: string,
   footer?: ListOfWorkflowsHeaderFooterFunction,
   footerHeight?: string,
+  rowSeparator?: boolean | string,
   applyBackgroundColor?: boolean,
   showColumnHeaders?: boolean,
   excludeIdColumn?: boolean,
@@ -947,6 +949,7 @@ const ListOfWorkflows = ({
               ? <Box key="list"></Box>
               : <Box key="list">
                   <SearchableAndSortableUpdatingList
+                      rowSeparator={ rowSeparator }
                       applyBackgroundColor={ applyBackgroundColor }
                       showLoadingIndicator={ showLoadingIndicator }
                       minWidthOfAutoColumn={ minWidthOfTitleColumn }
