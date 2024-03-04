@@ -102,4 +102,27 @@ public class V000001 {
 
     }
 
+    @Changeset(order = 1005, author = "stephanpelikan")
+    public String renameWorkflowModuleIntoWorkflowModuleId(
+            final ReactiveMongoTemplate mongo) {
+
+        // necessary to accelerate initialization of
+        // microservice proxies on startup
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .dropIndex(INDEX_WORKFLOWMODULE_URI)
+                .block();
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("workflowModuleId", Direction.ASC)
+                        .on("workflowModuleUri", Direction.ASC)
+                        .named(INDEX_WORKFLOWMODULE_URI))
+                .block();
+
+        return null;
+
+    }
+
 }
