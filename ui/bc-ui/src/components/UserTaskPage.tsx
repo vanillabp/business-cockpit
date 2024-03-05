@@ -1,10 +1,11 @@
-import { FC, ReactElement, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import {
   BcUserTask,
   ShowLoadingIndicatorFunction,
   ToastFunction,
   TranslationFunction,
-  UserTaskAppLayout
+  UserTaskAppLayout,
+  UserTaskForm
 } from '@vanillabp/bc-shared';
 import {
   AssignTaskFunction,
@@ -52,7 +53,7 @@ interface UserTaskPageProps {
   t: TranslationFunction;
   header?: React.ReactNode;
   footer?: React.ReactNode;
-  children?: (userTask: BcUserTask, Form: () => ReactElement) => JSX.Element;
+  children?: (userTask: BcUserTask, Form: UserTaskForm) => JSX.Element;
 };
 
 const UserTaskPage: FC<UserTaskPageProps> = ({
@@ -71,7 +72,6 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
 
   const tasklistApi = useTasklistApi();
   const [ userTask, setUserTask ] = useState<BcUserTask | null>();
-  const formRef = useRef<() => ReactElement>();
 
   useEffect(() => {
     if (userTaskId == undefined) {
@@ -93,10 +93,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
         showLoadingIndicator(true);
         return;
       }
-      const Form = module.UserTaskForm!;
-      formRef.current = () => <Form userTask={ userTask! } />;
       showLoadingIndicator(false);
-    }, [ module, showLoadingIndicator, formRef ]);
+    }, [ module, showLoadingIndicator ]);
 
   if (userTask === undefined) {
     return <NoUserTaskGiven
@@ -126,13 +124,14 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
               t={ t }
               showLoadingIndicator={ showLoadingIndicator } />
   }
-  if (!module || (module.buildTimestamp === undefined) || !formRef.current) {
+
+  if (!module || (module.buildTimestamp === undefined) || !module?.UserTaskForm) {
     return <NoUserTaskGiven
               loading
               t={ t }
               showLoadingIndicator={ showLoadingIndicator} />
   }
-    
+
   const Form = module.UserTaskForm!;
   const bcUserTask: BcUserTask = {
       ...userTask,
@@ -140,12 +139,11 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
       navigateToWorkflow: () => navigateToWorkflow(userTask),
     };
 
-  const ParameterizedForm: () => ReactElement = formRef.current!;
   return children === undefined
       ? <UserTaskAppLayout header={header} footer={footer}>
-          <ParameterizedForm />
+          <Form userTask={ bcUserTask } />
         </UserTaskAppLayout>
-      : children(userTask, ParameterizedForm);
+      : children(userTask, Form);
 
 }
 
