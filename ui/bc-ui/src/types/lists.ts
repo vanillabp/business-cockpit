@@ -1,10 +1,16 @@
 import { ReactNode } from "react";
 import { UserTask } from "@vanillabp/bc-official-gui-client";
+import { Column } from "@vanillabp/bc-shared";
 
 export type ListOfTasksHeaderFooterFunction = (
     isPhone: boolean,
     isTablet: boolean,
     numberOfTasks: number,
+    columns: Column[] | undefined,
+    sort: string | undefined,
+    setSort: (column?: Column) => void,
+    sortAscending: boolean,
+    setSortAscending: (sortAscending: boolean) => void,
     selectAll: (select: boolean) => void,
     allSelected: boolean,
     refresh: () => void,
@@ -25,6 +31,11 @@ export type ListOfWorkflowsHeaderFooterFunction = (
     isPhone: boolean,
     isTablet: boolean,
     numberOfWorkflows: number,
+    columns: Column[] | undefined,
+    sort: string | undefined,
+    setSort: (column?: Column) => void,
+    sortAscending: boolean,
+    setSortAscending: (sortAscending: boolean) => void,
     selectAll: (select: boolean) => void,
     allSelected: boolean,
     refresh: () => void,

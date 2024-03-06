@@ -940,8 +940,8 @@ const ListOfWorkflows = ({
           fill>
         {
           children !== undefined
-              ? children(isPhone, isTablet, numberOfWorkflows, selectAll, allSelected, refreshList, !refreshNecessary,
-                    initialKwicQuery, setKwic, kwic)
+              ? children(isPhone, isTablet, numberOfWorkflows, columnsOfWorkflows, sort, setSort, sortAscending,
+                    setSortAscending, selectAll, allSelected, refreshList, !refreshNecessary, initialKwicQuery, setKwic, kwic)
               : defaultHeader()
         }
         {
@@ -994,7 +994,8 @@ const ListOfWorkflows = ({
         }
         {
           footer !== undefined
-              ? footer(isPhone, isTablet, numberOfWorkflows, selectAll, allSelected, refreshList, !refreshNecessary, initialKwicQuery, setKwic, kwic)
+              ? footer(isPhone, isTablet, numberOfWorkflows, columnsOfWorkflows, sort, setSort, sortAscending, setSortAscending,
+                    selectAll, allSelected, refreshList, !refreshNecessary, initialKwicQuery, setKwic, kwic)
               : defaultFooter()
         }
       </Grid>);

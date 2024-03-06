@@ -1197,7 +1197,6 @@ const ListOfTasks = ({
           claimTasksDisabled={ !anySelected }
           assignTasks={ assign }
           assignDisabled={ !anySelected } />;
-
   return (
       <Grid
           key="grid"
@@ -1205,8 +1204,8 @@ const ListOfTasks = ({
           fill>
         {
           children !== undefined
-              ? children(isPhone, isTablet, numberOfTasks, selectAll, allSelected, refreshList, !refreshNecessary,
-                  () => markAsRead(false), () => markAsRead(true), !anySelected,
+              ? children(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
+                  allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
                   () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
               : defaultHeader()
         }
@@ -1258,8 +1257,8 @@ const ListOfTasks = ({
         }
         {
           footer !== undefined
-              ? footer(isPhone, isTablet, numberOfTasks, selectAll, allSelected, refreshList, !refreshNecessary,
-                  () => markAsRead(false), () => markAsRead(true), !anySelected,
+              ? footer(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
+                  allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
                   () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
               : defaultFooter()
         }
