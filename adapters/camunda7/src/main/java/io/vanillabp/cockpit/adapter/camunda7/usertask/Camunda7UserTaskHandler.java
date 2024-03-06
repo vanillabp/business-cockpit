@@ -271,7 +271,9 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
             final var templatesPathes = List.of(
                     properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId, taskDefinition),
-                    properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
+                    properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId),
+                    properties.getTemplatePath(processService.getWorkflowModuleId())
+                );
 
             event
                     .getI18nLanguages()

@@ -243,7 +243,10 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             
         } else {
 
-            final var templatesPathes = List.of(properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
+            final var templatesPathes = List.of(
+                    properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId),
+                    properties.getTemplatePath(processService.getWorkflowModuleId())
+                );
 
             event
                     .getI18nLanguages()

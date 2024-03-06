@@ -165,6 +165,13 @@ public class VanillaBpCockpitProperties {
     }
 
     public String getTemplatePath(
+            final String workflowModuleId) {
+
+        return getTemplatePath(workflowModuleId, null, null);
+
+    }
+
+    public String getTemplatePath(
             final String workflowModuleId,
             final String bpmnProcessId) {
 
@@ -182,7 +189,9 @@ public class VanillaBpCockpitProperties {
         final var workflowModule = getWorkflowModules().get(workflowModuleId);
         if (workflowModule == null) {
             templatePath.add(workflowModuleId);
-            templatePath.add(bpmnProcessId);
+            if (bpmnProcessId != null) {
+                templatePath.add(bpmnProcessId);
+            }
             if (taskDefinition != null) {
                 templatePath.add(taskDefinition);
             }
@@ -192,28 +201,29 @@ public class VanillaBpCockpitProperties {
             } else {
                 templatePath.add(workflowModuleId);
             }
-
-            final var workflow = workflowModule.getWorkflows().get(bpmnProcessId);
-            if (workflow == null) {
-                templatePath.add(bpmnProcessId);
-                if (taskDefinition != null) {
-                    templatePath.add(taskDefinition);
-                }
-            } else {
-                if (StringUtils.hasText(workflow.getCockpit().getTemplatePath())) {
-                    templatePath.add(workflow.getCockpit().getTemplatePath());
-                } else {
+            if (bpmnProcessId != null) {
+                final var workflow = workflowModule.getWorkflows().get(bpmnProcessId);
+                if (workflow == null) {
                     templatePath.add(bpmnProcessId);
-                }
-                if (taskDefinition != null) {
-                    final var userTask = workflow.getUserTasks().get(taskDefinition);
-                    if (userTask == null) {
+                    if (taskDefinition != null) {
                         templatePath.add(taskDefinition);
+                    }
+                } else {
+                    if (StringUtils.hasText(workflow.getCockpit().getTemplatePath())) {
+                        templatePath.add(workflow.getCockpit().getTemplatePath());
                     } else {
-                        if (StringUtils.hasText(userTask.getCockpit().getTemplatePath())) {
-                            templatePath.add(userTask.getCockpit().getTemplatePath());
-                        } else {
+                        templatePath.add(bpmnProcessId);
+                    }
+                    if (taskDefinition != null) {
+                        final var userTask = workflow.getUserTasks().get(taskDefinition);
+                        if (userTask == null) {
                             templatePath.add(taskDefinition);
+                        } else {
+                            if (StringUtils.hasText(userTask.getCockpit().getTemplatePath())) {
+                                templatePath.add(userTask.getCockpit().getTemplatePath());
+                            } else {
+                                templatePath.add(taskDefinition);
+                            }
                         }
                     }
                 }
