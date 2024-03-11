@@ -782,13 +782,12 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
 }
 
 const UserTaskDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
-
   let Cell: FC<DefaultListCellProps<BcUserTask>>;
   if (column.path === 'id') {
     Cell = SelectDefaultListCell;
   } else if (column.path === 'candidateUsers') {
     Cell = CandidateUsersListCell;
-  } else if (column.path.startsWith('title.')) {
+  } else if (column.path === 'title') {
     Cell = TitleDefaultListCell;
   } else {
     Cell = DefaultListCell;
@@ -945,7 +944,7 @@ const ListOfTasks = ({
     if (totalColumns.title === undefined) {
       totalColumns.title = {
           title: { [currentLanguage]: t('column_title') },
-          path: 'title.' + currentLanguage,
+          path: 'title',
           width: '',
           priority: 0,
           show: true,
@@ -995,7 +994,8 @@ const ListOfTasks = ({
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
-  const [ sort, _setSort ] = useState<string | undefined>(defaultSort);
+  const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
+  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -1006,7 +1006,7 @@ const ListOfTasks = ({
   }
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path.startsWith('title.')) {
+      if (column.path === 'title') {
         _setSort('title.' + languagesOfTitles.join(',title.'))
       } else {
         _setSort(column.path);
@@ -1234,7 +1234,7 @@ const ListOfTasks = ({
                               pageSize,
                               pageNumber,
                               initialTimestamp,
-                              sort,
+                              effectiveSort,
                               sortAscending,
                               mapToBcUserTask) }
                       reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
@@ -1249,7 +1249,7 @@ const ListOfTasks = ({
                               numberOfItems,
                               updatedItemsIds,
                               initialTimestamp,
-                              sort,
+                              effectiveSort,
                               sortAscending,
                               mapToBcUserTask) }
                     />

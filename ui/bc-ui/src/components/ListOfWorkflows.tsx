@@ -565,7 +565,7 @@ const WorkflowDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column,
   let Cell: FC<DefaultListCellProps<BcUserTask>>;
   if (column.path === 'id') {
      Cell = SelectDefaultListCell;
-  } else if (column.path.startsWith('title.')) {
+  } else if (column.path === 'title') {
     Cell = TitleDefaultListCell;
   } else {
     Cell = DefaultListCell;
@@ -724,7 +724,7 @@ const ListOfWorkflows = ({
     if (totalColumns.title === undefined) {
       totalColumns.title = {
         title: { [currentLanguage]: t('column_title') },
-        path: 'title.' + currentLanguage,
+        path: 'title',
         width: '',
         priority: 0,
         show: true,
@@ -750,7 +750,8 @@ const ListOfWorkflows = ({
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
-  const [ sort, _setSort ] = useState<string | undefined>(defaultSort);
+  const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
+  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -970,7 +971,7 @@ const ListOfWorkflows = ({
                               pageNumber,
                               initialTimestamp,
                               searchQueries,
-                              sort,
+                              effectiveSort,
                               sortAscending,
                               mapToBcWorkflow) }
                       reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
@@ -986,7 +987,7 @@ const ListOfWorkflows = ({
                               updatedItemsIds,
                               initialTimestamp,
                               searchQueries,
-                              sort,
+                              effectiveSort,
                               sortAscending,
                               mapToBcWorkflow) }
                     />

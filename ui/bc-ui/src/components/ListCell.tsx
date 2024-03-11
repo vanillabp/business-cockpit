@@ -18,7 +18,7 @@ const isVanillaBpColumn = (column: Column) => {
   return column.path === 'id'
       || column.path === 'assignee'
       || column.path === 'candidateUsers'
-      || column.path.startsWith('title.');
+      || column.path === 'title';
 }
 
 interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
