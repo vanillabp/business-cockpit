@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration,\
+  io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration,\
+  io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterKafkaConfiguration
