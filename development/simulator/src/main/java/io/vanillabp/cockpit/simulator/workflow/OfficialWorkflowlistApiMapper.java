@@ -1,11 +1,10 @@
 package io.vanillabp.cockpit.simulator.workflow;
 
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper
 public abstract class OfficialWorkflowlistApiMapper {
@@ -22,17 +21,16 @@ public abstract class OfficialWorkflowlistApiMapper {
     protected String proxiedUiUri(
             final WorkflowCreatedOrUpdatedEvent workflow) {
         
-        if (workflow.getWorkflowModuleUri() == null) {
+        if (workflow.getWorkflowModuleId() == null) {
             return null;
         }
         if (workflow.getUiUriPath() == null) {
             return null;
         }
         
-        return workflow.getWorkflowModuleUri()
-                + (workflow.getUiUriPath().startsWith("/")
-                        ? workflow.getUiUriPath()
-                        : "/" + workflow.getUiUriPath());
+        return workflow.getUiUriPath().startsWith("/")
+                ? workflow.getUiUriPath()
+                : "/" + workflow.getUiUriPath();
         
     }
     
@@ -40,12 +38,11 @@ public abstract class OfficialWorkflowlistApiMapper {
     protected String proxiedWorkflowModuleUri(
             final WorkflowCreatedOrUpdatedEvent workflow) {
         
-        if (workflow.getWorkflowModuleUri() == null) {
+        if (workflow.getWorkflowModuleId() == null) {
             return null;
         }
         
-        return workflow.getWorkflowModuleUri()
-                + "/";
+        return "/" + workflow.getWorkflowModuleId() + "/";
         
     }
     

@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.tasklist;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -36,7 +35,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Service
 public class UserTaskService {
@@ -80,9 +78,6 @@ public class UserTaskService {
     private UserTaskRepository userTasks;
     
     @Autowired
-    private MicroserviceProxyRegistry microserviceProxyRegistry;
-
-    @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
     private Disposable dbChangesSubscription;
@@ -101,18 +96,6 @@ public class UserTaskService {
                 .doOnNext(applicationEventPublisher::publishEvent)
                 .subscribe();
         
-        // register all URLs already known
-        userTasks
-                .findAllWorkflowModulesAndUris()
-                .collectList()
-                .map(modulesAndUris -> modulesAndUris
-                        .stream()
-                        .collect(Collectors.toMap(
-                                UserTask::getWorkflowModuleId,
-                                UserTask::getWorkflowModuleUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservices)
-                .subscribe();
-
         try {
             sortAndFilterIndexWriteLock.lock();
             mongoTemplate
@@ -556,10 +539,6 @@ public class UserTaskService {
         
         return userTasks
                 .save(userTask)
-                .doOnNext(task -> microserviceProxyRegistry
-                        .registerMicroservice(
-                                task.getWorkflowModuleId(),
-                                task.getWorkflowModuleUri()))
                 .map(task -> Boolean.TRUE)
                 .onErrorResume(e -> {
                     logger.error("Could not save user task '{}'!",

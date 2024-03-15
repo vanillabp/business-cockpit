@@ -44,7 +44,7 @@ public abstract class GuiApiMapper {
     protected String proxiedUiUri(
             final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
         
-        if (workflow.getWorkflowModuleUri() == null) {
+        if (workflow.getWorkflowModuleId() == null) {
             return null;
         }
         if (workflow.getUiUriPath() == null) {
@@ -63,7 +63,7 @@ public abstract class GuiApiMapper {
     protected String proxiedWorkflowModuleUri(
             final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
         
-        if (workflow.getWorkflowModuleUri() == null) {
+        if (workflow.getWorkflowModuleId() == null) {
             return null;
         }
         

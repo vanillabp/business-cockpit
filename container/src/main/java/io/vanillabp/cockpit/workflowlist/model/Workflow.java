@@ -50,10 +50,6 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private Map<String, String> title;
 
-    private String workflowModuleUri;
-
-    private String workflowProviderApiUriPath;
-
     private String uiUriPath;
 
     private UiUriType uiUriType;
@@ -248,22 +244,6 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     public void setTitle(Map<String, String> title) {
         this.title = title;
-    }
-
-    public String getWorkflowModuleUri() {
-        return workflowModuleUri;
-    }
-
-    public void setWorkflowModuleUri(String workflowModuleUri) {
-        this.workflowModuleUri = workflowModuleUri;
-    }
-
-    public String getWorkflowProviderApiUriPath() {
-        return workflowProviderApiUriPath;
-    }
-
-    public void setWorkflowProviderApiUriPath(String workflowProviderApiUriPath) {
-        this.workflowProviderApiUriPath = workflowProviderApiUriPath;
     }
 
     public String getUiUriPath() {

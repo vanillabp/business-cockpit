@@ -52,7 +52,6 @@ public class UserTaskProtobufMapper {
         builder.setTaskDefinition(userTaskCreatedEvent.getTaskDefinition());
         builder.putAllTitle(userTaskCreatedEvent.getTitle());
         builder.setWorkflowModuleId(userTaskCreatedEvent.getWorkflowModuleId());
-        builder.setTaskProviderApiUriPath(userTaskCreatedEvent.getTaskProviderApiUriPath());
         builder.setUiUriPath(userTaskCreatedEvent.getUiUriPath());
         builder.setUiUriType(userTaskCreatedEvent.getUiUriType().getValue());
 
@@ -79,8 +78,6 @@ public class UserTaskProtobufMapper {
                 .ifPresent(builder::setBpmnTaskId);
         Optional.ofNullable(userTaskCreatedEvent.getTaskDefinitionTitle())
                 .ifPresent(builder::putAllTaskDefinitionTitle);
-        Optional.ofNullable(userTaskCreatedEvent.getWorkflowModuleUri())
-                .ifPresent(builder::setWorkflowModuleUri);
         Optional.ofNullable(userTaskCreatedEvent.getAssignee())
                 .ifPresent(builder::setAssignee);
         Optional.ofNullable(userTaskCreatedEvent.getCandidateGroups())

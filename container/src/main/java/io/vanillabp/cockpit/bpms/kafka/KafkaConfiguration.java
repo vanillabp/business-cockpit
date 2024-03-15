@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.bpms.kafka;
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -48,6 +49,13 @@ public class KafkaConfiguration {
             ProtobufWorkflowMapper workflowMapper) {
 
         return new KafkaWorkflowController(workflowlistService, workflowMapper);
+    }
+
+    @Bean
+    public KafkaWorkflowModuleController kafkaWorkflowModuleController(
+            WorkflowModuleService workflowModuleService) {
+
+        return new KafkaWorkflowModuleController(workflowModuleService);
     }
 
     @Bean

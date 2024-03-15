@@ -8,6 +8,7 @@ import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanc
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.spi.service.WorkflowService;
@@ -30,7 +31,7 @@ import java.util.function.BiFunction;
 
 public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserTaskConnectable, WorkflowMethodParameterFactory, Camunda8BusinessCockpitService<?>> {
 
-    private final VanillaBpCockpitProperties cockpitProperties;
+    private final VanillaBpCockpitProperties properties;
 
     private final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices;
 
@@ -45,16 +46,17 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
-            final VanillaBpCockpitProperties cockpitProperties,
+            final VanillaBpCockpitProperties properties,
             final SpringBeanUtil springBeanUtil,
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final ProcessInstanceRepository processInstanceRepository) {
-        super(applicationContext, springBeanUtil, methodParameterFactory);
-        this.cockpitProperties = cockpitProperties;
+            final ProcessInstanceRepository processInstanceRepository,
+            final WorkflowModulePublishing workflowModulePublishing) {
+        super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
+        this.properties = properties;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
@@ -217,7 +219,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
         @SuppressWarnings("unchecked")
         final var workflowHandler = new Camunda8WorkflowHandler(
-                cockpitProperties,
+                properties,
                 processService,
                 bpmnProcessId,
                 connectable.processName(),
@@ -228,6 +230,30 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 method,
                 parameters);
         workflowEventListener.addWorkflowHandler(bpmnProcessId, workflowHandler);
+    }
+
+    @Override
+    protected String getWorkflowModuleUri(
+            final String workflowModuleId) {
+
+        return properties.getWorkflowModuleUri(workflowModuleId);
+
+    }
+
+    @Override
+    protected String getTaskProviderApiUriPath(
+            final String workflowModuleId) {
+
+        return null;
+
+    }
+
+    @Override
+    protected String getWorkflowProviderApiUriPath(
+            final String workflowModuleId) {
+
+        return null;
+
     }
 
 }

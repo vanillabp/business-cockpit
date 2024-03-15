@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.workflowlist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchQuery;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
@@ -40,7 +39,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 @Service
 public class WorkflowlistService {
@@ -82,9 +80,6 @@ public class WorkflowlistService {
     private WorkflowRepository workflowRepository;
 
     @Autowired
-    private MicroserviceProxyRegistry microserviceProxyRegistry;
-
-    @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
     private Disposable dbChangesSubscription;
@@ -98,10 +93,6 @@ public class WorkflowlistService {
 
         return workflowRepository
                 .save(workflow)
-                .doOnNext(item -> microserviceProxyRegistry
-                        .registerMicroservice(
-                                item.getWorkflowModuleId(),
-                                item.getWorkflowModuleUri()))
                 .map(item -> Boolean.TRUE)
                 .onErrorResume(e -> {
                     logger.error("Could not save workflow '{}'!",
@@ -363,18 +354,6 @@ public class WorkflowlistService {
                                         + "event! Will resume stream.", e))
                         .onErrorResume(Exception.class, e -> Mono.empty()))
                 .doOnNext(applicationEventPublisher::publishEvent)
-                .subscribe();
-
-        // register all URLs already known
-        workflowRepository
-                .findAllWorkflowModulesAndUris()
-                .collectList()
-                .map(modulesAndUris -> modulesAndUris
-                        .stream()
-                        .collect(Collectors.toMap(
-                                Workflow::getWorkflowModuleId,
-                                Workflow::getWorkflowModuleUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservices)
                 .subscribe();
 
     }

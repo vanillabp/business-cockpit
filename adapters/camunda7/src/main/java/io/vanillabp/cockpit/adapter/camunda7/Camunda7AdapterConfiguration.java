@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
@@ -146,7 +147,8 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            final Camunda7WorkflowEventHandler workflowEventListener) {
+            final Camunda7WorkflowEventHandler workflowEventListener,
+            final WorkflowModulePublishing workflowModulePublishing) {
         return new Camunda7WorkflowWiring(
                 applicationContext,
                 springBeanUtil,
@@ -155,8 +157,8 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
                 connectableServices,
                 getConnectableServices(),
                 templating,
-                workflowEventListener
-        );
+                workflowEventListener,
+                workflowModulePublishing);
     }
 
     @Bean

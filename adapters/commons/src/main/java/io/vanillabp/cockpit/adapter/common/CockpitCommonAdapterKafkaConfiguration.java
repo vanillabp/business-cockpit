@@ -12,6 +12,9 @@ import io.vanillabp.cockpit.adapter.common.usertask.kafka.UserTaskProtobufMapper
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowKafkaPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowProtobufMapper;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleKafkaPublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleProtobufMapper;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -38,7 +41,7 @@ import java.util.TimeZone;
 @ConditionalOnClass(KafkaTemplate.class)
 @ConditionalOnProperty(
         prefix = VanillaBpProperties.PREFIX + ".cockpit.kafka",
-        name = {"user-task-topic", "workflow-topic"})
+        name = {"user-task-topic", "workflow-topic", "workflow-module-topic"})
 public class CockpitCommonAdapterKafkaConfiguration {
 
     @Value("${workerId}")
@@ -72,6 +75,18 @@ public class CockpitCommonAdapterKafkaConfiguration {
                 workerId,
                 properties,
                 new WorkflowProtobufMapper(objectMapper),
+                kafkaTemplate
+        );
+    }
+
+    @Bean
+    public WorkflowModulePublishing workflowModuleKafkaPublishing(
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+
+        return new WorkflowModuleKafkaPublishing(
+                workerId,
+                properties,
+                new WorkflowModuleProtobufMapper(),
                 kafkaTemplate
         );
     }

@@ -27,8 +27,6 @@ public abstract class WorkflowPublishingBase {
             final WorkflowCreatedEvent event) {
 
         event.setSource(workerId);
-        event.setWorkflowProviderApiUriPath("/workflow-provider"); // TODO
-        event.setWorkflowModuleUri(properties.getWorkflowModuleUri(event.getWorkflowModuleId()));
         event.setUiUriPath(properties.getUiUriPath(event.getWorkflowModuleId()));
         try {
             event.setUiUriType(

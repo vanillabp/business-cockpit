@@ -32,13 +32,9 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
 
   private String bpmnProcessVersion;
 
-  private String workflowModuleUri;
-
   private String uiUriPath;
 
   private WorkflowUiUriType uiUriType;
-
-  private String workflowProviderApiUriPath;
 
   private Map<String, Object> details = new HashMap<>();
 
@@ -160,14 +156,6 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
     this.bpmnProcessVersion = bpmnProcessVersion;
   }
 
-  public String getWorkflowModuleUri() {
-    return workflowModuleUri;
-  }
-
-  public void setWorkflowModuleUri(String workflowModuleUri) {
-    this.workflowModuleUri = workflowModuleUri;
-  }
-
   public String getUiUriPath() {
     return uiUriPath;
   }
@@ -182,14 +170,6 @@ public class WorkflowCreatedEvent implements WorkflowEvent, WorkflowDetails, Pre
 
   public void setUiUriType(WorkflowUiUriType uiUriType) {
     this.uiUriType = uiUriType;
-  }
-
-  public String getWorkflowProviderApiUriPath() {
-    return workflowProviderApiUriPath;
-  }
-
-  public void setWorkflowProviderApiUriPath(String workflowProviderApiUriPath) {
-    this.workflowProviderApiUriPath = workflowProviderApiUriPath;
   }
 
   public Map<String, Object> getDetails() {

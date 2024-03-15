@@ -85,7 +85,7 @@ public class MicroserviceProxyRegistry implements RouteLocator {
         }
         
     }
-    
+
     public void registerMicroservice(
             final String id,
             final String uri) {

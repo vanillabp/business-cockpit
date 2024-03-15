@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.bpms.api.v1;
 import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,9 @@ public class BpmsApiController implements BpmsApi {
 
     @Autowired
     private WorkflowlistService workflowlistService;
+
+    @Autowired
+    private WorkflowModuleService workflowModuleService;
 
     private Mono<Boolean> userTaskCreatedMono(
             final Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent) {
@@ -208,6 +212,22 @@ public class BpmsApiController implements BpmsApi {
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
         
+    }
+
+    @Override
+    public Mono<ResponseEntity<Void>> registerWorkflowModule(
+            final String id,
+            final Mono<RegisterWorkflowModuleEvent> registerWorkflowModuleEvent,
+            final ServerWebExchange exchange) {
+
+        return registerWorkflowModuleEvent
+                .flatMap(event -> workflowModuleService.registerOrUpdateWorkflowModule(
+                        id,
+                        event.getUri(),
+                        event.getTaskProviderApiUriPath(),
+                        event.getWorkflowProviderApiUriPath()))
+                .map(module -> ResponseEntity.ok().<Void>build());
+
     }
 
 }

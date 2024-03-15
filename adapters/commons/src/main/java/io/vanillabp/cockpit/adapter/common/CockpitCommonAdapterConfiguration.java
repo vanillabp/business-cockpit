@@ -13,6 +13,9 @@ import io.vanillabp.cockpit.adapter.common.usertask.rest.UserTaskRestPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestMapperImpl;
 import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestPublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.rest.WorkflowModuleRestMapper;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.rest.WorkflowModuleRestPublishing;
 import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
@@ -98,6 +101,19 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                 bpmsApi,
                 properties,
                 new WorkflowRestMapperImpl()
+        );
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WorkflowModulePublishing workflowModuleRestPublishing(
+            @Qualifier("bpmsApiV1")
+            final Optional<BpmsApi> bpmsApi) {
+        return new WorkflowModuleRestPublishing(
+                workerId,
+                bpmsApi,
+                properties,
+                new WorkflowModuleRestMapper()
         );
     }
 

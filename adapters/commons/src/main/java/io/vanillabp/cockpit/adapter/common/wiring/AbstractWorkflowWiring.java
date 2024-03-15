@@ -2,6 +2,8 @@ package io.vanillabp.cockpit.adapter.common.wiring;
 
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.events.RegisterWorkflowModuleEvent;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
@@ -12,16 +14,24 @@ import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class AbstractWorkflowWiring<T extends Connectable, M extends WorkflowMethodParameterFactory, BCS extends BusinessCockpitServiceImplementation<?>>
         extends AbstractTaskWiring<T, WorkflowDetailsProvider, M> {
 
+    private static final Set<String> registeredWorkflowModules = new HashSet<>();
+
+    private final WorkflowModulePublishing workflowModulePublishing;
+
     public AbstractWorkflowWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
-            final M methodParameterFactory) {
+            final M methodParameterFactory,
+            final WorkflowModulePublishing workflowModulePublishing) {
 
         super(applicationContext, springBeanUtil, methodParameterFactory);
+        this.workflowModulePublishing = workflowModulePublishing;
         
     }
     
@@ -68,6 +78,16 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
                 bpmnProcessId,
                 workflowServiceClass);
 
+        if (!registeredWorkflowModules.contains(workflowModuleId)) {
+            final var event = new RegisterWorkflowModuleEvent();
+            event.setId(workflowModuleId);
+            event.setUri(getWorkflowModuleUri(workflowModuleId));
+            event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
+            event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
+            workflowModulePublishing.publish(event);
+            registeredWorkflowModules.add(workflowModuleId);
+        }
+
         return connectToBpms(
                 workflowModuleId,
                 workflowAggregateClass,
@@ -75,5 +95,11 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
                 isPrimaryProcessWiring);
         
     }
+
+    protected abstract String getWorkflowModuleUri(String workflowModuleId);
+
+    protected abstract String getTaskProviderApiUriPath(String workflowModuleId);
+
+    protected abstract String getWorkflowProviderApiUriPath(String workflowModuleId);
     
 }

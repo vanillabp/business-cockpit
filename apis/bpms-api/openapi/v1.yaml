@@ -10,6 +10,33 @@ tags:
     description: BPMS Events
 
 paths:
+  /workflow-module/{id}:
+    post:
+      tags:
+        - bpms
+      summary: register a workflow-module or update the registration
+      operationId: registerWorkflowModule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterWorkflowModuleEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/created:
     post:
       tags:
@@ -288,9 +315,6 @@ components:
       - bpmnProcessId
       - taskDefinition
       - title
-      - workflowModuleId
-      - workflowModuleUri
-      - taskProviderApiUriPath
       - uiUriPath
       - uiUriType
       properties:
@@ -372,14 +396,6 @@ components:
           example:
             en: Do ride
             de: Führe die Fahrt durch
-        workflowModuleUri:
-          type: string
-          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
-          example: http://localhost:9000/taxiride
-        taskProviderApiUriPath:
-          type: string
-          description: A path added to workflowModuleUri to build a URI for the task-provider API
-          example: /api/v1/task-provider
         uiUriPath:
           type: string
           description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
@@ -463,8 +479,6 @@ components:
         - timestamp
         - bpmnProcessId
         - workflowModuleId
-        - workflowModuleUri
-        - workflowProviderApiUriPath
         - uiUriPath
         - uiUriType
       properties:
@@ -514,20 +528,12 @@ components:
         bpmnProcessVersion:
           type: string
           description: Version of the BPMN process (beneath the version tag)
-        workflowModuleUri:
-          type: string
-          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
-          example: http://localhost:9000/taxiride
         uiUriPath:
           type: string
           description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'
-        workflowProviderApiUriPath:
-          type: string
-          description: A path added to workflowModuleUri to build a URI for the workflow-provider API
-          example: /api/v1/workflow-details-provider
         accessibleToUsers:
           type: array
           items:
@@ -587,3 +593,20 @@ components:
     WorkflowCancelledEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowLifecycleEvent"
+    RegisterWorkflowModuleEvent:
+      type: object
+      required:
+        - id
+      properties:
+        uri:
+          type: string
+          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
+          example: http://localhost:9000/taxiride
+        taskProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the task-provider API
+          example: /api/v1/task-provider
+        workflowProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the workflow-provider API
+          example: /api/v1/workflow-details-provider

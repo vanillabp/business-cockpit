@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.commons.kafka;
 public class KafkaTopicProperties {
     private String userTask;
     private String workflow;
+    private String workflowModule;
 
     public String getUserTask() {
         return userTask;
@@ -19,4 +20,13 @@ public class KafkaTopicProperties {
     public void setWorkflow(String workflow) {
         this.workflow = workflow;
     }
+
+    public String getWorkflowModule() {
+        return workflowModule;
+    }
+
+    public void setWorkflowModule(String workflowModule) {
+        this.workflowModule = workflowModule;
+    }
+
 }

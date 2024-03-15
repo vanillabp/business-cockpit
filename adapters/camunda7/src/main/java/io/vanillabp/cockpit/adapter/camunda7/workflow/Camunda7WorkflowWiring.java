@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.adapter.camunda7.usertask.Camunda7Connectable;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
@@ -45,8 +46,9 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Collection<Camunda7BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
-            final Camunda7WorkflowEventHandler workflowEventListener) {
-        super(applicationContext, springBeanUtil, methodParameterFactory);
+            final Camunda7WorkflowEventHandler workflowEventListener,
+            final WorkflowModulePublishing workflowModulePublishing) {
+        super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.properties = properties;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
@@ -216,4 +218,29 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
         workflowEventListener.addWorkflowHandler(bpmnProcessId, workflowHandler);
 
     }
+
+    @Override
+    protected String getWorkflowModuleUri(
+            final String workflowModuleId) {
+
+        return properties.getWorkflowModuleUri(workflowModuleId);
+
+    }
+
+    @Override
+    protected String getTaskProviderApiUriPath(
+            final String workflowModuleId) {
+
+        return null;
+
+    }
+
+    @Override
+    protected String getWorkflowProviderApiUriPath(
+            final String workflowModuleId) {
+
+        return null;
+
+    }
+
 }

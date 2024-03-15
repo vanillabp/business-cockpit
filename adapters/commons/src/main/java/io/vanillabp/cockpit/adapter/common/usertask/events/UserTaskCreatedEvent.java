@@ -44,10 +44,6 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     private Map<String, String> taskDefinitionTitle = new HashMap<>();
 
-    private String workflowModuleUri;
-
-    private String taskProviderApiUriPath;
-
     private String uiUriPath;
 
     private UserTaskUiUriType uiUriType;
@@ -231,22 +227,6 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     public void setTaskDefinitionTitle(Map<String, String> taskDefinitionTitle) {
         this.taskDefinitionTitle = taskDefinitionTitle;
-    }
-
-    public String getWorkflowModuleUri() {
-        return workflowModuleUri;
-    }
-
-    public void setWorkflowModuleUri(String workflowModuleUri) {
-        this.workflowModuleUri = workflowModuleUri;
-    }
-
-    public String getTaskProviderApiUriPath() {
-        return taskProviderApiUriPath;
-    }
-
-    public void setTaskProviderApiUriPath(String taskProviderApiUriPath) {
-        this.taskProviderApiUriPath = taskProviderApiUriPath;
     }
 
     @Override

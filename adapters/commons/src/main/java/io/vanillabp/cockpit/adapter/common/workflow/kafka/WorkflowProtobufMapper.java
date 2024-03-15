@@ -59,10 +59,8 @@ public class WorkflowProtobufMapper {
         builder.setTimestamp(mapTimestamp(workflowUpdatedEvent.getTimestamp()));
         builder.setBpmnProcessId(workflowUpdatedEvent.getBpmnProcessId());
         builder.setWorkflowModuleId(workflowUpdatedEvent.getWorkflowModuleId());
-        builder.setWorkflowProviderApiUriPath(workflowUpdatedEvent.getWorkflowProviderApiUriPath());
         builder.setUiUriPath(workflowUpdatedEvent.getUiUriPath());
         builder.setUiUriType(workflowUpdatedEvent.getUiUriType().getValue());
-        builder.setWorkflowProviderApiUriPath(workflowUpdatedEvent.getWorkflowProviderApiUriPath());
 
         // optional parameters
         Optional.ofNullable(workflowUpdatedEvent.getBusinessId())
@@ -77,8 +75,6 @@ public class WorkflowProtobufMapper {
                 .ifPresent(builder::setComment);
         Optional.ofNullable(workflowUpdatedEvent.getBpmnProcessVersion())
                 .ifPresent(builder::setBpmnProcessVersion);
-        Optional.ofNullable(workflowUpdatedEvent.getWorkflowModuleUri())
-                .ifPresent(builder::setWorkflowModuleUri);
         Optional.ofNullable(workflowUpdatedEvent.getDetails())
                 .map(this::mapDetailsToProtobuf)
                 .ifPresent(builder::setDetails);

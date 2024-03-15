@@ -27,8 +27,6 @@ public abstract class UserTaskPublishingBase {
             final UserTaskCreatedEvent event) {
 
         event.setSource(workerId);
-        event.setTaskProviderApiUriPath("/task-provider"); // TODO
-        event.setWorkflowModuleUri(properties.getWorkflowModuleUri(event.getWorkflowModuleId()));
         event.setUiUriPath(properties.getUiUriPath(event.getWorkflowModuleId()));
         try {
             event.setUiUriType(

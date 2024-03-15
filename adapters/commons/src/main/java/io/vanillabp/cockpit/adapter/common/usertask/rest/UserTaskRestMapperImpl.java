@@ -123,8 +123,6 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         if ( map2 != null ) {
             userTaskCreatedOrUpdatedEvent.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setWorkflowModuleUri( userTaskCreatedEvent.getWorkflowModuleUri() );
-        userTaskCreatedOrUpdatedEvent.setTaskProviderApiUriPath( userTaskCreatedEvent.getTaskProviderApiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
         userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );
@@ -183,8 +181,6 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         if ( map2 != null ) {
             userTaskCreatedOrUpdatedEvent.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setWorkflowModuleUri( userTaskCreatedEvent.getWorkflowModuleUri() );
-        userTaskCreatedOrUpdatedEvent.setTaskProviderApiUriPath( userTaskCreatedEvent.getTaskProviderApiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
         userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
         userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );

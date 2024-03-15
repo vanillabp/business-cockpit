@@ -84,7 +84,7 @@ public abstract class GuiApiMapper {
     protected String proxiedUiUri(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
         
-        if (userTask.getWorkflowModuleUri() == null) {
+        if (userTask.getWorkflowModuleId() == null) {
             return null;
         }
         if (userTask.getUiUriPath() == null) {
@@ -103,7 +103,7 @@ public abstract class GuiApiMapper {
     protected String proxiedWorkflowModuleUri(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
         
-        if (userTask.getWorkflowModuleUri() == null) {
+        if (userTask.getWorkflowModuleId() == null) {
             return null;
         }
         

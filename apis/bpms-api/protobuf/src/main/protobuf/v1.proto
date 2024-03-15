@@ -38,6 +38,7 @@ message BcEvent {
     WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdated = 6;
     WorkflowCompletedEvent workflowCompleted = 7;
     WorkflowCancelledEvent workflowCancelled = 8;
+    RegisterWorkflowModuleEvent registerWorkflowModule = 9;
   }
 }
 
@@ -50,7 +51,6 @@ message UserTaskCreatedOrUpdatedEvent {
   string task_definition = 6;
   map<string, string> title = 7;
   string workflow_module_id = 8;
-  string task_provider_api_uri_path = 9;
   string ui_uri_path = 10;
   string ui_uri_type = 11;
   optional bool updated = 12;
@@ -64,7 +64,6 @@ message UserTaskCreatedOrUpdatedEvent {
   optional string business_id = 21;
   optional string bpmn_task_id = 22;
   map<string, string> task_definition_title = 23;
-  optional string workflow_module_uri = 24;
   optional string assignee = 25;
   repeated string candidate_users = 26;
   repeated string candidate_groups = 27;
@@ -120,8 +119,6 @@ message WorkflowCreatedOrUpdatedEvent {
   string workflow_id = 3;
   google.protobuf.Timestamp timestamp = 4;
   string bpmn_process_id = 5;
-  string workflow_module_uri = 6;
-  string workflow_provider_api_uri_path = 7;
   string ui_uri_path = 8;
   string ui_uri_type = 9;
   optional bool updated = 10;
@@ -160,4 +157,14 @@ message WorkflowCancelledEvent {
   optional string comment = 7;
   optional string bpmn_process_id = 8;
   optional string bpmn_process_version = 9;
+}
+
+message RegisterWorkflowModuleEvent {
+  string id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  optional string source = 3;
+  string workflow_module_id = 4;
+  string uri = 5;
+  optional string task_provider_api_uri_path = 6;
+  optional string workflow_provider_api_uri_path = 7;
 }

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8;
 
 import freemarker.template.Configuration;
 import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentResourceRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
@@ -11,7 +12,6 @@ import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitServ
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTaskEventPublisher;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
@@ -21,6 +21,7 @@ import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
@@ -124,7 +125,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final ProcessInstanceRepository processInstanceRepository){
+            final ProcessInstanceRepository processInstanceRepository,
+            final WorkflowModulePublishing workflowModulePublishing){
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 cockpitProperties,
@@ -134,8 +136,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 getConnectableServices(),
                 templating,
                 workflowEventListener,
-                processInstanceRepository
-        );
+                processInstanceRepository,
+                workflowModulePublishing);
     }
 
     @Bean

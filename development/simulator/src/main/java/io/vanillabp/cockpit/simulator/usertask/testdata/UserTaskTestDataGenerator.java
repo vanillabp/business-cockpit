@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.simulator.usertask.testdata;
 
 import com.devskiller.jfairy.Fairy;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
@@ -70,7 +71,14 @@ public class UserTaskTestDataGenerator implements Runnable {
     public void run() {
         
         var current = 0;
-        
+
+        bpmsApi.registerWorkflowModule(
+                "TestModule",
+                new RegisterWorkflowModuleEvent()
+                        .uri("http://localhost:8079/TestModule")
+                        .taskProviderApiUriPath("/task-provider/v1")
+                        .workflowProviderApiUriPath("/workflow-details-provider/v1"));
+
         while (!shutdown) {
             
             ++current;
@@ -337,11 +345,9 @@ public class UserTaskTestDataGenerator implements Runnable {
         result.setTimestamp(OffsetDateTime.now());
         
         result.setWorkflowModuleId("TestModule");
-        result.setWorkflowModuleUri("http://localhost:8079/TestModule");
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
-        result.setTaskProviderApiUriPath("/task-provider/v1");
-        
+
         result.setTitle(
                 fairies
                         .entrySet()

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.simulator.workflow.testdata;
 
 import com.devskiller.jfairy.Fairy;
 import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
@@ -57,7 +58,14 @@ public class WorkflowTestDataGenerator implements Runnable {
     @Override
     public void run() {
         var current = 0;
-        
+
+        bpmsApi.registerWorkflowModule(
+                "TestModule",
+                new RegisterWorkflowModuleEvent()
+                        .uri("http://localhost:8079/TestModule")
+                        .taskProviderApiUriPath("/task-provider/v1")
+                        .workflowProviderApiUriPath("/workflow-details-provider/v1"));
+
         while (!shutdown) {
             ++current;
             final var onlyUpdatesLeft =
@@ -227,10 +235,8 @@ public class WorkflowTestDataGenerator implements Runnable {
 
         result.setTimestamp(OffsetDateTime.now());
         result.setWorkflowModuleId("TestModule");
-        result.setWorkflowModuleUri("http://localhost:8079/TestModule");
         result.setUiUriPath("/remoteEntry.js");
         result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
-        result.setWorkflowProviderApiUriPath("/workflow-details-provider/v1");
 
         final var testData1 = new TestData1();
         testData1.setTestId1(Integer.toString(random.nextInt(5)));

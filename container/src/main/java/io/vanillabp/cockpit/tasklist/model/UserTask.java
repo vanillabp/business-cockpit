@@ -63,10 +63,6 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private Map<String, String> taskDefinitionTitle = null;
 
-    private String workflowModuleUri;
-    
-    private String taskProviderApiUriPath;
-
     private String uiUriPath;
 
     private UiUriType uiUriType;
@@ -358,14 +354,6 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     public void setTaskDefinitionTitle(Map<String, String> taskDefinitionTitle) {
         this.taskDefinitionTitle = taskDefinitionTitle;
     }
-    
-    public String getTaskProviderApiUriPath() {
-        return taskProviderApiUriPath;
-    }
-
-    public void setTaskProviderApiUriPath(String taskProviderApiUriPath) {
-        this.taskProviderApiUriPath = taskProviderApiUriPath;
-    }
 
     public String getUiUriPath() {
         return uiUriPath;
@@ -381,14 +369,6 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setUiUriType(UiUriType uiUriType) {
         this.uiUriType = uiUriType;
-    }
-
-    public String getWorkflowModuleUri() {
-        return workflowModuleUri;
-    }
-    
-    public void setWorkflowModuleUri(String workflowModuleUri) {
-        this.workflowModuleUri = workflowModuleUri;
     }
 
     public String getAssignee() {

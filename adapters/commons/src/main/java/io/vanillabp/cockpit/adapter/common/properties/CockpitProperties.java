@@ -71,6 +71,8 @@ public class CockpitProperties {
 
         private String workflowTopic;
 
+        private String workflowModuleTopic;
+
         public String getUserTaskTopic() {
             return userTaskTopic;
         }
@@ -85,6 +87,14 @@ public class CockpitProperties {
 
         public void setWorkflowTopic(String workflowTopic) {
             this.workflowTopic = workflowTopic;
+        }
+
+        public String getWorkflowModuleTopic() {
+            return workflowModuleTopic;
+        }
+
+        public void setWorkflowModuleTopic(String workflowModuleTopic) {
+            this.workflowModuleTopic = workflowModuleTopic;
         }
 
     }

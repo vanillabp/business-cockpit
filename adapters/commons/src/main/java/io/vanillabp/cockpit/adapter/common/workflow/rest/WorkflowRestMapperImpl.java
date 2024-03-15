@@ -75,10 +75,8 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
         workflowCreatedOrUpdatedEvent.setComment( workflowCreatedEvent.getComment() );
         workflowCreatedOrUpdatedEvent.setBpmnProcessId( workflowCreatedEvent.getBpmnProcessId() );
         workflowCreatedOrUpdatedEvent.setBpmnProcessVersion( workflowCreatedEvent.getBpmnProcessVersion() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModuleUri( workflowCreatedEvent.getWorkflowModuleUri() );
         workflowCreatedOrUpdatedEvent.setUiUriPath( workflowCreatedEvent.getUiUriPath() );
         workflowCreatedOrUpdatedEvent.setUiUriType( workflowUiUriTypeToUiUriType( workflowCreatedEvent.getUiUriType() ) );
-        workflowCreatedOrUpdatedEvent.setWorkflowProviderApiUriPath( workflowCreatedEvent.getWorkflowProviderApiUriPath() );
         Map<String, Object> map1 = workflowCreatedEvent.getDetails();
         if ( map1 != null ) {
             workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
@@ -114,10 +112,8 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
         workflowCreatedOrUpdatedEvent.setComment( workflowUpdatedEvent.getComment() );
         workflowCreatedOrUpdatedEvent.setBpmnProcessId( workflowUpdatedEvent.getBpmnProcessId() );
         workflowCreatedOrUpdatedEvent.setBpmnProcessVersion( workflowUpdatedEvent.getBpmnProcessVersion() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModuleUri( workflowUpdatedEvent.getWorkflowModuleUri() );
         workflowCreatedOrUpdatedEvent.setUiUriPath( workflowUpdatedEvent.getUiUriPath() );
         workflowCreatedOrUpdatedEvent.setUiUriType( workflowUiUriTypeToUiUriType( workflowUpdatedEvent.getUiUriType() ) );
-        workflowCreatedOrUpdatedEvent.setWorkflowProviderApiUriPath( workflowUpdatedEvent.getWorkflowProviderApiUriPath() );
         Map<String, Object> map1 = workflowUpdatedEvent.getDetails();
         if ( map1 != null ) {
             workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
