@@ -30,15 +30,22 @@ public class BpmsApiController implements BpmsApi {
 
     @Autowired
     private WorkflowlistService workflowlistService;
-    
+
+    private Mono<Boolean> userTaskCreatedMono(
+            final Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent) {
+
+        return userTaskCreatedEvent
+                .map(userTaskMapper::toNewTask)
+                .flatMap(userTaskService::createUserTask);
+
+    }
+
     @Override
     public Mono<ResponseEntity<Void>> userTaskCreatedEvent(
             final @Valid Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent,
             final ServerWebExchange exchange) {
 
-        return userTaskCreatedEvent
-                .map(userTaskMapper::toNewTask)
-                .flatMap(userTaskService::createUserTask)
+        return userTaskCreatedMono(userTaskCreatedEvent)
                 .map(created -> created
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
@@ -56,6 +63,7 @@ public class BpmsApiController implements BpmsApi {
                 .zipWith(userTaskUpdatedEvent)
                 .map(t -> userTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
                 .flatMap(userTaskService::updateUserTask)
+                .switchIfEmpty(userTaskCreatedMono(userTaskUpdatedEvent))
                 .map(created -> created
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
@@ -115,14 +123,21 @@ public class BpmsApiController implements BpmsApi {
         
     }
 
+    private Mono<Boolean> workflowCreatedMono(
+            final @Valid Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedEvent) {
+
+        return workflowCreatedEvent
+                .map(workflowMapper::toNewWorkflow)
+                .flatMap(workflowlistService::createWorkflow);
+
+    }
+
     @Override
     public Mono<ResponseEntity<Void>> workflowCreatedEvent(
             final @Valid Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedEvent,
             final ServerWebExchange exchange) {
 
-        return workflowCreatedEvent
-                .map(workflowMapper::toNewWorkflow)
-                .flatMap(workflowlistService::createWorkflow)
+        return workflowCreatedMono(workflowCreatedEvent)
                 .map(created -> created
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());
@@ -188,6 +203,7 @@ public class BpmsApiController implements BpmsApi {
                 .zipWith(workflowUpdatedEvent)
                 .map(t -> workflowMapper.toUpdatedWorkflow(t.getT2(), t.getT1()))
                 .flatMap(workflowlistService::updateWorkflow)
+                .switchIfEmpty(workflowCreatedMono(workflowUpdatedEvent))
                 .map(created -> created
                         ? ResponseEntity.ok().build()
                         : ResponseEntity.badRequest().build());

@@ -70,10 +70,13 @@ public class KafkaUserTaskController {
         }
     }
 
-    private void handleUserTaskCreated(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        Mono.just(userTaskCreatedOrUpdated)
+    private Mono<Boolean> userTaskCreatedMono(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+        return Mono.just(userTaskCreatedOrUpdated)
                 .map(protobufUserTaskMapper::toNewTask)
-                .flatMap(userTaskService::createUserTask)
+                .flatMap(userTaskService::createUserTask);
+    }
+    private void handleUserTaskCreated(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+        userTaskCreatedMono(userTaskCreatedOrUpdated)
                 .subscribe();
     }
 
@@ -83,6 +86,7 @@ public class KafkaUserTaskController {
                 .zipWith(Mono.just(userTaskCreatedOrUpdated))
                 .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
                 .flatMap(userTaskService::updateUserTask)
+                .switchIfEmpty(userTaskCreatedMono(userTaskCreatedOrUpdated))
                 .subscribe();
     }
 

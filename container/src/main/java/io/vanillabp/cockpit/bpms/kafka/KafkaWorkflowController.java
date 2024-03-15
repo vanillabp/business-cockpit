@@ -69,11 +69,17 @@ public class KafkaWorkflowController {
         }
     }
 
+    private Mono<Boolean> workflowCreateMono(
+            final WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+
+        return Mono.just(workflowCreatedOrUpdatedEvent)
+                .map(workflowMapper::toNewWorkflow)
+                .flatMap(workflowlistService::createWorkflow);
+
+    }
 
     private void handleWorkflowCreatedEvent(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        Mono.just(workflowCreatedOrUpdatedEvent)
-                .map(workflowMapper::toNewWorkflow)
-                .flatMap(workflowlistService::createWorkflow)
+        workflowCreateMono(workflowCreatedOrUpdatedEvent)
                 .subscribe();
     }
 
@@ -83,6 +89,7 @@ public class KafkaWorkflowController {
                 .getWorkflow(workflowCreatedOrUpdatedEvent.getWorkflowId())
                 .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow))
                 .flatMap(workflowlistService::updateWorkflow)
+                .switchIfEmpty(workflowCreateMono(workflowCreatedOrUpdatedEvent))
                 .subscribe();
     }
 
