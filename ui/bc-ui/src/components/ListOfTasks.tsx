@@ -1082,6 +1082,7 @@ const ListOfTasks = ({
         property: column.path,
         size: getColumnSize(column),
         plain: true,
+        verticalAlign: "top",
         header: <ListColumnHeader
             t={ t }
             currentLanguage={ currentLanguage }
