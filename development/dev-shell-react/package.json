@@ -1,5 +1,5 @@
 {
-  "name": "@vanillabp/bc-dev-shell",
+  "name": "@vanillabp/bc-dev-shell-react",
   "version": "0.0.3-SNAPSHOT",
   "sideEffects": false,
   "type": "module",

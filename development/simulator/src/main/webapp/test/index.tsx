@@ -1,4 +1,4 @@
-import { bootstrapDevShell } from '@vanillabp/bc-dev-shell';
+import { bootstrapDevShell } from '@vanillabp/bc-dev-shell-react';
 import { UserTaskForm } from '../src/UserTaskForm';
 import { UserTaskListCell, userTaskListColumns } from '../src/UserTaskList';
 import { WorkflowListCell, workflowListColumns } from '../src/WorkflowList';

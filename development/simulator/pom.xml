@@ -46,7 +46,7 @@
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-dev-shell</arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-dev-shell-react</arguments>
             </configuration>
           </execution>
         </executions>

@@ -9,8 +9,8 @@
   </parent>
 
   <packaging>pom</packaging>
-  <artifactId>dev-shell</artifactId>
-  <name>Used to build '@vanillabp/bc-dev-shell' npm package</name>
+  <artifactId>dev-shell-react</artifactId>
+  <name>Used to build '@vanillabp/bc-dev-shell-react' npm package</name>
 
   <build>
     <plugins>
