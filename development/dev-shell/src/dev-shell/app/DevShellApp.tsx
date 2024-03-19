@@ -26,7 +26,8 @@ import { UserTaskAppContextConsumer, UserTaskAppContextProvider } from '../usert
 import { WorkflowAppContextConsumer, WorkflowAppContextProvider } from '../workflow/WorkflowAppContext.js';
 import { WorkflowAppLayout } from '../workflow/WorkflowAppLayout.js';
 import { Main } from './Main.js';
-import { List } from "../usertask/List.js";
+import { List as UserTaskList } from "../usertask/List.js";
+import { List as WorkflowList } from "../workflow/List.js";
 
 const appNs = 'app';
 
@@ -136,7 +137,7 @@ const DevShellApp = ({
                           path={ t('url-list') as string }
                           element={
                             <UserTaskAppContextConsumer>
-                              { (userTask) => <List
+                              { (userTask) => <UserTaskList
                                   userTask={ userTask }
                                   userTaskColumns={ userTaskListColumns(userTask) }
                                   UserTaskListCell={ userTaskListCell } /> }
@@ -176,8 +177,13 @@ const DevShellApp = ({
                       <Route
                           path={ t('url-list') as string }
                           element={
-                              <div>List</div>
-                        } />
+                            <WorkflowAppContextConsumer>
+                              { (workflow) => <WorkflowList
+                                  workflow={ workflow }
+                                  workflowColumns={ workflowListColumns(workflow) }
+                                  WorkflowListCell={ workflowListCell } /> }
+                            </WorkflowAppContextConsumer>
+                          } />
                     </Route>
                     <Route
                         index

@@ -1,5 +1,5 @@
 import { Box, RadioButtonGroup, TextInput } from "grommet";
-import { BcUserTask, Column, DefaultListCell, ListItemStatus, UserTaskListCell } from "@vanillabp/bc-shared";
+import { BcWorkflow, Column, DefaultListCell, ListItemStatus, WorkflowListCell } from "@vanillabp/bc-shared";
 import { ChangeEvent, useState } from "react";
 
 const SESSION_STORAGE_KEY = "devShellColumns";
@@ -10,62 +10,62 @@ const FakeColumn = ({
   selected,
   setSelected,
   column,
-  userTask,
-  userTaskColumns,
-  UserTaskListCell,
+  workflow,
+  workflowColumns,
+  WorkflowListCell,
 }: {
   index: number,
   responsive: string,
   selected: boolean,
   setSelected: (select: boolean) => void,
   column: string,
-  userTask: BcUserTask,
-  userTaskColumns: Column[] | undefined,
-  UserTaskListCell: UserTaskListCell,
+  workflow: BcWorkflow,
+  workflowColumns: Column[] | undefined,
+  WorkflowListCell: WorkflowListCell,
 }) => {
-  const userTaskColumnFound = userTaskColumns?.filter(c => c.path === column);
-  if (userTaskColumnFound?.length === 0) return <Box key={column}>{column} not found</Box>
-  const userTaskColumn = userTaskColumnFound![0];
+  const workflowColumnFound = workflowColumns?.filter(c => c.path === column);
+  if (workflowColumnFound?.length === 0) return <Box key={column}>{column} not found</Box>
+  const workflowColumn = workflowColumnFound![0];
   const now = new Date();
-  const adoptedUserTask = {
-    ...userTask,
+  const adoptedWorkflow = {
+    ...workflow,
     dueDate: index % 2 === 0
         ? undefined
         : new Date(now.getTime() + 24 * 3600000)
   };
   return (
       <Box
-          key={userTaskColumn.path}
-          width={userTaskColumn.width !== '' ? userTaskColumn.width : "100%"}>
-        <UserTaskListCell
+          key={workflowColumn.path}
+          width={workflowColumn.width !== '' ? workflowColumn.width : "100%"}>
+        <WorkflowListCell
             currentLanguage="de"
             t={ key => key }
             defaultCell={ DefaultListCell }
             isPhone={ responsive === 'phone' }
             isTablet={ responsive == 'tablet' }
             item={ {
-              id: adoptedUserTask.id,
-              data: adoptedUserTask,
+              id: adoptedWorkflow.id,
+              data: adoptedWorkflow,
               read: index % 2 === 0 ? new Date() : undefined,
               status: ListItemStatus.INITIAL,
               number: index,
               selected
             } }
             selectItem={ select => setSelected(select) }
-            column={ userTaskColumn } />
+            column={ workflowColumn } />
       </Box>);
 }
 
 const List = ({
-  userTask,
-  userTaskColumns,
-  UserTaskListCell,
+  workflow,
+  workflowColumns,
+  WorkflowListCell,
 }: {
-  userTask: BcUserTask,
-  userTaskColumns: Column[] | undefined,
-  UserTaskListCell: UserTaskListCell,
+  workflow: BcWorkflow,
+  workflowColumns: Column[] | undefined,
+  WorkflowListCell: WorkflowListCell,
 }) => {
-  const defaultColumns = userTaskColumns?.map(column => column.path).join(", ") ?? null;
+  const defaultColumns = workflowColumns?.map(column => column.path).join(", ") ?? null;
   const [ columns, setColumns ] = useState<string | null>(
       window.sessionStorage.getItem(SESSION_STORAGE_KEY) ?? defaultColumns);
   const columnsChanged = (event: ChangeEvent<HTMLInputElement>) => {
@@ -87,12 +87,12 @@ const List = ({
               key={ column }
               index={ index }
               responsive={ responsive }
-              selected={ selected.filter(item => item === userTask.id).length !== 0 }
-              setSelected={ (select: boolean) => setSelected(userTask.id, select) }
+              selected={ selected.filter(item => item === workflow.id).length !== 0 }
+              setSelected={ (select: boolean) => setSelected(workflow.id, select) }
               column={ column }
-              userTask={ userTask }
-              userTaskColumns={ userTaskColumns }
-              UserTaskListCell={ UserTaskListCell } />);
+              workflow={ workflow }
+              workflowColumns={ workflowColumns }
+              WorkflowListCell={ WorkflowListCell } />);
 
   return (
       <Box
