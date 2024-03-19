@@ -925,7 +925,6 @@ const ListOfTasks = ({
         .filter(columnsOfTask => columnsOfTask !== undefined)
         .reduce((totalColumns, columnsOfTask) => {
             columnsOfTask!
-                .filter(column => column.show)
                 .forEach(column => { totalColumns[column.path] = column });
             return totalColumns;
           }, {} as Columns);
@@ -982,7 +981,6 @@ const ListOfTasks = ({
         : columnsOfTasks.map(c => c.path).join('|');
     const columnsToShow = (Object
         .values(totalColumns) as Array<Column>)
-        .filter(column => (columns === undefined) || columns.includes(column.path))
         .sort((a, b) => a.priority - b.priority);
     const newColumnsSignature = columnsToShow.map(c => c.path).join('|');
     if (existingColumnsSignature === newColumnsSignature) {
@@ -1078,40 +1076,43 @@ const ListOfTasks = ({
   // @ts-ignore
   const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfTasks === undefined
       ? []
-      : columnsOfTasks!.map(column => ({
-        property: column.path,
-        size: getColumnSize(column),
-        plain: true,
-        verticalAlign: "top",
-        header: <ListColumnHeader
-            t={ t }
-            currentLanguage={ currentLanguage }
-            nameOfList={ name }
-            columnHeader={ columnHeader }
-            hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-            setColumnWidthAdjustment={ setColumnWidthAdjustment }
-            sort={ sort === column.path }
-            setSort={ setSort }
-            sortAscending={ sortAscending }
-            setSortAscending={ setSortAscending }
-            column={ column }
-            allSelected={ allSelected }
-            selectAll={ selectAll } />,
-        render: (item: ListItem<BcUserTask>) => <ListCell
-            modulesAvailable={ modules! }
-            column={ column }
-            currentLanguage={ currentLanguage }
-            nameOfList={ name }
-            typeOfItem={ TypeOfItem.TaskList }
-            showUnreadAsBold={ true }
-            t={ t }
-            // @ts-ignore
-            item={ item }
-            // @ts-ignore
-            selectItem={ selectItem }
-            // @ts-ignore
-            defaultListCell={ UserTaskDefaultListCell } />
-      }));
+      : columnsOfTasks!
+          .filter(column => column.show)
+          .filter(column => (columns === undefined) || columns.includes(column.path))
+          .map(column => ({
+            property: column.path,
+            size: getColumnSize(column),
+            plain: true,
+            verticalAlign: "top",
+            header: <ListColumnHeader
+                t={ t }
+                currentLanguage={ currentLanguage }
+                nameOfList={ name }
+                columnHeader={ columnHeader }
+                hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                sort={ sort === column.path }
+                setSort={ setSort }
+                sortAscending={ sortAscending }
+                setSortAscending={ setSortAscending }
+                column={ column }
+                allSelected={ allSelected }
+                selectAll={ selectAll } />,
+            render: (item: ListItem<BcUserTask>) => <ListCell
+                modulesAvailable={ modules! }
+                column={ column }
+                currentLanguage={ currentLanguage }
+                nameOfList={ name }
+                typeOfItem={ TypeOfItem.TaskList }
+                showUnreadAsBold={ true }
+                t={ t }
+                // @ts-ignore
+                item={ item }
+                // @ts-ignore
+                selectItem={ selectItem }
+                // @ts-ignore
+                defaultListCell={ UserTaskDefaultListCell } />
+          }));
 
   const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
       return {

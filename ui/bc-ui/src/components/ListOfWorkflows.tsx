@@ -738,7 +738,6 @@ const ListOfWorkflows = ({
         : columnsOfWorkflows.map(c => c.path).join('|');
     const columnsToShow = (Object
         .values(totalColumns) as Array<Column>)
-        .filter(column => (columns === undefined) || columns.includes(column.path))
         .sort((a, b) => a.priority - b.priority);
     const newColumnsSignature = columnsToShow.map(c => c.path).join('|');
     if (existingColumnsSignature === newColumnsSignature) {
@@ -830,40 +829,43 @@ const ListOfWorkflows = ({
 
   const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfWorkflows === undefined
       ? []
-      : columnsOfWorkflows!.map(column => ({
-        property: column.path,
-        size: getColumnSize(column),
-        plain: true,
-        verticalAlign: "top",
-        header: <ListColumnHeader
-            t={ t }
-            currentLanguage={ currentLanguage }
-            nameOfList={ name }
-            columnHeader={ columnHeader }
-            hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-            setColumnWidthAdjustment={ setColumnWidthAdjustment }
-            sort={ sort === column.path }
-            setSort={ setSort }
-            sortAscending={ sortAscending }
-            setSortAscending={ setSortAscending }
-            column={ column }
-            allSelected={ allSelected }
-            selectAll={ selectAll } />,
-        render: (item: ListItem<BcUserTask>) => <ListCell
-            modulesAvailable={ modules! }
-            column={ column }
-            currentLanguage={ currentLanguage }
-            nameOfList={ name }
-            typeOfItem={ TypeOfItem.WorkflowList }
-            showUnreadAsBold={ false }
-            t={ t }
-            // @ts-ignore
-            item={ item }
-            // @ts-ignore
-            selectItem={ selectItem }
-            // @ts-ignore
-            defaultListCell={ WorkflowDefaultListCell } />
-      }));
+      : columnsOfWorkflows!
+          .filter(column => column.show)
+          .filter(column => (columns === undefined) || columns.includes(column.path))
+          .map(column => ({
+              property: column.path,
+              size: getColumnSize(column),
+              plain: true,
+              verticalAlign: "top",
+              header: <ListColumnHeader
+                  t={ t }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  columnHeader={ columnHeader }
+                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                  setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                  sort={ sort === column.path }
+                  setSort={ setSort }
+                  sortAscending={ sortAscending }
+                  setSortAscending={ setSortAscending }
+                  column={ column }
+                  allSelected={ allSelected }
+                  selectAll={ selectAll } />,
+              render: (item: ListItem<BcUserTask>) => <ListCell
+                  modulesAvailable={ modules! }
+                  column={ column }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  typeOfItem={ TypeOfItem.WorkflowList }
+                  showUnreadAsBold={ false }
+                  t={ t }
+                  // @ts-ignore
+                  item={ item }
+                  // @ts-ignore
+                  selectItem={ selectItem }
+                  // @ts-ignore
+                  defaultListCell={ WorkflowDefaultListCell } />
+            }));
   
   const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
       const getUserTasksFunction: GetUserTasksFunction = async (
