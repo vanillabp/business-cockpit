@@ -131,11 +131,11 @@ public class WebSecurityConfiguration {
     @Bean
     @Primary
     @Profile("local")
+    @ConditionalOnMissingBean(MapReactiveUserDetailsService.class)
     public MapReactiveUserDetailsService userDetailsService(
             final UserDetailsProvider userService) {
 
         final var users = userService
-
                 .getAllUsers()
                 .stream()
                 .map(user -> User.builder()
