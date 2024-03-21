@@ -23,17 +23,18 @@ import reactor.core.publisher.Mono;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public abstract class AbstractWorkflowListGuiApiController implements OfficialWorkflowlistApi {
 
     @Autowired
-    private ReactiveUserContext userContext;
+    protected ReactiveUserContext userContext;
 
     @Autowired
-    private GuiApiMapper mapper;
+    protected GuiApiMapper mapper;
 
     @Autowired
-    private io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper userTaskMapper;
+    protected io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper userTaskMapper;
 
     protected abstract Mono<Page<Workflow>> getWorkflows(
             final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
@@ -178,9 +179,9 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                         userContext.getUserLoggedInDetailsAsMono(),
                         kwicRequest)
                 .flatMapMany(entry -> {
-                            final var searchQueries = entry
-                                    .getT2()
-                                    .getSearchQueries()
+                            final var searchQueries = Optional.ofNullable(
+                                            entry.getT2().getSearchQueries())
+                                    .orElse(List.of())
                                     .stream()
                                     .map(mapper::toModel)
                                     .toList();

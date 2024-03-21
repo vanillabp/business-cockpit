@@ -26,13 +26,13 @@ import java.util.List;
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
 	@Autowired
-	private ReactiveUserContext userContext;
+	protected ReactiveUserContext userContext;
 
 	@Autowired
-	private GuiApiMapper mapper;
+	protected GuiApiMapper mapper;
 
 	@Autowired
-	private UserDetailsProvider userDetailsProvider;
+	protected UserDetailsProvider userDetailsProvider;
 	
 	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
