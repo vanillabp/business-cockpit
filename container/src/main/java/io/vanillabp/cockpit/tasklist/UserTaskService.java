@@ -50,12 +50,10 @@ public class UserTaskService {
     };
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
-                    Order.asc("dueDate").nullsLast(),
                     Order.asc("createdAt"),
                     Order.asc("id")
             );
     private static final List<Sort.Order> DEFAULT_ORDER_DESC= List.of(
-                    Order.desc("dueDate").nullsLast(),
                     Order.desc("createdAt"),
                     Order.desc("id")
             );
@@ -300,27 +298,30 @@ public class UserTaskService {
     private static record UserTaskListOrder(List<Order> order, List<String> toBeIndexed) {}
 
     private UserTaskListOrder getUserTaskListOrder(
-            final String sort,
+            final String _sort,
             final boolean sortAscending) {
 
         List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
         final List<String> nonDefaultSort;
-        if ((sort != null)
-                && !sort.equals("dueDate")) {
-            nonDefaultSort = new LinkedList<>();
-            final var newOrder = new LinkedList<Order>();
-            Arrays
-                    .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
-                    .peek(nonDefaultSort::add)
-                    .map(languageBasedSort -> sortAscending
-                            ? Order.asc(languageBasedSort)
-                            : Order.desc(languageBasedSort))
-                    .forEach(newOrder::add);
-            newOrder.addAll(order); // default order
-            order = newOrder;
-        } else {
-            nonDefaultSort = null;
-        }
+        final var sort = _sort == null
+                ? "dueDate"
+                : _sort.equals("createdAt")
+                ? ""
+                : _sort;
+
+        nonDefaultSort = new LinkedList<>();
+        final var newOrder = new LinkedList<Order>();
+        Arrays
+                .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
+                .filter(StringUtils::hasText)
+                .peek(nonDefaultSort::add)
+                .map(languageBasedSort -> sortAscending
+                        ? Order.asc(languageBasedSort).nullsLast()
+                        : Order.desc(languageBasedSort).nullsLast())
+                .forEach(newOrder::add);
+        newOrder.addAll(order); // default order
+        order = newOrder;
+
         return new UserTaskListOrder(order, nonDefaultSort);
 
     }

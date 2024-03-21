@@ -200,27 +200,30 @@ public class WorkflowlistService {
     private static record WorkflowListOrder(List<Order> order, List<String> toBeIndexed) {}
 
     private WorkflowlistService.WorkflowListOrder getWorkflowListOrder(
-            final String sort,
+            final String _sort,
             final boolean sortAscending) {
 
         List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
         final List<String> nonDefaultSort;
-        if ((sort != null)
-                && !sort.equals("dueDate")) {
-            nonDefaultSort = new LinkedList<>();
-            final var newOrder = new LinkedList<Order>();
-            Arrays
-                    .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
-                    .peek(nonDefaultSort::add)
-                    .map(languageBasedSort -> sortAscending
-                            ? Order.asc(languageBasedSort)
-                            : Order.desc(languageBasedSort))
-                    .forEach(newOrder::add);
-            newOrder.addAll(order); // default order
-            order = newOrder;
-        } else {
-            nonDefaultSort = null;
-        }
+        final var sort = _sort == null
+                ? ""
+                : _sort.equals("createdAt")
+                ? ""
+                : _sort;
+
+        nonDefaultSort = new LinkedList<>();
+        final var newOrder = new LinkedList<Order>();
+        Arrays
+                .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
+                .filter(StringUtils::hasText)
+                .peek(nonDefaultSort::add)
+                .map(languageBasedSort -> sortAscending
+                        ? Order.asc(languageBasedSort).nullsLast()
+                        : Order.desc(languageBasedSort).nullsLast())
+                .forEach(newOrder::add);
+        newOrder.addAll(order); // default order
+        order = newOrder;
+
         return new WorkflowlistService.WorkflowListOrder(order, nonDefaultSort);
 
     }

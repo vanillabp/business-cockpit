@@ -125,4 +125,30 @@ public class V000001 {
 
     }
 
+    @Changeset(order = 1006)
+    public String moveWorkflowModuleUriIntoSeparateCollection(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .dropIndex(INDEX_WORKFLOWMODULE_URI)
+                .block();
+
+        return null;
+
+    }
+
+    @Changeset(order = 1007)
+    public String dropDefaultSortIndex( // will be created on demand
+                                        final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .dropIndex(INDEX_DEFAULT_SORT)
+                .block();
+
+        return null;
+
+    }
+
 }
