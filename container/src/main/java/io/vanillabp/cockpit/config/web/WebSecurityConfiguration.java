@@ -131,7 +131,6 @@ public class WebSecurityConfiguration {
     @Bean
     @Primary
     @Profile("local")
-    @ConditionalOnMissingBean(MapReactiveUserDetailsService.class)
     public MapReactiveUserDetailsService userDetailsService(
             final UserDetailsProvider userService) {
 
