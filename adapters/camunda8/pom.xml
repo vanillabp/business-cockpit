@@ -51,9 +51,9 @@
         </dependency>
 
         <dependency>
-            <groupId>io.zeebe</groupId>
+            <groupId>at.phactum.zeebe</groupId>
             <artifactId>zeebe-kafka-exporter-serde</artifactId>
-            <version>3.1.2-SNAPSHOT</version>
+            <version>4.0.0</version>
             <optional>true</optional>
         </dependency>
 

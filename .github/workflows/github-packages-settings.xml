@@ -43,6 +43,16 @@
                         <enabled>true</enabled>
                   </releases>
                 </repository>
+                <repository>
+                    <id>zeebe-kafka-exporter-serde</id>
+                    <url>https://maven.pkg.github.com/phactum/zeebe-kafka-exporter-serde</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </repository>
             </repositories>
         </profile>
     </profiles>
@@ -65,6 +75,11 @@
         </server>
         <server>
             <id>vanillabp-camunda8-adapter</id>
+            <username>${env.USER_NAME}</username>
+            <password>${env.USER_TOKEN}</password>
+        </server>
+        <server>
+            <id>zeebe-kafka-exporter-serde</id>
             <username>${env.USER_NAME}</username>
             <password>${env.USER_TOKEN}</password>
         </server>
