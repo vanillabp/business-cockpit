@@ -16,7 +16,7 @@ public class WorkflowEventProtobufMapper {
                 processInstanceCreationRecord.getMetadata().getKey());
         workflowCreatedEvent.setTimestamp(
                 processInstanceCreationRecord.getMetadata().getTimestamp());
-        // TODO: replace with info from event
+        // TODO: replace with info from event when available in protobuf spec
         workflowCreatedEvent.setTenantId("demo");
         workflowCreatedEvent.setVersion(
                 processInstanceCreationRecord.getVersion());

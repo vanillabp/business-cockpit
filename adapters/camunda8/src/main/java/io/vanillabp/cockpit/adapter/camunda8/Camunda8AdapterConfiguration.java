@@ -47,7 +47,6 @@ import java.util.function.Function;
 @AutoConfigurationPackage(basePackageClasses = Camunda8AdapterConfiguration.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
 @AutoConfigureBefore(CamundaAutoConfiguration.class)
-@EnableConfigurationProperties({ SpringRedisClientProperties.class })
 public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camunda8BusinessCockpitService<?>> {
 
     public static final String ADAPTER_ID = "camunda8";
@@ -75,12 +74,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8WorkflowEventHandler(applicationEventPublisher, workflowPublishing);
     }
 
-    @Bean
-    public SpringRedisClient springRedisClient(SpringRedisClientProperties springRedisClientProperties,
-                                               Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
-                                               Camunda8WorkflowEventHandler camunda8WorkflowEventHandler){
-        return new SpringRedisClient(springRedisClientProperties, camunda8UserTaskEventHandler, camunda8WorkflowEventHandler);
-    }
 
     @Bean
     public Camunda8UserTaskEventPublisher camunda8UserTaskEventPublisher(

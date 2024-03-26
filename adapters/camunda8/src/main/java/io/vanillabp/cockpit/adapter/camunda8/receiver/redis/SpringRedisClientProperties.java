@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = SpringRedisClientProperties.PREFIX)
 public class SpringRedisClientProperties {
-    public static final String PREFIX = "vanillabp.redis";
+    public static final String PREFIX = "zeebe.redis-exporter";
 
     private String uri;
     private String consumerGroup;

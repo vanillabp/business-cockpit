@@ -1,3 +1,5 @@
 io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration
 io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration
 io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterKafkaConfiguration
+io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration
+io.vanillabp.cockpit.adapter.camunda8.receiver.redis.RedisConfiguration
