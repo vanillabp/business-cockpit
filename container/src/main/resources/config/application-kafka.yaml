@@ -2,3 +2,4 @@ bpms-api:
   kafka-topics:
     workflow: "workflows"
     user-task: "user-tasks"
+    workflow-module: "modules"

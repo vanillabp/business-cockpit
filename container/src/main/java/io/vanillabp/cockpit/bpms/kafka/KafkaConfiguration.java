@@ -19,7 +19,7 @@ import java.util.Map;
 @AutoConfiguration
 @ConditionalOnProperty(
         prefix = BpmsApiProperties.PREFIX + ".kafka-topics",
-        name = {"workflow", "user-task"})
+        name = {"workflow", "user-task", "workflow-module"})
 public class KafkaConfiguration {
 
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit";
