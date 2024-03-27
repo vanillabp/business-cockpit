@@ -97,12 +97,15 @@ const keepOldItemsInArray = <T>(
           }
         }
         // add new item
-        if (isFirstBeforeSecond(oldArray[indexOld], newArray[indexNew])) {
-          merged.push(map(undefined, oldArray[indexOld], merged.length));
-          ++indexOld;
-        } else {
-          merged.push(map(newArray[indexNew], undefined, merged.length));
-          ++indexNew;
+        if (idOfNewItem !== undefined) {
+          if ((indexOld < oldArray.length)
+              && isFirstBeforeSecond(oldArray[indexOld], newArray[indexNew])) {
+            merged.push(map(undefined, oldArray[indexOld], merged.length));
+            ++indexOld;
+          } else {
+            merged.push(map(newArray[indexNew], undefined, merged.length));
+            ++indexNew;
+          }
         }
       }
 

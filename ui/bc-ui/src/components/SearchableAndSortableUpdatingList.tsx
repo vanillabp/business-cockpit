@@ -134,6 +134,15 @@ const reloadData = async <T extends ListItemData>(
           }
           result.number = index + 1;
           return result;
+        },
+      (first, second) => {
+          if (first?.id === undefined) {
+            return second?.id === undefined;
+          }
+          if (second?.id === undefined) {
+            return true;
+          }
+          return first.number < second.number;
         }
       );
 
