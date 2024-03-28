@@ -7,10 +7,13 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 
 import java.util.Map;
+import java.util.Set;
 
 public class WorkflowEventZeebeRecordMapper {
 
-    public static Camunda8WorkflowCreatedEvent map(ProcessInstanceCreationRecordValue processInstanceCreationRecord) {
+    public static Camunda8WorkflowCreatedEvent map(
+            ProcessInstanceCreationRecordValue processInstanceCreationRecord,
+            Set<String> idNames) {
         Camunda8WorkflowCreatedEvent workflowCreatedEvent = new Camunda8WorkflowCreatedEvent();
 
         workflowCreatedEvent.setTenantId(
@@ -24,7 +27,7 @@ public class WorkflowEventZeebeRecordMapper {
         workflowCreatedEvent.setBpmnProcessId(
                 processInstanceCreationRecord.getBpmnProcessId());
 
-        setBusinessKey(processInstanceCreationRecord, workflowCreatedEvent);
+        setBusinessKey(processInstanceCreationRecord, workflowCreatedEvent, idNames);
 
         return workflowCreatedEvent;
     }
@@ -36,11 +39,20 @@ public class WorkflowEventZeebeRecordMapper {
     }
 
 
-    private static void setBusinessKey(ProcessInstanceCreationRecordValue processInstanceCreationRecord, Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
+    private static void setBusinessKey(ProcessInstanceCreationRecordValue processInstanceCreationRecord,
+                                       Camunda8WorkflowCreatedEvent workflowCreatedEvent,
+                                       Set<String> idNames) {
+
         Map<String, Object> variables = processInstanceCreationRecord.getVariables();
-        if(variables != null && variables.containsKey("id")){
-            workflowCreatedEvent.setBusinessKey((String) variables.get("id"));
+        if(variables == null) {
+            return;
         }
+
+        idNames.stream()
+                .filter(variables::containsKey)
+                .findFirst()
+                .ifPresent(idName -> workflowCreatedEvent.setBusinessKey((String) variables.get(idName))) ;
+
     }
 
     public static Camunda8WorkflowLifeCycleEvent map(ProcessInstanceRecordValue processInstanceRecord){

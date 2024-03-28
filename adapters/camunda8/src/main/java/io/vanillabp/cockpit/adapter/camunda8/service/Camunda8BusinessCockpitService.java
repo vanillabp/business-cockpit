@@ -19,17 +19,21 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     private final Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
 
+    private final String workflowAggregateIdName;
+
     private AdapterAwareBusinessCockpitService<WA> parent;
 
     public Camunda8BusinessCockpitService(CrudRepository<WA, Object> workflowAggregateRepository,
                                           Class<WA> workflowAggregateClass,
                                           Function<WA, ?> getWorkflowAggregateId,
-                                          Function<String, Object> parseWorkflowAggregateIdFromBusinessKey) {
+                                          Function<String, Object> parseWorkflowAggregateIdFromBusinessKey,
+                                          String workflowAggregateIdName) {
 
         this.workflowAggregateRepository = workflowAggregateRepository;
         this.workflowAggregateClass = workflowAggregateClass;
         this.getWorkflowAggregateId = getWorkflowAggregateId;
         this.parseWorkflowAggregateIdFromBusinessKey = parseWorkflowAggregateIdFromBusinessKey;
+        this.workflowAggregateIdName = workflowAggregateIdName;
     }
 
     public void wire(
@@ -81,5 +85,9 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
     public Optional<UserTask> getUserTask(WA workflowAggregate, String userTaskId) {
         // TODO CKO
         return Optional.empty();
+    }
+
+    public String getWorkflowAggregateIdName() {
+        return workflowAggregateIdName;
     }
 }

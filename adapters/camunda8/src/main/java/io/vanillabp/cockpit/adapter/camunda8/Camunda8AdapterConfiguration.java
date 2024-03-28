@@ -6,8 +6,6 @@ import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapt
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentResourceRepository;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
-import io.vanillabp.cockpit.adapter.camunda8.receiver.redis.SpringRedisClient;
-import io.vanillabp.cockpit.adapter.camunda8.receiver.redis.SpringRedisClientProperties;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
@@ -31,17 +29,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.repository.CrudRepository;
 
 import java.math.BigInteger;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 
 @AutoConfigurationPackage(basePackageClasses = Camunda8AdapterConfiguration.class)
@@ -114,7 +112,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final VanillaBpCockpitProperties cockpitProperties,
             final SpringBeanUtil springBeanUtil,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
@@ -170,17 +167,17 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         if (String.class.isAssignableFrom(workflowAggregateIdClass)) {
             parseWorkflowAggregateIdFromBusinessKey = businessKey -> businessKey;
         } else if (int.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Integer.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Integer::valueOf;
         } else if (long.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Long.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Long::valueOf;
         } else if (float.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Float.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Float::valueOf;
         } else if (double.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Double.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Double::valueOf;
         } else if (byte.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Byte.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Byte::valueOf;
         } else if (BigInteger.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> new BigInteger(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = BigInteger::new;
         } else {
             try {
                 final var valueOfMethod = workflowAggregateIdClass.getMethod("valueOf", String.class);
@@ -205,12 +202,20 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 workflowAggregateRepository,
                 workflowAggregateClass,
                 springDataUtil::getId,
-                parseWorkflowAggregateIdFromBusinessKey
+                parseWorkflowAggregateIdFromBusinessKey,
+                springDataUtil.getIdName(workflowAggregateClass)
         );
 
         putConnectableService(workflowAggregateClass, result);
 
         return result;
 
+    }
+
+    public Set<String> getIdNames(){
+        return this.getConnectableServices()
+                .stream()
+                .map(Camunda8BusinessCockpitService::getWorkflowAggregateIdName)
+                .collect(Collectors.toSet());
     }
 }

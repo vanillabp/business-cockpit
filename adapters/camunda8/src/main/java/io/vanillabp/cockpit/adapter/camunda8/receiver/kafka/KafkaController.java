@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.kafka;
 
 
+import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
@@ -14,9 +15,10 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
-import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
+
+import java.util.Set;
 
 import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -25,13 +27,16 @@ public class KafkaController {
 
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
     private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
+    private final Set<String> idNames;
 
     public KafkaController(
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
-            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler) {
+            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
+            Set<String> idNames) {
 
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
+        this.idNames = idNames;
     }
 
     @KafkaListener(topics = "${" + KafkaConfiguration.ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY + "}",
@@ -63,7 +68,9 @@ public class KafkaController {
 
         ProcessInstanceCreationRecordValue processInstanceCreationRecordValue =
                 (ProcessInstanceCreationRecordValue) value.getValue();
-        Camunda8WorkflowCreatedEvent workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue);
+
+        Camunda8WorkflowCreatedEvent workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(
+                processInstanceCreationRecordValue, idNames);
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value);
         camunda8WorkflowEventHandler.notify(workflowCreatedEvent);
     }

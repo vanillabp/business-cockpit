@@ -38,6 +38,7 @@ public class WorkflowEventProtobufMapper {
         }
         Map<String, Value> fieldsMap = processInstanceCreationRecord.getVariables().getFieldsMap();
 
+        // TODO: use id like in kafka mapper
         if(fieldsMap.containsKey("id")){
             workflowCreatedEvent.setBusinessKey(fieldsMap.get("id").getStringValue());
         }

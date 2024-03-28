@@ -1,11 +1,12 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.kafka;
 
-import io.camunda.zeebe.protocol.record.Record;
-import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import at.phactum.zeebe.exporters.kafka.serde.RecordDeserializer;
 import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import at.phactum.zeebe.exporters.kafka.serde.RecordIdDeserializer;
+import io.camunda.zeebe.protocol.record.Record;
+import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
+import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -53,7 +54,12 @@ public class KafkaConfiguration {
     @Bean
     public KafkaController kafkaController(
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
-            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler) {
-        return new KafkaController(camunda8UserTaskEventHandler, camunda8WorkflowEventHandler);
+            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
+            Camunda8AdapterConfiguration camunda8AdapterConfiguration) {
+
+        return new KafkaController(
+                camunda8UserTaskEventHandler,
+                camunda8WorkflowEventHandler,
+                camunda8AdapterConfiguration.getIdNames());
     }
 }
