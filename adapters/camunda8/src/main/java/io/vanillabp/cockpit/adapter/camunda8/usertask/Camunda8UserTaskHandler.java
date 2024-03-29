@@ -153,9 +153,10 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
     public void notify(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
 
-        final var i18nLanguages = properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId);
+        String workflowModuleId = processService.getWorkflowModuleId();
+        final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
-                "demo",
+                workflowModuleId,
                 i18nLanguages
         );
         this.fillUserTaskCreatedEvent(camunda8UserTaskCreatedEvent, userTaskCreatedEvent);
@@ -269,7 +270,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                     delegateTask.getElementId(),
                     delegateTask.getProcessInstanceKey(),
                     delegateTask.getBpmnProcessId(),
-                    delegateTask.getElementInstanceKey());;
+                    delegateTask.getElementInstanceKey());
 
             final var workflowAggregateCache = new WorkflowAggregateCache();
 
