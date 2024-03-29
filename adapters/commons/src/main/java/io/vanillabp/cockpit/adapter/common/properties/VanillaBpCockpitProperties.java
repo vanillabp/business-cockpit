@@ -123,13 +123,13 @@ public class VanillaBpCockpitProperties {
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
-                            + ".i18n-languages\n  "
+                            + ".cockpit.i18n-languages\n  "
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
                             + ".workflows."
                             + bpmnProcessId
-                            + ".i18n-languages");
+                            + ".cockpit.i18n-languages");
         }
         return i18nLanguages;
 
@@ -152,13 +152,13 @@ public class VanillaBpCockpitProperties {
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
-                            + ".bpmn-description-language\n  "
+                            + ".cockpit.bpmn-description-language\n  "
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
                             + ".workflows."
                             + bpmnProcessId
-                            + ".bpmn-description-language");
+                            + ".cockpit.bpmn-description-language");
         }
         return language;
 
