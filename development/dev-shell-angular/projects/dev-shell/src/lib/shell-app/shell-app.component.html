@@ -1,0 +1,8 @@
+<lib-header/>
+<div *ngIf="this.router.url.startsWith('/task') && !userTaskId">
+  <p>Unknown task</p>
+</div>
+<div *ngIf="!this.router.url.startsWith('/task') && !workflowId">
+  <p>Unknown workflow</p>
+</div>
+<router-outlet/>

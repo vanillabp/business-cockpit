@@ -1,0 +1,10 @@
+<div>
+    <h1>{{userTask?.title?.["de"]}}</h1>
+    <p>Assignee: {{ userTask?.assignee }}</p>
+    <p>Created at: {{ userTask?.createdAt }}</p>
+    <p>Due: {{ userTask?.dueDate }}</p>
+    <h1>Workflow: {{userTask?.workflowTitle?.["de"]}}</h1>
+    <button (click)="open()">Open Task (current)</button>
+    <button (click)="navigateWorkflow()">Navigate Workflow</button>
+    <br />
+</div>
