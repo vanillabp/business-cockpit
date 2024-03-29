@@ -1,6 +1,6 @@
 application:
   business-cockpit:
-    base-url: http://localhost:9080/bpms/api/v1
+    base-url: http://localhost:8080/bpms/api/v1
     authentication:
       basic: true
       username: abc
