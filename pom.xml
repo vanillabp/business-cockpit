@@ -14,6 +14,7 @@
     <version.protobuf>3.25.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
+    <skip.npm.prerelease>true</skip.npm.prerelease>
     <version.jupiter>5.10.1</version.jupiter>
   </properties>
 
@@ -108,6 +109,17 @@
               </goals>
               <configuration>
                 <arguments>run build</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm prerelease snapshot</id>
+              <phase>package</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>version ${project.version}.${npm.prerelease} --no-git-tag-version</arguments>
+                <skip>${skip.npm.prerelease}</skip>
               </configuration>
             </execution>
             <execution>
@@ -227,6 +239,17 @@
       <id>unpublish-npm</id>
       <properties>
         <skip.npm.unpublish>false</skip.npm.unpublish>
+      </properties>
+    </profile>
+    <profile>
+      <id>prerelease-npm</id>
+      <activation>
+        <property>
+          <name>npm.prerelease</name>
+        </property>
+      </activation>
+      <properties>
+        <skip.npm.prerelease>false</skip.npm.prerelease>
       </properties>
     </profile>
   </profiles>
