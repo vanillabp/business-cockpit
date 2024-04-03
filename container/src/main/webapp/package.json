@@ -3,8 +3,8 @@
   "version": "0.0.3-SNAPSHOT",
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.0.3-SNAPSHOT.0 <0.0.4",
-    "@vanillabp/bc-ui": ">=0.0.3-SNAPSHOT.0 <0.0.4",
+    "@vanillabp/bc-shared": ">=0.0.3-SNAPSHOT <0.0.4",
+    "@vanillabp/bc-ui": ">=0.0.3-SNAPSHOT <0.0.4",
     "@fontsource/roboto": "4.5.8",
     "grommet": "2.33.2",
     "grommet-icons": "4.10.0",
