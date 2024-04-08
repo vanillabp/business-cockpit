@@ -1,5 +1,6 @@
 import { createApplication } from "@angular/platform-browser";
-import { appConfig } from "./main.config";
+// import { appConfig } from "./main.config";
+import { appConfig } from "@vanillabp/bc-dev-shell-angular"
 import { createCustomElement } from "@angular/elements";
 import { ApplicationRef } from "@angular/core";
 import { LibraryComponent } from "../../library/src/lib/library.component";
@@ -7,7 +8,7 @@ import { UserTaskFormComponent } from "../../library/user-task-form/user-task-fo
 import { WorkflowPageComponent } from "../../library/workflow-page/workflow-page.component";
 
 (async () => {
-    const app: ApplicationRef = await createApplication(appConfig);
+    const app: ApplicationRef = await createApplication(appConfig(UserTaskFormComponent, WorkflowPageComponent));
 
     // Define Web Components
     const libraryComponent = createCustomElement(LibraryComponent, {

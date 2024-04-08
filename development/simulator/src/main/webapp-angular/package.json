@@ -6,7 +6,7 @@
     "prettier": "prettier --write \"**/*.{js,json,css,scss,less,md,ts,html,component.html}\"",
     "start": "ng serve webapp",
     "build": "ng build webapp",
-    "package": "ng build library -c production && ng build library-web-components -c production && webpack && echo '/* eslint-disable */' | cat - dist/bundle.js > temp && mv temp dist/bundle.js && mv dist/bundle.js ../react-app/src/angular-components/.",
+    "package": "ng build library -c production && ng build library-web-components -c production && webpack && echo '/* eslint-disable */' | cat - dist/bundle.js > build/bundle.js",
     "watch": "ng build --watch --configuration development",
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
