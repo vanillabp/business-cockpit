@@ -1,5 +1,9 @@
 import { keepOldItemsInArray } from "../../src/utils/objectUtils";
 
+interface Entity {
+    id: number | undefined;
+    number: number;
+}
 
 describe('testing keepOldItemsInArray', () => {
     test('test1', () => {
@@ -36,5 +40,41 @@ describe('testing keepOldItemsInArray', () => {
         const b = [2, 3, 4];
         const a = [1, 5, 6, 7, 8];
         expect(keepOldItemsInArray(a, b)).toStrictEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    });
+    test('test6', () => {
+        const a = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as Entity[];
+        const b = [{ id: undefined }, { id: undefined }, { id: 3 }, { id: undefined }] as Entity[];
+        a.forEach((x, i) => x.number = i);
+        b.forEach((x, i) => x.number = i);
+        expect(keepOldItemsInArray(b, a,
+                e => e.id,
+                (i, oi, idx) => (i || oi)!,
+                (first, second) => {
+            if (first?.id === undefined) {
+                return second?.id === undefined;
+            }
+            if (second?.id === undefined) {
+                return true;
+            }
+            return first.number < second.number;
+        })).toStrictEqual(a);
+    });
+    test('test7', () => {
+        const a = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as Entity[];
+        const b = [{ id: undefined }, { id: undefined }, { id: undefined }] as Entity[];
+        a.forEach((x, i) => x.number = i);
+        b.forEach((x, i) => x.number = i);
+        expect(keepOldItemsInArray(b, a,
+            e => e.id,
+            (i, oi, idx) => (i || oi)!,
+            (first, second) => {
+                if (first?.id === undefined) {
+                    return second?.id === undefined;
+                }
+                if (second?.id === undefined) {
+                    return true;
+                }
+                return first.number < second.number;
+            })).toStrictEqual(a);
     });
 });

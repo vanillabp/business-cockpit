@@ -127,12 +127,15 @@ const reloadData = async <T extends ListItemData>(
           const itemInUpdateResponse = newItem?.status !== undefined;
           const result = itemInUpdateResponse ? newItem! : oldItem!;
           if (newItem === undefined) {
-            result.status = ListItemStatus.REMOVED_FROM_LIST;
+            if (result !== undefined) {
+              result.status = ListItemStatus.REMOVED_FROM_LIST;
+              result.number = index + 1;
+            }
             anyUpdate = true;
           } else if (itemInUpdateResponse) {
+            result.number = index + 1;
             anyUpdate = true;
           }
-          result.number = index + 1;
           return result;
         },
       (first, second) => {

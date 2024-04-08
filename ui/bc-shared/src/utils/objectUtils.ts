@@ -106,6 +106,8 @@ const keepOldItemsInArray = <T>(
             merged.push(map(newArray[indexNew], undefined, merged.length));
             ++indexNew;
           }
+        } else {
+          ++indexNew;
         }
       }
 
