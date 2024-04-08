@@ -92,7 +92,7 @@ const reloadData = async <T extends ListItemData>(
   const size = (items!.length === 0
       ? prefill
       : Math.floor(items!.length / itemsBatchSize) + prefill) * itemsBatchSize;
-
+console.log(items)
   const result = await reloadItems(
       size,
       items!  // only request items updated or unknown
@@ -209,7 +209,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
       if (refreshItemRef) {
         refreshItemRef.current = (itemIds) => setItems(items!.map(item => itemIds.includes(item.id) ? { ...item } : item));
       }
-      updateListRef.current = (updatedItemsIds) => reloadData(
+      updateListRef.current = async (updatedItemsIds) => await reloadData(
           reloadItems,
           setItems,
           items,
@@ -236,6 +236,17 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
   const headerHeight = 'auto';
 
   const colorRowAccordingToUpdateStatus = items?.reduce((props, item) => {
+      if (item === undefined) {
+        return props;
+      }
+      if (item.status === undefined) {
+        return {
+          ...props,
+          [ item.id ]: {
+            background: { color: 'light-2', opacity: 0.5 }
+          }
+        }
+      }
       if (item.status !== ListItemStatus.INITIAL) {
         return {
             ...props,

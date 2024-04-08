@@ -1228,9 +1228,9 @@ const ListOfTasks = ({
                       updateListRef={ updateListRef }
                       refreshItemRef={ refreshItemRef }
                       refreshNecessaryCallback={ () => setRefreshNecessary(true) }
-                      retrieveItems={ (pageNumber, pageSize, initialTimestamp) =>
+                      retrieveItems={ async (pageNumber, pageSize, initialTimestamp) =>
 // @ts-ignore
-                          loadUserTasks(
+                          await loadUserTasks(
                               tasklistApi,
                               setNumberOfTasks,
                               pageSize,
@@ -1239,9 +1239,9 @@ const ListOfTasks = ({
                               effectiveSort,
                               sortAscending,
                               mapToBcUserTask) }
-                      reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
+                      reloadItems={ async (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
-                          reloadUserTasks(
+                          await reloadUserTasks(
                               tasklistApi,
                               setNumberOfTasks,
                               modulesOfTasks,

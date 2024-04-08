@@ -67,9 +67,11 @@ const keepOldItemsInArray = <T>(
           merged.push(map(undefined, oldArray[indexOld], merged.length));
           ++indexOld;
         }
-        merged.push(map(newArray[indexNew], oldArray[indexOld], merged.length));
+        if (indexOld < oldArray.length) {
+          merged.push(map(newArray[indexNew], oldArray[indexOld], merged.length));
+          ++indexOld;
+        }
         ++indexNew;
-        ++indexOld;
       } else {
         // if new id not found in old list then check if next new items are found in old list
         let lookAheadIndexNew = indexNew + 1;
