@@ -601,6 +601,7 @@ const ListOfWorkflows = ({
   columnHeader,
   columnHeaderBackground = 'dark-3',
   columnHeaderSeparator,
+  defaultSearchQueries = [],
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   useGuiSse: GuiSseHook,
@@ -624,6 +625,7 @@ const ListOfWorkflows = ({
   columnHeaderBackground?: BackgroundType,
   columnHeaderSeparator?: ColorType | null,
   t: TranslationFunction,
+  defaultSearchQueries?: Array<SearchQuery>,
 }) => {
 
   const { isPhone, isTablet, isNotPhone } = useResponsiveScreen();
@@ -631,7 +633,7 @@ const ListOfWorkflows = ({
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
-  const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>([]);
+  const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>(defaultSearchQueries);
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<WorkflowEvent>>>) => {
