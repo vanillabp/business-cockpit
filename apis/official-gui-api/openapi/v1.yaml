@@ -258,7 +258,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserSearchResult'
   /workflow/{workflowId}/usertasks:
-    get:
+    post:
       tags:
         - officialWorkflowlist
       summary: Fetch usertasks for the workflow
@@ -270,15 +270,16 @@ paths:
           schema:
             type: string
         - in: query
-          name: activeOnly
-          required: true
-          schema:
-            type: boolean
-        - in: query
           name: llatcup
           required: true
           schema:
             type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTasksRequest"
       responses:
         200:
           description: Workflow
@@ -743,6 +744,14 @@ components:
         size:
           type: integer
           format: int32
+    UserTaskRetrieveMode:
+      type: string
+      enum:
+        - All
+        - OpenTasks
+        - OpenTasksWithoutFollowup
+        - OpenTasksWithFollowup
+        - ClosedTasksOnly
     UserTasksRequest:
       type: object
       properties:
@@ -758,6 +767,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+        mode:
+          $ref: '#/components/schemas/UserTaskRetrieveMode'
     UserTasks:
       type: object
       required:

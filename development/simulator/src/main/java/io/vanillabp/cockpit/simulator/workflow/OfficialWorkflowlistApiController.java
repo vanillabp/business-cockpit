@@ -1,27 +1,25 @@
 package io.vanillabp.cockpit.simulator.workflow;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.devskiller.jfairy.Fairy;
-
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
 import io.vanillabp.cockpit.simulator.usertask.OfficialTasklistApiMapper;
 import io.vanillabp.cockpit.simulator.usertask.testdata.UserTaskTestDataGenerator;
 import io.vanillabp.cockpit.simulator.workflow.testdata.WorkflowTestDataGenerator;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @RestController
 @RequestMapping(path = "/official-api/v1")
@@ -66,13 +64,13 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
         return ResponseEntity.ok(result);
         
     }
-    
+
     @Override
     public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(
             final String workflowId,
-            final @NotNull @Valid Boolean activeOnly,
-            final @NotNull @Valid Boolean llatcup) {
-        
+            final Boolean llatcup,
+            final UserTasksRequest userTasksRequest) {
+
         final var existingUserTasks = userTasks.get(workflowId);
         if (existingUserTasks != null) {
             return ResponseEntity.ok(existingUserTasks);
@@ -81,7 +79,7 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
         final var result = new LinkedList<UserTask>();
         userTasks.put(workflowId, result);
         
-        final var num = random.nextInt(activeOnly ? 5 : 10);
+        final var num = random.nextInt(userTasksRequest.getMode() ==  UserTaskRetrieveMode.OPENTASKS ? 5 : 10);
         String businessId = null;
         for (int i = 0; i < num; ++i) {
             

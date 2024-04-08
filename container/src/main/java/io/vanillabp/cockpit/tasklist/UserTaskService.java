@@ -338,6 +338,36 @@ public class UserTaskService {
             final String sort,
             final boolean sortAscending) {
 
+        return retrieveUserTasks(
+                includeDanglingTasks,
+                notInAssignees,
+                assignees,
+                candidateUsers,
+                candidateGroups,
+                pageNumber,
+                pageSize,
+                initialTimestamp,
+                sort,
+                sortAscending,
+                null,
+                RetrieveItemsMode.OpenTasks);
+
+    }
+
+    protected Mono<Page<UserTask>> retrieveUserTasks(
+            final boolean includeDanglingTasks,
+            final boolean notInAssignees,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
+            final int pageNumber,
+            final int pageSize,
+            final OffsetDateTime initialTimestamp,
+            final String sort,
+            final boolean sortAscending,
+            final List<Criteria> predefinedCriterias,
+            final RetrieveItemsMode mode) {
+
         final var orderBySort = getUserTaskListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
@@ -354,8 +384,8 @@ public class UserTaskService {
                         candidateUsers,
                         candidateGroups,
                         initialTimestamp,
-                        RetrieveItemsMode.OpenTasks,
-                        null));
+                        mode,
+                        predefinedCriterias));
 
         // prepare to retrieve data on execution
         final var numberOfUserTasksFound = mongoTemplate
@@ -414,16 +444,30 @@ public class UserTaskService {
     }
     
     public Flux<UserTask> getUserTasksOfWorkflow(
+            final String workflowId,
             final boolean activeOnly,
-            final String workflowId) {
-        
-        if (activeOnly) {
-            return userTasks
-                    .findActiveByWorkflowId(workflowId);
-        }
-        
-        return userTasks
-                .findAllByWorkflowId(workflowId);
+            final boolean limitListAccordingToCurrentUsersPermissions,
+            final String currentUser,
+            final Collection<String> currentUserGroups,
+            final int size,
+            final String sort,
+            final boolean sortAscending) {
+
+        return retrieveUserTasks(
+                    true,
+                    false,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    limitListAccordingToCurrentUsersPermissions ? currentUserGroups : null,
+                    0,
+                    size,
+                    OffsetDateTime.now(),
+                    sort,
+                    sortAscending,
+                    List.of(Criteria.where("workflowId").is(workflowId)),
+                    activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
+                ).map(Page::getContent)
+                .flatMapMany(Flux::fromIterable);
         
     }
     

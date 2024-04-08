@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
-import { Box, CheckBox, ColumnConfig, Drop, Grid, Text, TextInput, Tip } from 'grommet';
+import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
   colorForEndedItemsOrUndefined,
@@ -43,6 +43,7 @@ import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIco
 import { User } from "./User.js";
 import { ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
+import { useTheme } from "styled-components";
 
 const minWidthOfTitleColumn = '20rem';
 
@@ -1199,72 +1200,79 @@ const ListOfTasks = ({
           claimTasksDisabled={ !anySelected }
           assignTasks={ assign }
           assignDisabled={ !anySelected } />;
+  const themeContext = useTheme();
+
   return (
-      <Grid
-          key="grid"
-          rows={ [ headerHeight, 'auto', footerHeight ] }
-          fill>
-        {
-          children !== undefined
-              ? children(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
-                  allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
-                  () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
-              : defaultHeader()
-        }
-        {
-          (columnsOfTasks === undefined)
-              ? <Box key="list"></Box>
-              : <Box key="list">
-                  <SearchableAndSortableUpdatingList
-                      rowSeparator={ rowSeparator }
-                      applyBackgroundColor={ applyBackgroundColor }
-                      showLoadingIndicator={ showLoadingIndicator }
-                      minWidthOfAutoColumn={ minWidthOfTitleColumn }
-                      columns={ columnsOfList }
-                      itemsRef={ userTasks }
-                      showColumnHeaders={ showColumnHeaders }
-                      columnHeaderBackground={ columnHeaderBackground }
-                      columnHeaderSeparator={ columnHeaderSeparator }
-                      updateListRef={ updateListRef }
-                      refreshItemRef={ refreshItemRef }
-                      refreshNecessaryCallback={ () => setRefreshNecessary(true) }
-                      retrieveItems={ async (pageNumber, pageSize, initialTimestamp) =>
-// @ts-ignore
-                          await loadUserTasks(
-                              tasklistApi,
-                              setNumberOfTasks,
-                              pageSize,
-                              pageNumber,
-                              initialTimestamp,
-                              effectiveSort,
-                              sortAscending,
-                              mapToBcUserTask) }
-                      reloadItems={ async (numberOfItems, updatedItemsIds, initialTimestamp) =>
-// @ts-ignore
-                          await reloadUserTasks(
-                              tasklistApi,
-                              setNumberOfTasks,
-                              modulesOfTasks,
-                              setModulesOfTasks,
-                              definitionsOfTasks,
-                              setDefinitionsOfTasks,
-                              numberOfItems,
-                              updatedItemsIds,
-                              initialTimestamp,
-                              effectiveSort,
-                              sortAscending,
-                              mapToBcUserTask) }
-                    />
-                  </Box>
-        }
-        {
-          footer !== undefined
-              ? footer(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
-                  allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
-                  () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
-              : defaultFooter()
-        }
-      </Grid>);
+      <Grommet
+          plain
+          style={ { height: '100%', minHeight: '100%', maxHeight: '100%' } }
+          theme={ themeContext }>
+        <Grid
+            key="grid"
+            rows={ [ headerHeight, 'auto', footerHeight ] }
+            fill>
+          {
+            children !== undefined
+                ? children(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
+                    allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
+                    () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
+                : defaultHeader()
+          }
+          {
+            (columnsOfTasks === undefined)
+                ? <Box key="list"></Box>
+                : <Box key="list">
+                    <SearchableAndSortableUpdatingList
+                        rowSeparator={ rowSeparator }
+                        applyBackgroundColor={ applyBackgroundColor }
+                        showLoadingIndicator={ showLoadingIndicator }
+                        minWidthOfAutoColumn={ minWidthOfTitleColumn }
+                        columns={ columnsOfList }
+                        itemsRef={ userTasks }
+                        showColumnHeaders={ showColumnHeaders }
+                        columnHeaderBackground={ columnHeaderBackground }
+                        columnHeaderSeparator={ columnHeaderSeparator }
+                        updateListRef={ updateListRef }
+                        refreshItemRef={ refreshItemRef }
+                        refreshNecessaryCallback={ () => setRefreshNecessary(true) }
+                        retrieveItems={ async (pageNumber, pageSize, initialTimestamp) =>
+  // @ts-ignore
+                            await loadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                pageSize,
+                                pageNumber,
+                                initialTimestamp,
+                                effectiveSort,
+                                sortAscending,
+                                mapToBcUserTask) }
+                        reloadItems={ async (numberOfItems, updatedItemsIds, initialTimestamp) =>
+  // @ts-ignore
+                            await reloadUserTasks(
+                                tasklistApi,
+                                setNumberOfTasks,
+                                modulesOfTasks,
+                                setModulesOfTasks,
+                                definitionsOfTasks,
+                                setDefinitionsOfTasks,
+                                numberOfItems,
+                                updatedItemsIds,
+                                initialTimestamp,
+                                effectiveSort,
+                                sortAscending,
+                                mapToBcUserTask) }
+                      />
+                    </Box>
+          }
+          {
+            footer !== undefined
+                ? footer(isPhone, isTablet, numberOfTasks, columnsOfTasks, sort, setSort, sortAscending, setSortAscending, selectAll,
+                    allSelected, refreshList, !refreshNecessary, () => markAsRead(false), () => markAsRead(true), !anySelected,
+                    () => claim(false), () => claim(true), !anySelected, assign, !anySelected)
+                : defaultFooter()
+          }
+        </Grid>
+      </Grommet>);
       
 };
 

@@ -49,8 +49,10 @@ const loadWorkflow = (
                   return (await workflowlistApi
                       .getUserTasksOfWorkflow({
                           workflowId: workflowId,
-                          activeOnly,
                           llatcup: limitListAccordingToCurrentUsersPermissions,
+                          userTasksRequest: {
+                            mode: Boolean(activeOnly) ? "OpenTasks" : "All"
+                          }
                       }))
                       .map(userTask => ({
                         ...userTask,

@@ -88,10 +88,24 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     @Override
     protected Flux<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
-            final boolean activeOnlyRequested) {
+            final boolean activeOnlyRequested,
+            final boolean limitListAccordingToCurrentUsersPermissions,
+            final String currentUser,
+            final Collection<String> currentUserGroups,
+            final int pageSize,
+            final String sort,
+            final boolean sortAscending) {
 
         return userTaskService
-                .getUserTasksOfWorkflow(activeOnlyRequested, workflowId);
+                .getUserTasksOfWorkflow(
+                        workflowId,
+                        activeOnlyRequested,
+                        limitListAccordingToCurrentUsersPermissions,
+                        currentUser,
+                        currentUserGroups,
+                        pageSize,
+                        sort,
+                        sortAscending);
 
     }
 

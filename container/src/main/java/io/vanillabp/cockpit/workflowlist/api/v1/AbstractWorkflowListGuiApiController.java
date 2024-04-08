@@ -6,6 +6,8 @@ import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
@@ -133,21 +135,33 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     protected abstract Flux<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
             final String workflowId,
-            final boolean activeOnlyRequested);
+            final boolean activeOnlyRequested,
+            final boolean limitListAccordingToCurrentUsersPermissions,
+            final String currentUser,
+            final Collection<String> currentUserGroups,
+            final int pageSize,
+            final String sort,
+            final boolean sortAscending);
 
     @Override
     public Mono<ResponseEntity<Flux<UserTask>>> getUserTasksOfWorkflow(
             final String workflowId,
-            final Boolean activeOnlyRequested,
             final Boolean llatcup,
+            final Mono<UserTasksRequest> userTasksRequest,
             final ServerWebExchange exchange) {
 
-        final var activeOnly = activeOnlyRequested == null || activeOnlyRequested;
-
-        return userContext
-                .getUserLoggedInAsMono()
-                .map(userId -> getUserTasksOfWorkflow(workflowId, activeOnly)
-                        .map(t -> userTaskMapper.toApi(t, userId)))
+        return Mono
+                .zip(userContext.getUserLoggedInDetailsAsMono(), userTasksRequest)
+                .map(tuple -> getUserTasksOfWorkflow(
+                        workflowId,
+                        tuple.getT2().getMode() == UserTaskRetrieveMode.OPENTASKS,
+                        llatcup != null ? llatcup : true,
+                        tuple.getT1().getId(),
+                        tuple.getT1().getAuthorities(),
+                        tuple.getT2().getPageSize() == null ? 100 : tuple.getT2().getPageSize(),
+                        tuple.getT2().getSort(),
+                        tuple.getT2().getSortAscending() == null || tuple.getT2().getSortAscending())
+                    .map(t -> userTaskMapper.toApi(t, tuple.getT1().getId())))
                 .map(ResponseEntity::ok);
 
     }

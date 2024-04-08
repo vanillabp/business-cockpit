@@ -67,8 +67,11 @@ const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupS
     getUserTasksOfWorkflow: (workflowId, activeOnlyRequested, limitListAccordingToCurrentUsersPermissions) => workflowlistApi
         .getUserTasksOfWorkflow({
             workflowId,
-            activeOnly: activeOnlyRequested === undefined ? true : activeOnlyRequested,
-            llatcup: limitListAccordingToCurrentUsersPermissions === undefined ? true : limitListAccordingToCurrentUsersPermissions}),
+            llatcup: limitListAccordingToCurrentUsersPermissions === undefined ? true : limitListAccordingToCurrentUsersPermissions,
+            userTasksRequest: {
+              mode: Boolean(activeOnlyRequested) ? "OpenTasks" : "All"
+            }
+        }),
     kwicWorkflows: async (query: string, path?: string, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => {
         const result = await workflowlistApi.getKwicResults({ initialTimestamp, path, query, kwicRequest: { searchQueries } })
         return result.result;
