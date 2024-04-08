@@ -92,7 +92,7 @@ const reloadData = async <T extends ListItemData>(
   const size = (items!.length === 0
       ? prefill
       : Math.floor(items!.length / itemsBatchSize) + prefill) * itemsBatchSize;
-console.log(items)
+
   const result = await reloadItems(
       size,
       items!  // only request items updated or unknown
