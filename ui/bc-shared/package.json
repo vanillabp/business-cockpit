@@ -65,6 +65,6 @@
     "test": "jest",
     "unpublish:snapshot": "npm unpublish --force",
     "publish:snapshot": "npm publish --tag snapshot",
-    "version:snapshot": "npm version prerelease --preid snapshot"
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
   }
 }
