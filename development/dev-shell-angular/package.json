@@ -1,5 +1,5 @@
 {
-  "name": "@vanillabp/bc-dev-shell-angular",
+  "name": "@vanillabp/bc-dev-shell-angular-module",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -9,7 +9,7 @@
     "test": "ng test",
     "unpublish:snapshot": "cd dist/dev-shell && npm unpublish --force",
     "publish:snapshot": "cd dist/dev-shell && npm publish --tag snapshot",
-    "version:snapshot": "npm version prerelease --preid snapshot"
+    "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version"
   },
   "dependencies": {
     "@angular/animations": "^17.2.0",

@@ -118,7 +118,7 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>version ${project.version}.${npm.prerelease} --no-git-tag-version</arguments>
+                <arguments>--newVersion=${project.version}.${npm.prerelease} run-script version:snapshot</arguments>
                 <skip>${skip.npm.prerelease}</skip>
               </configuration>
             </execution>

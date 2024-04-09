@@ -49,7 +49,8 @@
     "test": "craco test",
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/TestModule/static/js/*.js",
     "publish:snapshot": "echo 'no publish for webapps'",
-    "unpublish:snapshot": "echo 'no unpublish for webapps'"
+    "unpublish:snapshot": "echo 'no unpublish for webapps'",
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
   },
   "eslintConfig": {
     "extends": [

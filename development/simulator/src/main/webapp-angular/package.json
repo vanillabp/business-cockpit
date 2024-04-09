@@ -10,7 +10,8 @@
     "watch": "ng build --watch --configuration development",
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
-    "test": "ng test"
+    "test": "ng test",
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
   },
   "private": true,
   "dependencies": {
