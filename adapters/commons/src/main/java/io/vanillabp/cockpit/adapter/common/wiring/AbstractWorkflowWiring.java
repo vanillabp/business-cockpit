@@ -79,12 +79,7 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
                 workflowServiceClass);
 
         if (!registeredWorkflowModules.contains(workflowModuleId)) {
-            final var event = new RegisterWorkflowModuleEvent();
-            event.setId(workflowModuleId);
-            event.setUri(getWorkflowModuleUri(workflowModuleId));
-            event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
-            event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
-            workflowModulePublishing.publish(event);
+            registerWorkflowModule(workflowModuleId);
             registeredWorkflowModules.add(workflowModuleId);
         }
 
@@ -93,7 +88,15 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
                 workflowAggregateClass,
                 bpmnProcessId,
                 isPrimaryProcessWiring);
-        
+    }
+
+    private void registerWorkflowModule(String workflowModuleId) {
+        final var event = new RegisterWorkflowModuleEvent();
+        event.setId(workflowModuleId);
+        event.setUri(getWorkflowModuleUri(workflowModuleId));
+        event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
+        event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
+        workflowModulePublishing.publish(event);
     }
 
     protected abstract String getWorkflowModuleUri(String workflowModuleId);

@@ -196,7 +196,10 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         executableProcesses
                 .stream()
                 .map(process -> new Camunda8WorkflowConnectable(process.getId(), process.getName()))
-                .forEach(connectable -> camunda8WorkflowWiring.wireWorkflow(workflowModuleId, connectable));
+                .forEach(connectable -> {
+                    camunda8WorkflowWiring.wireService(workflowModuleId, connectable);
+                    camunda8WorkflowWiring.wireWorkflow(workflowModuleId, connectable);
+                });
     }
 
     private void wireUserTasks(String workflowModuleId, BpmnModelInstanceImpl model, List<Process> executableProcesses) {

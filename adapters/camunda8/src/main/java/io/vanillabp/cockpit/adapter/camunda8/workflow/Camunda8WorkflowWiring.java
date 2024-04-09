@@ -64,6 +64,12 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.processInstanceRepository = processInstanceRepository;
     }
 
+    public Camunda8BusinessCockpitService<?> wireService(
+            final String workflowModuleId,
+            final Camunda8WorkflowConnectable camunda8WorkflowConnectable) {
+        return super.wireService(workflowModuleId, camunda8WorkflowConnectable.bpmnProcessId());
+    }
+
     public void wireWorkflow(String workflowModuleId, Camunda8WorkflowConnectable connectable) {
         String bpmnProcessId = connectable.bpmnProcessId();
         
