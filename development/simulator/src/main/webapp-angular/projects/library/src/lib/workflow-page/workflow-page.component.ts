@@ -1,6 +1,6 @@
 import {Component, Input} from "@angular/core";
-import { BcWorkflow } from "@vanillabp/bc-shared";
 
+import { BcWorkflow } from "@vanillabp/bc-shared";
 
 @Component({
     selector: "lib-workflow-page",

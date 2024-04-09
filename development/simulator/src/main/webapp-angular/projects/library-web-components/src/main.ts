@@ -4,8 +4,10 @@ import { appConfig } from "@vanillabp/bc-dev-shell-angular"
 import { createCustomElement } from "@angular/elements";
 import { ApplicationRef } from "@angular/core";
 import { LibraryComponent } from "../../library/src/lib/library.component";
-import { UserTaskFormComponent } from "../../library/user-task-form/user-task-form.component";
-import { WorkflowPageComponent } from "../../library/workflow-page/workflow-page.component";
+import { UserTaskFormComponent } from "../../library/src/lib/user-task-form/user-task-form.component";
+import { WorkflowPageComponent } from "../../library/src/lib/workflow-page/workflow-page.component";
+import { WrapperUserTaskFormComponent } from "../../library/src/lib/wrapper-user-task-form/wrapper-user-task-form.component";
+import { WrapperWorkflowPageComponent } from "../../library/src/lib/wrapper-workflow-page/wrapper-workflow-page.component";
 
 (async () => {
     const app: ApplicationRef = await createApplication(appConfig(UserTaskFormComponent, WorkflowPageComponent));
@@ -15,11 +17,11 @@ import { WorkflowPageComponent } from "../../library/workflow-page/workflow-page
         injector: app.injector
     });
 
-    const userTaskFormComponent = createCustomElement(UserTaskFormComponent, {
+    const userTaskFormComponent = createCustomElement(WrapperUserTaskFormComponent, {
         injector: app.injector
     });
 
-    const workflowPageComponent = createCustomElement(WorkflowPageComponent, {
+    const workflowPageComponent = createCustomElement(WrapperWorkflowPageComponent, {
         injector: app.injector
     });
 
