@@ -23,7 +23,7 @@ jobs:
         uses: jactions/maven-version@v1.2.0
       - id: get-package-id
         run: |
-          VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-dev-shell/versions)
+          VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-shared/versions)
           ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')          
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
       - name: Publish package
