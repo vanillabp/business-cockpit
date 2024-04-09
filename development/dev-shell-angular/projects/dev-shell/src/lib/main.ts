@@ -1,10 +1,13 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { appConfig } from './dev-shell.config';
-import { DevShellComponent } from './dev-shell.component';
 import {ApplicationRef, Type} from "@angular/core";
 
+import { BcUserTask, BcWorkflow } from '@vanillabp/bc-shared';
 
-type DevShellConfigFunction = (userTaskForm: Type<{ userProps: string }>, workFlowPage: Type<{ workflowProps: string }>) => Promise<ApplicationRef>;
+import { appConfig } from './dev-shell.config';
+import { DevShellComponent } from './dev-shell.component';
+
+
+type DevShellConfigFunction = (userTaskForm: Type<{ userTask?: BcUserTask }>, workFlowPage: Type<{ workflow: BcWorkflow }>) => Promise<ApplicationRef>;
 const bootstrapDevShell: DevShellConfigFunction = (userTaskForm, workFlowPage) => {
   return bootstrapApplication(DevShellComponent, appConfig(userTaskForm, workFlowPage));
 }

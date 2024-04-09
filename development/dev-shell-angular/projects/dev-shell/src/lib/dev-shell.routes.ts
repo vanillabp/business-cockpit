@@ -1,11 +1,14 @@
 import {Routes} from '@angular/router';
+import {Type} from "@angular/core";
+
+import { BcUserTask, BcWorkflow } from '@vanillabp/bc-shared';
+
 import {ShellAppComponent} from "./shell-app/shell-app.component";
 import {MainComponent} from "./main/main.component";
-import {Type} from "@angular/core";
 import { userTaskResolver } from './user-task.resolver';
 import { workflowResolver } from './workflow.resolver';
 
-type RouteConfigFunction = (userTaskForm: Type<{ userProps: string }>, workFlowPage: Type<{ workflowProps: string }>) => Routes;
+type RouteConfigFunction = (userTaskForm: Type<{ userTask?: BcUserTask }>, workFlowPage: Type<{ workflow?: BcWorkflow }>) => Routes;
 
 export const routes: RouteConfigFunction = (userTaskForm, workFlowPage) => {
   return [
