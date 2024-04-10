@@ -9,6 +9,7 @@ import { BcWorkflow } from '@vanillabp/bc-shared';
     WorkflowPageComponent
   ],
   template: `
+    <lib-workflow-page [workflow]="workflow"/>
   `
 })
 export class WrapperWorkflowPageComponent {
