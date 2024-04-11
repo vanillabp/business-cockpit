@@ -6,7 +6,7 @@ import { officialGuiClientProvider } from "./official-gui-client-provider";
 import { BcUserTask, BcWorkflow } from "@vanillabp/bc-shared";
 
 export interface AppConfigParamsFunction<R> {
-  (officialApiUri: string, userTaskForm: Type<{ userTask?: BcUserTask }>, workFlowPage: Type<{ workflow?: BcWorkflow }>): R;
+  (officialApiUri: string, userTaskForm: Type<{ userTask: BcUserTask }>, workFlowPage: Type<{ workflow: BcWorkflow }>): R;
 }
 export type AppConfigFunction = AppConfigParamsFunction<ApplicationConfig>;
 

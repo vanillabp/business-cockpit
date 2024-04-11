@@ -1,4 +1,4 @@
 <div *ngIf="!workflow">
   <p>Could not load workflow</p>
 </div>
-<router-outlet />
+<router-outlet *ngIf="workflow" />

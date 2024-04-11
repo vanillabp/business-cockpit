@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, catchError, map, of } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import { OfficialTasklistApi, OfficialWorkflowlistApi, UserTask, Workflow } from "@vanillabp/bc-official-gui-client";
 import { BcUserTask, BcWorkflow } from '@vanillabp/bc-shared';
 import { fromPromise } from "rxjs/internal/observable/innerFrom";
@@ -8,11 +8,6 @@ import { fromPromise } from "rxjs/internal/observable/innerFrom";
   providedIn: 'root'
 })
 export class DevShellAppContextService {
-  private userTaskSubject = new BehaviorSubject<BcUserTask | null>(null);
-  public userTask = this.userTaskSubject.asObservable();
-
-  private workflowSubject = new BehaviorSubject<BcWorkflow | null>(null);
-  public workflow = this.workflowSubject.asObservable();
 
   constructor(private tasklistApi: OfficialTasklistApi, private workflowlistApi: OfficialWorkflowlistApi) {
   }

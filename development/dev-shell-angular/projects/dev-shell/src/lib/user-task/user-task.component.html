@@ -2,4 +2,4 @@
 <div *ngIf="!userTaskId">
   <p>Unknown task</p>
 </div>
-<router-outlet />
+<router-outlet *ngIf="userTaskId" />

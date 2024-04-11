@@ -17,7 +17,10 @@ export const routes: RouteConfigFunction = (userTaskForm, workFlowPage) => {
       path: "",
       component: MainComponent,
     },
-    {path: "task", component: UserTaskComponent},
+    {
+      path: "task",
+      component: UserTaskComponent
+    },
     {
       path: "task/:userTaskId",
       component: UserTaskComponent,
@@ -35,7 +38,10 @@ export const routes: RouteConfigFunction = (userTaskForm, workFlowPage) => {
         }
       ]
     },
-    {path: "workflow", component: WorkflowPageComponent},
+    {
+      path: "workflow",
+      component: WorkflowPageComponent
+    },
     {
       path: "workflow/:workflowId",
       component: WorkflowPageComponent,
