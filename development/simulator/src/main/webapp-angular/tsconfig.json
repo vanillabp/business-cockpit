@@ -9,7 +9,6 @@
         "noPropertyAccessFromIndexSignature": true,
         "noImplicitReturns": true,
         "paths": {
-            "UserTaskForm": ["./dist/user-task-form"],
             "library": ["./dist/library"]
         },
         "noFallthroughCasesInSwitch": true,

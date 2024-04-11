@@ -4,7 +4,7 @@
     <p>Created at: {{ userTask?.createdAt }}</p>
     <p>Due: {{ userTask?.dueDate }}</p>
     <h1>Workflow: {{userTask?.workflowTitle?.["de"]}}</h1>
-    <button (click)="open()">Open Task (current)</button>
-    <button (click)="navigateWorkflow()">Navigate Workflow</button>
+    <button (click)="userTask?.open()">Open Task (current)</button>
+    <button (click)="userTask?.navigateToWorkflow()">Navigate Workflow</button>
     <br />
 </div>

@@ -1,12 +1,13 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { appConfig } from './dev-shell.config';
+import { appConfig, AppConfigParamsFunction } from './dev-shell.config';
 import { DevShellComponent } from './dev-shell.component';
-import {ApplicationRef, Type} from "@angular/core";
+import { ApplicationRef } from "@angular/core";
 
+type DevShellConfigFunction = AppConfigParamsFunction<Promise<ApplicationRef>>;
 
-type DevShellConfigFunction = (userTaskForm: Type<{ userProps: string }>, workFlowPage: Type<{ workflowProps: string }>) => Promise<ApplicationRef>;
-const bootstrapDevShell: DevShellConfigFunction = (userTaskForm, workFlowPage) => {
-  return bootstrapApplication(DevShellComponent, appConfig(userTaskForm, workFlowPage));
+// @ts-ignore
+const bootstrapDevShell: DevShellConfigFunction = (officalApiUri, userTaskForm, workFlowPage) => {
+  return bootstrapApplication(DevShellComponent, appConfig(officalApiUri, userTaskForm, workFlowPage));
 }
 
 export { bootstrapDevShell }

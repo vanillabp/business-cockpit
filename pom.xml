@@ -15,6 +15,7 @@
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
+    <skip.npm.update>false</skip.npm.update>
     <version.jupiter>5.10.1</version.jupiter>
   </properties>
 
@@ -98,6 +99,7 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
+                <skip>${skip.npm.update}</skip>
                 <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/**</arguments>
               </configuration>
             </execution>
@@ -250,6 +252,13 @@
       </activation>
       <properties>
         <skip.npm.prerelease>false</skip.npm.prerelease>
+      </properties>
+    </profile>
+    <profile>
+      <id>local-install</id>
+      <properties>
+        <skip.npm.update>true</skip.npm.update>
+        <skip.npm.unpublish>false</skip.npm.unpublish>
       </properties>
     </profile>
   </profiles>

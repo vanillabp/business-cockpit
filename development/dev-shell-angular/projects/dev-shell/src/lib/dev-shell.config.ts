@@ -1,10 +1,19 @@
 import { ApplicationConfig, Type } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { routes } from './dev-shell.routes';
-import { provideHttpClient, withFetch } from "@angular/common/http";
+import { officialGuiClientProvider } from "./official-gui-client-provider";
+import { BcUserTask, BcWorkflow } from "@vanillabp/bc-shared";
 
-type AppConfigFunction = (userTaskForm: Type<{ userProps: string }>, workFlowPage: Type<{ workflowProps: string }>) => ApplicationConfig;
-export const appConfig: AppConfigFunction = (userTaskForm, workFlowPage) => {
-  return { providers: [provideRouter(routes(userTaskForm, workFlowPage)), provideHttpClient(withFetch())] }
+export interface AppConfigParamsFunction<R> {
+  (officialApiUri: string, userTaskForm: Type<{ userTask?: BcUserTask }>, workFlowPage: Type<{ workflow?: BcWorkflow }>): R;
+}
+export type AppConfigFunction = AppConfigParamsFunction<ApplicationConfig>;
+
+export const appConfig: AppConfigFunction = (officialApiUri, userTaskForm, workFlowPage) => {
+  return { providers: [
+      provideRouter(routes(userTaskForm, workFlowPage), withComponentInputBinding()),
+      officialGuiClientProvider.officialTasklistApi(officialApiUri),
+      officialGuiClientProvider.officialWorkflowlistApi(officialApiUri)
+    ] }
 };

@@ -5,8 +5,7 @@
     "ng": "ng",
     "prettier": "prettier --write \"**/*.{js,json,css,scss,less,md,ts,html,component.html}\"",
     "start": "ng serve webapp",
-    "build": "ng build webapp",
-    "package": "ng build library -c production && ng build library-web-components -c production && webpack && echo '/* eslint-disable */' | cat - dist/bundle.js > build/bundle.js",
+    "build": "ng build library -c production && ng build library-web-components -c production && webpack && echo '/* eslint-disable */' | cat - dist/bundle.js > dist/tmp && mv dist/tmp ../../../target/classes/static/TestModule/remoteEntry.js",
     "watch": "ng build --watch --configuration development",
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
@@ -15,6 +14,8 @@
   },
   "private": true,
   "dependencies": {
+    "@vanillabp/bc-shared": ">=0.0.3-SNAPSHOT <0.0.4",
+    "@vanillabp/bc-dev-shell-angular": ">=0.0.3-SNAPSHOT <0.0.4",
     "@angular/animations": "^17.2.0",
     "@angular/common": "^17.2.0",
     "@angular/compiler": "^17.2.0",
@@ -24,7 +25,6 @@
     "@angular/platform-browser": "^17.2.0",
     "@angular/platform-browser-dynamic": "^17.2.0",
     "@angular/router": "^17.2.0",
-    "@vanillabp/bc-dev-shell-angular": "^0.0.3-SNAPSHOT",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"

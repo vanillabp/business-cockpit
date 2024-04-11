@@ -3,7 +3,9 @@
   "version": "0.0.3-SNAPSHOT",
   "peerDependencies": {
     "@angular/common": "^17.3.0",
-    "@angular/core": "^17.3.0"
+    "@angular/core": "^17.3.0",
+    "@vanillabp/bc-official-gui-client": ">=0.0.3-SNAPSHOT <0.0.4",
+    "@vanillabp/bc-shared": ">=0.0.3-SNAPSHOT <0.0.4"
   },
   "dependencies": {
     "tslib": "^2.3.0"

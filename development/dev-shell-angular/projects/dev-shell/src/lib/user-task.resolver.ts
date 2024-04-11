@@ -1,8 +1,9 @@
 import { ResolveFn } from '@angular/router';
-import { UserTask, UserTaskAppContextService } from './user-task-app-context.service';
+import { DevShellAppContextService } from './dev-shell-app-context.service';
 import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { BcUserTask } from "@vanillabp/bc-shared";
 
-export const userTaskResolver: ResolveFn<Observable<UserTask | null>> = (route, state, userTaskAppContextService: UserTaskAppContextService = inject(UserTaskAppContextService)) => {
-  return userTaskAppContextService.loadUserTask("/official-api/v1", route.paramMap.get("userTaskId")!)
+export const userTaskResolver: ResolveFn<Observable<BcUserTask | null>> = (route, state, userTaskAppContextService: DevShellAppContextService = inject(DevShellAppContextService)) => {
+  return userTaskAppContextService.loadUserTask(route.paramMap.get("userTaskId")!)
 };

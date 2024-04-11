@@ -3,7 +3,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "../../out-tsc/app",
-    "types": []
+    "types": [],
+    "paths": {
+        "@library": [ "../library/src/public-api.ts" ],
+    }
   },
   "files": [
     "src/main.ts"
