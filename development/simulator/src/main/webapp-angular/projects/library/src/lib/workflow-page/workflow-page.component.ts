@@ -10,5 +10,5 @@ import { BcWorkflow } from "@vanillabp/bc-shared";
     styleUrl: "./workflow-page.component.css"
 })
 export class WorkflowPageComponent {
-    @Input() workflow?: BcWorkflow;
+    @Input() workflow!: BcWorkflow;
 }

@@ -1,6 +1,6 @@
 import { Component, Input } from "@angular/core";
 
-import { BcUserTask } from "@vanillabp/bc-shared"
+import { BcUserTask } from "@vanillabp/bc-shared";
 
 @Component({
     selector: "lib-user-task-form",
@@ -10,5 +10,5 @@ import { BcUserTask } from "@vanillabp/bc-shared"
     styleUrl: "./user-task-form.component.css"
 })
 export class UserTaskFormComponent {
-    @Input() userTask?: BcUserTask;
+    @Input() userTask!: BcUserTask;
 }
