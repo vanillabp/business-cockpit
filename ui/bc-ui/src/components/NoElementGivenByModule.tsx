@@ -27,7 +27,7 @@ const NoElementGivenByModule = ({
   return (
       <Box
          fill='horizontal'
-         margin='large'
+         margin={ { top: "large" } }
          align="center">
         {
           loading

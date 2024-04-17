@@ -5,7 +5,6 @@ public class Camunda8UserTaskLifecycleEvent {
     public enum Intent {
         CANCELED,
         COMPLETED,
-
     }
 
     private long key;

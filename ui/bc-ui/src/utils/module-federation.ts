@@ -64,7 +64,8 @@ export const attachScript = (
   moduleId: string,
   url: string
 ) => {
-  const existingElement = document.getElementById(moduleId);
+  const elementId = "___" + moduleId;
+  const existingElement = document.getElementById(elementId);
 
   if (existingElement) {
     //@ts-expect-error
@@ -81,7 +82,7 @@ export const attachScript = (
   element.src = url;
   element.type = "text/javascript";
   element.async = true;
-  element.id = "___" + moduleId;
+  element.id = elementId;
 
   const scriptLoadPromise = new Promise<HTMLScriptElement>(
     (resolve, reject) => {

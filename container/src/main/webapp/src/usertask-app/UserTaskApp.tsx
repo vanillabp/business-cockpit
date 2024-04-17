@@ -22,7 +22,7 @@ i18n.addResources('en', 'usertask', {
 i18n.addResources('de', 'usertask', {
   "module-unknown": "Unbekanntes Modul",
   "retry-loading-module-hint": "Leider ist derzeit kein Zugriff auf die Aufgabe möglich!",
-  "retry-loading-module-": "Laden nochmals probieren...",
+  "retry-loading-module": "Laden nochmals probieren...",
   "typeofitem_unsupported": "Typfehler",
   "does-not-exist": "Die angeforderte Aufgabe existiert nicht!"
 });
