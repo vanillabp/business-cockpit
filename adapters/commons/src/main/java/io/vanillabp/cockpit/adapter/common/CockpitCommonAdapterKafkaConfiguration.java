@@ -55,26 +55,24 @@ public class CockpitCommonAdapterKafkaConfiguration {
 
     @Bean
     public UserTaskPublishing userTaskKafkaPublishing(
-            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate,
-            @Qualifier("businessCockpitProtobufObjectMapper") ObjectMapper objectMapper) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
 
         return new UserTaskKafkaPublishing(
                 workerId,
                 properties,
-                new UserTaskProtobufMapper(objectMapper),
+                new UserTaskProtobufMapper(businessCockpitProtobufObjectMapper()),
                 kafkaTemplate
         );
     }
 
     @Bean
     public WorkflowPublishing workflowKafkaPublishing(
-            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate,
-            @Qualifier("businessCockpitProtobufObjectMapper") ObjectMapper objectMapper) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
 
         return new WorkflowKafkaPublishing(
                 workerId,
                 properties,
-                new WorkflowProtobufMapper(objectMapper),
+                new WorkflowProtobufMapper(businessCockpitProtobufObjectMapper()),
                 kafkaTemplate
         );
     }
@@ -107,8 +105,6 @@ public class CockpitCommonAdapterKafkaConfiguration {
         return new DefaultKafkaProducerFactory<>(configs);
     }
 
-    @Bean
-    @Qualifier("businessCockpitProtobufObjectMapper")
     public ObjectMapper businessCockpitProtobufObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
 
