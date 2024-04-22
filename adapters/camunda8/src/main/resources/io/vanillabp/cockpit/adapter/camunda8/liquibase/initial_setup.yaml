@@ -119,7 +119,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
   - changeSet:
-      id: initial_setup.yaml
+      id: initial_setup.yaml_oracle
       author: stephanpelikan
       dbms: oracle
       changes:
