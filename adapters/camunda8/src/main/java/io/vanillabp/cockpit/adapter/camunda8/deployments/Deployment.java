@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-
 import java.time.OffsetDateTime;
 
 @Entity(name = "BusinessCockpitDeployment")
@@ -23,29 +22,28 @@ public abstract class Deployment {
 
     /** the key of the deployed process */
     @Id
-    @Column(name = "DEFINITION_KEY")
+    @Column(name = "C8D_DEFINITION_KEY")
     private long definitionKey;
 
     /** the version of the deployed process */
     @Id
-    @Column(name = "VERSION")
+    @Column(name = "C8D_VERSION")
     private int version;
 
     @Version
-    @Column(name = "RECORD_VERSION")
+    @Column(name = "C8D_RECORD_VERSION")
     private int recordVersion;
-
-    @Column(name = "PACKAGE_ID")
+    @Column(name = "C8D_PACKAGE_ID")
     private int packageId;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "RESOURCE", nullable = false, updatable = false)
+    @JoinColumn(name = "C8D_RESOURCE", nullable = false, updatable = false)
     private DeploymentResource deployedResource;
 
-    @Column(name = "PUBLISHED_AT", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
+    @Column(name = "C8D_PUBLISHED_AT", nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE")
     private OffsetDateTime publishedAt;
     
-    @Column(name = "TYPE", updatable = false, insertable = false)
+    @Column(name = "C8D_TYPE", updatable = false, insertable = false)
     private String type;
 
     public long getDefinitionKey() {

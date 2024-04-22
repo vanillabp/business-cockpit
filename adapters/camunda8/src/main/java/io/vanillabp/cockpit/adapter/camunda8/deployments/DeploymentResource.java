@@ -1,7 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda8.deployments;
 
-import java.util.List;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
@@ -13,6 +11,7 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.util.List;
 
 @Entity(name = "BusinessCockpitDeploymentResource")
 @Table(name = "CAMUNDA8_BC_RESOURCES")
@@ -21,24 +20,24 @@ import jakarta.persistence.Version;
 public abstract class DeploymentResource {
 
     @Id
-    @Column(name = "ID")
+    @Column(name = "C8R_ID")
     private int fileId;
 
     @Version
-    @Column(name = "RECORD_VERSION")
+    @Column(name = "C8R_RECORD_VERSION")
     private int recordVersion;
 
-    @Column(name = "RESOURCE_NAME")
+    @Column(name = "C8R_RESOURCE_NAME")
     private String resourceName;
 
     @OneToMany(mappedBy = "deployedResource", fetch = FetchType.LAZY)
     private List<Deployment> deployments;
 
     @Lob
-    @Column(name = "RESOURCE")
+    @Column(name = "C8R_RESOURCE")
     private byte[] resource;
     
-    @Column(name = "TYPE", updatable = false, insertable = false)
+    @Column(name = "C8R_TYPE", updatable = false, insertable = false)
     private String type;
 
     public int getFileId() {
