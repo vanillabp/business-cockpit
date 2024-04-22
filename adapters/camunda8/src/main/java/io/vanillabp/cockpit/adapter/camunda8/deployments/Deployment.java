@@ -16,7 +16,7 @@ import java.time.OffsetDateTime;
 @Entity(name = "BusinessCockpitDeployment")
 @Table(name = "CAMUNDA8_BC_DEPLOYMENTS")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "TYPE")
+@DiscriminatorColumn(name = "C8D_TYPE")
 @IdClass(DeploymentId.class)
 public abstract class Deployment {
 

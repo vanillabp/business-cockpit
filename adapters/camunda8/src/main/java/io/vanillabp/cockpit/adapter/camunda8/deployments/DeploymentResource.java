@@ -16,7 +16,7 @@ import java.util.List;
 @Entity(name = "BusinessCockpitDeploymentResource")
 @Table(name = "CAMUNDA8_BC_RESOURCES")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "TYPE")
+@DiscriminatorColumn(name = "C8R_TYPE")
 public abstract class DeploymentResource {
 
     @Id
