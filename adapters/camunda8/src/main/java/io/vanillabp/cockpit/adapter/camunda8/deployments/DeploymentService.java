@@ -3,12 +3,6 @@ package io.vanillabp.cockpit.adapter.camunda8.deployments;
 import io.camunda.zeebe.client.api.response.Process;
 import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
-import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
-import io.vanillabp.springboot.adapter.SpringDataUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -78,9 +72,12 @@ public class DeploymentService {
 
     public List<DeployedBpmn> getBpmnNotOfPackage(final int packageId) {
 
-        return deploymentResourceRepository.findDistinctByTypeAndDeployments_packageIdNot(
-                DeployedBpmn.TYPE,
-                packageId);
+        return deploymentResourceRepository
+                .findByTypeAndDeployments_packageIdNot(DeployedBpmn.TYPE, packageId)
+                .stream()
+                .distinct() // Oracle doesn't support distinct queries including blob columns, hence the job is done here
+                .toList();
 
     }
+
 }
