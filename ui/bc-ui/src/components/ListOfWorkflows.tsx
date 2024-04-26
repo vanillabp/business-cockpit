@@ -834,7 +834,7 @@ const ListOfWorkflows = ({
       : columnsOfWorkflows!
           .filter(column => column.show)
           .filter(column => (columns === undefined) || columns.includes(column.path))
-          .map(column => ({
+          .map((column, columnIndex, allColumns) => ({
               property: column.path,
               size: getColumnSize(column),
               plain: true,
@@ -851,6 +851,8 @@ const ListOfWorkflows = ({
                   sortAscending={ sortAscending }
                   setSortAscending={ setSortAscending }
                   column={ column }
+                  columnIndex={ columnIndex }
+                  numberOfAllColumns={ allColumns.length }
                   allSelected={ allSelected }
                   selectAll={ selectAll } />,
               render: (item: ListItem<BcUserTask>) => <ListCell

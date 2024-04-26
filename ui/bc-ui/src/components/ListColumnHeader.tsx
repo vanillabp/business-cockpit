@@ -12,6 +12,8 @@ const ListColumnHeader = ({
   t,
   currentLanguage,
   column,
+  columnIndex,
+  numberOfAllColumns,
   nameOfList,
   columnHeader,
   hasColumnWidthAdjustment,
@@ -26,6 +28,8 @@ const ListColumnHeader = ({
   t: TranslationFunction,
   currentLanguage: string,
   column: Column,
+  columnIndex: number,
+  numberOfAllColumns: number,
   nameOfList?: string,
   columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
   hasColumnWidthAdjustment: boolean,
@@ -70,7 +74,10 @@ const ListColumnHeader = ({
   const Header = columnHeader!;
   return (
       <Box
-          style={ { position: "relative" } }
+          style={ {
+            position: "relative",
+            overflow: (columnIndex + 1) === numberOfAllColumns ? "hidden" : undefined
+          } }
           ref={ element => {
             if (element === null) return;
             if (hasColumnWidthAdjustment) return;
