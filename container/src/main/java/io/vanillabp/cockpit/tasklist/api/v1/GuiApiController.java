@@ -2,16 +2,16 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * A tasklist API controller which gives access to the tasks
@@ -29,6 +29,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	@Autowired
 	private UserTaskService userTaskService;
 
+	@Autowired
+	private PersonAndGroupMapper personAndGroupMapper;
+
 	@Override
 	protected Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
@@ -41,9 +44,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		return userTaskService.getUserTasks(
 				true,
 				false,
-				null, //List.of(currentUser.getId()),
-				null, //List.of(currentUser.getId()),
-				null, //currentUser.getAuthorities(),
+				List.of(currentUser.getId()),
+				List.of(currentUser.getId()),
+				currentUser.getAuthorities(),
 				pageNumber,
 				pageSize,
 				initialTimestamp,
@@ -64,9 +67,9 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		return userTaskService.getUserTasksUpdated(
 				true,
 				false,
-				null, //List.of(currentUser.getId()),
-				null, //List.of(currentUser.getId()),
-				null, //currentUser.getAuthorities(),
+				List.of(currentUser.getId()),
+				List.of(currentUser.getId()),
+				currentUser.getAuthorities(),
 				size,
 				knownUserTasksIds,
 				initialTimestamp,
@@ -119,7 +122,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		if (unclaim) {
 			return userTaskService.unclaimTask(userTaskId, currentUser.getId());
 		}
-		return userTaskService.claimTask(userTaskId, currentUser.getId());
+		return userTaskService.claimTask(userTaskId, personAndGroupMapper.toModelPerson(currentUser));
 
 	}
 
@@ -132,7 +135,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		if (unclaim) {
 			return userTaskService.unclaimTask(userTaskIds, currentUser.getId());
 		}
-		return userTaskService.claimTask(userTaskIds, currentUser.getId());
+		return userTaskService.claimTask(userTaskIds, personAndGroupMapper.toModelPerson(currentUser));
 
 	}
 
@@ -146,7 +149,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		if (unassign) {
 			return userTaskService.unassignTask(userTaskId, userId);
 		}
-		return userTaskService.assignTask(userTaskId, userId);
+		return userTaskService.assignTask(userTaskId, personAndGroupMapper.toModelPerson(userId));
 
 	}
 
@@ -160,7 +163,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 		if (unassign) {
 			return userTaskService.unassignTask(userTaskIds, userId);
 		}
-		return userTaskService.assignTask(userTaskIds, userId);
+		return userTaskService.assignTask(userTaskIds, personAndGroupMapper.toModelPerson(userId));
 
 	}
 

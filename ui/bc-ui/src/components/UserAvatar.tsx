@@ -1,12 +1,12 @@
-import { Sex, User as UserDto } from '@vanillabp/bc-official-gui-client';
-import { User as UserMale, UserFemale } from 'grommet-icons';
+import { Person } from '@vanillabp/bc-official-gui-client';
+import { User as UserMale } from 'grommet-icons';
 import { Anchor, Avatar, Box, Text } from 'grommet';
 import { BorderType } from 'grommet/utils';
 import { useRef, useState } from 'react';
 import { useOnClickOutside, useResponsiveScreen } from '@vanillabp/bc-shared';
 
 type UserAvatarProps = {
-  user: UserDto;
+  user: Person;
   isUserLoggedIn?: boolean;
   border?: BorderType;
   size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
@@ -53,7 +53,7 @@ const UserAvatar = ({
     symbolSize = `${ intSize * 0.65 }px`;
   }
   
-  const [ showDetails, setShowDetails ] = useState<UserDto | undefined>(undefined);
+  const [ showDetails, setShowDetails ] = useState<Person | undefined>(undefined);
   const ref = useRef(null);
   useOnClickOutside(ref, event => {
       if (!showDetails) return;
@@ -99,7 +99,7 @@ const UserAvatar = ({
                   <Box
                       pad={ { bottom: isPhone ? 'medium' : 'small' } }>
                     <Text truncate="tip">
-                      { showDetails.firstName } { showDetails.lastName }
+                      { showDetails.display }
                     </Text>
                     <Anchor
                         href={ `mailto:${ showDetails.email }` }>
@@ -115,11 +115,7 @@ const UserAvatar = ({
             size={ size }
             border={ border }
             src={ user.avatar ? `/api/v1/gui/user/${ user.id }/avatar?ts=${ user.avatar }` : undefined }>
-          {
-            user.sex === Sex.Female
-                ? <UserFemale color='accent-1' size={ symbolSize } />
-                : <UserMale color='accent-1' size={ symbolSize } />
-          }
+          <UserMale color='accent-1' size={ symbolSize } />
         </Avatar>
       </Box>);
     

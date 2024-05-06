@@ -3,7 +3,7 @@
 
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.0.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 

@@ -15,6 +15,9 @@ public abstract class OfficialWorkflowlistApiMapper {
     @Mapping(target = "version", constant = "1")
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
+    @Mapping(target = "accessibleToUsers", ignore = true)  // TODO
+    @Mapping(target = "accessibleToGroups", ignore = true) // TODO
+    @Mapping(target = "initiator", ignore = true)          // TODO
     public abstract Workflow toApi(WorkflowCreatedOrUpdatedEvent event);
     
     @NoMappingMethod

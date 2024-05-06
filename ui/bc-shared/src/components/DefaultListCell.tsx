@@ -1,7 +1,7 @@
-import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
+import { Box, BoxExtendedProps, Grid, Text, TextExtendedProps } from 'grommet';
 import { ColorType } from 'grommet/utils/index.js';
 import React, { FC, PropsWithChildren } from 'react';
-import { Column, ListItem, ListItemStatus, TranslationFunction } from '../types/index.js';
+import { Column, ListItem, ListItemStatus, Person, TranslationFunction } from '../types/index.js';
 import {
   getObjectProperty,
   toLocaleDateString,
@@ -96,12 +96,58 @@ const TextListCell: React.FC<TextListCellProps> = ({
     </ListCell>);
 }
 
+interface PersonListCellProps extends TextExtendedProps {
+  t: TranslationFunction,
+  item: ListItem<any>;
+  value?: Person;
+  showUnreadAsBold?: boolean;
+  background?: BackgroundType;
+}
+
+const PersonListCell: React.FC<PersonListCellProps> = ({
+  t,
+  item,
+  value,
+  showUnreadAsBold = false,
+  background,
+  ...props
+}) => {
+  const color = colorForEndedItemsOrUndefined(item);
+  return (
+      <ListCell
+          background={ background }
+          align="left">
+        <Text
+            truncate
+            color={ color }
+            weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
+            tip={ { content: <Grid columns={['auto', 'auto']} gap="xsmall">
+                                <Text>{ t('person-id') }:</Text>
+                                <Text weight="bold">{ value?.id }</Text>
+                                {
+                                  value?.email !== null
+                                      ? <>
+                                          <Text>{ t('person-email') }:</Text>
+                                          <Text weight="bold">{ value?.email }</Text>
+                                        </>
+                                      : undefined
+                                }
+                              </Grid> } }
+            { ...props }>
+          {
+            value === undefined
+                ? undefined
+                : value.display
+          }
+        </Text>
+      </ListCell>);
+}
+
 export interface DefaultListCellProps<D> {
   t: TranslationFunction;
   item: ListItem<D>;
   column: Column;
   showUnreadAsBold?: boolean;
-  defaultLanguage?: string;
   currentLanguage: string;
   nameOfList?: string;
   selectItem: (select: boolean) => void;
@@ -120,28 +166,17 @@ type RenderResult = {
 const render = (
     t: TranslationFunction,
     propertyValue: any,
-    currentLanguage: string,
-    defaultLanguage?: string): RenderResult => {
+    currentLanguage: string): RenderResult => {
   let align: Alignment = 'left';
   let value: string | undefined;
-  let tip;
-  if (typeof propertyValue === 'object') { // check for { "de": "whatever" }
-    let langValue = propertyValue[currentLanguage];
-    if (langValue !== undefined) {
-      propertyValue = langValue;
-    } else if (defaultLanguage !== undefined) {
-      langValue = propertyValue[defaultLanguage];
-      if (langValue !== undefined) {
-        propertyValue = langValue;
-      }
-    }
-  }
-  if (propertyValue === undefined) {
+  if (typeof propertyValue === 'object') {
+    value = '[object - define custom cell to render content]';
+  } else if (propertyValue === undefined) {
     value = '';
   } else if (propertyValue instanceof Date) {
-    value = toLocaleTimeStringWithoutSeconds(propertyValue);
+    value = toLocaleTimeStringWithoutSeconds(propertyValue, currentLanguage);
   } else if (typeof propertyValue === 'number') {
-    value = (propertyValue as Number).toLocaleString(window.navigator.language);
+    value = (propertyValue as Number).toLocaleString(currentLanguage ?? window.navigator.language);
     align = 'right';
   } else if (typeof propertyValue === "boolean") {
     if (propertyValue) {
@@ -153,11 +188,11 @@ const render = (
     const dateMatch = DATE_REGEXP.exec(propertyValue as string);
     if (dateMatch) {
       if (propertyValue.length === 10) {
-        value = toLocaleDateString(new Date(Date.parse(propertyValue as string)));
+        value = toLocaleDateString(new Date(Date.parse(propertyValue as string)), currentLanguage);
         align = 'right';
       } else {
         const tmpDate = new Date(Date.parse(propertyValue as string));
-        value = toLocaleStringWithoutSeconds(tmpDate);
+        value = toLocaleStringWithoutSeconds(tmpDate, currentLanguage);
       }
     } else {
       value = propertyValue;
@@ -182,24 +217,38 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     column,
     showUnreadAsBold,
     currentLanguage,
-    defaultLanguage,
     t,
     selectItem,
 }) => {
-  let propertyValue = getObjectProperty(item.data, column.path);
   let align: Alignment = 'left';
   let value: string | undefined;
   let tip: string | undefined;
-  if (column.path === 'dueDate') {
-    value = toLocaleDateString(item.data.dueDate);
-    tip = toLocaleStringWithoutSeconds(item.data.dueDate);
+  let path = column.path;
+  if (column.type === 'i18n') {
+    path = `${path}.${currentLanguage}`;
+  }
+  const background = colorRowAccordingToUpdateStatus(item);
+  let propertyValue = getObjectProperty(item.data, path);
+  if (column.type === 'date') {
+    value = toLocaleDateString(propertyValue as Date, currentLanguage);
+    tip = toLocaleStringWithoutSeconds(propertyValue as Date, currentLanguage);
     align = 'right';
+  } else if (column.type === 'date-time') {
+    value = toLocaleTimeStringWithoutSeconds(propertyValue as Date, currentLanguage);
+    tip = (propertyValue as Date).toLocaleTimeString(currentLanguage);
+    align = 'right';
+  } else if (column.type === 'person') {
+    return <PersonListCell
+        t={ t }
+        item={ item }
+        value={ propertyValue as Person }
+        showUnreadAsBold={ showUnreadAsBold }
+        background={ background } />;
   } else {
-    const { value: v, align: a } = render(t, propertyValue, currentLanguage, defaultLanguage);
+    const { value: v, align: a } = render(t, propertyValue, currentLanguage);
     value = v;
     align = a;
   }
-  const background = colorRowAccordingToUpdateStatus(item);
   return <TextListCell
       item={ item }
       value={ value }

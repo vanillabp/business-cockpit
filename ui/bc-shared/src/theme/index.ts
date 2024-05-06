@@ -25,7 +25,10 @@ export const theme: ThemeType = {
       outline: {
         color: '#e0a244',
       }
-    }
+    },
+    drop: {
+      zIndex: 99,
+    },
   },
   table: {
     header: {
@@ -158,7 +161,7 @@ export const theme: ThemeType = {
   tip: {
       content: {
           background: "white"
-      }
+      },
   },
   layer: {
     zIndex: '100',

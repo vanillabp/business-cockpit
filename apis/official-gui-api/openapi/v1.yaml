@@ -408,47 +408,42 @@ components:
     ValidationErrors:
       type: object
       additionalProperties: {}
-    Sex:
-      type: string
-      enum:
-        - MALE
-        - FEMALE
-        - OTHER
-    UserStatus:
-      type: string
-      enum:
-        - ACTIVE
-        - INACTIVE
-    User:
+    Group:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
-        status:
-          $ref: '#/components/schemas/UserStatus'
+        display:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    Person:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        display:
+          type: string
         email:
           type: string
-        lastName:
-          type: string
-        firstName:
-          type: string
-        sex:
-          $ref: '#/components/schemas/Sex'
         avatar:
           type: integer
           format: int32
-        roles:
-          type: array
-          items:
-            type:
-              string
+        details:
+          type: object
+          additionalProperties: true
     UserSearchResult:
       type: object
       properties:
         users:
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/Person'
     UiUriType:
       type: string
       enum:
@@ -574,17 +569,16 @@ components:
           description: An URI pointing to the workflow-module's own API (maybe used by user-task forms)
           example: http://localhost:8080/wm/what-ever/
         assignee:
-          type: string
-          example: driverA
+          $ref: '#/components/schemas/Person'
         candidateUsers:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Person'
           example: []
         candidateGroups:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Group'
           example: [ "drivers" ]
         dueDate:
           type: string
@@ -641,8 +635,7 @@ components:
           format: int32
           description: revision of the usertask record
         initiator:
-          type: string
-          description: The user who triggered the update. Null if the update is done by the system.
+          $ref: '#/components/schemas/Person'
         createdAt:
           type: string
           format: date-time
@@ -696,12 +689,12 @@ components:
         accessibleToUsers:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Person'
           example: []
         accessibleToGroups:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Group'
           example: [ "drivers" ]
         details:
           type: object

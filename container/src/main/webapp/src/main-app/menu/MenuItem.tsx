@@ -1,11 +1,11 @@
 import { PropsWithChildren } from 'react';
 import { AnchorExtendedProps, Box, BoxProps } from 'grommet';
 import { BackgroundType } from 'grommet/utils';
-import { useCurrentUserRoles } from '../../utils/roleUtils';
+import { useCurrentUserGroups } from "../../utils/roleUtils";
 
 interface MenuItemProps extends PropsWithChildren<BoxProps> {
   href?: string;
-  roles?: Array<string> | null;
+  groups?: Array<string> | null;
   background?: BackgroundType;
 };
 
@@ -13,12 +13,12 @@ const MenuItem = ({
   children,
   href,
   background = 'light-4',
-  roles = [],
+  groups = [],
   ...props
 }: MenuItemProps) => {
   
-  const { hasOneOfRoles } = useCurrentUserRoles();
-  if (!hasOneOfRoles(roles)) {
+  const { hasOneOfGroups } = useCurrentUserGroups();
+  if (!hasOneOfGroups(groups)) {
     return <></>;
   }
   

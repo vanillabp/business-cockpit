@@ -1,23 +1,22 @@
 import { Outlet } from 'react-router-dom';
 import { Login } from './Login';
-import { useCurrentUserRoles } from '../utils/roleUtils';
+import { useCurrentUserGroups } from "../utils/roleUtils";
 
 interface ProtectedRouteProps {
-  roles?: Array<string>;
+  groups?: Array<string>;
 };
 
 const ProtectedRoute = ({
-  roles = undefined,
+  groups = undefined,
 }: ProtectedRouteProps) => {
 
-  const { hasOneOfRoles, currentUser } = useCurrentUserRoles();
-  
-  const hasOneOfRequestRoles = hasOneOfRoles(roles);
-  if (currentUser && !hasOneOfRequestRoles) {
-    console.error(`Try to fetch route protected by ${roles ? roles : 'any role'} but user has ${currentUser?.roles?.length === 0 ? 'none' : currentUser.roles}!`);
+  const { hasOneOfGroups, currentUser } = useCurrentUserGroups();
+  const hasOneOfRequestGroups = hasOneOfGroups(groups);
+  if (currentUser && !hasOneOfRequestGroups) {
+    console.error(`Try to fetch route protected by ${groups ? groups : 'any group'} but user has ${currentUser?.groups?.length === 0 ? 'none' : currentUser.groups.map(g => g.id)}!`);
   }
 
-  return hasOneOfRequestRoles
+  return hasOneOfRequestGroups
       ? <Outlet />
       : <Login />;
 };

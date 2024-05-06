@@ -4,11 +4,22 @@ import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtil
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -28,17 +39,6 @@ import org.springframework.util.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Service
 public class WorkflowlistService {
@@ -345,8 +345,9 @@ public class WorkflowlistService {
                 });
     }
 
-    @PostConstruct
-    public void subscribeToDbChanges() {
+    @EventListener
+    public void subscribeToDbChanges(
+            final ApplicationStartedEvent event) {
 
         dbChangesSubscription = changeStreamUtils
                 .subscribe(Workflow.class)
@@ -462,12 +463,12 @@ public class WorkflowlistService {
         final var userOrRestrictions = new LinkedList<Criteria>();
         if ((accessibleToUsers != null)
                 && !accessibleToUsers.isEmpty()) {
-            final var candidateUsersMatches = Criteria.where("accessibleToUsers").in(accessibleToUsers);
+            final var candidateUsersMatches = Criteria.where("accessibleToUsers.id").in(accessibleToUsers);
             userOrRestrictions.add(candidateUsersMatches);
         }
         if ((accessibleToGroups != null)
                 && !accessibleToGroups.isEmpty()) {
-            final var candidateGroupsMatches = Criteria.where("accessibleToGroups").in(accessibleToGroups);
+            final var candidateGroupsMatches = Criteria.where("accessibleToGroups.id").in(accessibleToGroups);
             userOrRestrictions.add(candidateGroupsMatches);
         }
 

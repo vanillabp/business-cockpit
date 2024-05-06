@@ -261,6 +261,7 @@ const useFederationModules = (
                 workflowModuleId: moduleDefinition.workflowModuleId
               }
           });
+      setModules(result);
       
       const unsubscribers = distinctModuleDefinitions.map((moduleDefinition, index) => {
           const { subscribe, unsubscribe } = getModule(result[index].moduleId, moduleDefinition, useCase);

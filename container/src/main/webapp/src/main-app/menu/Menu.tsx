@@ -13,6 +13,8 @@ i18n.addResources('en', 'menu', {
       "tasklist": "Tasks",
       "workflowlist": "Workflows",
       "READONLY": "read-only",
+      "person-id": "ID",
+      "person-email": "Email-address",
     });
 i18n.addResources('de', 'menu', {
       "logout": "Abmelden",
@@ -20,7 +22,9 @@ i18n.addResources('de', 'menu', {
       "tasklist": "Aufgaben",
       "workflowlist": "Vorgänge",
       "READONLY": "nur lesend",
-    });
+      "person-id": "Benutzerkennung",
+      "person-email": "E-Mail-Adresse",
+});
 
 const Menu = () => {
   
@@ -39,10 +43,11 @@ const Menu = () => {
           !Boolean(state.currentUser) ? '' :
           <>
             <User
+                t={ t }
                 user={ state.currentUser! }
-                isUserLoggedIn={ true } />
+                isUserLoggedIn={ false } />
             <MenuItem
-                roles={ null }
+                groups={ null }
                 onClick={() => {
                   hideMenu();
                   navigate(tApp('url-tasklist') as string);
@@ -51,7 +56,7 @@ const Menu = () => {
               <Text>{t('tasklist')}</Text>
             </MenuItem>
             <MenuItem
-                roles={ null }
+                groups={ null }
                 onClick={() => {
                   hideMenu();
                   navigate(tApp('url-workflowlist') as string);
@@ -61,7 +66,7 @@ const Menu = () => {
             </MenuItem>
             <MenuItem
                 background="light-3"
-                roles={ null }
+                groups={ null }
                 onClick={ () => document.forms["logoutForm"].submit() }>
               <Logout />
               <Text>{t('logout')}</Text>

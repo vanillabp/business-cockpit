@@ -40,6 +40,8 @@ i18n.addResources('en', 'tasklist', {
       "assign_placeholder": "Min. 3 characters...",
       "assign_loading": "Loading suggestions...",
       "refresh_tasks": "Refresh list",
+      "person-id": "ID",
+      "person-email": "Email-address",
     });
 i18n.addResources('de', 'tasklist', {
       "title.long": 'Aufgaben',
@@ -69,7 +71,9 @@ i18n.addResources('de', 'tasklist', {
       "assign_placeholder": "Mind. 3 Zeichen...",
       "assign_loading": "Lade Vorschläge...",
       "refresh_tasks": "Liste neu laden",
-    });
+      "person-id": "Benutzerkennung",
+      "person-email": "E-Mail-Adresse",
+});
 
 const CustomListOfTasks = ({ useTasklistApi }) => {
   const { showLoadingIndicator, toast } = useAppContext();

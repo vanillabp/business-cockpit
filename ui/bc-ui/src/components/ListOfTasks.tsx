@@ -1,5 +1,5 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
@@ -69,7 +69,7 @@ const loadUserTasks = async (
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
-  
+
   const result = await tasklistApi.getUserTasks(
       new Date().getTime().toString(),
       pageNumber,
@@ -77,7 +77,7 @@ const loadUserTasks = async (
       sort,
       sortAscending,
       initialTimestamp);
-        
+
   setNumberOfUserTasks(result!.page.totalElements);
 
   return {
@@ -126,7 +126,7 @@ const reloadUserTasks = async (
       setDefinitionsOfTasks(newUserTaskDefinitions);
     }
   }
-  
+
   return {
       serverTimestamp: result.serverTimestamp,
       items: result.userTasks.map(userTask => {
@@ -135,7 +135,7 @@ const reloadUserTasks = async (
           selected: allSelected,
         }
       })
-    };   
+    };
 
 };
 
@@ -288,7 +288,7 @@ const AssignButton = ({
   const [ active, setActive ] = useState(false);
   const [ query, setQuery ] = useState('')
   const currentQuery = useRef<string>('');
-  const [ users, setUsers ] = useState<Array<UserDto> | undefined>(undefined);
+  const [ users, setUsers ] = useState<Array<Person> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadResult = async () => {
@@ -411,6 +411,7 @@ const AssignButton = ({
                               height={ { min: '2rem' } }
                               onClick={ () => assign(user.id!) }>
                             <User
+                                t={ t }
                                 user={ user }
                                 isUserLoggedIn={ false }
                                 iconSize='small'
@@ -684,6 +685,7 @@ const DefaultHeader = ({
 }
 
 const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  t,
   item,
 }) => {
 
@@ -707,24 +709,36 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                       dropIdentifier
                           && dropIdentifier === item.id
                           && <Drop
-                              inline
-                              round="xsmall"
-                              onMouseLeave={ () => setDropIdentifier(undefined) }
-                              target={ targetRef }>
-                              <Box
-                                  direction="column"
-                                  margin="xsmall"
-                                  gap="xsmall">
+                                inline
+                                stretch
+                                round="xsmall"
+                                onMouseLeave={ () => setDropIdentifier(undefined) }
+                                target={ targetRef }>
+                              <Grid columns={['auto', 'auto']} gap="xsmall" margin="xsmall">
                                 {
-                                  item.data.candidateUsers?.map(user => <Box
-                                      direction="row"
-                                      align="center"
-                                      justify="center">
-                                    { user }
-                                    <FormTrash onClick={ () => item.data.unassign(user) } />
-                                  </Box>)
+                                  item.data.candidateUsers?.map(user => <>
+                                      <Text
+                                          style={ { whiteSpace: "nowrap" } }
+                                          tip={ { content: <Grid columns={['auto', 'auto']} gap="xsmall">
+                                              <Text>{ t('person-id') }:</Text>
+                                              <Text weight="bold">{ user.id }</Text>
+                                              {
+                                                user.email !== null
+                                                    ? <>
+                                                      <Text>{ t('person-email') }:</Text>
+                                                      <Text weight="bold">{ user.email }</Text>
+                                                    </>
+                                                    : undefined
+                                              }
+                                            </Grid> } }>
+                                        {
+                                          user.display
+                                        }
+                                      </Text>
+                                      <FormTrash onClick={ () => item.data.unassign(user.id) } />
+                                  </>)
                                 }
-                              </Box>
+                              </Grid>
                           </Drop>
                     }
                   </>
@@ -869,7 +883,6 @@ const ListOfTasks = ({
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
   const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
-  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
@@ -880,18 +893,13 @@ const ListOfTasks = ({
                 ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
         setModulesOfTasks(moduleDefinitions);
         const userTaskDefinitions: DefinitionOfUserTask = {};
-        const titleLanguages = result
+        const workflowDefinitions = result
             .items
-            .map(userTask => userTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask)
-            .flatMap(userTask => Object.keys(userTask.title))
-            .reduce((allLanguages, titleLanguage) => {
-              if (!allLanguages.includes(titleLanguage)) {
-                allLanguages.push(titleLanguage);
-              }
-              return allLanguages;
-            }, new Array<string>(currentLanguage));
+            .reduce((definitions, userTask) => {
+              definitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask;
+              return definitions;
+            }, {} as DefinitionOfUserTask);
         setDefinitionsOfTasks(userTaskDefinitions);
-        setLanguagesOfTitles(titleLanguages);
       };
       if (userTasks.current === undefined) {
         showLoadingIndicator(true);
@@ -900,7 +908,7 @@ const ListOfTasks = ({
     },
     // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by usertasks
-    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
+    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined);
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
@@ -944,6 +952,7 @@ const ListOfTasks = ({
     if (totalColumns.title === undefined) {
       totalColumns.title = {
           title: { [currentLanguage]: t('column_title') },
+          type: 'i18n',
           path: 'title',
           width: '',
           priority: 0,
@@ -956,8 +965,9 @@ const ListOfTasks = ({
     if (totalColumns.assignee === undefined) {
       totalColumns.assignee = {
           path: 'assignee',
+          type: 'person',
           show: true,
-          sortable: false,
+          sortable: true,
           filterable: false,
           title: { [currentLanguage]: t('column_assignee') },
           width: '10rem',
@@ -994,7 +1004,11 @@ const ListOfTasks = ({
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
-  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
+  const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
+      ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
+      : effectiveSort?.indexOf('.lastName,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.lastName,'))
+      : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -1005,8 +1019,10 @@ const ListOfTasks = ({
   }
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path === 'title') {
-        _setSort('title.' + languagesOfTitles.join(',title.'))
+      if (column.type === 'i18n') {
+        _setSort(`${column.path}.${currentLanguage}`);
+      } else if (column.type === 'person') {
+        _setSort(`${column.path}.lastName,${column.path}.firstName,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

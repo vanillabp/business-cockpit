@@ -2,17 +2,18 @@ package io.vanillabp.cockpit.tasklist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetails;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.candidates.CandidatesAware;
-import org.springframework.data.annotation.AccessType;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Version;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.util.StringUtils;
-
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import org.springframework.data.annotation.AccessType;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = UserTask.COLLECTION_NAME)
 public class UserTask extends CandidatesAware implements UpdateInformationAware {
@@ -67,11 +68,11 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private UiUriType uiUriType;
 
-    private String assignee;
+    private Person assignee;
 
-    private List<String> candidateUsers = null;
+    private List<Person> candidateUsers = null;
 
-    private List<String> candidateGroups = null;
+    private List<Group> candidateGroups = null;
 
     private OffsetDateTime dueDate;
 
@@ -84,18 +85,28 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private List<ReadBy> readBy;
 
     @Override
-    protected List<String> getGroups() {
-        return getCandidateGroups();
+    protected List<String> getGroupIds() {
+        return Optional
+                .ofNullable(getCandidateGroups())
+                .orElse(List.of())
+                .stream()
+                .map(Group::getId)
+                .toList();
     }
 
     @Override
-    protected List<String> getUsers() {
-        return getCandidateUsers();
+    protected List<String> getUserIds() {
+        return Optional
+                .ofNullable(getCandidateUsers())
+                .orElse(List.of())
+                .stream()
+                .map(Person::getId)
+                .toList();
     }
 
-    public Collection<String> getTargetRoles() {
+    public Collection<String> getTargetGroups() {
 
-        final var result = super.getTargetRoles();
+        final var result = super.getTargetGroups();
         if (result == null) {
             return null;
         }
@@ -106,33 +117,33 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     }
 
-    public void addCandidateUser(
-            final String userId) {
+    public void addCandidatePerson(
+            final Person person) {
 
-        if (userId == null) {
+        if (person == null) {
             return;
         }
-        if (getUsers() == null) {
-            setCandidateUsers(List.of(userId));
+        if (getCandidateUsers() == null) {
+            setCandidateUsers(List.of(person));
         } else {
-            this.getUsers().removeIf(candidate -> candidate.equals(userId));
-            this.getUsers().add(userId);
+            this.getCandidateUsers().removeIf(candidate -> candidate.getId().equals(person.getId()));
+            this.getCandidateUsers().add(person);
         }
 
     }
 
-    public void removeCandidateUser(
-            final String userId) {
+    public void removeCandidatePerson(
+            final String personId) {
 
-        if (userId == null) {
+        if (personId == null) {
             return;
         }
-        if ((getUsers() == null)
-                || getUsers().isEmpty()) {
+        if ((getCandidateUsers() == null)
+                || getCandidateUsers().isEmpty()) {
             return;
         }
 
-        this.getUsers().removeIf(candidate -> candidate.equals(userId));
+        this.getCandidateUsers().removeIf(candidate -> candidate.getId().equals(personId));
 
     }
 
@@ -188,7 +199,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
                 && !getCandidateGroups().isEmpty()) {
             return false;
         }
-        if (StringUtils.hasText(getAssignee())) {
+        if (getAssignee() != null) {
             return false;
         }
         return true;
@@ -371,27 +382,27 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
         this.uiUriType = uiUriType;
     }
 
-    public String getAssignee() {
+    public Person getAssignee() {
         return assignee;
     }
 
-    public void setAssignee(String assignee) {
+    public void setAssignee(Person assignee) {
         this.assignee = assignee;
     }
 
-    public List<String> getCandidateUsers() {
+    public List<Person> getCandidateUsers() {
         return candidateUsers;
     }
 
-    public void setCandidateUsers(List<String> candidateUsers) {
+    public void setCandidateUsers(List<Person> candidateUsers) {
         this.candidateUsers = candidateUsers;
     }
 
-    public List<String> getCandidateGroups() {
+    public List<Group> getCandidateGroups() {
         return candidateGroups;
     }
 
-    public void setCandidateGroups(List<String> candidateGroups) {
+    public void setCandidateGroups(List<Group> candidateGroups) {
         this.candidateGroups = candidateGroups;
     }
 

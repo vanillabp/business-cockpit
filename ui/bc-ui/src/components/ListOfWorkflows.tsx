@@ -650,7 +650,6 @@ const ListOfWorkflows = ({
   const workflows = useRef<Array<ListItem<Workflow>> | undefined>(undefined);
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
   const [ modulesOfWorkflows, setModulesOfWorkflows ] = useState<Workflow[] | undefined>(undefined);
-  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
@@ -661,19 +660,13 @@ const ListOfWorkflows = ({
             .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
                 ? moduleDefinitions : moduleDefinitions.concat(workflow), new Array<Workflow>());
         setModulesOfWorkflows(moduleDefinitions);
-        const workflowDefinitions: DefinitionOfWorkflow = {};
-        const titleLanguages = result
+        const workflowDefinitions = result
             .workflows
-            .map(workflow => workflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow)
-            .flatMap(workflow => Object.keys(workflow.title))
-            .reduce((allLanguages, titleLanguage) => {
-              if (!allLanguages.includes(titleLanguage)) {
-                allLanguages.push(titleLanguage);
-              }
-              return allLanguages;
-            }, new Array<string>(currentLanguage));
+            .reduce((definitions, workflow) => {
+              definitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow;
+              return definitions;
+            }, {} as DefinitionOfWorkflow);
         setDefinitionsOfWorkflows(workflowDefinitions);
-        setLanguagesOfTitles(titleLanguages);
       };
       if (workflows.current === undefined) {
         showLoadingIndicator(true);
@@ -682,7 +675,7 @@ const ListOfWorkflows = ({
     },
     // workflowlistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by workflows
-    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
+    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
@@ -727,6 +720,7 @@ const ListOfWorkflows = ({
       totalColumns.title = {
         title: { [currentLanguage]: t('column_title') },
         path: 'title',
+        type: 'i18n',
         width: '',
         priority: 0,
         show: true,
@@ -752,7 +746,11 @@ const ListOfWorkflows = ({
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
-  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
+  const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
+      ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
+      : effectiveSort?.indexOf('.lastName,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.lastName,'))
+      : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -764,8 +762,10 @@ const ListOfWorkflows = ({
 
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path === 'title') {
-        _setSort('title.' + languagesOfTitles.join(',title.'))
+      if (column.type === 'i18n') {
+        _setSort(`${column.path}.${currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '')}`);
+      } else if (column.type === 'person') {
+        _setSort(`${column.path}.lastName,${column.path}.firstName,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

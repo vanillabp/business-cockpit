@@ -1,36 +1,26 @@
 package io.vanillabp.cockpit.users;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-
 import java.util.List;
 
-class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails {
     private String id;
     private String email;
     private String firstName;
     private String lastName;
-    private String avatar;
-    private boolean active;
-    private Boolean female;
     private List<String> authorities;
 
-    public UserDetailsImpl(String id, boolean active, String email, String firstName, String lastName, String avatar, Boolean female, List<String> authorities) {
+    public UserDetailsImpl(String id, String email, String firstName, String lastName, List<String> authorities) {
         this.id = id;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.avatar = avatar;
         this.authorities = authorities;
     }
 
     @Override
     public String getId() {
         return id;
-    }
-
-    @Override
-    public boolean isActive() {
-        return active;
     }
 
     @Override
@@ -46,11 +36,6 @@ class UserDetailsImpl implements UserDetails {
     @Override
     public String getFirstName() {
         return firstName;
-    }
-
-    @Override
-    public Boolean isFemale() {
-        return female;
     }
 
     @Override

@@ -1,10 +1,9 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
-
-import java.util.List;
 
 public class JwtUserDetails implements UserDetails {
 
@@ -84,26 +83,6 @@ public class JwtUserDetails implements UserDetails {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-    }
-    
-    @Override
-    public boolean isActive() {
-        
-        return true;
-        
-    }
-    
-    @Override
-    public Boolean isFemale() {
-
-        final var gender = getJwt().getClaimAsString("gender");
-        if ("female".equals(gender)) {
-            return Boolean.TRUE;
-        } else if ("male".equals(gender)) {
-            return Boolean.FALSE;
-        }
-        return null;
-        
     }
     
 }

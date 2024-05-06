@@ -2,16 +2,16 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * A tasklist API controller which gives access to the tasks
@@ -28,6 +28,9 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 
 	@Autowired
 	private UserTaskService userTaskService;
+
+	@Autowired
+	private PersonAndGroupMapper personAndGroupMapper;
 
 	@Override
 	protected Mono<Page<UserTask>> getUserTasks(
@@ -119,7 +122,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 		if (unclaim) {
 			return userTaskService.unclaimTask(userTaskId, currentUser.getId());
 		}
-		return userTaskService.claimTask(userTaskId, currentUser.getId());
+		return userTaskService.claimTask(userTaskId, personAndGroupMapper.toModelPerson(currentUser));
 
 	}
 
@@ -132,7 +135,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 		if (unclaim) {
 			return userTaskService.unclaimTask(userTaskIds, currentUser.getId());
 		}
-		return userTaskService.claimTask(userTaskIds, currentUser.getId());
+		return userTaskService.claimTask(userTaskIds, personAndGroupMapper.toModelPerson(currentUser));
 
 	}
 
@@ -146,7 +149,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 		if (unassign) {
 			return userTaskService.unassignTask(userTaskId, userId);
 		}
-		return userTaskService.assignTask(userTaskId, userId);
+		return userTaskService.assignTask(userTaskId, personAndGroupMapper.toModelPerson(userId));
 
 	}
 
@@ -160,7 +163,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 		if (unassign) {
 			return userTaskService.unassignTask(userTaskIds, userId);
 		}
-		return userTaskService.assignTask(userTaskIds, userId);
+		return userTaskService.assignTask(userTaskIds, personAndGroupMapper.toModelPerson(userId));
 
 	}
 

@@ -24,7 +24,6 @@ const isVanillaBpColumn = (column: Column) => {
 interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
   modulesAvailable: Module[];
   column: Column;
-  defaultLanguage?: string;
   currentLanguage: string;
   nameOfList?: string;
   typeOfItem: TypeOfItem;
@@ -38,7 +37,6 @@ interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
 const ListCell = <T extends ListItemData & ModuleDefinition, >({
   modulesAvailable,
   column,
-  defaultLanguage = 'en',
   currentLanguage,
   nameOfList,
   typeOfItem,
@@ -103,7 +101,6 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
             column={ column }
             showUnreadAsBold={ showUnreadAsBold }
             currentLanguage={ currentLanguage }
-            defaultLanguage={ defaultLanguage }
             defaultCell={ defaultListCell }
             nameOfList={ nameOfList }
             isPhone={ isPhone }

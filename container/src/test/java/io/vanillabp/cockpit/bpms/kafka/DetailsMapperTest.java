@@ -4,14 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.users.TestUserDetailsImpl;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 // https://stackoverflow.com/questions/37950296/spring-data-mongodb-bigdecimal-support
 
@@ -154,12 +153,9 @@ public class DetailsMapperTest {
 
         final var complex = new TestUserDetailsImpl(
                 "4711",
-                false,
                 "a@b",
                 "First",
                 "Last",
-                null,
-                null,
                 List.of("A", "B"));
 
 
@@ -174,11 +170,9 @@ public class DetailsMapperTest {
         Assertions.assertNotNull(result);
         final var target = (Map<String, Object>) result.get("test1");
         Assertions.assertEquals(complex.getId(), target.get("id"));
-        Assertions.assertEquals(complex.isActive(), target.get("active"));
         Assertions.assertEquals(complex.getEmail(), target.get("email"));
         Assertions.assertEquals(complex.getFirstName(), target.get("firstName"));
         Assertions.assertEquals(complex.getLastName(), target.get("lastName"));
-        Assertions.assertNull(complex.isFemale());
         Assertions.assertEquals(complex.getAuthorities(), target.get("authorities"));
 
     }

@@ -1,27 +1,48 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.gui.api.v1.Sex;
-import io.vanillabp.cockpit.gui.api.v1.User;
-import io.vanillabp.cockpit.gui.api.v1.UserStatus;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
+import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.springframework.data.domain.Page;
-
 import java.time.OffsetDateTime;
 import java.util.List;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 
 @Mapper(implementationName = "TasklistGuiApiMapperImpl")
 public abstract class GuiApiMapper {
+
+    private static final String PERSON_MAPPING = "personMapping";
+    private static final String GROUP_MAPPING = "groupMapping";
+
+    @Autowired
+    private PersonAndGroupApiMapper personAndGroupMapper;
+
+    @Named(PERSON_MAPPING)
+    public io.vanillabp.cockpit.gui.api.v1.Person toPerson(
+            final Person user) {
+        return personAndGroupMapper.personToApiPerson(user);
+    }
+
+    @Named(GROUP_MAPPING)
+    public io.vanillabp.cockpit.gui.api.v1.Group toGroup(
+            final Group group) {
+        return personAndGroupMapper.groupToApiGroup(group);
+    }
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")
     @Mapping(target = "dueDate", expression = "java(mapDateTimeMaxToNull(userTask))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(userTask))")
     @Mapping(target = "read", expression = "java(userTask.getReadAt(userId))")
+    @Mapping(target = "assignee", source = "userTask.assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "userTask.candidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateGroups", source = "userTask.candidateGroups", qualifiedByName = GROUP_MAPPING)
 	public abstract UserTask toApi(
 			io.vanillabp.cockpit.tasklist.model.UserTask userTask,
             String userId);
@@ -47,38 +68,6 @@ public abstract class GuiApiMapper {
     public abstract UserTasks toApi(Page<io.vanillabp.cockpit.tasklist.model.UserTask> data,
                                     OffsetDateTime timestamp,
                                     String userId);
-
-    @Mapping(target = "avatar", ignore = true)
-    @Mapping(target = "sex", expression = "java(sexToApi(user))")
-    @Mapping(target = "status", expression = "java(statusToApi(user))")
-    @Mapping(target = "roles", source = "authorities")
-    public abstract User toApi(UserDetails user);
-
-    public UserStatus statusToApi(UserDetails userDetails) {
-
-        if (userDetails == null) {
-            return null;
-        }
-        if (userDetails.isActive()) {
-            return UserStatus.ACTIVE;
-        }
-        return UserStatus.INACTIVE;
-
-    }
-
-    public Sex sexToApi(UserDetails userDetails) {
-
-        if (userDetails == null) {
-            return null;
-        }
-        if (userDetails.isFemale() == null) {
-            return Sex.OTHER;
-        } else if (userDetails.isFemale()) {
-            return Sex.FEMALE;
-        }
-        return Sex.MALE;
-
-    }
 
     @NoMappingMethod
     protected String proxiedUiUri(

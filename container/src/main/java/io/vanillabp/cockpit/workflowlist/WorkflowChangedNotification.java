@@ -4,11 +4,10 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.commons.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import java.util.Collection;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.messaging.Message;
-
-import java.util.Collection;
 
 public class WorkflowChangedNotification extends NotificationEvent {
 
@@ -19,12 +18,12 @@ public class WorkflowChangedNotification extends NotificationEvent {
     public WorkflowChangedNotification(
             final Type type,
             final String workflowId,
-            final Collection<String> targetRoles) {
+            final Collection<String> targetGroups) {
         
         super(
                 "Workflow",
                 type,
-                targetRoles);
+                targetGroups);
         
         this.workflowId = workflowId;
         

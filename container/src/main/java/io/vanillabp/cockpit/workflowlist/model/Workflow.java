@@ -2,15 +2,17 @@ package io.vanillabp.cockpit.workflowlist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.tasklist.model.UiUriType;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.candidates.CandidatesAware;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
 
 
 @Document(collection = Workflow.COLLECTION_NAME)
@@ -24,7 +26,7 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
     @Version
     private long version;
 
-    private String initiator;
+    private Person initiator;
 
     private OffsetDateTime createdAt;
 
@@ -54,51 +56,61 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private UiUriType uiUriType;
 
-    private List<String> accessibleToUsers;
+    private List<Person> accessibleToUsers;
 
-    private List<String> accessibleToGroups;
+    private List<Group> accessibleToGroups;
 
     private Map<String, Object> details = null;
 
     private String detailsFulltextSearch;
 
     @Override
-    protected List<String> getGroups() {
-        return getAccessibleToGroups();
+    protected List<String> getGroupIds() {
+        return Optional
+                .ofNullable(getAccessibleToGroups())
+                .orElse(List.of())
+                .stream()
+                .map(Group::getId)
+                .toList();
     }
 
     @Override
-    protected List<String> getUsers() {
-        return getAccessibleToUsers();
+    protected List<String> getUserIds() {
+        return Optional
+                .ofNullable(getAccessibleToUsers())
+                .orElse(List.of())
+                .stream()
+                .map(Person::getId)
+                .toList();
     }
 
-    public void addUserForAccess(
-            final String userId) {
+    public void addPersonForAccess(
+            final Person person) {
 
-        if (userId == null) {
+        if (person == null) {
             return;
         }
-        if (getUsers() == null) {
-            setAccessibleToUsers(List.of(userId));
+        if (accessibleToUsers == null) {
+            setAccessibleToUsers(List.of(person));
         } else {
-            this.getUsers().removeIf(candidate -> candidate.equals(userId));
-            this.getUsers().add(userId);
+            this.getAccessibleToUsers().removeIf(candidate -> candidate.getId().equals(person.getId()));
+            this.getAccessibleToUsers().add(person);
         }
 
     }
 
     public void removeUserForAccess(
-            final String userId) {
+            final String personId) {
 
-        if (userId == null) {
+        if (personId == null) {
             return;
         }
-        if ((getUsers() == null)
-                || getUsers().isEmpty()) {
+        if ((getAccessibleToUsers() == null)
+                || getAccessibleToUsers().isEmpty()) {
             return;
         }
 
-        this.getUsers().removeIf(candidate -> candidate.equals(userId));
+        this.getAccessibleToUsers().removeIf(candidate -> candidate.getId().equals(personId));
 
     }
 
@@ -140,11 +152,11 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
         this.version = version;
     }
 
-    public String getInitiator() {
+    public Person getInitiator() {
         return initiator;
     }
 
-    public void setInitiator(String initiator) {
+    public void setInitiator(Person initiator) {
         this.initiator = initiator;
     }
 
@@ -278,19 +290,19 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
         this.detailsFulltextSearch = detailsFulltextSearch;
     }
 
-    public List<String> getAccessibleToGroups() {
+    public List<Group> getAccessibleToGroups() {
         return accessibleToGroups;
     }
 
-    public void setAccessibleToGroups(List<String> accessibleToGroups) {
+    public void setAccessibleToGroups(List<Group> accessibleToGroups) {
         this.accessibleToGroups = accessibleToGroups;
     }
 
-    public List<String> getAccessibleToUsers() {
+    public List<Person> getAccessibleToUsers() {
         return accessibleToUsers;
     }
 
-    public void setAccessibleToUsers(List<String> accessibleToUsers) {
+    public void setAccessibleToUsers(List<Person> accessibleToUsers) {
         this.accessibleToUsers = accessibleToUsers;
     }
 
