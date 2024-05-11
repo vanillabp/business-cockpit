@@ -198,7 +198,7 @@ public class AdapterAwareBusinessCockpitService<WA> implements BusinessCockpitSe
 
         bcServicesByAdapter
                 .get(determinePrimaryAdapterId())
-                .aggregateChanged(workflowAggregate);
+                .aggregateChanged(workflowAggregate, userTaskIds);
         
     }
 
