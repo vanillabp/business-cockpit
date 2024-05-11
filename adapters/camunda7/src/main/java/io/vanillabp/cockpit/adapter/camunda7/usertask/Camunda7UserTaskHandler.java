@@ -110,7 +110,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
         final var i18nLanguages = properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId);
         final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
-                switch (task.getEventName()) {
+                switch (eventName) {
                     case TaskListener.EVENTNAME_CREATE:
                         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
