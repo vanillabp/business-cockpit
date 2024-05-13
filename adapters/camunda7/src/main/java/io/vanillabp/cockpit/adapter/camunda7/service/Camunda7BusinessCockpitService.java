@@ -130,15 +130,22 @@ public class Camunda7BusinessCockpitService<WA> implements BusinessCockpitServic
     public void aggregateChanged(
             final WA workflowAggregate,
             final String... userTaskIds) {
-        
-        taskService
-                .createTaskQuery()
-                .taskIdIn(userTaskIds)
-                .list()
-                .forEach(task -> userTaskEventHandler.notify(
-                        (TaskEntity) task,
-                        TaskListener.EVENTNAME_UPDATE));
-        
+
+        ((ProcessEngineConfigurationImpl) processEngine
+                .getProcessEngineConfiguration())
+                .getCommandExecutorTxRequired()
+                .<Void>execute(commandContext -> {
+                    taskService
+                            .createTaskQuery()
+                            .taskIdIn(userTaskIds)
+                            .list()
+                            .forEach(task -> userTaskEventHandler.notify(
+                                    (TaskEntity) task,
+                                    TaskListener.EVENTNAME_UPDATE)
+                            );
+                    return null;
+                });
+
     }
 
     @Override
