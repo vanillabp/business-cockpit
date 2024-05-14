@@ -67,7 +67,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   let Cell: FC<DefaultListCellAwareProps<any>>;
   if (typeOfItem === TypeOfItem.TaskList) {
     if (!Boolean(module?.UserTaskListCell)) {
-      console.warn(`Workflow-module ${item.data.workflowModuleId} has no UserTaskListCell defined!`);
+      console.info(`Workflow-module ${item.data.workflowModuleId} has no UserTaskListCell defined!`);
       Cell = defaultListCell;
     } else {
       Cell = memo(
@@ -81,7 +81,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
     }
   } else if (typeOfItem === TypeOfItem.WorkflowList) {
     if (!Boolean(module?.WorkflowListCell)) {
-      console.warn(`Workflow-module ${item.data.workflowModuleId} has no WorkflowListCell defined!`);
+      console.info(`Workflow-module ${item.data.workflowModuleId} has no WorkflowListCell defined!`);
       Cell = defaultListCell;
     } else {
       Cell = memo(

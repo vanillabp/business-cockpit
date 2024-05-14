@@ -61,21 +61,16 @@ type ComponentProducer = {
 // inspired by https://github.com/hasanayan/react-dynamic-remote-component
 
 export const attachScript = (
-  moduleId: string,
+  webpackModuleId: string,
   url: string
 ) => {
-  const elementId = "___" + moduleId;
+  const elementId = "___" + webpackModuleId;
   const existingElement = document.getElementById(elementId);
 
   if (existingElement) {
     //@ts-expect-error
-    if (window[moduleId]) return Promise.resolve(true);
-
-    return new Promise((resolve) => {
-      existingElement.onload = (e) => {
-        resolve(true);
-      };
-    });
+    if (window[webpackModuleId]) return Promise.resolve(true);
+    return Promise.reject(`Failed in previous attempt: ${webpackModuleId}`);
   }
   
   const element = document.createElement("script");
@@ -99,33 +94,40 @@ export const attachScript = (
 };
 
 export const detachScript = (
-  moduleId: string
+  webpackModuleId: string
 ) => {
-  const element = document.getElementById("___" + moduleId);
+  const element = document.getElementById("___" + webpackModuleId);
   if (element) document.head.removeChild(element);
 };
 
 const fetchModule = async (
-  moduleId: string,
+  workflowModuleId: string,
   uiUri: string,
+  initialTry: boolean,
   useCase: UseCase
 ): Promise<Module> => {
-
-  await attachScript(moduleId, uiUri);
-  
-  const webpackModuleId = moduleId.replaceAll('-', '_');
+  const webpackModuleId = workflowModuleId.replaceAll('-', '_');
+  if (!initialTry) {
+    detachScript(webpackModuleId);
+  }
   //@ts-expect-error
-  await __webpack_init_sharing__("default");
-  //@ts-expect-error
-  const container = window[webpackModuleId];
+  let container = window[webpackModuleId];
+  if (container === undefined) {
+    await attachScript(webpackModuleId, uiUri);
+    //@ts-expect-error
+    await __webpack_init_sharing__("default");
+    //@ts-expect-error
+    container = window[webpackModuleId];
+  }
   if (!container.isInitialized) {
     container.isInitialized = true;
     //@ts-expect-error
     await container.init(__webpack_share_scopes__.default);
+  } else if (!('isInitialized' in container)) {
+    throw new Error(`Failed in last attempt: ${webpackModuleId}`);
   }
   //@ts-expect-error
   const factory = await window[webpackModuleId].get(useCase);
-
   return factory();
 };
 
@@ -135,44 +137,40 @@ const loadModule = (
   useCase: UseCase
 ): ComponentProducer => {
   const callbacks: Array<HandlerFunction> = [];
-  
-  const retry = async (retryCallback?: () => void) => {
+
+  let module: Module = modules[moduleId];
+  if (module === undefined) {
+    module = { moduleId, workflowModuleId: moduleDefinition.workflowModuleId };
+    modules[moduleId] = module;
+  }
+
+  const publish = () => callbacks.forEach(callback => callback(modules[moduleId]));
+
+  const retry = async (retryCallback?: () => void, initialTry?: boolean) => {
     if (module.buildTimestamp !== undefined) return;
     try {
       if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
-        detachScript(moduleId);
-        const webpackModule =  await fetchModule(moduleDefinition.workflowModuleId, moduleDefinition.uiUri, useCase);
-        module = {
+        const webpackModule =  await fetchModule(moduleDefinition.workflowModuleId, moduleDefinition.uiUri, initialTry || false, useCase);
+        modules[moduleId] = {
           ...webpackModule,
-          workflowModuleId: moduleDefinition.workflowModuleId,
-          moduleId
+          ...module
         };
-        modules[moduleId] = module;
       } else {
         throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
       }
-      publish();
     } catch (error) {
-      console.error(error);
-      module.retry = retry;
-      publish();
+      modules[moduleId] = {
+        ...module,
+        retry
+      }
     } finally {
+      publish();
       if (retryCallback) {
         retryCallback();
       }
     }
   };
 
-  let module: Module;
-  if (Object.keys(modules).includes(moduleId)) {
-    module = modules[moduleId];
-  } else {
-    module = { moduleId, workflowModuleId: moduleDefinition.workflowModuleId };
-    modules[moduleId] = module;
-  }
-  
-  const publish = () => callbacks.forEach(callback => callback(module));
-  
   const subscribe = (callback: HandlerFunction) => {
       if (callbacks.includes(callback)) return;
       callbacks.push(callback);
@@ -183,8 +181,8 @@ const loadModule = (
       if (index === -1) return;
       callbacks.splice(index, 1);     
     };
-    
-  retry();
+
+  retry(undefined, true);
     
   return { subscribe, unsubscribe };
 };
@@ -199,7 +197,7 @@ const getModule = (
   if (result !== undefined) {
     return {
         subscribe: (handler: HandlerFunction) => handler(result), 
-        unsubscribe: (handler: HandlerFunction) => handler(result), 
+        unsubscribe: (handler: HandlerFunction) => { },
       };
   }
   
@@ -261,15 +259,11 @@ const useFederationModules = (
                 workflowModuleId: moduleDefinition.workflowModuleId
               }
           });
-      setModules(result);
-      
+
       const unsubscribers = distinctModuleDefinitions.map((moduleDefinition, index) => {
           const { subscribe, unsubscribe } = getModule(result[index].moduleId, moduleDefinition, useCase);
           const handler = (loadedModule: Module) => {
               result[index] = loadedModule;
-              if (result.length < distinctModuleDefinitions.length) {
-                return;
-              }
               const anyModuleStillLoading = result
                   .reduce(
                   (anyModuleStillLoading, module) => anyModuleStillLoading || (module === undefined) || ((module.buildTimestamp === undefined) && (module.retry === undefined)),
