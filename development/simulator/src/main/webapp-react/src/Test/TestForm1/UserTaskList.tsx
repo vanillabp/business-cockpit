@@ -3,12 +3,13 @@ import { getObjectProperty, TextListCell, UserTaskListCell } from '@vanillabp/bc
 const TestForm1ListCell: UserTaskListCell = ({
   item,
   column,
-  defaultCell
+  defaultCell,
+  ...props
 }) => {
   const DefaultCell = defaultCell;
   return column.path.startsWith('details')
       ? <TextListCell item={ item } value={ getObjectProperty(item.data, column.path) } />
-      : <DefaultCell item={ item } column={ column } />;
+      : <DefaultCell item={ item } column={ column } { ...props } />;
 }
 
 export default TestForm1ListCell;

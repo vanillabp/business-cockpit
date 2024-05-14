@@ -32,10 +32,12 @@ const workflowListColumns: Array<Column> = [
       'en': 'id 1'
     },
     path: 'details.test1.testId1',
+    type: 'i18n',
     width: '10rem',
     priority: 1,
     show: true,
     sortable: true,
+    resizeable: false,
     filterable: true,
   }
 ];

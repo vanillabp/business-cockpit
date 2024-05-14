@@ -10,15 +10,14 @@ const TestForm3_UserTaskListCell = lazy(() => import('./TestForm3/UserTaskList')
 
 const TaskListCell: UserTaskListCell = ({
     item,
-    column,
-    defaultCell
+    ...props
   }) => 
     item.data.taskDefinition === TestForm1_taskDefinition
-        ? <TestForm1_UserTaskListCell item={ item } column={ column } defaultCell={ defaultCell } />
+        ? <TestForm1_UserTaskListCell item={ item } { ...props } />
         : item.data.taskDefinition === TestForm2_taskDefinition
-        ? <TestForm2_UserTaskListCell item={ item } column={ column } defaultCell={ defaultCell } />
+        ? <TestForm2_UserTaskListCell item={ item } { ...props } />
         : item.data.taskDefinition === TestForm3_taskDefinition
-        ? <TestForm3_UserTaskListCell item={ item } column={ column } defaultCell={ defaultCell } />
+        ? <TestForm3_UserTaskListCell item={ item } { ...props } />
         : <WarningListCell message={ `unknown task '${item.data.taskDefinition}'` } />;
 
 export default TaskListCell;

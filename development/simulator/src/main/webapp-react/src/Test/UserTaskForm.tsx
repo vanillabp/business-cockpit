@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import { lazy } from 'react';
 import { Text } from 'grommet';
 import { taskDefinition as TestForm1_taskDefinition } from './TestForm1';
 import { taskDefinition as TestForm2_taskDefinition } from './TestForm2';
