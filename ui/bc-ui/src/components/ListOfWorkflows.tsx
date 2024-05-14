@@ -62,9 +62,37 @@ interface ColumnWidthAdjustments {
   [key: string]: number
 }
 
+const updateModuleDefinitions = (
+    workflows: Workflow[],
+    existingModuleDefinitions: Workflow[] | undefined,
+    setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
+    existingWorkflowDefinitions: DefinitionOfWorkflow | undefined,
+    setDefinitionsOfWorkflows: (definitions: DefinitionOfWorkflow | undefined) => void) => {
+
+  const newModuleDefinitions = workflows
+      .filter(workflow => workflow.workflowModuleId !== undefined)
+      .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
+          ? moduleDefinitions : moduleDefinitions.concat(workflow), existingModuleDefinitions || []);
+  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
+    setModulesOfWorkflows(newModuleDefinitions);
+    const newWorkflowDefinitions: DefinitionOfWorkflow = { ...existingWorkflowDefinitions };
+    workflows
+        .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow);
+    if ((existingWorkflowDefinitions === undefined)
+        || Object.keys(existingWorkflowDefinitions).length !== Object.keys(newWorkflowDefinitions).length) {
+      setDefinitionsOfWorkflows(newWorkflowDefinitions);
+    }
+  }
+
+}
+
 const loadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
   setNumberOfWorkflows: (number: number) => void,
+  existingModuleDefinitions: Workflow[] | undefined,
+  setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
+  existingWorkflowDefinitions: DefinitionOfWorkflow | undefined,
+  setDefinitionsOfWorkflows: (definitions: DefinitionOfWorkflow | undefined) => void,
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
@@ -78,6 +106,7 @@ const loadWorkflows = async (
         .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
+  updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
 
   return {
       serverTimestamp: result.serverTimestamp,
@@ -112,21 +141,7 @@ const reloadWorkflows = async (
       initialTimestamp);
 
   setNumberOfWorkflows(result!.page.totalElements);
-
-  const newModuleDefinitions = result.workflows
-      .filter(workflow => workflow.workflowModuleId !== undefined)
-      .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
-          ? moduleDefinitions : moduleDefinitions.concat(workflow), existingModuleDefinitions || []);
-  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
-    setModulesOfWorkflows(newModuleDefinitions);
-    const newWorkflowDefinitions: DefinitionOfWorkflow = { ...existingWorkflowDefinitions };
-    result.workflows
-        .forEach(workflow => newWorkflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow);
-    if ((existingWorkflowDefinitions === undefined)
-        || Object.keys(existingWorkflowDefinitions).length !== Object.keys(newWorkflowDefinitions).length) {
-      setDefinitionsOfWorkflows(newWorkflowDefinitions);
-    }
-  }
+  updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
   
   return {
       serverTimestamp: result.serverTimestamp,
@@ -647,6 +662,29 @@ const ListOfWorkflows = ({
   );
   const refreshItemRef = useRef<RefreshItemCallbackFunction | undefined>(undefined);
 
+  const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
+    const getUserTasksFunction: GetUserTasksFunction = async (
+        activeOnly,
+        limitListAccordingToCurrentUsersPermissions
+    ) => {
+      return (await workflowlistApi
+          .getUserTasksOfWorkflow(
+              workflow.id,
+              activeOnly,
+              limitListAccordingToCurrentUsersPermissions))
+          .map(userTask => ({
+            ...userTask,
+            open: () => openTask(userTask),
+            navigateToWorkflow: () => {}, // don't change view because workflow is already shown
+          } as BcUserTask));
+    };
+    return {
+      ...workflow,
+      navigateToWorkflow: () => navigateToWorkflow(workflow),
+      getUserTasks: getUserTasksFunction,
+    };
+  };
+
   const workflows = useRef<Array<ListItem<Workflow>> | undefined>(undefined);
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
   const [ modulesOfWorkflows, setModulesOfWorkflows ] = useState<Workflow[] | undefined>(undefined);
@@ -654,17 +692,11 @@ const ListOfWorkflows = ({
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        const result = await workflowlistApi
-            .getWorkflows(new Date().getTime().toString(), 0, 100, undefined, true, searchQueries);
-        const moduleDefinitions = result
-            .workflows
-            .reduce((moduleDefinitions, workflow) => moduleDefinitions.includes(workflow)
-                ? moduleDefinitions : moduleDefinitions.concat(workflow), new Array<Workflow>());
-        setModulesOfWorkflows(moduleDefinitions);
-        const workflowDefinitions: DefinitionOfWorkflow = {};
+        const result = await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
+            definitionsOfWorkflows, setDefinitionsOfWorkflows, 20, 0, undefined,
+            searchQueries, effectiveSort, sortAscending, mapToBcWorkflow);
         const titleLanguages = result
-            .workflows
-            .map(workflow => workflowDefinitions[`${workflow.workflowModuleId}#${workflow.bpmnProcessId}`] = workflow)
+            .items
             .flatMap(workflow => Object.keys(workflow.title))
             .reduce((allLanguages, titleLanguage) => {
               if (!allLanguages.includes(titleLanguage)) {
@@ -672,7 +704,6 @@ const ListOfWorkflows = ({
               }
               return allLanguages;
             }, new Array<string>(currentLanguage));
-        setDefinitionsOfWorkflows(workflowDefinitions);
         setLanguagesOfTitles(titleLanguages);
       };
       if (workflows.current === undefined) {
@@ -870,29 +901,6 @@ const ListOfWorkflows = ({
                   // @ts-ignore
                   defaultListCell={ WorkflowDefaultListCell } />
             }));
-  
-  const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
-      const getUserTasksFunction: GetUserTasksFunction = async (
-          activeOnly,
-          limitListAccordingToCurrentUsersPermissions
-        ) => {
-          return (await workflowlistApi
-              .getUserTasksOfWorkflow(
-                  workflow.id,
-                  activeOnly,
-                  limitListAccordingToCurrentUsersPermissions))
-              .map(userTask => ({
-                ...userTask,
-                open: () => openTask(userTask),
-                navigateToWorkflow: () => {}, // don't change view because workflow is already shown
-              } as BcUserTask));
-        };
-      return {
-          ...workflow,
-          navigateToWorkflow: () => navigateToWorkflow(workflow),
-          getUserTasks: getUserTasksFunction,
-        };
-    };
 
   const initialKwicQuery = (columnPath?: string) => {
       const query = searchQueries
@@ -974,6 +982,10 @@ const ListOfWorkflows = ({
                           loadWorkflows(
                               workflowlistApi,
                               setNumberOfWorkflows,
+                              modulesOfWorkflows,
+                              setModulesOfWorkflows,
+                              definitionsOfWorkflows,
+                              setDefinitionsOfWorkflows,
                               pageSize,
                               pageNumber,
                               initialTimestamp,

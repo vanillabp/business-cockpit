@@ -59,9 +59,37 @@ interface ColumnWidthAdjustments {
   [key: string]: number
 }
 
+const updateModuleDefinitions = (
+  userTasks: UserTask[],
+  existingModuleDefinitions: UserTask[] | undefined,
+  setModulesOfTasks: (modules: UserTask[] | undefined) => void,
+  existingUserTaskDefinitions: DefinitionOfUserTask | undefined,
+  setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void
+) => {
+  const newModuleDefinitions = userTasks
+      .filter(userTask => userTask.workflowModuleId !== undefined)
+      .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
+          ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
+  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
+    setModulesOfTasks(newModuleDefinitions);
+    const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
+    userTasks
+        .filter(userTask => userTask.taskDefinition !== undefined)
+        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask);
+    if ((existingUserTaskDefinitions === undefined)
+        || Object.keys(existingUserTaskDefinitions).length !== Object.keys(newUserTaskDefinitions).length) {
+      setDefinitionsOfTasks(newUserTaskDefinitions);
+    }
+  }
+}
+
 const loadUserTasks = async (
   tasklistApi: TasklistApi,
   setNumberOfUserTasks: (number: number) => void,
+  existingModuleDefinitions: UserTask[] | undefined,
+  setModulesOfTasks: (modules: UserTask[] | undefined) => void,
+  existingUserTaskDefinitions: DefinitionOfUserTask | undefined,
+  setDefinitionsOfTasks: (definitions: DefinitionOfUserTask | undefined) => void,
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
@@ -69,7 +97,6 @@ const loadUserTasks = async (
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
 ): Promise<ListItems<UserTask>> => {
-  
   const result = await tasklistApi.getUserTasks(
       new Date().getTime().toString(),
       pageNumber,
@@ -79,6 +106,7 @@ const loadUserTasks = async (
       initialTimestamp);
         
   setNumberOfUserTasks(result!.page.totalElements);
+  updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
   return {
       serverTimestamp: result.serverTimestamp,
@@ -109,24 +137,10 @@ const reloadUserTasks = async (
       sort,
       sortAscending,
       initialTimestamp);
-  setNumberOfUserTasks(result!.page.totalElements);
 
-  const newModuleDefinitions = result.userTasks
-      .filter(userTask => userTask.workflowModuleId !== undefined)
-      .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
-          ? moduleDefinitions : moduleDefinitions.concat(userTask), existingModuleDefinitions || []);
-  if (existingModuleDefinitions?.length !== newModuleDefinitions.length) {
-    setModulesOfTasks(newModuleDefinitions);
-    const newUserTaskDefinitions: DefinitionOfUserTask = { ...existingUserTaskDefinitions };
-    result.userTasks
-        .filter(userTask => userTask.taskDefinition !== undefined)
-        .forEach(userTask => newUserTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask);
-    if ((existingUserTaskDefinitions === undefined)
-        || Object.keys(existingUserTaskDefinitions).length !== Object.keys(newUserTaskDefinitions).length) {
-      setDefinitionsOfTasks(newUserTaskDefinitions);
-    }
-  }
-  
+  setNumberOfUserTasks(result!.page.totalElements);
+  updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
+
   return {
       serverTimestamp: result.serverTimestamp,
       items: result.userTasks.map(userTask => {
@@ -866,6 +880,15 @@ const ListOfTasks = ({
     );
   const refreshItemRef = useRef<RefreshItemCallbackFunction | undefined>(undefined);
 
+  const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
+    return {
+      ...userTask,
+      open: () => openTask(userTask),
+      navigateToWorkflow: () => navigateToWorkflow(userTask),
+      unassign: userId => unassign(userTask.id, userId),
+    };
+  };
+
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
   const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
@@ -873,16 +896,12 @@ const ListOfTasks = ({
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, 100, 0, undefined, undefined, true, mapToBcUserTask);
-        const moduleDefinitions = result
-            .items
-            .reduce((moduleDefinitions, userTask) => moduleDefinitions.includes(userTask)
-                ? moduleDefinitions : moduleDefinitions.concat(userTask), new Array<UserTask>());
-        setModulesOfTasks(moduleDefinitions);
-        const userTaskDefinitions: DefinitionOfUserTask = {};
+        
+        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, modulesOfTasks,
+            setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
+            undefined, true, mapToBcUserTask);
         const titleLanguages = result
             .items
-            .map(userTask => userTaskDefinitions[`${userTask.workflowModuleId}#${userTask.taskDefinition}`] = userTask)
             .flatMap(userTask => Object.keys(userTask.title))
             .reduce((allLanguages, titleLanguage) => {
               if (!allLanguages.includes(titleLanguage)) {
@@ -890,7 +909,6 @@ const ListOfTasks = ({
               }
               return allLanguages;
             }, new Array<string>(currentLanguage));
-        setDefinitionsOfTasks(userTaskDefinitions);
         setLanguagesOfTitles(titleLanguages);
       };
       if (userTasks.current === undefined) {
@@ -1117,15 +1135,6 @@ const ListOfTasks = ({
                 defaultListCell={ UserTaskDefaultListCell } />
           }));
 
-  const mapToBcUserTask = (userTask: UserTask): BcUserTask => {
-      return {
-          ...userTask,
-          open: () => openTask(userTask),
-          navigateToWorkflow: () => navigateToWorkflow(userTask),
-          unassign: userId => unassign(userTask.id, userId),
-        };
-    };
-
   const markAsRead = (unread: boolean) => {
     const read = unread ? undefined : new Date();
     const userTaskMarkedIds = userTasks
@@ -1242,6 +1251,10 @@ const ListOfTasks = ({
                             await loadUserTasks(
                                 tasklistApi,
                                 setNumberOfTasks,
+                                modulesOfTasks,
+                                setModulesOfTasks,
+                                definitionsOfTasks,
+                                setDefinitionsOfTasks,
                                 pageSize,
                                 pageNumber,
                                 initialTimestamp,
