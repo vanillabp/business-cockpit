@@ -21,6 +21,12 @@ const isVanillaBpColumn = (column: Column) => {
       || column.path === 'title';
 }
 
+interface Warnings {
+  [key: string]: boolean;
+}
+const warningsForUserTaskCells: Warnings = {};
+const warningsForWorkflowCells: Warnings = {};
+
 interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
   modulesAvailable: Module[];
   column: Column;
@@ -65,7 +71,10 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   let Cell: FC<DefaultListCellAwareProps<any>>;
   if (typeOfItem === TypeOfItem.TaskList) {
     if (!Boolean(module?.UserTaskListCell)) {
-      console.info(`Workflow-module ${item.data.workflowModuleId} has no UserTaskListCell defined!`);
+      if (warningsForUserTaskCells[item.data.workflowModuleId] === undefined) {
+        console.info(`Workflow-module ${ item.data.workflowModuleId } has no UserTaskListCell defined!`);
+        warningsForUserTaskCells[item.data.workflowModuleId] = true;
+      }
       Cell = defaultListCell;
     } else {
       Cell = memo(
@@ -79,7 +88,10 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
     }
   } else if (typeOfItem === TypeOfItem.WorkflowList) {
     if (!Boolean(module?.WorkflowListCell)) {
-      console.info(`Workflow-module ${item.data.workflowModuleId} has no WorkflowListCell defined!`);
+      if (warningsForWorkflowCells[item.data.workflowModuleId] === undefined) {
+        console.info(`Workflow-module ${ item.data.workflowModuleId } has no WorkflowListCell defined!`);
+        warningsForWorkflowCells[item.data.workflowModuleId] = true;
+      }
       Cell = defaultListCell;
     } else {
       Cell = memo(
