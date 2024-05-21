@@ -1,11 +1,12 @@
 import { Person } from '@vanillabp/bc-official-gui-client';
 import { User as UserMale } from 'grommet-icons';
-import { Anchor, Avatar, Box, Text } from 'grommet';
+import { Avatar, Box } from 'grommet';
 import { BorderType } from 'grommet/utils';
-import { useRef, useState } from 'react';
-import { useOnClickOutside, useResponsiveScreen } from '@vanillabp/bc-shared';
+import React, { useRef, useState } from 'react';
+import { TranslationFunction, useOnClickOutside, UserDetailsBox, useResponsiveScreen } from '@vanillabp/bc-shared';
 
 type UserAvatarProps = {
+  t: TranslationFunction;
   user: Person;
   isUserLoggedIn?: boolean;
   border?: BorderType;
@@ -17,6 +18,7 @@ const hashCode = (value: string) => value
     .reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0);
 
 const UserAvatar = ({
+  t,
   user,
   isUserLoggedIn = false,
   border,
@@ -94,18 +96,7 @@ const UserAvatar = ({
                         left: `calc(${symbolSize} * 0.15)`,
                         top: '0.3rem'
                       } }>
-                  <Text
-                      weight="bold">{ user.id }</Text>
-                  <Box
-                      pad={ { bottom: isPhone ? 'medium' : 'small' } }>
-                    <Text truncate="tip">
-                      { showDetails.display }
-                    </Text>
-                    <Anchor
-                        href={ `mailto:${ showDetails.email }` }>
-                      { showDetails.email }
-                    </Anchor>
-                  </Box>
+                  <UserDetailsBox user={ user } t={ t } />
                 </Box>
               : undefined
         }

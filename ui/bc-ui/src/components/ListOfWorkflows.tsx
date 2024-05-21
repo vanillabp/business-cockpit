@@ -775,8 +775,8 @@ const ListOfWorkflows = ({
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
   const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
       ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
-      : effectiveSort?.indexOf('.lastName,') !== -1 // column type 'person'
-      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.lastName,'))
+      : effectiveSort?.indexOf('.sort,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.sort,'))
       : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
@@ -792,7 +792,7 @@ const ListOfWorkflows = ({
       if (column.type === 'i18n') {
         _setSort(`${column.path}.${currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '')}`);
       } else if (column.type === 'person') {
-        _setSort(`${column.path}.lastName,${column.path}.firstName,${column.path}.id`);
+        _setSort(`${column.path}.sort,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

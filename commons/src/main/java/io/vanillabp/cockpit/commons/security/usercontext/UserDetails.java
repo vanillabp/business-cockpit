@@ -10,9 +10,9 @@ public interface UserDetails {
 
     String getEmail();
 
-    String getLastName();
+    String getDisplay();
 
-    String getFirstName();
+    String getDisplayShort();
 
     List<String> getAuthorities();
 

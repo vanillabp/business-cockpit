@@ -175,11 +175,14 @@ public class V000001 {
                 .forEach(document -> {
                     final var newDocument = new Update();
                     final var initiator = document.get("initiator");
-                    if (initiator != null) {
+                    if (initiator instanceof String) {
                         newDocument.set("initiator", getPerson(initiator.toString()));
                     }
                     final var accessibleToUsers = document.get("accessibleToUsers");
-                    if (accessibleToUsers != null) {
+                    if ((accessibleToUsers != null)
+                            && (accessibleToUsers instanceof List)
+                            && (((List<?>) accessibleToUsers).size() > 0)
+                            && (((List<?>) accessibleToUsers).get(0) instanceof String)) {
                         final var newAccessibleToUsers = new BasicBSONList();
                         ((List<String>) accessibleToUsers)
                                 .stream()
@@ -189,13 +192,19 @@ public class V000001 {
                         newDocument.set("accessibleToUsers", newAccessibleToUsers);
                     }
                     final var accessibleToGroups = document.get("accessibleToGroups");
-                    if (accessibleToGroups != null) {
+                    if ((accessibleToGroups != null)
+                            && (accessibleToGroups instanceof List)
+                            && (((List<?>) accessibleToGroups).size() > 0)
+                            && (((List<?>) accessibleToGroups).get(0) instanceof String)) {
                         final var newAccessibleToGroups = new BasicBSONList();
-                        ((List<String>) accessibleToGroups)
-                                .stream()
-                                .map(this::getGroup)
-                                .filter(Objects::nonNull)
-                                .forEach(newAccessibleToGroups::add);
+                        if ((newAccessibleToGroups.size() > 0)
+                                && (newAccessibleToGroups.get(0) instanceof String)) {
+                            ((List<String>) accessibleToGroups)
+                                    .stream()
+                                    .map(this::getGroup)
+                                    .filter(Objects::nonNull)
+                                    .forEach(newAccessibleToGroups::add);
+                        }
                         newDocument.set("accessibleToGroups", newAccessibleToGroups);
                     }
                     final var updateQuery = new Query(Criteria.where("_id").is(document.get("_id")));

@@ -429,6 +429,8 @@ components:
           type: string
         display:
           type: string
+        displayShort:
+          type: string
         email:
           type: string
         avatar:

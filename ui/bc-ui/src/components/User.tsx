@@ -1,7 +1,7 @@
 import { Grid, Text } from 'grommet';
 import { Person } from '@vanillabp/bc-official-gui-client';
 import { UserAvatar } from './UserAvatar.js';
-import { TranslationFunction } from "@vanillabp/bc-shared";
+import { TranslationFunction, UserDetailsBox } from "@vanillabp/bc-shared";
 import React from "react";
 
 type UserProps = {
@@ -24,28 +24,22 @@ const User = ({
       gap="small"
       columns={['auto', 'auto', 'flex']}
       align="center">
-    <UserAvatar
-        user={ user }
-        isUserLoggedIn={ isUserLoggedIn }
-        size={ iconSize !== undefined ? iconSize : size }/>
+    {
+      user.avatar === undefined
+          ? undefined
+          : <UserAvatar
+                t={ t }
+                user={ user }
+                isUserLoggedIn={ isUserLoggedIn }
+                size={ iconSize !== undefined ? iconSize : size } />
+    }
     <Text
         size={ size }
-        tip={ { content: <Grid columns={['auto', 'auto']} gap="xsmall">
-            <Text>{ t('person-id') }:</Text>
-            <Text weight="bold">{ user.id }</Text>
-            {
-              user.email !== null
-                  ? <>
-                    <Text>{ t('person-email') }:</Text>
-                    <Text weight="bold">{ user.email }</Text>
-                  </>
-                  : undefined
-            }
-          </Grid> } }
+        tip={ { content: <UserDetailsBox user={ user } t={ t } /> } }
         truncate>
-    {
-      user.display ?? user.email ?? user.id
-    }
+      {
+        user.displayShort ?? user.email ?? user.id
+      }
     </Text>
   </Grid>
 );

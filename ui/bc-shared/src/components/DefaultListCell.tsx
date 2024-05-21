@@ -1,4 +1,4 @@
-import { Box, BoxExtendedProps, Grid, Text, TextExtendedProps } from 'grommet';
+import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
 import { ColorType } from 'grommet/utils/index.js';
 import React, { FC, PropsWithChildren } from 'react';
 import { Column, ListItem, ListItemStatus, Person, TranslationFunction } from '../types/index.js';
@@ -9,6 +9,7 @@ import {
   toLocaleTimeStringWithoutSeconds,
 } from '../utils/index.js';
 import { BackgroundType } from "grommet/utils";
+import { UserDetailsBox } from "./index.js";
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 
@@ -121,23 +122,12 @@ const PersonListCell: React.FC<PersonListCellProps> = ({
             truncate
             color={ color }
             weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
-            tip={ { content: <Grid columns={['auto', 'auto']} gap="xsmall">
-                                <Text>{ t('person-id') }:</Text>
-                                <Text weight="bold">{ value?.id }</Text>
-                                {
-                                  value?.email !== null
-                                      ? <>
-                                          <Text>{ t('person-email') }:</Text>
-                                          <Text weight="bold">{ value?.email }</Text>
-                                        </>
-                                      : undefined
-                                }
-                              </Grid> } }
+            tip={ { content: <UserDetailsBox user={ value! } t={ t } /> } }
             { ...props }>
           {
             value === undefined
                 ? undefined
-                : value.display
+                : value.displayShort ?? value.email ?? value.id
           }
         </Text>
       </ListCell>);

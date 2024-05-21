@@ -20,6 +20,7 @@ import {
   ShowLoadingIndicatorFunction,
   TranslationFunction,
   useOnClickOutside,
+  UserDetailsBox,
   useResponsiveScreen,
   WakeupSseCallback,
 } from "@vanillabp/bc-shared";
@@ -733,20 +734,9 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                                   item.data.candidateUsers?.map(user => <>
                                       <Text
                                           style={ { whiteSpace: "nowrap" } }
-                                          tip={ { content: <Grid columns={['auto', 'auto']} gap="xsmall">
-                                              <Text>{ t('person-id') }:</Text>
-                                              <Text weight="bold">{ user.id }</Text>
-                                              {
-                                                user.email !== null
-                                                    ? <>
-                                                      <Text>{ t('person-email') }:</Text>
-                                                      <Text weight="bold">{ user.email }</Text>
-                                                    </>
-                                                    : undefined
-                                              }
-                                            </Grid> } }>
+                                          tip={ { content: <UserDetailsBox user={ user } t={ t } /> } }>
                                         {
-                                          user.display
+                                          user.displayShort ?? user.email ?? user.id
                                         }
                                       </Text>
                                       <FormTrash onClick={ () => item.data.unassign(user.id) } />
@@ -1018,8 +1008,8 @@ const ListOfTasks = ({
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
   const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
       ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
-      : effectiveSort?.indexOf('.lastName,') !== -1 // column type 'person'
-      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.lastName,'))
+      : effectiveSort?.indexOf('.sort,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.sort,'))
       : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
@@ -1034,7 +1024,7 @@ const ListOfTasks = ({
       if (column.type === 'i18n') {
         _setSort(`${column.path}.${currentLanguage}`);
       } else if (column.type === 'person') {
-        _setSort(`${column.path}.lastName,${column.path}.firstName,${column.path}.id`);
+        _setSort(`${column.path}.sort,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

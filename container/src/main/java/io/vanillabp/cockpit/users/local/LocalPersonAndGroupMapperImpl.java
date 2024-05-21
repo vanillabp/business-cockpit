@@ -29,10 +29,17 @@ public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
 
         final var result = new Person();
         result.setId(user.getId());
-        result.setFulltext(user.getLastName() + ", " + user.getFirstName());
-        result.setSort(user.getLastName()
-                + "                                                                                                    "
-                + user.getFirstName());
+        result.setFulltext(user.getDisplay());
+        if (user.getDisplay() != null) {
+            final var indexOfSpace = user.getDisplay().indexOf(' ');
+            if (indexOfSpace != -1) {
+                result.setSort(user.getDisplay().substring(0, indexOfSpace)
+                        + "                                                                                "
+                        + user.getDisplay().substring(indexOfSpace + 1));
+            } else {
+                result.setSort(user.getDisplay());
+            }
+        }
         return result;
 
     }
@@ -43,10 +50,17 @@ public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
 
         final var result = new Person();
         result.setId(user.getId());
-        result.setFulltext(user.getLastName() + ", " + user.getFirstName());
-        result.setSort(user.getLastName()
-                + "                                                                                                    "
-                + user.getFirstName());
+        result.setFulltext(user.getDisplay());
+        if (user.getDisplay() != null) {
+            final var indexOfSpace = user.getDisplay().indexOf(' ');
+            if (indexOfSpace != -1) {
+                result.setSort(user.getDisplay().substring(0, indexOfSpace)
+                        + "                                                                                "
+                        + user.getDisplay().substring(indexOfSpace + 1));
+            } else {
+                result.setSort(user.getDisplay());
+            }
+        }
         return result;
 
     }

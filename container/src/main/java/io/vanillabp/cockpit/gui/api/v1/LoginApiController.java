@@ -233,6 +233,7 @@ public class LoginApiController implements LoginApi {
                             .email(person.getEmail())
                             .avatar(person.getAvatar())
                             .display(person.getDisplay())
+                            .displayShort(person.getDisplayShort())
                             .details(person.getDetails())
                             .groups(user
                                     .getAuthorities()

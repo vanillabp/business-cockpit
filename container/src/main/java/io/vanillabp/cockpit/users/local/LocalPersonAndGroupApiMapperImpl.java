@@ -37,7 +37,8 @@ public class LocalPersonAndGroupApiMapperImpl implements PersonAndGroupApiMapper
         return new io.vanillabp.cockpit.gui.api.v1.Person()
                 .id(user.getId())
                 .email(user.getEmail())
-                .display(user.getLastName() + ", " + user.getFirstName());
+                .display(user.getDisplay())
+                .displayShort(user.getDisplayShort());
 
     }
 

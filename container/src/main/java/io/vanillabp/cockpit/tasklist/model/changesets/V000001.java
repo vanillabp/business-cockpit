@@ -222,11 +222,14 @@ public class V000001 {
                 .forEach(document -> {
                     final var newDocument = new Update();
                     final var assignee = document.get("assignee");
-                    if (assignee != null) {
+                    if (assignee instanceof String) {
                         newDocument.set("assignee", getPerson(assignee.toString()));
                     }
                     final var candidateUsers = document.get("candidateUsers");
-                    if (candidateUsers != null) {
+                    if ((candidateUsers != null)
+                            && (candidateUsers instanceof List)
+                            && (((List<?>) candidateUsers).size() > 0)
+                            && (((List<?>) candidateUsers).get(0) instanceof String)) {
                         final var newCandidateUsers = new BasicBSONList();
                         ((List<String>) candidateUsers)
                                 .stream()
@@ -236,7 +239,10 @@ public class V000001 {
                         newDocument.set("candidateUsers", newCandidateUsers);
                     }
                     final var candidateGroups = document.get("candidateGroups");
-                    if (candidateGroups != null) {
+                    if ((candidateGroups != null)
+                            && (candidateGroups instanceof List)
+                            && (((List<?>) candidateGroups).size() > 0)
+                            && (((List<?>) candidateGroups).get(0) instanceof String)) {
                         final var newCandidateGroups = new BasicBSONList();
                         ((List<String>) candidateGroups)
                                 .stream()
