@@ -167,13 +167,14 @@ public class V000001 {
             final ReactiveMongoTemplate mongo) {
 
         final var query = new Query();
-        query.fields().include("_id", "initiator", "accessibleToUsers", "accessibleToGroups");
+        query.fields().include("_id", "version", "initiator", "accessibleToUsers", "accessibleToGroups");
         mongo
                 .find(query, DBObject.class, Workflow.COLLECTION_NAME)
                 .collectList()
                 .block()
                 .forEach(document -> {
                     final var newDocument = new Update();
+                    newDocument.set("version", document.get("version")); // at least one field has to be updated, otherwise all document's fields are deleted
                     final var initiator = document.get("initiator");
                     if (initiator instanceof String) {
                         newDocument.set("initiator", getPerson(initiator.toString()));

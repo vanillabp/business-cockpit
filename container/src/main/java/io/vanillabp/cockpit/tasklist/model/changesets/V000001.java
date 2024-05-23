@@ -214,13 +214,14 @@ public class V000001 {
             final ReactiveMongoTemplate mongo) {
 
         final var query = new Query();
-        query.fields().include("_id", "assignee", "candidateUsers", "candidateGroups");
+        query.fields().include("_id", "version", "assignee", "candidateUsers", "candidateGroups");
         mongo
                 .find(query, DBObject.class, UserTask.COLLECTION_NAME)
                 .collectList()
                 .block()
                 .forEach(document -> {
                     final var newDocument = new Update();
+                    newDocument.set("version", document.get("version")); // at least one field has to be updated, otherwise all document's fields are deleted
                     final var assignee = document.get("assignee");
                     if (assignee instanceof String) {
                         newDocument.set("assignee", getPerson(assignee.toString()));
