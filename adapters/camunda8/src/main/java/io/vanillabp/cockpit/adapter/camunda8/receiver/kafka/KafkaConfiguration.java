@@ -7,6 +7,7 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -19,8 +20,6 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.util.Map;
-
 
 @AutoConfiguration
 @ConditionalOnProperty(KafkaConfiguration.ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY)
@@ -28,7 +27,7 @@ import java.util.Map;
 @EnableConfigurationProperties(KafkaProperties.class)
 public class KafkaConfiguration {
 
-    public static final String ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY = "zeebe.kafka-exporter.topic-name";
+    public static final String ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY = "camunda.zeebe.kafka-exporter.topic-name";
 
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit-adapter";
 
