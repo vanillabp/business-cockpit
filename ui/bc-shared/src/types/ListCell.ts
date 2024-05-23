@@ -6,7 +6,7 @@ interface Title {
 export interface Column {
   title: Title;
   path: string;
-  type?: 'value' | 'i18n' | 'person' | 'date' | 'date-time';
+  type?: 'value' | 'i18n' | 'person' | 'date' | 'date-time' | 'time';
   priority: number;
   width: string;
   show: boolean;

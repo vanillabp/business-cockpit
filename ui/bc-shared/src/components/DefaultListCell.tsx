@@ -219,15 +219,27 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
   }
   const background = colorRowAccordingToUpdateStatus(item);
   let propertyValue = getObjectProperty(item.data, path);
-  if (column.type === 'date') {
-    value = toLocaleDateString(propertyValue as Date, currentLanguage);
-    tip = toLocaleStringWithoutSeconds(propertyValue as Date, currentLanguage);
+  if ((column.type === 'date') && Boolean(propertyValue)) {
+    const date = Object.prototype.toString.call(propertyValue) === '[object Date]'
+        ? propertyValue as Date
+        : new Date(propertyValue.toString());
+    value = toLocaleDateString(date, currentLanguage);
+    tip = toLocaleStringWithoutSeconds(date, currentLanguage);
     align = 'right';
-  } else if (column.type === 'date-time') {
-    value = toLocaleTimeStringWithoutSeconds(propertyValue as Date, currentLanguage);
-    tip = (propertyValue as Date).toLocaleTimeString(currentLanguage);
+  } else if ((column.type === 'time') && Boolean(propertyValue)) {
+    const date = Object.prototype.toString.call(propertyValue) === '[object Date]'
+        ? propertyValue as Date
+        : new Date(propertyValue.toString());
+    value = date.toLocaleTimeString(currentLanguage);
     align = 'right';
-  } else if (column.type === 'person') {
+  } else if ((column.type === 'date-time') && Boolean(propertyValue)) {
+    const date = Object.prototype.toString.call(propertyValue) === '[object Date]'
+        ? propertyValue as Date
+        : new Date(propertyValue.toString());
+    value = date.toLocaleDateString() + " " + toLocaleTimeStringWithoutSeconds(date, currentLanguage);
+    tip = date.toLocaleTimeString(currentLanguage);
+    align = 'right';
+  } else if ((column.type === 'person') && Boolean(propertyValue)) {
     return <PersonListCell
         t={ t }
         item={ item }

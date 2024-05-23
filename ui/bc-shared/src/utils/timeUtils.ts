@@ -55,25 +55,31 @@ const toLocalDateString = (date?: Date): string | undefined => {
   
 }
 
-const toLocaleTimeStringWithoutSeconds = (date?: Date, language?: string): string | undefined => {
+const toLocaleTimeStringWithoutSeconds = (date?: Date | string, language?: string): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
+  }
+  if (typeof date === "string") {
+    date = new Date(date);
   }
   return date!.toLocaleTimeString(language ?? window.navigator.language).replace(/:[0-9]{2}(?: |$)/, '');
   
 }
 
-const toLocaleDateString = (date?: Date, language?: string): string | undefined => {
+const toLocaleDateString = (date?: Date | string, language?: string): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
+  }
+  if (typeof date === "string") {
+    date = new Date(date);
   }
   return date!.toLocaleDateString(language ?? window.navigator.language);
   
 }
 
-const toLocaleStringWithoutSeconds = (date?: Date, language?: string): string | undefined => {
+const toLocaleStringWithoutSeconds = (date?: Date | string, language?: string): string | undefined => {
   
   if (!Boolean(date)) {
     return undefined;
