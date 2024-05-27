@@ -21,7 +21,7 @@ export type Alignment = 'left' | 'center' | 'right';
 const colorForEndedItemsOrUndefined = (item: ListItem<any>): ColorType => {
   return item.status !== ListItemStatus.ENDED
       ? undefined
-      : ENDED_FONT_COLOR;
+      : ENDED_FONT_COLOR;ENDED_FONT_COLOR
 };
 
 interface ListCellProps extends BoxExtendedProps {
@@ -193,13 +193,13 @@ const render = (
 
 const colorRowAccordingToUpdateStatus = <T extends ListItem<any>, >(item: T): BackgroundType | undefined => (
     item.status === ListItemStatus.NEW
-        ? { color: 'accent-3', opacity: 0.1 }
+        ? 'list-new'
         : item.status === ListItemStatus.UPDATED
-        ? { color: 'accent-1', opacity: 0.15 }
+        ? 'list-updated'
         : item.status === ListItemStatus.ENDED
-        ? { color: 'light-2', opacity: 0.5 }
+        ? 'list-ended'
         : item.status === ListItemStatus.REMOVED_FROM_LIST
-        ? { color: 'light-2', opacity: 0.5 }
+        ? 'list-removed_from_list'
         : undefined);
 
 const DefaultListCell: FC<DefaultListCellProps<any>> = ({

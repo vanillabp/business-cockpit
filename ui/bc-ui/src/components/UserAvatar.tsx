@@ -106,7 +106,7 @@ const UserAvatar = ({
             size={ size }
             border={ border }
             src={ user.avatar ? `/api/v1/gui/user/${ user.id }/avatar?ts=${ user.avatar }` : undefined }>
-          <UserMale color='accent-1' size={ symbolSize } />
+          <UserMale color='light-3' size={ symbolSize } />
         </Avatar>
       </Box>);
     

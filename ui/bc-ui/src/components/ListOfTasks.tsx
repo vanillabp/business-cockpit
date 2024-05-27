@@ -455,12 +455,12 @@ const RefreshButton = ({
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
   return (<Box
-              hoverIndicator={ disabled ? 'light-2' : "accent-1" }
+              hoverIndicator={ disabled ? 'light-2' : "list-refresh" }
               focusIndicator={ false }
               onClick={ refresh }
               direction="row"
               elevation="small"
-              background={ !disabled ? { color: "accent-1", opacity: "strong" } : undefined }
+              background={ !disabled ? { color: "list-refresh", opacity: "strong" } : undefined }
               round={ { size: '0.4rem' } }
               border={ { color } }>
             <Tip
@@ -547,7 +547,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-3', opacity: 0.1 } }>
+                  background="list-new">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -572,7 +572,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-1', opacity: 0.35 } }>
+                  background="list-updated">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -597,7 +597,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-ended">
                 <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
               </Box>
             </Box>
@@ -622,7 +622,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-removed_from_list">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>

@@ -158,3 +158,4 @@ Licensed under the Apache License, Version 2.0
     * `person`: A person-compatible object has to be provided
     * `date`: A Date object which will be rendered as a date
     * `date-time`: A Date object which will be rendered as a timestamp
+* Define explicit colors in `ui/bc-shared/src/theme/index.ts`
