@@ -3,7 +3,11 @@ import { Anchor, Box, Text } from 'grommet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-const Main = () => {
+const Main = ({
+  additionalComponents
+}: {
+  additionalComponents: Array<string>
+}) => {
   
   const { t } = useTranslation('app');
   const navigate = useNavigate();
@@ -25,6 +29,15 @@ const Main = () => {
             onClick={ () => navigate(t('url-workflow') as string) }>
           { t('link-workflow') }
         </Anchor>
+        {
+          additionalComponents.map(componentName => (
+              <Anchor
+                  key={ componentName }
+                  color='accent-3'
+                  onClick={ () => navigate(`/${componentName}`) }>
+                { componentName }
+              </Anchor>))
+        }
       </Box>);
   
 };

@@ -6,12 +6,12 @@ import { getTasklistGuiApi, getWorkflowlistGuiApi } from "../client/guiClient";
 
 const useWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialWorkflowlistApi => {
 
-  const { dispatch } = useAppContext();
+  const { toast } = useAppContext();
   const api = useMemo(
       () => getWorkflowlistGuiApi(
-          dispatch,
+          toast,
           wakeupSseCallback?.current),
-      [ dispatch, wakeupSseCallback ]
+      [ toast, wakeupSseCallback ]
   );
   return api;
 
@@ -19,16 +19,16 @@ const useWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallba
 
 const useTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialTasklistApi => {
 
-  const { dispatch } = useAppContext();
-  const api = useMemo(() => getTasklistGuiApi(dispatch, wakeupSseCallback?.current), [ dispatch, wakeupSseCallback ]);
+  const { toast } = useAppContext();
+  const api = useMemo(() => getTasklistGuiApi(toast, wakeupSseCallback?.current), [ toast, wakeupSseCallback ]);
   return api;
 
 };
 
 const useSpecializedTasklistApi = (kind: string, wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialTasklistApi => {
 
-  const { dispatch } = useAppContext();
-  return useMemo(() => getTasklistGuiApi(dispatch, wakeupSseCallback?.current, kind), [ kind, dispatch, wakeupSseCallback ]);
+  const { toast } = useAppContext();
+  return useMemo(() => getTasklistGuiApi(toast, wakeupSseCallback?.current, kind), [ kind, toast, wakeupSseCallback ]);
 
 };
 

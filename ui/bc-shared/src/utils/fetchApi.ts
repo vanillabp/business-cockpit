@@ -1,11 +1,10 @@
-import { Dispatch } from 'react';
 import { WakeupSseCallback } from '../components/SseProvider';
-import { ToastAction } from '../components/Toast';
+import { ToastFunction } from '../components/Toast';
 
 const REFRESH_TOKEN_HEADER = "x-refresh-token";
 
 const doRequest = (
-    dispatch: Dispatch<ToastAction>,
+    toast: ToastFunction,
     resolve: (response: Response) => void,
     reject: (error: any) => void,
     input: RequestInfo | URL,
@@ -57,32 +56,32 @@ const doRequest = (
             // if authentication is not accepted an refresh-token is available
             // then retry using the refresh-token 
             else if (Boolean(storedRefreshToken)) {
-              doRequest(dispatch, resolve, reject, input, init, storedRefreshToken);
+              doRequest(toast, resolve, reject, input, init, storedRefreshToken);
               return;
             }
           } else if (response.status >= 500) {
-            dispatch({ type: 'toast', toast: {
+            toast({
                 namespace: 'app',
                 title: 'error',
                 message: 'unexpected'
-              }});
+              });
           } else if (response.status === 403) {
-            dispatch({ type: 'toast', toast: {
+            toast({
                 namespace: 'app',
                 title: 'error',
                 message: 'forbidden'
-              }});
+              });
           }
           
           resolve(response);
           
         } catch (error: any) {
           
-          dispatch({ type: 'toast', toast: {
+          toast({
               namespace: 'app',
               title: 'error',
               message: 'unexpected'
-            }});
+            });
           reject(error);
           
         }
@@ -92,14 +91,14 @@ const doRequest = (
   
 };
 
-const buildFetchApi = (dispatch: Dispatch<ToastAction>, wakeupSeeCallback?: WakeupSseCallback): WindowOrWorkerGlobalScope['fetch'] => {
+const buildFetchApi = (toast: ToastFunction, wakeupSeeCallback?: WakeupSseCallback): WindowOrWorkerGlobalScope['fetch'] => {
   
   return (input, init): Promise<Response> => {
       return new Promise((resolve, reject) => {
           if (wakeupSeeCallback !== undefined) {
             wakeupSeeCallback();
           }
-          doRequest(dispatch, resolve, reject, input, init);
+          doRequest(toast, resolve, reject, input, init);
         });
     };
 

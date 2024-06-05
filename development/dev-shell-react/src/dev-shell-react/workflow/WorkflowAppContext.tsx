@@ -1,6 +1,6 @@
-import React, { MutableRefObject, PropsWithChildren, useContext, useMemo } from 'react';
+import React, { MutableRefObject, PropsWithChildren, useCallback, useContext, useMemo } from 'react';
 import { getOfficialWorkflowlistApi } from '../client/guiClient.js';
-import { BcUserTask, BcWorkflow, GetUserTasksFunction, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { BcUserTask, BcWorkflow, GetUserTasksFunction, Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { NavigateFunction, useParams } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
 import { OfficialWorkflowlistApi, Workflow } from '@vanillabp/bc-official-gui-client';
@@ -114,8 +114,9 @@ const useOfficialWorkflowlistApi = (
     wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialWorkflowlistApi => {
 
   const { dispatch } = useAppContext();
+  const toast = useCallback((toast: Toast) => dispatch({ type: 'toast', toast }), [ dispatch ]);
   const api = useMemo(() => getOfficialWorkflowlistApi(
-      basePath, dispatch, wakeupSseCallback?.current),
+      basePath, toast, wakeupSseCallback?.current),
       [ dispatch, wakeupSseCallback ]);
   return api;
   

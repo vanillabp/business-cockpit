@@ -96,7 +96,8 @@ const AppContextProvider = ({ children }: AppContextProviderProps) => {
     loadingIndicator: false,
   });
 
-  const loginApi = useMemo(() => getLoginGuiApi(dispatch), [ dispatch ]);
+  const toast = useCallback((t: Toast) =>  dispatch({ type: 'toast', toast: t }), [ dispatch ]);
+  const loginApi = useMemo(() => getLoginGuiApi(toast), [ toast ]);
   
   const fetchAppInformation = useCallback(() => fetchAppInformationFromLoginApi(state.appInformation, dispatch, loginApi),
       [ loginApi, state.appInformation ]);
@@ -113,7 +114,7 @@ const AppContextProvider = ({ children }: AppContextProviderProps) => {
     state,
     dispatch,
     loginApi,
-    toast: (t: Toast) => dispatch({ type: 'toast', toast: t }),
+    toast,
     fetchAppInformation,
     fetchCurrentUser,
     showMenu,

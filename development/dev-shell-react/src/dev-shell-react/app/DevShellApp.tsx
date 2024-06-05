@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { Box, Grommet } from 'grommet';
+import React, { Suspense, useCallback } from 'react';
+import { Box, Grommet, ThemeType } from 'grommet';
 import { BrowserRouter as Router, Outlet, Route, Routes } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
 import i18n from '../i18n.js';
@@ -7,16 +7,18 @@ import '../i18n.js';
 import { CurrentUser } from './CurrentUser.js';
 import { GuiSseProvider } from '../client/guiClient.js';
 import {
+  BcWorkflowModule,
   ColumnsOfUserTaskFunction,
   ColumnsOfWorkflowFunction,
   LoadingIndicator,
   MessageToast,
-  theme,
+  Toast,
   useKeepNowUpToDate,
   UserTaskAppLayout,
   UserTaskForm,
   UserTaskListCell,
   WorkflowListCell,
+  WorkflowModuleComponent,
   WorkflowPage
 } from '@vanillabp/bc-shared';
 import { Header as UserTaskHeader } from '../usertask/Header.js';
@@ -65,6 +67,8 @@ i18n.addResources('de', appNs, {
     });
     
 const DevShellApp = ({
+  workflowModule,
+  theme,
   officialGuiApiUrl,
   userTaskForm,
   userTaskListColumns,
@@ -72,7 +76,10 @@ const DevShellApp = ({
   workflowListColumns,
   workflowListCell,
   workflowPage,
+  additionalComponents,
 }: {
+  workflowModule: BcWorkflowModule,
+  theme: ThemeType,
   officialGuiApiUrl: string,
   userTaskForm: UserTaskForm,
   userTaskListColumns: ColumnsOfUserTaskFunction,
@@ -80,10 +87,14 @@ const DevShellApp = ({
   workflowListColumns: ColumnsOfWorkflowFunction,
   workflowListCell: WorkflowListCell,
   workflowPage: WorkflowPage,
+  additionalComponents?: Record<string, WorkflowModuleComponent>,
 }) => {
 
   const { state, dispatch } = useAppContext();
   const { t } = useTranslation(appNs);
+  const toast = useCallback((toast: Toast) => {
+    dispatch({ type: 'toast', toast });
+  }, [ dispatch ]);
 
   useKeepNowUpToDate();
   
@@ -106,7 +117,25 @@ const DevShellApp = ({
                 <Routes>
                   <Route
                       index
-                      element={ <Main /> } />
+                      element={ <Main
+                          additionalComponents={ Object.keys(additionalComponents ?? {}) } /> } />
+                  {
+                    additionalComponents !== undefined
+                        ? Object.keys(additionalComponents)
+                            .map(componentName => {
+                              const Component = additionalComponents[componentName];
+                              return (
+                                  <Route
+                                      key={ componentName }
+                                      path={ componentName }
+                                      element={ <Component
+                                          key={ componentName }
+                                          workflowModule={ workflowModule }
+                                          toast={ toast }
+                                      /> } />);
+                            })
+                        : <></>
+                  }
                   <Route
                       path={ t('url-usertask') as string }
                       element={
