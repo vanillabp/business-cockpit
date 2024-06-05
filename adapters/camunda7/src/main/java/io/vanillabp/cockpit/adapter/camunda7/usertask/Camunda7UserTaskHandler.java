@@ -20,6 +20,19 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.MultiInstance;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.DelegateTask;
 import org.camunda.bpm.engine.delegate.TaskListener;
@@ -36,20 +49,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.util.StringUtils;
-
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
 
@@ -294,6 +293,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                 "workflow-title.ftl",
                                 details::getWorkflowTitle,
                                 event::getWorkflowTitle,
+                                event::setWorkflowTitle,
                                 bpmnProcessName,
                                 templatesPathes,
                                 details.getTemplateContext(),
@@ -305,6 +305,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                 "title.ftl",
                                 details::getTitle,
                                 event::getTitle,
+                                event::setTitle,
                                 delegateTask.getName(),
                                 templatesPathes,
                                 details.getTemplateContext(),
@@ -316,6 +317,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                 "task-definition-title.ftl",
                                 details::getTaskDefinitionTitle,
                                 event::getTaskDefinitionTitle,
+                                event::setTaskDefinitionTitle,
                                 delegateTask.getName(),
                                 templatesPathes,
                                 details.getTemplateContext(),

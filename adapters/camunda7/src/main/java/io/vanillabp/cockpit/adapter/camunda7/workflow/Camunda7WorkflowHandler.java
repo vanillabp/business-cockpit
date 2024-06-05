@@ -14,14 +14,6 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.camunda.bpm.engine.history.HistoricProcessInstance;
-import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
-import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.util.StringUtils;
-
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -32,6 +24,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.camunda.bpm.engine.history.HistoricProcessInstance;
+import org.camunda.bpm.engine.impl.history.event.HistoricProcessInstanceEventEntity;
+import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.util.StringUtils;
 
 public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
@@ -264,8 +263,9 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                                 language,
                                 locale,
                                 "workflow-title.ftl",
-                                () -> details.getTitle(),
-                                () -> event.getTitle(),
+                                details::getTitle,
+                                event::getTitle,
+                                event::setTitle,
                                 bpmnProcessName,
                                 templatesPathes,
                                 details.getTemplateContext(),
