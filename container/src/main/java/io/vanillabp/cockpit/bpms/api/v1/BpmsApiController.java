@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.bpms.api.v1;
 
-import io.vanillabp.cockpit.bpms.WebSecurityConfiguration;
+import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
-@Secured(WebSecurityConfiguration.BPMS_API_AUTHORITY)
+@Secured(BpmsApiWebSecurityConfiguration.BPMS_API_AUTHORITY)
 public class BpmsApiController implements BpmsApi {
 
 	public static final String BPMS_API_URL_PREFIX = "/bpms/api/v1";

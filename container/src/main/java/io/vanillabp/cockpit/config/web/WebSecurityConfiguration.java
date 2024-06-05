@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.config.web;
 
+import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
@@ -10,16 +11,16 @@ import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
+import java.net.URI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,11 +31,8 @@ import org.springframework.security.web.server.authentication.HttpBasicServerAut
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatcher;
 
-import java.net.URI;
-
 @Configuration
-@EnableWebFluxSecurity
-@EnableReactiveMethodSecurity
+@Import(BpmsApiWebSecurityConfiguration.class)
 public class WebSecurityConfiguration {
 
     public static final ServerWebExchangeMatcher appInfoWebExchangeMatcher = new PathPatternParserServerWebExchangeMatcher(
