@@ -42,16 +42,33 @@ export interface Module {
   UserTaskListCell?: UserTaskListCell;
   WorkflowListCell?: WorkflowListCell;
   WorkflowPage?: WorkflowPage;
-  callbacks: Record<string, Array<HandlerFunction>>;
+};
+
+interface InternalModule extends Module {
+  callbacks: Array<HandlerFunction>;
 };
 
 interface Modules {
-  [key: string]: Module;
+  [key: string]: InternalModule;
 }
 
+interface PromiseFunctions {
+  reject: (error: any) => void;
+  resolve: () => void;
+}
+
+interface LoadedScript {
+  error?: any,
+  promises: Array<PromiseFunctions>;
+}
+interface LoadedScripts {
+  [key: string]: LoadedScript;
+}
+
+const loadedScripts: LoadedScripts = {};
 const modules: Modules = {};
 
-type HandlerFunction = (loadedModule: Module) => void;
+type HandlerFunction = (loadedModule: InternalModule) => void;
 type ComponentProducer = {
   subscribe: (callback: HandlerFunction) => void,
   unsubscribe: (callback: HandlerFunction) => void
@@ -61,25 +78,63 @@ type ComponentProducer = {
 
 export const attachScript = (
     webpackModuleId: string,
-    url: string
+    url: string,
+    initialTry: boolean,
 ) => {
   const elementId = "___" + webpackModuleId;
   const existingElement = document.getElementById(elementId);
 
   if (existingElement) {
-    if ((window as any)[webpackModuleId]) return Promise.resolve(true);
-    return Promise.reject(`Failed in previous attempt: ${webpackModuleId}`);
+    const loadedScript = loadedScripts[webpackModuleId];
+    if ((loadedScript.error !== undefined)
+        && !initialTry) {
+      detachScript(webpackModuleId);
+    } else {
+      if (loadedScript.error) {
+        return Promise.reject(loadedScript.error);
+      }
+      if (loadedScript.promises.length === 0) {
+        return Promise.resolve();
+      }
+      return new Promise<void>(
+          (resolve, reject) => {
+            loadedScript.promises.push({
+              resolve,
+              reject,
+            })
+          }
+      );
+    }
   }
 
-  return new Promise<HTMLScriptElement>(
+  return new Promise<void>(
       (resolve, reject) => {
+        const loadedScript: LoadedScript = {
+          promises: [ {
+            resolve,
+            reject,
+          } ],
+        };
+        loadedScripts[webpackModuleId] = loadedScript;
         const element = document.createElement("script");
         element.src = url;
         element.type = "text/javascript";
         element.async = true;
         element.id = elementId;
-        element.onload = () => resolve(element);
-        element.onerror = (e) => reject(e);
+        element.onload = async () => {
+          //@ts-expect-error
+          await __webpack_init_sharing__("default");
+          const pfs = [ ...loadedScript.promises ];
+          loadedScript.promises = [];
+          pfs.forEach(pf => pf.resolve());
+        }
+        element.onerror = (e) => {
+          const pfs = [ ...loadedScript.promises ];
+          loadedScript.promises = [];
+          loadedScript.error = e;
+          pfs.forEach(pf => pf.reject(loadedScript.error));
+          return Promise.reject(loadedScript.error);
+        }
         document.head.appendChild(element);
       }
   );
@@ -97,16 +152,11 @@ const fetchModule = async (
     uiUri: string,
     initialTry: boolean,
     useCase: string
-): Promise<Module> => {
+): Promise<InternalModule> => {
   const webpackModuleId = workflowModuleId.replaceAll('-', '_');
-  if (!initialTry) {
-    detachScript(webpackModuleId);
-  }
   let container = (window as any)[webpackModuleId];
   if (container === undefined) {
-    await attachScript(webpackModuleId, uiUri);
-    //@ts-expect-error
-    await __webpack_init_sharing__("default");
+    await attachScript(webpackModuleId, uiUri, initialTry);
     container = (window as any)[webpackModuleId];
   }
   if (!container.isInitialized) {
@@ -126,20 +176,17 @@ const loadModule = (
     useCase: string
 ): ComponentProducer => {
 
-  let module: Module = modules[moduleId];
+  let module = modules[moduleId];
   if (module === undefined) {
     module = {
       moduleId,
       workflowModuleId: moduleDefinition.workflowModuleId,
-      callbacks: {},
+      callbacks: [],
     };
     modules[moduleId] = module;
   }
-  if (module.callbacks[useCase] === undefined) {
-    module.callbacks[useCase] = [];
-  }
 
-  const publish = () => module.callbacks[useCase].forEach(callback => callback(modules[moduleId]));
+  const publish = () => module.callbacks.forEach(callback => callback(modules[moduleId]));
 
   const retry = async (retryCallback?: () => void, initialTry?: boolean) => {
     try {
@@ -154,6 +201,7 @@ const loadModule = (
         throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
       }
     } catch (error) {
+      console.error(error);
       modules[moduleId] = {
         ...module,
         retry
@@ -167,14 +215,14 @@ const loadModule = (
   };
 
   const subscribe = (callback: HandlerFunction) => {
-    if (modules[moduleId].callbacks[useCase].includes(callback)) return;
-    modules[moduleId].callbacks[useCase].push(callback);
+    if (modules[moduleId].callbacks.includes(callback)) return;
+    modules[moduleId].callbacks.push(callback);
   };
 
   const unsubscribe = (callback: HandlerFunction) => {
-    const index = modules[moduleId].callbacks[useCase].indexOf(callback);
+    const index = modules[moduleId].callbacks.indexOf(callback);
     if (index === -1) return;
-    modules[moduleId].callbacks[useCase].splice(index, 1);
+    modules[moduleId].callbacks.splice(index, 1);
   };
 
   retry(undefined, true);
@@ -191,14 +239,14 @@ const getModule = (
   let result = modules[moduleId];
   if (result !== undefined) {
     const subscribe = (callback: HandlerFunction) => {
-      if (modules[moduleId].callbacks[useCase].includes(callback)) return;
-      modules[moduleId].callbacks[useCase].push(callback);
+      if (modules[moduleId].callbacks.includes(callback)) return;
+      modules[moduleId].callbacks.push(callback);
     };
 
     const unsubscribe = (callback: HandlerFunction) => {
-      const index = modules[moduleId].callbacks[useCase].indexOf(callback);
+      const index = modules[moduleId].callbacks.indexOf(callback);
       if (index === -1) return;
-      modules[moduleId].callbacks[useCase].splice(index, 1);
+      modules[moduleId].callbacks.splice(index, 1);
     };
 
     return {
@@ -224,9 +272,9 @@ const useFederationModule = (
       return undefined;
     }
     const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
-    const handler = (loadedModule: Module) => { setModule(loadedModule); };
+    const handler = (loadedModule: InternalModule) => setModule(loadedModule);
     subscribe(handler);
-    return () => { unsubscribe(handler) };
+    return () => unsubscribe(handler);
   }, [ setModule, moduleDefinition, useCase ]); //eslint-disable-line react-hooks/exhaustive-deps -- moduleId is derived from moduleDefinition
 
   return module;
@@ -257,19 +305,19 @@ const useFederationModules = (
             new Array<string>())
         .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModuleId === moduleId)!);
 
-    const result: Module[] = [];
+    const result: InternalModule[] = [];
     distinctModuleDefinitions
         .forEach((moduleDefinition, i) => {
           result[i] = {
             moduleId: `${moduleDefinition.workflowModuleId}#${useCase}`,
             workflowModuleId: moduleDefinition.workflowModuleId,
-            callbacks: {}
+            callbacks: []
           }
         });
 
     const unsubscribers = distinctModuleDefinitions.map((moduleDefinition, index) => {
       const { subscribe, unsubscribe } = getModule(result[index].moduleId, moduleDefinition, useCase);
-      const handler = (loadedModule: Module) => {
+      const handler = (loadedModule: InternalModule) => {
         result[index] = loadedModule;
         const anyModuleStillLoading = result
             .reduce(
