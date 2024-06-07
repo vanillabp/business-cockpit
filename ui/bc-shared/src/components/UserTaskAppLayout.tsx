@@ -25,6 +25,7 @@ const UserTaskAppLayout = ({
           }
         </Box>
         <Box
+            overflow={ { vertical: "auto" } }
             fill>
           {
             children
