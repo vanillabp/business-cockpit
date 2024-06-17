@@ -1,5 +1,8 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Camunda8UserTaskLifecycleEvent {
 
     public enum Intent {
@@ -96,5 +99,9 @@ public class Camunda8UserTaskLifecycleEvent {
 
     public void setProcessDefinitionKey(long processDefinitionKey) {
         this.processDefinitionKey = processDefinitionKey;
+    }
+
+    public static List<String> getIntentValueNames() {
+        return Arrays.stream(Intent.values()).map(Enum::name).toList();
     }
 }

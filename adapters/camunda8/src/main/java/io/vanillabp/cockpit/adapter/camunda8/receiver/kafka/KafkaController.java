@@ -16,6 +16,8 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLif
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import java.util.Set;
@@ -23,6 +25,8 @@ import java.util.Set;
 import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
 public class KafkaController {
+
+    private static final Logger logger = LoggerFactory.getLogger(KafkaController.class);
     private static final String CLIENT_ID = "zeebe-client";
 
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
@@ -98,16 +102,20 @@ public class KafkaController {
             return;
         }
 
-        if(value.getIntent().name().equals("CREATED")){
+        String intentName = value.getIntent().name();
+        if(intentName.equals("CREATED")){
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskCreatedEvent, value);
             camunda8UserTaskEventHandler.notify(camunda8UserTaskCreatedEvent);
-        } else {
+        } else if(Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)){
             Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskLifecycleInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskLifecycleEvent, value);
             camunda8UserTaskEventHandler.notify(camunda8UserTaskLifecycleEvent);
+        } else {
+            logger.info("Ignored a zeebe job event for a user task with intent={} ", intentName);
         }
     }
+
 }
