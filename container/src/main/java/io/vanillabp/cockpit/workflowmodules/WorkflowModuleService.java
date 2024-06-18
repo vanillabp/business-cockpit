@@ -4,12 +4,12 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModuleRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.stream.Collectors;
 
 @Service
 public class WorkflowModuleService {
@@ -73,6 +73,22 @@ public class WorkflowModuleService {
                 .onErrorResume(OptimisticLockingFailureException.class, e -> updateWorkflowModule)
                 .map(workflowModule -> Boolean.TRUE)
                 .switchIfEmpty(Mono.just(Boolean.FALSE));
+
+    }
+
+    public Mono<WorkflowModule> getWorkflowModule(
+            final String id) {
+
+        if (id == null) {
+            return Mono.empty();
+        }
+        return workflowModules.findById(id);
+
+    }
+
+    public Flux<WorkflowModule> getWorkflowModules() {
+
+        return workflowModules.findAll(); // TODO: Limit to permitted workflow modules
 
     }
 

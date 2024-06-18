@@ -401,8 +401,40 @@ paths:
                   $ref: '#/components/schemas/Workflow'
           404:
             description: Unknown workflow
-
-          
+  /workflow-module/{workflowModuleId}:
+    get:
+      tags:
+        - officialWorkflowModules
+      summary: Fetch permitted workflow module
+      operationId: getWorkflowModule
+      parameters:
+          - in: path
+            name: workflowModuleId
+            required: true
+            schema:
+              type: string
+      responses:
+        200:
+          description: Workflow Module
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowModule'
+        404:
+          description: Unknown workflow module
+  /workflow-module:
+    get:
+      tags:
+        - officialWorkflowModules
+      summary: Fetch permitted workflow modules
+      operationId: getWorkflowModules
+      responses:
+        200:
+          description: Workflow Modules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowModules'
 components:
   schemas:
     ValidationErrors:
@@ -879,3 +911,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KwicResult'
+    WorkflowModule:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+          format: int64
+        uri:
+          type: string
+    WorkflowModules:
+      type: object
+      required:
+        - modules
+      properties:
+        modules:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowModule'

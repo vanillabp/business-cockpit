@@ -133,7 +133,6 @@ export const attachScript = (
           loadedScript.promises = [];
           loadedScript.error = e;
           pfs.forEach(pf => pf.reject(loadedScript.error));
-          return Promise.reject(loadedScript.error);
         }
         document.head.appendChild(element);
       }
@@ -201,7 +200,7 @@ const loadModule = (
         throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error loading module:", error);
       modules[moduleId] = {
         ...module,
         retry
@@ -236,18 +235,25 @@ const getModule = (
     useCase: string
 ): ComponentProducer => {
 
-  let result = modules[moduleId];
-  if (result !== undefined) {
-    const subscribe = (callback: HandlerFunction) => {
-      if (modules[moduleId].callbacks.includes(callback)) return;
-      modules[moduleId].callbacks.push(callback);
-    };
+  let module = modules[moduleId];
+  if (module !== undefined) {
+    let subscribe: undefined | ((callback: HandlerFunction) => void) = undefined;
+    let unsubscribe: undefined | ((callback: HandlerFunction) => void) = undefined;
 
-    const unsubscribe = (callback: HandlerFunction) => {
-      const index = modules[moduleId].callbacks.indexOf(callback);
-      if (index === -1) return;
-      modules[moduleId].callbacks.splice(index, 1);
-    };
+    if (module.buildTimestamp || module.retry) {
+      subscribe = (callback: HandlerFunction) => callback(module);
+      unsubscribe = (callback: HandlerFunction) => callback(module);
+    } else {
+      subscribe = (callback: HandlerFunction) => {
+        if (modules[moduleId].callbacks.includes(callback)) return;
+        modules[moduleId].callbacks.push(callback);
+      };
+      unsubscribe = (callback: HandlerFunction) => {
+        const index = modules[moduleId].callbacks.indexOf(callback);
+        if (index === -1) return;
+        modules[moduleId].callbacks.splice(index, 1);
+      };
+    }
 
     return {
       subscribe,
@@ -260,18 +266,18 @@ const getModule = (
 };
 
 const useFederationModule = (
-    moduleDefinition: ModuleDefinition | undefined,
+    moduleDefinition: ModuleDefinition | undefined | null,
     useCase: string
 ): Module | undefined => {
 
-  const moduleId = moduleDefinition !== undefined ? `${moduleDefinition.workflowModuleId}#${useCase}` : 'undefined';
+  const moduleId = Boolean(moduleDefinition !== undefined) ? `${moduleDefinition!.workflowModuleId}#${useCase}` : 'undefined';
   const [module, setModule] = useState(modules[moduleId]);
 
   useEffect(() => {
-    if (moduleDefinition === undefined) {
+    if (!Boolean(moduleDefinition)) {
       return undefined;
     }
-    const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition, useCase);
+    const { subscribe, unsubscribe } = getModule(moduleId, moduleDefinition!, useCase);
     const handler = (loadedModule: InternalModule) => setModule(loadedModule);
     subscribe(handler);
     return () => unsubscribe(handler);
@@ -282,7 +288,7 @@ const useFederationModule = (
 };
 
 const useFederationModules = (
-    moduleDefinitions: ModuleDefinition[] | undefined,
+    moduleDefinitions: ModuleDefinition[] | undefined | null,
     useCase: string
 ): Module[] | undefined => {
 
@@ -290,20 +296,20 @@ const useFederationModules = (
 
   useEffect(() => {
 
-    if (moduleDefinitions === undefined) {
+    if (!Boolean(moduleDefinitions)) {
       return;
     }
-    if (moduleDefinitions.length === 0) {
+    if (moduleDefinitions!.length === 0) {
       setModules([]);
       return;
     }
 
-    const distinctModuleDefinitions = moduleDefinitions
+    const distinctModuleDefinitions = moduleDefinitions!
         .reduce(
             (moduleIds, userTask) => moduleIds.includes(userTask.workflowModuleId)
                 ? moduleIds : moduleIds.concat(userTask.workflowModuleId),
             new Array<string>())
-        .map(moduleId => moduleDefinitions.find(moduleDefinition => moduleDefinition.workflowModuleId === moduleId)!);
+        .map(moduleId => moduleDefinitions!.find(moduleDefinition => moduleDefinition.workflowModuleId === moduleId)!);
 
     const result: InternalModule[] = [];
     distinctModuleDefinitions

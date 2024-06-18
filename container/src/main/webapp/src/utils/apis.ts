@@ -1,8 +1,25 @@
 import { MutableRefObject, useMemo } from "react";
 import { WakeupSseCallback } from "@vanillabp/bc-shared";
-import { OfficialTasklistApi, OfficialWorkflowlistApi } from "@vanillabp/bc-official-gui-client";
+import {
+  OfficialTasklistApi,
+  OfficialWorkflowlistApi,
+  OfficialWorkflowModulesApi
+} from "@vanillabp/bc-official-gui-client";
 import { useAppContext } from "../AppContext";
-import { getTasklistGuiApi, getWorkflowlistGuiApi } from "../client/guiClient";
+import { getTasklistGuiApi, getWorkflowlistGuiApi, getWorkflowModulesGuiApi } from "../client/guiClient";
+
+const useWorkflowModulesApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialWorkflowModulesApi => {
+
+  const { toast } = useAppContext();
+  const api = useMemo(
+      () => getWorkflowModulesGuiApi(
+          toast,
+          wakeupSseCallback?.current),
+      [ toast, wakeupSseCallback ]
+  );
+  return api;
+
+};
 
 const useWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialWorkflowlistApi => {
 
@@ -36,4 +53,5 @@ export {
   useWorkflowlistApi,
   useTasklistApi,
   useSpecializedTasklistApi,
+  useWorkflowModulesApi,
 };

@@ -13,7 +13,8 @@ import { createContext } from 'react';
 import {
   Configuration as OfficialApiConfiguration,
   OfficialTasklistApi,
-  OfficialWorkflowlistApi
+  OfficialWorkflowlistApi,
+  OfficialWorkflowModulesApi,
 } from '@vanillabp/bc-official-gui-client';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
@@ -50,6 +51,17 @@ const getWorkflowlistGuiApi = (
         fetchApi: buildFetchApi(toast, wakeupSseCallback),
     });
     return new OfficialWorkflowlistApi(config);
+};
+
+const getWorkflowModulesGuiApi = (
+    toast: ToastFunction,
+    wakeupSseCallback?: WakeupSseCallback
+): OfficialWorkflowModulesApi => {
+  const config = new OfficialApiConfiguration({
+    basePath: '/gui/api/v1',
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
+  });
+  return new OfficialWorkflowModulesApi(config);
 };
 
 interface GuiSseContextInterface extends SseContextInterface { };
@@ -92,6 +104,7 @@ export {
     useGuiSse,
     getLoginGuiApi,
     getTasklistGuiApi,
-    getWorkflowlistGuiApi
+    getWorkflowlistGuiApi,
+    getWorkflowModulesGuiApi,
   };
 
