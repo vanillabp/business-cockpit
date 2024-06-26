@@ -15,7 +15,7 @@
   "private": true,
   "dependencies": {
     "@vanillabp/bc-shared": ">=0.0.4-SNAPSHOT <0.0.5",
-    "@vanillabp/bc-dev-shell-angular": ">=0.0.5-SNAPSHOT <0.0.6",
+    "@vanillabp/bc-dev-shell-angular": ">=0.0.4-SNAPSHOT <0.0.5",
     "@angular/animations": "^17.2.0",
     "@angular/common": "^17.2.0",
     "@angular/compiler": "^17.2.0",
