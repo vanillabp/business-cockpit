@@ -92,7 +92,7 @@ The business cockpit is developed by using Java 17 and Spring Boot 3 (reactive).
 
 ```sh
 cd vanillabp-business-cockpit
-mvn package -P unpublish-npm
+mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
 (`-P unpublish-npm` is a Maven profile which forces to unpublish NPM components previously published to Verdaccio. You might need to skip this profile for the very first build since there was no packages published before.)

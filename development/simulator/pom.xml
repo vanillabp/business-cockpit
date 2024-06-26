@@ -29,24 +29,49 @@
               </includes>
               <followSymlinks>false</followSymlinks>
             </fileset>
+            <fileset>
+              <directory>${project.basedir}/src/main/webapp-angular/node_modules</directory>
+              <includes>
+                <include>**/*</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
           </filesets>
         </configuration>
       </plugin>
       <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
-        <configuration>
-          <workingDirectory>${project.basedir}/src/main/webapp-react</workingDirectory>
-        </configuration>
         <executions>
           <execution>
-            <id>link-dependent-packages</id>
+            <id>link-dependent-packages-react</id>
             <phase>generate-resources</phase>
             <goals>
               <goal>npm</goal>
             </goals>
             <configuration>
+              <workingDirectory>${project.basedir}/src/main/webapp-react</workingDirectory>
               <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-dev-shell-react</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>link-dependent-packages-angular</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/webapp-angular</workingDirectory>
+              <!-- Linking Angular components does not work!
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-dev-shell-angular</arguments>
+              -->
+              <arguments>link @vanillabp/bc-shared</arguments>
             </configuration>
           </execution>
         </executions>
@@ -56,22 +81,6 @@
         <artifactId>frontend-maven-plugin</artifactId>
         <configuration>
           <workingDirectory>${project.basedir}/src/main/webapp-react</workingDirectory>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-clean-plugin</artifactId>
-        <configuration>
-          <filesets>
-            <fileset>
-              <directory>${project.basedir}/src/main/webapp-angular/node_modules</directory>
-              <includes>
-                <include>**/*</include>
-              </includes>
-              <followSymlinks>false</followSymlinks>
-            </fileset>
-          </filesets>
         </configuration>
       </plugin>
       <plugin>

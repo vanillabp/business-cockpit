@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-angular",
-  "version": "0.0.4-SNAPSHOT",
+  "version": "0.0.5-SNAPSHOT",
   "peerDependencies": {
     "@angular/common": "^17.3.0",
     "@angular/core": "^17.3.0",
