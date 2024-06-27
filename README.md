@@ -189,4 +189,4 @@ Licensed under the Apache License, Version 2.0
 * Define explicit colors in `ui/bc-shared/src/theme/index.ts`
 * React-Dev-Shell: Changed parameters of DevShell component
 * fetch-API: change from dispatch- to toast-function
-* 
+* Add custom federated components to DevShell
