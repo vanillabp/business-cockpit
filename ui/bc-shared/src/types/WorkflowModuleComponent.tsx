@@ -1,9 +1,14 @@
 import { FC } from "react";
-import { BcWorkflowModule } from "./BcWorkflowModule";
 import { ToastFunction } from "../components";
 
+export interface WorkflowModule {
+  id: string;
+  version: number;
+  uri: string;
+}
+
 export interface WorkflowModuleComponentProps {
-  workflowModule: BcWorkflowModule,
+  workflowModule: WorkflowModule,
   toast: ToastFunction,
 }
 

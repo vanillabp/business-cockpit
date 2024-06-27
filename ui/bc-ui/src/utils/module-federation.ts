@@ -42,6 +42,7 @@ export interface Module {
   UserTaskListCell?: UserTaskListCell;
   WorkflowListCell?: WorkflowListCell;
   WorkflowPage?: WorkflowPage;
+  [key: string]: any;
 };
 
 interface InternalModule extends Module {

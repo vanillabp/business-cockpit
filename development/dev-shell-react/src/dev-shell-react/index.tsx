@@ -2,12 +2,12 @@ import { createRoot } from 'react-dom/client';
 import { DevShellApp } from './app/DevShellApp.js';
 import { AppContextProvider } from './DevShellAppContext.js';
 import {
-  BcWorkflowModule,
   ColumnsOfUserTaskFunction,
   ColumnsOfWorkflowFunction,
   UserTaskForm,
   UserTaskListCell,
   WorkflowListCell,
+  WorkflowModule,
   WorkflowModuleComponent,
   WorkflowPage
 } from '@vanillabp/bc-shared';
@@ -22,10 +22,9 @@ import "@fontsource/roboto/files/roboto-latin-500-normal.woff2";
 import "@fontsource/roboto/files/roboto-latin-500-normal.woff";
 import { ThemeType } from "grommet";
 
-
 const bootstrapDevShell = (
   elementId: string,
-  workflowModule: BcWorkflowModule,
+  workflowModule: WorkflowModule,
   theme: ThemeType,
   officialGuiApiUrl: string,
   userTaskForm: UserTaskForm,

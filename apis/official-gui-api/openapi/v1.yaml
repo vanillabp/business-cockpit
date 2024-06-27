@@ -915,6 +915,8 @@ components:
       type: object
       required:
         - id
+        - version
+        - uri
       properties:
         id:
           type: string

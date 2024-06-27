@@ -11,3 +11,4 @@ export * from './NoUserTaskGiven.js';
 export * from './UserTaskPage.js';
 export * from './UserAvatar.js';
 export * from './User.js';
+export * from './CustomWorkflowModuleComponent.js';

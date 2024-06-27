@@ -7,7 +7,6 @@ import '../i18n.js';
 import { CurrentUser } from './CurrentUser.js';
 import { GuiSseProvider } from '../client/guiClient.js';
 import {
-  BcWorkflowModule,
   ColumnsOfUserTaskFunction,
   ColumnsOfWorkflowFunction,
   LoadingIndicator,
@@ -18,6 +17,7 @@ import {
   UserTaskForm,
   UserTaskListCell,
   WorkflowListCell,
+  WorkflowModule,
   WorkflowModuleComponent,
   WorkflowPage
 } from '@vanillabp/bc-shared';
@@ -78,7 +78,7 @@ const DevShellApp = ({
   workflowPage,
   additionalComponents,
 }: {
-  workflowModule: BcWorkflowModule,
+  workflowModule: WorkflowModule,
   theme: ThemeType,
   officialGuiApiUrl: string,
   userTaskForm: UserTaskForm,
