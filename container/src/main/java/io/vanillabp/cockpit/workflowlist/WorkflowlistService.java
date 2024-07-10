@@ -534,8 +534,9 @@ public class WorkflowlistService {
             subCriterias.addAll(predefinedCriterias);
         }
 
-        return new Criteria().andOperator(subCriterias);
-
+        return subCriterias.isEmpty() ?
+                new Criteria() :
+                new Criteria().andOperator(subCriterias);
     }
 
     @PreDestroy
