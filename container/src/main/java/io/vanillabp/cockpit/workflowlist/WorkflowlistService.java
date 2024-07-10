@@ -47,9 +47,9 @@ public class WorkflowlistService {
         All,
         Active,
         Inactive
-    };
+    }
 
-    public record KwicResult(@Id String item, int count) {};
+    public record KwicResult(@Id String item, int count) {}
 
     public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
 
@@ -121,6 +121,31 @@ public class WorkflowlistService {
             final String sort,
             final boolean sortAscending) {
 
+        return getWorkflows(
+                pageNumber,
+                pageSize,
+                initialTimestamp,
+                includeDanglingWorkflows,
+                accessibleToUsers,
+                accessibleToGroups,
+                RetrieveItemsMode.Active,
+                searchQueries,
+                sort,
+                sortAscending);
+    }
+
+    public Mono<Page<Workflow>> getWorkflows(
+            final int pageNumber,
+            final int pageSize,
+            final OffsetDateTime initialTimestamp,
+            final boolean includeDanglingWorkflows,
+            final Collection<String> accessibleToUsers,
+            final Collection<String> accessibleToGroups,
+            final RetrieveItemsMode mode,
+            final Collection<SearchQuery> searchQueries,
+            final String sort,
+            final boolean sortAscending) {
+
         final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(pageSize)
@@ -139,7 +164,7 @@ public class WorkflowlistService {
                         accessibleToUsers,
                         accessibleToGroups,
                         endedSince,
-                        RetrieveItemsMode.Active,
+                        mode,
                         searchCriteria));
 
         // prepare to retrieve data on execution
