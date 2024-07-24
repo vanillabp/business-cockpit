@@ -1,6 +1,9 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceMapper;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
@@ -23,17 +26,25 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     private AdapterAwareBusinessCockpitService<WA> parent;
 
+    private ProcessInstanceRepository processInstanceRepository;
+
+    private Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
+
     public Camunda8BusinessCockpitService(CrudRepository<WA, Object> workflowAggregateRepository,
                                           Class<WA> workflowAggregateClass,
                                           Function<WA, ?> getWorkflowAggregateId,
                                           Function<String, Object> parseWorkflowAggregateIdFromBusinessKey,
-                                          String workflowAggregateIdName) {
+                                          String workflowAggregateIdName,
+                                          ProcessInstanceRepository processInstanceRepository,
+                                          Camunda8WorkflowEventHandler workflowEventHandler) {
 
         this.workflowAggregateRepository = workflowAggregateRepository;
         this.workflowAggregateClass = workflowAggregateClass;
         this.getWorkflowAggregateId = getWorkflowAggregateId;
         this.parseWorkflowAggregateIdFromBusinessKey = parseWorkflowAggregateIdFromBusinessKey;
         this.workflowAggregateIdName = workflowAggregateIdName;
+        this.processInstanceRepository = processInstanceRepository;
+        this.camunda8WorkflowEventHandler = workflowEventHandler;
     }
 
     public void wire(
@@ -73,7 +84,13 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     @Override
     public void aggregateChanged(WA workflowAggregate) {
-        // TODO CKO
+        String businessKey = getWorkflowAggregateId.apply(workflowAggregate).toString();
+
+        this.processInstanceRepository
+                .findProcessInstanceEntityByBusinessKey(businessKey)
+                .stream()
+                .map(ProcessInstanceMapper::map)
+                .forEach(camunda8WorkflowEventHandler::processWorkflowUpdateEvent);
     }
 
     @Override

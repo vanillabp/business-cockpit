@@ -16,6 +16,19 @@ public class ProcessInstanceEntity {
     @Column(name = "BUSINESS_KEY")
     private String businessKey;
 
+    @Column(name = "BPMN_PROCESS_ID")
+    private String bpmnProcessId;
+
+    @Column(name = "VERSION")
+    private Long version;
+
+    @Column(name = "PROCESS_DEFINITION_KEY")
+    private Long processDefinitionKey;
+
+    @Column(name = "TENANT_ID")
+    private String tenantId;
+
+
     public ProcessInstanceEntity(){
     };
 
@@ -38,5 +51,37 @@ public class ProcessInstanceEntity {
 
     public void setBusinessKey(String businessKey) {
         this.businessKey = businessKey;
+    }
+
+    public String getBpmnProcessId() {
+        return bpmnProcessId;
+    }
+
+    public void setBpmnProcessId(String bpmnProcessId) {
+        this.bpmnProcessId = bpmnProcessId;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public Long getProcessDefinitionKey() {
+        return processDefinitionKey;
+    }
+
+    public void setProcessDefinitionKey(Long processDefinitionKey) {
+        this.processDefinitionKey = processDefinitionKey;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }

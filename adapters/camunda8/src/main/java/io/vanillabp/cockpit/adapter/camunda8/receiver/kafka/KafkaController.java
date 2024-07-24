@@ -76,7 +76,7 @@ public class KafkaController {
         Camunda8WorkflowCreatedEvent workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(
                 processInstanceCreationRecordValue, idNames);
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value);
-        camunda8WorkflowEventHandler.notify(workflowCreatedEvent);
+        camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
     }
 
     private void handleProcessInstanceRecord(Record<?> value) {
@@ -87,7 +87,7 @@ public class KafkaController {
                         (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED"))){
             Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent = WorkflowEventZeebeRecordMapper.map(processInstanceRecordValue);
             WorkflowEventZeebeRecordMapper.addMetaData(workflowLifeCycleEvent, value);
-            camunda8WorkflowEventHandler.notify(workflowLifeCycleEvent);
+            camunda8WorkflowEventHandler.processWorkflowLifecycleEvent(workflowLifeCycleEvent);
         }
     }
 

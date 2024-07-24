@@ -41,7 +41,7 @@ public class SpringRedisClient {
 
         logger.debug("Process Instance Creation Record:\n{}", processInstanceCreationRecord.toString());
         if(processInstanceCreationRecord.getMetadata().getKey() != -1){
-            camunda8WorkflowEventHandler.notify(
+            camunda8WorkflowEventHandler.processWorkflowCreatedEvent(
                     WorkflowEventProtobufMapper.map(processInstanceCreationRecord));
         }
     }
@@ -54,7 +54,7 @@ public class SpringRedisClient {
         if(processInstanceRecord.hasMetadata() &&
                 (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED")) &&
                 processInstanceRecord.getBpmnElementType().equals("PROCESS")){
-            camunda8WorkflowEventHandler.notify(
+            camunda8WorkflowEventHandler.processWorkflowLifecycleEvent(
                     WorkflowEventProtobufMapper.map(processInstanceRecord));
         }
     }

@@ -24,6 +24,7 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
@@ -32,6 +33,7 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.repository.CrudRepository;
 
 import java.math.BigInteger;
@@ -54,6 +56,13 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
     @Value("${spring.application.name:@null}")
     private String applicationName;
+
+    @Autowired
+    private ProcessInstanceRepository processInstanceRepository;
+
+    @Lazy
+    @Autowired
+    private Camunda8WorkflowEventHandler workflowEventHandler;
 
     @Override
     public String getAdapterId() {
@@ -203,7 +212,9 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 workflowAggregateClass,
                 springDataUtil::getId,
                 parseWorkflowAggregateIdFromBusinessKey,
-                springDataUtil.getIdName(workflowAggregateClass)
+                springDataUtil.getIdName(workflowAggregateClass),
+                processInstanceRepository,
+                workflowEventHandler
         );
 
         putConnectableService(workflowAggregateClass, result);
