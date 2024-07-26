@@ -468,7 +468,7 @@ public class WorkflowlistService {
                 .stream()
                 .map(query -> Criteria
                         .where(StringUtils.hasText(query.path()) ? query.path() : "detailsFulltextSearch")
-                        .regex(query.query()))
+                        .regex(query.query(), query.caseInsensitive() ? "i" : ""))
                 .toList();
 
     }
