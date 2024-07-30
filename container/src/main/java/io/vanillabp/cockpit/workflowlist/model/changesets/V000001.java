@@ -5,6 +5,7 @@ import com.mongodb.DBObject;
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.util.List;
 import java.util.Objects;
@@ -257,6 +258,22 @@ public class V000001 {
             bsonGroup.put("sort", group.getSort());
         }
         return bsonGroup;
+
+    }
+
+    @Changeset(order = 1009, author = "stephanpelikan")
+    public String dropSortIndexesDueToNewNaming( // will be recreated on demand
+             final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .getIndexInfo()
+                .filter(indexInfo -> indexInfo.getName().startsWith(WorkflowlistService.INDEX_CUSTOM_SORT_PREFIX))
+                .flatMap(indexInfo -> mongo.indexOps(Workflow.COLLECTION_NAME).dropIndex(indexInfo.getName()))
+                .collectList()
+                .block();
+
+        return null;
 
     }
 

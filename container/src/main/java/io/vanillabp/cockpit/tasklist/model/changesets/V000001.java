@@ -4,6 +4,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import java.util.List;
@@ -301,6 +302,22 @@ public class V000001 {
             bsonGroup.put("sort", group.getSort());
         }
         return bsonGroup;
+
+    }
+
+    @Changeset(order = 11)
+    public String dropSortIndexesDueToNewNaming( // will be recreated on demand
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(UserTask.COLLECTION_NAME)
+                .getIndexInfo()
+                .filter(indexInfo -> indexInfo.getName().startsWith(UserTaskService.INDEX_CUSTOM_SORT_PREFIX))
+                .flatMap(indexInfo -> mongo.indexOps(UserTask.COLLECTION_NAME).dropIndex(indexInfo.getName()))
+                .collectList()
+                .block();
+
+        return null;
 
     }
 

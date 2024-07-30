@@ -190,3 +190,4 @@ Licensed under the Apache License, Version 2.0
 * React-Dev-Shell: Changed parameters of DevShell component
 * fetch-API: change from dispatch- to toast-function
 * Add custom federated components to DevShell
+* Sort-indexes will be dropped and recreated on demand due to naming

@@ -4,6 +4,7 @@ import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtil
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -42,6 +43,9 @@ import reactor.core.publisher.Mono;
 public class UserTaskService {
 
     public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
+    public static final String PROPERTY_DUEDATE = "dueDate";
+    public static final String PROPERTY_CREATEDAT = "createdAt";
+    public static final String PROPERTY_ID = "id";
 
     public static enum RetrieveItemsMode {
         All,
@@ -52,12 +56,14 @@ public class UserTaskService {
     };
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
-                    Order.asc("createdAt"),
-                    Order.asc("id")
+                    Order.asc(PROPERTY_DUEDATE),
+                    Order.asc(PROPERTY_CREATEDAT),
+                    Order.asc(PROPERTY_ID)
             );
-    private static final List<Sort.Order> DEFAULT_ORDER_DESC= List.of(
-                    Order.desc("createdAt"),
-                    Order.desc("id")
+    private static final List<Sort.Order> DEFAULT_ORDER_DESC = List.of(
+                    Order.desc(PROPERTY_DUEDATE),
+                    Order.desc(PROPERTY_CREATEDAT),
+                    Order.desc(PROPERTY_ID)
             );
 
     private static final Set<String> sortAndFilterIndexes = new HashSet<>();
@@ -82,6 +88,26 @@ public class UserTaskService {
 
     private Disposable dbChangesSubscription;
 
+    @PostConstruct
+    protected void initializeTrackingOfIndexes() {
+
+        mongoTemplate
+                .indexOps(UserTask.COLLECTION_NAME)
+                .getIndexInfo()
+                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                .map(indexInfo -> indexInfo.getName().substring(INDEX_CUSTOM_SORT_PREFIX.length()))
+                .collectList()
+                .subscribe(sort -> {
+                    try {
+                        sortAndFilterIndexWriteLock.lock();
+                        sortAndFilterIndexes.addAll(sort);
+                    } finally {
+                        sortAndFilterIndexWriteLock.unlock();
+                    }
+                });
+
+    }
+
     @EventListener
     public void subscribeToDbChanges(
             final ApplicationStartedEvent event) {
@@ -96,21 +122,6 @@ public class UserTaskService {
                         .onErrorResume(Exception.class, e -> Mono.empty()))
                 .doOnNext(applicationEventPublisher::publishEvent)
                 .subscribe();
-        
-        try {
-            sortAndFilterIndexWriteLock.lock();
-            mongoTemplate
-                    .indexOps(UserTask.COLLECTION_NAME)
-                    .getIndexInfo()
-                    .filter(info -> info.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                    .map(info -> info.getIndexFields().get(0).getKey())
-                    .subscribe(field -> {
-                        logger.info("Read previously created sort/filter index for '{}'", field);
-                        sortAndFilterIndexes.add(field);
-                    });
-        } finally {
-            sortAndFilterIndexWriteLock.unlock();
-        }
 
     }
 
@@ -298,34 +309,46 @@ public class UserTaskService {
 
     }
 
-    private static record UserTaskListOrder(List<Order> order, List<String> toBeIndexed) {}
+    private record UserTaskListOrder(List<Order> order, String indexName, List<String> toBeIndexed) {}
 
     private UserTaskListOrder getUserTaskListOrder(
             final String _sort,
             final boolean sortAscending) {
 
-        List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
-        final List<String> nonDefaultSort;
         final var sort = _sort == null
-                ? "dueDate"
-                : _sort.equals("createdAt")
-                ? ""
+                ? PROPERTY_DUEDATE
                 : _sort;
 
-        nonDefaultSort = new LinkedList<>();
-        final var newOrder = new LinkedList<Order>();
+        final var order = new LinkedList<Order>();
+        final var defaultOrdering = new LinkedList<>(sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC);
+        final var indexProps = new LinkedList<String>();
         Arrays
                 .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
                 .filter(StringUtils::hasText)
-                .peek(nonDefaultSort::add)
+                .peek(languageBasedSort -> {
+                    indexProps.add(languageBasedSort);
+                    final var defaultOrder = defaultOrdering
+                            .stream()
+                            .filter(propertyOrder -> propertyOrder.getProperty().equals(languageBasedSort))
+                            .findFirst();
+                    defaultOrder.ifPresent(defaultOrdering::remove);
+                })
                 .map(languageBasedSort -> sortAscending
                         ? Order.asc(languageBasedSort).nullsLast()
                         : Order.desc(languageBasedSort).nullsLast())
-                .forEach(newOrder::add);
-        newOrder.addAll(order); // default order
-        order = newOrder;
+                .forEach(order::add);
 
-        return new UserTaskListOrder(order, nonDefaultSort);
+        defaultOrdering
+                .forEach(defaultOrder -> {
+                    order.add(defaultOrder);
+                    if (defaultOrder.getProperty().equals(PROPERTY_ID)) {
+                        indexProps.add("_id");
+                    } else {
+                        indexProps.add(defaultOrder.getProperty());
+                    }
+                });
+
+        return new UserTaskListOrder(order, sort, indexProps);
 
     }
 
@@ -403,12 +426,9 @@ public class UserTaskService {
                     results::getT2));
 
         // build index before retrieving data if necessary
-        if (orderBySort.toBeIndexed() == null) {
-            return result;
-        }
         try {
             sortAndFilterIndexReadLock.lock();
-            if (sortAndFilterIndexes.contains(sort)) {
+            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
                 return result;
             }
         } finally {
@@ -417,26 +437,23 @@ public class UserTaskService {
 
         try {
             sortAndFilterIndexWriteLock.lock();
-            if (sortAndFilterIndexes.contains(sort)) {
+            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
                 return result;
             }
             final var newIndex = new Index();
             orderBySort
                     .toBeIndexed()
                     .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
-            newIndex.on("dueDate", Sort.Direction.ASC)
-                    .on("createdAt", Sort.Direction.ASC)
-                    .on("_id", Sort.Direction.ASC)
-                    .named(INDEX_CUSTOM_SORT_PREFIX + sort);
+            newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
             return mongoTemplate
                     .indexOps(UserTask.COLLECTION_NAME)
                     .ensureIndex(newIndex)
                     .flatMap(unknown -> {
-                        sortAndFilterIndexes.add(sort);
+                        sortAndFilterIndexes.add(orderBySort.indexName);
                         return result;
                     })
                     .onErrorResume(e -> {
-                        sortAndFilterIndexes.add(sort);
+                        sortAndFilterIndexes.add(orderBySort.indexName);
                         logger.error("Could not create Mongo-DB index for sorting and filtering of tasklist", e);
                         return result;
                     });

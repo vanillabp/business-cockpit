@@ -4,6 +4,7 @@ import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtil
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -52,14 +53,16 @@ public class WorkflowlistService {
     public record KwicResult(@Id String item, int count) {}
 
     public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
+    public static final String PROPERTY_CREATEDAT = "createdAt";
+    public static final String PROPERTY_ID = "id";
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
-            Order.asc("createdAt"),
-            Order.asc("id")
+            Order.asc(PROPERTY_CREATEDAT),
+            Order.asc(PROPERTY_ID)
     );
     private static final List<Sort.Order> DEFAULT_ORDER_DESC= List.of(
-            Order.desc("createdAt"),
-            Order.desc("id")
+            Order.desc(PROPERTY_CREATEDAT),
+            Order.desc(PROPERTY_ID)
     );
 
     private static final Set<String> sortAndFilterIndexes = new HashSet<>();
@@ -83,6 +86,26 @@ public class WorkflowlistService {
     private ReactiveMongoTemplate mongoTemplate;
 
     private Disposable dbChangesSubscription;
+
+    @PostConstruct
+    protected void initializeTrackingOfIndexes() {
+
+        mongoTemplate
+                .indexOps(Workflow.COLLECTION_NAME)
+                .getIndexInfo()
+                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                .map(indexInfo -> indexInfo.getName().substring(INDEX_CUSTOM_SORT_PREFIX.length()))
+                .collectList()
+                .subscribe(sort -> {
+                    try {
+                        sortAndFilterIndexWriteLock.lock();
+                        sortAndFilterIndexes.addAll(sort);
+                    } finally {
+                        sortAndFilterIndexWriteLock.unlock();
+                    }
+                });
+
+    }
 
     public Mono<Boolean> createWorkflow(
             final Workflow workflow) {
@@ -185,7 +208,7 @@ public class WorkflowlistService {
         }
         try {
             sortAndFilterIndexReadLock.lock();
-            if (sortAndFilterIndexes.contains(sort)) {
+            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
                 return result;
             }
         } finally {
@@ -194,25 +217,23 @@ public class WorkflowlistService {
 
         try {
             sortAndFilterIndexWriteLock.lock();
-            if (sortAndFilterIndexes.contains(sort)) {
+            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
                 return result;
             }
             final var newIndex = new Index();
             orderBySort
                     .toBeIndexed()
                     .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
-            newIndex.on("createdAt", Sort.Direction.ASC)
-                    .on("_id", Sort.Direction.ASC)
-                    .named(INDEX_CUSTOM_SORT_PREFIX + sort);
+            newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
             return mongoTemplate
                     .indexOps(Workflow.COLLECTION_NAME)
                     .ensureIndex(newIndex)
                     .flatMap(unknown -> {
-                        sortAndFilterIndexes.add(sort);
+                        sortAndFilterIndexes.add(orderBySort.indexName);
                         return result;
                     })
                     .onErrorResume(e -> {
-                        sortAndFilterIndexes.add(sort);
+                        sortAndFilterIndexes.add(orderBySort.indexName);
                         logger.error("Could not create Mongo-DB index for sorting and filtering of workflowlist", e);
                         return result;
                     });
@@ -222,36 +243,49 @@ public class WorkflowlistService {
 
     }
 
-    private static record WorkflowListOrder(List<Order> order, List<String> toBeIndexed) {}
+    private record WorkflowListOrder(List<Order> order, String indexName, List<String> toBeIndexed) {}
 
     private WorkflowlistService.WorkflowListOrder getWorkflowListOrder(
             final String _sort,
             final boolean sortAscending) {
 
-        List<Order> order = sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC;
-        final List<String> nonDefaultSort;
         final var sort = _sort == null
-                ? ""
-                : _sort.equals("createdAt")
-                ? ""
+                ? PROPERTY_CREATEDAT
                 : _sort;
 
-        nonDefaultSort = new LinkedList<>();
-        final var newOrder = new LinkedList<Order>();
+        final var order = new LinkedList<Order>();
+        final var defaultOrdering = new LinkedList<>(sortAscending ? DEFAULT_ORDER_ASC : DEFAULT_ORDER_DESC);
+        final var indexProps = new LinkedList<String>();
         Arrays
                 .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
                 .filter(StringUtils::hasText)
-                .peek(nonDefaultSort::add)
+                .peek(languageBasedSort -> {
+                    indexProps.add(languageBasedSort);
+                    final var defaultOrder = defaultOrdering
+                            .stream()
+                            .filter(propertyOrder -> propertyOrder.getProperty().equals(languageBasedSort))
+                            .findFirst();
+                    defaultOrder.ifPresent(defaultOrdering::remove);
+                })
                 .map(languageBasedSort -> sortAscending
                         ? Order.asc(languageBasedSort).nullsLast()
                         : Order.desc(languageBasedSort).nullsLast())
-                .forEach(newOrder::add);
-        newOrder.addAll(order); // default order
-        order = newOrder;
+                .forEach(order::add);
 
-        return new WorkflowlistService.WorkflowListOrder(order, nonDefaultSort);
+        defaultOrdering
+                .forEach(defaultOrder -> {
+                    order.add(defaultOrder);
+                    if (defaultOrder.getProperty().equals(PROPERTY_ID)) {
+                        indexProps.add("_id");
+                    } else {
+                        indexProps.add(defaultOrder.getProperty());
+                    }
+                });
+
+        return new WorkflowListOrder(order, sort, indexProps);
 
     }
+
     public Mono<Page<Workflow>> getWorkflowsUpdated(
             final boolean includeDanglingWorkflows,
             final Collection<String> accessibleToUsers,
@@ -303,7 +337,6 @@ public class WorkflowlistService {
                         t.getT2()));
 
     }
-
 
     public Mono<Boolean> updateWorkflow(
             final Workflow workflow) {
