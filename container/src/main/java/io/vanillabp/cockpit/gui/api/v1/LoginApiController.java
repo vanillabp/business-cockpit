@@ -2,6 +2,14 @@ package io.vanillabp.cockpit.gui.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -22,14 +30,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping(path = "/gui/api/v1")
 public class LoginApiController implements LoginApi {
@@ -45,6 +45,9 @@ public class LoginApiController implements LoginApi {
     
     @Autowired
     private TaskScheduler taskScheduler;
+
+    @Autowired
+    private PersonAndGroupApiMapper personAndGroupMapper;
 
     private final Map<String, UpdateEmitter> updateEmitters = new HashMap<>();
     
@@ -67,7 +70,7 @@ public class LoginApiController implements LoginApi {
                         logger.debug("Register update Channel '{}': {}", id, user.getAuthorities());
                         updateEmitters.put(id, UpdateEmitter
                                 .withChannel(channel)
-                                .roles(user.getAuthorities())
+                                .groups(user.getAuthorities())
                                 .maxItemsPerUpdate(properties.getGuiSse().getMaxItemsPerUpdate())
                                 .updateInterval(properties.getGuiSse().getUpdateInterval()));
                     }
@@ -132,8 +135,8 @@ public class LoginApiController implements LoginApi {
             updateEmitters
                     .entrySet()
                     .stream()
-                    // TODO: get affected users/roles (old doc, new doc) and also take mappings (user substitutes) into account
-                    // .filter(emitter -> guiEvent.matchesTargetRoles(emitter.getValue().getRoles()))
+                    // TODO: get affected users/groups (old doc, new doc) and also take mappings (user substitutes) into account
+                    // .filter(emitter -> guiEvent.matchesTargetGroups(emitter.getValue().getGroups()))
                     .forEach(emitter -> emitter.getValue().collectEvent(guiEvent));
         }
 
@@ -222,21 +225,22 @@ public class LoginApiController implements LoginApi {
         
         return userContext
                 .getUserLoggedInDetailsAsMono()
-                .map(user -> new User()
-                        .id(user.getId())
-                        .lastName(user.getLastName())
-                        .firstName(user.getFirstName())
-                        .email(user.getEmail())
-                        .sex(
-                                user.isFemale() == null
-                                        ? Sex.OTHER
-                                        : user.isFemale()
-                                        ? Sex.FEMALE
-                                        : Sex.MALE)
-                        .status(user.isActive()
-                                        ? UserStatus.ACTIVE
-                                        : UserStatus.INACTIVE)
-                        .roles(user.getAuthorities()))
+                .map(user -> {
+                    final var person = personAndGroupMapper
+                            .toApiPerson(user.getId());
+                    return new User()
+                            .id(person.getId())
+                            .email(person.getEmail())
+                            .avatar(person.getAvatar())
+                            .display(person.getDisplay())
+                            .displayShort(person.getDisplayShort())
+                            .details(person.getDetails())
+                            .groups(user
+                                    .getAuthorities()
+                                    .stream()
+                                    .map(personAndGroupMapper::authorityToApiGroup)
+                                    .toList());
+                })
                 .map(ResponseEntity::ok);
         
     }

@@ -1,4 +1,4 @@
 package io.vanillabp.cockpit.util;
 
-public record SearchQuery (String path, String query) {
+public record SearchQuery (String path, String query, boolean caseInsensitive) {
 }

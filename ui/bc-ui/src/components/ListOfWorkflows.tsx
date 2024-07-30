@@ -297,12 +297,12 @@ const RefreshButton = ({
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
   return (<Box
-      hoverIndicator={ disabled ? 'light-2' : "accent-1" }
+      hoverIndicator={ disabled ? 'light-2' : "list-refresh" }
       focusIndicator={ false }
       onClick={ refresh }
       direction="row"
       elevation="small"
-      background={ !disabled ? { color: "accent-1", opacity: "strong" } : undefined }
+      background={ !disabled ? { color: "list-refresh", opacity: "strong" } : undefined }
       round={ { size: '0.4rem' } }
       border={ { color } }>
     <Tip
@@ -389,7 +389,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-3', opacity: 0.1 } }>
+                  background="list-new">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -414,7 +414,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-1', opacity: 0.35 } }>
+                  background="list-updated">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -439,7 +439,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-ended">
                 <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
               </Box>
             </Box>
@@ -464,7 +464,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-ended">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -688,23 +688,12 @@ const ListOfWorkflows = ({
   const workflows = useRef<Array<ListItem<Workflow>> | undefined>(undefined);
   const [ numberOfWorkflows, setNumberOfWorkflows ] = useState<number>(-1);
   const [ modulesOfWorkflows, setModulesOfWorkflows ] = useState<Workflow[] | undefined>(undefined);
-  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        const result = await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
-            definitionsOfWorkflows, setDefinitionsOfWorkflows, 20, 0, undefined,
+        await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
+            definitionsOfWorkflows, setDefinitionsOfWorkflows,20, 0, undefined,
             searchQueries, effectiveSort, sortAscending, mapToBcWorkflow);
-        const titleLanguages = result
-            .items
-            .flatMap(workflow => Object.keys(workflow.title))
-            .reduce((allLanguages, titleLanguage) => {
-              if (!allLanguages.includes(titleLanguage)) {
-                allLanguages.push(titleLanguage);
-              }
-              return allLanguages;
-            }, new Array<string>(currentLanguage));
-        setLanguagesOfTitles(titleLanguages);
       };
       if (workflows.current === undefined) {
         showLoadingIndicator(true);
@@ -713,7 +702,7 @@ const ListOfWorkflows = ({
     },
     // workflowlistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by workflows
-    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
+    [ workflows, setNumberOfWorkflows, setModulesOfWorkflows, setDefinitionsOfWorkflows, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
@@ -758,6 +747,7 @@ const ListOfWorkflows = ({
       totalColumns.title = {
         title: { [currentLanguage]: t('column_title') },
         path: 'title',
+        type: 'i18n',
         width: '',
         priority: 0,
         show: true,
@@ -783,7 +773,11 @@ const ListOfWorkflows = ({
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
-  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
+  const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
+      ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
+      : effectiveSort?.indexOf('.sort,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.sort,'))
+      : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -795,8 +789,10 @@ const ListOfWorkflows = ({
 
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path === 'title') {
-        _setSort('title.' + languagesOfTitles.join(',title.'))
+      if (column.type === 'i18n') {
+        _setSort(`${column.path}.${currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '')}`);
+      } else if (column.type === 'person') {
+        _setSort(`${column.path}.sort,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

@@ -243,7 +243,7 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
         return {
           ...props,
           [ item.id ]: {
-            background: { color: 'light-2', opacity: 0.5 }
+            background: "list-ended"
           }
         }
       }
@@ -252,13 +252,13 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
             ...props,
             [ item.id ]: { background:
                 item.status === ListItemStatus.NEW
-                    ? { color: 'accent-3', opacity: 0.1 }
+                    ? "list-new"
                     : item.status === ListItemStatus.UPDATED
-                    ? { color: 'accent-1', opacity: 0.15 }
+                    ? "list-updated"
                     : item.status === ListItemStatus.ENDED
-                    ? { color: 'light-2', opacity: 0.5 }
+                    ? "list-ended"
                     : item.status === ListItemStatus.REMOVED_FROM_LIST
-                    ? { color: 'light-2', opacity: 0.5 }
+                    ? "list-removed_from_list"
                     : undefined
               }
           };

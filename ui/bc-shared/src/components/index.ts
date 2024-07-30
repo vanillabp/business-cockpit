@@ -10,3 +10,4 @@ export * from './WarningListCell.js';
 export * from './DefaultListCell.js';
 export * from './DefaultListHeader.js';
 export * from './CopyClipboard.js';
+export * from './UserDetailsBox.js';

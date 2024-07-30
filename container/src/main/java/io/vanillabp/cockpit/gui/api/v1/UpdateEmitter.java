@@ -1,9 +1,8 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import org.springframework.integration.channel.DirectChannel;
-
 import java.util.LinkedList;
 import java.util.List;
+import org.springframework.integration.channel.DirectChannel;
 
 public class UpdateEmitter {
 
@@ -13,7 +12,7 @@ public class UpdateEmitter {
 
     private int maxItemsPerUpdate;
 
-    private List<String> roles;
+    private List<String> groups;
 
     private long lastCommit;
     
@@ -45,13 +44,13 @@ public class UpdateEmitter {
         return channel;
     }
     
-    public List<String> getRoles() {
-        return roles;
+    public List<String> getGroups() {
+        return groups;
     }
 
-    public UpdateEmitter roles(
-            final List<String> roles) {
-        this.roles = roles;
+    public UpdateEmitter groups(
+            final List<String> groups) {
+        this.groups = groups;
         return this;
     }
 

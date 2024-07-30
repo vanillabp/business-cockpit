@@ -1,41 +1,45 @@
 import { Grid, Text } from 'grommet';
-import { User as UserDto } from '@vanillabp/bc-official-gui-client';
+import { Person } from '@vanillabp/bc-official-gui-client';
 import { UserAvatar } from './UserAvatar.js';
+import { TranslationFunction, UserDetailsBox } from "@vanillabp/bc-shared";
+import React from "react";
 
-type CurrentUserProps = {
-  user: UserDto;
+type UserProps = {
+  t: TranslationFunction;
+  user: Person;
   isUserLoggedIn?: boolean;
   size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
   iconSize?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
 };
 
 const User = ({
+  t,
   user,
   isUserLoggedIn = false,
   size = 'medium',
   iconSize,
-}: CurrentUserProps) => (
+}: UserProps) => (
   <Grid
       fill="horizontal"
       gap="small"
       columns={['auto', 'auto', 'flex']}
       align="center">
-    <UserAvatar
-        user={ user }
-        isUserLoggedIn={ isUserLoggedIn }
-        size={ iconSize !== undefined ? iconSize : size }/>
+    {
+      user.avatar === undefined
+          ? undefined
+          : <UserAvatar
+                t={ t }
+                user={ user }
+                isUserLoggedIn={ isUserLoggedIn }
+                size={ iconSize !== undefined ? iconSize : size } />
+    }
     <Text
         size={ size }
-        truncate="tip">
-    {
-      !Boolean(user.lastName)
-          ? !Boolean(user.email)
-            ? user.id
-            : user.email
-          : Boolean(user.firstName)
-          ? `${user.firstName} ${user.lastName}`
-          : user.lastName
-    }
+        tip={ { content: <UserDetailsBox user={ user } t={ t } /> } }
+        truncate>
+      {
+        user.displayShort ?? user.email ?? user.id
+      }
     </Text>
   </Grid>
 );

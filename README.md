@@ -14,7 +14,7 @@ The *VanillaBP business cockpit* is a UI for business people to work with busine
      1. List active and retried user tasks
      1. Fulfill user tasks
 
-Like [VanillaBP](https://www.vanillabp.io) itself was designed to be [BPMS](https://en.wikipedia.org/wiki/Business_process_management)-agnostic, also *VanillaBP business cockpit* is able act as a UI for any BPMS. This also makes it possible to display workflows and user tasks from different systems in one user interface.
+Like [VanillaBP](https://www.vanillabp.io) itself was designed to be [BPMS](https://en.wikipedia.org/wiki/Business_process_management)-agnostic, also *VanillaBP business cockpit* is able act as a UI for any BPMS. This also makes it possible to display workflows and user tasks from different systems in one unifying user interface .
 
 To learn how to integrate your business services into the VanillaBP business cockpit check the [respective chapter](#integrate-your-business-services).
 
@@ -67,7 +67,7 @@ To connect using a client one can use these parameters:
 
 ### Local NPM registry
 
-As part of the build NPM packages are published which has to be used by BPMS software which wants to integrate to the VanillaBP business cockpit. Additionally, the business cockpit itself uses those packages as dependencies. To make this work for local development as well as for publishing builds one has to use a local NPM registry. For this the tool [Verdaccio](https://www.verdaccio.org/) is used.
+As part of the build NPM packages are published which has to be used by BPMS software which wants to integrate to the VanillaBP business cockpit. Additionally, the business cockpit itself uses those packages as dependencies. To make this work for local development as well as for publishing builds one has to use a local NPM registry. For this the tool [Verdaccio](https://www.verdaccio.org/) is used which is also part of the provided `docker-compose.yaml`.
 
 To use this registry one has to create a file `.npmrc` in your home folder:
 
@@ -92,7 +92,7 @@ The business cockpit is developed by using Java 17 and Spring Boot 3 (reactive).
 
 ```sh
 cd vanillabp-business-cockpit
-mvn package -P unpublish-npm
+mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
 (`-P unpublish-npm` is a Maven profile which forces to unpublish NPM components previously published to Verdaccio. You might need to skip this profile for the very first build since there was no packages published before.)
@@ -111,6 +111,34 @@ To connect to the business cockpit UI use these parameters:
 * *password:* test
 
 This should show up an empty business cockpit since no user tasks or workflows were reported yet. To test this before connecting your business service one can use the [simulation service](#simulation-service).
+
+### Repeating builds
+
+During developing the Business Cockpit itself one might change only backend code and whishes to test that changes without doing a full build.
+This can be easily achieved by this Maven command:
+
+```sh
+mvn install -Plocal-install
+```
+
+If you do some UI development one can run
+
+```sh
+npm start
+```
+
+in every UI source directory to get a continuous build.
+
+Since the first build links all npm packages, changes in one packages are active immediately using this technique.
+There is one exception: The `webapp-angular`-UI in `simulator` uses the package `dev-shell-angular` and Angular does not support NPM linking. So extending `dev-shell-angular` implies the need to publish the package to the local registry after every change and update the `webapp-angular` afterward to use that change:
+
+```sh
+cd development/dev-shell-angular
+mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
+cd -
+cd development/simulator/src/main/webapp
+npm update --scope '@vanillabp/*'
+```
 
 ## Simulation Service
 
@@ -142,3 +170,23 @@ VanillaBP was developed by [Phactum](https://www.phactum.at) with the intention 
 Copyright 2022 Phactum Softwareentwicklung GmbH
 
 Licensed under the Apache License, Version 2.0
+
+## Changelog
+
+### 0.0.4-SNAPSHOT
+
+* Introduce person & group
+    * usertask.assignee, usertask.candidateUsers, workflow.initiator and workflow.accessibleToUsers type change from string to Person
+    * usertask.canidateGroups, workflow.accessibleToGroups type change to Group
+    * current-user type change to a combination of Person and Groups
+    * A PersonAndGroupMapper is introduced to provide a mapping between user provided by APIs and the values stored in the database
+    * A PersonAndGroupApiMapper is introduced to provide a mapping between data stored in the database and the details shown in the UI
+* Introduce usertask-list and workflow-list column's type
+    * `i18n`: An sub-field for each supported locale (language) is expected
+    * `person`: A person-compatible object has to be provided
+    * `date`: A Date object which will be rendered as a date
+    * `date-time`: A Date object which will be rendered as a timestamp
+* Define explicit colors in `ui/bc-shared/src/theme/index.ts`
+* React-Dev-Shell: Changed parameters of DevShell component
+* fetch-API: change from dispatch- to toast-function
+* Add custom federated components to DevShell

@@ -1,5 +1,10 @@
 package io.vanillabp.cockpit.commons.mongo.changesets;
 
+import com.mongodb.WriteConcern;
+import com.mongodb.reactivestreams.client.MongoClient;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
+import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
+import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -10,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +28,6 @@ import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Query;
-
-import com.mongodb.WriteConcern;
-import com.mongodb.reactivestreams.client.MongoClient;
-
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
-import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
-import jakarta.annotation.PostConstruct;
 
 /**
  * This is a MongoDb initializer. It works based on annotated Spring beans.
@@ -157,7 +154,8 @@ public class ChangesetAutoConfiguration {
 
         final String rollbackSysProp = System.getProperty(
                 SYSTEMPROPERTY_ROLLBACK_UNKNOWN,
-                Boolean.FALSE.toString());
+                Boolean.FALSE.toString())
+                .toLowerCase();
         if (!rollbackSysProp.equals(Boolean.TRUE.toString())) {
             return;
         }

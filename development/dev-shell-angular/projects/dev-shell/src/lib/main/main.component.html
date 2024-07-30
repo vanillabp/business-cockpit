@@ -1,7 +1,12 @@
 <div class="devShell">
   <h1>dev-shell</h1>
-  <div>
-    <button style="margin: 1rem" (click)="navigateUsertask()">task</button>
-    <button (click)="navigateWorkflow()">workflow</button>
+  <div>Well-known module-federation components:</div>
+  <div class="componentButtons">
+    <button (click)="navigateTo('task')">task</button>
+    <button (click)="navigateTo('workflow')">workflow</button>
+  </div>
+  <div>Custom module-federation components:</div>
+  <div class="componentButtons">
+    <button *ngFor="let route of additionalRoutes" (click)="navigateTo(route)">{{ route }}</button>
   </div>
 </div>

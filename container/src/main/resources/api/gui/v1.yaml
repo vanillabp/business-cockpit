@@ -40,7 +40,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/User'
+                $ref: '#/components/schemas/User'
         404:
           description: No user logged in
 components:
@@ -84,6 +84,15 @@ components:
         size:
           type: integer
           format: int32
+    User:
+      allOf:
+        - $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Person'
+        - type: object
+          properties:
+            groups:
+              type: array
+              items:
+                $ref: '../../../../../../apis/official-gui-api/openapi/v1.yaml/#/components/schemas/Group'
     PingEvent:
       type: object
       required:

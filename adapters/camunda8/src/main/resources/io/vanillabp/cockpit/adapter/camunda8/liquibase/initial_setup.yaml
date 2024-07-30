@@ -173,3 +173,22 @@ databaseChangeLog:
             tableName: CAMUNDA8_BC_DEPLOYMENTS
             oldColumnName: BPMN_PROCESS_ID
             newColumnName: C8D_BPMN_PROCESS_ID
+  - changeSet:
+      id: add_process_instance_fields
+      author: christophkoesner
+      changes:
+        - addColumn:
+            tableName: CAMUNDA8_BC_PROCESS_INSTANCES
+            columns:
+              - column:
+                  name: BPMN_PROCESS_ID
+                  type: varchar(255)
+              - column:
+                  name: VERSION
+                  type: bigint
+              - column:
+                  name: PROCESS_DEFINITION_KEY
+                  type: bigint
+              - column:
+                  name: TENANT_ID
+                  type: varchar(255)

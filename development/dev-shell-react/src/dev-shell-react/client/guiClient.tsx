@@ -1,39 +1,43 @@
 import { useAppContext } from '../DevShellAppContext.js';
 import {
-    buildFetchApi,
-    OnMessageFunction,
-    SseContextInterface,
-    SseProvider,
-    useSse,
-    WakeupSseCallback,
-    ToastAction
- } from '@vanillabp/bc-shared';
-import { createContext, Dispatch } from 'react';
-import { OfficialTasklistApi, Configuration as GuiConfiguration } from '@vanillabp/bc-official-gui-client';
-import { OfficialWorkflowlistApi } from '@vanillabp/bc-official-gui-client';
+  buildFetchApi,
+  OnMessageFunction,
+  SseContextInterface,
+  SseProvider,
+  Toast,
+  ToastFunction,
+  useSse,
+  WakeupSseCallback
+} from '@vanillabp/bc-shared';
+import { createContext, useCallback } from 'react';
+import {
+  Configuration as GuiConfiguration,
+  OfficialTasklistApi,
+  OfficialWorkflowlistApi
+} from '@vanillabp/bc-official-gui-client';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
 
 const getOfficialTasklistApi = (
   basePath: string,
-  dispatch: Dispatch<ToastAction>,
+  toast: ToastFunction,
   wakeupSseCallback?: WakeupSseCallback
 ): OfficialTasklistApi => {
   const config = new GuiConfiguration({
     basePath,
-    fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
   });
   return new OfficialTasklistApi(config);
 };
 
 const getOfficialWorkflowlistApi = (
   basePath: string,
-  dispatch: Dispatch<ToastAction>,
+  toast: ToastFunction,
   wakeupSseCallback?: WakeupSseCallback
 ): OfficialWorkflowlistApi => {
   const config = new GuiConfiguration({
     basePath,
-    fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
   });
   return new OfficialWorkflowlistApi(config);
 };
@@ -51,11 +55,11 @@ const GuiSseContext = createContext<GuiSseContextInterface>(
 const GuiSseProvider = ({ children, ...rest }: React.PropsWithChildren<{}>) => {
   
   const { dispatch } = useAppContext();
-  
+  const toast = useCallback((toast: Toast) => dispatch({ type: 'toast', toast }), [ dispatch ]);
   return (<SseProvider
               url={ SSE_UPDATE_URL }
               Context={ GuiSseContext }
-              buildFetchApi={ () => buildFetchApi(dispatch) }
+              buildFetchApi={ () => buildFetchApi(toast) }
               { ...rest }>
             { children }
           </SseProvider>);

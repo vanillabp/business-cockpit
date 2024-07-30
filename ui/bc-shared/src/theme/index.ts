@@ -12,6 +12,12 @@ export const theme: ThemeType = {
       'placeholder': '#bbbbbb',
       'light-5': '#c7c7c7',
       'light-6': '#b4b4b4',
+      'link': '#663300',
+      'list-new': 'rgba(102, 51, 0, 0.1)',
+      'list-updated': 'rgba(255, 230, 153, 0.15)',
+      'list-ended': 'rgba(242, 242, 242, 0.25)',
+      'list-removed_from_list': 'rgba(242, 242, 242, 0.25)',
+      'list-refresh': '#ffe699',
     },
     font: {
       family: 'Roboto',
@@ -25,7 +31,10 @@ export const theme: ThemeType = {
       outline: {
         color: '#e0a244',
       }
-    }
+    },
+    drop: {
+      zIndex: 99,
+    },
   },
   table: {
     header: {
@@ -158,7 +167,7 @@ export const theme: ThemeType = {
   tip: {
       content: {
           background: "white"
-      }
+      },
   },
   layer: {
     zIndex: '100',

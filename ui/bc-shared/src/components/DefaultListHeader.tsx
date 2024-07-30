@@ -31,6 +31,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
     allSelected,
     selectAll
 }) => {
+  const language = currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '');
   if (column.path === 'id') {
     return (
         <Box
@@ -49,7 +50,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
             fill
             align="center">
           <Tip
-              content={ column.title[currentLanguage] || column.title['en'] }>
+              content={ column.title[language] }>
             <ContactInfo />
           </Tip>
         </Box>);
@@ -62,7 +63,7 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
           pad="xsmall">
         <Text
             truncate="tip">
-          { column.title[currentLanguage] || column.title['en'] }
+          { column.title[language] }
         </Text>
         <Box
             align="center"

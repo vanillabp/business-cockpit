@@ -10,6 +10,11 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +23,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
 	@Autowired
@@ -30,6 +30,9 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	@Autowired
 	protected GuiApiMapper mapper;
+
+	@Autowired
+	protected PersonAndGroupApiMapper personAndGroupMapper;
 
 	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
@@ -360,7 +363,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		users
 				.stream()
 				.limit(limit)
-				.map(mapper::toApi)
+				.map(UserDetails::getId)
+				.map(personAndGroupMapper::toApiPerson)
 				.forEach(result::addUsersItem);
 
 		return Mono.just(ResponseEntity.ok(result));

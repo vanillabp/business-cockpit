@@ -3,28 +3,8 @@ package io.vanillabp.cockpit.tasklist;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
-import jakarta.annotation.PostConstruct;
+import io.vanillabp.cockpit.users.model.Person;
 import jakarta.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Order;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.support.PageableExecutionUtils;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +15,28 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.support.PageableExecutionUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class UserTaskService {
@@ -80,9 +82,10 @@ public class UserTaskService {
 
     private Disposable dbChangesSubscription;
 
-    @PostConstruct
-    public void subscribeToDbChanges() {
-        
+    @EventListener
+    public void subscribeToDbChanges(
+            final ApplicationStartedEvent event) {
+
         dbChangesSubscription = changeStreamUtils
                 .subscribe(UserTask.class)
                 .flatMapSequential(userTask -> Mono
@@ -179,11 +182,11 @@ public class UserTaskService {
 
     public Mono<UserTask> assignTask(
             final String userTaskId,
-            final String userId) {
+            final Person person) {
 
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
-                    userTask.addCandidateUser(userId);
+                    userTask.addCandidatePerson(person);
                     return userTasks.save(userTask);
                 });
 
@@ -191,13 +194,13 @@ public class UserTaskService {
 
     public Flux<UserTask> assignTask(
             final Collection<String> userTaskIds,
-            final String userId) {
+            final Person person) {
 
         return userTasks.saveAll(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
-                            userTask.addCandidateUser(userId);
+                            userTask.addCandidatePerson(person);
                             return userTask;
                         }));
 
@@ -205,11 +208,11 @@ public class UserTaskService {
 
     public Mono<UserTask> unassignTask(
             final String userTaskId,
-            final String userId) {
+            final String personId) {
 
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
-                    userTask.removeCandidateUser(userId);
+                    userTask.removeCandidatePerson(personId);
                     return userTasks.save(userTask);
                 });
 
@@ -217,13 +220,13 @@ public class UserTaskService {
 
     public Flux<UserTask> unassignTask(
             final Collection<String> userTaskIds,
-            final String userId) {
+            final String personId) {
 
         return userTasks.saveAll(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
-                            userTask.removeCandidateUser(userId);
+                            userTask.removeCandidatePerson(personId);
                             return userTask;
                         }));
 
@@ -231,13 +234,13 @@ public class UserTaskService {
 
     public Mono<UserTask> claimTask(
             final String userTaskId,
-            final String userId) {
+            final Person person) {
 
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
-                    if (StringUtils.hasText(userId)
-                            && !userTask.getAssignee().equals(userId)) {
-                        userTask.setAssignee(userId);
+                    if ((userTask.getAssignee() == null)
+                        || !userTask.getAssignee().getId().equals(person.getId())) {
+                        userTask.setAssignee(person);
                         return userTasks.save(userTask);
                     }
                     return Mono.just(userTask);
@@ -247,16 +250,13 @@ public class UserTaskService {
 
     public Flux<UserTask> claimTask(
             final Collection<String> userTaskIds,
-            final String userId) {
+            final Person person) {
 
-        if (!StringUtils.hasText(userId)) {
-            return Flux.empty();
-        }
         return userTasks.saveAll(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
-                            userTask.setAssignee(userId);
+                            userTask.setAssignee(person);
                             return userTask;
                         }));
 
@@ -264,34 +264,37 @@ public class UserTaskService {
 
     public Mono<UserTask> unclaimTask(
             final String userTaskId,
-            final String userId) {
+            final String personId) {
 
-        final var userIdGiven = StringUtils.hasText(userId);
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    if (!userIdGiven
-                            || ((userTask.getAssignee() != null) && userTask.getAssignee().equals(userId))) {
-                        userTask.setAssignee(null);
-                        return userTasks.save(userTask);
-                    }
-                    return Mono.just(userTask);
-                });
+        final var query = new Query();
+        query.addCriteria(Criteria.where("id").is(userTaskId));
+        query.addCriteria(Criteria.where("assignee.id").is(personId));
+        final var update = new Update();
+        update.unset("assignee");
+
+        return mongoTemplate
+                .updateFirst(query, update, UserTask.class)
+                .single()
+                .flatMap(result -> userTasks.findById(result.getUpsertedId().asString().getValue()));
 
     }
 
     public Flux<UserTask> unclaimTask(
             final Collection<String> userTaskIds,
-            final String userId) {
+            final String personId) {
 
-        return userTasks.saveAll(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .filter(userTask -> !StringUtils.hasText(userId)
-                                || ((userTask.getAssignee() != null) && userTask.getAssignee().equals(userId)))
-                        .map(userTask -> {
-                            userTask.setAssignee(null);
-                            return userTask;
-                        }));
+        final var query = new Query();
+        query.addCriteria(Criteria.where("id").in(userTaskIds));
+        query.addCriteria(Criteria.where("assignee.id").is(personId));
+        final var update = new Update();
+        update.unset("assignee");
+
+        final var findQuery = new Query();
+        findQuery.addCriteria(Criteria.where("id").in(userTaskIds));
+
+        return mongoTemplate
+                .updateMulti(query, update, UserTask.class)
+                .thenMany(mongoTemplate.find(findQuery, UserTask.class));
 
     }
 
@@ -632,10 +635,10 @@ public class UserTaskService {
         if ((assignees != null)
                 && !assignees.isEmpty()) {
             if (notInAssignees) {
-                final var assigneeMatches = Criteria.where("assignee").not().in(assignees);
+                final var assigneeMatches = Criteria.where("assignee.id").not().in(assignees);
                 userAndRestrictions.add(assigneeMatches);
             } else {
-                final var assigneeMatches = Criteria.where("assignee").in(assignees);
+                final var assigneeMatches = Criteria.where("assignee.id").in(assignees);
                 userOrRestrictions.add(assigneeMatches);
             }
         } else if (notInAssignees) {
@@ -645,12 +648,12 @@ public class UserTaskService {
 
         if ((candidateUsers != null)
                 && !candidateUsers.isEmpty()) {
-            final var candidateUsersMatches = Criteria.where("candidateUsers").in(candidateUsers);
+            final var candidateUsersMatches = Criteria.where("candidateUsers.id").in(candidateUsers);
             userOrRestrictions.add(candidateUsersMatches);
         }
         if ((candidateGroups != null)
                 && !candidateGroups.isEmpty()) {
-            final var candidateGroupsMatches = Criteria.where("candidateGroups").in(candidateGroups);
+            final var candidateGroupsMatches = Criteria.where("candidateGroups.id").in(candidateGroups);
             userOrRestrictions.add(candidateGroupsMatches);
         }
         if (!userAndRestrictions.isEmpty()

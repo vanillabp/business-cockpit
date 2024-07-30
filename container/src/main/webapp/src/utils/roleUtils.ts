@@ -1,40 +1,34 @@
 import { User } from 'client/gui';
 import { useAppContext } from '../AppContext';
 
-interface CurrentUserRoles {
+interface CurrentUserGroups {
   isReadOnly: boolean;
   currentUser: User | null | undefined;
-  hasOneOfRoles: (roles: Array<string> | null | undefined) => boolean;
+  hasOneOfGroups: (groups: Array<string>) => boolean;
 }
 
-const useCurrentUserRoles = (): CurrentUserRoles => {
+const useCurrentUserGroups = (): CurrentUserGroups => {
   
   const { state } = useAppContext();
   
   if (!state
       || !state.currentUser
-      || !state.currentUser.roles) {
+      || !state.currentUser.groups) {
     return {
         isReadOnly: false,
         currentUser: state?.currentUser,
-        hasOneOfRoles: _roles => false
+        hasOneOfGroups: _groups => false
       };
   }
   
   return {
-    isReadOnly: !state.currentUser.roles || (state.currentUser.roles.length === 0),
+    isReadOnly: !state.currentUser.groups || (state.currentUser.groups.length === 0),
     currentUser: state.currentUser,
-    hasOneOfRoles: (roles: Array<string> | null | undefined): boolean => {
-          return (roles === null) || (roles === undefined)
-              ? true
-              : roles.length === 0
-              // @ts-ignore
-              ? state.currentUser.roles.length > 0
-              // @ts-ignore
-              : roles.reduce((result: boolean, role: string) => result || state.currentUser.roles.includes(role), false);
-      }
+    hasOneOfGroups: groups => !Boolean(groups)
+        || groups.reduce((result, group) => result
+            || state.currentUser?.groups?.find(g => g.id === group) !== undefined, false)
   };
   
 }
 
-export { useCurrentUserRoles };
+export { useCurrentUserGroups };

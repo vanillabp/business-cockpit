@@ -4,12 +4,11 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.commons.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
+import java.util.Collection;
+import java.util.List;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.messaging.Message;
-
-import java.util.Collection;
-import java.util.List;
 
 public class UserTaskChangedNotification extends NotificationEvent {
 
@@ -20,12 +19,12 @@ public class UserTaskChangedNotification extends NotificationEvent {
     public UserTaskChangedNotification(
             final Type type,
             final String userTaskId,
-            final Collection<String> targetRoles) {
+            final Collection<String> targetGroups) {
         
         super(
                 "UserTask",
                 type,
-                targetRoles);
+                targetGroups);
         
         this.userTaskId = userTaskId;
         
@@ -55,7 +54,7 @@ public class UserTaskChangedNotification extends NotificationEvent {
                 Type.valueOf(type.name()),
                 message.getRaw().getDocumentKey().get(
                         message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                message.getBody().getTargetRoles());
+                message.getBody().getTargetGroups());
         
     }
     
@@ -83,7 +82,7 @@ public class UserTaskChangedNotification extends NotificationEvent {
                 Type.valueOf(type.name()),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                event.getBody() == null ? List.of() : event.getBody().getTargetRoles());
+                event.getBody() == null ? List.of() : event.getBody().getTargetGroups());
         
     }
     

@@ -1,4 +1,4 @@
-import { Box, Keyboard, TextInput, Menu } from 'grommet';
+import { Box, Keyboard, Menu, TextInput } from 'grommet';
 import { Search } from 'grommet-icons';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
+import { ButtonExtendedProps } from "grommet/components/Button";
 
 i18n.addResources('en', 'usertask-header', {
       "views-label": "View",
@@ -35,12 +36,12 @@ const Header = () => {
   
   const loadUserTask = () => navigate(`/${ tApp('url-usertask') }/${taskId}`, { replace: true });
   
-  const viewMenuItems = [
+  const viewMenuItems: ButtonExtendedProps[] = [
       { label: t('view-form'), onClick: () => switchView('') },
       { label: t('view-list'), onClick: () => switchView(`/${tApp('url-list')}`) },
-      { label: t('view-icon'), onClick: () => switchView(`/${tApp('url-icon')}`) }
+      { label: t('view-icon'), onClick: () => switchView(`/${tApp('url-icon')}`) },
     ];
-  
+
   return (
       <Box
           fill

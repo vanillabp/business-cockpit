@@ -4,6 +4,7 @@ import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceMapper;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
@@ -12,16 +13,12 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEven
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowLifecycleEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.util.StringUtils;
-
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -32,7 +29,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+@Transactional
 public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     private static final Logger logger = LoggerFactory.getLogger(Camunda8WorkflowHandler.class);
 
@@ -124,6 +127,21 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         saveBusinessKeyProcessInstanceConnection(camunda8WorkflowCreatedEvent);
 
         return workflowCreatedEvent;
+    }
+
+
+    public WorkflowEvent processUpdatedEvent(
+            final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
+
+        final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
+
+        WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
+                camunda8WorkflowCreatedEvent.getTenantId(),
+                List.of(language)
+        );
+        fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowUpdatedEvent);
+
+        return workflowUpdatedEvent;
     }
 
     public void fillWorkflowCreatedEvent(
@@ -266,6 +284,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                 "workflow-title.ftl",
                                 details::getTitle,
                                 event::getTitle,
+                                event::setTitle,
                                 bpmnProcessName,
                                 templatesPathes,
                                 details.getTemplateContext(),
@@ -289,10 +308,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     }
 
     private void saveBusinessKeyProcessInstanceConnection(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
-        ProcessInstanceEntity processInstanceEntity =
-                new ProcessInstanceEntity(
-                        camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
-                        camunda8WorkflowCreatedEvent.getBusinessKey());
+        ProcessInstanceEntity processInstanceEntity = ProcessInstanceMapper.map(camunda8WorkflowCreatedEvent);
         processInstanceRepository.save(processInstanceEntity);
     }
 
@@ -305,17 +321,17 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         if (String.class.isAssignableFrom(workflowAggregateIdClass)) {
             parseWorkflowAggregateIdFromBusinessKey = businessKey -> businessKey;
         } else if (int.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Integer.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Integer::valueOf;
         } else if (long.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Long.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Long::valueOf;
         } else if (float.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Float.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Float::valueOf;
         } else if (double.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Double.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Double::valueOf;
         } else if (byte.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> Byte.valueOf(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = Byte::valueOf;
         } else if (BigInteger.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> new BigInteger(businessKey);
+            parseWorkflowAggregateIdFromBusinessKey = BigInteger::new;
         } else {
             try {
                 final var valueOfMethod = workflowAggregateIdClass.getMethod("valueOf", String.class);

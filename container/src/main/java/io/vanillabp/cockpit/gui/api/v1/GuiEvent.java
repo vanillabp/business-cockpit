@@ -1,8 +1,7 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import org.springframework.context.ApplicationEvent;
-
 import java.util.Collection;
+import org.springframework.context.ApplicationEvent;
 
 public class GuiEvent extends ApplicationEvent {
 
@@ -10,16 +9,16 @@ public class GuiEvent extends ApplicationEvent {
     
     private Object event;
     
-    private Collection<String> targetRoles;
+    private Collection<String> targetGroups;
 
     public GuiEvent(
             final Object source,
-            final Collection<String> targetRoles,
+            final Collection<String> targetGroups,
             final Object event) {
         
         super(source);
         this.event = event;
-        this.targetRoles = targetRoles;
+        this.targetGroups = targetGroups;
         
     }
     
@@ -27,21 +26,21 @@ public class GuiEvent extends ApplicationEvent {
         return event;
     }
 
-    public Collection<String> getTargetRoles() {
-        return targetRoles;
+    public Collection<String> getTargetGroups() {
+        return targetGroups;
     }
     
-    public boolean matchesTargetRoles(
-            final Collection<String> roles) {
+    public boolean matchesTargetGroups(
+            final Collection<String> groups) {
         
-        if (targetRoles == null) {
+        if (targetGroups == null) {
             return true;
         }
         
-        return targetRoles
+        return targetGroups
                 .stream()
-                .flatMap(targetRole -> roles.stream().map(targetRole::equals))
-                .anyMatch(hasMatchingRole -> hasMatchingRole);
+                .flatMap(targetGroup -> groups.stream().map(targetGroups::equals))
+                .anyMatch(hasMatchingGroup -> hasMatchingGroup);
         
     }
 

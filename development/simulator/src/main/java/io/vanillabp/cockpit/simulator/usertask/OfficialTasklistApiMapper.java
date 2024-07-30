@@ -16,6 +16,9 @@ public abstract class OfficialTasklistApiMapper {
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
     @Mapping(target = "read", ignore = true)
+    @Mapping(target = "assignee", ignore = true)
+    @Mapping(target = "candidateUsers", ignore = true)
+    @Mapping(target = "candidateGroups", ignore = true)
     public abstract UserTask toApi(UserTaskCreatedOrUpdatedEvent event);
     
     @NoMappingMethod

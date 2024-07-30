@@ -1,12 +1,13 @@
-import { Sex, User as UserDto } from '@vanillabp/bc-official-gui-client';
-import { User as UserMale, UserFemale } from 'grommet-icons';
-import { Anchor, Avatar, Box, Text } from 'grommet';
+import { Person } from '@vanillabp/bc-official-gui-client';
+import { User as UserMale } from 'grommet-icons';
+import { Avatar, Box } from 'grommet';
 import { BorderType } from 'grommet/utils';
-import { useRef, useState } from 'react';
-import { useOnClickOutside, useResponsiveScreen } from '@vanillabp/bc-shared';
+import React, { useRef, useState } from 'react';
+import { TranslationFunction, useOnClickOutside, UserDetailsBox, useResponsiveScreen } from '@vanillabp/bc-shared';
 
 type UserAvatarProps = {
-  user: UserDto;
+  t: TranslationFunction;
+  user: Person;
   isUserLoggedIn?: boolean;
   border?: BorderType;
   size?: 'xsmall' | 'small' | 'medium' | 'large' | 'xlarge' | string;
@@ -17,6 +18,7 @@ const hashCode = (value: string) => value
     .reduce((s, c) => Math.imul(31, s) + c.charCodeAt(0) | 0, 0);
 
 const UserAvatar = ({
+  t,
   user,
   isUserLoggedIn = false,
   border,
@@ -53,7 +55,7 @@ const UserAvatar = ({
     symbolSize = `${ intSize * 0.65 }px`;
   }
   
-  const [ showDetails, setShowDetails ] = useState<UserDto | undefined>(undefined);
+  const [ showDetails, setShowDetails ] = useState<Person | undefined>(undefined);
   const ref = useRef(null);
   useOnClickOutside(ref, event => {
       if (!showDetails) return;
@@ -94,18 +96,7 @@ const UserAvatar = ({
                         left: `calc(${symbolSize} * 0.15)`,
                         top: '0.3rem'
                       } }>
-                  <Text
-                      weight="bold">{ user.id }</Text>
-                  <Box
-                      pad={ { bottom: isPhone ? 'medium' : 'small' } }>
-                    <Text truncate="tip">
-                      { showDetails.firstName } { showDetails.lastName }
-                    </Text>
-                    <Anchor
-                        href={ `mailto:${ showDetails.email }` }>
-                      { showDetails.email }
-                    </Anchor>
-                  </Box>
+                  <UserDetailsBox user={ user } t={ t } />
                 </Box>
               : undefined
         }
@@ -115,11 +106,7 @@ const UserAvatar = ({
             size={ size }
             border={ border }
             src={ user.avatar ? `/api/v1/gui/user/${ user.id }/avatar?ts=${ user.avatar }` : undefined }>
-          {
-            user.sex === Sex.Female
-                ? <UserFemale color='accent-1' size={ symbolSize } />
-                : <UserMale color='accent-1' size={ symbolSize } />
-          }
+          <UserMale color='light-3' size={ symbolSize } />
         </Avatar>
       </Box>);
     

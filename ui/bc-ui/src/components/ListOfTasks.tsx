@@ -1,5 +1,5 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { User as UserDto, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   BcUserTask,
@@ -20,6 +20,7 @@ import {
   ShowLoadingIndicatorFunction,
   TranslationFunction,
   useOnClickOutside,
+  UserDetailsBox,
   useResponsiveScreen,
   WakeupSseCallback,
 } from "@vanillabp/bc-shared";
@@ -104,7 +105,7 @@ const loadUserTasks = async (
       sort,
       sortAscending,
       initialTimestamp);
-        
+
   setNumberOfUserTasks(result!.page.totalElements);
   updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
@@ -149,7 +150,7 @@ const reloadUserTasks = async (
           selected: allSelected,
         }
       })
-    };   
+    };
 
 };
 
@@ -302,7 +303,7 @@ const AssignButton = ({
   const [ active, setActive ] = useState(false);
   const [ query, setQuery ] = useState('')
   const currentQuery = useRef<string>('');
-  const [ users, setUsers ] = useState<Array<UserDto> | undefined>(undefined);
+  const [ users, setUsers ] = useState<Array<Person> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadResult = async () => {
@@ -425,6 +426,7 @@ const AssignButton = ({
                               height={ { min: '2rem' } }
                               onClick={ () => assign(user.id!) }>
                             <User
+                                t={ t }
                                 user={ user }
                                 isUserLoggedIn={ false }
                                 iconSize='small'
@@ -453,12 +455,12 @@ const RefreshButton = ({
   const textColor = disabled ? 'dark-4' : 'dark-1';
 
   return (<Box
-              hoverIndicator={ disabled ? 'light-2' : "accent-1" }
+              hoverIndicator={ disabled ? 'light-2' : "list-refresh" }
               focusIndicator={ false }
               onClick={ refresh }
               direction="row"
               elevation="small"
-              background={ !disabled ? { color: "accent-1", opacity: "strong" } : undefined }
+              background={ !disabled ? { color: "list-refresh", opacity: "strong" } : undefined }
               round={ { size: '0.4rem' } }
               border={ { color } }>
             <Tip
@@ -545,7 +547,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-3', opacity: 0.1 } }>
+                  background="list-new">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -570,7 +572,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'accent-1', opacity: 0.35 } }>
+                  background="list-updated">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -595,7 +597,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-ended">
                 <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
               </Box>
             </Box>
@@ -620,7 +622,7 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background={ { color: 'light-2', opacity: 0.5 } }>
+                  background="list-removed_from_list">
                 <Text size="xsmall">T</Text>
               </Box>
             </Box>
@@ -698,6 +700,7 @@ const DefaultHeader = ({
 }
 
 const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
+  t,
   item,
 }) => {
 
@@ -721,24 +724,25 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                       dropIdentifier
                           && dropIdentifier === item.id
                           && <Drop
-                              inline
-                              round="xsmall"
-                              onMouseLeave={ () => setDropIdentifier(undefined) }
-                              target={ targetRef }>
-                              <Box
-                                  direction="column"
-                                  margin="xsmall"
-                                  gap="xsmall">
+                                inline
+                                stretch
+                                round="xsmall"
+                                onMouseLeave={ () => setDropIdentifier(undefined) }
+                                target={ targetRef }>
+                              <Grid columns={['auto', 'auto']} gap="xsmall" margin="xsmall">
                                 {
-                                  item.data.candidateUsers?.map(user => <Box
-                                      direction="row"
-                                      align="center"
-                                      justify="center">
-                                    { user }
-                                    <FormTrash onClick={ () => item.data.unassign(user) } />
-                                  </Box>)
+                                  item.data.candidateUsers?.map(user => <>
+                                      <Text
+                                          style={ { whiteSpace: "nowrap" } }
+                                          tip={ { content: <UserDetailsBox user={ user } t={ t } /> } }>
+                                        {
+                                          user.displayShort ?? user.email ?? user.id
+                                        }
+                                      </Text>
+                                      <FormTrash onClick={ () => item.data.unassign(user.id) } />
+                                  </>)
                                 }
-                              </Box>
+                              </Grid>
                           </Drop>
                     }
                   </>
@@ -892,24 +896,12 @@ const ListOfTasks = ({
   const userTasks = useRef<Array<ListItem<UserTask>> | undefined>(undefined);
   const [ numberOfTasks, setNumberOfTasks ] = useState<number>(0);
   const [ modulesOfTasks, setModulesOfTasks ] = useState<UserTask[] | undefined>(undefined);
-  const [ languagesOfTitles, setLanguagesOfTitles ] = useState<Array<string>>([currentLanguage]);
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        
-        const result = await loadUserTasks(tasklistApi, setNumberOfTasks, modulesOfTasks,
+        await loadUserTasks(tasklistApi, setNumberOfTasks, modulesOfTasks,
             setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
             undefined, true, mapToBcUserTask);
-        const titleLanguages = result
-            .items
-            .flatMap(userTask => Object.keys(userTask.title))
-            .reduce((allLanguages, titleLanguage) => {
-              if (!allLanguages.includes(titleLanguage)) {
-                allLanguages.push(titleLanguage);
-              }
-              return allLanguages;
-            }, new Array<string>(currentLanguage));
-        setLanguagesOfTitles(titleLanguages);
       };
       if (userTasks.current === undefined) {
         showLoadingIndicator(true);
@@ -918,7 +910,7 @@ const ListOfTasks = ({
     },
     // tasklistApi is not part of dependency because it changes one time but this is irrelevant to the
     // purpose of preloading modules used by usertasks
-    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator, setLanguagesOfTitles ]);
+    [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined);
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
@@ -962,6 +954,7 @@ const ListOfTasks = ({
     if (totalColumns.title === undefined) {
       totalColumns.title = {
           title: { [currentLanguage]: t('column_title') },
+          type: 'i18n',
           path: 'title',
           width: '',
           priority: 0,
@@ -974,8 +967,9 @@ const ListOfTasks = ({
     if (totalColumns.assignee === undefined) {
       totalColumns.assignee = {
           path: 'assignee',
+          type: 'person',
           show: true,
-          sortable: false,
+          sortable: true,
           filterable: false,
           title: { [currentLanguage]: t('column_assignee') },
           width: '10rem',
@@ -1012,7 +1006,11 @@ const ListOfTasks = ({
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
-  const sort = effectiveSort?.startsWith("title.") ? "title" : effectiveSort;
+  const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
+      ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
+      : effectiveSort?.indexOf('.sort,') !== -1 // column type 'person'
+      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.sort,'))
+      : effectiveSort;
   const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
 
   const refreshList = () => {
@@ -1023,8 +1021,10 @@ const ListOfTasks = ({
   }
   const setSort = (column?: Column) => {
     if (column) {
-      if (column.path === 'title') {
-        _setSort('title.' + languagesOfTitles.join(',title.'))
+      if (column.type === 'i18n') {
+        _setSort(`${column.path}.${currentLanguage}`);
+      } else if (column.type === 'person') {
+        _setSort(`${column.path}.sort,${column.path}.id`);
       } else {
         _setSort(column.path);
       }

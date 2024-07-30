@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { buildTimestamp, buildVersion } from '../WorkflowPage';
 import { BcUserTask, CopyClipboard, theme, WorkflowPage } from '@vanillabp/bc-shared';
 import { Box, Grommet, Heading, Text, Tip } from 'grommet';

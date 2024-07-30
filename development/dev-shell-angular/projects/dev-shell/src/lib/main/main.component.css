@@ -1,3 +1,10 @@
 .devShell {
   margin: 10px;
 }
+
+.componentButtons {
+  display: flex;
+  gap: 1rem;
+  flex-direction: row;
+  margin: 1rem;
+}

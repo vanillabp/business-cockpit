@@ -2,11 +2,11 @@ package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
-import io.vanillabp.cockpit.adapter.camunda8.receiver.redis.WorkflowEventProtobufMapper;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.ProcessWorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
-import io.zeebe.exporter.proto.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +20,7 @@ import java.util.Map;
 
 @Transactional
 public class Camunda8WorkflowEventHandler {
+    private static final Logger logger = LoggerFactory.getLogger(Camunda8WorkflowEventHandler.class);
 
     private final static ThreadLocal<List<WorkflowEvent>> events = ThreadLocal.withInitial(LinkedList::new);
 
@@ -38,33 +39,50 @@ public class Camunda8WorkflowEventHandler {
         this.camunda8WorkflowHandlerMap.put(bpmnProcessId, workflowHandler);
     }
 
-    public void notify(Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
+    public void processWorkflowCreatedEvent(Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(workflowCreatedEvent.getBpmnProcessId());
 
         io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
                 camunda8WorkflowHandler.processCreatedEvent(workflowCreatedEvent);
 
-        applicationEventPublisher.publishEvent(
-                new WorkflowEvent(
-                        Camunda8WorkflowEventHandler.class,
-                        workflowEvent));
+        sendWorkflowEvent(workflowEvent);
     }
 
-    public void notify(Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
+
+    public void processWorkflowLifecycleEvent(Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(camunda8WorkflowLifeCycleEvent.getBpmnProcessId());
 
         io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
                 camunda8WorkflowHandler.processLifeCycleEvent(camunda8WorkflowLifeCycleEvent);
 
+        sendWorkflowEvent(workflowEvent);
+    }
+
+    public void processWorkflowUpdateEvent(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
+        Camunda8WorkflowHandler camunda8WorkflowHandler =
+                camunda8WorkflowHandlerMap.get(camunda8WorkflowCreatedEvent.getBpmnProcessId());
+
+        if(camunda8WorkflowHandler == null){
+            logger.warn(
+                    "Received update event, but no workflow handler is registered for bpmn process id {}.",
+                    camunda8WorkflowCreatedEvent.getBpmnProcessId());
+            return;
+        }
+
+        io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
+                camunda8WorkflowHandler.processUpdatedEvent(camunda8WorkflowCreatedEvent);
+
+        sendWorkflowEvent(workflowEvent);
+    }
+
+    private void sendWorkflowEvent(io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent) {
         applicationEventPublisher.publishEvent(
                 new WorkflowEvent(
                         Camunda8WorkflowEventHandler.class,
                         workflowEvent));
     }
-
-
 
     @EventListener
     public void addEvent(

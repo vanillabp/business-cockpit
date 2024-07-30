@@ -1,16 +1,18 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import java.util.List;
+import java.util.regex.Pattern;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.util.List;
-
 public class JwtUserDetails implements UserDetails {
 
+    private static final Pattern PATTERN_NAME = Pattern.compile("^(\\S+)\\s+(.*)$");
     public static final String USER_AUTHORITY_PREFIX = "USER_";
 
     private final JwtAuthenticationToken authenticationToken;
+
 
     public JwtUserDetails(
             final JwtAuthenticationToken authenticationToken) {
@@ -31,40 +33,42 @@ public class JwtUserDetails implements UserDetails {
     }
     
     @Override
-    public String getFirstName() {
+    public String getDisplay() {
 
         final var name = getJwt().getClaimAsString("name");
         final var givenName = getJwt().getClaimAsString("given_name");
-        if ((givenName == null)
-                && (name == null)) {
-            return null;
-        }
-        if (givenName == null) {
-            final var posOfSeparator = name.indexOf(' ');
-            if (posOfSeparator != -1) {
-                return name.substring(0, posOfSeparator);
+        final var familyName = getJwt().getClaimAsString("family_name");
+        if (familyName != null) {
+            if (givenName == null) {
+                return familyName;
             }
+            return familyName + ", " + givenName;
         }
-        return givenName;
+        return name;
         
     }
     
     @Override
-    public String getLastName() {
+    public String getDisplayShort() {
 
         final var name = getJwt().getClaimAsString("name");
+        final var givenName = getJwt().getClaimAsString("given_name");
         final var familyName = getJwt().getClaimAsString("family_name");
-        if ((familyName == null)
-                && (name == null)) {
-            return getJwt().getSubject();
-        }
-        if (familyName == null) {
-            final var posOfSeparator = name.indexOf(' ');
-            if (posOfSeparator != -1) {
-                return name.substring(posOfSeparator + 1);
+        if (familyName != null) {
+            if (givenName == null) {
+                return familyName;
             }
+            return familyName + ", " + givenName;
         }
-        return familyName;
+        final var posOfSeparator = name.indexOf(' ');
+        if (posOfSeparator == -1) {
+            return name;
+        }
+        final var matcher = PATTERN_NAME.matcher(name);
+        if (!matcher.matches()) {
+            return name;
+        }
+        return matcher.group(1) + ", " + matcher.group(2).trim();
         
     }
     
@@ -84,26 +88,6 @@ public class JwtUserDetails implements UserDetails {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
 
-    }
-    
-    @Override
-    public boolean isActive() {
-        
-        return true;
-        
-    }
-    
-    @Override
-    public Boolean isFemale() {
-
-        final var gender = getJwt().getClaimAsString("gender");
-        if ("female".equals(gender)) {
-            return Boolean.TRUE;
-        } else if ("male".equals(gender)) {
-            return Boolean.FALSE;
-        }
-        return null;
-        
     }
     
 }

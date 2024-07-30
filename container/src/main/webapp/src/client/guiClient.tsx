@@ -5,51 +5,63 @@ import {
   OnMessageFunction,
   SseContextInterface,
   SseProvider,
-  ToastAction,
+  ToastFunction,
   useSse,
   WakeupSseCallback
 } from '@vanillabp/bc-shared';
-import { createContext, Dispatch } from 'react';
+import { createContext } from 'react';
 import {
   Configuration as OfficialApiConfiguration,
   OfficialTasklistApi,
-  OfficialWorkflowlistApi
+  OfficialWorkflowlistApi,
+  OfficialWorkflowModulesApi,
 } from '@vanillabp/bc-official-gui-client';
 
 const SSE_UPDATE_URL = "/gui/api/v1/updates";
 
 const getLoginGuiApi = (
-  dispatch: Dispatch<ToastAction>,
+  toast: ToastFunction,
   wakeupSseCallback?: WakeupSseCallback
 ): LoginApi => {
   const config = new GuiConfiguration({
     basePath: '/gui/api/v1',
-    fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
   });
   return new LoginApi(config);
 };
 
 const getTasklistGuiApi = (
-    dispatch: Dispatch<ToastAction>,
+    toast: ToastFunction,
     wakeupSseCallback?: WakeupSseCallback,
     kind?: string,
 ): OfficialTasklistApi => {
   const config = new OfficialApiConfiguration({
     basePath: `/gui/api/v1${kind !== undefined ? `/${kind}` : ''}`,
-    fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
   });
   return new OfficialTasklistApi(config);
 };
 
 const getWorkflowlistGuiApi = (
-    dispatch: Dispatch<ToastAction>,
+    toast: ToastFunction,
     wakeupSseCallback?: WakeupSseCallback
 ): OfficialWorkflowlistApi => {
     const config = new OfficialApiConfiguration({
         basePath: '/gui/api/v1',
-        fetchApi: buildFetchApi(dispatch, wakeupSseCallback),
+        fetchApi: buildFetchApi(toast, wakeupSseCallback),
     });
     return new OfficialWorkflowlistApi(config);
+};
+
+const getWorkflowModulesGuiApi = (
+    toast: ToastFunction,
+    wakeupSseCallback?: WakeupSseCallback
+): OfficialWorkflowModulesApi => {
+  const config = new OfficialApiConfiguration({
+    basePath: '/gui/api/v1',
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
+  });
+  return new OfficialWorkflowModulesApi(config);
 };
 
 interface GuiSseContextInterface extends SseContextInterface { };
@@ -64,12 +76,12 @@ const GuiSseContext = createContext<GuiSseContextInterface>(
 
 const GuiSseProvider = ({ children, ...rest }: React.PropsWithChildren<{}>) => {
   
-  const { dispatch } = useAppContext();
+  const { toast } = useAppContext();
   
   return (<SseProvider
               url={ SSE_UPDATE_URL }
               Context={ GuiSseContext }
-              buildFetchApi={ () => buildFetchApi(dispatch) }
+              buildFetchApi={ () => buildFetchApi(toast) }
               { ...rest }>
             { children }
           </SseProvider>);
@@ -92,6 +104,7 @@ export {
     useGuiSse,
     getLoginGuiApi,
     getTasklistGuiApi,
-    getWorkflowlistGuiApi
+    getWorkflowlistGuiApi,
+    getWorkflowModulesGuiApi,
   };
 

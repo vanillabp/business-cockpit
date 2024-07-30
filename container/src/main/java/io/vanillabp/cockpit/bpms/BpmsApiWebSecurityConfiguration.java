@@ -1,8 +1,8 @@
 package io.vanillabp.cockpit.bpms;
 
+import io.vanillabp.cockpit.bpms.api.v1.BpmsApiController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -13,10 +13,7 @@ import org.springframework.security.web.server.authentication.HttpBasicServerAut
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApiController;
-
-@Configuration("BpmsApiWebSecurityConfiguration")
-public class WebSecurityConfiguration {
+public class BpmsApiWebSecurityConfiguration {
 
     public static final String BPMS_API_ROLE = "BPMS-API";
     

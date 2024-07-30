@@ -1,6 +1,6 @@
-import React, { MutableRefObject, PropsWithChildren, useContext, useMemo } from 'react';
+import React, { MutableRefObject, PropsWithChildren, useCallback, useContext, useMemo } from 'react';
 import { getOfficialTasklistApi } from '../client/guiClient.js';
-import { BcUserTask, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { BcUserTask, Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { useParams } from 'react-router-dom';
 import { OfficialTasklistApi, UserTask } from '@vanillabp/bc-official-gui-client';
 import { useAppContext } from '../DevShellAppContext.js';
@@ -92,8 +92,9 @@ const useOfficialTasklistApi = (
     wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialTasklistApi => {
 
   const { dispatch } = useAppContext();
+  const toast = useCallback((toast: Toast) => dispatch({ type: 'toast', toast }), [ dispatch ]);
   const api = useMemo(() => getOfficialTasklistApi(
-      basePath, dispatch, wakeupSseCallback?.current),
+      basePath, toast, wakeupSseCallback?.current),
       [ dispatch, wakeupSseCallback ]);
   return api;
   

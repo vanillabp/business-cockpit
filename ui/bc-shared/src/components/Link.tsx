@@ -9,7 +9,7 @@ interface LinkProps extends PropsWithChildren<TextProps> {
 
 const StyledLink = styled(Text)<LinkProps>`
   text-decoration: none;
-  color: ${props => props.theme.global.colors['accent-3'] };
+  color: ${props => props.theme.global.colors['link'] };
   cursor: pointer;
 
   &:hover {
@@ -18,7 +18,7 @@ const StyledLink = styled(Text)<LinkProps>`
   }
 
   &:visited {
-    color: ${props => props.theme.global.colors['accent-3'] };
+    color: ${props => props.theme.global.colors['link'] };
   }
 `;
 

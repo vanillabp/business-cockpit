@@ -5,20 +5,21 @@ import freemarker.template.TemplateNotFoundException;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.springboot.adapter.TaskHandlerBase;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.slf4j.Logger;
-import org.springframework.data.repository.CrudRepository;
-import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
-
 import java.io.File;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
 public abstract class TemplatingHandlerBase extends TaskHandlerBase {
 
@@ -46,6 +47,7 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
             final String name,
             final Supplier<Map<String, String>> detailsSupplier,
             final Supplier<Map<String, String>> eventSupplier,
+            final Consumer<Map<String, String>> updatedEventConsumer,
             final String defaultValue,
             final List<String> templatePathes,
             final Object templateContext,
@@ -57,19 +59,24 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
         final var templateName = detailsGiven
                 ? detailsSupplier.get().get(language)
                 : name;
-        eventSupplier
-                .get()
-                .put(
-                        language,
-                        renderText(
-                                e -> errorLoggingContext.apply(name, e),
-                                locale,
-                                templatePathes,
-                                templateName,
-                                templateContext,
-                                () -> detailsGiven
-                                        ? detailsSupplier.get().get(language)
-                                        : defaultValue));
+        final var event = eventSupplier
+                .get();
+        final var text = renderText(
+                e -> errorLoggingContext.apply(name, e),
+                locale,
+                templatePathes,
+                templateName,
+                templateContext,
+                () -> detailsGiven
+                        ? detailsSupplier.get().get(language)
+                        : defaultValue);
+        try {
+            event.put(language, text);
+        } catch (UnsupportedOperationException e) { // immutable map
+            final var newEvent = new HashMap<>(event);
+            newEvent.put(language, text);
+            updatedEventConsumer.accept(newEvent);
+        }
         
     }
     

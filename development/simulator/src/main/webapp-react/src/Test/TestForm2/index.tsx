@@ -9,11 +9,13 @@ const userTaskListColumns: Array<Column> = [
       'en': 'due'
     },
     path: 'dueDate',
+    type: 'date',
     width: '10rem',
     priority: 99,
     show: true,
     sortable: true,
     filterable: true,
+    resizeable: false,
   }
 ];
 
