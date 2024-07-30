@@ -189,6 +189,7 @@ const loadModule = (
   const publish = () => module.callbacks.forEach(callback => callback(modules[moduleId]));
 
   const retry = async (retryCallback?: () => void, initialTry?: boolean) => {
+
     try {
       if (module.buildTimestamp !== undefined) return;
       if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
@@ -202,6 +203,7 @@ const loadModule = (
       }
     } catch (error) {
       console.error("Error loading module:", error);
+
       modules[moduleId] = {
         ...module,
         retry
