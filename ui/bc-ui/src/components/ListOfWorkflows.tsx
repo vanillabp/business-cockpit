@@ -34,6 +34,8 @@ import {
   RefreshItemCallbackFunction,
   ReloadCallbackFunction,
   SearchableAndSortableUpdatingList,
+  sortWithColumnTypeSpecificAttributes,
+  sortWithoutColumnTypeSpecificAttributes,
   TypeOfItem,
   useFederationModules,
   WorkflowlistApi,
@@ -601,7 +603,7 @@ const ListOfWorkflows = ({
   navigateToWorkflow,
   currentLanguage,
   defaultSort,
-  defaultSortAscending,
+  defaultSortAscending = true,
   name,
   columns,
   children,
@@ -693,7 +695,7 @@ const ListOfWorkflows = ({
       const loadMetaInformation = async () => {
         await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
             definitionsOfWorkflows, setDefinitionsOfWorkflows,20, 0, undefined,
-            searchQueries, effectiveSort, sortAscending, mapToBcWorkflow);
+            searchQueries, undefined, true, mapToBcWorkflow);
       };
       if (workflows.current === undefined) {
         showLoadingIndicator(true);
@@ -773,12 +775,8 @@ const ListOfWorkflows = ({
   const [ anySelected, setAnySelected ] = useState(false);
   const [ refreshNecessary, setRefreshNecessary ] = useState(false);
   const [ effectiveSort, _setSort ] = useState<string | undefined>(defaultSort);
-  const sort = effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'
-      ? effectiveSort?.substring(0, effectiveSort?.length - currentLanguage.length - 1)
-      : effectiveSort?.indexOf('.sort,') !== -1 // column type 'person'
-      ? effectiveSort?.substring(0, effectiveSort?.indexOf('.sort,'))
-      : effectiveSort;
-  const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending === undefined ? true : defaultSortAscending);
+  const sort = sortWithoutColumnTypeSpecificAttributes(currentLanguage, effectiveSort);
+  const [ sortAscending, _setSortAscending ] = useState(defaultSortAscending);
 
   const refreshList = () => {
     workflows.current = undefined;
@@ -788,22 +786,19 @@ const ListOfWorkflows = ({
   }
 
   const setSort = (column?: Column) => {
-    if (column) {
-      if (column.type === 'i18n') {
-        _setSort(`${column.path}.${currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '')}`);
-      } else if (column.type === 'person') {
-        _setSort(`${column.path}.sort,${column.path}.id`);
-      } else {
-        _setSort(column.path);
-      }
+    let ascending: boolean;
+    if (!column) {
+      ascending = defaultSortAscending;
+      column = columnsOfWorkflows?.filter(c => c.path === defaultSort).at(0);
     } else {
-      _setSort(defaultSort);
+      ascending = true;
     }
-    _setSortAscending(defaultSortAscending === undefined ? true : defaultSortAscending);
+    _setSort(sortWithColumnTypeSpecificAttributes(currentLanguage, column));
+    _setSortAscending(ascending);
     refreshList();
   };
-  const setSortAscending = (sortAscending: boolean) => {
-    _setSortAscending(sortAscending);
+  const setSortAscending = (newSortAscending: boolean) => {
+    _setSortAscending(newSortAscending);
     refreshList();
   }
 
@@ -875,8 +870,10 @@ const ListOfWorkflows = ({
                   setColumnWidthAdjustment={ setColumnWidthAdjustment }
                   sort={ sort === column.path }
                   setSort={ setSort }
+                  isDefaultSort={ column.path === defaultSort }
                   sortAscending={ sortAscending }
                   setSortAscending={ setSortAscending }
+                  defaultSortAscending={ defaultSortAscending }
                   column={ column }
                   columnIndex={ columnIndex }
                   numberOfAllColumns={ allColumns.length }

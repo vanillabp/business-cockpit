@@ -19,7 +19,9 @@ const ListColumnHeader = ({
   hasColumnWidthAdjustment,
   setColumnWidthAdjustment,
   sort,
+  isDefaultSort,
   sortAscending,
+  defaultSortAscending,
   setSort,
   setSortAscending,
   allSelected,
@@ -35,7 +37,9 @@ const ListColumnHeader = ({
   hasColumnWidthAdjustment: boolean,
   setColumnWidthAdjustment: (column: Column, adjustment: number) => void,
   sort?: boolean,
+  isDefaultSort: boolean,
   sortAscending?: boolean,
+  defaultSortAscending: boolean,
   setSort: (column?: Column) => void,
   setSortAscending: (ascending: boolean) => void,
   allSelected: boolean;
@@ -104,7 +108,9 @@ const ListColumnHeader = ({
                       selectAll={ selectAll }
                       allSelected={ allSelected }
                       sort={ sort }
+                      isDefaultSort={ isDefaultSort }
                       sortAscending={ sortAscending }
+                      defaultSortAscending={ defaultSortAscending }
                       setSort={ setSort }
                       setSortAscending={ setSortAscending } />
                 : <DefaultListHeader
@@ -116,7 +122,9 @@ const ListColumnHeader = ({
                     selectAll={ selectAll }
                     allSelected={ allSelected }
                     sort={ sort }
+                    isDefaultSort={ isDefaultSort }
                     sortAscending={ sortAscending }
+                    defaultSortAscending={ defaultSortAscending }
                     setSort={ setSort }
                     setSortAscending={ setSortAscending } />
           }

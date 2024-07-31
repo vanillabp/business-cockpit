@@ -12,7 +12,9 @@ export interface DefaultListHeaderProps<D> {
   selectAll: (select: boolean) => void;
   allSelected: boolean;
   sort?: boolean,
+  isDefaultSort: boolean,
   sortAscending?: boolean,
+  defaultSortAscending: boolean,
   setSort: (column?: Column) => void,
   setSortAscending: (ascending: boolean) => void,
 }
@@ -25,13 +27,28 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
     column,
     currentLanguage,
     sort,
+    isDefaultSort,
     sortAscending,
+    defaultSortAscending,
     setSort,
     setSortAscending,
     allSelected,
     selectAll
 }) => {
   const language = currentLanguage ?? window.navigator.language.replace(/* exclude country */ /-.*$/, '');
+  const setNewSortAscending = () => {
+    if (isDefaultSort) {
+      if (sortAscending === defaultSortAscending) {
+        setSortAscending(!defaultSortAscending);
+      } else {
+        setSort(undefined);
+      }
+    } else if (sortAscending) {
+      setSortAscending(false);
+    } else {
+      setSort(undefined);
+    }
+  };
   if (column.path === 'id') {
     return (
         <Box
@@ -85,13 +102,13 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
                     : sortAscending
                         ? <Box
                             focusIndicator={ false }
-                            onClick={ event => setSortAscending(false) }
+                            onClick={ event => setNewSortAscending() }
                             pad={ { right: '0.5rem' } }>
                           <Ascend size="16rem" />
                         </Box>
                         : <Box
                             focusIndicator={ false }
-                            onClick={ event => setSort(undefined) }
+                            onClick={ event => setNewSortAscending() }
                             pad={ { right: '0.5rem' } }>
                           <Descend size="16rem" />
                         </Box>
