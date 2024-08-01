@@ -349,7 +349,7 @@ public class WorkflowlistService {
                 .save(workflow)
                 .onErrorMap(e -> {
                     logger.error("Could not save workflow '{}'!",
-                            workflow.getWorkflowId(),
+                            workflow.getId(),
                             e);
                     return null;
                 })
@@ -374,7 +374,7 @@ public class WorkflowlistService {
                 .map(task -> Boolean.TRUE)
                 .onErrorResume(e -> {
                     logger.error("Could not save workflow '{}'!",
-                            workflow.getWorkflowId(),
+                            workflow.getId(),
                             e);
                     return Mono.just(Boolean.FALSE);
                 });
@@ -397,7 +397,7 @@ public class WorkflowlistService {
                 .map(item -> Boolean.TRUE)
                 .onErrorResume(e -> {
                     logger.error("Could not save workflow '{}'!",
-                            workflow.getWorkflowId(),
+                            workflow.getId(),
                             e);
                     return Mono.just(Boolean.FALSE);
                 });

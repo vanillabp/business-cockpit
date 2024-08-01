@@ -46,8 +46,6 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private String bpmnProcessVersion;
 
-    private String workflowId;
-
     private String businessId;
 
     private Map<String, String> title;
@@ -232,14 +230,6 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         this.bpmnProcessVersion = bpmnProcessVersion;
-    }
-
-    public String getWorkflowId() {
-        return workflowId;
-    }
-
-    public void setWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
     }
 
     public String getBusinessId() {

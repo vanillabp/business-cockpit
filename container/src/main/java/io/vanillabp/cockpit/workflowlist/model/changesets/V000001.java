@@ -277,4 +277,21 @@ public class V000001 {
 
     }
 
+    @Changeset(order = 1010, author = "stephanpelikan")
+    public String dropRedundantColumnWorkflowId(
+            final ReactiveMongoTemplate mongo) {
+
+        final var unsetUpdate = new Update();
+        unsetUpdate.unset("workflowId");
+        mongo
+                .updateMulti(
+                        new Query(),
+                        unsetUpdate,
+                        Workflow.class)
+                .block();
+
+        return null;
+
+    }
+
 }

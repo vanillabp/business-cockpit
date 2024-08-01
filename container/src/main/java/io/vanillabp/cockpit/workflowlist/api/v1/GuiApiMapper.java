@@ -41,7 +41,6 @@ public abstract class GuiApiMapper {
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(workflow))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(workflow))")
-    @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)

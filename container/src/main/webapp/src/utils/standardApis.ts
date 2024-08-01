@@ -9,7 +9,7 @@ const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi 
     getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
         .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
     getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ size, initialTimestamp, userTasksUpdateRequest: { knownUserTasksIds, sort, sortAscending } }),
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
@@ -35,7 +35,7 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
     getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
         .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
     getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ size, initialTimestamp, userTasksUpdateRequest: { knownUserTasksIds, sort, sortAscending } }),
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi

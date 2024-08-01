@@ -213,11 +213,6 @@ paths:
       operationId: getUserTasksUpdate
       parameters:
         - in: query
-          name: size
-          schema:
-            type: integer
-            format: int32
-        - in: query
           name: initialTimestamp
           schema:
             type: string
@@ -820,6 +815,9 @@ components:
         - size
         - knownUserTasksIds
       properties:
+        size:
+          type: integer
+          format: int32
         query:
           type: string
         sort:

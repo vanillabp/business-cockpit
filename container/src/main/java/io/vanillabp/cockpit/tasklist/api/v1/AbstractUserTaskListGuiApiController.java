@@ -81,7 +81,6 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 	@Override
 	public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
 			final Mono<UserTasksUpdateRequest> userTasksUpdateRequest,
-			final Integer size,
 			final OffsetDateTime initialTimestamp,
 			final ServerWebExchange exchange) {
 
@@ -94,7 +93,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						.flatMap(entry -> Mono.zip(
 								getUserTasksUpdated(
 										user,
-										size,
+										entry.getT1().getSize(),
 										entry.getT1().getKnownUserTasksIds(),
 										entry.getT2(),
 										entry.getT1().getSort(),
