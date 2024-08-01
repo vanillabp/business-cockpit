@@ -710,7 +710,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const background = colorRowAccordingToUpdateStatus(item);
 
-  return (
+  return useMemo(() => (
       <StyledListCell
           background={ background }
           align="center">
@@ -750,7 +750,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                   </>
                 : undefined
         }
-      </StyledListCell>);
+      </StyledListCell>), [ item.id, item.data.candidateUsers ]);
 
 }
 
@@ -774,14 +774,14 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   currentLanguage,
 }) => {
   const titleLanguages = Object.keys(item.data['title']);
-  let title;
+  let title: string;
   if (titleLanguages.includes(currentLanguage)) {
     title = item.data['title'][currentLanguage];
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
   const background = colorRowAccordingToUpdateStatus(item);
-  return (
+  return useMemo(() => (
       <StyledListCell
           align="left"
           background={ background }>
@@ -799,7 +799,7 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                 </Link>
           }
         </Text>
-      </StyledListCell>);
+      </StyledListCell>), [ item.id, title ]);
 }
 
 const UserTaskDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {

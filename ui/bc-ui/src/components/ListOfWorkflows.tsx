@@ -553,28 +553,30 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   currentLanguage,
 }) => {
   const titleLanguages = Object.keys(item.data['title']);
-  let title;
+  let title: string;
   if (titleLanguages.includes(currentLanguage)) {
     title = item.data['title'][currentLanguage];
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
   const background = colorRowAccordingToUpdateStatus(item);
-  return (
-      <StyledListCell
-          align="left"
-          background={ background }>
-        <Text
-            color={ colorForEndedItemsOrUndefined(item) }
-            weight={ item.read === undefined ? 'bold' : 'normal' }
-            truncate="tip">
-          <Link
-              // @ts-ignore
-              onClick={ item.data.navigateToWorkflow }>
-            { title }
-          </Link>
-        </Text>
-      </StyledListCell>);
+  return useMemo(() => (
+        <StyledListCell
+            align="left"
+            background={ background }>
+          <Text
+              color={ colorForEndedItemsOrUndefined(item) }
+              weight={ item.read === undefined
+                  ? 'bold'
+                  : 'normal' }
+              truncate="tip">
+            <Link
+                // @ts-ignore
+                onClick={ item.data.navigateToWorkflow }>
+              { title }
+            </Link>
+          </Text>
+        </StyledListCell>), [ item.id, title ]);
 }
 
 const WorkflowDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {

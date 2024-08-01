@@ -1,6 +1,6 @@
 import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
 import { ColorType } from 'grommet/utils/index.js';
-import React, { FC, PropsWithChildren } from 'react';
+import React, { FC, memo, PropsWithChildren } from 'react';
 import { Column, ListItem, ListItemStatus, Person, TranslationFunction } from '../types/index.js';
 import {
   getObjectProperty,
@@ -56,13 +56,14 @@ const ListCell: React.FC<PropsWithChildren<ListCellProps>> = ({
 interface TextListCellProps extends TextExtendedProps {
   item: ListItem<any>;
   value?: string | String;
+  column: string;
   tip?: string;
   showUnreadAsBold?: boolean;
   background?: BackgroundType;
   align?: Alignment;
 }
 
-const TextListCell: React.FC<TextListCellProps> = ({
+const TextListCell: React.FC<TextListCellProps> = memo(({
   item,
   value = '',
   align = 'left',
@@ -95,19 +96,25 @@ const TextListCell: React.FC<TextListCellProps> = ({
               </Text>
       }
     </ListCell>);
-}
+}, (prevProps, nextProps) => {
+  if (prevProps.item.id !== nextProps.item.id) return false;
+  if (prevProps.column !== nextProps.column) return false;
+  return Object.is(prevProps.value, nextProps.value);
+});
 
 interface PersonListCellProps extends TextExtendedProps {
   t: TranslationFunction,
   item: ListItem<any>;
+  column: string;
   value?: Person;
   showUnreadAsBold?: boolean;
   background?: BackgroundType;
 }
 
-const PersonListCell: React.FC<PersonListCellProps> = ({
+const PersonListCell: React.FC<PersonListCellProps> = memo(({
   t,
   item,
+  column,
   value,
   showUnreadAsBold = false,
   background,
@@ -131,7 +138,11 @@ const PersonListCell: React.FC<PersonListCellProps> = ({
           }
         </Text>
       </ListCell>);
-}
+}, (prevProps, nextProps) => {
+  if (prevProps.item.id !== nextProps.item.id) return false;
+  if (prevProps.column !== nextProps.column) return false;
+  return Object.is(prevProps.value, nextProps.value);
+});
 
 export interface DefaultListCellProps<D> {
   t: TranslationFunction;
@@ -244,6 +255,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
         t={ t }
         item={ item }
         value={ propertyValue as Person }
+        column={ column.path }
         showUnreadAsBold={ showUnreadAsBold }
         background={ background } />;
   } else {
@@ -254,6 +266,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
   return <TextListCell
       item={ item }
       value={ value }
+      column={ column.path }
       tip={ tip }
       showUnreadAsBold={ showUnreadAsBold }
       background={ background }
