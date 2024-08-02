@@ -88,6 +88,7 @@ const updateModuleDefinitions = (
 
 const loadUserTasks = async (
   tasklistApi: TasklistApi,
+  numberOfUserTask: number,
   setNumberOfUserTasks: (number: number) => void,
   existingModuleDefinitions: UserTask[] | undefined,
   setModulesOfTasks: (modules: UserTask[] | undefined) => void,
@@ -108,7 +109,9 @@ const loadUserTasks = async (
       sortAscending,
       initialTimestamp);
 
-  setNumberOfUserTasks(result!.page.totalElements);
+  if (numberOfUserTask !== result!.page.totalElements) {
+    setNumberOfUserTasks(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
   return {
@@ -119,6 +122,7 @@ const loadUserTasks = async (
 
 const reloadUserTasks = async (
   tasklistApi: TasklistApi,
+  numberOfUserTask: number,
   setNumberOfUserTasks: (number: number) => void,
   existingModuleDefinitions: UserTask[] | undefined,
   setModulesOfTasks: (modules: UserTask[] | undefined) => void,
@@ -141,7 +145,9 @@ const reloadUserTasks = async (
       sortAscending,
       initialTimestamp);
 
-  setNumberOfUserTasks(result!.page.totalElements);
+  if (numberOfUserTask !== result!.page.totalElements) {
+    setNumberOfUserTasks(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
   return {
@@ -901,7 +907,7 @@ const ListOfTasks = ({
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        await loadUserTasks(tasklistApi, setNumberOfTasks, modulesOfTasks,
+        await loadUserTasks(tasklistApi, numberOfTasks, setNumberOfTasks, modulesOfTasks,
             setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
             undefined, true, mapToBcUserTask);
       };
@@ -1248,6 +1254,7 @@ const ListOfTasks = ({
   // @ts-ignore
                             await loadUserTasks(
                                 tasklistApi,
+                                numberOfTasks,
                                 setNumberOfTasks,
                                 modulesOfTasks,
                                 setModulesOfTasks,
@@ -1263,6 +1270,7 @@ const ListOfTasks = ({
   // @ts-ignore
                             await reloadUserTasks(
                                 tasklistApi,
+                                numberOfTasks,
                                 setNumberOfTasks,
                                 modulesOfTasks,
                                 setModulesOfTasks,

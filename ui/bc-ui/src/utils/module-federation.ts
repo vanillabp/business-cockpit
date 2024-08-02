@@ -335,7 +335,9 @@ const useFederationModules = (
         if (anyModuleStillLoading) {
           return;
         }
-        setModules(result);
+        if (JSON.stringify(result) !== JSON.stringify(modules)) {
+          setModules(result);
+        }
       };
       subscribe(handler);
       return () => unsubscribe(handler);

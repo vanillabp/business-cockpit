@@ -90,6 +90,7 @@ const updateModuleDefinitions = (
 
 const loadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
+  numberOfWorkflows: number,
   setNumberOfWorkflows: (number: number) => void,
   existingModuleDefinitions: Workflow[] | undefined,
   setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
@@ -107,7 +108,9 @@ const loadWorkflows = async (
   const result = await workflowlistApi
         .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
 
-  setNumberOfWorkflows(result!.page.totalElements);
+  if (numberOfWorkflows !== result!.page.totalElements) {
+    setNumberOfWorkflows(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
 
   return {
@@ -119,6 +122,7 @@ const loadWorkflows = async (
 
 const reloadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
+  numberOfWorkflows: number,
   setNumberOfWorkflows: (number: number) => void,
   existingModuleDefinitions: Workflow[] | undefined,
   setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
@@ -142,7 +146,9 @@ const reloadWorkflows = async (
       searchQueries,
       initialTimestamp);
 
-  setNumberOfWorkflows(result!.page.totalElements);
+  if (numberOfWorkflows !== result!.page.totalElements) {
+    setNumberOfWorkflows(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
   
   return {
@@ -695,7 +701,7 @@ const ListOfWorkflows = ({
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
+        await loadWorkflows(workflowlistApi, numberOfWorkflows, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
             definitionsOfWorkflows, setDefinitionsOfWorkflows,20, 0, undefined,
             searchQueries, undefined, true, mapToBcWorkflow);
       };
@@ -976,6 +982,7 @@ const ListOfWorkflows = ({
 // @ts-ignore
                           loadWorkflows(
                               workflowlistApi,
+                              numberOfWorkflows,
                               setNumberOfWorkflows,
                               modulesOfWorkflows,
                               setModulesOfWorkflows,
@@ -992,6 +999,7 @@ const ListOfWorkflows = ({
 // @ts-ignore
                           reloadWorkflows(
                               workflowlistApi,
+                              numberOfWorkflows,
                               setNumberOfWorkflows,
                               modulesOfWorkflows,
                               setModulesOfWorkflows,
