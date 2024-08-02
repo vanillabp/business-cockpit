@@ -549,6 +549,7 @@ const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
           background={ background }
           align="center">
         <CheckBox
+            id={ item.id }
             checked={ item.selected }
             onChange={ event => selectItem(event.currentTarget.checked) } />
       </StyledListCell>);
