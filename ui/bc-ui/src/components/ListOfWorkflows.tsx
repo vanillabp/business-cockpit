@@ -1,4 +1,4 @@
-import { FC, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
 import {
@@ -812,16 +812,15 @@ const ListOfWorkflows = ({
   }
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: Column) => {
-    return !column.resizeable
+  const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== ''
             ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
             : columnWidthAdjustments[column.path]
                 ? `${columnWidthAdjustments[column.path]}px`
-                : undefined;
-  };
-  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
+                : undefined
+    , [ columnWidthAdjustments ]);
+  const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
     if (column.width === '') {
       column.width = `${adjustment}px`;
       return;
@@ -829,9 +828,9 @@ const ListOfWorkflows = ({
     const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-  };
+  }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
 
-  const selectAll = (select: boolean) => {
+  const selectAll = useCallback((select: boolean) => {
     (refreshItemRef.current!)(
         workflows.current!
             .reduce((allItemIds, item) => {
@@ -844,8 +843,8 @@ const ListOfWorkflows = ({
     if (anySelected !== select) {
       setAnySelected(select);
     }
-  };
-  const selectItem = (item: ListItem<BcWorkflow>, select: boolean) => {
+  }, [ refreshItemRef, workflows, setAllSelected, setAnySelected, anySelected ]);
+  const selectItem = useCallback((item: ListItem<BcWorkflow>, select: boolean) => {
     item.selected = select;
     (refreshItemRef.current!)([ item.id ]);
     const currentlyAllSelected = workflows.current!
@@ -858,51 +857,55 @@ const ListOfWorkflows = ({
     if (anySelected !== currentlyAnySelected) {
       setAnySelected(currentlyAnySelected);
     }
-  };
+  }, [ refreshItemRef, workflows, allSelected, anySelected, setAnySelected, setAllSelected ]);
 
-  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfWorkflows === undefined
-      ? []
-      : columnsOfWorkflows!
-          .filter(column => column.show)
-          .filter(column => (columns === undefined) || columns.includes(column.path))
-          .map((column, columnIndex, allColumns) => ({
-              property: column.path,
-              size: getColumnSize(column),
-              plain: true,
-              verticalAlign: "top",
-              header: <ListColumnHeader
-                  t={ t }
-                  currentLanguage={ currentLanguage }
-                  nameOfList={ name }
-                  columnHeader={ columnHeader }
-                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-                  setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                  sort={ sort === column.path }
-                  setSort={ setSort }
-                  isDefaultSort={ column.path === defaultSort }
-                  sortAscending={ sortAscending }
-                  setSortAscending={ setSortAscending }
-                  defaultSortAscending={ defaultSortAscending }
-                  column={ column }
-                  columnIndex={ columnIndex }
-                  numberOfAllColumns={ allColumns.length }
-                  allSelected={ allSelected }
-                  selectAll={ selectAll } />,
-              render: (item: ListItem<BcUserTask>) => <ListCell
-                  modulesAvailable={ modules! }
-                  column={ column }
-                  currentLanguage={ currentLanguage }
-                  nameOfList={ name }
-                  typeOfItem={ TypeOfItem.WorkflowList }
-                  showUnreadAsBold={ false }
-                  t={ t }
-                  // @ts-ignore
-                  item={ item }
-                  // @ts-ignore
-                  selectItem={ selectItem }
-                  // @ts-ignore
-                  defaultListCell={ WorkflowDefaultListCell } />
-            }));
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = useMemo(() =>
+      (columnsOfWorkflows === undefined
+        ? []
+        : columnsOfWorkflows!
+            .filter(column => column.show)
+            .filter(column => (columns === undefined) || columns.includes(column.path))
+            .map((column, columnIndex, allColumns) => ({
+                property: column.path,
+                size: getColumnSize(column),
+                plain: true,
+                verticalAlign: "top",
+                header: <ListColumnHeader
+                    t={ t }
+                    currentLanguage={ currentLanguage }
+                    nameOfList={ name }
+                    columnHeader={ columnHeader }
+                    hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                    setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                    sort={ sort === column.path }
+                    setSort={ setSort }
+                    isDefaultSort={ column.path === defaultSort }
+                    sortAscending={ sortAscending }
+                    setSortAscending={ setSortAscending }
+                    defaultSortAscending={ defaultSortAscending }
+                    column={ column }
+                    columnIndex={ columnIndex }
+                    numberOfAllColumns={ allColumns.length }
+                    allSelected={ allSelected }
+                    selectAll={ selectAll } />,
+                render: (item: ListItem<BcUserTask>) => <ListCell
+                    modulesAvailable={ modules! }
+                    column={ column }
+                    currentLanguage={ currentLanguage }
+                    nameOfList={ name }
+                    typeOfItem={ TypeOfItem.WorkflowList }
+                    showUnreadAsBold={ false }
+                    t={ t }
+                    // @ts-ignore
+                    item={ item }
+                    // @ts-ignore
+                    selectItem={ selectItem }
+                    // @ts-ignore
+                    defaultListCell={ WorkflowDefaultListCell } />
+              }))),
+      [ modules, currentLanguage, name, columnsOfWorkflows, setSort, setSortAscending, sortAscending,
+        defaultSortAscending, selectItem, selectAll, allSelected, getColumnSize, columnWidthAdjustments, defaultSort,
+        setColumnWidthAdjustment ]);
 
   const initialKwicQuery = (columnPath?: string) => {
       const query = searchQueries
