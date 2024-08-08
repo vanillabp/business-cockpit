@@ -317,12 +317,12 @@ const RefreshButton = ({
         content={ t('refresh_workflows') }>
       <Box
           height="2rem"
+          width="2rem"
           pad={ { horizontal: '0.4rem' } }
           align="center"
           direction="row"
           justify="center">
         <Refresh
-            size="20rem"
             color={ textColor } />
       </Box>
     </Tip>

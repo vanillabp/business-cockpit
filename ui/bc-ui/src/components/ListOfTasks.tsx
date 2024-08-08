@@ -178,6 +178,7 @@ const SetReadStatusButtons = ({
 
   return (<Box
               direction="row"
+              flex={ false }
               round={ { size: '0.4rem' } }
               border={ { color } }
               elevation="small">
@@ -249,9 +250,13 @@ const ClaimButtons = ({
                   align="center"
                   direction="row"
                   justify="center">
-                <UserIcon
-                    size="20rem"
-                    color={ textColor } />
+                <Box
+                    pad={ { vertical: '0.25rem' } }
+                    width="1.5rem"
+                    height="2rem">
+                  <UserIcon
+                      color={ textColor } />
+                </Box>
                 {
                   isNotPhone && (
                         <Text
@@ -269,25 +274,27 @@ const ClaimButtons = ({
                   hoverIndicator="light-2"
                   focusIndicator={ false }
                   onClick={ unclaimTasks }
-                  round={ { size: '0.4rem', corner: 'right' } }
-                  style={ { position: 'relative' } }
-                  width="2rem"
                   height="2rem"
+                  pad={ { horizontal: '0.4rem' } }
+                  round={ { size: '0.4rem', corner: 'right' } }
                   align="center"
                   justify="center"
                   border={ { color, side: 'left' } }>
-                <UserIcon
-                    style={ { position: 'absolute' } }
-                    color={ textColor }
-                    size="20rem" />
-                <Blank
-                    style={ { position: 'absolute' } }
-                    color={ textColor }
-                    size="20rem">
-                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
-                  </svg>
-                </Blank>
+                <Box
+                    style={ { position: 'relative' } }
+                    pad={ { vertical: '0.25rem' } }
+                    width="1.5rem"
+                    height="2rem">
+                  <UserIcon
+                      color={ textColor } />
+                  <Blank
+                      style={ { position: 'absolute' } }
+                      color={ textColor }>
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
+                    </svg>
+                  </Blank>
+                </Box>
               </Box>
             </Tip>
           </Box>);
@@ -340,6 +347,7 @@ const AssignButton = ({
     setHide(false);
   };
 
+  const { isPhone } = useResponsiveScreen();
   useOnClickOutside(inputRef, hideEdit);
   const findUsersDebounced = useMemo(() => debounce(loadResult, 300), [ tasklistApi, currentQuery ]);
   const updateResult = (newQuery: string) => {
@@ -362,7 +370,7 @@ const AssignButton = ({
           border={ { color } }>
         <Box
             height="2rem"
-            width="15rem"
+            width={ isPhone ? "10rem" : "15rem" }
             align="center"
             justify="center"
             style={ { position: 'relative' } }
@@ -475,12 +483,12 @@ const RefreshButton = ({
                 content={ t('refresh_tasks') }>
               <Box
                   height="2rem"
+                  width="2rem"
                   pad={ { horizontal: '0.4rem' } }
                   align="center"
                   direction="row"
                   justify="center">
                 <Refresh
-                    size="20rem"
                     color={ textColor } />
               </Box>
             </Tip>
@@ -537,9 +545,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_unchanged') }
-                  </Box>
-                  : undefined
+                      { t('legend_unchanged') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -562,9 +570,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_new') }
-                  </Box>
-                  : undefined
+                      { t('legend_new') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -587,9 +595,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_updated') }
-                  </Box>
-                  : undefined
+                      { t('legend_updated') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -612,9 +620,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_completed') }
-                  </Box>
-                  : undefined
+                      { t('legend_completed') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -637,9 +645,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_filtered') }
-                  </Box>
-                  : undefined
+                      { t('legend_filtered') }
+                    </Box>
+                    : undefined
             }
           </Box>
         </Box>
