@@ -2,22 +2,20 @@ import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
+  backgroundColorAccordingToStatus,
   BcUserTask,
-  colorForEndedItemsOrUndefined,
-  colorRowAccordingToUpdateStatus,
   Column,
   debounce,
   DefaultListCell,
   DefaultListCellProps,
   DefaultListHeaderAwareProps,
-  ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
-  ListItemStatus,
   ShowLoadingIndicatorFunction,
+  textColorAccordingToStatus,
   TranslationFunction,
   useOnClickOutside,
   UserDetailsBox,
@@ -564,7 +562,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-new">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-new'>T</Text>
               </Box>
             </Box>
             {
@@ -589,7 +587,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-updated">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-updated'>T</Text>
               </Box>
             </Box>
             {
@@ -614,7 +612,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-ended">
-                <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+                <Text size="xsmall" color='list-text-ended'>T</Text>
               </Box>
             </Box>
             {
@@ -639,7 +637,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-removed_from_list">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-removed_from_list'>T</Text>
               </Box>
             </Box>
             {
@@ -722,7 +720,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
 
   const targetRef = useRef<HTMLDivElement>(null);
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
 
   return useMemo(() => (
       <StyledListCell
@@ -772,7 +770,7 @@ const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   item,
   selectItem,
 }) => {
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
   return (
       <StyledListCell
           background={ background }
@@ -795,24 +793,20 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
   return useMemo(() => (
       <StyledListCell
           align="left"
           background={ background }>
         <Text
-            color={ colorForEndedItemsOrUndefined(item) }
             weight={ item.read === undefined ? 'bold' : 'normal' }
             truncate="tip">
-          {
-            item.status === ListItemStatus.ENDED
-                ? <>{ title }</>
-                : <Link
-                    // @ts-ignore
-                    onClick={ item.data.open }>
-                  { title }
-                </Link>
-          }
+          <Link
+              color={ textColorAccordingToStatus(item) }
+              // @ts-ignore
+              onClick={ item.data.open }>
+            { title }
+          </Link>
         </Text>
       </StyledListCell>), [ item.id, title ]);
 }

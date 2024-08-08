@@ -13,15 +13,20 @@ import { UserDetailsBox } from "./index.js";
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 
-export const ENDED_FONT_COLOR = 'light-4';
 export const ENDED_FONT_COLOR_ODD = '#b4b4b4';
 
 export type Alignment = 'left' | 'center' | 'right';
 
-const colorForEndedItemsOrUndefined = (item: ListItem<any>): ColorType => {
-  return item.status !== ListItemStatus.ENDED
-      ? undefined
-      : ENDED_FONT_COLOR;ENDED_FONT_COLOR
+const textColorAccordingToStatus = (item: ListItem<any>): ColorType | undefined => {
+  return item.status === ListItemStatus.NEW
+      ? 'list-text-new'
+      : item.status === ListItemStatus.UPDATED
+      ? 'list-text-updated'
+      : item.status === ListItemStatus.ENDED
+      ? 'list-text-ended'
+      : item.status === ListItemStatus.REMOVED_FROM_LIST
+      ? 'list-text-removed_from_list'
+      : undefined;
 };
 
 interface ListCellProps extends BoxExtendedProps {
@@ -72,7 +77,7 @@ const TextListCell: React.FC<TextListCellProps> = memo(({
   background,
   ...props
 }) => {
-  const color = colorForEndedItemsOrUndefined(item);
+  const color = textColorAccordingToStatus(item);
   return (
     <ListCell
         background={ background }
@@ -120,7 +125,7 @@ const PersonListCell: React.FC<PersonListCellProps> = memo(({
   background,
   ...props
 }) => {
-  const color = colorForEndedItemsOrUndefined(item);
+  const color = textColorAccordingToStatus(item);
   return (
       <ListCell
           background={ background }
@@ -202,7 +207,7 @@ const render = (
   return { value, align };
 }
 
-const colorRowAccordingToUpdateStatus = <T extends ListItem<any>, >(item: T): BackgroundType | undefined => (
+const backgroundColorAccordingToStatus = <T extends ListItem<any>, >(item: T): BackgroundType | undefined => (
     item.status === ListItemStatus.NEW
         ? 'list-new'
         : item.status === ListItemStatus.UPDATED
@@ -228,7 +233,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
   if (column.type === 'i18n') {
     path = `${path}.${currentLanguage}`;
   }
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
   let propertyValue = getObjectProperty(item.data, path);
   if ((column.type === 'date') && Boolean(propertyValue)) {
     const date = Object.prototype.toString.call(propertyValue) === '[object Date]'
@@ -273,4 +278,4 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
       align={ align } />;
 }
 
-export { DefaultListCell, TextListCell, ListCell, colorForEndedItemsOrUndefined, colorRowAccordingToUpdateStatus };
+export { DefaultListCell, TextListCell, ListCell, textColorAccordingToStatus, backgroundColorAccordingToStatus };
