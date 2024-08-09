@@ -566,23 +566,22 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
     title = item.data['title'][titleLanguages[0]];
   }
   const background = backgroundColorAccordingToStatus(item);
-  return useMemo(() => (
-        <StyledListCell
-            align="left"
-            background={ background }>
-          <Text
-              weight={ item.read === undefined
-                  ? 'bold'
-                  : 'normal' }
-              truncate="tip">
-            <Link
-                color={ textColorAccordingToStatus(item) }
-                // @ts-ignore
-                onClick={ item.data.navigateToWorkflow }>
-              { title }
-            </Link>
-          </Text>
-        </StyledListCell>), [ item.id, title ]);
+  const text = textColorAccordingToStatus(item);
+  return (
+      <StyledListCell
+          align="left"
+          background={ background }>
+        <Text
+            weight={ item.read === undefined ? 'bold' : 'normal' }
+            truncate="tip">
+          <Link
+              color={ text }
+              // @ts-ignore
+              onClick={ item.data.navigateToWorkflow }>
+            { title }
+          </Link>
+        </Text>
+      </StyledListCell>);
 }
 
 const WorkflowDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {

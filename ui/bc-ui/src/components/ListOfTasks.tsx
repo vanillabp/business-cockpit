@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
@@ -722,7 +722,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
   const background = backgroundColorAccordingToStatus(item);
 
-  return useMemo(() => (
+  return (
       <StyledListCell
           background={ background }
           align="center">
@@ -762,7 +762,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                   </>
                 : undefined
         }
-      </StyledListCell>), [ item.id, item.data.candidateUsers ]);
+      </StyledListCell>);
 
 }
 
@@ -794,7 +794,8 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
     title = item.data['title'][titleLanguages[0]];
   }
   const background = backgroundColorAccordingToStatus(item);
-  return useMemo(() => (
+  const text = textColorAccordingToStatus(item);
+  return (
       <StyledListCell
           align="left"
           background={ background }>
@@ -802,13 +803,13 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
             weight={ item.read === undefined ? 'bold' : 'normal' }
             truncate="tip">
           <Link
-              color={ textColorAccordingToStatus(item) }
+              color={ text }
               // @ts-ignore
               onClick={ item.data.open }>
             { title }
           </Link>
         </Text>
-      </StyledListCell>), [ item.id, title ]);
+      </StyledListCell>);
 }
 
 const UserTaskDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
@@ -1049,40 +1050,39 @@ const ListOfTasks = ({
   };
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: Column) => {
-    return !column.resizeable
+  const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== ''
         ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
         : columnWidthAdjustments[column.path]
         ? `${columnWidthAdjustments[column.path]}px`
-        : undefined;
-  };
-  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
-    if (column.width === '') {
-      column.width = `${adjustment}px`;
-      return;
-    }
-    const current = columnWidthAdjustments[column.path];
-    if (current === adjustment) return;
-    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-  };
+        : undefined
+    , [ columnWidthAdjustments ]);
+  const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
+      if (column.width === '') {
+        column.width = `${adjustment}px`;
+        return;
+      }
+      const current = columnWidthAdjustments[column.path];
+      if (current === adjustment) return;
+      setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
+    }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
 
-  const selectAll = (select: boolean) => {
-    (refreshItemRef.current!)(
-        userTasks.current!
-            .reduce((allItemIds, item) => {
-              item.selected = select;
-              allItemIds.push(item.id);
-              return allItemIds;
-            }, new Array<string>())
-    );
-    setAllSelected(select);
-    if (anySelected !== select) {
-      setAnySelected(select);
-    }
-  };
-  const selectItem = (item: ListItem<BcUserTask>, select: boolean) => {
+  const selectAll = useCallback((select: boolean) => {
+      (refreshItemRef.current!)(
+          userTasks.current!
+              .reduce((allItemIds, item) => {
+                item.selected = select;
+                allItemIds.push(item.id);
+                return allItemIds;
+              }, new Array<string>())
+      );
+      setAllSelected(select);
+      if (anySelected !== select) {
+        setAnySelected(select);
+      }
+    }, [ refreshItemRef, userTasks, allSelected, anySelected, setAnySelected, setAllSelected ]);
+  const selectItem = useCallback((item: ListItem<BcUserTask>, select: boolean) => {
     item.selected = select;
     (refreshItemRef.current!)([ item.id ]);
     const currentlyAllSelected = userTasks.current!
@@ -1095,52 +1095,56 @@ const ListOfTasks = ({
     if (anySelected !== currentlyAnySelected) {
       setAnySelected(currentlyAnySelected);
     }
-  };
+  }, [ refreshItemRef, userTasks, allSelected, anySelected, setAnySelected, setAllSelected ]);
 
   // @ts-ignore
-  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfTasks === undefined
-      ? []
-      : columnsOfTasks!
-          .filter(column => column.show)
-          .filter(column => (columns === undefined) || columns.includes(column.path))
-          .map((column, columnIndex, allColumns) => ({
-            property: column.path,
-            size: getColumnSize(column),
-            plain: true,
-            verticalAlign: "top",
-            header: <ListColumnHeader
-                t={ t }
-                currentLanguage={ currentLanguage }
-                nameOfList={ name }
-                columnHeader={ columnHeader }
-                hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-                setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                sort={ sort === column.path }
-                setSort={ setSort }
-                isDefaultSort={ column.path === defaultSort }
-                sortAscending={ sortAscending }
-                defaultSortAscending={ defaultSortAscending }
-                setSortAscending={ setSortAscending }
-                column={ column }
-                columnIndex={ columnIndex }
-                numberOfAllColumns={ allColumns.length }
-                allSelected={ allSelected }
-                selectAll={ selectAll } />,
-            render: (item: ListItem<BcUserTask>) => <ListCell
-                modulesAvailable={ modules! }
-                column={ column }
-                currentLanguage={ currentLanguage }
-                nameOfList={ name }
-                typeOfItem={ TypeOfItem.TaskList }
-                showUnreadAsBold={ true }
-                t={ t }
-                // @ts-ignore
-                item={ item }
-                // @ts-ignore
-                selectItem={ selectItem }
-                // @ts-ignore
-                defaultListCell={ UserTaskDefaultListCell } />
-          }));
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = useMemo(() =>
+      columnsOfTasks === undefined
+        ? []
+        : columnsOfTasks!
+            .filter(column => column.show)
+            .filter(column => (columns === undefined) || columns.includes(column.path))
+            .map((column, columnIndex, allColumns) => ({
+              property: column.path,
+              size: getColumnSize(column),
+              plain: true,
+              verticalAlign: "top",
+              header: <ListColumnHeader
+                  t={ t }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  columnHeader={ columnHeader }
+                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                  setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                  sort={ sort === column.path }
+                  setSort={ setSort }
+                  isDefaultSort={ column.path === defaultSort }
+                  sortAscending={ sortAscending }
+                  defaultSortAscending={ defaultSortAscending }
+                  setSortAscending={ setSortAscending }
+                  column={ column }
+                  columnIndex={ columnIndex }
+                  numberOfAllColumns={ allColumns.length }
+                  allSelected={ allSelected }
+                  selectAll={ selectAll } />,
+              render: (item: ListItem<BcUserTask>) => <ListCell
+                  modulesAvailable={ modules! }
+                  column={ column }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  typeOfItem={ TypeOfItem.TaskList }
+                  showUnreadAsBold={ true }
+                  t={ t }
+                  // @ts-ignore
+                  item={ item }
+                  // @ts-ignore
+                  selectItem={ selectItem }
+                  // @ts-ignore
+                  defaultListCell={ UserTaskDefaultListCell } />
+            })),
+      [ modules, currentLanguage, name, columnsOfTasks, setSort, setSortAscending, sortAscending,
+              defaultSortAscending, selectItem, selectAll, allSelected, getColumnSize, columnWidthAdjustments,
+              defaultSort, setColumnWidthAdjustment ]);
 
   const markAsRead = (unread: boolean) => {
     const read = unread ? undefined : new Date();
