@@ -1,10 +1,7 @@
-import React from 'react';
 import { bpmnProcessId as Test_bpmnProcessId, workflowListColumns as Test_workflowListColumns } from './Test';
-import { WarningListCell, WorkflowListCell, ColumnsOfWorkflowFunction } from '@vanillabp/bc-shared';
+import { ColumnsOfWorkflowFunction, WarningListCell, WorkflowListCell } from '@vanillabp/bc-shared';
 
-//@ts-expect-error
 const buildVersion = process.env.BUILD_VERSION;
-//@ts-expect-error
 const buildTimestamp = new Date(process.env.BUILD_TIMESTAMP);
 
 const workflowListColumns: ColumnsOfWorkflowFunction = workflow => {
@@ -17,11 +14,12 @@ const workflowListColumns: ColumnsOfWorkflowFunction = workflow => {
 const WorkflowListCellComponent: WorkflowListCell = ({
   item,
   column,
-  defaultCell
+  defaultCell,
+  ...props
 }) => {
   const DefaultCell = defaultCell;
   return item.data.bpmnProcessId === Test_bpmnProcessId
-      ? <DefaultCell item={ item } column={ column } />
+      ? <DefaultCell item={ item } column={ column } { ...props } />
       : <WarningListCell message={ `unknown BPMN process ID '${item.data.bpmnProcessId}'` } />;
 }
 

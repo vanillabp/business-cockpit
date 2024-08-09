@@ -8,7 +8,7 @@ const TestForm1ListCell: UserTaskListCell = ({
 }) => {
   const DefaultCell = defaultCell;
   return column.path.startsWith('details')
-      ? <TextListCell item={ item } value={ getObjectProperty(item.data, column.path) } />
+      ? <TextListCell item={ item } value={ getObjectProperty(item.data, column.path) } { ...props } />
       : <DefaultCell item={ item } column={ column } { ...props } />;
 }
 
