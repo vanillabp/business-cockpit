@@ -1,6 +1,7 @@
 import { Text, TextProps } from 'grommet';
 import React, { PropsWithChildren } from 'react';
 import styled from 'styled-components';
+import { normalizeColor } from "grommet/utils/index.js";
 
 interface LinkProps extends PropsWithChildren<TextProps> {
   href?: string;
@@ -9,16 +10,22 @@ interface LinkProps extends PropsWithChildren<TextProps> {
 
 const StyledLink = styled(Text)<LinkProps>`
   text-decoration: none;
-  color: ${props => props.theme.global.colors['link'] };
+  color: ${ props => props.color
+          ? normalizeColor(props.color, props.theme)
+          : normalizeColor(props.theme.global.colors['link'], props.theme) };
   cursor: pointer;
 
   &:hover {
     text-decoration: underline;
-    color: black;
+    color: ${ props => props.color
+            ? normalizeColor(props.color, props.theme)
+            : normalizeColor(props.theme.global.colors['link'], props.theme) };
   }
 
   &:visited {
-    color: ${props => props.theme.global.colors['link'] };
+    color: ${ props => props.color
+            ? normalizeColor(props.color, props.theme)
+            : normalizeColor(props.theme.global.colors['link'], props.theme) };
   }
 `;
 

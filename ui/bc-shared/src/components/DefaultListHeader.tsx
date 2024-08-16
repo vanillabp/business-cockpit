@@ -90,28 +90,44 @@ const DefaultListHeader: FC<DefaultListHeaderProps<any>> = ({
           {
             !column.sortable
                 ? undefined
-                : !Boolean(sort)
-                    ? <Box
-                        overflow="hidden"
-                        focusIndicator={ false }
-                        width="1.6rem"
-                        onClick={ event => setSort(column) }>
-                      <Unsorted
-                          size="32rem" />
-                    </Box>
-                    : sortAscending
-                        ? <Box
+                : <Box
+                      style={ { position: 'relative' } }
+                      width="1.6rem"
+                      height="2rem"
+                      align="center">
+                    {
+                      !Boolean(sort)
+                      ? <Box
+                            style={ { position: 'relative', top: '-1px' } }
                             focusIndicator={ false }
-                            onClick={ event => setNewSortAscending() }
-                            pad={ { right: '0.5rem' } }>
-                          <Ascend size="16rem" />
+                            onClick={ event => setSort(column) }
+                            direction="column"
+                            justify="around">
+                          <Unsorted size="34px" />
                         </Box>
-                        : <Box
-                            focusIndicator={ false }
-                            onClick={ event => setNewSortAscending() }
-                            pad={ { right: '0.5rem' } }>
-                          <Descend size="16rem" />
-                        </Box>
+                      : sortAscending
+                          ? <Box
+                                focusIndicator={ false }
+                                style={ { marginRight: '-0.5rem' } }
+                                width="1.2rem"
+                                height="2rem"
+                                direction="column"
+                                justify="around"
+                                onClick={ event => setNewSortAscending() }>
+                              <Ascend size="18px" />
+                            </Box>
+                          : <Box
+                                focusIndicator={ false }
+                                style={ { marginRight: '-0.5rem' } }
+                                width="1.2rem"
+                                height="2rem"
+                                direction="column"
+                                justify="around"
+                                onClick={ event => setNewSortAscending() }>
+                              <Descend size="18px" />
+                            </Box>
+                    }
+                  </Box>
           }
           { /* <FormFilter /> */ }
         </Box>

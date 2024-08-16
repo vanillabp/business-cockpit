@@ -1,23 +1,21 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
+  backgroundColorAccordingToStatus,
   BcUserTask,
-  colorForEndedItemsOrUndefined,
-  colorRowAccordingToUpdateStatus,
   Column,
   debounce,
   DefaultListCell,
   DefaultListCellProps,
   DefaultListHeaderAwareProps,
-  ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
-  ListItemStatus,
   ShowLoadingIndicatorFunction,
+  textColorAccordingToStatus,
   TranslationFunction,
   useOnClickOutside,
   UserDetailsBox,
@@ -88,6 +86,7 @@ const updateModuleDefinitions = (
 
 const loadUserTasks = async (
   tasklistApi: TasklistApi,
+  numberOfUserTask: number,
   setNumberOfUserTasks: (number: number) => void,
   existingModuleDefinitions: UserTask[] | undefined,
   setModulesOfTasks: (modules: UserTask[] | undefined) => void,
@@ -108,7 +107,9 @@ const loadUserTasks = async (
       sortAscending,
       initialTimestamp);
 
-  setNumberOfUserTasks(result!.page.totalElements);
+  if (numberOfUserTask !== result!.page.totalElements) {
+    setNumberOfUserTasks(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
   return {
@@ -119,6 +120,7 @@ const loadUserTasks = async (
 
 const reloadUserTasks = async (
   tasklistApi: TasklistApi,
+  numberOfUserTask: number,
   setNumberOfUserTasks: (number: number) => void,
   existingModuleDefinitions: UserTask[] | undefined,
   setModulesOfTasks: (modules: UserTask[] | undefined) => void,
@@ -141,7 +143,9 @@ const reloadUserTasks = async (
       sortAscending,
       initialTimestamp);
 
-  setNumberOfUserTasks(result!.page.totalElements);
+  if (numberOfUserTask !== result!.page.totalElements) {
+    setNumberOfUserTasks(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.userTasks, existingModuleDefinitions, setModulesOfTasks, existingUserTaskDefinitions, setDefinitionsOfTasks);
 
   return {
@@ -172,6 +176,7 @@ const SetReadStatusButtons = ({
 
   return (<Box
               direction="row"
+              flex={ false }
               round={ { size: '0.4rem' } }
               border={ { color } }
               elevation="small">
@@ -243,9 +248,13 @@ const ClaimButtons = ({
                   align="center"
                   direction="row"
                   justify="center">
-                <UserIcon
-                    size="20rem"
-                    color={ textColor } />
+                <Box
+                    pad={ { vertical: '0.25rem' } }
+                    width="1.5rem"
+                    height="2rem">
+                  <UserIcon
+                      color={ textColor } />
+                </Box>
                 {
                   isNotPhone && (
                         <Text
@@ -263,25 +272,27 @@ const ClaimButtons = ({
                   hoverIndicator="light-2"
                   focusIndicator={ false }
                   onClick={ unclaimTasks }
-                  round={ { size: '0.4rem', corner: 'right' } }
-                  style={ { position: 'relative' } }
-                  width="2rem"
                   height="2rem"
+                  pad={ { horizontal: '0.4rem' } }
+                  round={ { size: '0.4rem', corner: 'right' } }
                   align="center"
                   justify="center"
                   border={ { color, side: 'left' } }>
-                <UserIcon
-                    style={ { position: 'absolute' } }
-                    color={ textColor }
-                    size="20rem" />
-                <Blank
-                    style={ { position: 'absolute' } }
-                    color={ textColor }
-                    size="20rem">
-                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
-                  </svg>
-                </Blank>
+                <Box
+                    style={ { position: 'relative' } }
+                    pad={ { vertical: '0.25rem' } }
+                    width="1.5rem"
+                    height="2rem">
+                  <UserIcon
+                      color={ textColor } />
+                  <Blank
+                      style={ { position: 'absolute' } }
+                      color={ textColor }>
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
+                    </svg>
+                  </Blank>
+                </Box>
               </Box>
             </Tip>
           </Box>);
@@ -334,6 +345,7 @@ const AssignButton = ({
     setHide(false);
   };
 
+  const { isPhone } = useResponsiveScreen();
   useOnClickOutside(inputRef, hideEdit);
   const findUsersDebounced = useMemo(() => debounce(loadResult, 300), [ tasklistApi, currentQuery ]);
   const updateResult = (newQuery: string) => {
@@ -356,7 +368,7 @@ const AssignButton = ({
           border={ { color } }>
         <Box
             height="2rem"
-            width="15rem"
+            width={ isPhone ? "10rem" : "15rem" }
             align="center"
             justify="center"
             style={ { position: 'relative' } }
@@ -469,12 +481,12 @@ const RefreshButton = ({
                 content={ t('refresh_tasks') }>
               <Box
                   height="2rem"
+                  width="2rem"
                   pad={ { horizontal: '0.4rem' } }
                   align="center"
                   direction="row"
                   justify="center">
                 <Refresh
-                    size="20rem"
                     color={ textColor } />
               </Box>
             </Tip>
@@ -531,9 +543,9 @@ const DefaultFooter = ({
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_unchanged') }
-                  </Box>
-                  : undefined
+                      { t('legend_unchanged') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -550,15 +562,15 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-new">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-new'>T</Text>
               </Box>
             </Box>
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_new') }
-                  </Box>
-                  : undefined
+                      { t('legend_new') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -575,15 +587,15 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-updated">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-updated'>T</Text>
               </Box>
             </Box>
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_updated') }
-                  </Box>
-                  : undefined
+                      { t('legend_updated') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -600,15 +612,15 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-ended">
-                <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+                <Text size="xsmall" color='list-text-ended'>T</Text>
               </Box>
             </Box>
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_completed') }
-                  </Box>
-                  : undefined
+                      { t('legend_completed') }
+                    </Box>
+                    : undefined
             }
           </Box>
           <Box
@@ -625,15 +637,15 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-removed_from_list">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-removed_from_list'>T</Text>
               </Box>
             </Box>
             {
               isNotPhone
                   ? <Box>
-                    { t('legend_filtered') }
-                  </Box>
-                  : undefined
+                      { t('legend_filtered') }
+                    </Box>
+                    : undefined
             }
           </Box>
         </Box>
@@ -708,7 +720,7 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
 
   const targetRef = useRef<HTMLDivElement>(null);
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
 
   return (
       <StyledListCell
@@ -758,12 +770,13 @@ const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   item,
   selectItem,
 }) => {
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
   return (
       <StyledListCell
           background={ background }
           align="center">
         <CheckBox
+            id={ item.id }
             checked={ item.selected }
             onChange={ event => selectItem(event.currentTarget.checked) } />
       </StyledListCell>);
@@ -774,30 +787,27 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   currentLanguage,
 }) => {
   const titleLanguages = Object.keys(item.data['title']);
-  let title;
+  let title: string;
   if (titleLanguages.includes(currentLanguage)) {
     title = item.data['title'][currentLanguage];
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
+  const text = textColorAccordingToStatus(item);
   return (
       <StyledListCell
           align="left"
           background={ background }>
         <Text
-            color={ colorForEndedItemsOrUndefined(item) }
             weight={ item.read === undefined ? 'bold' : 'normal' }
             truncate="tip">
-          {
-            item.status === ListItemStatus.ENDED
-                ? <>{ title }</>
-                : <Link
-                    // @ts-ignore
-                    onClick={ item.data.open }>
-                  { title }
-                </Link>
-          }
+          <Link
+              color={ text }
+              // @ts-ignore
+              onClick={ item.data.open }>
+            { title }
+          </Link>
         </Text>
       </StyledListCell>);
 }
@@ -901,7 +911,7 @@ const ListOfTasks = ({
   const [ definitionsOfTasks, setDefinitionsOfTasks ] = useState<DefinitionOfUserTask | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        await loadUserTasks(tasklistApi, setNumberOfTasks, modulesOfTasks,
+        await loadUserTasks(tasklistApi, numberOfTasks, setNumberOfTasks, modulesOfTasks,
             setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
             undefined, true, mapToBcUserTask);
       };
@@ -1040,40 +1050,39 @@ const ListOfTasks = ({
   };
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: Column) => {
-    return !column.resizeable
+  const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== ''
         ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
         : columnWidthAdjustments[column.path]
         ? `${columnWidthAdjustments[column.path]}px`
-        : undefined;
-  };
-  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
-    if (column.width === '') {
-      column.width = `${adjustment}px`;
-      return;
-    }
-    const current = columnWidthAdjustments[column.path];
-    if (current === adjustment) return;
-    setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-  };
+        : undefined
+    , [ columnWidthAdjustments ]);
+  const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
+      if (column.width === '') {
+        column.width = `${adjustment}px`;
+        return;
+      }
+      const current = columnWidthAdjustments[column.path];
+      if (current === adjustment) return;
+      setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
+    }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
 
-  const selectAll = (select: boolean) => {
-    (refreshItemRef.current!)(
-        userTasks.current!
-            .reduce((allItemIds, item) => {
-              item.selected = select;
-              allItemIds.push(item.id);
-              return allItemIds;
-            }, new Array<string>())
-    );
-    setAllSelected(select);
-    if (anySelected !== select) {
-      setAnySelected(select);
-    }
-  };
-  const selectItem = (item: ListItem<BcUserTask>, select: boolean) => {
+  const selectAll = useCallback((select: boolean) => {
+      (refreshItemRef.current!)(
+          userTasks.current!
+              .reduce((allItemIds, item) => {
+                item.selected = select;
+                allItemIds.push(item.id);
+                return allItemIds;
+              }, new Array<string>())
+      );
+      setAllSelected(select);
+      if (anySelected !== select) {
+        setAnySelected(select);
+      }
+    }, [ refreshItemRef, userTasks, allSelected, anySelected, setAnySelected, setAllSelected ]);
+  const selectItem = useCallback((item: ListItem<BcUserTask>, select: boolean) => {
     item.selected = select;
     (refreshItemRef.current!)([ item.id ]);
     const currentlyAllSelected = userTasks.current!
@@ -1086,52 +1095,56 @@ const ListOfTasks = ({
     if (anySelected !== currentlyAnySelected) {
       setAnySelected(currentlyAnySelected);
     }
-  };
+  }, [ refreshItemRef, userTasks, allSelected, anySelected, setAnySelected, setAllSelected ]);
 
   // @ts-ignore
-  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfTasks === undefined
-      ? []
-      : columnsOfTasks!
-          .filter(column => column.show)
-          .filter(column => (columns === undefined) || columns.includes(column.path))
-          .map((column, columnIndex, allColumns) => ({
-            property: column.path,
-            size: getColumnSize(column),
-            plain: true,
-            verticalAlign: "top",
-            header: <ListColumnHeader
-                t={ t }
-                currentLanguage={ currentLanguage }
-                nameOfList={ name }
-                columnHeader={ columnHeader }
-                hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-                setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                sort={ sort === column.path }
-                setSort={ setSort }
-                isDefaultSort={ column.path === defaultSort }
-                sortAscending={ sortAscending }
-                defaultSortAscending={ defaultSortAscending }
-                setSortAscending={ setSortAscending }
-                column={ column }
-                columnIndex={ columnIndex }
-                numberOfAllColumns={ allColumns.length }
-                allSelected={ allSelected }
-                selectAll={ selectAll } />,
-            render: (item: ListItem<BcUserTask>) => <ListCell
-                modulesAvailable={ modules! }
-                column={ column }
-                currentLanguage={ currentLanguage }
-                nameOfList={ name }
-                typeOfItem={ TypeOfItem.TaskList }
-                showUnreadAsBold={ true }
-                t={ t }
-                // @ts-ignore
-                item={ item }
-                // @ts-ignore
-                selectItem={ selectItem }
-                // @ts-ignore
-                defaultListCell={ UserTaskDefaultListCell } />
-          }));
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = useMemo(() =>
+      columnsOfTasks === undefined
+        ? []
+        : columnsOfTasks!
+            .filter(column => column.show)
+            .filter(column => (columns === undefined) || columns.includes(column.path))
+            .map((column, columnIndex, allColumns) => ({
+              property: column.path,
+              size: getColumnSize(column),
+              plain: true,
+              verticalAlign: "top",
+              header: <ListColumnHeader
+                  t={ t }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  columnHeader={ columnHeader }
+                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                  setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                  sort={ sort === column.path }
+                  setSort={ setSort }
+                  isDefaultSort={ column.path === defaultSort }
+                  sortAscending={ sortAscending }
+                  defaultSortAscending={ defaultSortAscending }
+                  setSortAscending={ setSortAscending }
+                  column={ column }
+                  columnIndex={ columnIndex }
+                  numberOfAllColumns={ allColumns.length }
+                  allSelected={ allSelected }
+                  selectAll={ selectAll } />,
+              render: (item: ListItem<BcUserTask>) => <ListCell
+                  modulesAvailable={ modules! }
+                  column={ column }
+                  currentLanguage={ currentLanguage }
+                  nameOfList={ name }
+                  typeOfItem={ TypeOfItem.TaskList }
+                  showUnreadAsBold={ true }
+                  t={ t }
+                  // @ts-ignore
+                  item={ item }
+                  // @ts-ignore
+                  selectItem={ selectItem }
+                  // @ts-ignore
+                  defaultListCell={ UserTaskDefaultListCell } />
+            })),
+      [ modules, currentLanguage, name, columnsOfTasks, setSort, setSortAscending, sortAscending,
+              defaultSortAscending, selectItem, selectAll, allSelected, getColumnSize, columnWidthAdjustments,
+              defaultSort, setColumnWidthAdjustment ]);
 
   const markAsRead = (unread: boolean) => {
     const read = unread ? undefined : new Date();
@@ -1248,6 +1261,7 @@ const ListOfTasks = ({
   // @ts-ignore
                             await loadUserTasks(
                                 tasklistApi,
+                                numberOfTasks,
                                 setNumberOfTasks,
                                 modulesOfTasks,
                                 setModulesOfTasks,
@@ -1263,6 +1277,7 @@ const ListOfTasks = ({
   // @ts-ignore
                             await reloadUserTasks(
                                 tasklistApi,
+                                numberOfTasks,
                                 setNumberOfTasks,
                                 modulesOfTasks,
                                 setModulesOfTasks,

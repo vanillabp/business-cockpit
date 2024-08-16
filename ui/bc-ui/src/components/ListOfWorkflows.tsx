@@ -1,17 +1,15 @@
-import { FC, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text, TextInput, Tip } from 'grommet';
 import {
+  backgroundColorAccordingToStatus,
   BcUserTask,
   BcWorkflow,
-  colorForEndedItemsOrUndefined,
-  colorRowAccordingToUpdateStatus,
   Column,
   debounce,
   DefaultListCell,
   DefaultListCellProps,
   DefaultListHeaderAwareProps,
-  ENDED_FONT_COLOR,
   EventMessage,
   EventSourceMessage,
   GetUserTasksFunction,
@@ -19,6 +17,7 @@ import {
   Link,
   ListCell as StyledListCell,
   ShowLoadingIndicatorFunction,
+  textColorAccordingToStatus,
   TranslationFunction,
   useResponsiveScreen,
   WakeupSseCallback,
@@ -90,6 +89,7 @@ const updateModuleDefinitions = (
 
 const loadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
+  numberOfWorkflows: number,
   setNumberOfWorkflows: (number: number) => void,
   existingModuleDefinitions: Workflow[] | undefined,
   setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
@@ -107,7 +107,9 @@ const loadWorkflows = async (
   const result = await workflowlistApi
         .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
 
-  setNumberOfWorkflows(result!.page.totalElements);
+  if (numberOfWorkflows !== result!.page.totalElements) {
+    setNumberOfWorkflows(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
 
   return {
@@ -119,6 +121,7 @@ const loadWorkflows = async (
 
 const reloadWorkflows = async (
   workflowlistApi: WorkflowlistApi,
+  numberOfWorkflows: number,
   setNumberOfWorkflows: (number: number) => void,
   existingModuleDefinitions: Workflow[] | undefined,
   setModulesOfWorkflows: (modules: Workflow[] | undefined) => void,
@@ -142,7 +145,9 @@ const reloadWorkflows = async (
       searchQueries,
       initialTimestamp);
 
-  setNumberOfWorkflows(result!.page.totalElements);
+  if (numberOfWorkflows !== result!.page.totalElements) {
+    setNumberOfWorkflows(result!.page.totalElements);
+  }
   updateModuleDefinitions(result!.workflows, existingModuleDefinitions, setModulesOfWorkflows, existingWorkflowDefinitions, setDefinitionsOfWorkflows)
   
   return {
@@ -311,12 +316,12 @@ const RefreshButton = ({
         content={ t('refresh_workflows') }>
       <Box
           height="2rem"
+          width="2rem"
           pad={ { horizontal: '0.4rem' } }
           align="center"
           direction="row"
           justify="center">
         <Refresh
-            size="20rem"
             color={ textColor } />
       </Box>
     </Tip>
@@ -392,7 +397,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-new">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-new'>T</Text>
               </Box>
             </Box>
             {
@@ -417,7 +422,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-updated">
-                <Text size="xsmall">T</Text>
+                <Text size="xsmall" color='list-text-updated'>T</Text>
               </Box>
             </Box>
             {
@@ -442,7 +447,7 @@ const DefaultFooter = ({
                   align="center"
                   justify="center"
                   background="list-ended">
-                <Text size="xsmall" color={ ENDED_FONT_COLOR }>T</Text>
+                <Text size="xsmall" color='list-text-ended'>T</Text>
               </Box>
             </Box>
             {
@@ -466,8 +471,8 @@ const DefaultFooter = ({
                   height="100%"
                   align="center"
                   justify="center"
-                  background="list-ended">
-                <Text size="xsmall">T</Text>
+                  background="list-removed_from_list">
+                <Text size="xsmall" color='list-text-removed_from_list'>T</Text>
               </Box>
             </Box>
             {
@@ -537,12 +542,13 @@ const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   item,
   selectItem,
 }) => {
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
   return (
       <StyledListCell
           background={ background }
           align="center">
         <CheckBox
+            id={ item.id }
             checked={ item.selected }
             onChange={ event => selectItem(event.currentTarget.checked) } />
       </StyledListCell>);
@@ -553,22 +559,23 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   currentLanguage,
 }) => {
   const titleLanguages = Object.keys(item.data['title']);
-  let title;
+  let title: string;
   if (titleLanguages.includes(currentLanguage)) {
     title = item.data['title'][currentLanguage];
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
-  const background = colorRowAccordingToUpdateStatus(item);
+  const background = backgroundColorAccordingToStatus(item);
+  const text = textColorAccordingToStatus(item);
   return (
       <StyledListCell
           align="left"
           background={ background }>
         <Text
-            color={ colorForEndedItemsOrUndefined(item) }
             weight={ item.read === undefined ? 'bold' : 'normal' }
             truncate="tip">
           <Link
+              color={ text }
               // @ts-ignore
               onClick={ item.data.navigateToWorkflow }>
             { title }
@@ -693,7 +700,7 @@ const ListOfWorkflows = ({
   const [ definitionsOfWorkflows, setDefinitionsOfWorkflows ] = useState<DefinitionOfWorkflow | undefined>(undefined);
   useEffect(() => {
       const loadMetaInformation = async () => {
-        await loadWorkflows(workflowlistApi, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
+        await loadWorkflows(workflowlistApi, numberOfWorkflows, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
             definitionsOfWorkflows, setDefinitionsOfWorkflows,20, 0, undefined,
             searchQueries, undefined, true, mapToBcWorkflow);
       };
@@ -803,16 +810,15 @@ const ListOfWorkflows = ({
   }
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
-  const getColumnSize = (column: Column) => {
-    return !column.resizeable
+  const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== ''
             ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
             : columnWidthAdjustments[column.path]
                 ? `${columnWidthAdjustments[column.path]}px`
-                : undefined;
-  };
-  const setColumnWidthAdjustment = (column: Column, adjustment: number) => {
+                : undefined
+    , [ columnWidthAdjustments ]);
+  const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
     if (column.width === '') {
       column.width = `${adjustment}px`;
       return;
@@ -820,9 +826,9 @@ const ListOfWorkflows = ({
     const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-  };
+  }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
 
-  const selectAll = (select: boolean) => {
+  const selectAll = useCallback((select: boolean) => {
     (refreshItemRef.current!)(
         workflows.current!
             .reduce((allItemIds, item) => {
@@ -835,8 +841,8 @@ const ListOfWorkflows = ({
     if (anySelected !== select) {
       setAnySelected(select);
     }
-  };
-  const selectItem = (item: ListItem<BcWorkflow>, select: boolean) => {
+  }, [ refreshItemRef, workflows, setAllSelected, setAnySelected, anySelected ]);
+  const selectItem = useCallback((item: ListItem<BcWorkflow>, select: boolean) => {
     item.selected = select;
     (refreshItemRef.current!)([ item.id ]);
     const currentlyAllSelected = workflows.current!
@@ -849,51 +855,55 @@ const ListOfWorkflows = ({
     if (anySelected !== currentlyAnySelected) {
       setAnySelected(currentlyAnySelected);
     }
-  };
+  }, [ refreshItemRef, workflows, allSelected, anySelected, setAnySelected, setAllSelected ]);
 
-  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = columnsOfWorkflows === undefined
-      ? []
-      : columnsOfWorkflows!
-          .filter(column => column.show)
-          .filter(column => (columns === undefined) || columns.includes(column.path))
-          .map((column, columnIndex, allColumns) => ({
-              property: column.path,
-              size: getColumnSize(column),
-              plain: true,
-              verticalAlign: "top",
-              header: <ListColumnHeader
-                  t={ t }
-                  currentLanguage={ currentLanguage }
-                  nameOfList={ name }
-                  columnHeader={ columnHeader }
-                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
-                  setColumnWidthAdjustment={ setColumnWidthAdjustment }
-                  sort={ sort === column.path }
-                  setSort={ setSort }
-                  isDefaultSort={ column.path === defaultSort }
-                  sortAscending={ sortAscending }
-                  setSortAscending={ setSortAscending }
-                  defaultSortAscending={ defaultSortAscending }
-                  column={ column }
-                  columnIndex={ columnIndex }
-                  numberOfAllColumns={ allColumns.length }
-                  allSelected={ allSelected }
-                  selectAll={ selectAll } />,
-              render: (item: ListItem<BcUserTask>) => <ListCell
-                  modulesAvailable={ modules! }
-                  column={ column }
-                  currentLanguage={ currentLanguage }
-                  nameOfList={ name }
-                  typeOfItem={ TypeOfItem.WorkflowList }
-                  showUnreadAsBold={ false }
-                  t={ t }
-                  // @ts-ignore
-                  item={ item }
-                  // @ts-ignore
-                  selectItem={ selectItem }
-                  // @ts-ignore
-                  defaultListCell={ WorkflowDefaultListCell } />
-            }));
+  const columnsOfList: ColumnConfig<ListItem<BcUserTask>>[] = useMemo(() =>
+      (columnsOfWorkflows === undefined
+        ? []
+        : columnsOfWorkflows!
+            .filter(column => column.show)
+            .filter(column => (columns === undefined) || columns.includes(column.path))
+            .map((column, columnIndex, allColumns) => ({
+                property: column.path,
+                size: getColumnSize(column),
+                plain: true,
+                verticalAlign: "top",
+                header: <ListColumnHeader
+                    t={ t }
+                    currentLanguage={ currentLanguage }
+                    nameOfList={ name }
+                    columnHeader={ columnHeader }
+                    hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                    setColumnWidthAdjustment={ setColumnWidthAdjustment }
+                    sort={ sort === column.path }
+                    setSort={ setSort }
+                    isDefaultSort={ column.path === defaultSort }
+                    sortAscending={ sortAscending }
+                    setSortAscending={ setSortAscending }
+                    defaultSortAscending={ defaultSortAscending }
+                    column={ column }
+                    columnIndex={ columnIndex }
+                    numberOfAllColumns={ allColumns.length }
+                    allSelected={ allSelected }
+                    selectAll={ selectAll } />,
+                render: (item: ListItem<BcUserTask>) => <ListCell
+                    modulesAvailable={ modules! }
+                    column={ column }
+                    currentLanguage={ currentLanguage }
+                    nameOfList={ name }
+                    typeOfItem={ TypeOfItem.WorkflowList }
+                    showUnreadAsBold={ false }
+                    t={ t }
+                    // @ts-ignore
+                    item={ item }
+                    // @ts-ignore
+                    selectItem={ selectItem }
+                    // @ts-ignore
+                    defaultListCell={ WorkflowDefaultListCell } />
+              }))),
+      [ modules, currentLanguage, name, columnsOfWorkflows, setSort, setSortAscending, sortAscending,
+        defaultSortAscending, selectItem, selectAll, allSelected, getColumnSize, columnWidthAdjustments, defaultSort,
+        setColumnWidthAdjustment ]);
 
   const initialKwicQuery = (columnPath?: string) => {
       const query = searchQueries
@@ -974,6 +984,7 @@ const ListOfWorkflows = ({
 // @ts-ignore
                           loadWorkflows(
                               workflowlistApi,
+                              numberOfWorkflows,
                               setNumberOfWorkflows,
                               modulesOfWorkflows,
                               setModulesOfWorkflows,
@@ -990,6 +1001,7 @@ const ListOfWorkflows = ({
 // @ts-ignore
                           reloadWorkflows(
                               workflowlistApi,
+                              numberOfWorkflows,
                               setNumberOfWorkflows,
                               modulesOfWorkflows,
                               setModulesOfWorkflows,
