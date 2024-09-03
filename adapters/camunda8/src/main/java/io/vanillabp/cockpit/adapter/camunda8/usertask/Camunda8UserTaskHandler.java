@@ -143,7 +143,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 DateTimeUtil.fromMilliseconds(camunda8UserTaskLifecycleEvent.getTimestamp()));
 
         userTaskLifecycleEvent.setUserTaskId(
-                String.valueOf(camunda8UserTaskLifecycleEvent.getElementInstanceKey()));
+                String.valueOf(camunda8UserTaskLifecycleEvent.getKey()));
 
 //        userTaskLifecycleEvent.setComment(
 //                camunda8UserTaskLifecycleEvent.getDeleteReason()
@@ -220,7 +220,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                         jobRecord.getProcessInstanceKey());
 
         userTaskCreatedEvent.setUserTaskId(
-                String.valueOf(jobRecord.getElementInstanceKey()));
+                String.valueOf(jobRecord.getKey()));
 
         // TODO use timestamp from event
         userTaskCreatedEvent.setTimestamp(
