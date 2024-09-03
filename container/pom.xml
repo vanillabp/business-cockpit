@@ -15,10 +15,33 @@
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
+    <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
   </properties>
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <!-- sets property 'build.timestamp' only if version is of type SNAPSHOT -->
+            <id>build-helper-regex-is-snapshot-used</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>build.timestamp</name>
+              <value>${project.version}${maven.build.timestamp}release</value>
+              <regex>(?:.*SNAPSHOT)(.*)release|.*(release)</regex>
+              <replacement>$1</replacement>
+              <failIfNoMatch>false</failIfNoMatch>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-clean-plugin</artifactId>

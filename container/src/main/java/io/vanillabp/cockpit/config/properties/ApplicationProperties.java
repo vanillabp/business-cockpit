@@ -18,6 +18,8 @@ public class ApplicationProperties {
     
     @NonNull
     private String applicationVersion;
+
+    private String buildTimestamp;
     
     @NonNull
     private String applicationUri;
@@ -70,6 +72,14 @@ public class ApplicationProperties {
     
     public void setJwt(JwtProperties jwt) {
         this.jwt = jwt;
+    }
+
+    public String getBuildTimestamp() {
+        return buildTimestamp;
+    }
+
+    public void setBuildTimestamp(String buildTimestamp) {
+        this.buildTimestamp = buildTimestamp;
     }
 
 }

@@ -214,7 +214,8 @@ public class LoginApiController implements LoginApi {
                 new AppInformation()
                         .titleLong(properties.getTitleLong())
                         .titleShort(properties.getTitleShort())
-                        .version(properties.getApplicationVersion())));
+                        .version(properties.getApplicationVersion())
+                        .buildTimestamp(properties.getBuildTimestamp())));
         
     }
     

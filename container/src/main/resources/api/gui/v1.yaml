@@ -64,6 +64,8 @@ components:
           type: string
         version:
           type: string
+        buildTimestamp:
+          type: string
     Page:
       type: object
       required:

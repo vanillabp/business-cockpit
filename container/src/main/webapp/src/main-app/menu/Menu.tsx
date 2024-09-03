@@ -76,7 +76,7 @@ const Menu = () => {
         }
         <Text margin={ { top: 'medium' } }>{tApp('title.long')}</Text>
         <Anchor target='_blank' href={ state.appInformation?.homepageUrl }>{ state.appInformation?.homepageUrl }</Anchor>
-        <Text margin={ { top: 'medium' } }>Version { state.appInformation!.version }</Text>
+        <Text margin={ { top: 'medium' } }>Version { state.appInformation!.version } { state.appInformation!.buildTimestamp }</Text>
       </Grid>);
     
 }

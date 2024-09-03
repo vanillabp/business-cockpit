@@ -11,6 +11,7 @@ business-cockpit:
   title-short: VanillaBP-BC
   title-long: VanillaBP Business Cockpit
   application-version: "@project.version@"
+  build-timestamp: "@build.timestamp@"
   application-uri: http://localhost:8080
   jwt:
     hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
