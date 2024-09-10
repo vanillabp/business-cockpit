@@ -42,6 +42,7 @@ const loadUserTask = (
                   ...value,
                   open: () => openTask(value?.id!),
                   navigateToWorkflow: () => openWorkflow(value?.workflowId!),
+                  assign: userId => {},
                   unassign: userId => {},
                 } as BcUserTask;
               resolve(userTask);

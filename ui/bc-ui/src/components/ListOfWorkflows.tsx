@@ -35,6 +35,7 @@ import {
   SearchableAndSortableUpdatingList,
   sortWithColumnTypeSpecificAttributes,
   sortWithoutColumnTypeSpecificAttributes,
+  TasklistApiHook,
   TypeOfItem,
   useFederationModules,
   WorkflowlistApi,
@@ -606,6 +607,7 @@ const ListOfWorkflows = ({
   showLoadingIndicator,
   useGuiSse,
   useWorkflowlistApi,
+  useTasklistApi,
   openTask,
   navigateToWorkflow,
   currentLanguage,
@@ -630,6 +632,7 @@ const ListOfWorkflows = ({
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   useGuiSse: GuiSseHook,
   useWorkflowlistApi: WorkflowlistApiHook,
+  useTasklistApi: TasklistApiHook,
   openTask: OpenTaskFunction,
   navigateToWorkflow: NavigateToWorkflowFunction,
   currentLanguage: string,
@@ -656,6 +659,7 @@ const ListOfWorkflows = ({
 
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
+  const tasklistApi = useTasklistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
   const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>(defaultSearchQueries);
 
@@ -685,6 +689,8 @@ const ListOfWorkflows = ({
             ...userTask,
             open: () => openTask(userTask),
             navigateToWorkflow: () => {}, // don't change view because workflow is already shown
+            assign: (userId) => { tasklistApi.assignTask(userTask.id, userId, false) },
+            unassign: (userId) => { tasklistApi.assignTask(userTask.id, userId, true) },
           } as BcUserTask));
     };
     return {

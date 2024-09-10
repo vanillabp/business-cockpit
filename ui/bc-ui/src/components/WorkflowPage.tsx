@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ModuleDefinition,
-  NoWorkflowGiven,
-  OpenTaskFunction,
-  useFederationModule,
-  WorkflowlistApi,
-  WorkflowlistApiHook
+    ModuleDefinition,
+    NoWorkflowGiven,
+    OpenTaskFunction,
+    useFederationModule,
+    WorkflowlistApi,
+    WorkflowlistApiHook,
+    TasklistApi,
+    TasklistApiHook
 } from '../index.js';
 import {
   BcUserTask,
@@ -20,6 +22,7 @@ import { Box } from 'grommet';
 const loadWorkflow = async (
     workflowId: string,
     workflowListApi: WorkflowlistApi,
+    tasklistApi: TasklistApi,
     openTask: OpenTaskFunction,
     setWorkflow: (workflow: BcWorkflow) => void,
 ) => {
@@ -37,6 +40,8 @@ const loadWorkflow = async (
           ...userTask,
           open: () => openTask(userTask),
           navigateToWorkflow: () => {}, // don't change view because workflow is already shown
+          assign: userId => tasklistApi.assignTask(userTask.id, userId, false),
+          unassign: userId => tasklistApi.assignTask(userTask.id, userId, false),
         } as BcUserTask));
   };
   const bcWorkflows: BcWorkflow = {
@@ -52,6 +57,7 @@ const WorkflowPage = ({
     showLoadingIndicator,
     toast,
     useWorkflowlistApi,
+    useTasklistApi,
     openTask,
     t,
 }: {
@@ -59,6 +65,7 @@ const WorkflowPage = ({
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     toast: ToastFunction,
     useWorkflowlistApi: WorkflowlistApiHook,
+    useTasklistApi: TasklistApiHook,
     openTask: OpenTaskFunction,
     t: TranslationFunction,
 }) => {
@@ -68,6 +75,7 @@ const WorkflowPage = ({
   const loadingWorkflow = useRef(false);
   const [ workflow, setWorkflow ] = useState<BcWorkflow | undefined | null>(undefined);
   const workflowListApi = useWorkflowlistApi();
+  const taskListApi = useTasklistApi();
   useEffect(() => {
       if (workflowId === undefined) {
         return;
@@ -83,9 +91,10 @@ const WorkflowPage = ({
     loadWorkflow(
         workflowId,
         workflowListApi,
+        taskListApi,
         userTask => openTask(userTask),
         setWorkflow);
-    }, [ workflowListApi, workflowId, workflow, loadingWorkflow, showLoadingIndicator, setWorkflow ]);
+    }, [ workflowListApi, taskListApi, workflow, loadingWorkflow, showLoadingIndicator, setWorkflow ]);
   
   const module = useFederationModule(workflow as ModuleDefinition, 'WorkflowPage');
   useEffect(() => {
@@ -112,6 +121,7 @@ const WorkflowPage = ({
         retry={ () => loadWorkflow(
             workflowId!,
             workflowListApi,
+            taskListApi,
             userTask => openTask(userTask),
             setWorkflow) } />;
   }

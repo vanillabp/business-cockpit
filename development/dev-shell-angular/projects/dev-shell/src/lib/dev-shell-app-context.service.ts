@@ -17,6 +17,7 @@ export class DevShellAppContextService {
       ...userTask,
       open: () => alert('Will open task'),
       navigateToWorkflow: () => alert('Will navigate to workflow'),
+      assign: userId => alert(`Assigned task for user ${ userId }`),
       unassign: userId => alert(`Unassigned task for user ${ userId }`)
     } as BcUserTask;
   }
