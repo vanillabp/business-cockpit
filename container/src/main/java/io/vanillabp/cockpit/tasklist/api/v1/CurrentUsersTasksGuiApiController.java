@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.util.SearchQuery;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -38,6 +39,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
+			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending) {
 
@@ -50,6 +52,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 				pageNumber,
 				pageSize,
 				initialTimestamp,
+				searchQueries,
 				sort,
 				sortAscending);
 
@@ -61,6 +64,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 			final int size,
 			final Collection<String> knownUserTasksIds,
 			final OffsetDateTime initialTimestamp,
+			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending) {
 
@@ -73,6 +77,7 @@ public class CurrentUsersTasksGuiApiController extends AbstractUserTaskListGuiAp
 				size,
 				knownUserTasksIds,
 				initialTimestamp,
+				searchQueries,
 				sort,
 				sortAscending);
 

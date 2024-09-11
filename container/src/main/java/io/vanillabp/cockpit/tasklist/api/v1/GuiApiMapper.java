@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
+import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.users.model.Group;
@@ -68,6 +69,10 @@ public abstract class GuiApiMapper {
     public abstract UserTasks toApi(Page<io.vanillabp.cockpit.tasklist.model.UserTask> data,
                                     OffsetDateTime timestamp,
                                     String userId);
+
+    public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
+
+    public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
     @NoMappingMethod
     protected String proxiedUiUri(

@@ -4,6 +4,8 @@ import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtil
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
+import io.vanillabp.cockpit.util.SearchCriteriaHelper;
+import io.vanillabp.cockpit.util.SearchQuery;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
@@ -361,6 +363,7 @@ public class UserTaskService {
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
+            final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
 
@@ -373,6 +376,7 @@ public class UserTaskService {
                 pageNumber,
                 pageSize,
                 initialTimestamp,
+                searchQueries,
                 sort,
                 sortAscending,
                 null,
@@ -389,6 +393,7 @@ public class UserTaskService {
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
+            final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
             final List<Criteria> predefinedCriterias,
@@ -402,6 +407,7 @@ public class UserTaskService {
 
         // build query
         final var query = new Query();
+        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         query.addCriteria(
                 buildUserTasksCriteria(
                         includeDanglingTasks,
@@ -412,6 +418,9 @@ public class UserTaskService {
                         initialTimestamp,
                         mode,
                         predefinedCriterias));
+        if (searchCriteria != null) {
+            searchCriteria.forEach(query::addCriteria);
+        }
 
         // prepare to retrieve data on execution
         final var numberOfUserTasksFound = mongoTemplate
@@ -482,6 +491,7 @@ public class UserTaskService {
                     0,
                     size,
                     OffsetDateTime.now(),
+                    null,
                     sort,
                     sortAscending,
                     List.of(Criteria.where("workflowId").is(workflowId)),
@@ -500,6 +510,7 @@ public class UserTaskService {
             final int size,
             final Collection<String> knownUserTasksIds,
             final OffsetDateTime initialTimestamp,
+            final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
 
@@ -521,7 +532,10 @@ public class UserTaskService {
                         initialTimestamp,
                         RetrieveItemsMode.OpenTasks,
                         null));
-
+        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        if (searchCriteria != null) {
+            searchCriteria.forEach(query::addCriteria);
+        }
         final var numberOfUserTasks = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
         final var result = mongoTemplate
