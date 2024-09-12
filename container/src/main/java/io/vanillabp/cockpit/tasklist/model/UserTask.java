@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = UserTask.COLLECTION_NAME)
@@ -80,6 +81,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private Map<String, Object> details = null;
 
+    @TextIndexed
     private String detailsFulltextSearch;
 
     private List<ReadBy> readBy;

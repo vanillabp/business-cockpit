@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.TextIndexDefinition;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -25,6 +26,8 @@ import org.springframework.stereotype.Component;
 public class V000001 {
 
     private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
+    private static final String TEXTINDEX_NAME = "_indexFullText";
+    private static final String TEXTINDEX_DEFAULTLANGUAGE = "german";
     private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
     private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
     private static final String INDEX_FULLTEXT = Workflow.COLLECTION_NAME + "_fulltext";
@@ -293,5 +296,23 @@ public class V000001 {
         return null;
 
     }
+
+    @Changeset(order = 1011)
+    public String createFulltextTextIndex(final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .ensureIndex(new TextIndexDefinition.TextIndexDefinitionBuilder()
+                        .onFields("detailsFulltextSearch")
+                        .withDefaultLanguage(TEXTINDEX_DEFAULTLANGUAGE)
+                        .named(TEXTINDEX_NAME)
+                        .build()
+                )
+                .block();
+
+        return null;
+
+    }
+
 
 }
