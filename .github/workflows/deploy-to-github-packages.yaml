@@ -23,12 +23,14 @@ jobs:
           scope: '@vanillabp'
           always-auth: true
       - id: get-version
+        name: Read Maven pom.xml version
         uses: jactions/maven-version@v1.2.0
       - id: get-package-id
+        name: Retrieve last package ID of NPM package bc-official-gui-client for calculating next ID
         # use first NPM package published as part of this pipeline (bc-official-gui-client) to determine new NPM prerelease id
         run: |
-          VERSIONS=$(curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions)
-          ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')          
+          VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L 'https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions?per_page=100')
+          ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
       - name: Publish package
         run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
@@ -39,3 +41,14 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_userconfig: ${{ github.workspace }}/.npmrc
           CI: false
+      - id: cleanup-outdated-npm-packages
+        name: Delete outdated NPM packages
+        run: |
+          packages="bc-official-gui-client bc-shared bc-dev-shell-angular bc-dev-shell-react bc-ui"
+          for p in $packages; do
+            VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L "https://api.github.com/orgs/vanillabp/packages/npm/${p}/versions?per_page=100")
+            TOBEDELETED=$(echo $VERSIONS | jq -r --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) ] | sort_by(.id) )[:-5] | map(.id) | join(" ") ')
+            for v in ${TOBEDELETED}; do
+              curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L "https://api.github.com/orgs/vanillabp/packages/npm/${p}/versions/$v"
+            done
+          done
