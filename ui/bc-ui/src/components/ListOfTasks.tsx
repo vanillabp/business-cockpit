@@ -901,7 +901,8 @@ const ListOfTasks = ({
       ...userTask,
       open: () => openTask(userTask),
       navigateToWorkflow: () => navigateToWorkflow(userTask),
-      unassign: userId => unassign(userTask.id, userId),
+      assign: userId => assignFunction(userTask.id, userId, false),
+      unassign: userId => assignFunction(userTask.id, userId, true),
     };
   };
 
@@ -1045,8 +1046,8 @@ const ListOfTasks = ({
     refreshList();
   }
 
-  const unassign = (userTaskId: string, userId: string) => {
-    tasklistApi.assignTask(userTaskId, userId, true);
+  const assignFunction = (userTaskId: string, userId: string, unassign: boolean) => {
+    tasklistApi.assignTask(userTaskId, userId, unassign);
   };
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});

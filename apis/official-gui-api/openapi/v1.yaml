@@ -787,6 +787,10 @@ components:
           format: int32
         query:
           type: string
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
         sortAscending:
@@ -820,6 +824,10 @@ components:
           format: int32
         query:
           type: string
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
         sortAscending:

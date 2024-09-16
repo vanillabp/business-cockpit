@@ -1,12 +1,14 @@
 package io.vanillabp.cockpit.workflowlist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -30,9 +32,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.StringOperators;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
@@ -180,7 +184,6 @@ public class WorkflowlistService {
                 : OffsetDateTime.now();
 
         final var query = new Query();
-        final var searchCriteria = buildSearchCriteria(searchQueries);
         query.addCriteria(
                 buildWorkflowlistCriteria(
                         includeDanglingWorkflows,
@@ -188,8 +191,11 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         endedSince,
                         mode,
-                        searchCriteria));
-
+                        null));
+        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        if (searchCriteria != null) {
+            searchCriteria.forEach(query::addCriteria);
+        }
         // prepare to retrieve data on execution
         final var numberOfWorkflowsFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
@@ -305,7 +311,6 @@ public class WorkflowlistService {
 
         final var query = new Query();
         query.fields().include("_id");
-        final var searchCriteria = buildSearchCriteria(searchQueries);
         query.addCriteria(
                 buildWorkflowlistCriteria(
                         includeDanglingWorkflows,
@@ -313,8 +318,11 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         initialTimestamp,
                         RetrieveItemsMode.Active,
-                        searchCriteria));
-
+                        null));
+        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        if (searchCriteria != null) {
+            searchCriteria.forEach(query::addCriteria);
+        }
         final var numberOfWorkflows = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
         final var result = mongoTemplate
@@ -435,7 +443,6 @@ public class WorkflowlistService {
         }
 
         final var searchCriteria = new LinkedList<Criteria>();
-        searchCriteria.addAll(buildSearchCriteria(searchQueries));
         searchCriteria.add(new Criteria(path).regex(query));
         final var match =
                 buildWorkflowlistCriteria(
@@ -445,7 +452,7 @@ public class WorkflowlistService {
                         endedSince,
                         RetrieveItemsMode.Active,
                         searchCriteria);
-
+        final var searchQueryCriterias = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         /*
         db.workflow.aggregate([
             { $match: { 'title.de': { $regex: 'i', $options: 'i' } } },
@@ -458,22 +465,27 @@ public class WorkflowlistService {
          */
 
         final var groupedQuery = "(\\S*" + query + "\\S*)"; // find entire words
+        final var aggOperations = new ArrayList<AggregationOperation>();
+        // limit results according to regexp and predefined limitations
+        aggOperations.add(Aggregation.match(match));
+        if (searchQueryCriterias != null) {
+            searchQueryCriterias.forEach(s -> aggOperations.add(Aggregation.match(s)));
+        }
+        // add words matching as a new field
+        aggOperations.add(Aggregation.addFields().addFieldWithValue("matches", StringOperators.RegexFindAll.valueOf(path).regex(groupedQuery)).build());
+        // drop fields not necessary
+        aggOperations.add(Aggregation.project().andExclude("_id").andInclude("matches.captures"));
+        // unwind result from find 'all'
+        aggOperations.add(Aggregation.unwind("captures"));
+        // unwind result from regex group -> may be used in future for other groups if necessary
+        aggOperations.add(Aggregation.unwind("captures"));
+        // group and count words found
+        aggOperations.add(Aggregation.group("captures").count().as("count"));
+        aggOperations.add(Aggregation.limit(21));
         return mongoTemplate
                 .aggregate(
                         Aggregation.newAggregation(
-                                // limit results according to regexp and predefined limitations
-                                Aggregation.match(match),
-                                // add words matching as a new field
-                                Aggregation.addFields().addFieldWithValue("matches", StringOperators.RegexFindAll.valueOf(path).regex(groupedQuery)).build(),
-                                // drop fields not necessary
-                                Aggregation.project().andExclude("_id").andInclude("matches.captures"),
-                                // unwind result from find 'all'
-                                Aggregation.unwind("captures"),
-                                // unwind result from regex group -> may be used in future for other groups if necessary
-                                Aggregation.unwind("captures"),
-                                // group and count words found
-                                Aggregation.group("captures").count().as("count"),
-                                Aggregation.limit(21)
+                                aggOperations
                         ),
                         Workflow.class,
                         KwicResult.class)
@@ -489,24 +501,7 @@ public class WorkflowlistService {
 
     }
 
-    public List<Criteria> buildSearchCriteria(
-            final Collection<SearchQuery> searchQueries) {
-
-        if ((searchQueries == null)
-                || searchQueries.isEmpty()) {
-            return List.of();
-        }
-
-        return searchQueries
-                .stream()
-                .map(query -> Criteria
-                        .where(StringUtils.hasText(query.path()) ? query.path() : "detailsFulltextSearch")
-                        .regex(query.query(), query.caseInsensitive() ? "i" : ""))
-                .toList();
-
-    }
-
-    public Criteria buildWorkflowlistCriteria(
+    public CriteriaDefinition buildWorkflowlistCriteria(
             final boolean includeDanglingWorkflows,
             final Collection<String> accessibleToUsers,
             final Collection<String> accessibleToGroups,

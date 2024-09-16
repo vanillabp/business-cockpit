@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
+import io.vanillabp.cockpit.util.SearchQuery;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
+			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending);
 
@@ -63,6 +65,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						entry.getT2().getPageNumber(),
 						entry.getT2().getPageSize(),
 						timestamp,
+						mapper.toModel(entry.getT2().getSearchQueries()),
 						entry.getT2().getSort(),
 						entry.getT2().getSortAscending())
 				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
@@ -75,6 +78,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final int size,
 			final Collection<String> knownUserTasksIds,
 			final OffsetDateTime initialTimestamp,
+			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending);
 
@@ -96,6 +100,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 										entry.getT1().getSize(),
 										entry.getT1().getKnownUserTasksIds(),
 										entry.getT2(),
+										mapper.toModel(entry.getT1().getSearchQueries()),
 										entry.getT1().getSort(),
 										entry.getT1().getSortAscending()),
 								Mono.just(entry.getT2())))

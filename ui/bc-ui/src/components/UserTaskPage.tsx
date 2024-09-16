@@ -25,6 +25,7 @@ const loadUserTask = (
     setUserTask: (userTask: BcUserTask | null) => void,
     navigateToWorkflow: (userTask: UserTask) => void,
     openTask: (userTask: UserTask) => void,
+    assign: (userTask: UserTask, userId: string) => void,
     unassign: (userTask: UserTask, userId: string) => void,
 ) => {
   tasklistApi.getUserTask(userTaskId,true)
@@ -33,6 +34,7 @@ const loadUserTask = (
           ...value,
           open: () => openTask(value),
           navigateToWorkflow: () => navigateToWorkflow(value),
+          assign: userId => assign(value, userId),
           unassign: userId => unassign(value, userId),
         };
         setUserTask(bcUserTask);
@@ -83,6 +85,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
         setUserTask,
         userTask => navigateToWorkflow(userTask),
         userTask => openTask(userTask),
+        (userTask, userId) => assignTask(userTask, userId, false),
         (userTask, userId) => assignTask(userTask, userId, true));
   }, [ userTaskId ]); //eslint-disable-line react-hooks/exhaustive-deps -- should only be executed on change of userTaskId
 
@@ -113,6 +116,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
             setUserTask,
             userTask => navigateToWorkflow(userTask),
             userTask => openTask(userTask),
+            (userTask, userId) => assignTask(userTask, userId, false),
             (userTask, userId) => assignTask(userTask, userId, true)) }/>;
   }
 
@@ -137,6 +141,8 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
       ...userTask,
       open: () => openTask(userTask),
       navigateToWorkflow: () => navigateToWorkflow(userTask),
+      assign: (userId) => assignTask(userTask, userId, false),
+      unassign: (userId) => assignTask(userTask, userId, true)
     };
 
   return children === undefined
