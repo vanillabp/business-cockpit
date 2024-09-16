@@ -466,11 +466,14 @@ public class WorkflowlistService {
 
         final var groupedQuery = "(\\S*" + query + "\\S*)"; // find entire words
         final var aggOperations = new ArrayList<AggregationOperation>();
+        // for mongo a match with $text (fulltext) has to be the first entry in the pipeline
+        if (searchQueryCriterias != null) {
+            for (var searchQueryCriteria: searchQueryCriterias) {
+                aggOperations.add(Aggregation.match(searchQueryCriteria));
+            }
+        }
         // limit results according to regexp and predefined limitations
         aggOperations.add(Aggregation.match(match));
-        if (searchQueryCriterias != null) {
-            searchQueryCriterias.forEach(s -> aggOperations.add(Aggregation.match(s)));
-        }
         // add words matching as a new field
         aggOperations.add(Aggregation.addFields().addFieldWithValue("matches", StringOperators.RegexFindAll.valueOf(path).regex(groupedQuery)).build());
         // drop fields not necessary
