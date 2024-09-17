@@ -278,7 +278,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                                                 e),
                                         locale,
                                         templatesPathes,
-                                        details.getDetailsFulltextSearch(),
+                                        "details-fulltext-search.ftl",
                                         details.getTemplateContext(),
                                         () -> bpmnProcessName));
 

@@ -440,7 +440,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                                             e),
                                     locale,
                                     templatesPaths,
-                                    details.getDetailsFulltextSearch(),
+                                    "details-fulltext-search.ftl",
                                     details.getTemplateContext(),
                                     () -> taskName));
 

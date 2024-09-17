@@ -330,7 +330,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                                 e),
                                         locale,
                                         templatesPathes,
-                                        details.getDetailsFulltextSearch(),
+                                        "details-fulltext-search.ftl",
                                         details.getTemplateContext(),
                                         delegateTask::getName));
                         
