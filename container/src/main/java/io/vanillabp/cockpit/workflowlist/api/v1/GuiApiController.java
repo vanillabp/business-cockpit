@@ -4,6 +4,7 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,7 +111,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     }
 
     @Override
-    protected Flux<WorkflowlistService.KwicResult> kwic(
+    protected Flux<KwicResult> kwic(
             final UserDetails currentUser,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,

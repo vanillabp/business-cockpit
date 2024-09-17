@@ -12,7 +12,6 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
 import io.vanillabp.cockpit.util.SearchQuery;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -166,7 +165,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
-    protected abstract Flux<WorkflowlistService.KwicResult> kwic(
+    protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
             final UserDetails currentUser,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,

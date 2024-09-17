@@ -9,7 +9,6 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.mapstruct.Mapper;
@@ -96,6 +95,6 @@ public abstract class GuiApiMapper {
         
     }
 
-    public abstract KwicResult toApi(WorkflowlistService.KwicResult result);
+    public abstract KwicResult toApi(io.vanillabp.cockpit.util.kwic.KwicResult result);
 
 }

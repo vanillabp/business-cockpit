@@ -390,9 +390,42 @@ public class UserTaskTestDataGenerator implements Runnable {
                             "test2", testData2,
                             "project", projectData));
         }
-                
+
+        result.setDetailsFulltextSearch(collectFulltextTerms(result));
+
         return result;
         
+    }
+
+    private static String collectFulltextTerms(final UserTaskCreatedOrUpdatedEvent event) {
+        final var fulltextSb = new StringBuilder();
+        if (event.getWorkflowTitle() != null) {
+            event.getWorkflowTitle().forEach((String k, String v) -> {
+                fulltextSb.append(v);
+                fulltextSb.append(" ");
+            });
+        }
+        if (event.getTitle() != null) {
+            event.getTitle().forEach((String k, String v) -> {
+                if (v != null) {
+                    fulltextSb.append(v);
+                    fulltextSb.append(" ");
+                }
+            });
+        }
+        if (event.getDetails() != null) {
+            event.getDetails().forEach((String k, Object v) -> {
+                if (v instanceof String || v instanceof Integer) {
+                    fulltextSb.append(v);
+                    fulltextSb.append(" ");
+                }
+            });
+        }
+        if (event.getAssignee() != null) {
+            fulltextSb.append(event.getAssignee());
+            fulltextSb.append(" ");
+        }
+        return fulltextSb.toString();
     }
 
 }

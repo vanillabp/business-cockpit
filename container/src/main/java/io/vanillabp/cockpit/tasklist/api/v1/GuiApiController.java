@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
@@ -7,6 +8,8 @@ import io.vanillabp.cockpit.util.SearchQuery;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+
+import io.vanillabp.cockpit.util.kwic.KwicResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -80,6 +83,28 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				searchQueries,
 				sort,
 				sortAscending);
+
+	}
+
+	@Override
+	protected Flux<KwicResult> kwic(
+			UserDetails currentUser,
+			OffsetDateTime endedSince,
+			List<SearchQuery> searchQueries,
+			String path,
+			String query) {
+
+		return userTaskService.kwic(
+				true,
+				false,
+				List.of(currentUser.getId()),
+				List.of(currentUser.getId()),
+				currentUser.getAuthorities(),
+				endedSince,
+				searchQueries,
+				path,
+				query
+		);
 
 	}
 

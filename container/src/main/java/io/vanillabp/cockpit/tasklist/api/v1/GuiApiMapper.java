@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
+import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
@@ -116,5 +117,7 @@ public abstract class GuiApiMapper {
 
         return userTask.getDueDate();
     }
-    
+
+    public abstract KwicResult toApi(io.vanillabp.cockpit.util.kwic.KwicResult result);
+
 }

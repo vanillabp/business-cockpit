@@ -206,6 +206,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserTasks'
+    options:
+      tags:
+        - officialTasklist
+      summary: Kwic results over user tasks
+      operationId: getUserTaskKwicResults
+      parameters:
+        - in: query
+          name: initialTimestamp
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: path
+          schema:
+            type: string
+        - in: query
+          name: query
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KwicRequest"
+      responses:
+        200:
+          description: Workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KwicResults'
     put:
       tags:
         - officialTasklist
@@ -318,7 +350,7 @@ paths:
     options:
       tags:
         - officialWorkflowlist
-      summary: Kwic results
+      summary: Kwic results over workflow items
       operationId: getKwicResults
       parameters:
         - in: query

@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Person, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import {Person, SearchQuery, UserTask, UserTaskEvent} from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   backgroundColorAccordingToStatus,
@@ -23,6 +23,7 @@ import {
   WakeupSseCallback,
 } from "@vanillabp/bc-shared";
 import {
+  FulltextSearchInput,
   ListCell,
   ListItem,
   ListItems,
@@ -95,6 +96,7 @@ const loadUserTasks = async (
   pageSize: number,
   pageNumber: number,
   initialTimestamp: Date | undefined,
+  searchQueries: Array<SearchQuery>,
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
@@ -105,6 +107,7 @@ const loadUserTasks = async (
       pageSize,
       sort,
       sortAscending,
+      searchQueries,
       initialTimestamp);
 
   if (numberOfUserTask !== result!.page.totalElements) {
@@ -129,6 +132,7 @@ const reloadUserTasks = async (
   numberOfItems: number,
   knownItemsIds: Array<string>,
   initialTimestamp: Date | undefined,
+  searchQueries: Array<SearchQuery>,
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
@@ -141,6 +145,7 @@ const reloadUserTasks = async (
       knownItemsIds,
       sort,
       sortAscending,
+      searchQueries,
       initialTimestamp);
 
   if (numberOfUserTask !== result!.page.totalElements) {
@@ -665,7 +670,10 @@ const DefaultHeader = ({
   unclaimTasks,
   claimTasksDisabled,
   assignTasks,
-  assignDisabled
+  assignDisabled,
+  initialKwicQuery,
+  limitListToKwic,
+  kwic
 }: {
   tasklistApi: TasklistApi,
   t: TranslationFunction,
@@ -679,6 +687,9 @@ const DefaultHeader = ({
   claimTasksDisabled: boolean,
   assignTasks: (userId: string) => void,
   assignDisabled: boolean,
+  initialKwicQuery: (columnPath?: string) => string,
+  limitListToKwic: (columnPath: string | undefined, query?: string) => void,
+  kwic: (columnPath: string | undefined, query: string) => Promise<Array<{ item: string, count: number }>>,
 }) => {
 
   return (
@@ -709,6 +720,11 @@ const DefaultHeader = ({
             t={ t }
             refresh={ refresh }
             disabled={ refreshDisabled } />
+        <FulltextSearchInput
+            t={ t }
+            initialQuery={ initialKwicQuery }
+            limitListToKwic={ limitListToKwic }
+            kwic={ kwic } />
       </Box>);
 
 }
@@ -854,6 +870,7 @@ const ListOfTasks = ({
     columnHeader,
     columnHeaderBackground = 'dark-3',
     columnHeaderSeparator,
+    defaultSearchQueries = [],
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     useGuiSse: GuiSseHook,
@@ -877,12 +894,14 @@ const ListOfTasks = ({
     columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
     columnHeaderBackground?: BackgroundType,
     columnHeaderSeparator?: ColorType | null,
+    defaultSearchQueries?: Array<SearchQuery>,
 }) => {
 
   const { isPhone, isTablet } = useResponsiveScreen();
   const wakeupSseCallback = useRef<WakeupSseCallback>(undefined);
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   const [ refreshIndicator, setRefreshIndicator ] = useState<Date>(new Date());
+  const [ searchQueries, setSearchQueries ] = useState<Array<SearchQuery>>(defaultSearchQueries);
 
   const updateListRef = useRef<ReloadCallbackFunction | undefined>(undefined);
   const updateList = useMemo(() => async (ev: EventSourceMessage<Array<EventMessage<UserTaskEvent>>>) => {
@@ -914,7 +933,7 @@ const ListOfTasks = ({
       const loadMetaInformation = async () => {
         await loadUserTasks(tasklistApi, numberOfTasks, setNumberOfTasks, modulesOfTasks,
             setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
-            undefined, true, mapToBcUserTask);
+            searchQueries, undefined, true, mapToBcUserTask);
       };
       if (userTasks.current === undefined) {
         showLoadingIndicator(true);
@@ -1203,6 +1222,35 @@ const ListOfTasks = ({
     tasklistApi.assignTasks(userTaskMarkedIds, userId);
   };
 
+  const initialKwicQuery = (columnPath?: string) => {
+    const query = searchQueries
+        .filter(query => query.path === columnPath)
+        .map(query => query.query);
+    if (query.length === 0) return '';
+    return query[0];
+  }
+  // const kwicInProgress = useRef(false);
+  // useLayoutEffect(() => {
+  //   kwicInProgress.current = false;
+  // }, [ kwicInProgress ]);
+  const setKwic = (columnPath: string | undefined, value?: string) => {
+    const newSearchQueries = searchQueries
+        .filter(query => query.path !== columnPath);
+    if ((value !== undefined)
+        && (value.trim().length > 0)) {
+      newSearchQueries.push({ path: columnPath, query: value });
+    }
+    setSearchQueries(newSearchQueries);
+    // kwicInProgress.current = true;
+    refreshList();
+  };
+  const kwic = async (columnPath: string | undefined, query: string) => {
+    return await tasklistApi.kwicUserTasks(
+        query,
+        columnPath,
+        searchQueries);
+  };
+
   const defaultFooter = () =>
       <DefaultFooter
           isPhone={ isPhone }
@@ -1222,7 +1270,10 @@ const ListOfTasks = ({
           unclaimTasks={ () => claim(true) }
           claimTasksDisabled={ !anySelected }
           assignTasks={ assign }
-          assignDisabled={ !anySelected } />;
+          assignDisabled={ !anySelected }
+          initialKwicQuery={ initialKwicQuery }
+          limitListToKwic={ setKwic }
+          kwic={ kwic } />;
   const themeContext = useTheme();
 
   return (
@@ -1271,6 +1322,7 @@ const ListOfTasks = ({
                                 pageSize,
                                 pageNumber,
                                 initialTimestamp,
+                                searchQueries,
                                 effectiveSort,
                                 sortAscending,
                                 mapToBcUserTask) }
@@ -1287,6 +1339,7 @@ const ListOfTasks = ({
                                 numberOfItems,
                                 updatedItemsIds,
                                 initialTimestamp,
+                                searchQueries,
                                 effectiveSort,
                                 sortAscending,
                                 mapToBcUserTask) }

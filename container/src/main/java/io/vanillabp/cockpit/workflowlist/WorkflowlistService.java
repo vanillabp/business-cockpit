@@ -3,12 +3,13 @@ package io.vanillabp.cockpit.workflowlist;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.kwic.KwicResult;
+import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -23,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -31,9 +31,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
-import org.springframework.data.mongodb.core.aggregation.StringOperators;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
@@ -53,8 +50,6 @@ public class WorkflowlistService {
         Active,
         Inactive
     }
-
-    public record KwicResult(@Id String item, int count) {}
 
     public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
     public static final String PROPERTY_CREATEDAT = "createdAt";
@@ -88,6 +83,9 @@ public class WorkflowlistService {
 
     @Autowired
     private ReactiveMongoTemplate mongoTemplate;
+
+    @Autowired
+    private KwicService kwicService;
 
     private Disposable dbChangesSubscription;
 
@@ -371,7 +369,7 @@ public class WorkflowlistService {
             final String reason) {
 
         if (workflow == null) {
-            Mono.just(Boolean.FALSE);
+            return Mono.just(Boolean.FALSE);
         }
 
         workflow.setEndedAt(timestamp);
@@ -395,7 +393,7 @@ public class WorkflowlistService {
             final OffsetDateTime timestamp) {
 
         if (workflow == null) {
-            Mono.just(Boolean.FALSE);
+            return Mono.just(Boolean.FALSE);
         }
 
         workflow.setEndedAt(timestamp);
@@ -443,7 +441,7 @@ public class WorkflowlistService {
         }
 
         final var searchCriteria = new LinkedList<Criteria>();
-        searchCriteria.add(new Criteria(path).regex(query));
+        searchCriteria.add(new Criteria(path).regex(query, "i"));
         final var match =
                 buildWorkflowlistCriteria(
                         includeDanglingWorkflows,
@@ -452,53 +450,8 @@ public class WorkflowlistService {
                         endedSince,
                         RetrieveItemsMode.Active,
                         searchCriteria);
-        final var searchQueryCriterias = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
-        /*
-        db.workflow.aggregate([
-            { $match: { 'title.de': { $regex: 'i', $options: 'i' } } },
-            { $addFields: { 'matches': { $regexFindAll: { input: '$title.de', regex: '(\S*i\S*)', options: 'i' } } } },
-            { $project: { '_id': 0, 'matches.captures': 1 } },
-            { $unwind: '$captures' },
-            { $unwind: '$captures' },
-            { $group: { _id: '$captures', count: { $sum: 1 } } }
-        ])
-         */
 
-        final var groupedQuery = "(\\S*" + query + "\\S*)"; // find entire words
-        final var aggOperations = new ArrayList<AggregationOperation>();
-        // limit results according to regexp and predefined limitations
-        aggOperations.add(Aggregation.match(match));
-        if (searchQueryCriterias != null) {
-            searchQueryCriterias.forEach(s -> aggOperations.add(Aggregation.match(s)));
-        }
-        // add words matching as a new field
-        aggOperations.add(Aggregation.addFields().addFieldWithValue("matches", StringOperators.RegexFindAll.valueOf(path).regex(groupedQuery)).build());
-        // drop fields not necessary
-        aggOperations.add(Aggregation.project().andExclude("_id").andInclude("matches.captures"));
-        // unwind result from find 'all'
-        aggOperations.add(Aggregation.unwind("captures"));
-        // unwind result from regex group -> may be used in future for other groups if necessary
-        aggOperations.add(Aggregation.unwind("captures"));
-        // group and count words found
-        aggOperations.add(Aggregation.group("captures").count().as("count"));
-        aggOperations.add(Aggregation.limit(21));
-        return mongoTemplate
-                .aggregate(
-                        Aggregation.newAggregation(
-                                aggOperations
-                        ),
-                        Workflow.class,
-                        KwicResult.class)
-                .sort((a, b) -> {
-                        if (a.count < b.count) {
-                            return -1;
-                        }
-                        if (a.count > b.count) {
-                            return 1;
-                        }
-                        return a.item.compareTo(b.item);
-                    });
-
+        return kwicService.getKwicAggregatedResults(Workflow.class, match, searchQueries, path, query);
     }
 
     public CriteriaDefinition buildWorkflowlistCriteria(

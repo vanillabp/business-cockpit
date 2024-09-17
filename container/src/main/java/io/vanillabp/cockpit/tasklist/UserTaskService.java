@@ -6,6 +6,8 @@ import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.kwic.KwicResult;
+import io.vanillabp.cockpit.util.kwic.KwicService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
@@ -55,7 +57,7 @@ public class UserTaskService {
         OpenTasksWithoutFollowup,
         OpenTasksWithFollowup,
         ClosedTasksOnly
-    };
+    }
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
                     Order.asc(PROPERTY_DUEDATE),
@@ -84,7 +86,10 @@ public class UserTaskService {
     
     @Autowired
     private UserTaskRepository userTasks;
-    
+
+    @Autowired
+    private KwicService kwicService;
+
     @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
@@ -360,9 +365,9 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
-			final int pageNumber,
-			final int pageSize,
-			final OffsetDateTime initialTimestamp,
+            final int pageNumber,
+            final int pageSize,
+            final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
@@ -471,6 +476,38 @@ public class UserTaskService {
         }
 
     }
+
+    public Flux<KwicResult> kwic(
+            final boolean includeDanglingTasks,
+            final boolean notInAssignees,
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
+            final OffsetDateTime initialTimestamp,
+            final Collection<SearchQuery> searchQueries,
+            final String path,
+            final String query) {
+
+        if (!StringUtils.hasText(query)
+                || (query.length() < 3)) {
+            return Flux.empty();
+        }
+
+        final var searchCriteria = new LinkedList<Criteria>();
+        searchCriteria.add(new Criteria(path).regex(query, "i"));
+        final var match =
+                buildUserTasksCriteria(
+                        includeDanglingTasks,
+                        notInAssignees,
+                        assignees,
+                        candidateUsers,
+                        candidateGroups,
+                        initialTimestamp,
+                        RetrieveItemsMode.OpenTasks,
+                        searchCriteria);
+
+        return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
+    }
     
     public Flux<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
@@ -564,7 +601,7 @@ public class UserTaskService {
             final OffsetDateTime timestamp) {
         
         if (userTask == null) {
-            Mono.just(Boolean.FALSE);
+            return Mono.just(Boolean.FALSE);
         }
         
         userTask.setEndedAt(timestamp);
@@ -586,7 +623,7 @@ public class UserTaskService {
             final String reason) {
         
         if (userTask == null) {
-            Mono.just(Boolean.FALSE);
+            return Mono.just(Boolean.FALSE);
         }
 
         userTask.setEndedAt(timestamp);
@@ -608,7 +645,7 @@ public class UserTaskService {
             final UserTask userTask) {
         
         if (userTask == null) {
-            Mono.just(Boolean.FALSE);
+            return Mono.just(Boolean.FALSE);
         }
         
         if (userTask.getDueDate() == null) {
@@ -740,7 +777,6 @@ public class UserTaskService {
         }
 
         // limit result according to predefined filters
-
         if (predefinedCriterias != null) {
             subCriterias.addAll(predefinedCriterias);
         }

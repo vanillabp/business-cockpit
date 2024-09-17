@@ -244,9 +244,32 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setDetails(
                 Map.of("test1", testData1));
 
+        result.setDetailsFulltextSearch(collectFulltextTerms(result));
+
         return result;
     }
-    
+
+    private static String collectFulltextTerms(final WorkflowCreatedOrUpdatedEvent event) {
+        final var fulltextSb = new StringBuilder();
+        if (event.getTitle() != null) {
+            event.getTitle().forEach((String k, String v) -> {
+                if (v != null) {
+                    fulltextSb.append(v);
+                    fulltextSb.append(" ");
+                }
+            });
+        }
+        if (event.getDetails() != null) {
+            event.getDetails().forEach((String k, Object v) -> {
+                if (v instanceof String || v instanceof Integer) {
+                    fulltextSb.append(v);
+                    fulltextSb.append(" ");
+                }
+            });
+        }
+        return fulltextSb.toString();
+    }
+
     public static Fairy buildFairy(
             final String language) {
         

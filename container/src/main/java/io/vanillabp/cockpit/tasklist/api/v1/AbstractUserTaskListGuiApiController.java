@@ -2,6 +2,8 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
+import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
@@ -16,6 +18,8 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -111,7 +115,48 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
             
 	}
 
-	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
+    protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+            final UserDetails currentUser,
+            final OffsetDateTime endedSince,
+            final List<SearchQuery> searchQueries,
+            final String path,
+            final String query);
+
+    @Override
+    public Mono<ResponseEntity<KwicResults>> getUserTaskKwicResults(
+            Mono<KwicRequest> kwicRequest,
+            OffsetDateTime initialTimestamp,
+            String path,
+            String query,
+            ServerWebExchange exchange) {
+
+        final var effectivePath = StringUtils.hasText(path)
+                ? path
+                : "detailsFulltextSearch";
+
+        final var timestamp = initialTimestamp != null
+                ? initialTimestamp
+                : OffsetDateTime.now();
+
+        return Mono.zip(
+                           userContext.getUserLoggedInDetailsAsMono(),
+                           kwicRequest)
+                   .flatMapMany(entry -> {
+                       final var searchQueries = Optional.ofNullable(
+                                                                 entry.getT2().getSearchQueries())
+                                                         .orElse(List.of())
+                                                         .stream()
+                                                         .map(mapper::toModel)
+                                                         .toList();
+                       return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query);
+                   })
+                   .map(mapper::toApi)
+                   .collectList()
+                   .map(result -> new KwicResults().result(result))
+                   .map(ResponseEntity::ok);
+    }
+
+    protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId);
 

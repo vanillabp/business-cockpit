@@ -6,10 +6,10 @@ import { OfficialTasklistApi, SearchQuery } from "@vanillabp/bc-official-gui-cli
 
 const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi => {
   return {
-    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
-    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, sort, sortAscending } }),
+    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending } }),
+    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
@@ -26,16 +26,20 @@ const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi 
         .assignTasks({ userTaskIds: { userTaskIds}, userId, unassign }),
     findUsers: (query, limit) => tasklistApi
         .findUsers({ query, limit }),
+    kwicUserTasks: async (query: string, path?: string, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => {
+      const result = await tasklistApi.getUserTaskKwicResults({ initialTimestamp, path, query, kwicRequest: { searchQueries } })
+      return result.result;
+    },
   };
 }
 
 const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): TasklistApi => {
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   return {
-    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, sort, sortAscending } }),
-    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, sort, sortAscending } }),
+    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending } }),
+    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
@@ -52,6 +56,10 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
         .assignTasks({ userTaskIds: { userTaskIds}, userId, unassign }),
     findUsers: (query, limit) => tasklistApi
         .findUsers({ query, limit }),
+    kwicUserTasks: async (query: string, path?: string, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => {
+      const result = await tasklistApi.getUserTaskKwicResults({ initialTimestamp, path, query, kwicRequest: { searchQueries } })
+      return result.result;
+    },
   };
 }
 

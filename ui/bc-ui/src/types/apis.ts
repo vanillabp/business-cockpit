@@ -18,9 +18,9 @@ export interface WakeupSseCallbackReference {
   current: WakeupSseCallback | undefined;
 }
 
-type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<UserTasks>;
 
-type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, sort: string | undefined, sortAscending: boolean, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<UserTasks>;
 
 type TasklistMarkAsReadCall = (userTaskId: string, unread?: boolean) => void;
 
@@ -38,6 +38,8 @@ type GetUserTaskCall = (userTaskId: string, markAsRead?: boolean) => Promise<Use
 
 type FindUsersCall = (query?: string, limit?: number) => Promise<UserSearchResult>;
 
+type KwicUserTasksApiCall = (query: string, path?: string /* undefined => fulltext */, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<Array<KwicResult>>;
+
 export interface TasklistApi {
   getUserTasks: TasklistApiCall,
   getUserTasksUpdate: TasklistUpdateCall,
@@ -49,6 +51,7 @@ export interface TasklistApi {
   assignTasks: TasklistAssignMultipleTasksCall,
   getUserTask: GetUserTaskCall,
   findUsers: FindUsersCall,
+  kwicUserTasks: KwicUserTasksApiCall
 }
 
 type GetWorkflowsApiCall = (requestId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<Workflows>;
