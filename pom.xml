@@ -1,9 +1,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
+  <parent>
+    <groupId>io.vanillabp</groupId>
+    <artifactId>release-parent</artifactId>
+    <version>1.0.2</version>
+  </parent>
+
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.0.3</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
@@ -16,6 +22,8 @@
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
     <skip.npm.update>false</skip.npm.update>
+    <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
+    <skip.npm.publish-release>true</skip.npm.publish-release>
     <version.jupiter>5.10.1</version.jupiter>
   </properties>
 
@@ -143,6 +151,18 @@
               </goals>
               <configuration>
                 <arguments>run publish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
+                <skip>${skip.npm.publish-snapshot}</skip>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm publish release</id>
+              <phase>package</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>run publish:release -- --@vanillabp:registry=${npm.registry} --otp=</arguments>
+                <skip>${skip.npm.publish-release}</skip>
               </configuration>
             </execution>
           </executions>
@@ -236,6 +256,12 @@
     </snapshotRepository>
   </distributionManagement>
 
+  <scm>
+    <connection>scm:git:https://github.com/vanillabp/business-cockpit.git</connection>
+    <developerConnection>scm:git:https://github.com/vanillabp/business-cockpit.git</developerConnection>
+    <url>http://github.com/vanillabp/business-cockpit/tree/main</url>
+  </scm>
+
   <profiles>
     <profile>
       <id>unpublish-npm</id>
@@ -259,6 +285,20 @@
       <properties>
         <skip.npm.update>true</skip.npm.update>
         <skip.npm.unpublish>false</skip.npm.unpublish>
+      </properties>
+    </profile>
+    <profile>
+      <id>release-npm</id>
+      <properties>
+        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
+        <skip.npm.publish-release>false</skip.npm.publish-release>
+      </properties>
+    </profile>
+    <profile>
+      <id>skip-release-npm</id>
+      <properties>
+        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
+        <skip.npm.publish-release>true</skip.npm.publish-release>
       </properties>
     </profile>
   </profiles>

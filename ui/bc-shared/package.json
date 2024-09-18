@@ -1,6 +1,11 @@
 {
   "name": "@vanillabp/bc-shared",
-  "version": "0.0.3-SNAPSHOT",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vanillabp/business-cockpit.git"
+  },
+  "homepage": "https://github.com/vanillabp/business-cockpit",
   "sideEffects": false,
   "type": "module",
   "main": "dist/index.js",
@@ -12,7 +17,7 @@
   ],
   "dependencies": {
     "@microsoft/fetch-event-source": "2.0.1",
-    "@vanillabp/bc-official-gui-client": ">=0.0.3-SNAPSHOT <0.0.4",
+    "@vanillabp/bc-official-gui-client": "0.0.3",
     "react-cookie": "4.1.1",
     "usehooks-ts": "2.7.1"
   },
@@ -65,6 +70,7 @@
     "test": "jest",
     "unpublish:snapshot": "npm unpublish --force",
     "publish:snapshot": "npm publish --tag snapshot",
-    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
+    "publish:release": "npm publish --access public"
   }
 }
