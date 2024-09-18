@@ -3,7 +3,7 @@ rsconf = {
     members: [
         {
             "_id": 0,
-            "host": "business-cockpit-mongo:27017",
+            "host": "127.0.0.1:27017",
             "priority": 3
         }
     ]

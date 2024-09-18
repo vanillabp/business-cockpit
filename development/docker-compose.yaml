@@ -3,7 +3,6 @@ version: '3'
 services:
   business-cockpit-mongo:
     image: mongo:4.4
-    container_name: business-cockpit-mongo
     restart: "no"
     ports:
       - "27017:27017"
@@ -11,7 +10,6 @@ services:
   business-cockpit-mongo-setup:
     image: business-cockpit-mongo-setup
     build: ./mongo/
-    container_name: business-cockpit-mongo-setup
     restart: "no"
     depends_on:
       - business-cockpit-mongo
