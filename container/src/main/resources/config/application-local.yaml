@@ -1,7 +1,7 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://business-cockpit:business-cockpit@business-cockpit-mongo:27017/business-cockpit
+      uri: mongodb://business-cockpit:business-cockpit@127.0.0.1:27017/business-cockpit
 
 bpms-api:
   username: abc

@@ -18,36 +18,25 @@ cd development
 docker-compose up -d
 ```
 
-All services are configured to NOT start automatically. So, evertime one reboots the computer the services has to be started again:
-
-```sh
-cd development
-docker-compose start
-```
-
 Afterwards one can [build and run the business cockpit](#build-and-run-the-business-cockpit).
 
 *Hint:* Building the business cockpit will also establish npm-links between the packages provided by this repository. This helps to ensure using the right version during the build and also supports local development.
 
 ### MongoDB
 
-For production MongoDb one has to use replica-sets because the VanillaBP business cockpit uses the MongoDb "changestream" feature which not available otherwise.
+For production MongoDB one has to use replica-sets because the VanillaBP business cockpit
+uses the MongoDB `changestream` feature, which not available otherwise
+(see https://www.mongodb.com/docs/manual/changeStreams/).
 
-Since MongoDb exposes its own endpoint one has to add a hostname alias to the local `hosts` file:
+The local MongoDB is accessible at mongodb://127.0.0.1:27017 with your favourite tool, 
+without user and password (which gives you an admin role).
 
-```
-127.0.0.1       business-cockpit-mongo
-```
+The development application user credentials are:
 
-*Hint:* The file is `/etc/hosts` for Linux and `C:\Windows\System32\drivers\etc\hosts` for Windows.
-
-To connect using a client one can use these parameters:
-
-* *endpoint:* business-cockpit-mongo:27017
-* *replica-set:* rs-business-cockpit
-* *authentication DB:* business-cockpit
 * *username:* business-cockpit
 * *password:* business-cockpit
+
+and the replica set is named `rs-business-cockpit`.
 
 ### Local NPM registry
 
