@@ -789,7 +789,7 @@ const ListOfWorkflows = ({
         .filter(query => query.path !== columnPath);
     if ((value !== undefined)
         && (value.trim().length > 0)) {
-      newSearchQueries.push({ path: columnPath, query: value });
+      newSearchQueries.push({ path: columnPath, query: value, caseInsensitive: true });
     }
     setSearchQueries(newSearchQueries);
     // kwicInProgress.current = true;
