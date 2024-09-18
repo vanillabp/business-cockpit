@@ -3,6 +3,7 @@ on:
   push:
     branches-ignore:
       - 'renovate/**'
+      - 'feature/documentation'
 jobs:
   publish:
     runs-on: ubuntu-latest
