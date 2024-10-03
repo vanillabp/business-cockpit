@@ -2,7 +2,7 @@
 
 ![VanillaBP](./readme/vanillabp-headline.png)
 
-# Business Cockpit
+# VanillaBP Business Cockpit
 
 The *VanillaBP Business Cockpit* is an application for business people to work with business processes. It is about:
 
@@ -23,8 +23,8 @@ As a consequence workflows and user tasks from different systems will be availab
 
 1. [Application](#application)
    1. [Concepts in a glance](#architecture-in-a-glance)
-   2. [Customized Business Cockpit applications](#customized-business-cockpit-applications)
-   3. [Functionality provided by the Business Cockpit](#functionality-provided-by-the-business-cockpit)
+   2. [Customized business cockpit applications](#customized-business-cockpit-applications)
+   3. [Functionality provided by the business cockpit](#functionality-provided-by-the-business-cockpit)
    4. [Technologies](#technologies)
 3. [Documentation](#documentation)
    1. [By use-case](#by-use-case)
@@ -47,29 +47,29 @@ is hosted by those business services running the workflow. So, everything needed
 a so-called "Workflow Module" within the business service. Each workflow module has its own version lifecycle
 (workflow as BPMN, code to run the BPMN, UI for user-tasks, backend code to show/complete user-tasks).
 
-However, the Business Cockpit UI will provide all parts (UI provided by the Business Cockpit, UI provided by the
+However, the business cockpit UI will provide all parts (UI provided by the business cockpit, UI provided by the
 workflow modules like user task forms or status-sites of workflows)
 as one seamless web-application to the user. This is achieved by using
 "Module Federation", a mechanism to load parts of the UI (user task forms, etc.) dynamically (not packed into the main
 web-application at compile-time).
 
-To avoid cross-site-scripting, the Business Cockpit backend acts as a proxy to business services. This spawns
+To avoid cross-site-scripting, the business cockpit backend acts as a proxy to business services. This spans
 one consistent umbrella of security across the entire application. Any "Workflow Module" has to register to the
-Business Cockpit on startup to initialize the respective proxy. 
+business cockpit on startup to initialize the respective proxy. 
 
 To provide lists of user tasks and workflows any business
 workflow lifecycle event or user task lifecycle event (created, completed, cancelled) has to be reported by the
-"Workflow module" to the Business Cockpit. Reporting can be done via REST or asynchronously via Kafka and is
+"Workflow module" to the business cockpit. Reporting can be done via REST or asynchronously via Kafka and is
 already implemented by ready-to-use adapters (Maven modules) for [VanillaBP](https://www.vanillabp.io) based workflows.
 
 The *VanillaBP Business Cockpit* approach described above also implies that not every business workflow service
 needs its own standalone web-application.
 Individual web-applications are only necessary if the workflow application has excessive UI functionality
-beyond user tasks or status-sites of workflows. Additionally, the Business Cockpit is a perfect place to add
+beyond user tasks or status-sites of workflows. Additionally, the business cockpit is a perfect place to add
 cross-cutting functionality (e.g. registration of absences or vacation replacements) as well as start-forms
 for business processes having no own web-application.
 
-### Customized Business Cockpit applications
+### Customized business cockpit applications
 
 The *VanillaBP Business Cockpit* can be executed out-of-the-box showing a vanilla flavored design.
 Typically, one wants to use own icons, colors and fonts according to the cooperate identity.
@@ -81,7 +81,7 @@ own implementation. The *VanillaBP Business Cockpit* UI is implemented by using 
 a custom business cockpit UI next to user task forms provided by business services. However, one may also use other frameworks (Vue, Angular).
 The [UI components provided by the *VanillaBP Business Cockpit*](#functionality-provided-by-the-business-cockpit) can be integrated as web-components.
 
-### Functionality provided by the Business Cockpit
+### Functionality provided by the business cockpit
 
 Each UI-feature provided is based on UI components next to their backend-counterparts: 
 
@@ -93,9 +93,9 @@ Additionally, the rendering of columns can be customized (e.g. render icons inst
 * **A mechanism to show user task forms**:<br>Once the user wants to work on or complete a user task
 (by selecting an item in the 
 list of user tasks), the form's UI is loaded from the business service through the registered proxy by using *Module Federation*.
-Saving or completing the form is not part of the Business Cockpit but implemented by the business 
+Saving or completing the form is not part of the business cockpit but implemented by the business 
 service (providing its own API). If the form can be completed the respective business service will report 
-that change of status to the Business Cockpit which in turn results in an update of the list of user tasks.
+that change of status to the business cockpit which in turn results in an update of the list of user tasks.
 * **List(s) of workflows**:<br>There is a default-list showing all workflows accessible to the current user, accessible
 to the user's groups or any dangling workflow (no information about access). Analogous to lists of user tasks, one 
 can easily provide prefiltered lists according to any business requirement. The individual content to list for 
@@ -104,12 +104,12 @@ Additionally, the rendering of columns can be customized (e.g. render icons inst
 * **A mechanism to show status-sites of workflows**:<br>Once the user wants to review the status of a workflow
 (select an item in the list of workflows), the workflow's status-site UI is loaded from the business service
 through the registered proxy by using *Module Federation*. Any data shown or action provided (e.g. cancel the
-workflow) is not part of the Business Cockpit but implemented by the business service (providing its own API).
+workflow) is not part of the business cockpit but implemented by the business service (providing its own API).
 If such an action affects the status of the workflow (e.g. cancel the workflow) the respective business service
-will report that change to the Business Cockpit which in turn results in an update of the list of workflows.
+will report that change to the business cockpit which in turn results in an update of the list of workflows.
 * **A mechanism to show individual workflow UI-components**:<br>The given mechanism to show user task forms or
 status-sites of workflows can also be used to add individual UI-components of the business service
-to the Business Cockpit UI. 
+to the business cockpit UI. 
 You may define regions in your UI (header, menu, etc.) in which those individual components are shown. This is a
 possibility to provide additional sites like workflow start forms or sites providing functionality common to all
 running workflows (e.g. suspend/active all workflows).
@@ -117,15 +117,15 @@ running workflows (e.g. suspend/active all workflows).
 Additionally, there are features targeting the entire application:
 
 * **Security**:<br>It is based on `Spring Security` and therefore includes
-  a lot of identity providers (Active Directory, Keycloak, etc.). The Business Cockpit adds
+  a lot of identity providers (Active Directory, Keycloak, etc.). The business cockpit adds
   an unifying umbrella of security across all components involved to show users tasks and workflows.
-  The current user logged into the Business Cockpit is also passed to workflow services
+  The current user logged into the business cockpit is also passed to workflow services
   so UX can be adapted according to the user's roles.
 * **Usertask and workflow lifecycle events**:<br>Those events are reported by individual workflow
   modules, as workflows or user tasks are created, updated, completed or cancelled. Reporting can
   be done via REST or asynchronously via Kafka which is implemented by ready-to-use adapters
   (Maven modules) for [VanillaBP](https://www.vanillabp.io) based workflows. The events reported are processed by the
-  Business Cockpit to update
+  business cockpit to update
   the underlying database as well as notifying UI components for life-updates resulting
   in a state-of-the-art UX.
 
@@ -139,43 +139,43 @@ To learn about technologies used by the *VanillaBP Business Cockpit* checkout th
 
 ### By use-case
 
-* Running the VanillaBP Business Cockpit: [container/README.md](./container/README.md)
-* Building a customized Business Cockpit: [container/README.md](./container/README.md)
+* Running the *VanillaBP Business Cockpit*: [container/README.md](./container/README.md)
+* Building a customized business cockpit: [container/README.md](./container/README.md)
 * Use out-of-the-box adapters for filling the business cockpit with data of your business processes:
-[spi-for-java/README.md](./spi-for-java)
-* Integrate business service not using out-of-the-box adapters: [development/simulator/README.md](./development/simulator/README.md)
+[spi-for-java/README.md](./spi-for-java) and [adapters/README.md](./adapters/README.md)
 * Build user task forms** to be shown in the business cockpit: []
 * Build workflow status sites** to be shown in the business cockpit: []
-* Contributing to the VanillaBP Business Cockpit: [development/README.md](./development/README.md)
+* Integrate business service not using out-of-the-box adapters: [development/simulator/README.md](./development/simulator/README.md)
+* Contributing to the *VanillaBP Business Cockpit*: [development/README.md](./development/README.md)
 
 ### By module
 
 in logical order:
 
-1. **container**:<br>The Business Cockpit microservice. Use this as a Maven-dependency for a custom Business Cockpit.
-   The included React application can be used out-of-the-box or as a template.
-2. **ui**:<br>NPM libraries for custom UIs.
-   1. **bc-shared**:<br>Components and Typescript types used by the Business Cockpit UI and also by workflow module
-      UI components (user task form, workflow status-site).
-   2. **bc-ui**:<br>Components and Typescript types for building individual Business Cockpit UIs.
-3. **[spi-for-java](./spi-for-java)**:<br>The *service provider interface* for workflow modules to be used in
+1. **[spi-for-java](./spi-for-java)**:<br>The *service provider interface* for workflow modules to be used in
    [VanillaBP workflow services](https://github.com/vanillabp/spi-for-java#wire-up-a-process)
    for customizing data reported as part of workflow or user task lifecycle events (e.g. adding business data).
-4. **adapters**:<br>Business processing system (BPS) adapters in the meaning of hexagonal architecture implementing *spi-for-java*.
-   1. **commons**:<br>Functionality common to more than one specific BPS adapter.
-   2. **camunda7**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 7](http://www.camunda.org).
-   2. **camunda8**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 8](http://www.camunda.io).
-5. **common**:<br>Spring Boot based functionality used by `container` but may also be used by
+1. **[adapters](./adapters)**:<br>Business processing system (BPS) adapters in the meaning of hexagonal architecture implementing *spi-for-java*.
+   1. **[commons](./adapters/commons)**:<br>Functionality common to more than one specific BPS adapter.
+   1. **[camunda7](./adapters/camunda7)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 7](http://www.camunda.org).
+   1. **[camunda8](./adapters/camunda8)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 8](http://www.camunda.io).
+1. **container**:<br>The business cockpit microservice. Use this as a Maven-dependency for a custom business cockpit.
+   The included React application can be used out-of-the-box or as a template.
+1. **ui**:<br>NPM libraries for custom UIs.
+    1. **bc-shared**:<br>Components and Typescript types used by the business cockpit UI and also by workflow module
+       UI components (user task form, workflow status-site).
+    1. **bc-ui**:<br>Components and Typescript types for building individual business cockpit UIs.
+1. **common**:<br>Spring Boot based functionality used by `container` but may also be used by
    workflow modules or other individual services.
-6. **apis**:<br>Ready-to-use clients and servers for various APIs in the context of the VanillaBP Business Cockpit.
+1. **apis**:<br>Ready-to-use clients and servers for various APIs in the context of the *VanillaBP Business Cockpit*.
    1. **bpms-api**:<br>API for reporting workflow and user task lifecycle events via REST or Kafka.
-   2. **official-gui-api**:<br>REST-API expected by Business Cockpit UI components to retrieve data from.
-   3. **workflow-provider-api**:<br>REST-APIs workflow modules may implement to customize Business Cockpit behavior.
-4. **development**:<br>Functionality to support developing workflow modules or the Business Cockpit itself.
+   1. **official-gui-api**:<br>REST-API expected by business cockpit UI components to retrieve data from.
+   1. **workflow-provider-api**:<br>REST-APIs workflow modules may implement to customize business cockpit behavior.
+1. **development**:<br>Functionality to support developing workflow modules or the *VanillaBP Business Cockpit* itself.
    1. **dev-shell-react**:<br>A NPM library for easy developing user task forms and workflow status-sites using *React*.
-   2. **dev-shell-angular**:<br>A NPM library for easy developing user task forms and workflow status-sites using *Angular*.
-   3. **simulator**:<br>A standalone microservice used for Business Cockpit development, which mimics a workflow module.
-   4. **docker-compose.yaml**:<br>Preconfigured docker containers for Business Cockpit development.
+   1. **dev-shell-angular**:<br>A NPM library for easy developing user task forms and workflow status-sites using *Angular*.
+   1. **simulator**:<br>A standalone microservice used for business cockpit development, which mimics a workflow module.
+   1. **docker-compose.yaml**:<br>Preconfigured docker containers for business cockpit development.
 
 ## Noteworthy & Contributors
 

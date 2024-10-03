@@ -1,6 +1,8 @@
 ![](../readme/vanillabp-headline.png)
 
-*Vanilla BP* is an aspect orientated [service provider interface (SPI) for workflow systems](https://github.com/vanillabp/spi-for-java)
+# SPI for Java
+
+*VanillaBP* is an aspect orientated [service provider interface (SPI) for workflow systems](https://github.com/vanillabp/spi-for-java)
 as a Java developer would expect it to be. **This is an extension of the SPI for user task applications.**
 
 This SPI is used by business developers to provide business data associated with user tasks created
