@@ -28,9 +28,9 @@ explained only once.
       1. [Report user tasks to the business cockpit](#report-user-tasks-to-the-business-cockpit)
       1. [Report workflows to the business cockpit](#report-workflows-to-the-business-cockpit)
    1. [Show user tasks forms and workflow status sites in the business cockpit](#show-user-tasks-forms-and-workflow-status-sites-in-the-business-cockpit)
-      1. Define user task forms
-      1. Define workflow status sites
-      1. Developing user tasks forms in a local environment
+      1. [Define user task forms](#define-user-task-forms)
+      1. [Define workflow status-sites](#define-workflow-status-sites)
+      1. [Developing user tasks forms in a local environment](#developing-user-tasks-forms-in-a-local-environment)
       1. Using Angular
    1. Customize lists of user tasks and workflows
       1. Define columns of the user task list
@@ -271,6 +271,32 @@ UI components. Each federated module is bundled as part of building the workflow
 loaded by the user task application on demand from the business (micro-)service through the proxy
 mentioned above.
 
+The *VanillaBP Business Cockpit* components for listing user tasks, listing workflows, showing
+user task forms and showing workflow status-sites expect four parts `UserTaskList`, `UserTaskForm`,
+`WorkflowPage` and `WorkflowList` to be exposed by using Webpack's `ModuleFederationPlugin`:
+
+```javascript
+  new ModuleFederationPlugin({
+      name: "MyWorkflowModule",
+      filename: 'remoteEntry.js',
+      exposes: {
+          UserTaskList: './src/UserTaskList',
+          UserTaskForm: './src/UserTaskForm',
+          WorkflowPage: './src/WorkflowPage',
+          WorkflowList: './src/WorkflowList',
+          Header: './src/Header'
+      },
+      ...
+  }
+```
+
+Each part is explained in to next chapters. Any additional parts are custom components
+which may be used by a customized user task application. In this example the name of the
+additional part `Header` suggests that it will be used to add workflow module based 
+functionality to the user task applications header region. In this way the custom user task
+application may offer space in which workflow modules add functionality not specific to
+a certain workflow or a certain user task.
+
 *Note on Module Federation:* On building a classic framework web application a Javascript bundle
 is built combining all the UI components of the entire application. This should reduce startup time
 of the web application when loaded in the browser (one big file instead of many small files;
@@ -290,8 +316,141 @@ the module which form a contract the module has to fulfill.
 
 #### Define user task forms
 
+The workflow module's federated module's exposed part `UserTaskForm` is used by the *VanillaBP
+Business Cockpit* to render user tasks.
 
+A user task form UI component is a React component of type [UserTaskForm](ui/bc-shared/src/types/UserTaskForm.ts)
+receiving one single parameter `userTask` which is of type [BcUserTask](../ui/bc-shared/src/types/BcUserTask.ts):
 
+```typescript jsx
+import { UserTaskForm } from '@vanillabp/bc-shared';
+
+const MyUserTaskForm: UserTaskForm = ({ userTask }) => {
+  return (<div>My Form</div>);
+}
+
+export {
+   buildVersion,
+   buildTimestamp,
+   UserTaskFormComponent as UserTaskForm
+}
+```
+
+The `userTask` parameter consists of properties describing the user task next to functions used to
+manage the user task (e.g. assign, unassign, etc.). Checkout the
+[definition](../ui/bc-shared/src/types/BcUserTask.ts) for details. Next to the `UserTaskForm` also the
+properties `buildVersion` and `buildTimestamp` are exported which are used by the user task application
+to trigger reloading a previously loaded module if the user task's version information does not match
+the exposed properties.
+
+As mentioned previously, only one federated module is loaded for each workflow module. Each individual
+user task  form UI component contained in the federated module is not explicitly exposed. Instead, only one
+user task form is exposed and rendered by the user task application. It's the responsibility of
+this single exposed user task form UI component to check which is the desired user task form based
+on data handed over and render it. Additionally, it is recommended to
+use lazy loading to only load UI components at runtime required by the desired user task:
+
+```typescript jsx
+import { lazy } from 'react';
+import { UserTaskForm } from '@vanillabp/bc-shared';
+
+const RideWorkflowRetrievePayment = lazy(() => import('./ride-workflow/retrieve-payment'));
+
+const TaxiRideUserTasksForm: UserTaskForm = ({ userTask }) => {
+  if ((userTask.bpmnProcessId === 'Ride') && (userTask.taskDefinition === 'RetrievePayment')) {
+    return <RideWorkflowRetrievePayment userTask={ userTask }/>
+  }
+  return <div>{ `unknown user task '${userTask.taskDefinition}' of BPMN process ID '${userTask.bpmnProcessId}'!` }</div>;
+}
+
+export { TaxiRideUserTasksForm as UserTaskForm }
+```
+
+For details checkout the [simulator's webapp](simulator/src/main/webapp-react) which is used to mimic
+a workflow module and may be used as a template for own workflow module webapps.
+
+#### Define workflow status-sites
+
+The workflow module's federated module's exposed part `WorkflowPage` is used by the *VanillaBP
+Business Cockpit* to render workflow status-sites. The mechanism is exactly the same as for user tasks
+described in the [former chapter](#define-user-task-forms).
+
+```typescript jsx
+import { lazy } from 'react';
+import { WorkflowPage } from '@vanillabp/bc-shared';
+
+const RideWorkflowStatusSite = lazy(() => import('./ride-workflow/status-site'));
+
+const TaxiRideWorkflowPage: WorkflowPage = ({ workflow }) => {
+  if (workflow.bpmnProcessId === 'Ride') {
+    return <RideWorkflowStatusSite workflow={ workflow }/>
+  }
+  return <div>{ `unknown workflow having BPMN process ID '${workflow.bpmnProcessId}'!` }</div>;
+}
+
+export { TaxiRideWorkflowPage as WorkflowPage }
+```
+
+The `workflow` parameter consists of properties describing the user task next to functions used to
+load additional information regarding the workflow (e.g. getUserTasks, etc.). Checkout the
+[definition](../ui/bc-shared/src/types/BcWorkflow.ts) for details.
+
+#### Developing user tasks forms in a local environment
+
+UI developers prefer to use [hot module replacement](https://webpack.js.org/concepts/hot-module-replacement/)
+as an efficient way of development. Unfortunately, Module Federation breaks it which forces the
+developer to run the business cockpit next to the workflow module, bundle the federated module after
+each change and refresh the browser to reload the new bundle. This is not a good developer experience.
+
+To overcome this a tiny webapp-wrapper is provided called **Dev Shell**. It is available as a
+React application as well as an Angular application and imports the workflow modules components
+in a regular way. In this way hot module replacement is available and user task forms or
+workflow status-sites can be developed without running the business cockpit.
+
+Enabling the Dev Shell is done by adapting your Webpack configuration depending on the build's target
+environment:
+
+```javascript
+process.env.NODE_ENV !== 'production'
+  ? { entry: './test/index.tsx' }                  // run Dev Shell
+  : { output: { publicPath: '/wm/TestModule/' } }  // build federated module
+```
+
+For details checkout the [simulator's webapp](simulator/src/main/webapp-react) which is used to mimic
+a workflow module and may be used as a template for own workflow module webapps.
+
+Bootstrapping the Dev Shell is done by passing the parts typically exposed in the federated module
+to a ready-to-use function:
+
+```typescript
+import { bootstrapDevShell } from '@vanillabp/bc-dev-shell-react';
+import { UserTaskForm } from '../src/UserTaskForm';
+import { UserTaskListCell, userTaskListColumns } from '../src/UserTaskList';
+import { WorkflowListCell, workflowListColumns } from '../src/WorkflowList';
+import { WorkflowPage } from '../src/WorkflowPage';
+import { Header } from '../src/Header';
+
+bootstrapDevShell(
+    'root',                // name of the HTML tag to render into
+    '/official-api/v1',    // where to load data from to fill the parameters of UI components
+    UserTaskForm,
+    userTaskListColumns,
+    UserTaskListCell,
+    workflowListColumns,
+    WorkflowListCell,
+    WorkflowPage,
+    {                      // optional: custom components exposed by the federated module
+       'Header': Header
+    });
+```
+
+After running the dev server a tiny web application is started listing the workflow module's UI
+components for interactive development using hot module replacement. Also additional components
+(e.g. `Header`) are listed. In this way one can test all UI components without running the business
+cockpit itself.
+
+*Hint:* What needs to be done to load user task and workflow data to be passed as parameters is
+described in the [simulator](simulator) (see code sample line `/official-api/v1`).
 
 ## Contributing to the *VanillaBP Business Cockpit*
 
