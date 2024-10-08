@@ -54,7 +54,7 @@ as one seamless web-application to the user. This is achieved by using
 web-application at compile-time).
 
 To avoid cross-site-scripting, the business cockpit backend acts as a proxy to business services. This spans
-one consistent umbrella of security across the entire application. Any "Workflow Module" has to register to the
+one consistent umbrella of security across the entire application. Every "Workflow Module" has to register to the
 business cockpit on startup to initialize the respective proxy. 
 
 To provide lists of user tasks and workflows any business
@@ -119,8 +119,8 @@ Additionally, there are features targeting the entire application:
 * **Security**:<br>It is based on `Spring Security` and therefore includes
   a lot of identity providers (Active Directory, Keycloak, etc.). The business cockpit adds
   an unifying umbrella of security across all components involved to show users tasks and workflows.
-  The current user logged into the business cockpit is also passed to workflow services
-  so UX can be adapted according to the user's roles.
+  The current user logged into the business cockpit is also passed to workflow services through the
+  proxy so the UI of user tasks and workflow status-sites can be adapted according to the user's roles.
 * **Usertask and workflow lifecycle events**:<br>Those events are reported by individual workflow
   modules, as workflows or user tasks are created, updated, completed or cancelled. Reporting can
   be done via REST or asynchronously via Kafka which is implemented by ready-to-use adapters

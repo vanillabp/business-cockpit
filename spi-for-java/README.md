@@ -182,6 +182,7 @@ user task is part of a multi-instance execution.
 Example:
 
 ```java
+    @UserTaskDetailsProvider
     public UserTaskDetails retrievePayment(
             final PrefilledUserTaskDetails details,
             final PaymentAggregate aggregate) {
@@ -204,6 +205,7 @@ best practice one should not pass original business objects but rather define cl
 this use case. These classes should only hold properties of types supported by JSON:
 
 ```java
+    @UserTaskDetailsProvider
     public UserTaskDetails retrievePayment(
             final PrefilledUserTaskDetails details,
             final PaymentAggregate aggregate) {
@@ -239,6 +241,7 @@ specifying a template context map:
 ```java
     // assuming a Freemarker template "title-template.ftl" with content:
     // Retrieve payment for ${customer}
+    @UserTaskDetailsProvider
     public UserTaskDetails retrievePayment(
             final PrefilledUserTaskDetails details,
             final PaymentAggregate aggregate) {
