@@ -56,6 +56,7 @@ const ListColumnHeader = ({
     event.preventDefault();
     resize.current = event.clientX;
     document.body.style.cursor = 'col-resize';
+    moveHandler(event.nativeEvent);
   };
   const moveHandler = useCallback((ev: MouseEvent) => {
     if (resize.current == -1) return;

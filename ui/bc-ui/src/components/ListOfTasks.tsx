@@ -945,7 +945,6 @@ const ListOfTasks = ({
     [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined);
-  const autoColumnWidth = useRef<string>(AUTO_SIZE_COLUMN);
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
   useEffect(() => {
     if (modules === undefined) {
@@ -989,7 +988,7 @@ const ListOfTasks = ({
           title: { [currentLanguage]: t('column_title') },
           type: 'i18n',
           path: 'title',
-          width: autoColumnWidth.current,
+          width: AUTO_SIZE_COLUMN,
           priority: 0,
           show: true,
           sortable: true,
@@ -1033,7 +1032,7 @@ const ListOfTasks = ({
       return;
     }
     setColumnsOfTasks(columnsToShow);
-  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator, autoColumnWidth ]);
+  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
@@ -1082,13 +1081,12 @@ const ListOfTasks = ({
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
       if (column.width === AUTO_SIZE_COLUMN) {
         column.width = `${adjustment}px`;
-        autoColumnWidth.current = column.width;
         return;
       }
       const current = columnWidthAdjustments[column.path];
       if (current === adjustment) return;
       setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-    }, [ columnWidthAdjustments, setColumnWidthAdjustments, autoColumnWidth ]);
+    }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
 
   const selectAll = useCallback((select: boolean) => {
       (refreshItemRef.current!)(

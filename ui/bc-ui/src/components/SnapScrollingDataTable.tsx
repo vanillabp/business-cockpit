@@ -32,6 +32,7 @@ const SnapScrollingDataTable = forwardRef(({
     ...props
   }: SnapScrollingDataTableProps, ref) => {
 
+  const hasAutoWidthColumn = columns.filter(column => column.size === undefined).length > 0;
   const columnsWidth = columns.reduce((width, column) => calculateColumWidth(minWidthOfAutoColumn, width, column), '');
   const dataTableColumns = columns.map(column => ({ ...column, header: undefined }));
   return (columns
@@ -109,7 +110,10 @@ const SnapScrollingDataTable = forwardRef(({
                 : undefined
           }
         </Box>
-        <Box fill="vertical" width={ `calc(${columnsWidth})` } background="white">
+        <Box
+            width={ hasAutoWidthColumn ? '100%' : `calc(${columnsWidth})` }
+            style={ { minHeight: '100%', height: 'fit-content' } }
+            background="white">
           <DataTable
               fill="vertical"
               pad='none'
