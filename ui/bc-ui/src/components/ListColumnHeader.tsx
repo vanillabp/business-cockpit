@@ -8,6 +8,8 @@ import {
 import { FC, MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "grommet";
 
+const AUTO_SIZE_COLUMN = '';
+
 const ListColumnHeader = ({
   t,
   currentLanguage,
@@ -16,7 +18,7 @@ const ListColumnHeader = ({
   numberOfAllColumns,
   nameOfList,
   columnHeader,
-  hasColumnWidthAdjustment,
+  columnWidthAdjustment,
   setColumnWidthAdjustment,
   sort,
   isDefaultSort,
@@ -34,7 +36,7 @@ const ListColumnHeader = ({
   numberOfAllColumns: number,
   nameOfList?: string,
   columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
-  hasColumnWidthAdjustment: boolean,
+  columnWidthAdjustment?: number,
   setColumnWidthAdjustment: (column: Column, adjustment: number) => void,
   sort?: boolean,
   isDefaultSort: boolean,
@@ -48,7 +50,7 @@ const ListColumnHeader = ({
   const { isPhone, isTablet } = useResponsiveScreen();
 
   const resize = useRef(-1);
-  const [ widthAdjustment, setWidthAdjustment ] = useState(0);
+  const [ widthAdjustment, setWidthAdjustment ] = useState(columnWidthAdjustment ?? 0);
   const startResize = (event: ReactMouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
@@ -84,7 +86,7 @@ const ListColumnHeader = ({
           } }
           ref={ element => {
             if (element === null) return;
-            if (hasColumnWidthAdjustment) return;
+            if (columnWidthAdjustment !== undefined) return;
             if (column.width !== '') return;
             setColumnWidthAdjustment(
                 column,
@@ -137,9 +139,13 @@ const ListColumnHeader = ({
                     style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.2rem', zIndex: 1000 } }>
                   &nbsp;
                 </Box>
-              : undefined
+              : <Box
+                    align="center"
+                    style={ { cursor: 'not-allowed', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.2rem', zIndex: 1000 } }>
+                  &nbsp;
+                </Box>
         }
       </Box>);
 };
 
-export { ListColumnHeader }
+export { ListColumnHeader, AUTO_SIZE_COLUMN }

@@ -267,7 +267,8 @@ const SearchableAndSortableUpdatingList = <T extends ListItemData>({
     }, {});
 
   return (<Box
-              fill>
+              fill
+              background={ columnHeaderSeparator as BackgroundType }>
             <SnapScrollingDataTable
                 pin
                 minWidthOfAutoColumn={ minWidthOfAutoColumn }

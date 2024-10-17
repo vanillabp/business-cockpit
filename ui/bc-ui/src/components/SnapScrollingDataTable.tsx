@@ -38,7 +38,7 @@ const SnapScrollingDataTable = forwardRef(({
     ? <SnapScrollingGrid
           fill
           rows={ [ 'max-content', 'auto' ]}
-          style={ { overflow: 'auto' } }
+          style={ { overflow: 'overlay' } }
           snapDirection='horizontal'
           onScroll={ onScroll }>
         <Box
@@ -67,12 +67,12 @@ const SnapScrollingDataTable = forwardRef(({
                           zIndex: '2',
                         } }
                       >{
-                    columns.map((column, index) =>
+                    columns.map((column, index, allColumns) =>
                         <SnapAlignBox
                             style={
                                   column.size === undefined
-                                      ? { minWidth: columnHeaderSeparator === null ? minWidthOfAutoColumn : `calc(${minWidthOfAutoColumn} - 1px)` }
-                                      : { width: columnHeaderSeparator === null ? column.size : `calc(${column.size} - 1px)` }
+                                      ? { position: 'relative', minWidth: minWidthOfAutoColumn }
+                                      : { position: 'relative', width: column.size }
                             }
                             key={ `column${index}` }
                             align="left"
@@ -84,6 +84,15 @@ const SnapScrollingDataTable = forwardRef(({
                                   : { side: 'left', color: columnHeaderSeparator }
                             }
                             snapAlign='center'>
+                          {
+                            index + 1 === allColumns.length
+                              ? <Box
+                                    style={ { position: 'absolute', left: '100%', top: '0px', zIndex: '3' }}
+                                    width="1px"
+                                    height="100%"
+                                    background={ columnHeaderSeparator as BackgroundType }></Box>
+                              : undefined
+                          }
                           {
                             column.header instanceof String
                                 ? <Text
@@ -100,14 +109,16 @@ const SnapScrollingDataTable = forwardRef(({
                 : undefined
           }
         </Box>
-        <DataTable
-            pad='none'
-            width={ columnsWidth }
-            columns={ dataTableColumns }
-            { ...props } />
+        <Box fill="vertical" width={ `calc(${columnsWidth})` } background="white">
+          <DataTable
+              fill="vertical"
+              pad='none'
+              columns={ dataTableColumns }
+              { ...props } />
+        </Box>
       </SnapScrollingGrid>
     : <></>);
-  
+
 });
 
 export { SnapScrollingDataTable };

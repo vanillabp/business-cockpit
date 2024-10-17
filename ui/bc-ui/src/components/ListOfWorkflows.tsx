@@ -6,7 +6,6 @@ import {
   BcUserTask,
   BcWorkflow,
   Column,
-  debounce,
   DefaultListCell,
   DefaultListCellProps,
   DefaultListHeaderAwareProps,
@@ -23,6 +22,7 @@ import {
   WakeupSseCallback,
 } from "@vanillabp/bc-shared";
 import {
+  FulltextSearchInput,
   ListCell,
   ListItem,
   ListItems,
@@ -32,7 +32,6 @@ import {
   OpenTaskFunction,
   RefreshItemCallbackFunction,
   ReloadCallbackFunction,
-  FulltextSearchInput,
   SearchableAndSortableUpdatingList,
   sortWithColumnTypeSpecificAttributes,
   sortWithoutColumnTypeSpecificAttributes,
@@ -42,8 +41,8 @@ import {
   WorkflowlistApi,
   WorkflowlistApiHook
 } from '../index.js';
-import { ListColumnHeader } from "./ListColumnHeader.js";
-import { Clear, Refresh, Search } from "grommet-icons";
+import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
+import { Refresh } from "grommet-icons";
 import { BackgroundType, ColorType } from "grommet/utils";
 
 const minWidthOfTitleColumn = '20rem';
@@ -488,7 +487,7 @@ const ListOfWorkflows = ({
   excludeIdColumn = false,
   columnHeader,
   columnHeaderBackground = 'dark-3',
-  columnHeaderSeparator,
+  columnHeaderSeparator = 'light-6',
   defaultSearchQueries = [],
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
@@ -583,6 +582,7 @@ const ListOfWorkflows = ({
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
+  const autoColumnWidth = useRef<string>(AUTO_SIZE_COLUMN);
   useEffect(() => {
     if (modules === undefined) {
       return;
@@ -625,7 +625,7 @@ const ListOfWorkflows = ({
         title: { [currentLanguage]: t('column_title') },
         path: 'title',
         type: 'i18n',
-        width: '',
+        width: autoColumnWidth.current,
         priority: 0,
         show: true,
         sortable: true,
@@ -644,7 +644,7 @@ const ListOfWorkflows = ({
       return;
     }
     setColumnsOfWorkflows(columnsToShow);
-  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator ]);
+  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator, autoColumnWidth ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
@@ -680,21 +680,22 @@ const ListOfWorkflows = ({
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
   const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
-        : column.width !== ''
+        : column.width !== AUTO_SIZE_COLUMN
             ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
             : columnWidthAdjustments[column.path]
                 ? `${columnWidthAdjustments[column.path]}px`
                 : undefined
     , [ columnWidthAdjustments ]);
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
-    if (column.width === '') {
+    if (column.width === AUTO_SIZE_COLUMN) {
       column.width = `${adjustment}px`;
+      autoColumnWidth.current = column.width;
       return;
     }
     const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
     setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-  }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
+  }, [ columnWidthAdjustments, setColumnWidthAdjustments, autoColumnWidth ]);
 
   const selectAll = useCallback((select: boolean) => {
     (refreshItemRef.current!)(
@@ -741,7 +742,7 @@ const ListOfWorkflows = ({
                     currentLanguage={ currentLanguage }
                     nameOfList={ name }
                     columnHeader={ columnHeader }
-                    hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                    columnWidthAdjustment={ columnWidthAdjustments[column.path] }
                     setColumnWidthAdjustment={ setColumnWidthAdjustment }
                     sort={ sort === column.path }
                     setSort={ setSort }

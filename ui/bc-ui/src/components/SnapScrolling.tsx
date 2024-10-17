@@ -8,7 +8,7 @@ interface SnapScrollingGridProps extends GridExtendedProps {
 };
 
 const SnapScrollingGrid: StyledComponent<FC<GridExtendedProps>, any, SnapScrollingGridProps, never> = styled(Grid)<SnapScrollingGridProps>`
-    overflow-${ props => props.snapDirection === 'horizontal' ? 'x' : 'y' }: auto;
+    overflow-${ props => props.snapDirection === 'horizontal' ? 'x' : 'y' }: overlay;
     scroll-snap-type: ${ props => props.snapDirection === 'horizontal' ? 'x' : 'y' } mandatory;
     scroll-behavior: smooth;
   `;

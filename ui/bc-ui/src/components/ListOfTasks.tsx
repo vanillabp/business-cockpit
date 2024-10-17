@@ -1,5 +1,5 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {Person, SearchQuery, UserTask, UserTaskEvent} from '@vanillabp/bc-official-gui-client';
+import { Person, SearchQuery, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   backgroundColorAccordingToStatus,
@@ -43,7 +43,7 @@ import {
 } from '../index.js';
 import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
 import { User } from "./User.js";
-import { ListColumnHeader } from "./ListColumnHeader.js";
+import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
 import { useTheme } from "styled-components";
 
@@ -869,7 +869,7 @@ const ListOfTasks = ({
     excludeIdColumn = false,
     columnHeader,
     columnHeaderBackground = 'dark-3',
-    columnHeaderSeparator,
+    columnHeaderSeparator = 'light-6',
     defaultSearchQueries = [],
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
@@ -945,6 +945,7 @@ const ListOfTasks = ({
     [ userTasks, setNumberOfTasks, setModulesOfTasks, setDefinitionsOfTasks, showLoadingIndicator, refreshIndicator ]);
 
   const [ columnsOfTasks, setColumnsOfTasks ] = useState<Array<Column> | undefined>(undefined);
+  const autoColumnWidth = useRef<string>(AUTO_SIZE_COLUMN);
   const modules = useFederationModules(modulesOfTasks as Array<ModuleDefinition> | undefined, 'UserTaskList');
   useEffect(() => {
     if (modules === undefined) {
@@ -988,7 +989,7 @@ const ListOfTasks = ({
           title: { [currentLanguage]: t('column_title') },
           type: 'i18n',
           path: 'title',
-          width: '',
+          width: autoColumnWidth.current,
           priority: 0,
           show: true,
           sortable: true,
@@ -1032,7 +1033,7 @@ const ListOfTasks = ({
       return;
     }
     setColumnsOfTasks(columnsToShow);
-  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator ]);
+  }, [ modules, definitionsOfTasks, columnsOfTasks, setColumnsOfTasks, refreshIndicator, autoColumnWidth ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
@@ -1072,21 +1073,22 @@ const ListOfTasks = ({
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
   const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
-        : column.width !== ''
+        : column.width !== AUTO_SIZE_COLUMN
         ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
         : columnWidthAdjustments[column.path]
         ? `${columnWidthAdjustments[column.path]}px`
         : undefined
     , [ columnWidthAdjustments ]);
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
-      if (column.width === '') {
+      if (column.width === AUTO_SIZE_COLUMN) {
         column.width = `${adjustment}px`;
+        autoColumnWidth.current = column.width;
         return;
       }
       const current = columnWidthAdjustments[column.path];
       if (current === adjustment) return;
       setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-    }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
+    }, [ columnWidthAdjustments, setColumnWidthAdjustments, autoColumnWidth ]);
 
   const selectAll = useCallback((select: boolean) => {
       (refreshItemRef.current!)(
@@ -1134,7 +1136,7 @@ const ListOfTasks = ({
                   currentLanguage={ currentLanguage }
                   nameOfList={ name }
                   columnHeader={ columnHeader }
-                  hasColumnWidthAdjustment={ columnWidthAdjustments[column.path] !== undefined }
+                  columnWidthAdjustment={ columnWidthAdjustments[column.path] }
                   setColumnWidthAdjustment={ setColumnWidthAdjustment }
                   sort={ sort === column.path }
                   setSort={ setSort }
