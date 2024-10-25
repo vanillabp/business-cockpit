@@ -582,7 +582,6 @@ const ListOfWorkflows = ({
 
   const [ columnsOfWorkflows, setColumnsOfWorkflows ] = useState<Array<Column> | undefined>(undefined); 
   const modules = useFederationModules(modulesOfWorkflows as Array<ModuleDefinition> | undefined, 'WorkflowList');
-  const autoColumnWidth = useRef<string>(AUTO_SIZE_COLUMN);
   useEffect(() => {
     if (modules === undefined) {
       return;
@@ -625,7 +624,7 @@ const ListOfWorkflows = ({
         title: { [currentLanguage]: t('column_title') },
         path: 'title',
         type: 'i18n',
-        width: autoColumnWidth.current,
+        width: AUTO_SIZE_COLUMN,
         priority: 0,
         show: true,
         sortable: true,
@@ -644,7 +643,7 @@ const ListOfWorkflows = ({
       return;
     }
     setColumnsOfWorkflows(columnsToShow);
-  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator, autoColumnWidth ]);
+  }, [ modules, definitionsOfWorkflows, columnsOfWorkflows, setColumnsOfWorkflows, refreshIndicator ]);
 
   const [ allSelected, setAllSelected ] = useState(false);
   const [ anySelected, setAnySelected ] = useState(false);
@@ -686,11 +685,11 @@ const ListOfWorkflows = ({
                 ? `${columnWidthAdjustments[column.path]}px`
                 : undefined
     , [ columnWidthAdjustments ]);
+  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
-    if (column.width === AUTO_SIZE_COLUMN) {
-      column.width = `${adjustment}px`;
-      autoColumnWidth.current = column.width;
-      return;
+    if (autoColumnWidth.current && (autoColumnWidth.current.column.width === AUTO_SIZE_COLUMN)) {
+      // set width auf auto-width column once any column was resized
+      autoColumnWidth.current.column.width = `${autoColumnWidth.current.width}px`;
     }
     const current = columnWidthAdjustments[column.path];
     if (current === adjustment) return;
@@ -743,6 +742,7 @@ const ListOfWorkflows = ({
                     nameOfList={ name }
                     columnHeader={ columnHeader }
                     columnWidthAdjustment={ columnWidthAdjustments[column.path] }
+                    setAutoColumnWidth={ (column, width) => autoColumnWidth.current = { column, width } }
                     setColumnWidthAdjustment={ setColumnWidthAdjustment }
                     sort={ sort === column.path }
                     setSort={ setSort }

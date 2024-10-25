@@ -1078,15 +1078,16 @@ const ListOfTasks = ({
         ? `${columnWidthAdjustments[column.path]}px`
         : undefined
     , [ columnWidthAdjustments ]);
+  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
-      if (column.width === AUTO_SIZE_COLUMN) {
-        column.width = `${adjustment}px`;
-        return;
+      if (autoColumnWidth.current && (autoColumnWidth.current.column.width === AUTO_SIZE_COLUMN)) {
+        // set width auf auto-width column once any column was resized
+        autoColumnWidth.current.column.width = `${autoColumnWidth.current.width}px`;
       }
       const current = columnWidthAdjustments[column.path];
       if (current === adjustment) return;
       setColumnWidthAdjustments({ ...columnWidthAdjustments, [column.path]: adjustment })
-    }, [ columnWidthAdjustments, setColumnWidthAdjustments ]);
+    }, [ columnWidthAdjustments, setColumnWidthAdjustments, autoColumnWidth ]);
 
   const selectAll = useCallback((select: boolean) => {
       (refreshItemRef.current!)(
@@ -1135,6 +1136,7 @@ const ListOfTasks = ({
                   nameOfList={ name }
                   columnHeader={ columnHeader }
                   columnWidthAdjustment={ columnWidthAdjustments[column.path] }
+                  setAutoColumnWidth={ (column, width) => autoColumnWidth.current = { column, width } }
                   setColumnWidthAdjustment={ setColumnWidthAdjustment }
                   sort={ sort === column.path }
                   setSort={ setSort }

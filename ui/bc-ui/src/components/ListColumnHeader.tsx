@@ -19,6 +19,7 @@ const ListColumnHeader = ({
   nameOfList,
   columnHeader,
   columnWidthAdjustment,
+  setAutoColumnWidth,
   setColumnWidthAdjustment,
   sort,
   isDefaultSort,
@@ -37,6 +38,7 @@ const ListColumnHeader = ({
   nameOfList?: string,
   columnHeader?: FC<DefaultListHeaderAwareProps<any>>,
   columnWidthAdjustment?: number,
+  setAutoColumnWidth: (column: Column, width: number) => void,
   setColumnWidthAdjustment: (column: Column, adjustment: number) => void,
   sort?: boolean,
   isDefaultSort: boolean,
@@ -88,10 +90,8 @@ const ListColumnHeader = ({
           ref={ element => {
             if (element === null) return;
             if (columnWidthAdjustment !== undefined) return;
-            if (column.width !== '') return;
-            setColumnWidthAdjustment(
-                column,
-                element!.getBoundingClientRect().width);
+            if (column.width !== AUTO_SIZE_COLUMN) return;
+            setAutoColumnWidth(column, element!.getBoundingClientRect().width);
           } }>
         <Box
             direction="row"

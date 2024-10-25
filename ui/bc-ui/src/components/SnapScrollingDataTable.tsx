@@ -35,6 +35,7 @@ const SnapScrollingDataTable = forwardRef(({
   const hasAutoWidthColumn = columns.filter(column => column.size === undefined).length > 0;
   const columnsWidth = columns.reduce((width, column) => calculateColumWidth(minWidthOfAutoColumn, width, column), '');
   const dataTableColumns = columns.map(column => ({ ...column, header: undefined }));
+
   return (columns
     ? <SnapScrollingGrid
           fill
@@ -50,6 +51,7 @@ const SnapScrollingDataTable = forwardRef(({
               zIndex: 2,
               minWidth: 'auto'
               } }
+            overflow="hidden" // last separator will cause horizontal scrolling
             background={ columnHeaderBackground }
             align="center">
           {
