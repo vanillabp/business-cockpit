@@ -17,13 +17,6 @@ import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-import org.camunda.bpm.model.xml.instance.ModelElementInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
-import org.springframework.core.io.Resource;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,6 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
+import org.camunda.bpm.model.xml.instance.ModelElementInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.io.Resource;
+import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
@@ -110,7 +109,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                             resource.getInputStream(),
                             deploymentHashCode[0])) {
 
-                        logger.info("About to deploy '{}' of workflow-module with id '{}'",
+                        logger.info("About to deploy '{}' of workflow-module with id '{}' for business-cockpit",
                                 resource.getFilename(), workflowModuleId);
                         final var model = bpmnParser.parseModelFromStream(inputStream);
 
@@ -159,7 +158,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                     try (var inputStream = new ByteArrayInputStream(
                             bpmn.getResource())) {
 
-                        logger.info("About to verify old BPMN '{}' of workflow-module with id '{}'",
+                        logger.info("About to verify old BPMN '{}' of workflow-module with id '{}' for business-cockpit",
                                 bpmn.getResourceName(), workflowModuleId);
                         final var model = bpmnParser.parseModelFromStream(inputStream);
 
