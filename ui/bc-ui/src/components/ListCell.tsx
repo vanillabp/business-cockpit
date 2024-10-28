@@ -7,7 +7,7 @@ import {
   useResponsiveScreen,
   WarningListCell,
 } from '@vanillabp/bc-shared';
-import { FC, memo } from "react";
+import { FC, memo, Suspense } from "react";
 
 export enum TypeOfItem {
   TaskList,
@@ -107,7 +107,9 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
     return <WarningListCell
         message={ t('typeofitem_unsupported') } />;
   }
-  return <Cell
+  return (
+      <Suspense /* catch any uncaught suspensions */>
+        <Cell
             t={ t }
             item={ item }
             column={ column }
@@ -117,7 +119,8 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
             nameOfList={ nameOfList }
             isPhone={ isPhone }
             isTablet={ isTablet }
-            selectItem={ (select: boolean) => selectItem(item, select) } />;
+            selectItem={ (select: boolean) => selectItem(item, select) } />
+      </Suspense>);
   
 }
 

@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import {
-    ModuleDefinition,
-    NoWorkflowGiven,
-    OpenTaskFunction,
-    useFederationModule,
-    WorkflowlistApi,
-    WorkflowlistApiHook,
-    TasklistApi,
-    TasklistApiHook
+  ModuleDefinition,
+  NoWorkflowGiven,
+  OpenTaskFunction,
+  TasklistApi,
+  TasklistApiHook,
+  useFederationModule,
+  WorkflowlistApi,
+  WorkflowlistApiHook
 } from '../index.js';
 import {
   BcUserTask,
@@ -143,7 +143,9 @@ const WorkflowPage = ({
   
   return (
       <Box fill>
-        <Page workflow={ workflow! } />
+        <Suspense /* catch any uncaught suspensions */>
+          <Page workflow={ workflow! } />
+        </Suspense>
       </Box>);
 };
 

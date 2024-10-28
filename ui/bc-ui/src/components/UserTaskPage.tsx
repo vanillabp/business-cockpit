@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, Suspense, useEffect, useState } from 'react';
 import {
   BcUserTask,
   ShowLoadingIndicatorFunction,
@@ -145,11 +145,16 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
       unassign: (userId) => assignTask(userTask, userId, true)
     };
 
-  return children === undefined
-      ? <UserTaskAppLayout header={header} footer={footer}>
-          <Form userTask={ bcUserTask } />
-        </UserTaskAppLayout>
-      : children(userTask, Form);
+  return (
+      <Suspense /* catch any uncaught suspensions */>
+        {
+          children === undefined
+              ? <UserTaskAppLayout header={header} footer={footer}>
+                  <Form userTask={ bcUserTask } />
+                </UserTaskAppLayout>
+              : children(userTask, Form)
+        }
+      </Suspense>);
 
 }
 
