@@ -552,6 +552,8 @@ const ListOfWorkflows = ({
             navigateToWorkflow: () => {}, // don't change view because workflow is already shown
             assign: (userId) => { tasklistApi.assignTask(userTask.id, userId, false) },
             unassign: (userId) => { tasklistApi.assignTask(userTask.id, userId, true) },
+            claim: () => tasklistApi.claimTask(userTask.id, false),
+            unclaim: () => tasklistApi.claimTask(userTask.id, true)
           } as BcUserTask));
     };
     return {

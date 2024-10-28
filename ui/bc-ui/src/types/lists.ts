@@ -27,6 +27,9 @@ export type ListOfTasksHeaderFooterFunction = (
 
 export type AssignTaskFunction = (userTask: UserTask, userId: string, unassign: boolean) => void;
 
+export type ClaimTaskFunction = (userTask: UserTask, unclaim: boolean) => void;
+
+
 export type ListOfWorkflowsHeaderFooterFunction = (
     isPhone: boolean,
     isTablet: boolean,

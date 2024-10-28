@@ -60,6 +60,8 @@ const loadWorkflow = (
                         navigateToWorkflow: () => openWorkflow(userTask.workflowId!),
                         assign: userId => {},
                         unassign: userId => {},
+                        claim: () => {},
+                        unclaim: () => {}
                       }) as BcUserTask);
                 };
               workflow = {

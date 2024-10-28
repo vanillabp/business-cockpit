@@ -8,14 +8,14 @@ import {
   UserTaskForm
 } from '@vanillabp/bc-shared';
 import {
-  AssignTaskFunction,
-  ModuleDefinition,
-  NavigateToWorkflowFunction,
-  NoUserTaskGiven,
-  OpenTaskFunction,
-  TasklistApi,
-  TasklistApiHook,
-  useFederationModule
+    AssignTaskFunction, ClaimTaskFunction,
+    ModuleDefinition,
+    NavigateToWorkflowFunction,
+    NoUserTaskGiven,
+    OpenTaskFunction,
+    TasklistApi,
+    TasklistApiHook,
+    useFederationModule
 } from '../index.js';
 import { UserTask } from "@vanillabp/bc-official-gui-client";
 
@@ -27,6 +27,8 @@ const loadUserTask = (
     openTask: (userTask: UserTask) => void,
     assign: (userTask: UserTask, userId: string) => void,
     unassign: (userTask: UserTask, userId: string) => void,
+    claim: (userTask: UserTask) => void,
+    unclaim: (userTask: UserTask) => void
 ) => {
   tasklistApi.getUserTask(userTaskId,true)
       .then((value: UserTask) => {
@@ -36,6 +38,8 @@ const loadUserTask = (
           navigateToWorkflow: () => navigateToWorkflow(value),
           assign: userId => assign(value, userId),
           unassign: userId => unassign(value, userId),
+          claim: () => claim(value),
+          unclaim: () => unclaim(value)
         };
         setUserTask(bcUserTask);
       }).catch((error: any) => {
@@ -51,6 +55,7 @@ interface UserTaskPageProps {
   openTask: OpenTaskFunction;
   navigateToWorkflow: NavigateToWorkflowFunction;
   assignTask: AssignTaskFunction;
+  claimTask: ClaimTaskFunction;
   useTasklistApi: TasklistApiHook;
   t: TranslationFunction;
   header?: React.ReactNode;
@@ -66,6 +71,7 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     navigateToWorkflow,
     useTasklistApi,
     assignTask,
+    claimTask,
     t,
     children,
     header,
@@ -86,7 +92,10 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
         userTask => navigateToWorkflow(userTask),
         userTask => openTask(userTask),
         (userTask, userId) => assignTask(userTask, userId, false),
-        (userTask, userId) => assignTask(userTask, userId, true));
+        (userTask, userId) => assignTask(userTask, userId, true),
+        (userTask) => claimTask(userTask, false),
+        (userTask) => claimTask(userTask, true),
+    );
   }, [ userTaskId ]); //eslint-disable-line react-hooks/exhaustive-deps -- should only be executed on change of userTaskId
 
   const module = useFederationModule(userTask as ModuleDefinition, 'UserTaskForm');
@@ -117,7 +126,9 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
             userTask => navigateToWorkflow(userTask),
             userTask => openTask(userTask),
             (userTask, userId) => assignTask(userTask, userId, false),
-            (userTask, userId) => assignTask(userTask, userId, true)) }/>;
+            (userTask, userId) => assignTask(userTask, userId, true),
+            (userTask) => claimTask(userTask, false),
+            (userTask) => claimTask(userTask, true),) }/>;
   }
 
   document.title = userTask!.title.de;
@@ -142,7 +153,9 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
       open: () => openTask(userTask),
       navigateToWorkflow: () => navigateToWorkflow(userTask),
       assign: (userId) => assignTask(userTask, userId, false),
-      unassign: (userId) => assignTask(userTask, userId, true)
+      unassign: (userId) => assignTask(userTask, userId, true),
+      claim: () => claimTask(userTask, false),
+      unclaim: () => claimTask(userTask, true)
     };
 
   return (
