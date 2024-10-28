@@ -47,7 +47,7 @@ import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
 import { useTheme } from "styled-components";
 
-const minWidthOfTitleColumn = '20rem';
+const minWidthOfColumns = '4rem';
 
 interface Columns {
   [key: string]: Column;
@@ -1073,7 +1073,7 @@ const ListOfTasks = ({
   const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== AUTO_SIZE_COLUMN
-        ? `max(4rem, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
+        ? `max(${minWidthOfColumns}, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
         : columnWidthAdjustments[column.path]
         ? `${columnWidthAdjustments[column.path]}px`
         : undefined
@@ -1302,7 +1302,7 @@ const ListOfTasks = ({
                         rowSeparator={ rowSeparator }
                         applyBackgroundColor={ applyBackgroundColor }
                         showLoadingIndicator={ showLoadingIndicator }
-                        minWidthOfAutoColumn={ minWidthOfTitleColumn }
+                        minWidthOfAutoColumn={ minWidthOfColumns }
                         columns={ columnsOfList }
                         itemsRef={ userTasks }
                         showColumnHeaders={ showColumnHeaders }
