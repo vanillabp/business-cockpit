@@ -15,7 +15,7 @@ const userTaskListColumns: Array<Column> = [
     show: true,
     sortable: true,
     filterable: true,
-    resizeable: false,
+    resizeable: true,
   }
 ];
 

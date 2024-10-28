@@ -17,10 +17,16 @@ const userTaskListColumns: ColumnsOfUserTaskFunction = userTask => {
 const UserTaskListCellComponent: UserTaskListCell = ({
   item,
   ...props
-}) =>
-  item.data.bpmnProcessId === Test_bpmnProcessId
+}) => {
+  const DefaultCell = props.defaultCell;
+  return props.column.path === 'id'
+      ? <DefaultCell item={ item } { ...props } />
+      : item.data.bpmnProcessId === Test_bpmnProcessId
       ? <Test_UserTaskListCell item={ item } { ...props } />
-      : <WarningListCell message={ `unknown BPMN process ID '${item.data.bpmnProcessId}'` } />;
+      : props.column.path === 'title'
+      ? <DefaultCell item={ item } { ...props } />
+      : <WarningListCell message={ `unknown BPMN process ID '${ item.data.bpmnProcessId }'` }/>;
+};
 
 export {
   buildVersion,
