@@ -922,6 +922,8 @@ const ListOfTasks = ({
       navigateToWorkflow: () => navigateToWorkflow(userTask),
       assign: userId => assignFunction(userTask.id, userId, false),
       unassign: userId => assignFunction(userTask.id, userId, true),
+      claim: () => tasklistApi.claimTask(userTask.id, false),
+      unclaim: () => tasklistApi.claimTask(userTask.id, true),
     };
   };
 
