@@ -415,6 +415,11 @@ components:
           items:
             type: string
           example: [ "drivers" ]
+        excludedCandidateUsers:
+          type: array
+          items:
+            type: string
+          example: []
         dueDate:
           type: string
           format: date-time
