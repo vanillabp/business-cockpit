@@ -737,7 +737,7 @@ public class UserTaskService {
 
         if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
             final var candidateUserExclusions =
-                    Criteria.where("excludedCandidates.id")
+                    Criteria.where("excludedCandidateUsers.id")
                             .not().in(candidatesToBeExcluded);
             userAndRestrictions.add(candidateUserExclusions);
         }
