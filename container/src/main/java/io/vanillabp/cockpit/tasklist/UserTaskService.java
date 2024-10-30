@@ -365,6 +365,7 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
+            final Collection<String> candidateUsersToBeExcluded,
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -378,6 +379,7 @@ public class UserTaskService {
                 assignees,
                 candidateUsers,
                 candidateGroups,
+                candidateUsersToBeExcluded,
                 pageNumber,
                 pageSize,
                 initialTimestamp,
@@ -395,6 +397,7 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
+            final Collection<String> candidateUsersToBeExcluded,
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -420,6 +423,7 @@ public class UserTaskService {
                         assignees,
                         candidateUsers,
                         candidateGroups,
+                        candidateUsersToBeExcluded,
                         initialTimestamp,
                         mode,
                         predefinedCriterias));
@@ -483,6 +487,7 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
+            final Collection<String> candidatesToBeExcluded,
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String path,
@@ -502,6 +507,7 @@ public class UserTaskService {
                         assignees,
                         candidateUsers,
                         candidateGroups,
+                        candidatesToBeExcluded,
                         initialTimestamp,
                         RetrieveItemsMode.OpenTasks,
                         searchCriteria);
@@ -525,6 +531,7 @@ public class UserTaskService {
                     limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
                     limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
                     limitListAccordingToCurrentUsersPermissions ? currentUserGroups : null,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
                     0,
                     size,
                     OffsetDateTime.now(),
@@ -544,6 +551,7 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
+            final Collection<String> candidatesToBeExcluded,
             final int size,
             final Collection<String> knownUserTasksIds,
             final OffsetDateTime initialTimestamp,
@@ -566,6 +574,7 @@ public class UserTaskService {
                         assignees,
                         candidateUsers,
                         candidateGroups,
+                        candidatesToBeExcluded,
                         initialTimestamp,
                         RetrieveItemsMode.OpenTasks,
                         null));
@@ -690,6 +699,7 @@ public class UserTaskService {
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
+            final Collection<String> candidatesToBeExcluded,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode,
             final List<Criteria> predefinedCriterias) {
@@ -724,6 +734,14 @@ public class UserTaskService {
             final var candidateGroupsMatches = Criteria.where("candidateGroups.id").in(candidateGroups);
             userOrRestrictions.add(candidateGroupsMatches);
         }
+
+        if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
+            final var candidateUserExclusions =
+                    Criteria.where("excludedCandidates.id")
+                            .not().in(candidatesToBeExcluded);
+            userAndRestrictions.add(candidateUserExclusions);
+        }
+
         if (!userAndRestrictions.isEmpty()
                 || !userOrRestrictions.isEmpty()) {
             if (includeDanglingTasks) {
