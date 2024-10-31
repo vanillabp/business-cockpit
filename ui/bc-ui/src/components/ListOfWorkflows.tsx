@@ -45,8 +45,6 @@ import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { Refresh } from "grommet-icons";
 import { BackgroundType, ColorType } from "grommet/utils";
 
-const minWidthOfColumns = '4rem';
-
 interface Columns {
   [key: string]: Column;
 }
@@ -475,6 +473,8 @@ const ListOfWorkflows = ({
   defaultSort,
   defaultSortAscending = true,
   name,
+  minWidthOfColumns = '4rem',
+  minWidthOfAutoColumn = '20rem',
   columns,
   children,
   headerHeight = '3rem',
@@ -500,7 +500,9 @@ const ListOfWorkflows = ({
   defaultSort?: string,
   defaultSortAscending?: boolean,
   name?: string,
-  columns?: string[];
+  columns?: string[],
+  minWidthOfColumns?: string,
+  minWidthOfAutoColumn?: string,
   children?: ListOfWorkflowsHeaderFooterFunction,
   headerHeight?: string,
   footer?: ListOfWorkflowsHeaderFooterFunction,
@@ -679,15 +681,15 @@ const ListOfWorkflows = ({
   }
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
+  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== AUTO_SIZE_COLUMN
-            ? `max(${minWidthOfColumns}, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
-            : columnWidthAdjustments[column.path]
-                ? `${columnWidthAdjustments[column.path]}px`
-                : undefined
+        ? `max(${autoColumnWidth.current?.column.path === column.path ? minWidthOfAutoColumn : minWidthOfColumns}, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
+        : columnWidthAdjustments[column.path]
+        ? `${columnWidthAdjustments[column.path]}px`
+        : undefined
     , [ columnWidthAdjustments ]);
-  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
     if (autoColumnWidth.current && (autoColumnWidth.current.column.width === AUTO_SIZE_COLUMN)) {
       // set width auf auto-width column once any column was resized
@@ -842,7 +844,7 @@ const ListOfWorkflows = ({
                       rowSeparator={ rowSeparator }
                       applyBackgroundColor={ applyBackgroundColor }
                       showLoadingIndicator={ showLoadingIndicator }
-                      minWidthOfAutoColumn={ minWidthOfColumns }
+                      minWidthOfAutoColumn={ minWidthOfAutoColumn }
                       showColumnHeaders={ showColumnHeaders }
                       columnHeaderBackground={ columnHeaderBackground }
                       columnHeaderSeparator={ columnHeaderSeparator }

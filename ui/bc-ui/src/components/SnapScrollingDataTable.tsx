@@ -113,8 +113,12 @@ const SnapScrollingDataTable = forwardRef(({
           }
         </Box>
         <Box
-            width={ hasAutoWidthColumn ? '100%' : `calc(${columnsWidth})` }
-            style={ { minHeight: '100%', height: 'fit-content' } }
+            style={ {
+              minHeight: '100%',
+              height: 'fit-content',
+              minWidth: hasAutoWidthColumn ? `calc(${columnsWidth})` : undefined,
+              width: hasAutoWidthColumn ? '100%' : `calc(${columnsWidth})`,
+            } }
             background="white">
           <DataTable
               fill="vertical"

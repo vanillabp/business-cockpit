@@ -47,8 +47,6 @@ import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
 import { useTheme } from "styled-components";
 
-const minWidthOfColumns = '4rem';
-
 interface Columns {
   [key: string]: Column;
 }
@@ -859,6 +857,8 @@ const ListOfTasks = ({
     defaultSortAscending = true,
     name,
     columns,
+    minWidthOfColumns = '4rem',
+    minWidthOfAutoColumn = '20rem',
     children,
     headerHeight = '3rem',
     footer,
@@ -882,7 +882,9 @@ const ListOfTasks = ({
     defaultSort?: string,
     defaultSortAscending?: boolean,
     name?: string,
-    columns?: string[];
+    columns?: string[],
+    minWidthOfColumns?: string,
+    minWidthOfAutoColumn?: string,
     children?: ListOfTasksHeaderFooterFunction,
     headerHeight?: string,
     footer?: ListOfTasksHeaderFooterFunction,
@@ -1072,15 +1074,15 @@ const ListOfTasks = ({
   };
 
   const [ columnWidthAdjustments, setColumnWidthAdjustments ] = useState<ColumnWidthAdjustments>({});
+  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const getColumnSize = useCallback((column: Column) => !column.resizeable
         ? column.width
         : column.width !== AUTO_SIZE_COLUMN
-        ? `max(${minWidthOfColumns}, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
+        ? `max(${autoColumnWidth.current?.column.path === column.path ? minWidthOfAutoColumn : minWidthOfColumns}, calc(${column.width} + ${columnWidthAdjustments[column.path] ? columnWidthAdjustments[column.path] : 0}px))`
         : columnWidthAdjustments[column.path]
         ? `${columnWidthAdjustments[column.path]}px`
         : undefined
     , [ columnWidthAdjustments ]);
-  const autoColumnWidth = useRef<{ column: Column, width: number } | undefined>();
   const setColumnWidthAdjustment = useCallback((column: Column, adjustment: number) => {
       if (autoColumnWidth.current && (autoColumnWidth.current.column.width === AUTO_SIZE_COLUMN)) {
         // set width auf auto-width column once any column was resized
@@ -1304,7 +1306,7 @@ const ListOfTasks = ({
                         rowSeparator={ rowSeparator }
                         applyBackgroundColor={ applyBackgroundColor }
                         showLoadingIndicator={ showLoadingIndicator }
-                        minWidthOfAutoColumn={ minWidthOfColumns }
+                        minWidthOfAutoColumn={ minWidthOfAutoColumn }
                         columns={ columnsOfList }
                         itemsRef={ userTasks }
                         showColumnHeaders={ showColumnHeaders }

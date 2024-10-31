@@ -132,20 +132,19 @@ const ListColumnHeader = ({
                     setSortAscending={ setSortAscending } />
           }
         </Box>
-        {
-          column.resizeable
-              ? <Box
-                    align="center"
-                    onMouseDown={ startResize }
-                    style={ { cursor: 'col-resize', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.2rem', zIndex: 1000 } }>
-                  &nbsp;
-                </Box>
-              : <Box
-                    align="center"
-                    style={ { cursor: 'not-allowed', position: "absolute", top: '-0.5rem', bottom: '-0.5rem', right: '-0.2rem', zIndex: 1000 } }>
-                  &nbsp;
-                </Box>
-        }
+         <Box
+             align="center"
+             onMouseDown={ column.resizeable ? startResize : undefined }
+             style={ {
+               cursor: column.resizeable ? 'col-resize' : 'not-allowed',
+               position: "absolute",
+               top: '-0.5rem',
+               bottom: '-0.5rem',
+               right: '-0.2rem',
+               width: '0.5rem',
+               zIndex: 1000 } }>
+           &nbsp;
+         </Box>
       </Box>);
 };
 
