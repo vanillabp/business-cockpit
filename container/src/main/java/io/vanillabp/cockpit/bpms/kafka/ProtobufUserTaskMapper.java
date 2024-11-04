@@ -54,6 +54,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
 
@@ -70,6 +71,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 

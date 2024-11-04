@@ -71,6 +71,8 @@ message UserTaskCreatedOrUpdatedEvent {
   optional google.protobuf.Timestamp follow_up_date = 29;
   optional DetailsMap details = 30;
   optional string details_fulltext_search = 31;
+  repeated string excluded_candidate_users = 32;
+
 }
 
 message UserTaskCompletedEvent {

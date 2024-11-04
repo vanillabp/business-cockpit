@@ -74,6 +74,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private List<Group> candidateGroups = null;
 
+    private List<Person> excludedCandidateUsers = null;
+
     private OffsetDateTime dueDate;
 
     private OffsetDateTime followUpDate;
@@ -404,6 +406,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setCandidateGroups(List<Group> candidateGroups) {
         this.candidateGroups = candidateGroups;
+    }
+
+    public List<Person> getExcludedCandidateUsers() {
+        return excludedCandidateUsers;
+    }
+
+    public void setExcludedCandidateUsers(List<Person> excludedCandidateUsers) {
+        this.excludedCandidateUsers = excludedCandidateUsers;
     }
 
     public OffsetDateTime getDueDate() {

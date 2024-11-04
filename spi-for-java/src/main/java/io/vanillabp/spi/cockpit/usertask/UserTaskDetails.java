@@ -25,6 +25,8 @@ public interface UserTaskDetails {
     List<String> getCandidateUsers();
     
     List<String> getCandidateGroups();
+
+    List<String> getExcludedCandidateUsers();
     
     OffsetDateTime getDueDate();
     

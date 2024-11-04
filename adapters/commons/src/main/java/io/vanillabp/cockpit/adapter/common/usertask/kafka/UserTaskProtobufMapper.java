@@ -84,6 +84,8 @@ public class UserTaskProtobufMapper {
                 .ifPresent(builder::addAllCandidateGroups);
         Optional.ofNullable(userTaskCreatedEvent.getCandidateUsers())
                 .ifPresent(builder::addAllCandidateUsers);
+        Optional.ofNullable(userTaskCreatedEvent.getExcludedCandidateUsers())
+                .ifPresent(builder::addAllExcludedCandidateUsers);
         Optional.ofNullable(userTaskCreatedEvent.getDueDate())
                 .map(this::mapTimeStamp)
                 .ifPresent(builder::setDueDate);

@@ -134,6 +134,10 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         if ( list1 != null ) {
             userTaskCreatedOrUpdatedEvent.setCandidateGroups( new ArrayList<String>( list1 ) );
         }
+        List<String> list2 = userTaskCreatedEvent.getExcludedCandidateUsers();
+        if ( list2 != null ) {
+            userTaskCreatedOrUpdatedEvent.excludedCandidateUsers( new ArrayList<String>( list2 ) );
+        }
         userTaskCreatedOrUpdatedEvent.setDueDate( userTaskCreatedEvent.getDueDate() );
         userTaskCreatedOrUpdatedEvent.setFollowUpDate( userTaskCreatedEvent.getFollowUpDate() );
         Map<String, Object> map3 = userTaskCreatedEvent.getDetails();
@@ -191,6 +195,10 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         List<String> list1 = userTaskCreatedEvent.getCandidateGroups();
         if ( list1 != null ) {
             userTaskCreatedOrUpdatedEvent.setCandidateGroups( new ArrayList<String>( list1 ) );
+        }
+        List<String> list2 = userTaskCreatedEvent.getExcludedCandidateUsers();
+        if ( list2 != null ) {
+            userTaskCreatedOrUpdatedEvent.excludedCandidateUsers( new ArrayList<String>( list2 ) );
         }
         userTaskCreatedOrUpdatedEvent.setDueDate( userTaskCreatedEvent.getDueDate() );
         userTaskCreatedOrUpdatedEvent.setFollowUpDate( userTaskCreatedEvent.getFollowUpDate() );

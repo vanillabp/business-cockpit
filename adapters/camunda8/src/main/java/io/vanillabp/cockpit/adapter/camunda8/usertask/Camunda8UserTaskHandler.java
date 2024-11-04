@@ -246,13 +246,6 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         userTaskCreatedEvent.setTitle(new HashMap<>());
         userTaskCreatedEvent.setWorkflowTitle(new HashMap<>());
         userTaskCreatedEvent.setTaskDefinitionTitle(new HashMap<>());
-
-        userTaskCreatedEvent.setAssignee(userTaskCreatedEvent.getAssignee());
-        userTaskCreatedEvent.setCandidateUsers(userTaskCreatedEvent.getCandidateUsers());
-        userTaskCreatedEvent.setCandidateGroups(userTaskCreatedEvent.getCandidateGroups());
-        userTaskCreatedEvent.setDueDate(userTaskCreatedEvent.getDueDate());
-        userTaskCreatedEvent.setFollowUpDate(userTaskCreatedEvent.getFollowUpDate());
-
     }
 
 
@@ -311,6 +304,8 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 details.getCandidateUsers());
         event.setCandidateGroups(
                 details.getCandidateGroups());
+        event.setExcludedCandidateUsers(
+                details.getExcludedCandidateUsers());
         event.setDueDate(
                 details.getDueDate());
         event.setFollowUpDate(

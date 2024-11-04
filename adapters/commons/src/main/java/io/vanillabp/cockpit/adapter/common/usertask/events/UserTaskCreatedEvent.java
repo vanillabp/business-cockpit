@@ -54,6 +54,8 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     private List<String> candidateGroups = new ArrayList<>();
 
+    private List<String> excludedCandidateUsers = new ArrayList<>();
+
     private OffsetDateTime dueDate;
 
     private OffsetDateTime followUpDate;
@@ -271,6 +273,15 @@ public class UserTaskCreatedEvent implements UserTaskEvent, UserTaskDetails, Pre
 
     public void setCandidateGroups(List<String> candidateGroups) {
         this.candidateGroups = candidateGroups;
+    }
+
+    @Override
+    public List<String> getExcludedCandidateUsers() {
+        return excludedCandidateUsers;
+    }
+
+    public void setExcludedCandidateUsers(List<String> excludedCandidateUsers) {
+        this.excludedCandidateUsers = excludedCandidateUsers;
     }
 
     @Override

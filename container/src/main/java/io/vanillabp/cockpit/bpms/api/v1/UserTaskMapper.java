@@ -44,6 +44,7 @@ public abstract class UserTaskMapper {
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
     
     @Mapping(target = "id", ignore = true)
@@ -59,6 +60,7 @@ public abstract class UserTaskMapper {
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 
 }
