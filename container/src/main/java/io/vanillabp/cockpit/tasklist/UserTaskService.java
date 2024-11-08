@@ -716,8 +716,9 @@ public class UserTaskService {
                 final var assigneeMatches = Criteria.where("assignee.id").not().in(assignees);
                 userAndRestrictions.add(assigneeMatches);
             } else {
-                final var assigneeMatches = Criteria.where("assignee.id").in(assignees);
-                userOrRestrictions.add(assigneeMatches);
+                final var assigneeMatches = Criteria.where("assignee.id").in(assignees).orOperator(
+                                Criteria.where("assignee").exists(false));
+                userAndRestrictions.add(assigneeMatches);
             }
         } else if (notInAssignees) {
             final var assigneeMatches = Criteria.where("assignee").exists(false);
