@@ -170,24 +170,3 @@ VanillaBP was developed by [Phactum](https://www.phactum.at) with the intention 
 Copyright 2022 Phactum Softwareentwicklung GmbH
 
 Licensed under the Apache License, Version 2.0
-
-## Changelog
-
-### 0.0.4-SNAPSHOT
-
-* Introduce person & group
-    * usertask.assignee, usertask.candidateUsers, workflow.initiator and workflow.accessibleToUsers type change from string to Person
-    * usertask.canidateGroups, workflow.accessibleToGroups type change to Group
-    * current-user type change to a combination of Person and Groups
-    * A PersonAndGroupMapper is introduced to provide a mapping between user provided by APIs and the values stored in the database
-    * A PersonAndGroupApiMapper is introduced to provide a mapping between data stored in the database and the details shown in the UI
-* Introduce usertask-list and workflow-list column's type
-    * `i18n`: An sub-field for each supported locale (language) is expected
-    * `person`: A person-compatible object has to be provided
-    * `date`: A Date object which will be rendered as a date
-    * `date-time`: A Date object which will be rendered as a timestamp
-* Define explicit colors in `ui/bc-shared/src/theme/index.ts`
-* React-Dev-Shell: Changed parameters of DevShell component
-* fetch-API: change from dispatch- to toast-function
-* Add custom federated components to DevShell
-* Sort-indexes will be dropped and recreated on demand due to naming

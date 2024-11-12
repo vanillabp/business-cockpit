@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>adapters</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.4</version>
   </parent>
 
   <artifactId>adapters-commons</artifactId>
@@ -64,4 +64,20 @@
       <version>2.1.0</version>
     </dependency>
   </dependencies>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
 </project>

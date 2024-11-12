@@ -1,6 +1,11 @@
 {
   "name": "@vanillabp/bc-dev-shell-angular-module",
   "version": "0.0.4",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vanillabp/business-cockpit.git"
+  },
+  "homepage": "https://github.com/vanillabp/business-cockpit",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -9,7 +14,8 @@
     "test": "ng test",
     "unpublish:snapshot": "cd dist/dev-shell && npm unpublish --force",
     "publish:snapshot": "cd dist/dev-shell && npm publish --tag snapshot",
-    "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version"
+    "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version",
+    "publish:release": "cd dist/dev-shell && npm publish --access public"
   },
   "dependencies": {
     "@angular/animations": "^17.2.0",
