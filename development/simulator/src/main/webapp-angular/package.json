@@ -10,12 +10,13 @@
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
     "test": "ng test",
-    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
+    "publish:release": "echo 'no publish for webapps'"
   },
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.0.4-SNAPSHOT <0.0.5",
-    "@vanillabp/bc-dev-shell-angular": ">=0.0.4-SNAPSHOT <0.0.5",
+    "@vanillabp/bc-shared": ">=0.0.5-SNAPSHOT <0.0.6",
+    "@vanillabp/bc-dev-shell-angular": ">=0.0.5-SNAPSHOT <0.0.6",
     "@angular/animations": "^17.2.0",
     "@angular/common": "^17.2.0",
     "@angular/compiler": "^17.2.0",

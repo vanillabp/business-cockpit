@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>simulator</artifactId>
@@ -60,6 +60,18 @@
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
         <executions>
+          <execution>
+            <id>update-dependent-packages-angular</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <workingDirectory>${project.basedir}/src/main/webapp-angular</workingDirectory>
+              <skip>${skip.npm.update}</skip>
+              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --force</arguments>
+            </configuration>
+          </execution>
           <execution>
             <id>link-dependent-packages-angular</id>
             <phase>generate-resources</phase>
@@ -162,4 +174,20 @@
       <scope>compile</scope><!-- use embedded Kafka meant to be used for tests -->
     </dependency>
   </dependencies>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
 </project>

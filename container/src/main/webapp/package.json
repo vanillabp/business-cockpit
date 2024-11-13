@@ -1,10 +1,10 @@
 {
   "name": "vanillabp-business-cockpit",
-  "version": "0.0.4-SNAPSHOT",
+  "version": "0.0.5-SNAPSHOT",
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.0.4-SNAPSHOT <0.0.5",
-    "@vanillabp/bc-ui": ">=0.0.4-SNAPSHOT <0.0.5",
+    "@vanillabp/bc-shared": ">=0.0.5-SNAPSHOT <0.0.6",
+    "@vanillabp/bc-ui": ">=0.0.5-SNAPSHOT <0.0.6",
     "@fontsource/roboto": "4.5.8",
     "grommet": "2.33.2",
     "grommet-icons": "4.10.0",
@@ -49,7 +49,8 @@
     "analyze": "cross-env source-map-explorer ../../../target/classes/static/static/js/*.js",
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
-    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version"
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
+    "publish:release": "echo 'no publish for webapps'"
   },
   "eslintConfig": {
     "extends": [
