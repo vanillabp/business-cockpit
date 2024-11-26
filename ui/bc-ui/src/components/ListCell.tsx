@@ -8,6 +8,8 @@ import {
   WarningListCell,
 } from '@vanillabp/bc-shared';
 import { FC, memo, Suspense } from "react";
+import { Box } from "grommet";
+import styled, { keyframes } from "styled-components";
 
 export enum TypeOfItem {
   TaskList,
@@ -40,6 +42,20 @@ interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
   selectItem: (item: ListItem<T>, select: boolean) => void;
 }
 
+const AnimatedLoadingIndicatorKeyframes = keyframes`
+  0% { background-position: -250px 0; }
+  100% { background-position: 250px 0; }
+`;
+
+const AnimatedLoadingIndicator = styled(Box)`
+    border: 0.25rem solid white;
+    background: linear-gradient(to right, #eee 20%, #ddd 50%, #eee 80%);
+    background-size: 500px 100%;
+    animation: ${AnimatedLoadingIndicatorKeyframes} 1s linear;
+    animation-iteration-count: infinite;
+    animation-fill-mode: forwards;
+`;
+
 const ListCell = <T extends ListItemData & ModuleDefinition, >({
   modulesAvailable,
   column,
@@ -53,13 +69,10 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   selectItem,
 }: ListCellParameters<T>) => {
   const { isPhone, isTablet } = useResponsiveScreen();
-
   const module = modulesAvailable.find((module => item.data.workflowModuleId === module.workflowModuleId));
   if ((module === undefined)
       && !isVanillaBpColumn(column)) {
-    return <WarningListCell
-        error={ true }
-        message={ t('module-unknown') } />;
+    return <AnimatedLoadingIndicator fill />;
   }
   
   if (module?.retry
@@ -108,7 +121,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
         message={ t('typeofitem_unsupported') } />;
   }
   return (
-      <Suspense /* catch any uncaught suspensions */>
+      <Suspense /* catch any uncaught suspensions */ fallback={ <AnimatedLoadingIndicator fill /> }>
         <Cell
             t={ t }
             item={ item }
@@ -124,4 +137,4 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   
 }
 
-export { ListCell };
+export { ListCell, AnimatedLoadingIndicator };
