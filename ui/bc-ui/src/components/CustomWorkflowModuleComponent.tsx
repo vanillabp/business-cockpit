@@ -15,6 +15,7 @@ const CustomWorkflowModuleComponent = ({
   workflowModule,
   useCase,
   t,
+  showRetryButtonOnError = true,
   entryPoint = '/remoteEntry.js'
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
@@ -22,6 +23,7 @@ const CustomWorkflowModuleComponent = ({
   workflowModule: WorkflowModule,
   useCase: string,
   t: TranslationFunction,
+  showRetryButtonOnError?: boolean,
   entryPoint?: string,
 }) => {
   const module = useMemo<ModuleDefinition>(() => ({
@@ -35,21 +37,23 @@ const CustomWorkflowModuleComponent = ({
 
   if (federatedModule?.retry) {
     console.error("Could not load module!");
-    return (
-        <NoElementGivenByModule
+    return (showRetryButtonOnError
+        ? <NoElementGivenByModule
             t={ t }
             loading={ false }
             showLoadingIndicator={ showLoadingIndicator }
-            retry={ federatedModule.retry } />);
+            retry={ federatedModule.retry } />
+        : undefined);
   }
 
   const Component = (federatedModule && federatedModule[useCase]) as WorkflowModuleComponent;
   if (!Component) {
-    return (
-        <NoElementGivenByModule
+    return (showRetryButtonOnError
+        ? <NoElementGivenByModule
             t={ t }
             loading={ true }
-            showLoadingIndicator={ showLoadingIndicator } />);
+            showLoadingIndicator={ showLoadingIndicator } />
+        : undefined);
   }
 
   return (
