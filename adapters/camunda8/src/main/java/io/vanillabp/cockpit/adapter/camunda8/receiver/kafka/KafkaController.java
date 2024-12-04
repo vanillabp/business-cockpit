@@ -15,12 +15,12 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-
-import java.util.Set;
 
 import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -45,7 +45,7 @@ public class KafkaController {
 
     @KafkaListener(topics = "${" + KafkaConfiguration.ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY + "}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX,
+            groupId = KAFKA_CONSUMER_PREFIX + "-${" + VanillaBpProperties.PREFIX + ".cockpit.kafka.group-id-suffix:local}",
             containerFactory = "zeebeKafkaListenerContainerFactory")
     public void consumeUserTaskEvent(ConsumerRecord<RecordId, Record<?>> record) {
         Record<?> value = record.value();
@@ -53,15 +53,24 @@ public class KafkaController {
 
         if(valueType.equals(ValueType.PROCESS_INSTANCE_CREATION)) {
             handleProcessInstanceCreationRecord(value);
+            return;
         }
 
         if(valueType.equals(ValueType.PROCESS_INSTANCE)) {
             handleProcessInstanceRecord(value);
+            return;
         }
 
         if(valueType.equals(ValueType.JOB)) {
             handleJobRecord(value);
+            return;
         }
+
+        logger.trace("Ignoring unsupported Zeebe event '{}' ('{}'): {}",
+                value.getKey(),
+                valueType,
+                value.getValue());
+
     }
 
 

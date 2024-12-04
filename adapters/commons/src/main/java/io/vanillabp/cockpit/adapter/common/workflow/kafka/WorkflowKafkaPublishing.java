@@ -8,9 +8,8 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
-import org.springframework.kafka.core.KafkaTemplate;
-
 import java.util.function.Consumer;
+import org.springframework.kafka.core.KafkaTemplate;
 
 public class WorkflowKafkaPublishing extends WorkflowPublishingBase implements io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing {
 
@@ -79,7 +78,7 @@ public class WorkflowKafkaPublishing extends WorkflowPublishingBase implements i
         eventSupplier.accept(event);
 
         kafkaTemplate.send(
-                properties.getCockpit().getKafka().getWorkflowTopic(),
+                properties.getCockpit().getKafka().getTopics().getWorkflow(),
                 workflowId,
                 event.build().toByteArray());
 

@@ -25,6 +25,15 @@ import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.modules.WorkflowModuleProperties;
 import io.vanillabp.springboot.modules.WorkflowModulePropertiesConfiguration;
+import jakarta.annotation.PostConstruct;
+import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import no.api.freemarker.java8.Java8ObjectWrapper;
 import org.springframework.beans.factory.InjectionPoint;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,15 +51,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.lang.reflect.ParameterizedType;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
 @AutoConfigureAfter(value = {WorkflowModulePropertiesConfiguration.class, CockpitCommonAdapterKafkaConfiguration.class})
 @EnableConfigurationProperties({ VanillaBpCockpitProperties.class })
@@ -64,7 +64,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     private String workerId;
     
     @Autowired
-    private List<WorkflowModuleProperties> workflowModulesProperties;
+    private Optional<List<WorkflowModuleProperties>> workflowModulesProperties;
     
     @Autowired(required = false)
     private VanillaBpProperties vanillaBpProperties;
@@ -76,6 +76,18 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     
     @Autowired
     private List<AdapterConfigurationBase<?>> adapterConfigurations;
+
+    @PostConstruct
+    public void validateConfiguration() {
+
+        if (workflowModulesProperties.isEmpty()
+                || workflowModulesProperties.get().isEmpty()) {
+            throw new RuntimeException(
+                    "For VanillaBP Business Cockpit adapter defining a workflow-module is mandatory! "
+                    + "See https://github.com/vanillabp/spring-boot-support#workflow-modules.");
+        }
+
+    }
 
     @Bean
     @ConditionalOnMissingBean
