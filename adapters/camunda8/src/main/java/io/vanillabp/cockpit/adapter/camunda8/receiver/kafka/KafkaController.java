@@ -15,12 +15,11 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
-
-import java.util.Set;
 
 import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -53,15 +52,23 @@ public class KafkaController {
 
         if(valueType.equals(ValueType.PROCESS_INSTANCE_CREATION)) {
             handleProcessInstanceCreationRecord(value);
+            return;
         }
 
         if(valueType.equals(ValueType.PROCESS_INSTANCE)) {
             handleProcessInstanceRecord(value);
+            return;
         }
 
         if(valueType.equals(ValueType.JOB)) {
             handleJobRecord(value);
+            return;
         }
+
+        logger.debug("Ignoring unsupported Zeebe event '{}': {}",
+                valueType,
+                value.toJson());
+
     }
 
 

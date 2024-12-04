@@ -3,13 +3,12 @@ package io.vanillabp.cockpit.adapter.camunda8.usertask;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public class Camunda8UserTaskEventHandler{
@@ -68,11 +67,7 @@ public class Camunda8UserTaskEventHandler{
                 .ifPresentOrElse(
                         camunda8UserTaskHandlerConsumer,
                         () -> logger.debug(
-                                "Unmapped event '{}'! "
-                                + "If you need to process this event add a parameter "
-                                + "'@TaskEvent Event event' to the method annotated by "
-                                + "'@UserTaskDetailsProvider(taskDefinition = \"{}\") in any class "
-                                + "annotated by '@WorkflowService(bpmnProcess = @BpmnProcess(bpmnProcessId = \"{}\"))'.",
+                                "Ignoring usertask event '{}' (task-definition: '{}') of foreign workflow: '{}'",
                                 elementId,
                                 taskDefinition,
                                 bpmnProcessId));

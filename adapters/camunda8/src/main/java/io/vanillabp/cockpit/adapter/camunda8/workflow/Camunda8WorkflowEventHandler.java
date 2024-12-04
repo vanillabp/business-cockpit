@@ -5,6 +5,10 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLif
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.ProcessWorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -12,11 +16,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 
 @Transactional
 public class Camunda8WorkflowEventHandler {
@@ -42,6 +41,13 @@ public class Camunda8WorkflowEventHandler {
     public void processWorkflowCreatedEvent(Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(workflowCreatedEvent.getBpmnProcessId());
+        if (camunda8WorkflowHandler == null) {
+            logger.debug("Ignoring workflow created event of foreign workflow: '{}' (version: '{}', key: '{}')",
+                    workflowCreatedEvent.getBpmnProcessId(),
+                    workflowCreatedEvent.getVersion(),
+                    workflowCreatedEvent.getProcessInstanceKey());
+            return;
+        }
 
         io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
                 camunda8WorkflowHandler.processCreatedEvent(workflowCreatedEvent);
@@ -53,6 +59,13 @@ public class Camunda8WorkflowEventHandler {
     public void processWorkflowLifecycleEvent(Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(camunda8WorkflowLifeCycleEvent.getBpmnProcessId());
+        if (camunda8WorkflowHandler == null) {
+            logger.debug("Ignoring workflow lifecycle event of foreign workflow: '{}' (version: '{}', key: '{}')",
+                    camunda8WorkflowLifeCycleEvent.getBpmnProcessId(),
+                    camunda8WorkflowLifeCycleEvent.getBpmnProcessVersion(),
+                    camunda8WorkflowLifeCycleEvent.getProcessInstanceKey());
+            return;
+        }
 
         io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
                 camunda8WorkflowHandler.processLifeCycleEvent(camunda8WorkflowLifeCycleEvent);
@@ -63,11 +76,11 @@ public class Camunda8WorkflowEventHandler {
     public void processWorkflowUpdateEvent(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(camunda8WorkflowCreatedEvent.getBpmnProcessId());
-
-        if(camunda8WorkflowHandler == null){
-            logger.warn(
-                    "Received update event, but no workflow handler is registered for bpmn process id {}.",
-                    camunda8WorkflowCreatedEvent.getBpmnProcessId());
+        if (camunda8WorkflowHandler == null) {
+            logger.debug("Ignoring workflow update event of foreign workflow: '{}' (version: '{}', key: '{}')",
+                    camunda8WorkflowCreatedEvent.getBpmnProcessId(),
+                    camunda8WorkflowCreatedEvent.getVersion(),
+                    camunda8WorkflowCreatedEvent.getProcessInstanceKey());
             return;
         }
 
