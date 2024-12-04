@@ -16,6 +16,8 @@ import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishi
 import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleKafkaPublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleProtobufMapper;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import java.util.Map;
+import java.util.TimeZone;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -33,15 +35,12 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 
-import java.util.Map;
-import java.util.TimeZone;
-
 @AutoConfiguration
 @AutoConfigureBefore(KafkaAutoConfiguration.class)
 @ConditionalOnClass(KafkaTemplate.class)
 @ConditionalOnProperty(
-        prefix = VanillaBpProperties.PREFIX + ".cockpit.kafka",
-        name = {"user-task-topic", "workflow-topic", "workflow-module-topic"})
+        prefix = VanillaBpProperties.PREFIX + ".cockpit.kafka.topics",
+        name = {"user-task", "workflow", "workflow-module"})
 public class CockpitCommonAdapterKafkaConfiguration {
 
     @Value("${workerId}")

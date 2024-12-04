@@ -7,6 +7,7 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.util.StringUtils;
 
 
 @AutoConfiguration
@@ -54,7 +56,18 @@ public class KafkaConfiguration {
     public KafkaController kafkaController(
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
-            Camunda8AdapterConfiguration camunda8AdapterConfiguration) {
+            Camunda8AdapterConfiguration camunda8AdapterConfiguration,
+            VanillaBpCockpitProperties cockpitProperties) {
+
+        if ((cockpitProperties.getCockpit() == null)
+                || (cockpitProperties.getCockpit().getKafka() == null)
+                || !StringUtils.hasText(cockpitProperties.getCockpit().getKafka().getGroupIdSuffix())) {
+            throw new RuntimeException(
+                    "The property 'vanillabp.cockpit.kafka.group-id-suffix' is mandatory and has to identity "
+                    + "the application. It is recommended to use '${spring.application.name}'! \n"
+                    + "Hint: Do not mixup with workerId (see https://github.com/vanillabp/spring-boot-support#worker-id) "
+                    + "which needs to be set, too." );
+        }
 
         return new KafkaController(
                 camunda8UserTaskEventHandler,

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.bpms.kafka;
 
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
@@ -22,9 +23,9 @@ public class KafkaWorkflowModuleController {
         this.workflowModuleService = workflowModuleService;
     }
 
-    @KafkaListener(topics = "${bpms-api.kafka-topics.workflow-module}",
+    @KafkaListener(topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow-module}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX)
+            groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
     public void consumeWorkflowModuleEvent(ConsumerRecord<String, byte[]> record) {
         try {
             final var event = BcEvent.parseFrom(record.value());
