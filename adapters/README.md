@@ -39,9 +39,11 @@ If you want to propagate events via a Kafka broker instead, your workflow applic
 ```
 vanillabp:  
   cockpit:  
-    kafka-topics:  
-      user-task: <user task topic name>  
-      workflow: <workflow topic name>
+    kafka_
+      topics:  
+        user-task: <user task topic name>  
+        workflow: <workflow topic name>
+        workflow-module: <workflow module topic name>
 ```
 
 All other connection properties for Kafka can be set as in the standard Spring Boot autoconfiguration (see [here](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.integration))
@@ -56,5 +58,11 @@ Additionally, optional Maven dependencies have to be added:
 <dependency>
     <groupId>org.springframework.kafka</groupId>
     <artifactId>spring-kafka</artifactId>
+</dependency>
+<!-- required for Camunda 8 -->
+<dependency>
+    <groupId>at.phactum.zeebe</groupId>
+    <artifactId>zeebe-kafka-exporter-serde</artifactId>
+    <version>8.5.0</version>
 </dependency>
 ```

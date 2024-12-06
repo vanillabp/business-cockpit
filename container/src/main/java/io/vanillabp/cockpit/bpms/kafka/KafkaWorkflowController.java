@@ -1,17 +1,17 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import java.time.OffsetDateTime;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -29,9 +29,9 @@ public class KafkaWorkflowController {
         this.workflowMapper = workflowMapper;
     }
 
-    @KafkaListener(topics = "${bpms-api.kafka-topics.workflow}",
+    @KafkaListener(topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX)
+            groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
     public void consumeWorkflowEvent(ConsumerRecord<String, byte[]> record) {
         try {
             final var event = BcEvent.parseFrom(record.value());

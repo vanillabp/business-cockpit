@@ -6,9 +6,8 @@ import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishi
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.WorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
-import org.springframework.kafka.core.KafkaTemplate;
-
 import java.util.function.Consumer;
+import org.springframework.kafka.core.KafkaTemplate;
 
 public class WorkflowModuleKafkaPublishing extends WorkflowModulePublishingBase implements WorkflowModulePublishing {
 
@@ -59,7 +58,7 @@ public class WorkflowModuleKafkaPublishing extends WorkflowModulePublishingBase 
         eventSupplier.accept(event);
 
         kafkaTemplate.send(
-                properties.getCockpit().getKafka().getWorkflowModuleTopic(),
+                properties.getCockpit().getKafka().getTopics().getWorkflowModule(),
                 workflowModuleId,
                 event.build().toByteArray());
 

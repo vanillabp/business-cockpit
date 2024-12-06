@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.properties;
 
+import io.vanillabp.cockpit.commons.kafka.KafkaProperties;
 import io.vanillabp.cockpit.commons.rest.adapter.Client;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 
@@ -63,40 +64,6 @@ public class CockpitProperties {
 
     public void setJwt(JwtProperties jwt) {
         this.jwt = jwt;
-    }
-
-    public static class KafkaProperties {
-
-        private String userTaskTopic;
-
-        private String workflowTopic;
-
-        private String workflowModuleTopic;
-
-        public String getUserTaskTopic() {
-            return userTaskTopic;
-        }
-
-        public void setUserTaskTopic(String userTaskTopic) {
-            this.userTaskTopic = userTaskTopic;
-        }
-
-        public String getWorkflowTopic() {
-            return workflowTopic;
-        }
-
-        public void setWorkflowTopic(String workflowTopic) {
-            this.workflowTopic = workflowTopic;
-        }
-
-        public String getWorkflowModuleTopic() {
-            return workflowModuleTopic;
-        }
-
-        public void setWorkflowModuleTopic(String workflowModuleTopic) {
-            this.workflowModuleTopic = workflowModuleTopic;
-        }
-
     }
 
 }

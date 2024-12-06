@@ -4,6 +4,7 @@ import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
+import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -13,12 +14,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-
-import java.util.Map;
+import org.springframework.util.StringUtils;
 
 @AutoConfiguration
 @ConditionalOnProperty(
-        prefix = BpmsApiProperties.PREFIX + ".kafka-topics",
+        prefix = BpmsApiProperties.PREFIX + ".kafka.topics",
         name = {"workflow", "user-task", "workflow-module"})
 public class KafkaConfiguration {
 
@@ -26,9 +26,21 @@ public class KafkaConfiguration {
 
     @Bean
     public DefaultKafkaConsumerFactory<?, ?> kafkaConsumerFactory(
-            KafkaProperties properties) {
+            KafkaProperties kafkaProperties,
+            BpmsApiProperties bpmsApiProperties) {
 
-        Map<String, Object> configs = properties.buildConsumerProperties();
+        if ((bpmsApiProperties.getKafka() == null)
+                || !StringUtils.hasText(bpmsApiProperties.getKafka().getGroupIdSuffix())) {
+            throw new RuntimeException(
+                    "The property '"
+                            + BpmsApiProperties.PREFIX
+                            + ".kafka.group-id-suffix' is mandatory and has to identity "
+                            + "the application. It is recommended to use '${spring.application.name}'! \n"
+                            + "Hint: Do not mixup with workerId (see https://github.com/vanillabp/spring-boot-support#worker-id) "
+                            + "which needs to be set, too." );
+        }
+
+        Map<String, Object> configs = kafkaProperties.buildConsumerProperties();
         configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
 

@@ -15,6 +15,7 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class KafkaController {
 
     @KafkaListener(topics = "${" + KafkaConfiguration.ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY + "}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
-            groupId = KAFKA_CONSUMER_PREFIX,
+            groupId = KAFKA_CONSUMER_PREFIX + "-${" + VanillaBpProperties.PREFIX + ".cockpit.kafka.group-id-suffix:local}",
             containerFactory = "zeebeKafkaListenerContainerFactory")
     public void consumeUserTaskEvent(ConsumerRecord<RecordId, Record<?>> record) {
         Record<?> value = record.value();
@@ -65,9 +66,10 @@ public class KafkaController {
             return;
         }
 
-        logger.debug("Ignoring unsupported Zeebe event '{}': {}",
+        logger.trace("Ignoring unsupported Zeebe event '{}' ('{}'): {}",
+                value.getKey(),
                 valueType,
-                value.toJson());
+                value.getValue());
 
     }
 

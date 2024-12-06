@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.bpms;
 
-import io.vanillabp.cockpit.commons.kafka.KafkaTopicProperties;
+import io.vanillabp.cockpit.commons.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = BpmsApiProperties.PREFIX, ignoreUnknownFields = false)
@@ -8,7 +8,7 @@ public class BpmsApiProperties {
 
 	public static final String PREFIX = "bpms-api";
 
-	private KafkaTopicProperties kafkaTopics = new KafkaTopicProperties();
+	private KafkaProperties kafka = new KafkaProperties();
 
 	private String realmName;
 	
@@ -40,12 +40,12 @@ public class BpmsApiProperties {
 		this.password = password;
 	}
 
-	public KafkaTopicProperties getKafkaTopics() {
-		return kafkaTopics;
+	public KafkaProperties getKafka() {
+		return kafka;
 	}
 
-	public void setKafkaTopics(KafkaTopicProperties kafkaTopics) {
-		this.kafkaTopics = kafkaTopics;
+	public void setKafka(KafkaProperties kafka) {
+		this.kafka = kafka;
 	}
 
 }

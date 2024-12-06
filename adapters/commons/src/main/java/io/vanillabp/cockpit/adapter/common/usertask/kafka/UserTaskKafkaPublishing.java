@@ -11,9 +11,8 @@ import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
-import org.springframework.kafka.core.KafkaTemplate;
-
 import java.util.function.Consumer;
+import org.springframework.kafka.core.KafkaTemplate;
 
 public class UserTaskKafkaPublishing extends UserTaskPublishingBase implements UserTaskPublishing {
 
@@ -97,7 +96,7 @@ public class UserTaskKafkaPublishing extends UserTaskPublishingBase implements U
         eventSupplier.accept(event);
 
         kafkaTemplate.send(
-                properties.getCockpit().getKafka().getUserTaskTopic(),
+                properties.getCockpit().getKafka().getTopics().getUserTask(),
                 userTaskId,
                 event.build().toByteArray());
 
