@@ -15,6 +15,8 @@ public class Camunda8WorkflowLifeCycleEvent {
     private String bpmnProcessVersion;
     private Intent intent;
 
+    private String tenantId;
+
     public long getKey() {
         return key;
     }
@@ -70,4 +72,13 @@ public class Camunda8WorkflowLifeCycleEvent {
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         this.bpmnProcessVersion = bpmnProcessVersion;
     }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
 }

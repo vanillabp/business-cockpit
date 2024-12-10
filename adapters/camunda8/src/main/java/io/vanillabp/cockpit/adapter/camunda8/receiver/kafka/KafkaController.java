@@ -66,11 +66,6 @@ public class KafkaController {
             return;
         }
 
-        logger.trace("Ignoring unsupported Zeebe event '{}' ('{}'): {}",
-                value.getKey(),
-                valueType,
-                value.getValue());
-
     }
 
 
@@ -122,9 +117,8 @@ public class KafkaController {
                     UserTaskEventZeebeRecordMapper.mapToUserTaskLifecycleInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskLifecycleEvent, value);
             camunda8UserTaskEventHandler.notify(camunda8UserTaskLifecycleEvent);
-        } else {
-            logger.info("Ignored a zeebe job event for a user task with intent={} ", intentName);
         }
+
     }
 
 }
