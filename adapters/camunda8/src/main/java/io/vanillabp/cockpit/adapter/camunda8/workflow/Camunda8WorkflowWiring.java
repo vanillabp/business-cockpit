@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
@@ -16,9 +17,6 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.ConnectBean;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.springframework.context.ApplicationContext;
-import org.springframework.data.repository.CrudRepository;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -28,6 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.repository.CrudRepository;
 
 public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserTaskConnectable, WorkflowMethodParameterFactory, Camunda8BusinessCockpitService<?>> {
 
@@ -43,10 +43,12 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final ProcessInstanceRepository processInstanceRepository;
 
+    private final Camunda8VanillaBpProperties camunda8Properties;
 
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final VanillaBpCockpitProperties properties,
+            final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
             final WorkflowMethodParameterFactory methodParameterFactory,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -62,6 +64,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
         this.processInstanceRepository = processInstanceRepository;
+        this.camunda8Properties = camunda8Properties;
     }
 
     public Camunda8BusinessCockpitService<?> wireService(
@@ -235,7 +238,9 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 bean,
                 method,
                 parameters);
-        workflowEventListener.addWorkflowHandler(bpmnProcessId, workflowHandler);
+
+        final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
+        workflowEventListener.addWorkflowHandler(tenantId, bpmnProcessId, workflowHandler);
     }
 
     @Override

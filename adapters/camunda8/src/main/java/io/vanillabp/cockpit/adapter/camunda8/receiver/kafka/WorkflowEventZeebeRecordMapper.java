@@ -5,7 +5,6 @@ import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
-
 import java.util.Map;
 import java.util.Set;
 
@@ -62,7 +61,9 @@ public class WorkflowEventZeebeRecordMapper {
         workflowLifeCycleEvent.setBpmnProcessId(
                 processInstanceRecord.getBpmnProcessId());
         workflowLifeCycleEvent.setBpmnProcessVersion(
-                workflowLifeCycleEvent.getBpmnProcessVersion());
+                Integer.toString(processInstanceRecord.getVersion()));
+        workflowLifeCycleEvent.setTenantId(
+                processInstanceRecord.getTenantId());
         return workflowLifeCycleEvent;
     }
 

@@ -24,27 +24,28 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
-import org.springframework.boot.autoconfigure.AutoConfigureAfter;
-import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.data.repository.CrudRepository;
-
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.repository.CrudRepository;
 
 
 @AutoConfigurationPackage(basePackageClasses = Camunda8AdapterConfiguration.class)
+@EnableConfigurationProperties(Camunda8VanillaBpProperties.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
 @AutoConfigureBefore(CamundaAutoConfiguration.class)
 public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camunda8BusinessCockpitService<?>> {
@@ -119,6 +120,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8WorkflowWiring camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final VanillaBpCockpitProperties cockpitProperties,
+            final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
@@ -129,6 +131,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 cockpitProperties,
+                camunda8Properties,
                 springBeanUtil,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
@@ -152,14 +155,16 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
     @Bean
     public Camunda8DeploymentAdapter camunda8BusinessCockpitDeploymentAdapter(
-            VanillaBpProperties properties,
-            @Qualifier("camunda8BusinessCockpitDeploymentService") DeploymentService deploymentService,
-            Camunda8UserTaskWiring camunda8UserTaskWiring,
-            Camunda8WorkflowWiring camunda8WorkflowWiring){
+            final VanillaBpProperties properties,
+            final Camunda8VanillaBpProperties camunda8Properties,
+            final @Qualifier("camunda8BusinessCockpitDeploymentService") DeploymentService deploymentService,
+            final Camunda8UserTaskWiring camunda8UserTaskWiring,
+            final Camunda8WorkflowWiring camunda8WorkflowWiring){
 
         return new Camunda8DeploymentAdapter(
                 applicationName,
                 properties,
+                camunda8Properties,
                 deploymentService,
                 camunda8UserTaskWiring,
                 camunda8WorkflowWiring);

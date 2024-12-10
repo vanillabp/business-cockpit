@@ -7,6 +7,7 @@ public class Camunda8UserTaskCreatedEvent {
     private long key;
     private long timestamp;
     private String bpmnProcessId;
+    private String tenantId;
     private int workflowDefinitionVersion;
     private long processDefinitionKey;
     private long processInstanceKey;
@@ -139,5 +140,13 @@ public class Camunda8UserTaskCreatedEvent {
 
     public void setFollowUpDate(OffsetDateTime followUpDate) {
         this.followUpDate = followUpDate;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }

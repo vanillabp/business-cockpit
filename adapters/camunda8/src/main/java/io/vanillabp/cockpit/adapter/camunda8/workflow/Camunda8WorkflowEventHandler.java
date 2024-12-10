@@ -6,9 +6,11 @@ import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.ProcessWorkflow
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,6 +26,7 @@ public class Camunda8WorkflowEventHandler {
     private final static ThreadLocal<List<WorkflowEvent>> events = ThreadLocal.withInitial(LinkedList::new);
 
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final Set<String> knownTenantIds = new HashSet<>();
     private final Map<String, Camunda8WorkflowHandler> camunda8WorkflowHandlerMap = new HashMap<>();
     private final WorkflowPublishing workflowPublishing;
 
@@ -33,19 +36,41 @@ public class Camunda8WorkflowEventHandler {
         this.workflowPublishing = workflowPublishing;
     }
 
+    private String getHandlerMapKey(String tenantId, String bpmnProcessId) {
+        return mapTenantId(tenantId) + "#" + bpmnProcessId;
+    }
 
-    public void addWorkflowHandler(String bpmnProcessId, Camunda8WorkflowHandler workflowHandler) {
-        this.camunda8WorkflowHandlerMap.put(bpmnProcessId, workflowHandler);
+    private String getHandlerMapKey(Camunda8WorkflowCreatedEvent event) {
+        return getHandlerMapKey(event.getTenantId(), event.getBpmnProcessId());
+    }
+
+    private String getHandlerMapKey(Camunda8WorkflowLifeCycleEvent event) {
+        return getHandlerMapKey(event.getTenantId(), event.getBpmnProcessId());
+    }
+
+    private String mapTenantId(String tenantId) {
+        return tenantId == null ? "default" : tenantId;
+    }
+
+    private boolean isTenantKnown(String tenantId) {
+        return this.knownTenantIds.contains(mapTenantId(tenantId));
+    }
+
+    public void addWorkflowHandler(String tenantId, String bpmnProcessId, Camunda8WorkflowHandler workflowHandler) {
+        this.knownTenantIds.add(mapTenantId(tenantId));
+        this.camunda8WorkflowHandlerMap.put(getHandlerMapKey(tenantId, bpmnProcessId), workflowHandler);
     }
 
     public void processWorkflowCreatedEvent(Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
-                camunda8WorkflowHandlerMap.get(workflowCreatedEvent.getBpmnProcessId());
+                camunda8WorkflowHandlerMap.get(getHandlerMapKey(workflowCreatedEvent));
         if (camunda8WorkflowHandler == null) {
-            logger.debug("Ignoring workflow created event of foreign workflow: '{}' (version: '{}', key: '{}')",
-                    workflowCreatedEvent.getBpmnProcessId(),
-                    workflowCreatedEvent.getVersion(),
-                    workflowCreatedEvent.getProcessInstanceKey());
+            if (isTenantKnown(workflowCreatedEvent.getTenantId())) {
+                logger.debug("Ignoring workflow created event of foreign workflow: '{}' (version: '{}', key: '{}')",
+                        workflowCreatedEvent.getBpmnProcessId(),
+                        workflowCreatedEvent.getVersion(),
+                        workflowCreatedEvent.getProcessInstanceKey());
+            }
             return;
         }
 
@@ -58,12 +83,16 @@ public class Camunda8WorkflowEventHandler {
 
     public void processWorkflowLifecycleEvent(Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
-                camunda8WorkflowHandlerMap.get(camunda8WorkflowLifeCycleEvent.getBpmnProcessId());
+                camunda8WorkflowHandlerMap.get(getHandlerMapKey(camunda8WorkflowLifeCycleEvent));
         if (camunda8WorkflowHandler == null) {
-            logger.debug("Ignoring workflow lifecycle event of foreign workflow: '{}' (version: '{}', key: '{}')",
-                    camunda8WorkflowLifeCycleEvent.getBpmnProcessId(),
-                    camunda8WorkflowLifeCycleEvent.getBpmnProcessVersion(),
-                    camunda8WorkflowLifeCycleEvent.getProcessInstanceKey());
+            if (isTenantKnown(camunda8WorkflowLifeCycleEvent.getTenantId())) {
+                logger.debug("No handler found for workflow lifecycle event '{}' of workflow '{}' (version: '{}', key: '{}') and tenant '{}'!",
+                        camunda8WorkflowLifeCycleEvent.getIntent().name(),
+                        camunda8WorkflowLifeCycleEvent.getBpmnProcessId(),
+                        camunda8WorkflowLifeCycleEvent.getBpmnProcessVersion(),
+                        camunda8WorkflowLifeCycleEvent.getProcessInstanceKey(),
+                        camunda8WorkflowLifeCycleEvent.getTenantId());
+            }
             return;
         }
 
@@ -75,12 +104,13 @@ public class Camunda8WorkflowEventHandler {
 
     public void processWorkflowUpdateEvent(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
-                camunda8WorkflowHandlerMap.get(camunda8WorkflowCreatedEvent.getBpmnProcessId());
-        if (camunda8WorkflowHandler == null) {
-            logger.debug("Ignoring workflow update event of foreign workflow: '{}' (version: '{}', key: '{}')",
+                camunda8WorkflowHandlerMap.get(getHandlerMapKey(camunda8WorkflowCreatedEvent));
+        if ((camunda8WorkflowHandler == null) && isTenantKnown(camunda8WorkflowCreatedEvent.getTenantId())) {
+            logger.debug("No handler found for workflow update event of workflow: '{}' (version: '{}', key: '{}') and tenant '{}'!",
                     camunda8WorkflowCreatedEvent.getBpmnProcessId(),
                     camunda8WorkflowCreatedEvent.getVersion(),
-                    camunda8WorkflowCreatedEvent.getProcessInstanceKey());
+                    camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
+                    camunda8WorkflowCreatedEvent.getTenantId());
             return;
         }
 

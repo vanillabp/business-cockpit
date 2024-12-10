@@ -12,19 +12,26 @@ public class Camunda8UserTaskConnectable implements Connectable {
 
     private final String title;
 
+    private final String tenantId;
     
     public Camunda8UserTaskConnectable(
+            final String tenantId,
             final Process process,
             final String elementId,
             final String taskDefinition,
             final String title) {
 
+        this.tenantId = tenantId;
         this.process = process;
         this.elementId = elementId;
         this.taskDefinition = taskDefinition;
         this.title = title;
     }
-    
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
     @Override
     public String getElementId() {
 

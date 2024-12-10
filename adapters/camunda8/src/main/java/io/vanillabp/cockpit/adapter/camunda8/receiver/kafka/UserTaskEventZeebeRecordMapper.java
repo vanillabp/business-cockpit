@@ -4,7 +4,6 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
-
 import java.util.Map;
 
 public class UserTaskEventZeebeRecordMapper {
@@ -12,9 +11,9 @@ public class UserTaskEventZeebeRecordMapper {
     public static Camunda8UserTaskCreatedEvent mapToUserTaskCreatedInformation(JobRecordValue jobRecord){
         Camunda8UserTaskCreatedEvent userTaskCreatedEvent = new Camunda8UserTaskCreatedEvent();
 
-
         userTaskCreatedEvent.setProcessDefinitionKey(jobRecord.getProcessDefinitionKey());
         userTaskCreatedEvent.setBpmnProcessId(jobRecord.getBpmnProcessId());
+        userTaskCreatedEvent.setTenantId(jobRecord.getTenantId());
         userTaskCreatedEvent.setElementId(jobRecord.getElementId());
 
         userTaskCreatedEvent.setProcessInstanceKey(jobRecord.getProcessInstanceKey());
@@ -39,6 +38,7 @@ public class UserTaskEventZeebeRecordMapper {
 
         userTaskLifecycleEvent.setProcessDefinitionKey(task.getProcessDefinitionKey());
         userTaskLifecycleEvent.setBpmnProcessId(task.getBpmnProcessId());
+        userTaskLifecycleEvent.setTenantId(task.getTenantId());
         userTaskLifecycleEvent.setElementId(task.getElementId());
 
         userTaskLifecycleEvent.setProcessInstanceKey(task.getProcessInstanceKey());

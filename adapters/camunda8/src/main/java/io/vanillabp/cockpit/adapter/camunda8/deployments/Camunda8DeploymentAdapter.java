@@ -10,6 +10,7 @@ import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeFormDefinition;
 import io.camunda.zeebe.spring.client.event.ZeebeClientCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
+import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
@@ -47,16 +48,20 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final String applicationName;
 
+    private final Camunda8VanillaBpProperties camunda8Properties;
+
     private ZeebeClient client;
 
     public Camunda8DeploymentAdapter(
             final String applicationName,
             final VanillaBpProperties properties,
+            final Camunda8VanillaBpProperties camunda8Properties,
             final DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring) {
 
         super(properties, applicationName);
+        this.camunda8Properties = camunda8Properties;
         this.deploymentService = deploymentService;
         this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
@@ -204,26 +209,30 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     private void wireUserTasks(String workflowModuleId, BpmnModelInstanceImpl model, List<Process> executableProcesses) {
         executableProcesses
                 .stream()
-                .flatMap(process -> getUserTaskConnectables(process, model))
+                .flatMap(process -> getUserTaskConnectables(workflowModuleId, process, model))
                 .forEach(connectable ->
                         camunda8UserTaskWiring.wireTask(workflowModuleId, connectable));
     }
 
 
     public Stream<Camunda8UserTaskConnectable> getUserTaskConnectables(
+            final String workflowModuleId,
             final Process process,
             final BpmnModelInstanceImpl model) {
 
+        final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
         return model
                 .getModelElementsByType(UserTask.class)
                 .stream()
                 .filter(element -> Objects.equals(getOwningProcess(element), process))
                 .map(element -> new Camunda8UserTaskConnectable(
+                        tenantId,
                         process,
                         element.getId(),
                         getFormKey(element),
                         getTaskName(element)))
                 .filter(Camunda8UserTaskConnectable::isExecutableProcess);
+
     }
 
 

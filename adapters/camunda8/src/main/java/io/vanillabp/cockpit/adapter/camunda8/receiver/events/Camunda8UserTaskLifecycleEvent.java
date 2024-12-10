@@ -17,6 +17,7 @@ public class Camunda8UserTaskLifecycleEvent {
     private String elementId;
     private long elementInstanceKey;
     private String bpmnProcessId;
+    private String tenantId;
     private int workflowDefinitionVersion;
     private long processInstanceKey;
     private long processDefinitionKey;
@@ -103,5 +104,13 @@ public class Camunda8UserTaskLifecycleEvent {
 
     public static List<String> getIntentValueNames() {
         return Arrays.stream(Intent.values()).map(Enum::name).toList();
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }
