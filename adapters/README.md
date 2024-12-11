@@ -39,7 +39,7 @@ If you want to propagate events via a Kafka broker instead, your workflow applic
 ```
 vanillabp:  
   cockpit:  
-    kafka_
+    kafka:
       topics:  
         user-task: <user task topic name>  
         workflow: <workflow topic name>

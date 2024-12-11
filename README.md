@@ -170,9 +170,3 @@ VanillaBP was developed by [Phactum](https://www.phactum.at) with the intention 
 Copyright 2022 Phactum Softwareentwicklung GmbH
 
 Licensed under the Apache License, Version 2.0
-
-## Changelog for 0.0.5
-
-To be extended on each new feature/breaking change added to 0.0.5-SNAPSHOT and used as a change-log in next Github-release:
-
-1. ...
