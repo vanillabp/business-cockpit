@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-ui",
-  "version": "0.0.5-SNAPSHOT",
+  "version": "0.0.6-SNAPSHOT",
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -16,8 +16,8 @@
     "package.json"
   ],
   "dependencies": {
-    "@vanillabp/bc-official-gui-client": ">=0.0.5-SNAPSHOT <0.0.6",
-    "@vanillabp/bc-shared": ">=0.0.5-SNAPSHOT <0.0.6"
+    "@vanillabp/bc-official-gui-client": ">=0.0.6-SNAPSHOT <0.0.7",
+    "@vanillabp/bc-shared": ">=0.0.6-SNAPSHOT <0.0.7"
   },
   "peerDependencies": {
     "@fontsource/roboto": "4.5.8",
