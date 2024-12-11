@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-react",
-  "version": "0.0.5",
+  "version": "0.0.6-SNAPSHOT",
   "repository": {
     "type": "git",
     "url": "https://github.com/vanillabp/business-cockpit.git"
@@ -16,8 +16,8 @@
     "package.json"
   ],
   "dependencies": {
-    "@vanillabp/bc-shared": "0.0.5",
-    "@vanillabp/bc-official-gui-client": "0.0.5",
+    "@vanillabp/bc-shared": ">=0.0.6-SNAPSHOT <0.0.7",
+    "@vanillabp/bc-official-gui-client": ">=0.0.6-SNAPSHOT <0.0.7",
     "@microsoft/fetch-event-source": "2.0.1",
     "react-cookie": "4.1.1",
     "usehooks-ts": "2.7.1"
