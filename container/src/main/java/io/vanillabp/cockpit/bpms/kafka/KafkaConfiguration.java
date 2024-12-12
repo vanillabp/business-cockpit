@@ -9,6 +9,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -22,12 +23,23 @@ import org.springframework.util.StringUtils;
         name = {"workflow", "user-task", "workflow-module"})
 public class KafkaConfiguration {
 
+    private static final String WORKER_ID_NOT_SET = "not-set";
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit";
+
+    @Value("${workerId:" + WORKER_ID_NOT_SET + "}")
+    private String workerId;
 
     @Bean
     public DefaultKafkaConsumerFactory<?, ?> kafkaConsumerFactory(
             KafkaProperties kafkaProperties,
             BpmsApiProperties bpmsApiProperties) {
+
+        if (workerId.equals(WORKER_ID_NOT_SET)) {
+            throw new RuntimeException(
+                    "Property 'workerId' not set (see https://github.com/vanillabp/spring-boot-support#worker-id)! "
+                    + "It is required for proper consuming of Kafka events. "
+                    + "For local development use start parameter '-DworkerId=local'.");
+        }
 
         if ((bpmsApiProperties.getKafka() == null)
                 || !StringUtils.hasText(bpmsApiProperties.getKafka().getGroupIdSuffix())) {
