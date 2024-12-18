@@ -13,7 +13,6 @@ import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEven
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskLifecycleEvent;
-import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
@@ -21,7 +20,6 @@ import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -139,8 +137,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                         + "#"
                         + camunda8UserTaskLifecycleEvent.getElementId());
 
-        userTaskLifecycleEvent.setTimestamp(
-                DateTimeUtil.fromMilliseconds(camunda8UserTaskLifecycleEvent.getTimestamp()));
+        userTaskLifecycleEvent.setTimestamp(camunda8UserTaskLifecycleEvent.getTimestamp());
 
         userTaskLifecycleEvent.setUserTaskId(
                 String.valueOf(camunda8UserTaskLifecycleEvent.getKey()));
@@ -199,7 +196,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             );
         }
 
-        filluserTaskDetailsByCustomDetails(
+        fillUserTaskDetailsByCustomDetails(
                 camunda8UserTaskCreatedEvent,
                 userTaskCreatedEvent,
                 prefilledUserTaskDetails);
@@ -209,7 +206,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
 
     private void prefillCreatedEvent(UserTaskCreatedEvent userTaskCreatedEvent,
-                                     Camunda8UserTaskCreatedEvent jobRecord,
+                                     Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent,
                                      String businessKey
         ) {
 
@@ -217,31 +214,30 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         userTaskCreatedEvent.setEventId(
                 System.nanoTime() +
                         "@" +
-                        jobRecord.getProcessInstanceKey());
+                        camunda8UserTaskCreatedEvent.getProcessInstanceKey());
 
         userTaskCreatedEvent.setUserTaskId(
-                String.valueOf(jobRecord.getKey()));
+                String.valueOf(camunda8UserTaskCreatedEvent.getKey()));
 
-        // TODO use timestamp from event
         userTaskCreatedEvent.setTimestamp(
-                OffsetDateTime.now());
+                camunda8UserTaskCreatedEvent.getTimestamp());
 
         userTaskCreatedEvent.setBpmnProcessId(
-                jobRecord.getBpmnProcessId());
+                camunda8UserTaskCreatedEvent.getBpmnProcessId());
 
         userTaskCreatedEvent.setBpmnProcessVersion(
-                String.valueOf(jobRecord.getWorkflowDefinitionVersion()));
+                String.valueOf(camunda8UserTaskCreatedEvent.getWorkflowDefinitionVersion()));
 
         userTaskCreatedEvent.setTaskDefinition(taskDefinition);
 
         userTaskCreatedEvent.setBusinessId(businessKey);
-        userTaskCreatedEvent.setBpmnTaskId(jobRecord.getElementId());
+        userTaskCreatedEvent.setBpmnTaskId(camunda8UserTaskCreatedEvent.getElementId());
 
         userTaskCreatedEvent.setWorkflowId(
-                String.valueOf(jobRecord.getProcessInstanceKey()));
+                String.valueOf(camunda8UserTaskCreatedEvent.getProcessInstanceKey()));
 
         userTaskCreatedEvent.setSubWorkflowId(
-                String.valueOf(jobRecord.getProcessInstanceKey()));
+                String.valueOf(camunda8UserTaskCreatedEvent.getProcessInstanceKey()));
 
         userTaskCreatedEvent.setTitle(new HashMap<>());
         userTaskCreatedEvent.setWorkflowTitle(new HashMap<>());
@@ -318,7 +314,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 details.getUiUriPath());
     }
 
-    private void filluserTaskDetailsByCustomDetails(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent, UserTaskCreatedEvent userTaskCreatedEvent, UserTaskDetails prefilledUserTaskDetails) {
+    private void fillUserTaskDetailsByCustomDetails(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent, UserTaskCreatedEvent userTaskCreatedEvent, UserTaskDetails prefilledUserTaskDetails) {
         if (templating.isEmpty()) {
             fillUserTaskWithTemplatingDeactivated(
                     camunda8UserTaskCreatedEvent.getBpmnProcessId(),

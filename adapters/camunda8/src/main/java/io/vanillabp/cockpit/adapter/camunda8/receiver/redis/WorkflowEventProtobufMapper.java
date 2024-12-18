@@ -3,8 +3,8 @@ package io.vanillabp.cockpit.adapter.camunda8.receiver.redis;
 import com.google.protobuf.Value;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
+import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.zeebe.exporter.proto.Schema;
-
 import java.util.Map;
 
 public class WorkflowEventProtobufMapper {
@@ -15,7 +15,7 @@ public class WorkflowEventProtobufMapper {
         workflowCreatedEvent.setKey(
                 processInstanceCreationRecord.getMetadata().getKey());
         workflowCreatedEvent.setTimestamp(
-                processInstanceCreationRecord.getMetadata().getTimestamp());
+                DateTimeUtil.fromMilliseconds(processInstanceCreationRecord.getMetadata().getTimestamp()));
         // TODO: replace with info from event when available in protobuf spec
         workflowCreatedEvent.setTenantId("demo");
         workflowCreatedEvent.setVersion(
@@ -50,7 +50,7 @@ public class WorkflowEventProtobufMapper {
         workflowLifeCycleEvent.setKey(
                 processInstanceRecord.getMetadata().getKey());
         workflowLifeCycleEvent.setTimestamp(
-                processInstanceRecord.getMetadata().getTimestamp());
+                DateTimeUtil.fromMilliseconds(processInstanceRecord.getMetadata().getTimestamp()));
         workflowLifeCycleEvent.setProcessInstanceKey(
                 processInstanceRecord.getProcessInstanceKey());
         workflowLifeCycleEvent.setBpmnProcessId(

@@ -4,6 +4,7 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
+import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import java.util.Map;
 
 public class UserTaskEventZeebeRecordMapper {
@@ -30,7 +31,8 @@ public class UserTaskEventZeebeRecordMapper {
 
     public static void addMetaData(Camunda8UserTaskCreatedEvent userTaskCreatedEvent, Record<?> task){
         userTaskCreatedEvent.setKey(task.getKey());
-        userTaskCreatedEvent.setTimestamp(task.getTimestamp());
+        userTaskCreatedEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getTimestamp()));
     }
 
     public static Camunda8UserTaskLifecycleEvent mapToUserTaskLifecycleInformation(JobRecordValue task){
@@ -53,10 +55,11 @@ public class UserTaskEventZeebeRecordMapper {
         return userTaskLifecycleEvent;
     }
 
-    public static void addMetaData(Camunda8UserTaskLifecycleEvent userTaskCreatedEvent, Record<?> task){
-        userTaskCreatedEvent.setKey(task.getKey());
-        userTaskCreatedEvent.setTimestamp(task.getTimestamp());
-        userTaskCreatedEvent.setIntent(
+    public static void addMetaData(Camunda8UserTaskLifecycleEvent userTaskLifecycleEvent, Record<?> task){
+        userTaskLifecycleEvent.setKey(task.getKey());
+        userTaskLifecycleEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getTimestamp()));
+        userTaskLifecycleEvent.setIntent(
                 Camunda8UserTaskLifecycleEvent.Intent.valueOf(task.getIntent().name()));
     }
 

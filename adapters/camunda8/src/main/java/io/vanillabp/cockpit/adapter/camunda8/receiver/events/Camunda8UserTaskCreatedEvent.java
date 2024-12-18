@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Camunda8UserTaskCreatedEvent {
     private long key;
-    private long timestamp;
+    private OffsetDateTime timestamp;
     private String bpmnProcessId;
     private String tenantId;
     private int workflowDefinitionVersion;
@@ -30,11 +30,11 @@ public class Camunda8UserTaskCreatedEvent {
         this.key = key;
     }
 
-    public long getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

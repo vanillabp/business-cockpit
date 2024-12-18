@@ -3,13 +3,13 @@ package io.vanillabp.cockpit.adapter.camunda8.receiver.redis;
 import com.google.protobuf.Value;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
+import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.zeebe.exporter.proto.Schema;
-import org.jetbrains.annotations.NotNull;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 
 public class UserTaskEventProtobufMapper {
 
@@ -17,7 +17,8 @@ public class UserTaskEventProtobufMapper {
         Camunda8UserTaskCreatedEvent userTaskCreatedEvent = new Camunda8UserTaskCreatedEvent();
 
         userTaskCreatedEvent.setKey(task.getMetadata().getKey());
-        userTaskCreatedEvent.setTimestamp(task.getMetadata().getTimestamp());
+        userTaskCreatedEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getMetadata().getTimestamp()));
 
         userTaskCreatedEvent.setProcessDefinitionKey(task.getProcessDefinitionKey());
         userTaskCreatedEvent.setBpmnProcessId(task.getBpmnProcessId());
@@ -39,7 +40,8 @@ public class UserTaskEventProtobufMapper {
         Camunda8UserTaskLifecycleEvent userTaskLifecycleEvent = new Camunda8UserTaskLifecycleEvent();
 
         userTaskLifecycleEvent.setKey(task.getMetadata().getKey());
-        userTaskLifecycleEvent.setTimestamp(task.getMetadata().getTimestamp());
+        userTaskLifecycleEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getMetadata().getTimestamp()));
 
         userTaskLifecycleEvent.setProcessDefinitionKey(task.getProcessDefinitionKey());
         userTaskLifecycleEvent.setBpmnProcessId(task.getBpmnProcessId());

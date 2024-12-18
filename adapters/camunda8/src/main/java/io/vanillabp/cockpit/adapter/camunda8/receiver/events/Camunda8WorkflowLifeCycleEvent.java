@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
+import java.time.OffsetDateTime;
+
 public class Camunda8WorkflowLifeCycleEvent {
 
     public enum Intent {
@@ -8,7 +10,7 @@ public class Camunda8WorkflowLifeCycleEvent {
     }
 
     private long key;
-    private long timestamp;
+    private OffsetDateTime timestamp;
     private String deleteReason;
     private long processInstanceKey;
     private String bpmnProcessId;
@@ -25,11 +27,11 @@ public class Camunda8WorkflowLifeCycleEvent {
         this.key = key;
     }
 
-    public long getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

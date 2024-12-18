@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -11,7 +12,7 @@ public class Camunda8UserTaskLifecycleEvent {
     }
 
     private long key;
-    private long timestamp;
+    private OffsetDateTime timestamp;
     private Intent intent;
     private String formKey;
     private String elementId;
@@ -30,11 +31,11 @@ public class Camunda8UserTaskLifecycleEvent {
         this.key = key;
     }
 
-    public long getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 

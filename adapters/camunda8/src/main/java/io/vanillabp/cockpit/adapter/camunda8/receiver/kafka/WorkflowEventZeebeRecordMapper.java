@@ -5,6 +5,7 @@ import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
+import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,7 +35,8 @@ public class WorkflowEventZeebeRecordMapper {
 
     public static void addMetaData(Camunda8WorkflowCreatedEvent userTaskCreatedEvent, Record<?> task){
         userTaskCreatedEvent.setKey(task.getKey());
-        userTaskCreatedEvent.setTimestamp(task.getTimestamp());
+        userTaskCreatedEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getTimestamp()));
     }
 
 
@@ -68,10 +70,11 @@ public class WorkflowEventZeebeRecordMapper {
     }
 
 
-    public static void addMetaData(Camunda8WorkflowLifeCycleEvent userTaskCreatedEvent, Record<?> task){
-        userTaskCreatedEvent.setKey(task.getKey());
-        userTaskCreatedEvent.setTimestamp(task.getTimestamp());
-        userTaskCreatedEvent.setIntent(getIntent(task));
+    public static void addMetaData(Camunda8WorkflowLifeCycleEvent userTaskLifecycleEvent, Record<?> task){
+        userTaskLifecycleEvent.setKey(task.getKey());
+        userTaskLifecycleEvent.setTimestamp(
+                DateTimeUtil.fromMilliseconds(task.getTimestamp()));
+        userTaskLifecycleEvent.setIntent(getIntent(task));
     }
 
     private static Camunda8WorkflowLifeCycleEvent.Intent getIntent(Record<?> processInstanceRecord) {

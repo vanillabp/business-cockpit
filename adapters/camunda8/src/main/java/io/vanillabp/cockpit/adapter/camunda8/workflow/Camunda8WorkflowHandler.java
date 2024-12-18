@@ -95,23 +95,23 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
 
     private void fillLifecycleEvent(
-            final Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent,
+            final Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent,
             final WorkflowLifecycleEvent event) {
 
         event.setEventId(System.nanoTime() + "@" +
-                workflowLifeCycleEvent.getProcessInstanceKey() + "#" +
-                workflowLifeCycleEvent.getKey());
+                camunda8WorkflowLifeCycleEvent.getProcessInstanceKey() + "#" +
+                camunda8WorkflowLifeCycleEvent.getKey());
 
         event.setComment(
-                workflowLifeCycleEvent.getDeleteReason());
+                camunda8WorkflowLifeCycleEvent.getDeleteReason());
         event.setTimestamp(
-                OffsetDateTime.now());
+                camunda8WorkflowLifeCycleEvent.getTimestamp());
         event.setWorkflowId(
-                String.valueOf(workflowLifeCycleEvent.getProcessInstanceKey()));
+                String.valueOf(camunda8WorkflowLifeCycleEvent.getProcessInstanceKey()));
 
         event.setInitiator(null); // TODO
-        event.setBpmnProcessId(workflowLifeCycleEvent.getBpmnProcessId());
-        event.setBpmnProcessVersion(workflowLifeCycleEvent.getBpmnProcessVersion());
+        event.setBpmnProcessId(camunda8WorkflowLifeCycleEvent.getBpmnProcessId());
+        event.setBpmnProcessVersion(camunda8WorkflowLifeCycleEvent.getBpmnProcessVersion());
     }
 
     public WorkflowEvent processCreatedEvent(
