@@ -33,6 +33,7 @@ i18n.addResources('en', 'tasklist', {
       "legend_filtered": "Removed",
       "claim_task": "Claim",
       "claim_tasks": "Claim selected tasks",
+      "unclaim_task": "Return",
       "unclaim_tasks": "Return selected tasks",
       "mark_as_unread": "Mark selected tasks as 'unread'",
       "mark_as_read": "Mark selected tasks as 'read'",
@@ -64,6 +65,7 @@ i18n.addResources('de', 'tasklist', {
       "legend_filtered": "Entfernt",
       "claim_task": "Übernehmen",
       "claim_tasks": "Gewählte Aufgaben übernehmen",
+      "unclaim_task": "Zurückgeben",
       "unclaim_tasks": "Gewählte Aufgabe zurückgeben",
       "mark_as_unread": "Gewählte Aufgaben als 'Ungelesen' markieren",
       "mark_as_read": "Gewählte Aufgaben als 'Gelesen' markieren",
@@ -76,7 +78,7 @@ i18n.addResources('de', 'tasklist', {
 });
 
 const CustomListOfTasks = ({ useTasklistApi }) => {
-  const { showLoadingIndicator, toast } = useAppContext();
+  const { showLoadingIndicator, toast, state } = useAppContext();
   const { t: tApp } = useTranslation('app');
   const { t } = useTranslation('tasklist');
   const navigate = useNavigate();
@@ -87,6 +89,7 @@ const CustomListOfTasks = ({ useTasklistApi }) => {
       useGuiSse={useGuiSse}
       t={t}
       currentLanguage={i18n.language}
+      currentUser={ state.currentUser }
       defaultSort={"dueDate"}
       openTask={
         (userTask) =>

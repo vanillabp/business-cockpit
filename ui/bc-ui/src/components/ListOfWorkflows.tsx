@@ -15,6 +15,7 @@ import {
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
+  Person,
   ShowLoadingIndicatorFunction,
   textColorAccordingToStatus,
   TranslationFunction,
@@ -470,6 +471,7 @@ const ListOfWorkflows = ({
   openTask,
   navigateToWorkflow,
   currentLanguage,
+  currentUser,
   defaultSort,
   defaultSortAscending = true,
   name,
@@ -497,6 +499,7 @@ const ListOfWorkflows = ({
   openTask: OpenTaskFunction,
   navigateToWorkflow: NavigateToWorkflowFunction,
   currentLanguage: string,
+  currentUser?: Person,
   defaultSort?: string,
   defaultSortAscending?: boolean,
   name?: string,
@@ -763,6 +766,7 @@ const ListOfWorkflows = ({
                     modulesAvailable={ modules! }
                     column={ column }
                     currentLanguage={ currentLanguage }
+                    currentUser={ currentUser }
                     nameOfList={ name }
                     typeOfItem={ TypeOfItem.WorkflowList }
                     showUnreadAsBold={ false }

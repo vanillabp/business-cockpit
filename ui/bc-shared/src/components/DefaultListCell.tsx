@@ -25,16 +25,14 @@ const textColorAccordingToStatus = (item: ListItem<any>): ColorType | undefined 
       ? 'list-text-ended'
       : item.status === ListItemStatus.REMOVED_FROM_LIST
       ? 'list-text-removed_from_list'
-      : undefined;
+      : 'list-text-default';
 };
 
 interface ListCellProps extends BoxExtendedProps {
-  background?: BackgroundType;
   align?: Alignment;
 }
 
 const ListCell: React.FC<PropsWithChildren<ListCellProps>> = ({
-  background,
   align,
   children,
   ...props
@@ -48,7 +46,6 @@ const ListCell: React.FC<PropsWithChildren<ListCellProps>> = ({
             : align === 'right'
                 ? 'end'
                 : 'center' }
-        background={ background }
         pad="xsmall"
         gap="xsmall"
         { ...props }>
@@ -63,7 +60,6 @@ interface TextListCellProps extends TextExtendedProps {
   column: string;
   tip?: string;
   showUnreadAsBold?: boolean;
-  background?: BackgroundType;
   align?: Alignment;
 }
 
@@ -73,13 +69,11 @@ const TextListCell: React.FC<TextListCellProps> = memo(({
   align = 'left',
   tip,
   showUnreadAsBold = false,
-  background,
   ...props
 }) => {
   const color = textColorAccordingToStatus(item);
   return (
     <ListCell
-        background={ background }
         align={ align }>
       {
         tip === undefined
@@ -112,7 +106,6 @@ interface PersonListCellProps extends TextExtendedProps {
   column: string;
   value?: Person;
   showUnreadAsBold?: boolean;
-  background?: BackgroundType;
 }
 
 const PersonListCell: React.FC<PersonListCellProps> = memo(({
@@ -121,13 +114,11 @@ const PersonListCell: React.FC<PersonListCellProps> = memo(({
   column,
   value,
   showUnreadAsBold = false,
-  background,
   ...props
 }) => {
   const color = textColorAccordingToStatus(item);
   return (
       <ListCell
-          background={ background }
           align="left">
         <Text
             truncate
@@ -154,6 +145,7 @@ export interface DefaultListCellProps<D> {
   column: Column;
   showUnreadAsBold?: boolean;
   currentLanguage: string;
+  currentUser?: Person;
   nameOfList?: string;
   selectItem: (select: boolean) => void;
   isPhone: boolean;
@@ -215,7 +207,7 @@ const backgroundColorAccordingToStatus = <T extends ListItem<any>, >(item: T): B
         ? 'list-ended'
         : item.status === ListItemStatus.REMOVED_FROM_LIST
         ? 'list-removed_from_list'
-        : undefined);
+        : 'list-default');
 
 const DefaultListCell: FC<DefaultListCellProps<any>> = ({
     item,
@@ -232,7 +224,6 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
   if (column.type === 'i18n') {
     path = `${path}.${currentLanguage}`;
   }
-  const background = backgroundColorAccordingToStatus(item);
   let propertyValue = getObjectProperty(item.data, path);
   if ((column.type === 'date') && Boolean(propertyValue)) {
     const date = Object.prototype.toString.call(propertyValue) === '[object Date]'
@@ -260,8 +251,7 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
         item={ item }
         value={ propertyValue as Person }
         column={ column.path }
-        showUnreadAsBold={ showUnreadAsBold }
-        background={ background } />;
+        showUnreadAsBold={ showUnreadAsBold } />;
   } else {
     const { value: v, align: a } = render(t, propertyValue, currentLanguage);
     value = v;
@@ -273,7 +263,6 @@ const DefaultListCell: FC<DefaultListCellProps<any>> = ({
       column={ column.path }
       tip={ tip }
       showUnreadAsBold={ showUnreadAsBold }
-      background={ background }
       align={ align } />;
 }
 

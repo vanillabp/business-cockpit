@@ -293,7 +293,7 @@ public class UserTaskService {
         return mongoTemplate
                 .updateFirst(query, update, UserTask.class)
                 .single()
-                .flatMap(result -> userTasks.findById(result.getUpsertedId().asString().getValue()));
+                .flatMap(result -> userTasks.findById(userTaskId));
 
     }
 

@@ -13,6 +13,8 @@ export const theme: ThemeType = {
       'light-5': '#c7c7c7',
       'light-6': '#b4b4b4',
       'link': '#663300',
+      'list-default': '#ffffff',
+      'list-text-default': '#444444',
       'list-new': 'rgba(102, 51, 0, 0.1)',
       'list-text-new': 'dark-1',
       'list-updated': 'rgba(255, 230, 153, 0.15)',

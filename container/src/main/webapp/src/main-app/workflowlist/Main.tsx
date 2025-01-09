@@ -6,7 +6,7 @@ import { useAppContext } from "../../AppContext";
 import { useGuiSse } from "../../client/guiClient";
 import { navigateToWorkflow, openTask } from "../../utils/navigate";
 import { useTranslation } from "react-i18next";
-import { useStandardWorkflowlistApi, useStandardTasklistApi } from "../../utils/standardApis";
+import { useStandardTasklistApi, useStandardWorkflowlistApi } from "../../utils/standardApis";
 
 i18n.addResources('en', 'workflowlist', {
       "title.long": 'Workflows',
@@ -76,7 +76,7 @@ const RouteBasedWorkflowPage = () => {
 
 const Main = () => {
 
-  const { setAppHeaderTitle, showLoadingIndicator, toast } = useAppContext();
+  const { setAppHeaderTitle, showLoadingIndicator, toast, state } = useAppContext();
   const { t: tApp } = useTranslation('app');
   const { t } = useTranslation('workflowlist');
   const navigate = useNavigate();
@@ -93,6 +93,7 @@ const Main = () => {
                                 useTasklistApi={ useStandardTasklistApi }
                                 useGuiSse={ useGuiSse }
                                 currentLanguage={ i18n.language }
+                                currentUser={ state.currentUser }
                                 t={ t }
                                 defaultSort={ 'title' }
                                 excludeIdColumn

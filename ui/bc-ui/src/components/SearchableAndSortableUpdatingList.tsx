@@ -136,6 +136,9 @@ const reloadData = async <T extends ListItemData>(
             result.number = index + 1;
             anyUpdate = true;
           }
+          if ((newItem !== undefined) && oldItem?.selected) {
+            newItem!.selected = oldItem?.selected;
+          }
           return result;
         },
       (first, second) => {

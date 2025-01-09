@@ -3,6 +3,7 @@ import {
   Column,
   DefaultListCellAwareProps,
   DefaultListCellProps,
+  Person,
   TranslationFunction,
   useResponsiveScreen,
   WarningListCell,
@@ -31,6 +32,7 @@ interface ListCellParameters<T extends ListItemData & ModuleDefinition, > {
   modulesAvailable: Module[];
   column: Column;
   currentLanguage: string;
+  currentUser?: Person;
   nameOfList?: string;
   typeOfItem: TypeOfItem;
   item: ListItem<T>;
@@ -44,6 +46,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
   modulesAvailable,
   column,
   currentLanguage,
+  currentUser,
   nameOfList,
   typeOfItem,
   item,
@@ -115,6 +118,7 @@ const ListCell = <T extends ListItemData & ModuleDefinition, >({
             column={ column }
             showUnreadAsBold={ showUnreadAsBold }
             currentLanguage={ currentLanguage }
+            currentUser={ currentUser }
             defaultCell={ defaultListCell }
             nameOfList={ nameOfList }
             isPhone={ isPhone }

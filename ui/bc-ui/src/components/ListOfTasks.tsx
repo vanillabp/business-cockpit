@@ -1,8 +1,7 @@
-import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Person, SearchQuery, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import React, { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SearchQuery, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
-  backgroundColorAccordingToStatus,
   BcUserTask,
   Column,
   debounce,
@@ -14,6 +13,7 @@ import {
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
+  Person,
   ShowLoadingIndicatorFunction,
   textColorAccordingToStatus,
   TranslationFunction,
@@ -41,11 +41,21 @@ import {
   TypeOfItem,
   useFederationModules
 } from '../index.js';
-import { Blank, ContactInfo, FormTrash, FormView, Hide, Refresh, User as UserIcon } from "grommet-icons";
+import {
+  Blank,
+  CaretLeftFill,
+  ContactInfo,
+  FormNext,
+  FormTrash,
+  FormView,
+  Hide,
+  Refresh,
+  User as UserIcon
+} from "grommet-icons";
 import { User } from "./User.js";
 import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
-import { useTheme } from "styled-components";
+import styled, { useTheme } from "styled-components";
 
 interface Columns {
   [key: string]: Column;
@@ -727,33 +737,73 @@ const DefaultHeader = ({
 
 }
 
+const StyledIcon = styled.span<{ strike: number }>`
+  line-height: 0;
+  * > svg {
+    overflow: visible;
+  }
+  * > svg > path {
+    stroke-width: ${props => props.strike};
+  }
+`;
+
 const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   t,
   item,
+  currentUser,
+  showUnreadAsBold,
 }) => {
 
   const targetRef = useRef<HTMLDivElement>(null);
   const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
-  const background = backgroundColorAccordingToStatus(item);
+  const color = textColorAccordingToStatus(item) as string | undefined;
 
   return (
       <StyledListCell
-          background={ background }
           align="center">
         {
             item.data.candidateUsers && item.data.candidateUsers?.length > 0
                 ? <>
-                    <Box
-                        onMouseEnter={ () => setDropIdentifier(item.id) }
-                        ref={ targetRef }>
-                      <ContactInfo />
-                    </Box>
+                    <StyledIcon strike={
+                      showUnreadAsBold && item.read === undefined ? 3 : 2
+                    }>
+                      <Box
+                          style={ { position: "relative" } }
+                          direction="row"
+                          align="center"
+                          margin={ { left: '0.75rem' } }
+                          justify="center">
+                        {
+                          !item.data.assignee && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
+                            ? <CaretLeftFill
+                                  onClick={ item.data.claim }
+                                  style={ { position: 'absolute', left: '-100%' } }
+                                  size="30em"
+                                  color={ color } />
+                            : item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
+                            ? <FormNext
+                                  onClick={ item.data.unclaim }
+                                  style={ { position: 'absolute', right: '100%' } }
+                                  size="18em"
+                                  color={ color } />
+                            : undefined
+                        }
+                        <Box
+                            onMouseEnter={ () => setDropIdentifier(item.id) }
+                            ref={ targetRef }>
+                          <ContactInfo
+                            color={ color } />
+                        </Box>
+                      </Box>
+                    </StyledIcon>
                     {
                       dropIdentifier
                           && dropIdentifier === item.id
                           && <Drop
                                 inline
                                 stretch
+                                onEsc={ () => setDropIdentifier(undefined) }
+                                onClickOutside={ () => setDropIdentifier(undefined) }
                                 round="xsmall"
                                 onMouseLeave={ () => setDropIdentifier(undefined) }
                                 target={ targetRef }>
@@ -761,13 +811,16 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                                 {
                                   item.data.candidateUsers?.map(user => <>
                                       <Text
+                                          key={ user.id }
                                           style={ { whiteSpace: "nowrap" } }
                                           tip={ { content: <UserDetailsBox user={ user } t={ t } /> } }>
                                         {
                                           user.displayShort ?? user.email ?? user.id
                                         }
                                       </Text>
-                                      <FormTrash onClick={ () => item.data.unassign(user.id) } />
+                                      <FormTrash
+                                          key={ user.id }
+                                          onClick={ () => item.data.unassign(user.id) } />
                                   </>)
                                 }
                               </Grid>
@@ -783,18 +836,14 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
 const SelectDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   item,
   selectItem,
-}) => {
-  const background = backgroundColorAccordingToStatus(item);
-  return (
-      <StyledListCell
-          background={ background }
-          align="center">
-        <CheckBox
-            id={ item.id }
-            checked={ item.selected }
-            onChange={ event => selectItem(event.currentTarget.checked) } />
-      </StyledListCell>);
-}
+}) => (
+    <StyledListCell
+        align="center">
+      <CheckBox
+          id={ item.id }
+          checked={ item.selected }
+          onChange={ event => selectItem(event.currentTarget.checked) } />
+    </StyledListCell>);
 
 const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   item,
@@ -807,12 +856,10 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
   } else {
     title = item.data['title'][titleLanguages[0]];
   }
-  const background = backgroundColorAccordingToStatus(item);
   const text = textColorAccordingToStatus(item);
   return (
       <StyledListCell
-          align="left"
-          background={ background }>
+          align="left">
         <Text
             weight={ item.read === undefined ? 'bold' : 'normal' }
             truncate="tip">
@@ -826,12 +873,123 @@ const TitleDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({
       </StyledListCell>);
 }
 
+const AssigneeDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = memo(({
+  item,
+  showUnreadAsBold,
+  t,
+  currentUser,
+  ...props
+}) => {
+  const text = textColorAccordingToStatus(item) as string | undefined;
+  const value = item.data.assignee;
+  const targetRef = useRef<HTMLDivElement>(null);
+  const [ dropIdentifier, setDropIdentifier ] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!dropIdentifier) {
+      return;
+    }
+    const moveHandler = (event: MouseEvent) => {
+      if ((event.currentTarget !== undefined) && (targetRef.current !== undefined)) {
+        const clientRect = targetRef.current!.getBoundingClientRect();
+        if ((event.clientY >= clientRect.top)
+            && (event.clientX >= clientRect.left)
+            && (event.clientY <= clientRect.bottom)
+            && (event.clientX <= clientRect.right)) {
+          return;
+        }
+      }
+      setDropIdentifier(undefined);
+    };
+    window.addEventListener("mousemove", moveHandler);
+    return () => {
+      window.removeEventListener("mousemove", moveHandler);
+    }
+  }, [ dropIdentifier, setDropIdentifier ]);
+  return (
+      <StyledListCell
+          align="left">
+        <Box
+            style={ { position: 'relative' } }
+            fill
+            direction="row"
+            justify="between">
+          <Text
+              truncate
+              color={ text }
+              weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
+              tip={ { content: <UserDetailsBox user={ value! } t={ t } /> } }
+              { ...props }>
+            {
+              value === undefined
+                  ? undefined
+                  : value.displayShort ?? value.email ?? value.id
+            }
+          </Text>
+          <Box
+              ref={ targetRef }
+              width="1.75rem"
+              height="1.75rem"
+              onMouseEnter={ () => setDropIdentifier(item.id) }
+              style={ { position: 'absolute', right: '0', top: '-0.1rem' } }>
+            {
+                dropIdentifier
+                && dropIdentifier === item.id
+                && (item.data.assignee?.id == currentUser?.id
+                      ? <Box
+                            onClick={ item.data.unclaim }
+                            focusIndicator={ false }
+                            direction="row"
+                            background="white"
+                            elevation="small"
+                            pad="0.25rem"
+                            round={ { size: '0.4rem' } }>
+                          <Tip
+                              content={ t('unclaim_task') }>
+                            <Box
+                                style={ { position: 'relative' } }>
+                              <UserIcon
+                                  size="20rem"
+                                  color={ text } />
+                              <Blank
+                                  size="20rem"
+                                  style={ { position: 'absolute', top: '0', left: '0' } }
+                                  color={ text }>
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <line x1="24" y1="4" x2="4" y2="24" strokeWidth="2" />
+                                </svg>
+                              </Blank>
+                            </Box>
+                          </Tip>
+                        </Box>
+                      : <Box
+                            onClick={ item.data.claim }
+                            focusIndicator={ false }
+                            direction="row"
+                            background="white"
+                            elevation="small"
+                            pad="0.25rem"
+                            round={ { size: '0.4rem' } }>
+                          <Tip
+                              content={ t('claim_task') }>
+                            <UserIcon
+                                size="20rem"
+                                color={ text } />
+                          </Tip>
+                        </Box>)
+            }
+          </Box>
+        </Box>
+      </StyledListCell>);
+});
+
 const UserTaskDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = ({ column, ...props }) => {
   let Cell: FC<DefaultListCellProps<BcUserTask>>;
   if (column.path === 'id') {
     Cell = SelectDefaultListCell;
   } else if (column.path === 'candidateUsers') {
     Cell = CandidateUsersListCell;
+  } else if (column.path === 'assignee') {
+    Cell = AssigneeDefaultListCell;
   } else if (column.path === 'title') {
     Cell = TitleDefaultListCell;
   } else {
@@ -853,6 +1011,7 @@ const ListOfTasks = ({
     navigateToWorkflow,
     t,
     currentLanguage,
+    currentUser,
     defaultSort,
     defaultSortAscending = true,
     name,
@@ -879,6 +1038,7 @@ const ListOfTasks = ({
     navigateToWorkflow: NavigateToWorkflowFunction,
     t: TranslationFunction,
     currentLanguage: string,
+    currentUser?: Person,
     defaultSort?: string,
     defaultSortAscending?: boolean,
     name?: string,
@@ -1157,6 +1317,7 @@ const ListOfTasks = ({
                   modulesAvailable={ modules! }
                   column={ column }
                   currentLanguage={ currentLanguage }
+                  currentUser={ currentUser }
                   nameOfList={ name }
                   typeOfItem={ TypeOfItem.TaskList }
                   showUnreadAsBold={ true }
