@@ -778,13 +778,13 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                             ? <CaretLeftFill
                                   onClick={ item.data.claim }
                                   style={ { position: 'absolute', left: '-100%' } }
-                                  size="30rem"
+                                  size="1.8rem"
                                   color={ color } />
                             : currentUser && item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <FormNext
                                   onClick={ item.data.unclaim }
                                   style={ { position: 'absolute', right: '100%' } }
-                                  size="18rem"
+                                  size="1.2rem"
                                   color={ color } />
                             : undefined
                         }
@@ -948,10 +948,10 @@ const AssigneeDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = memo(({
                             <Box
                                 style={ { position: 'relative' } }>
                               <UserIcon
-                                  size="20rem"
+                                  size="1.2rem"
                                   color={ text } />
                               <Blank
-                                  size="20rem"
+                                  size="1.2rem"
                                   style={ { position: 'absolute', top: '0', left: '0' } }
                                   color={ text }>
                                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -972,7 +972,7 @@ const AssigneeDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = memo(({
                           <Tip
                               content={ t('claim_task') }>
                             <UserIcon
-                                size="20rem"
+                                size="1.2rem"
                                 color={ text } />
                           </Tip>
                         </Box>)
