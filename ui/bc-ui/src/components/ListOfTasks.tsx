@@ -774,17 +774,17 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                           margin={ { left: '0.75rem' } }
                           justify="center">
                         {
-                          !item.data.assignee && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
+                          currentUser && !item.data.assignee && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <CaretLeftFill
                                   onClick={ item.data.claim }
                                   style={ { position: 'absolute', left: '-100%' } }
-                                  size="30em"
+                                  size="30rem"
                                   color={ color } />
-                            : item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
+                            : currentUser && item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <FormNext
                                   onClick={ item.data.unclaim }
                                   style={ { position: 'absolute', right: '100%' } }
-                                  size="18em"
+                                  size="18rem"
                                   color={ color } />
                             : undefined
                         }
@@ -934,7 +934,7 @@ const AssigneeDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = memo(({
             {
                 dropIdentifier
                 && dropIdentifier === item.id
-                && (item.data.assignee?.id == currentUser?.id
+                && (currentUser && (item.data.assignee?.id == currentUser?.id)
                       ? <Box
                             onClick={ item.data.unclaim }
                             focusIndicator={ false }
