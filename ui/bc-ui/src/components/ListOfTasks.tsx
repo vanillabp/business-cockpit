@@ -777,13 +777,13 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                           currentUser && !item.data.assignee && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <CaretLeftFill
                                   onClick={ item.data.claim }
-                                  style={ { position: 'absolute', left: '-100%' } }
+                                  style={ { position: 'absolute', left: '-90%' } }
                                   size="1.8rem"
                                   color={ color } />
                             : currentUser && item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <FormNext
                                   onClick={ item.data.unclaim }
-                                  style={ { position: 'absolute', right: '100%' } }
+                                  style={ { position: 'absolute', right: '90%' } }
                                   size="1.2rem"
                                   color={ color } />
                             : undefined
