@@ -46,6 +46,7 @@ import {
   CaretLeftFill,
   ContactInfo,
   FormNext,
+  FormPrevious,
   FormTrash,
   FormView,
   Hide,
@@ -775,10 +776,16 @@ const CandidateUsersListCell: FC<DefaultListCellProps<BcUserTask>> = ({
                           justify="center">
                         {
                           currentUser && !item.data.assignee && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
-                            ? <CaretLeftFill
+                              ? <CaretLeftFill
                                   onClick={ item.data.claim }
                                   style={ { position: 'absolute', left: '-90%' } }
                                   size="1.8rem"
+                                  color={ color } />
+                              : currentUser && (!item.data.assignee || item.data.assignee.id !== currentUser.id) && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
+                            ? <FormPrevious
+                                  onClick={ item.data.claim }
+                                  style={ { position: 'absolute', left: '-75%' } }
+                                  size="1.2rem"
                                   color={ color } />
                             : currentUser && item.data.assignee && item.data.assignee.id === currentUser?.id && item.data.candidateUsers.findIndex(person => person.id === currentUser?.id) !== -1
                             ? <FormNext
@@ -913,18 +920,27 @@ const AssigneeDefaultListCell: FC<DefaultListCellProps<BcUserTask>> = memo(({
             fill
             direction="row"
             justify="between">
-          <Text
-              truncate
-              color={ text }
-              weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
-              tip={ { content: <UserDetailsBox user={ value! } t={ t } /> } }
-              { ...props }>
-            {
-              value === undefined
-                  ? undefined
-                  : value.displayShort ?? value.email ?? value.id
-            }
-          </Text>
+          <Box
+            direction="row"
+            align="center">
+            <Box
+                height="1rem"
+                border={ currentUser?.id === value?.id ? [ { side: 'left', size: '0.15rem', color: text } ] : undefined }>
+              &nbsp;
+            </Box>
+            <Text
+                truncate
+                color={ text }
+                weight={ showUnreadAsBold && item.read === undefined ? 'bold' : 'normal' }
+                tip={ { content: <UserDetailsBox user={ value! } t={ t } /> } }
+                { ...props }>
+              {
+                value === undefined
+                    ? undefined
+                    : value.displayShort ?? value.email ?? value.id
+              }
+            </Text>
+          </Box>
           <Box
               ref={ targetRef }
               width="1.75rem"
