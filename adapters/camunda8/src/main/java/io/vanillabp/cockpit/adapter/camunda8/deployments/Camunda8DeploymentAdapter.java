@@ -138,7 +138,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .reduce((first, second) -> second);
 
         if (hasDeployables[0]) {
-            final var tenantId = workflowModuleId == null ? applicationName : workflowModuleId;
+            final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
             final DeploymentEvent deployedResources = deploymentCommand
                     .map(command -> tenantId == null ? command : command.tenantId(tenantId))
                     .map(command -> command.send().join())
