@@ -120,7 +120,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
         WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
-                camunda8WorkflowCreatedEvent.getTenantId(),
+                processService.getWorkflowModuleId(),
                 List.of(language)
         );
         fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowCreatedEvent);
@@ -136,7 +136,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         final var language = properties.getBpmnDescriptionLanguage(processService.getWorkflowModuleId(), bpmnProcessId);
 
         WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
-                camunda8WorkflowCreatedEvent.getTenantId(),
+                processService.getWorkflowModuleId(),
                 List.of(language)
         );
         fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowUpdatedEvent);

@@ -109,7 +109,7 @@ public class KafkaController {
         String intentName = value.getIntent().name();
         if(intentName.equals("CREATED")){
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent =
-                    UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue);
+                    UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue, idNames);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskCreatedEvent, value);
             camunda8UserTaskEventHandler.notify(camunda8UserTaskCreatedEvent);
         } else if(Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)){

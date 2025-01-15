@@ -5,10 +5,12 @@ import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import java.util.Map;
+import java.util.Set;
 
 public class UserTaskEventZeebeRecordMapper {
 
-    public static Camunda8UserTaskCreatedEvent mapToUserTaskCreatedInformation(JobRecordValue jobRecord){
+    public static Camunda8UserTaskCreatedEvent mapToUserTaskCreatedInformation(JobRecordValue jobRecord,
+                                                                               Set<String> idNames){
         Camunda8UserTaskCreatedEvent userTaskCreatedEvent = new Camunda8UserTaskCreatedEvent();
 
         userTaskCreatedEvent.setProcessDefinitionKey(jobRecord.getProcessDefinitionKey());
@@ -19,7 +21,7 @@ public class UserTaskEventZeebeRecordMapper {
         userTaskCreatedEvent.setProcessInstanceKey(jobRecord.getProcessInstanceKey());
         userTaskCreatedEvent.setElementInstanceKey(jobRecord.getElementInstanceKey());
         userTaskCreatedEvent.setWorkflowDefinitionVersion(jobRecord.getProcessDefinitionVersion());
-        userTaskCreatedEvent.setBusinessKey(jobRecord.getTenantId());
+        setBusinessKey(jobRecord, userTaskCreatedEvent, idNames);
 
         if(jobRecord.getCustomHeaders() != null){
             addInfoFromCustomHeaders(jobRecord.getCustomHeaders(), userTaskCreatedEvent);
@@ -110,5 +112,21 @@ public class UserTaskEventZeebeRecordMapper {
         if(value != null){
             camunda8UserTaskCreatedEvent.setAssignee(value);
         }
+    }
+
+    private static void setBusinessKey(JobRecordValue jobRecord,
+                                       Camunda8UserTaskCreatedEvent userTaskCreatedEvent,
+                                       Set<String> idNames) {
+
+        Map<String, Object> variables = jobRecord.getVariables();
+        if(variables == null) {
+            return;
+        }
+
+        idNames.stream()
+                .filter(variables::containsKey)
+                .findFirst()
+                .ifPresent(idName -> userTaskCreatedEvent.setBusinessKey((String) variables.get(idName))) ;
+
     }
 }
