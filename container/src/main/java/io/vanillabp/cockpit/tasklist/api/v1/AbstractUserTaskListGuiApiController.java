@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.SearchQuery;
@@ -41,22 +42,23 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
-	
+
 	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending);
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode model);
 
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
 			final Mono<UserTasksRequest> userTasksRequest,
             final OffsetDateTime initialTimestamp,
             final ServerWebExchange exchange) {
-		
+
         final var timestamp = initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now();
@@ -71,7 +73,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						timestamp,
 						mapper.toModel(entry.getT2().getSearchQueries()),
 						entry.getT2().getSort(),
-						entry.getT2().getSortAscending())
+						entry.getT2().getSortAscending(),
+						entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): UserTaskService.RetrieveItemsMode.All)
 				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
 				.map(ResponseEntity::ok);
 
@@ -112,7 +115,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						.map(ResponseEntity::ok)
 						.switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
 				);
-            
+
 	}
 
     protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(

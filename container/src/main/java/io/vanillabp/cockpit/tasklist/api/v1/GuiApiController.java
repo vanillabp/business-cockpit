@@ -38,13 +38,14 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 
 	@Override
 	protected Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending) {
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode model) {
 
 		return userTaskService.getUserTasks(
 				true,
@@ -58,7 +59,8 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				initialTimestamp,
 				searchQueries,
 				sort,
-				sortAscending);
+				sortAscending,
+				model);
 
 	}
 

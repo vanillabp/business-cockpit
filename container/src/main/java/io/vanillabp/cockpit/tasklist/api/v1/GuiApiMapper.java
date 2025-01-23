@@ -5,15 +5,20 @@ import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
+import io.vanillabp.cockpit.tasklist.UserTaskService.RetrieveItemsMode;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+
 import java.time.OffsetDateTime;
 import java.util.List;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
@@ -45,12 +50,12 @@ public abstract class GuiApiMapper {
     @Mapping(target = "assignee", source = "userTask.assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "userTask.candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "userTask.candidateGroups", qualifiedByName = GROUP_MAPPING)
-	public abstract UserTask toApi(
-			io.vanillabp.cockpit.tasklist.model.UserTask userTask,
+    public abstract UserTask toApi(
+            io.vanillabp.cockpit.tasklist.model.UserTask userTask,
             String userId);
 
     public List<UserTask> toApi(
-			List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks,
+            List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks,
             String userId) {
         if (userTasks == null) {
             return null;
@@ -75,36 +80,43 @@ public abstract class GuiApiMapper {
 
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
+    @ValueMapping(target = "All", source = "ALL")
+    @ValueMapping(target = "OpenTasks", source = "OPENTASKS")
+    @ValueMapping(target = "OpenTasksWithoutFollowUp", source = "OPENTASKSWITHOUTFOLLOWUP")
+    @ValueMapping(target = "OpenTasksWithFollowUp", source = "OPENTASKSWITHFOLLOWUP")
+    @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
+    public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
+
     @NoMappingMethod
     protected String proxiedUiUri(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
-        
+
         if (userTask.getWorkflowModuleId() == null) {
             return null;
         }
         if (userTask.getUiUriPath() == null) {
             return null;
         }
-        
+
         return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
                 + userTask.getWorkflowModuleId()
                 + (userTask.getUiUriPath().startsWith("/")
-                        ? userTask.getUiUriPath()
-                        : "/" + userTask.getUiUriPath());
-        
+                ? userTask.getUiUriPath()
+                : "/" + userTask.getUiUriPath());
+
     }
 
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
-        
+
         if (userTask.getWorkflowModuleId() == null) {
             return null;
         }
-        
+
         return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
                 + userTask.getWorkflowModuleId();
-        
+
     }
 
     @NoMappingMethod
