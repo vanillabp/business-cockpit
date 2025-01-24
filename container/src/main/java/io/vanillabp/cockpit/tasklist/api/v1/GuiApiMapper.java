@@ -5,6 +5,8 @@ import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
+import io.vanillabp.cockpit.tasklist.UserTaskService.RetrieveItemsMode;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -14,6 +16,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
@@ -74,6 +77,13 @@ public abstract class GuiApiMapper {
     public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
 
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
+
+    @ValueMapping(target = "All", source = "ALL")
+    @ValueMapping(target = "OpenTasks", source = "OPENTASKS")
+    @ValueMapping(target = "OpenTasksWithoutFollowUp", source = "OPENTASKSWITHOUTFOLLOWUP")
+    @ValueMapping(target = "OpenTasksWithFollowUp", source = "OPENTASKSWITHFOLLOWUP")
+    @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
+    public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
 
     @NoMappingMethod
     protected String proxiedUiUri(
