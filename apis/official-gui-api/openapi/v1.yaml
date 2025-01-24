@@ -805,8 +805,8 @@ components:
       enum:
         - All
         - OpenTasks
-        - OpenTasksWithoutFollowup
-        - OpenTasksWithFollowup
+        - OpenTasksWithoutFollowUp
+        - OpenTasksWithFollowUp
         - ClosedTasksOnly
     UserTasksRequest:
       type: object

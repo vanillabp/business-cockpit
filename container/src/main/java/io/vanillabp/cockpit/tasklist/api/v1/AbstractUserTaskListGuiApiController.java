@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.SearchQuery;
@@ -43,13 +44,14 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 	protected UserDetailsProvider userDetailsProvider;
 	
 	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending);
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode mode);
 
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(
@@ -71,7 +73,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						timestamp,
 						mapper.toModel(entry.getT2().getSearchQueries()),
 						entry.getT2().getSort(),
-						entry.getT2().getSortAscending())
+						entry.getT2().getSortAscending(),
+						entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): UserTaskService.RetrieveItemsMode.All)
 				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
 				.map(ResponseEntity::ok);
 

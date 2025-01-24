@@ -54,8 +54,8 @@ public class UserTaskService {
     public static enum RetrieveItemsMode {
         All,
         OpenTasks,
-        OpenTasksWithoutFollowup,
-        OpenTasksWithFollowup,
+        OpenTasksWithoutFollowUp,
+        OpenTasksWithFollowUp,
         ClosedTasksOnly
     }
 
@@ -371,7 +371,8 @@ public class UserTaskService {
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final RetrieveItemsMode mode) {
 
         return retrieveUserTasks(
                 includeDanglingTasks,
@@ -387,7 +388,7 @@ public class UserTaskService {
                 sort,
                 sortAscending,
                 null,
-                RetrieveItemsMode.OpenTasks);
+                mode);
 
     }
 
@@ -761,8 +762,8 @@ public class UserTaskService {
             case All:
                 break;
             case OpenTasks:
-            case OpenTasksWithFollowup:
-            case OpenTasksWithoutFollowup:
+            case OpenTasksWithFollowUp:
+            case OpenTasksWithoutFollowUp:
                 subCriterias.add(new Criteria().orOperator(
                         Criteria.where("endedAt").exists(false),
                         Criteria.where("endedAt").gte(initialTimestamp)));
@@ -780,14 +781,14 @@ public class UserTaskService {
 
         // take followup-date into account
         switch (mode) {
-            case OpenTasksWithFollowup: {
-                final Criteria inFuture = Criteria.where("followupDate").gt(initialTimestamp);
+            case OpenTasksWithFollowUp: {
+                final Criteria inFuture = Criteria.where("followUpDate").gt(initialTimestamp);
                 subCriterias.add(inFuture);
                 break;
             }
-            case OpenTasksWithoutFollowup: {
-                final Criteria notSet = Criteria.where("followupDate").exists(false);
-                final Criteria inPast = Criteria.where("followupDate").lte(OffsetDateTime.now());
+            case OpenTasksWithoutFollowUp: {
+                final Criteria notSet = Criteria.where("followUpDate").exists(false);
+                final Criteria inPast = Criteria.where("followUpDate").lte(OffsetDateTime.now());
                 final Criteria excludeFollowUps = new Criteria().orOperator(notSet, inPast);
                 subCriterias.add(excludeFollowUps);
                 break;
