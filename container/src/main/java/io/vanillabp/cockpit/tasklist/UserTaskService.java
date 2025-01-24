@@ -11,7 +11,6 @@ import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.util.kwic.KwicService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -63,15 +61,15 @@ public class UserTaskService {
     }
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
-            Order.asc(PROPERTY_DUEDATE),
-            Order.asc(PROPERTY_CREATEDAT),
-            Order.asc(PROPERTY_ID)
-    );
+                    Order.asc(PROPERTY_DUEDATE),
+                    Order.asc(PROPERTY_CREATEDAT),
+                    Order.asc(PROPERTY_ID)
+            );
     private static final List<Sort.Order> DEFAULT_ORDER_DESC = List.of(
-            Order.desc(PROPERTY_DUEDATE),
-            Order.desc(PROPERTY_CREATEDAT),
-            Order.desc(PROPERTY_ID)
-    );
+                    Order.desc(PROPERTY_DUEDATE),
+                    Order.desc(PROPERTY_CREATEDAT),
+                    Order.desc(PROPERTY_ID)
+            );
 
     private static final Set<String> sortAndFilterIndexes = new HashSet<>();
     private static final ReadWriteLock sortAndFilterIndexesLock = new ReentrantReadWriteLock();
@@ -80,13 +78,13 @@ public class UserTaskService {
 
     @Autowired
     private Logger logger;
-
+    
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
-
+    
     @Autowired
     private ReactiveChangeStreamUtils changeStreamUtils;
-
+    
     @Autowired
     private UserTaskRepository userTasks;
 
@@ -137,16 +135,16 @@ public class UserTaskService {
 
     @PreDestroy
     public void cleanup() {
-
+        
         dbChangesSubscription.dispose();
-
+        
     }
-
+    
     public Mono<UserTask> getUserTask(
             final String userTaskId) {
-
+        
         return userTasks.findById(userTaskId);
-
+        
     }
 
     public Mono<UserTask> markAsRead(
@@ -260,7 +258,7 @@ public class UserTaskService {
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     if ((userTask.getAssignee() == null)
-                            || !userTask.getAssignee().getId().equals(person.getId())) {
+                        || !userTask.getAssignee().getId().equals(person.getId())) {
                         userTask.setAssignee(person);
                         return userTasks.save(userTask);
                     }
@@ -325,8 +323,7 @@ public class UserTaskService {
 
     }
 
-    private record UserTaskListOrder(List<Order> order, String indexName, List<String> toBeIndexed) {
-    }
+    private record UserTaskListOrder(List<Order> order, String indexName, List<String> toBeIndexed) {}
 
     private UserTaskListOrder getUserTaskListOrder(
             final String _sort,
@@ -450,9 +447,9 @@ public class UserTaskService {
         final var result = Mono
                 .zip(userTasksFound.collectList(), numberOfUserTasksFound)
                 .map(results -> PageableExecutionUtils.getPage(
-                        results.getT1(),
-                        pageRequest,
-                        results::getT2));
+                    results.getT1(),
+                    pageRequest,
+                    results::getT2));
 
         // build index before retrieving data if necessary
         try {
@@ -525,7 +522,7 @@ public class UserTaskService {
 
         return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
     }
-
+    
     public Flux<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnly,
@@ -537,25 +534,25 @@ public class UserTaskService {
             final boolean sortAscending) {
 
         return retrieveUserTasks(
-                true,
-                false,
-                limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
-                limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
-                limitListAccordingToCurrentUsersPermissions ? currentUserGroups : null,
-                limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
-                0,
-                size,
-                OffsetDateTime.now(),
-                null,
-                sort,
-                sortAscending,
-                List.of(Criteria.where("workflowId").is(workflowId)),
-                activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
-        ).map(Page::getContent)
+                    true,
+                    false,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    limitListAccordingToCurrentUsersPermissions ? currentUserGroups : null,
+                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    0,
+                    size,
+                    OffsetDateTime.now(),
+                    null,
+                    sort,
+                    sortAscending,
+                    List.of(Criteria.where("workflowId").is(workflowId)),
+                    activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
+                ).map(Page::getContent)
                 .flatMapMany(Flux::fromIterable);
-
+        
     }
-
+    
     public Mono<Page<UserTask>> getUserTasksUpdated(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
@@ -613,19 +610,19 @@ public class UserTaskService {
                                 .ofSize(results.getT1().isEmpty() ? 1 : results.getT1().size())
                                 .withPage(0),
                         results.getT2()));
-
+        
     }
-
+    
     public Mono<Boolean> completeUserTask(
             final UserTask userTask,
             final OffsetDateTime timestamp) {
-
+        
         if (userTask == null) {
             return Mono.just(Boolean.FALSE);
         }
-
+        
         userTask.setEndedAt(timestamp);
-
+        
         return userTasks
                 .save(userTask)
                 .map(task -> Boolean.TRUE)
@@ -634,14 +631,14 @@ public class UserTaskService {
                             userTask.getId(),
                             e);
                     return Mono.just(Boolean.FALSE);
-                });
+                });        
     }
 
     public Mono<Boolean> cancelUserTask(
             final UserTask userTask,
             final OffsetDateTime timestamp,
             final String reason) {
-
+        
         if (userTask == null) {
             return Mono.just(Boolean.FALSE);
         }
@@ -658,21 +655,21 @@ public class UserTaskService {
                             e);
                     return Mono.just(Boolean.FALSE);
                 });
-
+        
     }
 
     public Mono<Boolean> createUserTask(
             final UserTask userTask) {
-
+        
         if (userTask == null) {
             return Mono.just(Boolean.FALSE);
         }
-
+        
         if (userTask.getDueDate() == null) {
             // for correct sorting
             userTask.setDueDate(OffsetDateTime.MAX);
         }
-
+        
         return userTasks
                 .save(userTask)
                 .map(task -> Boolean.TRUE)
@@ -682,16 +679,16 @@ public class UserTaskService {
                             e);
                     return Mono.just(Boolean.FALSE);
                 });
-
+                
     }
 
     public Mono<Boolean> updateUserTask(
             final UserTask userTask) {
-
+        
         if (userTask == null) {
             return Mono.just(Boolean.FALSE);
         }
-
+        
         return userTasks
                 .save(userTask)
                 .onErrorMap(e -> {
@@ -701,7 +698,7 @@ public class UserTaskService {
                     return null;
                 })
                 .map(savedTask -> savedTask != null);
-
+        
     }
 
     public Criteria buildUserTasksCriteria(
@@ -746,7 +743,7 @@ public class UserTaskService {
             userOrRestrictions.add(candidateGroupsMatches);
         }
 
-        if (candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()) {
+        if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
             final var candidateUserExclusions =
                     Criteria.where("excludedCandidateUsers.id")
                             .not().in(candidatesToBeExcluded);

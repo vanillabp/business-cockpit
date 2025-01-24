@@ -42,7 +42,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
-
+	
 	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
 			final UserDetails currentUser,
 			final int pageNumber,
@@ -58,7 +58,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Mono<UserTasksRequest> userTasksRequest,
             final OffsetDateTime initialTimestamp,
             final ServerWebExchange exchange) {
-
+		
         final var timestamp = initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now();
@@ -115,7 +115,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						.map(ResponseEntity::ok)
 						.switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
 				);
-
+            
 	}
 
     protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
