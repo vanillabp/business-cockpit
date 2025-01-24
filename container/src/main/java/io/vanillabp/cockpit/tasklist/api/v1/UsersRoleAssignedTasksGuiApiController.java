@@ -45,7 +45,7 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode model) {
+			final UserTaskService.RetrieveItemsMode mode) {
 
 		return userTaskService.getUserTasks(
 				true,
@@ -60,7 +60,7 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				searchQueries,
 				sort,
 				sortAscending,
-				model);
+				mode);
 
 	}
 

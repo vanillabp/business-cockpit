@@ -51,7 +51,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode model);
+			final UserTaskService.RetrieveItemsMode mode);
 
     @Override
     public Mono<ResponseEntity<UserTasks>> getUserTasks(

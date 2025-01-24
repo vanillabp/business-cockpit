@@ -45,7 +45,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode model) {
+			final UserTaskService.RetrieveItemsMode mode) {
 
 		return userTaskService.getUserTasks(
 				true,
@@ -60,7 +60,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 				searchQueries,
 				sort,
 				sortAscending,
-				model);
+				mode);
 
 	}
 
