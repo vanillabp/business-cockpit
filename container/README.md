@@ -36,7 +36,17 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
       ```
       Add `127.0.0.1 business-cockpit-mongo`
       to your local hosts file to make MongoDB accessible
-      (Unix: `/etc/hosts`, Window: `c:\Windows\System32\Drivers\etc\hosts`). 
+      (Unix: `/etc/hosts`, Window: `c:\Windows\System32\Drivers\etc\hosts`). <br><br>
+      *Hint*: If you encounter the error `/usr/bin/env: 'bash\r': No such file or directory` in Docker, it might be due to incorrect line endings in the script file. To resolve this: <br>
+   
+      Remove and then clone the repository again but with the following Git configuration:
+         ```powershell
+         git clone [url] --config core.autocrlf=input
+         ```
+      Alternatively you can try disabling automatic line ending conversion with Git by running:
+         ```powershell
+         git config --global core.autocrlf false
+         ```
 1. **Download container-JAR**:<br>...from *Maven*-Central or the latest
    [snapshot](https://github.com/vanillabp/business-cockpit/packages/1956012) and name it `bc.jar`.
 1. **Provide custom Spring Boot configuration**:<br>...by creating `application.yaml`:
