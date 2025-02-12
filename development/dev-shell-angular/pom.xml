@@ -36,30 +36,6 @@
           </filesets>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>link-dependent-packages</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <configuration>
-              <workingDirectory>${project.basedir}</workingDirectory>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared</arguments>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <configuration>
-          <workingDirectory>${project.basedir}</workingDirectory>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
