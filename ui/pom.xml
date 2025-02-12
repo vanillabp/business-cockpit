@@ -12,10 +12,97 @@
     <name>NPM UI components</name>
     <packaging>pom</packaging>
 
-    <modules>
-        <module>bc-shared</module>
-        <module>bc-ui</module>
-    </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>npm install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.npm.install}</skip>
+                            <arguments>install --workspaces --loglevel=verbose</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm update</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.npm.update}</skip>
+                            <arguments>update --workspaces</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm ci</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.npm.ci}</skip>
+                            <arguments>ci --workspaces</arguments>
+                        </configuration>
+                    </execution>
+                    <!-- It is necessary for apis/official-gui-api/client to generate the api client, before this plugin runs -->
+                    <execution>
+                        <id>npm build</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build --workspaces</arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>npm prerelease snapshot</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>--newVersion=${project.version}.${npm.prerelease} run-script version:snapshot --workspaces</arguments>
+                            <skip>${skip.npm.prerelease}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm publish snapshot</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run publish:snapshot --workspaces -- --@vanillabp:registry=${npm.registry}</arguments>
+                            <skip>${skip.npm.publish-snapshot}</skip>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm publish release</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run publish:release --workspaces -- --@vanillabp:registry=${npm.registry} --otp=</arguments>
+                            <skip>${skip.npm.publish-release}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <workingDirectory>${project.parent.basedir}</workingDirectory>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
     <licenses>
         <license>

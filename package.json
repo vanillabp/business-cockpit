@@ -1,0 +1,17 @@
+{
+  "name": "@vanillabp/business-cockpit",
+  "version": "0.0.6-SNAPSHOT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vanillabp/business-cockpit.git"
+  },
+  "homepage": "https://github.com/vanillabp/business-cockpit",
+  "private": true,
+  "workspaces": [
+    "apis/official-gui-api/client",
+    "ui/bc-shared",
+    "ui/bc-ui",
+    "development/dev-shell-angular",
+    "development/dev-shell-react"
+  ]
+}
