@@ -35,7 +35,7 @@ jobs:
           ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
       - name: Publish package
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
+        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/ -Ppipeline-build
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
