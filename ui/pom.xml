@@ -26,7 +26,7 @@
                         </goals>
                         <configuration>
                             <skip>${skip.npm.install}</skip>
-                            <arguments>install --workspaces --loglevel=verbose</arguments>
+                            <arguments>install --workspaces</arguments>
                         </configuration>
                     </execution>
                     <execution>
