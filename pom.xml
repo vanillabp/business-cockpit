@@ -19,12 +19,15 @@
     <version.org.mapstruct>1.5.5.Final</version.org.mapstruct>
     <version.protobuf>3.25.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
+    <skip.npm.install>false</skip.npm.install>
+    <skip.npm.update>true</skip.npm.update>
+    <skip.npm.ci>true</skip.npm.ci>
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
-    <skip.npm.update>false</skip.npm.update>
-    <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
+    <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <version.jupiter>5.10.1</version.jupiter>
+    <npm.prerelease>0</npm.prerelease>
   </properties>
 
   <modules>
@@ -33,7 +36,8 @@
     <module>apis</module>
     <module>ui</module>
     <module>container</module>
-    <module>development</module>
+<!--    TODO: add development again -->
+<!--    <module>development</module>-->
     <module>spi-for-java</module>
     <module>adapters</module>
   </modules>
@@ -107,8 +111,30 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
+                <skip>${skip.npm.install}</skip>
+                <arguments>install</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm update</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
                 <skip>${skip.npm.update}</skip>
-                <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/**</arguments>
+                <arguments>update</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm ci</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <skip>${skip.npm.ci}</skip>
+                <arguments>ci</arguments>
               </configuration>
             </execution>
             <execution>
@@ -119,50 +145,6 @@
               </goals>
               <configuration>
                 <arguments>run build</arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm prerelease snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>--newVersion=${project.version}.${npm.prerelease} run-script version:snapshot</arguments>
-                <skip>${skip.npm.prerelease}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm unpublish snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run unpublish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
-                <skip>${skip.npm.unpublish}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm publish snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run publish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
-                <skip>${skip.npm.publish-snapshot}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm publish release</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run publish:release -- --@vanillabp:registry=${npm.registry} --otp=</arguments>
-                <skip>${skip.npm.publish-release}</skip>
               </configuration>
             </execution>
           </executions>
@@ -264,6 +246,13 @@
 
   <profiles>
     <profile>
+      <id>pipeline-build</id>
+      <properties>
+        <skip.npm.install>true</skip.npm.install>
+        <skip.npm.ci>false</skip.npm.ci>
+      </properties>
+    </profile>
+    <profile>
       <id>unpublish-npm</id>
       <properties>
         <skip.npm.unpublish>false</skip.npm.unpublish>
@@ -277,28 +266,34 @@
         </property>
       </activation>
       <properties>
+        <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
         <skip.npm.prerelease>false</skip.npm.prerelease>
       </properties>
     </profile>
     <profile>
       <id>local-install</id>
       <properties>
-        <skip.npm.update>true</skip.npm.update>
         <skip.npm.unpublish>false</skip.npm.unpublish>
+        <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
       </properties>
     </profile>
     <profile>
       <id>release-npm</id>
       <properties>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
         <skip.npm.publish-release>false</skip.npm.publish-release>
       </properties>
     </profile>
     <profile>
       <id>skip-release-npm</id>
       <properties>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
         <skip.npm.publish-release>true</skip.npm.publish-release>
+      </properties>
+    </profile>
+    <profile>
+      <id>update-npm</id>
+      <properties>
+        <skip.npm.install>true</skip.npm.install>
+        <skip.npm.update>false</skip.npm.update>
       </properties>
     </profile>
   </profiles>
