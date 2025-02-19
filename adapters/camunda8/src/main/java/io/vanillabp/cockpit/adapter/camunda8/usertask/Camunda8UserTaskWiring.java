@@ -9,19 +9,17 @@ import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
-import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.repository.CrudRepository;
-
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.repository.CrudRepository;
 
 public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> {
 
@@ -97,16 +95,6 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 connectable,
                 noopUserTaskMethod,
                 noopUserTaskMethodParameters);
-
-    }
-    
-    protected boolean methodMatchesTaskDefinition(
-            final Camunda8UserTaskConnectable connectable,
-            final Method method,
-            final UserTaskDetailsProvider annotation) {
-
-        return super.methodMatchesTaskDefinition(connectable, method, annotation) ||
-                annotation.taskDefinition().equals(connectable.getTaskDefinition());
 
     }
     
