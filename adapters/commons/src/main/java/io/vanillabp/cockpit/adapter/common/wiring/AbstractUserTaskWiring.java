@@ -7,10 +7,9 @@ import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.springframework.context.ApplicationContext;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import org.springframework.context.ApplicationContext;
 
 public abstract class AbstractUserTaskWiring<T extends Connectable, M extends UserTaskMethodParameterFactory>
         extends AbstractTaskWiring<T, UserTaskDetailsProvider, M> {
@@ -45,6 +44,50 @@ public abstract class AbstractUserTaskWiring<T extends Connectable, M extends Us
                         index,
                         parameter.getName());
         
+    }
+
+    protected boolean methodMatchesElementId(
+            final T connectable,
+            final Method method,
+            final UserTaskDetailsProvider annotation) {
+
+        if (!annotation.taskDefinition().equals(UserTaskDetailsProvider.USE_METHOD_NAME)) {
+            return false;
+        }
+
+        if (annotation.id().equals(UserTaskDetailsProvider.USE_METHOD_NAME)
+                && method.getName().equals(connectable.getElementId())) {
+            return true;
+        }
+
+        if (annotation.id().equals(connectable.getElementId())) {
+            return true;
+        }
+
+        return false;
+
+    }
+
+    protected boolean methodMatchesTaskDefinition(
+            final T connectable,
+            final Method method,
+            final UserTaskDetailsProvider annotation) {
+
+        if (!annotation.id().equals(UserTaskDetailsProvider.USE_METHOD_NAME)) {
+            return false;
+        }
+
+        if (annotation.taskDefinition().equals(UserTaskDetailsProvider.USE_METHOD_NAME)
+                && method.getName().equals(connectable.getTaskDefinition())) {
+            return true;
+        }
+
+        if (annotation.taskDefinition().equals(connectable.getTaskDefinition())) {
+            return true;
+        }
+
+        return false;
+
     }
 
 }

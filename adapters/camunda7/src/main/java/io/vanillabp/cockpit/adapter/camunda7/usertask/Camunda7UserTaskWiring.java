@@ -6,18 +6,16 @@ import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
-import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.repository.CrudRepository;
-
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.repository.CrudRepository;
 
 public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Connectable, UserTaskMethodParameterFactory> {
 
@@ -90,23 +88,6 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
                 noopUserTaskMethodParameters);
 
         return true;
-        
-    }
-    
-    protected boolean methodMatchesTaskDefinition(
-            final Camunda7Connectable connectable,
-            final Method method,
-            final UserTaskDetailsProvider annotation) {
-        
-        if (super.methodMatchesTaskDefinition(connectable, method, annotation)) {
-            return true;
-        }
-
-        if (annotation.taskDefinition().equals(connectable.getTaskDefinition())) {
-            return true;
-        }
-
-        return false;
         
     }
     

@@ -90,7 +90,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     }
 
-
     @Override
     protected Camunda8BusinessCockpitService<?> connectToBpms(
             String workflowModuleId,
@@ -114,7 +113,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
         return bcService;
     }
-
 
     // from io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring.wireTask(T connectable, boolean allowNoMethodFound, BiFunction<Method, A, Boolean> methodMatchesTaskDefinition, BiFunction<Method, A, Boolean> methodMatchesElementId, BiFunction<Method, A, List<MethodParameter>> validateParameters, ConnectBean connect)
     protected boolean superWireWorkflow(

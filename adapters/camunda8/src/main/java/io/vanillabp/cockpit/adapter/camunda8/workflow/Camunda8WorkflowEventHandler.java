@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -142,6 +143,7 @@ public class Camunda8WorkflowEventHandler {
             value = ProcessWorkflowEvent.class,
             fallbackExecution = true,
             phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(final ProcessWorkflowEvent triggerEvent) {
 
         try {
@@ -162,6 +164,7 @@ public class Camunda8WorkflowEventHandler {
             value = ProcessWorkflowEvent.class,
             fallbackExecution = false,
             phase = TransactionPhase.AFTER_ROLLBACK)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleRollback(
             final ProcessWorkflowEvent triggerEvent) {
 

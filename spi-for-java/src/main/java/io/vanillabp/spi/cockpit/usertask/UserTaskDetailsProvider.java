@@ -1,15 +1,14 @@
 package io.vanillabp.spi.cockpit.usertask;
 
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
+import io.vanillabp.spi.service.TaskId;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-import io.vanillabp.spi.service.TaskId;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * This annotation is used to define a method for providing details for a certain
@@ -36,19 +35,19 @@ import io.vanillabp.spi.service.TaskId;
 @Repeatable(UserTaskDetailsProviders.class)
 public @interface UserTaskDetailsProvider {
 
+    static String USE_METHOD_NAME = "";
+
     static String ALL = "*";
-    
-    static String NONE = "*";
     
     /**
      * @return The activity's BPMN id. If this property is defined then {@link #taskDefinition()} must not be defined.
      */
-    String id() default NONE;
+    String id() default USE_METHOD_NAME;
 
     /**
      * @return The task-definition as defined in the BPMN. Use '*' to have once method for all user tasks of this service class.
      */
-    String taskDefinition();
+    String taskDefinition() default USE_METHOD_NAME;
     
     /**
      * Can be used to define certain versions or ranges of versions of a process for
@@ -67,6 +66,6 @@ public @interface UserTaskDetailsProvider {
      *                          annotated.
      * @return The version of the process this method belongs to.
      */
-    String[] version() default "*";
+    String[] version() default ALL;
     
 }

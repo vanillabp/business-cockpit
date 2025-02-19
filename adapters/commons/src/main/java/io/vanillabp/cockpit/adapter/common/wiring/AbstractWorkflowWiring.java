@@ -10,12 +10,11 @@ import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
-import org.springframework.context.ApplicationContext;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashSet;
 import java.util.Set;
+import org.springframework.context.ApplicationContext;
 
 public abstract class AbstractWorkflowWiring<T extends Connectable, M extends WorkflowMethodParameterFactory, BCS extends BusinessCockpitServiceImplementation<?>>
         extends AbstractTaskWiring<T, WorkflowDetailsProvider, M> {
@@ -90,13 +89,38 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
                 isPrimaryProcessWiring);
     }
 
-    private void registerWorkflowModule(String workflowModuleId) {
+    private void registerWorkflowModule(
+            final String workflowModuleId) {
+
         final var event = new RegisterWorkflowModuleEvent();
         event.setId(workflowModuleId);
         event.setUri(getWorkflowModuleUri(workflowModuleId));
         event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
         event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
         workflowModulePublishing.publish(event);
+
+    }
+
+    /*
+     * Not used in case of workflows but derived from AbstractTaskWiring
+     */
+    @Override
+    protected boolean methodMatchesElementId(
+            final T connectable,
+            final Method method,
+            final WorkflowDetailsProvider annotation) {
+        return false;
+    }
+
+    /*
+     * Not used in case of workflows but derived from AbstractTaskWiring
+     */
+    @Override
+    protected boolean methodMatchesTaskDefinition(
+            final T connectable,
+            final Method method,
+            final WorkflowDetailsProvider annotation) {
+        return false;
     }
 
     protected abstract String getWorkflowModuleUri(String workflowModuleId);
