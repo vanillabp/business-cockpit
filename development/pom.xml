@@ -13,8 +13,10 @@
   <packaging>pom</packaging>
   
    <modules>
+    <module>dev-shell-simulator</module>
     <module>dev-shell-angular</module>
     <module>dev-shell-react</module>
+    <module>dev-shell-simulator</module>
     <module>simulator</module>
   </modules>
 

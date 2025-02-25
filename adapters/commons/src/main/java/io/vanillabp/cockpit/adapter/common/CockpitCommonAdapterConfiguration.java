@@ -161,13 +161,12 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
             name = "base-url")
     @Qualifier("bpmsApiV1")
     public BpmsApi bpmsApiClient() {
-        
+
         final var config = properties.getCockpit().getRest();
         final var apiClient = new ApiClient().setBasePath(config.getBaseUrl());
         configureFeignBuilder(apiClient.getClass(), apiClient.getFeignBuilder(), config);
 
         return apiClient.buildClient(BpmsApi.class);
-        
     }
     
     @Bean
