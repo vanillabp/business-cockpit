@@ -14,8 +14,8 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
 
 1. The **Camunda Business Cockpit** application is started.
 2. A **UserTask is initialized**, triggering an event.
-3. The `` annotation forwards task details to the **BPMS API (**``**)**, which is handled by the **simulator**.
-4. The **dev-shell** retrieves task data from the **Official API (**``**)**, which either:
+3. The `@UTDP`*(UserTaskDetailsProvider)* and the `@WFDP`*(WorkflowDetailsProvider)* Annotations forward details, which is handled by the **simulator**.
+4. The **dev-shell** retrieves task data from the **Official API**, which either:
    - Fetches UserTasks from **Camunda 7 (C7)** or **Camunda 8 (C8)**.
    - Retrieves stored events directly from the simulator.
 
@@ -28,8 +28,8 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
 ### 1. (`BpmsApiController`)
 
 - Handles **UserTask creation and updates**.
-- Receives events and **stores them in the TaskService**.
-- Manages **Workflow events** through the **WorkflowService**.
+- Receives events and **calls the respective Task service method**.
+- Manages **Workflow events** through the **Workflow service**.
 - **Relevant Methods:**
   - `userTaskCreatedEvent(event)` → Creates a new UserTask.
   - `userTaskUpdatedEvent(userTaskId, event)` → Updates an existing UserTask.
@@ -45,7 +45,7 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
 
 ### 3.(`OfficialApiWorkflowController`)
 
-- Retrieves Workflow data from the **WorkflowService**.
+- Retrieve Workflow data from the **WorkflowService**.
 - **Relevant Method:**
   - `getWorkflow(workflowId)` → Returns a Workflow by ID.
 
@@ -58,7 +58,7 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
   - `getUserTask(userTaskId)` → Retrieves a UserTask.
   - `updateTask(userTaskId, details)` → Updates task details.
 
-### 5. (`TaskService`)
+### 5. (`WorkflowService`)
 
 - Manages **Workflows** similar to UserTasks.
 - **Relevant Methods:**
@@ -72,16 +72,19 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
 
 - **Java 17+**
 - **Maven**
-- **Camunda Business Cockpit** (Standalone)
+- **Camunda Business Cockpit** (See [BusinessCockpit Standalone](https://github.com/vanillabp/blueprint-workflowmodule-springboot-standalone-businesscockpit/tree/WIP))
 
 ### **2. Build and Run**
 
 ```sh
+cd /dev-shell-simulator
 mvn clean package
 java -jar target/dev-shell-simulator-0.0.4-SNAPSHOT.jar
 ```
 
 ### **3. API Endpoints**
+
+Relevant Endpoints that are used through your workflow with the dev-shell.
 
 | API              | Endpoint                                          | Description          |
 | ---------------- | ------------------------------------------------- | -------------------- |
