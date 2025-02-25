@@ -78,9 +78,11 @@ The main purpose of the simulator is to **populate the dev-shell with test data*
 
 ```sh
 cd /dev-shell-simulator
-mvn clean package
+mvn clean install
 java -jar target/dev-shell-simulator-0.0.4-SNAPSHOT.jar
 ```
+
+*Hint:* Use `mvn package` and run the `.jar` too see changes.
 
 ### **3. API Endpoints**
 
@@ -94,13 +96,11 @@ Relevant Endpoints that are used through your workflow with the dev-shell.
 | **Official API** | `GET /official-api/v1/usertask/{userTaskId}`      | Retrieves a UserTask |
 | **Official API** | `GET /official-api/v1/workflow/{workflowId}`      | Retrieves a Workflow |
 
----
-
 ## **Why Use the Dev-Shell Simulator?**
 
-✔ **Quick Development:** Hot module replacement ensures instant updates.\
 ✔ **Camunda Process Testing:** Simulate UserTasks and Workflows without requiring a full Camunda instance.\
 ✔ **Separation of Concerns:** The simulator provides data, while the dev-shell handles UI interactions.
+
 
 ## Noteworthy & Contributors
 
