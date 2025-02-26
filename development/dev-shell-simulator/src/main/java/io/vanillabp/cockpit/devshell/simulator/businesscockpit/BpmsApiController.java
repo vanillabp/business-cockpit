@@ -59,6 +59,27 @@ public class BpmsApiController implements BpmsApi {
     }
 
 
+    @Override
+    public ResponseEntity<Void> userTaskCancelledEvent(
+            final String userTaskId,
+            final UserTaskCancelledEvent event) {
+
+        taskService.removeTask(userTaskId);
+        log.info("Received UserTaskCancelledEvent for ID: {}", event.getId());
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> userTaskCompletedEvent(
+            final String userTaskId,
+            final UserTaskCompletedEvent event) {
+
+        taskService.removeTask(userTaskId);
+        log.info("Received UserTaskCompletedEvent for ID: {}", event.getId());
+
+        return ResponseEntity.ok().build();
+    }
 
     @Override
     public ResponseEntity<Void> userTaskUpdatedEvent(
@@ -66,6 +87,7 @@ public class BpmsApiController implements BpmsApi {
             final UserTaskCreatedOrUpdatedEvent event) {
 
         taskService.updateTask(userTaskId, event.getDetails());
+        log.info("Received UserTaskUpdatedEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();
     }
@@ -77,6 +99,18 @@ public class BpmsApiController implements BpmsApi {
             final WorkflowCreatedOrUpdatedEvent event) {
 
         workflowService.createWorkflow(event.getWorkflowId(), event);
+        log.info("Received WorkflowCreatedEvent for ID: {}", event.getId());
+
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> workflowCancelledEvent(
+            final String workflowId,
+            final WorkflowCancelledEvent workflowCancelledEvent) {
+
+        workflowService.removeWorkflow(workflowId);
+        log.info("Received WorkflowCancelledEvent for ID: {}", workflowCancelledEvent.getId());
 
         return ResponseEntity.ok().build();
     }
@@ -87,6 +121,7 @@ public class BpmsApiController implements BpmsApi {
             final WorkflowCreatedOrUpdatedEvent event) {
 
         workflowService.updateWorkflow(workflowId, event.getDetails());
+        log.info("Received WorkflowUpdatedEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();
     }
@@ -96,6 +131,8 @@ public class BpmsApiController implements BpmsApi {
             final String workflowId,
             final WorkflowCompletedEvent event) {
 
+        workflowService.removeWorkflow(workflowId);
+        log.info("Received WorkflowCompletedEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();
     }

@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -56,13 +58,25 @@ public class TaskService {
         userTask.setDetailsFulltextSearch(event.getDetailsFulltextSearch());
 
         userTasks.put(taskId, userTask);
-        log.info("Created task with ID: " + taskId);
-        log.info("usertask object: " + taskId);
+        log.info("Created task with ID: {}", taskId);
+        log.info("usertask object: {}", taskId);
     }
 
-    public UserTask getUserTask(final String userTaskId) {
-        log.info("Getting user task with ID: " + userTaskId);
+    public UserTask getUserTask(
+            final String userTaskId) {
+
+        log.info("Getting user task with ID: {}", userTaskId);
+
         return userTasks.get(userTaskId);
+    }
+
+    /**
+     * Retrieves all user tasks from the map.
+     *
+     * @return List of all stored UserTask objects.
+     */
+    public List<UserTask> getAllUserTasks() {
+        return new ArrayList<>(userTasks.values());
     }
 
     /**
@@ -73,15 +87,36 @@ public class TaskService {
      * @throws IllegalArgumentException If the task ID is null.
      * @throws IllegalStateException If the task does not exist.
      */
-    public void updateTask(final String userTaskId, final Map<String, Object> details) {
+    public void updateTask(
+            final String userTaskId,
+            final Map<String, Object> details) {
+
         if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID cannot be null");
         }
+
         if (!userTasks.containsKey(userTaskId)) {
             throw new IllegalStateException("Task with ID " + userTaskId + " not found");
         }
-        log.info("Updating user task with ID: " + userTaskId);
+
+        log.info("Updating user task with ID: {}", userTaskId);
 
         userTasks.get(userTaskId).setDetails(details);
     }
+
+    /**
+     * Removes specific UserTask from {@code userTasks} Map.
+     *
+     * @param userTaskId The ID of the UserTask to remove.
+     */
+    public void removeTask(
+            final String userTaskId) {
+
+        if (userTaskId == null) {
+            throw new IllegalArgumentException("UserTask ID cannot be null");
+        }
+        userTasks.remove(userTaskId);
+        log.info("UserTask with ID {} removed", userTaskId);
+    }
+
 }

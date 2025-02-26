@@ -87,7 +87,26 @@ public class WorkflowService {
         if (workflowId == null) {
             throw new IllegalArgumentException("Workflow ID cannot be null");
         }
+
         log.info("Getting workflow {}", workflowId);
+
         return workflows.get(workflowId);
     }
+
+    /**
+     * Removes specific workflow from {@code workflows}
+     *
+     * @param workflowId unique ID for each workflow
+     */
+    public void removeWorkflow(
+            final String workflowId) {
+
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID cannot be null");
+        }
+
+        workflows.remove(workflowId);
+        log.info("Workflow with ID {} removed", workflowId);
+    }
+
 }
