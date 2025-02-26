@@ -86,7 +86,7 @@ public class BpmsApiController implements BpmsApi {
             final String userTaskId,
             final UserTaskCreatedOrUpdatedEvent event) {
 
-        taskService.updateTask(userTaskId, event.getDetails());
+        taskService.updateTask(userTaskId, event);
         log.info("Received UserTaskUpdatedEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();
@@ -107,10 +107,10 @@ public class BpmsApiController implements BpmsApi {
     @Override
     public ResponseEntity<Void> workflowCancelledEvent(
             final String workflowId,
-            final WorkflowCancelledEvent workflowCancelledEvent) {
+            final WorkflowCancelledEvent event) {
 
         workflowService.removeWorkflow(workflowId);
-        log.info("Received WorkflowCancelledEvent for ID: {}", workflowCancelledEvent.getId());
+        log.info("Received WorkflowCancelledEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();
     }
@@ -120,7 +120,7 @@ public class BpmsApiController implements BpmsApi {
             final String workflowId,
             final WorkflowCreatedOrUpdatedEvent event) {
 
-        workflowService.updateWorkflow(workflowId, event.getDetails());
+        workflowService.updateWorkflow(workflowId, event);
         log.info("Received WorkflowUpdatedEvent for ID: {}", event.getId());
 
         return ResponseEntity.ok().build();

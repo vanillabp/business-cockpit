@@ -38,30 +38,20 @@ public class TaskService {
 
         final UserTask userTask = new UserTask();
         userTask.setId(taskId);
-        userTask.setBpmnTaskId(event.getBpmnTaskId());
-        userTask.setInitiator(event.getInitiator());
-        userTask.setWorkflowModuleId(event.getWorkflowModuleId());
-        userTask.setComment(event.getComment());
-        userTask.setBpmnProcessId(event.getBpmnProcessId());
-        log.info("BpmnProcess ID: {}", userTask.getBpmnProcessId());
-        userTask.setBpmnProcessVersion(event.getBpmnProcessVersion());
-        userTask.setWorkflowTitle(event.getWorkflowTitle());
-        userTask.setWorkflowId(event.getWorkflowId());
-        userTask.setBusinessId(event.getBusinessId());
-        userTask.setTitle(event.getTitle());
-        userTask.setBpmnTaskId(event.getBpmnTaskId());
-        userTask.setTaskDefinition(event.getTaskDefinition());
-        userTask.setTaskDefinitionTitle(event.getTaskDefinitionTitle());
-        userTask.setDueDate(event.getDueDate());
-        userTask.setFollowUpDate(event.getFollowUpDate());
-        userTask.setDetails(event.getDetails());
-        userTask.setDetailsFulltextSearch(event.getDetailsFulltextSearch());
+
+        populateUserTask(userTask, event);
 
         userTasks.put(taskId, userTask);
         log.info("Created task with ID: {}", taskId);
         log.info("usertask object: {}", taskId);
     }
 
+    /**
+     * Retrieves specific UserTask from the userTask Hashmap.
+     *
+     * @param userTaskId unique Id for each UserTask.
+     * @return userTask object
+     */
     public UserTask getUserTask(
             final String userTaskId) {
 
@@ -71,7 +61,7 @@ public class TaskService {
     }
 
     /**
-     * Retrieves all user tasks from the map.
+     * Retrieves all user tasks from the Hashmap.
      *
      * @return List of all stored UserTask objects.
      */
@@ -83,13 +73,13 @@ public class TaskService {
      * Updates an existing UserTask in the task map.
      *
      * @param userTaskId The ID of the UserTask to update.
-     * @param details The map containing task details.
+     * @param event UserTaskCreatedOrUpdatedEvent that contains all variables to update.
      * @throws IllegalArgumentException If the task ID is null.
      * @throws IllegalStateException If the task does not exist.
      */
     public void updateTask(
             final String userTaskId,
-            final Map<String, Object> details) {
+            final UserTaskCreatedOrUpdatedEvent event) {
 
         if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID cannot be null");
@@ -99,9 +89,10 @@ public class TaskService {
             throw new IllegalStateException("Task with ID " + userTaskId + " not found");
         }
 
-        log.info("Updating user task with ID: {}", userTaskId);
+        UserTask userTask = userTasks.get(userTaskId);
+        populateUserTask(userTask, event);
 
-        userTasks.get(userTaskId).setDetails(details);
+        log.info("Updating user task with ID: {}", userTaskId);
     }
 
     /**
@@ -118,5 +109,29 @@ public class TaskService {
         userTasks.remove(userTaskId);
         log.info("UserTask with ID {} removed", userTaskId);
     }
+
+    private void populateUserTask(
+            final UserTask userTask,
+            final UserTaskCreatedOrUpdatedEvent event) {
+
+        userTask.setBpmnTaskId(event.getBpmnTaskId());
+        userTask.setInitiator(event.getInitiator());
+        userTask.setWorkflowModuleId(event.getWorkflowModuleId());
+        userTask.setComment(event.getComment());
+        userTask.setBpmnProcessId(event.getBpmnProcessId());
+        userTask.setBpmnProcessVersion(event.getBpmnProcessVersion());
+        userTask.setWorkflowTitle(event.getWorkflowTitle());
+        userTask.setWorkflowId(event.getWorkflowId());
+        userTask.setBusinessId(event.getBusinessId());
+        userTask.setTitle(event.getTitle());
+        userTask.setBpmnTaskId(event.getBpmnTaskId());
+        userTask.setTaskDefinition(event.getTaskDefinition());
+        userTask.setTaskDefinitionTitle(event.getTaskDefinitionTitle());
+        userTask.setDueDate(event.getDueDate());
+        userTask.setFollowUpDate(event.getFollowUpDate());
+        userTask.setDetails(event.getDetails());
+        userTask.setDetailsFulltextSearch(event.getDetailsFulltextSearch());
+    }
+
 
 }

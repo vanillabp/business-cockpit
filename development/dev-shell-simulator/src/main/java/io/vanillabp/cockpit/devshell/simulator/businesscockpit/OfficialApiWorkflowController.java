@@ -27,24 +27,44 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
     private final TaskService taskService;
 
     public OfficialApiWorkflowController(
-            final WorkflowService workflowService, TaskService taskService) {
+            final WorkflowService workflowService,
+            final TaskService taskService) {
 
         this.workflowService = workflowService;
         this.taskService = taskService;
     }
 
+    /**
+     * Method that returns a List of UserTasks of a specific Workflow.
+     * (Currently just returns all UserTasks in the userTask map from the TaskService)
+     *
+     * @param workflowId unique Id for each workflow. (required)
+     * @param llatcup  (required)
+     * @param userTasksRequest  (required)
+     * @return
+     */
     @Override
     public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(
             final String workflowId,
             final Boolean llatcup,
             final UserTasksRequest userTasksRequest) {
 
+        log.info("Received request to retrieve user tasks of workflow with id {}", workflowId);
+
         return ResponseEntity.ok(taskService.getAllUserTasks());
     }
 
+    /**
+     * Method that returns a specific Workflow based on workflowId
+     *
+     * @param workflowId unique Id for each workflow. (required)
+     * @return returns the requested workflow.
+     */
     @Override
     public ResponseEntity<Workflow> getWorkflow(
             final String workflowId) {
+
+        log.info("Received request to retrieve workflow with id {}", workflowId);
 
         return ResponseEntity.ok(workflowService.getWorkflow(workflowId));
     }

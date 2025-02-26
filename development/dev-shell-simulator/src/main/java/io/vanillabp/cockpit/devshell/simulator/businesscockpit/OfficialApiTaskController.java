@@ -27,7 +27,9 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
      * @param taskService The usertask.TaskService for managing UserTasks.
      */
     @Autowired
-    public OfficialApiTaskController(TaskService taskService) {
+    public OfficialApiTaskController(
+            final TaskService taskService) {
+
         this.taskService = taskService;
     }
 
@@ -37,14 +39,12 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
      * @param userTaskId The ID of the UserTask to retrieve.
      * @return A ResponseEntity containing the retrieved UserTask or an error response.
      */
-
     @Override
     public ResponseEntity<UserTask> getUserTask(
             final String userTaskId,
             final Boolean markAsRead) {
 
-
-        UserTask userTask = taskService.getUserTask(userTaskId);
+        final UserTask userTask = taskService.getUserTask(userTaskId);
 
         if (userTask == null) {
             return ResponseEntity.notFound().build();
