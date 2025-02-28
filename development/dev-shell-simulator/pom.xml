@@ -29,7 +29,7 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>io.vanillabp.cockpit.devshell.simulator.BlueprintDevShellSimulator</mainClass>
+          <mainClass>io.vanillabp.cockpit.devshell.simulator.DevShellSimulator</mainClass>
           <layout>JAR</layout>
         </configuration>
       </plugin>
