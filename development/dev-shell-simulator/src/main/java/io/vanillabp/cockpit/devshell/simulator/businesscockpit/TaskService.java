@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
+import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ public class TaskService {
         final UserTask userTask = new UserTask();
         userTask.setId(taskId);
 
+        userTask.setCreatedAt(event.getTimestamp());
         populateUserTask(userTask, event);
 
         userTasks.put(taskId, userTask);
@@ -73,9 +75,9 @@ public class TaskService {
      * Updates an existing UserTask in the task map.
      *
      * @param userTaskId The ID of the UserTask to update.
-     * @param event UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
      * @throws IllegalArgumentException If the task ID is null.
-     * @throws IllegalStateException If the task does not exist.
+     * @throws IllegalStateException    If the task does not exist.
      */
     public void updateTask(
             final String userTaskId,
@@ -90,9 +92,34 @@ public class TaskService {
         }
 
         UserTask userTask = userTasks.get(userTaskId);
+        userTask.setUpdatedAt(event.getTimestamp());
         populateUserTask(userTask, event);
 
         log.info("Updating user task with ID: {}", userTaskId);
+    }
+
+    /**
+     * Method that gets called when the user task is to be completed. The Main Purpose is to set the end date.
+     *
+     * @param userTaskId The ID of the UserTask to be completed.
+     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     */
+    public void completeTask(
+            final String userTaskId,
+            final UserTaskCompletedEvent event) {
+
+        if (userTaskId == null) {
+            throw new IllegalArgumentException("UserTask ID cannot be null");
+        }
+
+        if (!userTasks.containsKey(userTaskId)) {
+            throw new IllegalStateException("Task with ID " + userTaskId + " not found");
+        }
+
+        UserTask userTask = userTasks.get(userTaskId);
+        userTask.setEndedAt(event.getTimestamp());
+
+        log.info("Completing user task with ID: {}", userTaskId);
     }
 
     /**
@@ -110,6 +137,12 @@ public class TaskService {
         log.info("UserTask with ID {} removed", userTaskId);
     }
 
+    /**
+     * Populates a User Task with new or updated variables.
+     *
+     * @param userTask UserTask object to be populated.
+     * @param event    UserTaskCreatedOrUpdatedEvent that contains all the details about a specific event.
+     */
     private void populateUserTask(
             final UserTask userTask,
             final UserTaskCreatedOrUpdatedEvent event) {
@@ -132,6 +165,4 @@ public class TaskService {
         userTask.setDetails(event.getDetails());
         userTask.setDetailsFulltextSearch(event.getDetailsFulltextSearch());
     }
-
-
 }

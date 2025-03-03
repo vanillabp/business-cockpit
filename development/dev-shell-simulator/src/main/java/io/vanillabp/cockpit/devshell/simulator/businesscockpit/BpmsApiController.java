@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * REST controller for the BPMS API.
  * Allows the creation and updating of UserTasks.
+ * (See BpmsApi interface for more details about each overridden method)
  */
 @RestController
 @RequestMapping("/bpms/api/v1")
@@ -36,6 +37,13 @@ public class BpmsApiController implements BpmsApi {
         this.workflowService = workflowService;
     }
 
+    /**
+     * Register a workflow-module or update the registration
+     *
+     * @param id    (required)
+     * @param event (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> registerWorkflowModule(
             final String id,
@@ -46,6 +54,12 @@ public class BpmsApiController implements BpmsApi {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Processes a user task CREATED event
+     *
+     * @param event (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> userTaskCreatedEvent(
             final UserTaskCreatedOrUpdatedEvent event) {
@@ -59,6 +73,11 @@ public class BpmsApiController implements BpmsApi {
     }
 
 
+    /**
+     * @param userTaskId (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> userTaskCancelledEvent(
             final String userTaskId,
@@ -70,17 +89,29 @@ public class BpmsApiController implements BpmsApi {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Processes a user task CANCELLED event
+     *
+     * @param userTaskId (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> userTaskCompletedEvent(
             final String userTaskId,
             final UserTaskCompletedEvent event) {
 
-        taskService.removeTask(userTaskId);
         log.info("Received UserTaskCompletedEvent for ID: {}", event.getId());
+        taskService.completeTask(userTaskId, event);
 
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * @param userTaskId (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> userTaskUpdatedEvent(
             final String userTaskId,
@@ -93,7 +124,12 @@ public class BpmsApiController implements BpmsApi {
     }
 
 
-
+    /**
+     * Processes a user task UPDATED event
+     *
+     * @param event (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> workflowCreatedEvent(
             final WorkflowCreatedOrUpdatedEvent event) {
@@ -104,6 +140,11 @@ public class BpmsApiController implements BpmsApi {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * @param workflowId The unique key of the workflow (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> workflowCancelledEvent(
             final String workflowId,
@@ -115,6 +156,13 @@ public class BpmsApiController implements BpmsApi {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Processes a workflow CANCELLED event
+     *
+     * @param workflowId The unique key of the workflow (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> workflowUpdatedEvent(
             final String workflowId,
@@ -126,6 +174,13 @@ public class BpmsApiController implements BpmsApi {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Processes a workflow COMPLETED event (see BpmsApi interface for details)
+     *
+     * @param workflowId The unique key of the workflow (required)
+     * @param event      (required)
+     * @return Returns the fitting response code.
+     */
     @Override
     public ResponseEntity<Void> workflowCompletedEvent(
             final String workflowId,

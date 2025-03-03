@@ -47,9 +47,9 @@ public class WorkflowService {
      * Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event WorkflowCreatedOrUpdatedEvent containing update details.
+     * @param event      WorkflowCreatedOrUpdatedEvent containing update details.
      * @throws IllegalArgumentException If the workflow ID is null.
-     * @throws IllegalStateException If the workflow does not exist.
+     * @throws IllegalStateException    If the workflow does not exist.
      */
     public void updateWorkflow(
             final String workflowId,
@@ -114,7 +114,7 @@ public class WorkflowService {
      * Populates a Workflow with new or updated variables.
      *
      * @param workflow Workflow object to be populated.
-     * @param event WorkflowCreatedOrUpdatedEvent that contains all details.
+     * @param event    WorkflowCreatedOrUpdatedEvent that contains all details.
      */
     private void populateWorkflow(
             final Workflow workflow,
