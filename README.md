@@ -20,6 +20,13 @@ To learn how to integrate your business services into the VanillaBP business coc
 
 ## Development
 
+### Setup git hooks
+To correctly set up the hit hooks, run:
+```sh
+mvn validate
+```
+
+### Setup development environment
 The VanillaBP business cockpit is a Java Spring Boot application using React as a web framework.
 
 For local development there are two preconditions:
