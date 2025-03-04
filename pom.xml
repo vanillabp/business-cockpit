@@ -25,6 +25,7 @@
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <version.jupiter>5.10.1</version.jupiter>
+    <version.spotless>2.44.3</version.spotless>
   </properties>
 
   <modules>
@@ -39,6 +40,38 @@
   </modules>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${version.spotless}</version>
+        <configuration>
+          <formats>
+            <format>
+              <includes>
+                <include>*.md</include>
+                <include>*.json</include>
+                <include>.gitignore</include>
+              </includes>
+              <trimTrailingWhitespace />
+              <endWithNewline />
+              <indent>
+                <spaces>true</spaces>
+                <spacesPerTab>2</spacesPerTab>
+              </indent>
+            </format>
+          </formats>
+
+          <java>
+            <eclipse>
+              <version>4.26</version>
+              <file>${maven.multiModuleProjectDirectory}/java-conventions.xml</file>
+            </eclipse>
+          </java>
+        </configuration>
+      </plugin>
+    </plugins>
+
     <pluginManagement>
       <plugins>
         <plugin>
