@@ -139,6 +139,8 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
             break;
             case WEBPACK_MF_REACT: uiUriType = UiUriType.WEBPACK_MF_REACT;
             break;
+            case NF_NG: uiUriType = UiUriType.NF_NG;
+            break;
             default: throw new IllegalArgumentException( "Unexpected enum constant: " + workflowUiUriType );
         }
 

@@ -5,7 +5,9 @@ public enum UserTaskUiUriType {
 
     EXTERNAL("EXTERNAL"),
 
-    WEBPACK_MF_REACT("WEBPACK_MF_REACT");
+    WEBPACK_MF_REACT("WEBPACK_MF_REACT"),
+
+    NF_NG("NF_NG");
 
     private final String value;
 

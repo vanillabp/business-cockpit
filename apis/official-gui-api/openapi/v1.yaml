@@ -510,6 +510,7 @@ components:
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
+      - NF_NG  # Native federation
     SearchQuery:
       type: object
       required:
