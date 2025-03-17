@@ -5,11 +5,10 @@ import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.kwic.KwicResult;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
-
-import io.vanillabp.cockpit.util.kwic.KwicResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -154,7 +153,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final boolean unclaim) {
 
 		if (unclaim) {
-			return userTaskService.unclaimTask(userTaskId, currentUser.getId());
+			final var currentUserId = currentUser.getId();
+			return userTaskService.unclaimTask(currentUserId, userTaskId, currentUserId);
 		}
 		return userTaskService.claimTask(userTaskId, personAndGroupMapper.toModelPerson(currentUser));
 
@@ -167,7 +167,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final boolean unclaim) {
 
 		if (unclaim) {
-			return userTaskService.unclaimTask(userTaskIds, currentUser.getId());
+			final var currentUserId = currentUser.getId();
+			return userTaskService.unclaimTask(currentUserId, userTaskIds, currentUserId);
 		}
 		return userTaskService.claimTask(userTaskIds, personAndGroupMapper.toModelPerson(currentUser));
 

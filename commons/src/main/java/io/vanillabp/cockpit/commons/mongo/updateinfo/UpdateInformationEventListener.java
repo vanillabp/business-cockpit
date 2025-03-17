@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import java.time.OffsetDateTime;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -9,8 +10,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.data.mongodb.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
@@ -29,7 +28,7 @@ public class UpdateInformationEventListener implements ReactiveBeforeConvertCall
 
             return currentUser
                     .getUserLoggedInAsMono()
-                    .switchIfEmpty(Mono.just("system"))
+                    .switchIfEmpty(Mono.just(UpdateInformationAware.SYSTEM_USER))
                     .map(currentUser -> {
                         entity.setUpdatedAt(OffsetDateTime.now());
                         entity.setUpdatedBy(currentUser);

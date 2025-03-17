@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -281,6 +282,7 @@ public class UserTaskService {
     }
 
     public Mono<UserTask> unclaimTask(
+            final String currentUser,
             final String userTaskId,
             final String personId) {
 
@@ -289,6 +291,8 @@ public class UserTaskService {
         query.addCriteria(Criteria.where("assignee.id").is(personId));
         final var update = new Update();
         update.unset("assignee");
+        update.set("updatedAt", OffsetDateTime.now());
+        update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
 
         return mongoTemplate
                 .updateFirst(query, update, UserTask.class)
@@ -298,6 +302,7 @@ public class UserTaskService {
     }
 
     public Flux<UserTask> unclaimTask(
+            final String currentUser,
             final Collection<String> userTaskIds,
             final String personId) {
 
@@ -306,6 +311,8 @@ public class UserTaskService {
         query.addCriteria(Criteria.where("assignee.id").is(personId));
         final var update = new Update();
         update.unset("assignee");
+        update.set("updatedAt", OffsetDateTime.now());
+        update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
 
         final var findQuery = new Query();
         findQuery.addCriteria(Criteria.where("id").in(userTaskIds));
@@ -764,14 +771,17 @@ public class UserTaskService {
             case OpenTasks:
             case OpenTasksWithFollowUp:
             case OpenTasksWithoutFollowUp:
-                subCriterias.add(new Criteria().orOperator(
-                        Criteria.where("endedAt").exists(false),
-                        Criteria.where("endedAt").gte(initialTimestamp)));
+                if (initialTimestamp == null) {
+                    subCriterias.add(
+                            Criteria.where("endedAt").exists(false));
+                } else {
+                    subCriterias.add(new Criteria().orOperator(
+                            Criteria.where("endedAt").exists(false),
+                            Criteria.where("endedAt").gte(initialTimestamp)));
+                }
                 break;
             case ClosedTasksOnly:
-                subCriterias.add(new Criteria().orOperator(
-                        Criteria.where("endedAt").exists(true),
-                        Criteria.where("endedAt").lt(initialTimestamp)));
+                subCriterias.add(Criteria.where("endedAt").exists(true));
                 break;
             default:
                 throw new RuntimeException("Unsupported mode '"
@@ -780,19 +790,11 @@ public class UserTaskService {
         }
 
         // take followup-date into account
-        switch (mode) {
-            case OpenTasksWithFollowUp: {
-                final Criteria inFuture = Criteria.where("followUpDate").gt(initialTimestamp);
-                subCriterias.add(inFuture);
-                break;
-            }
-            case OpenTasksWithoutFollowUp: {
-                final Criteria notSet = Criteria.where("followUpDate").exists(false);
-                final Criteria inPast = Criteria.where("followUpDate").lte(OffsetDateTime.now());
-                final Criteria excludeFollowUps = new Criteria().orOperator(notSet, inPast);
-                subCriterias.add(excludeFollowUps);
-                break;
-            }
+        if (mode == RetrieveItemsMode.OpenTasksWithoutFollowUp) {
+            final Criteria notSet = Criteria.where("followUpDate").exists(false);
+            final Criteria inPast = Criteria.where("followUpDate").lte(OffsetDateTime.now());
+            final Criteria excludeFollowUps = new Criteria().orOperator(notSet, inPast);
+            subCriterias.add(excludeFollowUps);
         }
 
         // limit result according to predefined filters
