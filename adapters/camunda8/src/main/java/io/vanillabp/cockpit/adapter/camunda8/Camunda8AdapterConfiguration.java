@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8;
 
 import freemarker.template.Configuration;
-import io.camunda.zeebe.spring.client.CamundaAutoConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentPersistence;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
@@ -42,11 +41,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.repository.CrudRepository;
 
-
 @AutoConfigurationPackage(basePackageClasses = Camunda8AdapterConfiguration.class)
 @EnableConfigurationProperties(Camunda8VanillaBpProperties.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
-@AutoConfigureBefore(CamundaAutoConfiguration.class)
+@AutoConfigureBefore(name = {
+        "io.camunda.zeebe.spring.client.CamundaAutoConfiguration", // community-hub client
+        "io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration" // official client
+})
 public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camunda8BusinessCockpitService<?>> {
 
     public static final String ADAPTER_ID = "camunda8";
