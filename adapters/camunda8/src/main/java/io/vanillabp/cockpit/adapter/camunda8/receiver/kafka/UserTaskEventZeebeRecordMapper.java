@@ -6,11 +6,12 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class UserTaskEventZeebeRecordMapper {
 
     public static Camunda8UserTaskCreatedEvent mapToUserTaskCreatedInformation(JobRecordValue jobRecord,
-                                                                               Set<String> idNames){
+                                                                               Supplier<Set<String>> idNames){
         Camunda8UserTaskCreatedEvent userTaskCreatedEvent = new Camunda8UserTaskCreatedEvent();
 
         userTaskCreatedEvent.setProcessDefinitionKey(jobRecord.getProcessDefinitionKey());
@@ -116,14 +117,16 @@ public class UserTaskEventZeebeRecordMapper {
 
     private static void setBusinessKey(JobRecordValue jobRecord,
                                        Camunda8UserTaskCreatedEvent userTaskCreatedEvent,
-                                       Set<String> idNames) {
+                                       Supplier<Set<String>> idNames) {
 
         Map<String, Object> variables = jobRecord.getVariables();
         if(variables == null) {
             return;
         }
 
-        idNames.stream()
+        idNames
+                .get()
+                .stream()
                 .filter(variables::containsKey)
                 .findFirst()
                 .ifPresent(idName -> userTaskCreatedEvent.setBusinessKey((String) variables.get(idName))) ;

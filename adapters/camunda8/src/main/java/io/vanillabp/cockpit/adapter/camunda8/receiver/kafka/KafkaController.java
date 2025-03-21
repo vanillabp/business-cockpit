@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandl
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +32,12 @@ public class KafkaController {
 
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
     private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
-    private final Set<String> idNames;
+    private final Supplier<Set<String>> idNames;
 
     public KafkaController(
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
-            Set<String> idNames) {
+            Supplier<Set<String>> idNames) {
 
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;

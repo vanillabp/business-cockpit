@@ -72,6 +72,6 @@ public class KafkaConfiguration {
         return new KafkaController(
                 camunda8UserTaskEventHandler,
                 camunda8WorkflowEventHandler,
-                camunda8AdapterConfiguration.getIdNames());
+                camunda8AdapterConfiguration::getIdNames);
     }
 }

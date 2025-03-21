@@ -7,12 +7,13 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class WorkflowEventZeebeRecordMapper {
 
     public static Camunda8WorkflowCreatedEvent map(
             ProcessInstanceCreationRecordValue processInstanceCreationRecord,
-            Set<String> idNames) {
+            Supplier<Set<String>> idNames) {
         Camunda8WorkflowCreatedEvent workflowCreatedEvent = new Camunda8WorkflowCreatedEvent();
 
         workflowCreatedEvent.setTenantId(
@@ -40,14 +41,16 @@ public class WorkflowEventZeebeRecordMapper {
 
     private static void setBusinessKey(ProcessInstanceCreationRecordValue processInstanceCreationRecord,
                                        Camunda8WorkflowCreatedEvent workflowCreatedEvent,
-                                       Set<String> idNames) {
+                                       Supplier<Set<String>> idNames) {
 
         Map<String, Object> variables = processInstanceCreationRecord.getVariables();
         if(variables == null) {
             return;
         }
 
-        idNames.stream()
+        idNames
+                .get()
+                .stream()
                 .filter(variables::containsKey)
                 .findFirst()
                 .ifPresent(idName -> workflowCreatedEvent.setBusinessKey((String) variables.get(idName))) ;

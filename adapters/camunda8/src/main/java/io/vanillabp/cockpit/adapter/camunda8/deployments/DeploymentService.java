@@ -5,78 +5,152 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayOutputStream;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class DeploymentService {
-    private final DeploymentRepository deploymentRepository;
-    
-    private final DeploymentResourceRepository deploymentResourceRepository;
 
-    private final Map<Long, io.camunda.zeebe.model.bpmn.instance.Process> cachedProcesses = new HashMap<>();
+    private final DeploymentPersistence persistence;
 
     public DeploymentService(
-            final DeploymentRepository deploymentRepository,
-            final DeploymentResourceRepository deploymentResourceRepository) {
+            final DeploymentPersistence persistence) {
 
-        this.deploymentRepository = deploymentRepository;
-        this.deploymentResourceRepository = deploymentResourceRepository;
-        
+        this.persistence = persistence;
+
     }
-    
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { OptimisticLockingFailureException.class, ObjectOptimisticLockingFailureException.class },
+            maxAttempts = 100,
+            backoff = @Backoff(delay = 200, maxDelay = 1000, multiplier = 1.5, random = true))
     public DeployedBpmn addBpmn(
             final BpmnModelInstance model,
             final int fileId,
             final String resourceName) {
-        
-        final var previous = deploymentResourceRepository.findById(fileId);
+
+        final var previous = persistence.findDeploymentResource(fileId);
         if (previous.isPresent()) {
             return (DeployedBpmn) previous.get();
         }
 
         final var outStream = new ByteArrayOutputStream();
         Bpmn.writeModelToStream(outStream, model);
-        
-        final var bpmn = new DeployedBpmn();
-        bpmn.setFileId(fileId);
-        bpmn.setResource(outStream.toByteArray());
-        bpmn.setResourceName(resourceName);
 
-        return deploymentResourceRepository.save(bpmn);
+        return persistence.addDeployedBpmn(
+                fileId,
+                resourceName,
+                outStream.toByteArray());
 
     }
-    
+
+    @Recover
+    public DeployedBpmn recoverAddBpmn(
+            final OptimisticLockingFailureException exception,
+            final BpmnModelInstance model,
+            final int fileId,
+            final String resourceName) {
+
+        return staleRecoverAddBpmn(exception, model, fileId, resourceName);
+
+    }
+
+    @Recover
+    public DeployedBpmn recoverAddBpmn(
+            final ObjectOptimisticLockingFailureException exception,
+            final BpmnModelInstance model,
+            final int fileId,
+            final String resourceName) {
+
+        return staleRecoverAddBpmn(exception, model, fileId, resourceName);
+
+    }
+
+    private DeployedBpmn staleRecoverAddBpmn(
+            final Exception exception,
+            final BpmnModelInstance model,
+            final int fileId,
+            final String resourceName) {
+
+        throw new RuntimeException(
+                "Could not save BPMN '"
+                        + resourceName
+                        + "' in local DB due to stale OptimisticLockingFailureException", exception);
+
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { OptimisticLockingFailureException.class, ObjectOptimisticLockingFailureException.class },
+            maxAttempts = 100,
+            backoff = @Backoff(delay = 200, maxDelay = 1000, multiplier = 1.5, random = true))
     public DeployedProcess addProcess(
             final int packageId,
             final Process camunda8DeployedProcess,
             final DeployedBpmn bpmn) {
-        
+
         final var versionedId = camunda8DeployedProcess.getProcessDefinitionKey();
-        final var previous = deploymentRepository.findByDefinitionKey(versionedId);
-        if (previous.isPresent()) {
+
+        final var previous = persistence.findDeployedProcess(versionedId);
+        if ((previous.isPresent())
+                && (previous.get().getPackageId() == packageId)) {
             return (DeployedProcess) previous.get();
         }
 
-        final var deployedProcess = new DeployedProcess();
-        
-        deployedProcess.setDefinitionKey(versionedId);
-        deployedProcess.setVersion(camunda8DeployedProcess.getVersion());
-        deployedProcess.setPackageId(packageId);
-        deployedProcess.setBpmnProcessId(camunda8DeployedProcess.getBpmnProcessId());
-        deployedProcess.setDeployedResource(bpmn);
-        deployedProcess.setPublishedAt(OffsetDateTime.now());
+        return persistence.addDeployedProcess(
+                versionedId,
+                camunda8DeployedProcess.getVersion(),
+                packageId,
+                camunda8DeployedProcess.getBpmnProcessId(),
+                bpmn,
+                OffsetDateTime.now());
 
-        return deploymentRepository.save(deployedProcess);
     }
 
-    public List<DeployedBpmn> getBpmnNotOfPackage(final int packageId) {
+    @Recover
+    public DeployedProcess recoverAddProcess(
+            final OptimisticLockingFailureException exception,
+            final int packageId,
+            final Process camunda8DeployedProcess,
+            final DeployedBpmn bpmn) {
 
-        return deploymentResourceRepository
-                .findByTypeAndDeployments_packageIdNot(DeployedBpmn.TYPE, packageId)
-                .stream()
-                .distinct() // Oracle doesn't support distinct queries including blob columns, hence the job is done here
-                .toList();
+        return staleRecoverAddProcess(exception, packageId, camunda8DeployedProcess, bpmn);
+
+    }
+
+    @Recover
+    public DeployedProcess recoverAddProcess(
+            final ObjectOptimisticLockingFailureException exception,
+            final int packageId,
+            final Process camunda8DeployedProcess,
+            final DeployedBpmn bpmn) {
+
+        return staleRecoverAddProcess(exception, packageId, camunda8DeployedProcess, bpmn);
+
+    }
+
+    private DeployedProcess staleRecoverAddProcess(
+            final Exception exception,
+            final int packageId,
+            final Process camunda8DeployedProcess,
+            final DeployedBpmn bpmn) {
+
+        throw new RuntimeException(
+                "Could not save Process '"
+                        + camunda8DeployedProcess.getBpmnProcessId()
+                        + "' in local DB due to stale OptimisticLockingFailureException", exception);
+
+    }
+
+    public List<? extends DeployedBpmn> getBpmnNotOfPackage(final int packageId) {
+
+        return persistence.getBpmnNotOfPackage(packageId);
 
     }
 

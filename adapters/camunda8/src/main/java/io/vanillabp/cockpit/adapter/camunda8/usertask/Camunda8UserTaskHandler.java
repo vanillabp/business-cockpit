@@ -1,11 +1,11 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstance;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.ProcessUserTaskEvent;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
@@ -41,7 +41,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     private final ApplicationEventPublisher applicationEventPublisher;
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
     private final AdapterAwareProcessService<?> processService;
-    private final ProcessInstanceRepository processInstanceRepository;
+    private final ProcessInstancePersistence processInstancePersistence;
     private final String taskDefinition;
     private final String taskTitle;
     private final String bpmnProcessId;
@@ -59,7 +59,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             String bpmnProcessId,
             String taskTitle,
             AdapterAwareProcessService<?> processService,
-            ProcessInstanceRepository processInstanceRepository,
+            ProcessInstancePersistence processInstancePersistence,
             CrudRepository<Object, Object> workflowAggregateRepository,
             Object bean,
             Method method,
@@ -71,7 +71,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         this.taskTitle = taskTitle;
         this.applicationEventPublisher = applicationEventPublisher;
         this.processService = processService;
-        this.processInstanceRepository = processInstanceRepository;
+        this.processInstancePersistence = processInstancePersistence;
 
         determineBusinessKeyToIdMapper();
     }
@@ -165,9 +165,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     private String getBusinessKeyFromProcessInstanceKey(
             long processInstanceKey){
 
-        return processInstanceRepository
+        return processInstancePersistence
                 .findById(processInstanceKey)
-                .map(ProcessInstanceEntity::getBusinessKey)
+                .map(ProcessInstance::getBusinessKey)
                 .orElseThrow();
     }
 

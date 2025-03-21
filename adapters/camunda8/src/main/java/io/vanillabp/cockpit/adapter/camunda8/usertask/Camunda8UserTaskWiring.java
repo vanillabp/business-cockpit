@@ -1,8 +1,8 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractUserTaskWiring;
@@ -33,7 +33,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final Camunda8UserTaskEventHandler userTaskEventHandler;
 
-    private final ProcessInstanceRepository processInstanceRepository;
+    private final ProcessInstancePersistence processInstancePersistence;
 
     private final Method noopUserTaskMethod;
 
@@ -46,7 +46,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Camunda8UserTaskEventHandler userTaskEventHandler,
-            final ProcessInstanceRepository processInstanceRepository) throws Exception {
+            final ProcessInstancePersistence processInstancePersistence) throws Exception {
         
         super(applicationContext, springBeanUtil, new UserTaskMethodParameterFactory());
         this.connectableServices = connectableServices;
@@ -54,7 +54,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
-        this.processInstanceRepository = processInstanceRepository;
+        this.processInstancePersistence = processInstancePersistence;
 
         noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
 
@@ -131,7 +131,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 connectable.getBpmnProcessId(),
                 connectable.getTitle(),
                 processService,
-                processInstanceRepository,
+                processInstancePersistence,
                 workflowAggregateRepository,
                 bean,
                 method,

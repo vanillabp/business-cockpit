@@ -1,5 +1,6 @@
-package io.vanillabp.cockpit.adapter.camunda8.workflow.persistence;
+package io.vanillabp.cockpit.adapter.camunda8.deployments.jpa;
 
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstance;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -7,7 +8,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "CAMUNDA8_BC_PROCESS_INSTANCES")
-public class ProcessInstanceEntity {
+public class ProcessInstanceEntity implements ProcessInstance {
 
     @Id
     @Column(name = "PROCESS_INSTANCE_KEY")

@@ -82,11 +82,24 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
             registeredWorkflowModules.add(workflowModuleId);
         }
 
-        return connectToBpms(
+        final var service = connectToBpms(
                 workflowModuleId,
                 workflowAggregateClass,
                 bpmnProcessId,
                 isPrimaryProcessWiring);
+
+        if (isPrimaryProcessWiring && (service == null)) {
+            throw new RuntimeException(
+                    "The workflow service\n   "
+                    + workflowServiceClass.getName()
+                    + "\nhas to auto-wire a property\n   BusinessProcessService<"
+                    + workflowAggregateClass.getName()
+                    + "> businessCockpitService\n(by using @Autowired or constructor injection)!"
+                    + "Add this to the service even it is unused.");
+        }
+
+        return service;
+
     }
 
     private void registerWorkflowModule(

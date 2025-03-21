@@ -2,10 +2,10 @@ package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
@@ -41,7 +41,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final Optional<Configuration> templating;
 
-    private final ProcessInstanceRepository processInstanceRepository;
+    private final ProcessInstancePersistence processInstancePersistence;
 
     private final Camunda8VanillaBpProperties camunda8Properties;
 
@@ -55,7 +55,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final ProcessInstanceRepository processInstanceRepository,
+            final ProcessInstancePersistence processInstancePersistence,
             final WorkflowModulePublishing workflowModulePublishing) {
         super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.properties = properties;
@@ -63,7 +63,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
-        this.processInstanceRepository = processInstanceRepository;
+        this.processInstancePersistence = processInstancePersistence;
         this.camunda8Properties = camunda8Properties;
     }
 
@@ -231,7 +231,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 bpmnProcessId,
                 connectable.processName(),
                 templating,
-                processInstanceRepository,
+                processInstancePersistence,
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository(),
                 bean,
                 method,

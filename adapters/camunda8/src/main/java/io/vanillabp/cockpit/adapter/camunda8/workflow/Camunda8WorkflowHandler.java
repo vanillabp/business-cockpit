@@ -1,11 +1,9 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceEntity;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceMapper;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.persistence.ProcessInstanceRepository;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
@@ -47,7 +45,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     private final String bpmnProcessName;
 
-    private final ProcessInstanceRepository processInstanceRepository;
+    private final ProcessInstancePersistence processInstancePersistence;
 
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
 
@@ -58,7 +56,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessName,
             final Optional<Configuration> templating,
-            final ProcessInstanceRepository processInstanceRepository,
+            final ProcessInstancePersistence processInstancePersistence,
             final CrudRepository<Object, Object> workflowAggregateRepository,
             final Object bean,
             final Method method,
@@ -69,7 +67,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
         this.bpmnProcessName = bpmnProcessName;
-        this.processInstanceRepository = processInstanceRepository;
+        this.processInstancePersistence = processInstancePersistence;
 
         determineBusinessKeyToIdMapper();
     }
@@ -308,8 +306,13 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     }
 
     private void saveBusinessKeyProcessInstanceConnection(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
-        ProcessInstanceEntity processInstanceEntity = ProcessInstanceMapper.map(camunda8WorkflowCreatedEvent);
-        processInstanceRepository.save(processInstanceEntity);
+        processInstancePersistence.save(
+                camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
+                camunda8WorkflowCreatedEvent.getBusinessKey(),
+                camunda8WorkflowCreatedEvent.getBpmnProcessId(),
+                camunda8WorkflowCreatedEvent.getVersion(),
+                camunda8WorkflowCreatedEvent.getProcessDefinitionKey(),
+                camunda8WorkflowCreatedEvent.getTenantId());
     }
 
 

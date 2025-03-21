@@ -1,4 +1,4 @@
-package io.vanillabp.cockpit.adapter.camunda8.deployments;
+package io.vanillabp.cockpit.adapter.camunda8.deployments.jpa;
 
 import java.io.Serializable;
 
