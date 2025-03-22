@@ -1,68 +1,42 @@
+![](../readme/vanillabp-headline.png)
+
 # Adapters
+
+Business Cockpit adapters implement the [SPI for Java](../spi-for-java) which is used by business applications
+to provide business data about user tasks and workflows. They are responsible for processing
+events of the underlying Business Processing Management System (BPMS) to keep the data shown in the
+*VanillaBP Business Cockpit* (list of user tasks, list of workflows) up to date.
+
+**Contents:**
+1. [General](#general)
+1. [Common adapter functionality]()
+1. [BPMS-specific Adapters](#bpms-specific-adapters)
 
 ## General
 
-The business cockpit adapters are the way-to-go for automatically sending user-task and workflow information from your BPMS application to the business cockpit. They also allow you to add additional event-driven logic to your application via annotations. 
+The business cockpit adapters are the ready-to-use components for *Spring Boot* and [VanillaBP based](https://github.com/vanillabp/spi-for-java)
+business applications. The business workflow module should only use the SPI as a dependency but the
+runtime container must provide the dependency for adapter specific to the BPMS used
+(see ["Using an adapter"](../spi-for-java#using-an-adapter)).
 
-Currently, there is a Camunda 7 adapter available and a Camunda 8 adapter in development. 
+*Hint:* For simple use cases the Maven module
+for the business workflow module and the Maven module for the runtime container is the same
+(see ["Workflow modules"](https://github.com/vanillabp/spring-boot-support?tab=readme-ov-file#workflow-modules)).
 
-## Event propagation to Business Cockpit
+## Common adapter functionality
 
-Two ways of event propagation of user task and workflow events are currently provided. 
+There are feature which are common to all adapters provided. These features are implemented in a
+separate Maven module used as a dependency by adapters specific to a BPMS.
 
-- REST (default): The business-cockpit REST API is used for event transmission.
+However, those features a described in [separate documentation](./commons):
 
-- Kafka: Events are encoded via Protobuf and then sent via a Kafka broker
+1. [Configuration of event propagation](./commons#configuration-of-event-propagation)
+1. [Using templates for event details](./commons#using-templates-for-event-details)
 
-Note that this functionality is not adapter specific, i.e. it is available in every readily implemented adapter.
+## BPMS-specific Adapters
 
-## Configuration
+There are configuration properties specific to the underlying BPMS. Checkout each adapter documentation
+for details:
 
-### REST (default)
-
-Per default, events are sent via REST. This means that if no other message transmission method is configured explicitly, connection properties for the business cockpit REST connection must be set:
-
-```
-application:  
-  business-cockpit:  
-    base-url: <business cockpit url>  
-    authentication:  
-      basic: true  
-      username: <username>
-      password: <password>
-```
-
-### Kafka
-
-If you want to propagate events via a Kafka broker instead, your workflow application must add the spring-kafka dependency and additionally have topic names for both user-task and workflow events set. These must be equal to the Kafka topic names in your business-cockpit configuration.
-
-```
-vanillabp:  
-  cockpit:  
-    kafka:
-      topics:  
-        user-task: <user task topic name>  
-        workflow: <workflow topic name>
-        workflow-module: <workflow module topic name>
-```
-
-All other connection properties for Kafka can be set as in the standard Spring Boot autoconfiguration (see [here](https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#appendix.application-properties.integration))
-
-Additionally, optional Maven dependencies have to be added:
-
-```xml
-<dependency>
-    <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>bpms-protobuf-api</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.kafka</groupId>
-    <artifactId>spring-kafka</artifactId>
-</dependency>
-<!-- required for Camunda 8 -->
-<dependency>
-    <groupId>at.phactum.zeebe</groupId>
-    <artifactId>zeebe-kafka-exporter-serde</artifactId>
-    <version>8.5.0</version>
-</dependency>
-```
+1. [Camunda 7](./camunda7)
+1. [Camunda 8](./camunda8)
