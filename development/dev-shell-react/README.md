@@ -22,7 +22,6 @@ For local development of user-task forms in workflow modules one can
 1. Link the package `npm link`
 1. Get current package-version `npm -g list` (e.g. `@vanillabp/bc-shared@0.0.1`)
 1. Change to webapp folder of the workflow module
-1. Link the global package `npm link @vanillabp/bc-shared@0.0.1` (this needs to be repeated after each `npm install`)
 
 ### Webpack
 
