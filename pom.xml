@@ -36,8 +36,7 @@
     <module>apis</module>
     <module>ui</module>
     <module>container</module>
-<!--    TODO: add development again -->
-<!--    <module>development</module>-->
+    <module>development</module>
     <module>spi-for-java</module>
     <module>adapters</module>
   </modules>
