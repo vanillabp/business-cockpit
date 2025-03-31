@@ -1,2 +1,24 @@
 server:
   port: 9080
+
+dev-shell-simulator:
+  users:
+    - id: tolga
+      email: tolga@example.com
+      firstName: Tolga
+      lastName: Topal
+      groups: ROLE_ADMIN, ROLE_RISK_ASSESSMENT
+      attributes:
+        office365-uuid: 7bda0fe7-881e-4aa3-b0ee-258cddb71711
+
+    - id: pelikast
+      email: Pelikast@example.com
+      firstName: Stephan
+      lastName: Pelikan
+      groups: ROLE_ADMIN
+      attributes:
+        office365-uuid: f9107b18-8fdf-40c1-aac4-531054b5bd5c
+
+application:
+  jwt:
+    hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
