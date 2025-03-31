@@ -1,2 +1,6 @@
 server:
   port: 9080
+
+application:
+  jwt:
+    hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
