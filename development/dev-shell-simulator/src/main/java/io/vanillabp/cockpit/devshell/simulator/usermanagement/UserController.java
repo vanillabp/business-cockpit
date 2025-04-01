@@ -19,6 +19,7 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/user")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class UserController {
 
     private final Properties properties;
@@ -32,12 +33,7 @@ public class UserController {
         return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
     }
 
-    @GetMapping(value = "/all-detailed")
-    public ResponseEntity<List<User>> allUsersDetailed() {
-        return ResponseEntity.ok(properties.getUsers());
-    }
-
-    @GetMapping(value = "/", produces = "text/plain")
+    @GetMapping(value = "/get-user", produces = "text/plain")
     public ResponseEntity<String> getUser(final HttpServletRequest request) {
         final var context = securityContextRepository.loadDeferredContext(request).get();
         if (context == null) {
