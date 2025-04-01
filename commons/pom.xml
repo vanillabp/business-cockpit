@@ -11,6 +11,15 @@
   <artifactId>commons</artifactId>
   <name>Common classes and utilities which may be also used by other Spring Boot applications like workflow modules.</name>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>

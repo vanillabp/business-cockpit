@@ -42,6 +42,18 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
           <dependencies>
@@ -72,6 +84,7 @@
           <version>3.10.1</version>
           <configuration>
             <release>${version.java}</release>
+            <parameters>true</parameters>
             <annotationProcessorPaths>
               <path>
                 <groupId>org.mapstruct</groupId>
