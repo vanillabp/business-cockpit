@@ -1,10 +1,11 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
-import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
-import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import io.vanillabp.cockpit.gui.api.v1.*;
+
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +37,6 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
     /**
      * Method that returns a List of UserTasks of a specific Workflow.
-     * (Currently just returns all UserTasks in the userTask map from the TaskService)
      *
      * @param workflowId       unique Id for each workflow. (required)
      * @param llatcup          (required)
@@ -49,9 +49,12 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
             final Boolean llatcup,
             final UserTasksRequest userTasksRequest) {
 
+        List<UserTask> filteredUserTasks = taskService.getAllUserTasks().stream().
+                filter(task -> task.getWorkflowId().equals(workflowId)).toList();
+
         log.info("Client retrieved user tasks of workflow {}", workflowId);
 
-        return ResponseEntity.ok(taskService.getAllUserTasks());
+        return ResponseEntity.ok(filteredUserTasks);
 
     }
 
@@ -71,4 +74,14 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
     }
 
+    @Override
+    public ResponseEntity<Workflows> getWorkflows(
+            WorkflowsRequest workflowsRequest,
+            String requestId,
+            OffsetDateTime initialTimestamp) {
+
+        Workflows workflows = workflowService.getWorkflowsResponse(workflowsRequest);
+
+        return ResponseEntity.ok(workflows);
+    }
 }

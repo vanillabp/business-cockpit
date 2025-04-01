@@ -1,13 +1,18 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from "rxjs";
-import { NgForOf } from "@angular/common";
+import { NgForOf, NgIf } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { HttpClient, HttpClientModule } from "@angular/common/http";
 
 @Component({
   selector: 'lib-main',
   standalone: true,
   imports: [
-    NgForOf
+    NgForOf,
+    NgIf,
+    FormsModule,
+    HttpClientModule
   ],
   templateUrl: './main.component.html',
   styleUrl: './main.component.css'
@@ -16,14 +21,19 @@ export class MainComponent {
   constructor(
     private readonly router: Router,
     private readonly route: ActivatedRoute,
+    private readonly http: HttpClient
   ) {
   }
 
   dataObserver: Subscription | undefined = undefined;
   additionalRoutes: string[] = [];
+  users: string[] = [];
+  currentUser: string | undefined = undefined;
+  baseUrl = "http://localhost:9080";
 
   ngOnInit() {
     this.dataObserver = this.route.data.subscribe(data => this.additionalRoutes = data["additionalRoutes"]);
+    this.loadUsers();
   }
 
   ngOnDestroy() {
@@ -31,7 +41,48 @@ export class MainComponent {
   }
 
   navigateTo(target: string) {
-    this.router.navigate([`/${target}`])
+    this.router.navigate([`/${target}`]);
   }
 
+  loadUsers() {
+    this.http.get<string[]>(`${this.baseUrl}/user/all`)
+      .subscribe({
+        next: (allUsers: string[]) => {
+          this.users = allUsers;
+          this.getCurrentUser();
+        },
+        error: (error) => {
+          console.error('Error fetching users:', error);
+        }
+      });
+  }
+
+  getCurrentUser() {
+    this.http.get(`${this.baseUrl}/user/get-user`, {
+      responseType: 'text',
+      withCredentials: true
+    }).subscribe({
+      next: (user: string) => {
+        this.currentUser = user;
+      },
+      error: () => {
+        this.currentUser = undefined;
+      }
+    });
+  }
+
+  changeUser(event: Event) {
+    const userId = (event.target as HTMLSelectElement).value;
+
+    this.http.post(`${this.baseUrl}/user/${userId}`, {}, {
+      withCredentials: true
+    }).subscribe({
+      next: () => {
+        window.location.reload();
+      },
+      error: (error) => {
+        console.error('Error changing user:', error);
+      }
+    });
+  }
 }
