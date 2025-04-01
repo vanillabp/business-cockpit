@@ -1,3 +1,116 @@
-<div class="header">
-    <input type="text" placeholder="Enter ID" #searchInput (keyup.enter)="search(searchInput.value)">
+<div class="header-container">
+  <div class="task-selection-container">
+    <div class="select-container" [ngClass]="{ 'phone': isPhone }">
+      <!-- User Task Dropdown -->
+      <p-dropdown
+        *ngIf="isUserTaskView"
+        styleClass="header-dropdown"
+        [options]="userTaskOptions"
+        [(ngModel)]="selectedTaskId"
+        (ngModelChange)="onItemSelect($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a task"
+        [virtualScroll]="true"
+        [filter]="true"
+        filterBy="label"
+        [showClear]="true"
+        [lazy]="true"
+        (onLazyLoad)="loadMore()"
+        [virtualScrollItemSize]="38"
+        [style]="{ 'width': '100%' }"
+        [scrollHeight]="'250px'">
+        <ng-template pTemplate="selectedItem" let-selectedOption>
+          <div class="flex items-center gap-2" *ngIf="selectedOption">
+            <ng-container *ngIf="selectedOption.label.includes('|')">
+                <span class="font-bold">{{ selectedOption.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ selectedOption.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!selectedOption.label.includes('|')">
+                <span>{{ selectedOption.label }}</span>
+              </ng-container>
+          </div>
+        </ng-template>
+        <ng-template let-option pTemplate="item">
+          <div class="flex items-center gap-2">
+             <ng-container *ngIf="option.label.includes('|')">
+               <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
+               <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
+             </ng-container>
+             <ng-container *ngIf="!option.label.includes('|')">
+               <span>{{ option.label }}</span>
+             </ng-container>
+          </div>
+        </ng-template>
+      </p-dropdown>
+
+      <!-- Workflow Dropdown -->
+      <p-dropdown
+        *ngIf="isWorkflowView"
+        styleClass="header-dropdown"
+        [options]="workflowOptions"
+        [(ngModel)]="selectedWorkflowId"
+        (ngModelChange)="onItemSelect($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a workflow"
+        [virtualScroll]="true"
+        [filter]="true"
+        filterBy="label"
+        [showClear]="true"
+        [lazy]="true"
+        (onLazyLoad)="loadMore()"
+        [virtualScrollItemSize]="38"
+        [style]="{ 'width': '100%' }"
+        [scrollHeight]="'250px'">
+         <ng-template pTemplate="selectedItem" let-selectedOption>
+           <div class="flex items-center gap-2" *ngIf="selectedOption">
+             <ng-container *ngIf="selectedOption.label.includes('|')">
+                <span class="font-bold">{{ selectedOption.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ selectedOption.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!selectedOption.label.includes('|')">
+                <span>{{ selectedOption.label }}</span>
+              </ng-container>
+           </div>
+         </ng-template>
+         <ng-template let-option pTemplate="item">
+           <div class="flex items-center gap-2">
+              <ng-container *ngIf="option.label.includes('|')">
+                <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!option.label.includes('|')">
+                <span>{{ option.label }}</span>
+              </ng-container>
+           </div>
+         </ng-template>
+      </p-dropdown>
+    </div>
+
+    <app-task-toggle
+      [value]="taskFilter"
+      (onChange)="onFilterChange($event)">
+    </app-task-toggle>
+  </div>
+
+  <div class="view-menu">
+    <div class="dropdown">
+      <!-- User Task Views -->
+      <button *ngIf="isUserTaskView" class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
+      <div *ngIf="isUserTaskView && selectedTaskId" class="dropdown-content">
+        <a (click)="navigateToView('form')">form</a>
+        <a (click)="navigateToView('list')">list</a>
+        <a (click)="navigateToView('icon')">icon</a>
+      </div>
+
+      <!-- Workflow Views -->
+      <button *ngIf="isWorkflowView" class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
+      <div *ngIf="isWorkflowView && selectedWorkflowId" class="dropdown-content">
+        <a (click)="navigateToView('page')">page</a>
+        <a (click)="navigateToView('list')">list</a>
+        <a (click)="navigateToView('icon')">icon</a>
+      </div>
+    </div>
+  </div>
 </div>

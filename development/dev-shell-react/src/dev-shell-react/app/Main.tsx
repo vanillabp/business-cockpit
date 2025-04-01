@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Anchor, Box, Text } from 'grommet';
+import { Anchor, Box, Text, Select } from 'grommet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    groups: string[];
-    attributes: Record<string, string[]> | null;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    groups?: string[];
+    attributes?: Record<string, string[]> | null;
 }
 
 const Main = ({
@@ -42,22 +42,53 @@ const Main = ({
             });
     }, []);
 
-    const changeUser = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const userId = event.target.value;
+    const changeUser = (userId: string) => {
         fetch(`/dev-shell/user/${userId}`, {
             method: 'POST',
             credentials: 'include',
         }).then(() => window.location.reload());
     };
 
+    const selectOptions = [
+        { label: '---', value: '---' },
+        ...users.map(user => ({
+            label: `${user.id}, ${user.firstName} ${user.lastName}`,
+            value: user.id
+        }))
+    ];
 
     return (
         <Box margin="large" gap="medium">
-            <Text weight='bold'>{t('title.long')}</Text>
-            <Anchor color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
+            <Text style={{ color: '#613500', fontSize: '1.5rem'}}
+                  weight='bold'>{t('title.long')}</Text>
+            <Box style={{
+                color: '#613500',
+            }} direction="row" gap="small" align="center">
+                <Text style={{
+                    color: '#613500',
+                }}>User:</Text>
+                <Select
+                    style={{
+                        color: '#613500'
+                    }}
+                    size="medium"
+                    placeholder="Select user"
+                    options={selectOptions}
+                    labelKey="label"
+                    valueKey={{ key: 'value', reduce: true }}
+                    value={currentUser}
+                    onChange={({ value }) => {
+                        setCurrentUser(value);
+                        changeUser(value);
+                    }}
+                />
+            </Box>
+            <Anchor style={{color: '#b88d00'}}
+                    color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
                 {t('link-usertask')}
             </Anchor>
-            <Anchor color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
+            <Anchor style={{color: '#b88d00'}}
+                    color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
                 {t('link-workflow')}
             </Anchor>
             {additionalComponents.map(componentName => (
@@ -65,17 +96,6 @@ const Main = ({
                     {componentName}
                 </Anchor>
             ))}
-            <div>
-                User:&nbsp;
-                <select onChange={changeUser} value={currentUser || ''}>
-                    <option value="---">---</option>
-                    {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                            {user.id + ", " + user.firstName + " " + user.lastName}
-                        </option>
-                    ))}
-                </select>
-            </div>
         </Box>
     );
 };

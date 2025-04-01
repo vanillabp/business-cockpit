@@ -1,12 +1,23 @@
-<div class="devShell">
-  <h1>dev-shell</h1>
-  <div>Well-known module-federation components:</div>
+<div class="devShell main-page">
+  <h1>VanillaBP Business Cockpit Dev Shell</h1>
+
+  <div class="user-selector">
+    <span>User:</span>
+    <select [ngModel]="currentUser || ''" (change)="changeUser($event)">
+      <option value="---">---</option>
+      <option *ngFor="let user of users" [value]="user.id">{{ user.id }}, {{ user.firstName }} {{ user.lastName }}</option>
+    </select>
+  </div>
+
   <div class="componentButtons">
     <button (click)="navigateTo('task')">task</button>
     <button (click)="navigateTo('workflow')">workflow</button>
   </div>
+
   <div>Custom module-federation components:</div>
   <div class="componentButtons">
     <button *ngFor="let route of additionalRoutes" (click)="navigateTo(route)">{{ route }}</button>
   </div>
+
+
 </div>

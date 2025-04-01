@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
-import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.OffsetDateTime;
 /**
  * REST controller for the official task list API.
  * Allows retrieving UserTasks.
@@ -55,6 +55,18 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
 
         return ResponseEntity.ok(userTask);
 
+    }
+
+    @Override
+    public ResponseEntity<UserTasks> getUserTasks(
+            final UserTasksRequest userTasksRequest,
+            final OffsetDateTime initialTimestamp) {
+        
+        final var userTasks = taskService.getUserTasks(userTasksRequest);
+
+        log.info("Client retrieved all UserTasks, total: {}", userTasks.getUserTasks().size());
+
+        return ResponseEntity.ok(userTasks);
     }
 
 }

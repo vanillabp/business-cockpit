@@ -1,0 +1,53 @@
+.task-toggle-container {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+/* VanillaBP theme for main page */
+:host-context(.main-page) .toggle-option {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid #b88d00;
+  color: #613500;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+:host-context(.main-page) .toggle-option:hover {
+  background-color: #fbe495;
+}
+
+:host-context(.main-page) .toggle-option.active {
+  border-color: #613500;
+  background-color: #b88d00;
+  color: white;
+  font-weight: bold;
+}
+
+/* Neutral theme for other pages */
+.toggle-option {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  color: #333;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  background-color: white;
+}
+
+.toggle-option:hover {
+  background-color: #f0f0f0;
+}
+
+.toggle-option.active {
+  border-color: #666;
+  background-color: #e0e0e0;
+  color: #333;
+  font-weight: bold;
+} 
