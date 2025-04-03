@@ -19,6 +19,14 @@ dev-shell-simulator:
       attributes:
         office365-uuid: f9107b18-8fdf-40c1-aac4-531054b5bd5c
 
+    - id: joe
+      email: joe@doe.com
+      firstName: Joe
+      lastName: Doe
+      groups: MARKETING
+      attributes:
+        office365-uuid: 8b778542-096b-4f07-93f4-574466d15711
+
 application:
   jwt:
     hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
