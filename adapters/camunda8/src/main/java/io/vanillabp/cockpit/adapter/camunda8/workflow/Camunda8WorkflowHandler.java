@@ -30,6 +30,10 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -48,7 +52,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     private final ProcessInstancePersistence processInstancePersistence;
 
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
-
 
     public Camunda8WorkflowHandler(
             final VanillaBpCockpitProperties cockpitProperties,
@@ -77,7 +80,11 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         return logger;
     }
 
-
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { Exception.class },
+            maxAttempts = 4,
+            backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
     public WorkflowEvent processLifeCycleEvent(
             final Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
 
@@ -89,8 +96,19 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         fillLifecycleEvent(camunda8WorkflowLifeCycleEvent, workflowCreatedEvent);
 
         return workflowCreatedEvent;
+
     }
 
+    @Recover
+    public void recoverProcessLifeCycleEvent(
+            final Exception exception,
+            final Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
+
+        logger.error("Could not process workflow lifecycle event: '{}'!",
+                camunda8WorkflowLifeCycleEvent,
+                exception);
+
+    }
 
     private void fillLifecycleEvent(
             final Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent,
@@ -112,6 +130,11 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         event.setBpmnProcessVersion(workflowLifeCycleEvent.getBpmnProcessVersion());
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { Exception.class },
+            maxAttempts = 4,
+            backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
     public WorkflowEvent processCreatedEvent(
             final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
 
@@ -125,8 +148,19 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         saveBusinessKeyProcessInstanceConnection(camunda8WorkflowCreatedEvent);
 
         return workflowCreatedEvent;
+        
     }
 
+    @Recover
+    public void recoverProcessCreatedEvent(
+            final Exception exception,
+            final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
+
+        logger.error("Could not process workflow created event: '{}'!",
+                camunda8WorkflowCreatedEvent,
+                exception);
+
+    }
 
     public WorkflowEvent processUpdatedEvent(
             final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
@@ -164,7 +198,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                         ? workflowCreatedEvent
                         : details);
     }
-
 
     private void prefillWorkflowDetails(
             final Camunda8WorkflowCreatedEvent workflowCreatedEvent,

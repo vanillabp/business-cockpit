@@ -33,6 +33,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
@@ -115,9 +120,13 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         }
     }
 
-
-
-    public void notify(Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { Exception.class },
+            maxAttempts = 4,
+            backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
+    public void notify(
+            final Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent) {
 
         Camunda8UserTaskLifecycleEvent.Intent intent = camunda8UserTaskLifecycleEvent.getIntent();
         UserTaskLifecycleEvent userTaskEvent = switch (intent) {
@@ -127,6 +136,18 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         fillLifecycleEvent(userTaskEvent, camunda8UserTaskLifecycleEvent);
         publishEvent(userTaskEvent);
+
+    }
+
+    @Recover
+    public void recoverNotify(
+            final Exception exception,
+            final Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent) {
+
+        logger.error("Could not process user task lifecycle event: '{}'!",
+                camunda8UserTaskLifecycleEvent,
+                exception);
+
     }
 
     private void fillLifecycleEvent(UserTaskLifecycleEvent userTaskLifecycleEvent,
@@ -150,7 +171,13 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 //        );
     }
 
-    public void notify(Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Retryable(
+            retryFor = { Exception.class },
+            maxAttempts = 4,
+            backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
+    public void notify(
+            final Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
 
         String workflowModuleId = processService.getWorkflowModuleId();
         final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
@@ -160,6 +187,18 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         );
         this.fillUserTaskCreatedEvent(camunda8UserTaskCreatedEvent, userTaskCreatedEvent);
         publishEvent(userTaskCreatedEvent);
+
+    }
+
+    @Recover
+    public void recoverNotify(
+            final Exception exception,
+            final Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
+
+        logger.error("Could not process user task created/updated event: '{}'!",
+                camunda8UserTaskCreatedEvent,
+                exception);
+
     }
 
     private String getBusinessKeyFromProcessInstanceKey(
@@ -247,7 +286,6 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         userTaskCreatedEvent.setWorkflowTitle(new HashMap<>());
         userTaskCreatedEvent.setTaskDefinitionTitle(new HashMap<>());
     }
-
 
     @SuppressWarnings("unchecked")
     private UserTaskDetails callUserTaskDetailsProviderMethod(
