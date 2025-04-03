@@ -28,12 +28,17 @@ public class UserController {
 
     private final JwtProperties jwtProperties;
 
-    @GetMapping(value = "/all")
-    public ResponseEntity<List<String>> allUsers() {
+    @GetMapping(value = "/all/id")
+    public ResponseEntity<List<String>> allUsersId() {
         return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
     }
 
-    @GetMapping(value = "/get-user", produces = "text/plain")
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> allUsers() {
+        return ResponseEntity.ok(properties.getUsers());
+    }
+
+    @GetMapping(value = "/", produces = "text/plain")
     public ResponseEntity<String> getUser(final HttpServletRequest request) {
         final var context = securityContextRepository.loadDeferredContext(request).get();
         if (context == null) {

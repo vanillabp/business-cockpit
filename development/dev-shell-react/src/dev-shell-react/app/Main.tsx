@@ -3,6 +3,15 @@ import { Anchor, Box, Text} from 'grommet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+interface User {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    groups: string[];
+    attributes: Record<string, string[]> | null;
+}
+
 const Main = ({
   additionalComponents
 }: {
@@ -11,16 +20,17 @@ const Main = ({
   
   const { t } = useTranslation('app');
   const navigate = useNavigate();
-  const [users, setUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
   const baseUrl = "http://localhost:9080";
+
 
     useEffect(() => {
         fetch(`${baseUrl}/user/all`)
             .then(response => response.json())
-            .then((allUsers: string[]) => {
+            .then((allUsers: User[]) => {
                 setUsers(allUsers);
-                return fetch(`${baseUrl}/user/get-user`, {
+                return fetch(`${baseUrl}/user/`, {
                     headers: { 'Accept': 'text/plain' },
                     credentials: 'include',
                 });
@@ -61,9 +71,9 @@ const Main = ({
                 User:&nbsp;
                 <select onChange={changeUser} value={currentUser || ''}>
                     <option value="---">---</option>
-                    {users.map(userId => (
-                        <option key={userId} value={userId}>
-                            {userId}
+                    {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                            {user.id + ", " + user.firstName + " " + user.lastName}
                         </option>
                     ))}
                 </select>
