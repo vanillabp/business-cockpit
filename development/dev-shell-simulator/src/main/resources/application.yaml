@@ -1,32 +1,6 @@
 server:
   port: 9080
 
-dev-shell-simulator:
-  users:
-    - id: john
-      email: john@doe.com
-      firstName: John
-      lastName: Doe
-      groups: ADMIN, RISK_ASSESSMENT
-      attributes:
-        office365-uuid: 7bda0fe7-881e-4aa3-b0ee-258cddb71711
-
-    - id: jane
-      email: jane@doe.com
-      firstName: Jane
-      lastName: Doe
-      groups: ADMIN
-      attributes:
-        office365-uuid: f9107b18-8fdf-40c1-aac4-531054b5bd5c
-
-    - id: joe
-      email: joe@doe.com
-      firstName: Joe
-      lastName: Doe
-      groups: MARKETING
-      attributes:
-        office365-uuid: 8b778542-096b-4f07-93f4-574466d15711
-
 application:
   jwt:
     hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
