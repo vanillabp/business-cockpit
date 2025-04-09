@@ -9,4 +9,12 @@
   <div class="componentButtons">
     <button *ngFor="let route of additionalRoutes" (click)="navigateTo(route)">{{ route }}</button>
   </div>
+
+  <div class="user-selector">
+    User:&nbsp;
+    <select [ngModel]="currentUser || ''" (change)="changeUser($event)">
+      <option value="---">---</option>
+      <option *ngFor="let userId of users" [value]="userId">{{ userId }}</option>
+    </select>
+  </div>
 </div>
