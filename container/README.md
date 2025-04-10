@@ -48,7 +48,10 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
           ```powershell
           git config --global core.autocrlf false
           ```
-1. **Download container-JAR**:<br>...from *Maven*-Central or the latest
+1. **Download simulator-JAR**:<br>...required for local setups from [Maven Central](https://central.sonatype.com/artifact/io.vanillabp.businesscockpit/simulator) or the latest
+   [snapshot](https://github.com/vanillabp/business-cockpit/packages/1856658) and name it `simulator.jar`.
+1. **Run the Simulator**:<br>...using this command: `java -Dspring.profiles.active=rest-sync --add-opens=java.base/java.lang=ALL-UNNAMED -jar simulator.jar`
+1. **Download container-JAR**:<br>...from [Maven Central](https://central.sonatype.com/artifact/io.vanillabp.businesscockpit/container) or the latest
    [snapshot](https://github.com/vanillabp/business-cockpit/packages/1956012) and name it `bc.jar`.
 1. **Provide custom Spring Boot configuration**:<br>...by creating `application.yaml`:
    ```yaml
@@ -62,7 +65,7 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
      title-long: My Business Cockpit
      application-version: "1.0"
    ```
-1. **Run VanillaBP Business Cockpit**:<br>...using this command `java -jar bc.jar`
+1. **Run VanillaBP Business Cockpit**:<br>...using this command `java -Dspring.profiles.active=local -jar bc.jar`
 1. **Open Browser to test the Business Cockpit**:<br>Using the URL `http://localhost:8080/` will
    prompt you for basic authentication. Confirm using username `test` and password `test`.
    Afterwards the VanillaBP Business Cockpit is loaded showing empty lists.

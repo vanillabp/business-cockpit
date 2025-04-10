@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import { Anchor, Box, Text} from 'grommet';
+import React, { useEffect, useState } from 'react';
+import { Anchor, Box, Text } from 'grommet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,19 +18,17 @@ const Main = ({
   additionalComponents: Array<string>
 }) => {
   
-  const { t } = useTranslation('app');
-  const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
-  const baseUrl = "http://localhost:9080";
-
+    const { t } = useTranslation('app');
+    const navigate = useNavigate();
+    const [users, setUsers] = useState<User[]>([]);
+    const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        fetch(`${baseUrl}/user/all`)
+        fetch('/dev-shell/user/all')
             .then(response => response.json())
             .then((allUsers: User[]) => {
                 setUsers(allUsers);
-                return fetch(`${baseUrl}/user/`, {
+                return fetch('/dev-shell/user/', {
                     headers: { 'Accept': 'text/plain' },
                     credentials: 'include',
                 });
@@ -46,7 +44,7 @@ const Main = ({
 
     const changeUser = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const userId = event.target.value;
-        fetch(`${baseUrl}/user/${userId}`, {
+        fetch(`/dev-shell/user/${userId}`, {
             method: 'POST',
             credentials: 'include',
         }).then(() => window.location.reload());

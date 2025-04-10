@@ -4,3 +4,11 @@ server:
 application:
   jwt:
     hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=
+
+dev-shell-simulator:
+  users:
+    - id: test
+      email: test@doe.com
+      first-name: Test
+      last-name: Doe
+      groups: RISK_ASSESSMENT

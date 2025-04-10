@@ -5,21 +5,23 @@ import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.TransientSecurityContext;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Optional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/user")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@RequestMapping("/dev-shell/user")
 public class UserController {
 
     private final Properties properties;
@@ -29,18 +31,26 @@ public class UserController {
     private final JwtProperties jwtProperties;
 
     @GetMapping(value = "/all/id")
-    public ResponseEntity<List<String>> allUsersId() {
+    public ResponseEntity<List<String>> allUsersIds() {
+
         return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
+
     }
 
     @GetMapping("/all")
     public ResponseEntity<List<User>> allUsers() {
+
         return ResponseEntity.ok(properties.getUsers());
+
     }
 
     @GetMapping(value = "/", produces = "text/plain")
-    public ResponseEntity<String> getUser(final HttpServletRequest request) {
-        final var context = securityContextRepository.loadDeferredContext(request).get();
+    public ResponseEntity<String> getUser(
+            final HttpServletRequest request) {
+
+        final var context = securityContextRepository
+                .loadDeferredContext(request)
+                .get();
         if (context == null) {
             return ResponseEntity.notFound().build();
         }
@@ -49,6 +59,7 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(auth.getName());
+
     }
 
     @PostMapping(value = "/{userId}")
@@ -56,6 +67,7 @@ public class UserController {
             final HttpServletRequest request,
             final HttpServletResponse response,
             @PathVariable("userId") final String userId) {
+
         if (!StringUtils.hasText(userId)) {
             return ResponseEntity.badRequest().build();
         }
@@ -65,9 +77,12 @@ public class UserController {
             setJwtForChangedUser(request, response, userId);
         }
         return ResponseEntity.ok().build();
+
     }
 
-    private void logout(final HttpServletResponse response) {
+    private void logout(
+            final HttpServletResponse response) {
+
         final var cookie = new Cookie(jwtProperties.getCookie().getName(), "");
         cookie.setMaxAge(0);
         cookie.setPath(jwtProperties.getCookie().getPath());
@@ -79,6 +94,7 @@ public class UserController {
             cookie.setAttribute("SameSite", sameSite);
         }
         response.addCookie(cookie);
+
     }
 
     private void setJwtForChangedUser(
@@ -97,10 +113,14 @@ public class UserController {
                 new TransientSecurityContext(
                         new UsernamePasswordAuthenticationToken(userDetails, "", authorities));
         securityContextRepository.saveContext(context, request, response);
+
     }
 
     private String getSecurityCookieSameSiteFromEnum() {
+
         final var sameSite = this.jwtProperties.getCookie().getSameSite();
         return sameSite == null ? null : sameSite.attributeValue();
+
     }
+
 }

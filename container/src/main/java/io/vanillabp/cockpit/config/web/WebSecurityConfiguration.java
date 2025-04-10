@@ -141,7 +141,7 @@ public class WebSecurityConfiguration {
                         .authorities(user
                                 .getAuthorities()
                                 .stream()
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                                .map(SimpleGrantedAuthority::new)
                                 .toList())
                         .build())
                 .toList();
