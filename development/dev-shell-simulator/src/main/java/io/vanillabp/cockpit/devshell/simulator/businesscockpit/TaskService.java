@@ -3,10 +3,16 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -56,6 +62,43 @@ public class TaskService {
 
         return userTasks.get(userTaskId);
 
+    }
+
+    // ID, businessId, titel
+    /**
+     * Creates a UserTasks object containing all user tasks with pagination.
+     *
+     * @param userTasksRequest Request containing pagination parameters
+     * @return UserTasks object with tasks and pagination info
+     */
+    public UserTasks getUserTasks(
+            final UserTasksRequest userTasksRequest) {
+
+        // Get all tasks
+        List<UserTask> allTasks = getAllUserTasks();
+
+        // Set default pagination values if not provided
+        int pageSize = userTasksRequest != null && userTasksRequest.getPageSize() != null
+                ? userTasksRequest.getPageSize() : 20; // Default page size
+        int pageNumber = userTasksRequest != null && userTasksRequest.getPageNumber() != null
+                ? userTasksRequest.getPageNumber() : 0; // Default page number
+
+        // Calculate total pages
+        int totalElements = allTasks.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        // Create the Page object
+        Page page = new Page();
+        page.setNumber(pageNumber);
+        page.setSize(totalPages);
+        page.setTotalPages(totalPages);
+
+        // Create and return UserTasks response
+        // TODO alltasks nur requested anzahl.
+        return new UserTasks()
+                .serverTimestamp(OffsetDateTime.now())
+                .page(page)
+                .userTasks(allTasks);
     }
 
     /**

@@ -3,10 +3,16 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
+
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -93,6 +99,33 @@ public class WorkflowService {
 
         return workflows.get(workflowId);
 
+    }
+
+    public Workflows getWorkflowsResponse(
+            final WorkflowsRequest workflowsRequest) {
+
+        List<Workflow> allWorkflows = getAllWorkflows();
+
+        // Set default pagination values if not provided
+        int pageSize = workflowsRequest != null && workflowsRequest.getPageSize() != null
+                ? workflowsRequest.getPageSize() : 20; // Default page size
+        int pageNumber = workflowsRequest != null && workflowsRequest.getPageNumber() != null
+                ? workflowsRequest.getPageNumber() : 0; // Default page number
+
+        // Calculate total pages
+        int totalElements = allWorkflows.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        // Create the Page object
+        Page page = new Page();
+        page.setNumber(pageNumber);
+        page.setSize(totalPages);
+        page.setTotalPages(totalPages);
+
+        return new Workflows()
+                .serverTimestamp(OffsetDateTime.now())
+                .page(page)
+                .workflows(allWorkflows);
     }
 
     /**

@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import { Anchor, Box, Text} from 'grommet';
+import React, { useEffect, useState } from 'react';
+import { Anchor, Box, Text, Select } from 'grommet';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,17 +13,16 @@ interface User {
 }
 
 const Main = ({
-  additionalComponents
-}: {
-  additionalComponents: Array<string>
+                  additionalComponents
+              }: {
+    additionalComponents: Array<string>
 }) => {
-  
-  const { t } = useTranslation('app');
-  const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<string | undefined>(undefined);
-  const baseUrl = "http://localhost:9080";
 
+    const { t } = useTranslation('app');
+    const navigate = useNavigate();
+    const [users, setUsers] = useState<User[]>([]);
+    const [currentUser, setCurrentUser] = useState<string>('---');
+    const baseUrl = "http://localhost:9080";
 
     useEffect(() => {
         fetch(`${baseUrl}/user/all`)
@@ -40,44 +39,58 @@ const Main = ({
                 setCurrentUser(currentUser);
             })
             .catch(() => {
-                setCurrentUser(undefined);
+                setCurrentUser('---');
             });
     }, []);
 
-    const changeUser = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const userId = event.target.value;
-        fetch(`${baseUrl}/user/${userId}`, {
+    const changeUser = (selectedUserId: string) => {
+        fetch(`${baseUrl}/user/${selectedUserId}`, {
             method: 'POST',
             credentials: 'include',
         }).then(() => window.location.reload());
     };
 
+    const selectOptions = [
+        { label: '---', value: '---' },
+        ...users.map(user => ({
+            label: `${user.id}, ${user.firstName} ${user.lastName}`,
+            value: user.id
+        }))
+    ];
 
     return (
         <Box margin="large" gap="medium">
             <Text weight='bold'>{t('title.long')}</Text>
+
             <Anchor color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
                 {t('link-usertask')}
             </Anchor>
+
             <Anchor color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
                 {t('link-workflow')}
             </Anchor>
+
             {additionalComponents.map(componentName => (
                 <Anchor key={componentName} color='accent-3' onClick={() => navigate(`/${componentName}`)}>
                     {componentName}
                 </Anchor>
             ))}
-            <div>
-                User:&nbsp;
-                <select onChange={changeUser} value={currentUser || ''}>
-                    <option value="---">---</option>
-                    {users.map(user => (
-                        <option key={user.id} value={user.id}>
-                            {user.id + ", " + user.firstName + " " + user.lastName}
-                        </option>
-                    ))}
-                </select>
-            </div>
+
+            <Box direction="row" gap="small" align="center">
+                <Text>User:</Text>
+                <Select
+                    size="medium"
+                    placeholder="Select user"
+                    options={selectOptions}
+                    labelKey="label"
+                    valueKey={{ key: 'value', reduce: true }}
+                    value={currentUser}
+                    onChange={({ value }) => {
+                        setCurrentUser(value);
+                        changeUser(value);
+                    }}
+                />
+            </Box>
         </Box>
     );
 };
