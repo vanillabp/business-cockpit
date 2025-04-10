@@ -14,7 +14,7 @@ import jakarta.persistence.Version;
 import java.util.List;
 
 @Entity(name = "BusinessCockpitDeploymentResource")
-@Table(name = "CAMUNDA8BC_RESOURCES")
+@Table(name = "CAMUNDA8_BC_RESOURCES")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "C8R_TYPE")
 public abstract class DeploymentResource

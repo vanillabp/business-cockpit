@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public abstract class DeploymentResource
         implements io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentResource {
 
-    static final String COLLECTION_NAME = "CAMUNDA8BC_RESOURCES";
+    static final String COLLECTION_NAME = "CAMUNDA8_BC_RESOURCES";
 
     @org.springframework.data.annotation.Id
     @Field(name = "C8D_ID")

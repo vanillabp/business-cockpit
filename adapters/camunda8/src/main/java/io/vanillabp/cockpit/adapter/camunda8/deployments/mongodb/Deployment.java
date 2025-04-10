@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public abstract class Deployment
         implements io.vanillabp.cockpit.adapter.camunda8.deployments.Deployment {
 
-    static final String COLLECTION_NAME = "CAMUNDA8BC_DEPLOYMENTS";
+    static final String COLLECTION_NAME = "CAMUNDA8_BC_DEPLOYMENTS";
 
     /** the key of the deployed process which is unqiue */
     @Id

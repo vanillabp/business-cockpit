@@ -14,7 +14,7 @@ import jakarta.persistence.Version;
 import java.time.OffsetDateTime;
 
 @Entity(name = "BusinessCockpitDeployment")
-@Table(name = "CAMUNDA8BC_DEPLOYMENTS")
+@Table(name = "CAMUNDA8_BC_DEPLOYMENTS")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "C8D_TYPE")
 @IdClass(DeploymentId.class)
