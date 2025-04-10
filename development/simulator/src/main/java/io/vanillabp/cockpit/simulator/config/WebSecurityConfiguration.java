@@ -6,6 +6,9 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
+import io.vanillabp.cockpit.devshell.simulator.config.Properties;
+import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +28,7 @@ public class WebSecurityConfiguration {
     private ApplicationProperties properties;
 
     @Bean
-    public JwtUserDetailsProvider userDetailsProvider() {
+    public UserDetailsProvider userDetailsProvider() {
 
         return new JwtUserDetailsProvider();
 
@@ -33,7 +36,7 @@ public class WebSecurityConfiguration {
 
     @Bean
     public UserContext userContext(
-            final JwtUserDetailsProvider userDetailsProvider) {
+            final UserDetailsProvider userDetailsProvider) {
 
         return new UserContext(userDetailsProvider);
 
@@ -68,6 +71,16 @@ public class WebSecurityConfiguration {
 
         return new PassiveJwtSecurityFilter(
                 properties.getJwt(), jwtMapper);
+
+    }
+
+    @Bean
+    public UserController devShellUserDropdownRestController(
+            final Properties properties) {
+
+        // passing null, null because controller is only used to load users on startup
+        // of Business Cockpit when running with local Spring Boot profile
+        return new UserController(properties, null, null);
 
     }
 

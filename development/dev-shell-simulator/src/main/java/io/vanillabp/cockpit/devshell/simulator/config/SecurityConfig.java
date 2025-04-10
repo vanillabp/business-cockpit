@@ -5,6 +5,8 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.JwtServerSecurityContextRepository;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,9 +25,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
-import java.util.List;
-import java.util.Optional;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -38,8 +37,9 @@ public class SecurityConfig {
 
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
-    public SecurityFilterChain simulatorSecurityFilterChain(final HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain simulatorSecurityFilterChain(
+            final HttpSecurity http) throws Exception {
+
         return http.securityMatchers(
                         c ->
                                 c.requestMatchers(
@@ -52,11 +52,13 @@ public class SecurityConfig {
                 .anonymous(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(c -> c.anyRequest().permitAll())
                 .build();
+
     }
 
     @Bean
     public UserDetailsService inMemoryUserDetailsService(
             final Properties properties) {
+
         final var users =
                 properties.getUsers().stream()
                         .map(
@@ -71,22 +73,26 @@ public class SecurityConfig {
                                                 .build())
                         .toList();
         return new InMemoryUserDetailsManager(users);
-    }
 
+    }
 
     @Bean
     @ConditionalOnMissingBean
     public JwtServerSecurityContextRepository jwtServerSecurityContextRepository(
             final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper,
             final JwtProperties jwtProperties) {
+
         return new JwtServerSecurityContextRepository(jwtProperties, jwtMapper);
+
     }
 
     @Bean
     @ConditionalOnMissingBean
     public JwtMapper<? extends AbstractAuthenticationToken> jwtMapper(
             final JwtProperties jwtProperties) {
+
         return new JwtAuthenticationTokenMapper(jwtProperties);
+
     }
 
 
@@ -96,6 +102,9 @@ public class SecurityConfig {
             final Properties properties,
             final JwtServerSecurityContextRepository securityContextRepository,
             final JwtProperties jwtProperties) {
+
         return new UserController(properties, securityContextRepository, jwtProperties);
+
     }
+    
 }

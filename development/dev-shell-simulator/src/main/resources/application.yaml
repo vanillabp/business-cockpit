@@ -1,5 +1,5 @@
 server:
-  port: 9080
+  port: 8079
 
 application:
   jwt:

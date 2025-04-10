@@ -15,4 +15,5 @@ public class User {
     private String lastName;
     private List<String> groups;
     private Map<String, List<String>> attributes = null;
+
 }

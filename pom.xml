@@ -294,6 +294,17 @@
       </properties>
     </profile>
     <profile>
+      <id>java-install</id>
+      <properties>
+        <skip.npm>true</skip.npm>
+        <skip.npm.update>true</skip.npm.update>
+        <skip.npm.unpublish>true</skip.npm.unpublish>
+        <skip.npm.prerelease>true</skip.npm.prerelease>
+        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
+        <skip.npm.publish-release>true</skip.npm.publish-release>
+      </properties>
+    </profile>
+    <profile>
       <id>local-install</id>
       <properties>
         <skip.npm.update>true</skip.npm.update>
