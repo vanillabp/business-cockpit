@@ -3,17 +3,16 @@ package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.gui.api.v1.Page;
-import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.*;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import io.vanillabp.cockpit.gui.api.v1.UserTasks;
-import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -71,35 +70,47 @@ public class TaskService {
      * @param userTasksRequest Request containing pagination parameters
      * @return UserTasks object with tasks and pagination info
      */
-    public UserTasks getUserTasks(
-            final UserTasksRequest userTasksRequest) {
+    public UserTasks getUserTasks(final UserTasksRequest userTasksRequest) {
 
-        // Get all tasks
-        List<UserTask> allTasks = getAllUserTasks();
+        var allTasks = getAllUserTasks();
 
-        // Set default pagination values if not provided
-        int pageSize = userTasksRequest != null && userTasksRequest.getPageSize() != null
-                ? userTasksRequest.getPageSize() : 20; // Default page size
-        int pageNumber = userTasksRequest != null && userTasksRequest.getPageNumber() != null
-                ? userTasksRequest.getPageNumber() : 0; // Default page number
+        // Filter based on mode
+        if (userTasksRequest.getMode().equals(UserTaskRetrieveMode.OPENTASKS)) {
+            allTasks = allTasks.stream()
+                    .filter(task -> task.getEndedAt() == null)
+                    .toList();
+        } else if (userTasksRequest.getMode().equals(UserTaskRetrieveMode.CLOSEDTASKSONLY)) {
+            allTasks = allTasks.stream()
+                    .filter(task -> task.getEndedAt() != null)
+                    .toList();
+        }
 
-        // Calculate total pages
+        // Extract pagination params
+        int pageSize = userTasksRequest.getPageSize() != null ? userTasksRequest.getPageSize() : 20;
+        int pageNumber = userTasksRequest.getPageNumber() != null ? userTasksRequest.getPageNumber() : 0;
+
+        // Total count after filtering
         int totalElements = allTasks.size();
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 
-        // Create the Page object
-        Page page = new Page();
+        // Calculate start and end index
+        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        List<UserTask> pagedTasks = allTasks.subList(fromIndex, toIndex);
+
+        // Build page metadata
+        final var page = new Page();
         page.setNumber(pageNumber);
-        page.setSize(totalPages);
+        page.setSize(pageSize);
         page.setTotalPages(totalPages);
 
-        // Create and return UserTasks response
-        // TODO alltasks nur requested anzahl.
         return new UserTasks()
                 .serverTimestamp(OffsetDateTime.now())
                 .page(page)
-                .userTasks(allTasks);
+                .userTasks(pagedTasks);
     }
+
+
 
     /**
      * Retrieves all user tasks from the Hashmap.

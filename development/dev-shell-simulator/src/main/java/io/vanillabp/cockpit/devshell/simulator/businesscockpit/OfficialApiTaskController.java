@@ -61,9 +61,8 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
     public ResponseEntity<UserTasks> getUserTasks(
             final UserTasksRequest userTasksRequest,
             final OffsetDateTime initialTimestamp) {
-
-        // Get UserTasks from service
-        UserTasks userTasks = taskService.getUserTasks(userTasksRequest);
+        
+        final var userTasks = taskService.getUserTasks(userTasksRequest);
 
         log.info("Client retrieved all UserTasks, total: {}", userTasks.getUserTasks().size());
 

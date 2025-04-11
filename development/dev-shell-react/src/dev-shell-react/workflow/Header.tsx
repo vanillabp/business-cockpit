@@ -6,7 +6,7 @@ import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
 import { Workflow } from '@vanillabp/bc-official-gui-client';
-import { TaskToggle } from '../components/ToggleComponent.js';
+import { TaskToggle } from "../components/ToggleComponent.js";
 
 i18n.addResources('en', 'workflow-header', {
     "views-label": "View",
@@ -22,6 +22,7 @@ i18n.addResources('de', 'workflow-header', {
 });
 
 const Header = () => {
+    const { isPhone } = useResponsiveScreen();
     const navigate = useNavigate();
     const { t: tApp } = useTranslation(appNs);
     const { t } = useTranslation('workflow-header');
@@ -29,9 +30,10 @@ const Header = () => {
     const workflowIdParam: string | undefined = useParams()['workflowId'];
     const [workflowId, setWorkflowId] = useState(workflowIdParam);
     const [options, setOptions] = useState<string[]>([]);
-    const [page, setPage] = useState(0);
     const [allWorkflows, setAllWorkflows] = useState<string[]>([]);
     const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'closed'>('all');
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
 
     useEffect(() => {
         const fetchWorkflows = async () => {
@@ -43,9 +45,10 @@ const Header = () => {
                     },
                     body: JSON.stringify({
                         pageSize: 20,
-                        sort: 'updatedAt',
-                        sortAscending: false,
-                    }),
+                        pageNumber: page,
+                        sort: 'createdAt',
+                        sortAscending: false
+                    })
                 });
 
                 if (!response.ok) {
@@ -53,11 +56,18 @@ const Header = () => {
                 }
 
                 const data = await response.json();
-                const formattedWorkflows = data.workflows.map((workflow: Workflow) =>
+                const formatted = data.workflows.map((workflow: Workflow) =>
                     `${workflow.businessId || ''} ${workflow.bpmnProcessId} (${workflow.id})`
                 );
-                setAllWorkflows(formattedWorkflows);
-                setOptions(formattedWorkflows.slice(0, 20));
+
+                setAllWorkflows(prev => [...prev, ...formatted]);
+                setOptions(prev => [...prev, ...formatted]);
+
+                // check if there are more items
+                const totalPages = data.page?.totalPages ?? 0;
+                if (page + 1 >= totalPages) {
+                    setHasMore(false);
+                }
             } catch (error) {
                 console.error('Error fetching workflows:', error);
                 setOptions([]);
@@ -66,47 +76,34 @@ const Header = () => {
         };
 
         fetchWorkflows();
-    }, []);
+    }, [page]);
 
     const onMore = () => {
-        const nextPage = page + 1;
-        const newOptions = allWorkflows.slice(0, (nextPage + 1) * 20);
-        setOptions(newOptions);
-        setPage(nextPage);
+        if (hasMore) {
+            setPage(prev => prev + 1);
+        }
     };
 
     const loadWorkflow = (selectedWorkflowId?: string) =>
         navigate(`/${tApp('url-workflow')}/${selectedWorkflowId ?? workflowId}`, { replace: true });
 
     const viewMenuItems = [
-        {
-            label: t('view-page'),
-            onClick: () => navigate(`/${tApp('url-workflow')}/${workflowId}`),
-        },
-        {
-            label: t('view-list'),
-            onClick: () =>
-                navigate(`/${tApp('url-workflow')}/${workflowId}/${tApp('url-list')}`),
-        },
-        {
-            label: t('view-icon'),
-            onClick: () =>
-                navigate(`/${tApp('url-workflow')}/${workflowId}/${tApp('url-icon')}`),
-        },
+        { label: t('view-page'), onClick: () => navigate(`/${tApp('url-workflow')}/${workflowId}`) },
+        { label: t('view-list'), onClick: () => navigate(`/${tApp('url-workflow')}/${workflowId}/${tApp('url-list')}`) },
+        { label: t('view-icon'), onClick: () => navigate(`/${tApp('url-workflow')}/${workflowId}/${tApp('url-icon')}`) }
     ];
 
     return (
         <Box
-            fill="horizontal"
+            fill
             direction="row"
-            align="center"
             justify="between"
-            pad={{ horizontal: 'medium', vertical: 'small' }}
-        >
+            pad="small">
+
             <Box direction="row" gap="small" align="center">
-                <Box width="20rem">
+                <Box width={isPhone ? '15rem' : '26rem'}>
                     <Select
-                        size="small"
+                        size="medium"
                         placeholder="Select workflow"
                         value={workflowId}
                         options={options}
@@ -127,12 +124,12 @@ const Header = () => {
                 </Box>
                 <TaskToggle value={taskFilter} onChange={setTaskFilter} />
             </Box>
+
             <Box>
                 <Menu
                     disabled={!Boolean(workflowId)}
                     label={t('views-label')}
                     items={viewMenuItems}
-                    size="small"
                 />
             </Box>
         </Box>

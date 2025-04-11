@@ -101,32 +101,47 @@ public class WorkflowService {
 
     }
 
-    public Workflows getWorkflowsResponse(
-            final WorkflowsRequest workflowsRequest) {
+    /**
+     * Retrieves a paginated list of workflows based on the provided request parameters.
+     *
+     * <p>This method applies pagination to the full list of workflows. It also sets default values
+     * if pagination parameters are not provided. The method returns only the current page of workflows
+     * along with metadata like page size, number, and total pages.</p>
+     *
+     * @param workflowsRequest The request object containing optional pagination and sorting information.
+     * @return A {@link Workflows} object containing the paginated list and metadata.
+     */
+    public Workflows getWorkflowsResponse(final WorkflowsRequest workflowsRequest) {
 
         List<Workflow> allWorkflows = getAllWorkflows();
 
         // Set default pagination values if not provided
-        int pageSize = workflowsRequest != null && workflowsRequest.getPageSize() != null
-                ? workflowsRequest.getPageSize() : 20; // Default page size
-        int pageNumber = workflowsRequest != null && workflowsRequest.getPageNumber() != null
-                ? workflowsRequest.getPageNumber() : 0; // Default page number
+        int pageSize = (workflowsRequest != null && workflowsRequest.getPageSize() != null)
+                ? workflowsRequest.getPageSize() : 20;
+        int pageNumber = (workflowsRequest != null && workflowsRequest.getPageNumber() != null)
+                ? workflowsRequest.getPageNumber() : 0;
 
-        // Calculate total pages
+        // Calculate total values
         int totalElements = allWorkflows.size();
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 
-        // Create the Page object
+        // Calculate page slice boundaries
+        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        List<Workflow> pagedWorkflows = allWorkflows.subList(fromIndex, toIndex);
+
+        // Build the Page metadata
         Page page = new Page();
         page.setNumber(pageNumber);
-        page.setSize(totalPages);
+        page.setSize(pageSize);
         page.setTotalPages(totalPages);
 
         return new Workflows()
                 .serverTimestamp(OffsetDateTime.now())
                 .page(page)
-                .workflows(allWorkflows);
+                .workflows(pagedWorkflows);
     }
+
 
     /**
      * Updates an existing Workflow in the workflow map.
