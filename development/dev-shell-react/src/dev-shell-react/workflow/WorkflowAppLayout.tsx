@@ -18,8 +18,7 @@ const WorkflowAppLayout = ({
             tag='header'
             background='white'
             elevation='medium'
-            height='xxsmall'
-            pad='xxsmall'>
+            height='xxsmall'>
           {
             header
           }

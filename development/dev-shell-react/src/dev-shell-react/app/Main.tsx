@@ -5,11 +5,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    groups: string[];
-    attributes: Record<string, string[]> | null;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    groups?: string[];
+    attributes?: Record<string, string[]> | null;
 }
 
 const Main = ({
@@ -62,20 +62,6 @@ const Main = ({
         <Box margin="large" gap="medium">
             <Text weight='bold'>{t('title.long')}</Text>
 
-            <Anchor color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
-                {t('link-usertask')}
-            </Anchor>
-
-            <Anchor color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
-                {t('link-workflow')}
-            </Anchor>
-
-            {additionalComponents.map(componentName => (
-                <Anchor key={componentName} color='accent-3' onClick={() => navigate(`/${componentName}`)}>
-                    {componentName}
-                </Anchor>
-            ))}
-
             <Box direction="row" gap="small" align="center">
                 <Text>User:</Text>
                 <Select
@@ -91,6 +77,21 @@ const Main = ({
                     }}
                 />
             </Box>
+
+            <Anchor color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
+                {t('link-usertask')}
+            </Anchor>
+
+            <Anchor color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
+                {t('link-workflow')}
+            </Anchor>
+
+            {additionalComponents.map(componentName => (
+                <Anchor key={componentName} color='accent-3' onClick={() => navigate(`/${componentName}`)}>
+                    {componentName}
+                </Anchor>
+            ))}
+
         </Box>
     );
 };

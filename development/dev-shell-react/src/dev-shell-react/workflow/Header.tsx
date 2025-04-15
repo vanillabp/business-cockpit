@@ -1,4 +1,4 @@
-import { Box, Menu, Select } from 'grommet';
+import { Box, Menu, Select, Text} from 'grommet';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -29,52 +29,57 @@ const Header = () => {
 
     const workflowIdParam: string | undefined = useParams()['workflowId'];
     const [workflowId, setWorkflowId] = useState(workflowIdParam);
-    const [options, setOptions] = useState<string[]>([]);
-    const [allWorkflows, setAllWorkflows] = useState<string[]>([]);
+    const [workflows, setWorkflows] = useState<Workflow[]>([]);
+    const [searchText, setSearchText] = useState('');
     const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'closed'>('all');
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
 
-    useEffect(() => {
-        const fetchWorkflows = async () => {
-            try {
-                const response = await fetch('/official-api/v1/workflow', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        pageSize: 20,
-                        pageNumber: page,
-                        sort: 'createdAt',
-                        sortAscending: false
-                    })
-                });
+    const selectOptions = workflows.map(workflow => ({
+        label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
+        value: workflow.id,
+    }));
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch workflows');
-                }
+    const filteredOptions = selectOptions.filter(option => {
+        const escapedText = searchText.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(escapedText, 'i');
+        return regex.test(option.label);
+    });
 
-                const data = await response.json();
-                const formatted = data.workflows.map((workflow: Workflow) =>
-                    `${workflow.businessId || ''} ${workflow.bpmnProcessId} (${workflow.id})`
-                );
+    const fetchWorkflows = async () => {
+        try {
+            const response = await fetch('/official-api/v1/workflow', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pageSize: 20,
+                    pageNumber: page,
+                    sort: 'createdAt',
+                    sortAscending: false
+                })
+            });
 
-                setAllWorkflows(prev => [...prev, ...formatted]);
-                setOptions(prev => [...prev, ...formatted]);
-
-                // check if there are more items
-                const totalPages = data.page?.totalPages ?? 0;
-                if (page + 1 >= totalPages) {
-                    setHasMore(false);
-                }
-            } catch (error) {
-                console.error('Error fetching workflows:', error);
-                setOptions([]);
-                setAllWorkflows([]);
+            if (!response.ok) {
+                throw new Error('Failed to fetch workflows');
             }
-        };
 
+            const data = await response.json();
+
+            setWorkflows(prev => [...prev, ...data.workflows]);
+
+            const totalPages = data.page?.totalPages ?? 0;
+            if (page + 1 >= totalPages) {
+                setHasMore(false);
+            }
+        } catch (error) {
+            console.error('Error fetching workflows:', error);
+            setWorkflows([]);
+        }
+    };
+
+    useEffect(() => {
         fetchWorkflows();
     }, [page]);
 
@@ -93,34 +98,57 @@ const Header = () => {
         { label: t('view-icon'), onClick: () => navigate(`/${tApp('url-workflow')}/${workflowId}/${tApp('url-icon')}`) }
     ];
 
+    const renderOption = (option: { label: string, value: string }) => {
+        const [businessId, rest] = option.label.split(' | ', 2);
+        return (
+            <Box direction="row" gap="xsmall">
+                <Text weight="bold">{businessId}</Text>
+                <Text weight="normal"> | {rest}</Text>
+            </Box>
+        );
+    };
+
     return (
         <Box
             fill
             direction="row"
             justify="between"
-            pad="small">
-
-            <Box direction="row" gap="small" align="center">
-                <Box width={isPhone ? '15rem' : '26rem'}>
+            gap="small">
+            <Box direction="row" gap="small" align="center" fill>
+                <Box width={isPhone ? '15rem' : '26rem'} fill>
                     <Select
                         size="medium"
                         placeholder="Select workflow"
+                        labelKey="label"
+                        valueKey={{ key: 'value', reduce: true }}
                         value={workflowId}
-                        options={options}
-                        onChange={({ option }) => {
-                            const workflowIdMatch = option.match(/\(([^)]+)\)$/);
-                            const extractedWorkflowId = workflowIdMatch ? workflowIdMatch[1] : option;
-                            setWorkflowId(extractedWorkflowId);
-                            loadWorkflow(extractedWorkflowId);
+                        valueLabel={
+                            (() => {
+                                const selected = selectOptions.find(o => o.value === workflowId);
+                                if (!selected) return undefined;
+                                const [businessId, rest] = selected.label.split(' | ', 2);
+                                return (
+                                    <Box direction="row" gap="xsmall" pad={{ vertical: 'xsmall', horizontal: 'small' }}>
+                                        <Text weight="bold">{businessId}</Text>
+                                        <Text weight="normal"> | {rest}</Text>
+                                    </Box>
+                                );
+                            })()
+                        }
+                        options={filteredOptions}
+                        onChange={({ value }) => {
+                            setWorkflowId(value);
+                            loadWorkflow(value);
                         }}
-                        onClose={() => setOptions(options)}
-                        onMore={onMore}
-                        onSearch={(text) => {
-                            const escapedText = text.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&');
-                            const exp = new RegExp(escapedText, 'i');
-                            setOptions(allWorkflows.filter((o) => exp.test(o)));
-                        }}
-                    />
+                        onMore={hasMore ? onMore : undefined}
+                        onSearch={text => setSearchText(text)}
+                    >
+                        {(option, state) => (
+                            <Box pad="small" background={state.active ? 'active' : undefined}>
+                                {renderOption(option)}
+                            </Box>
+                        )}
+                    </Select>
                 </Box>
                 <TaskToggle value={taskFilter} onChange={setTaskFilter} />
             </Box>
@@ -135,5 +163,6 @@ const Header = () => {
         </Box>
     );
 };
+
 
 export { Header };
