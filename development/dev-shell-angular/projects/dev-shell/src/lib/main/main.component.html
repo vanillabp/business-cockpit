@@ -11,10 +11,10 @@
   </div>
 
   <div class="user-selector">
-    User:&nbsp;
+    <span>User:</span>
     <select [ngModel]="currentUser || ''" (change)="changeUser($event)">
       <option value="---">---</option>
-      <option *ngFor="let userId of users" [value]="userId">{{ userId }}</option>
+      <option *ngFor="let user of users" [value]="user.id">{{ user.id }}, {{ user.firstName }} {{ user.lastName }}</option>
     </select>
   </div>
 </div>

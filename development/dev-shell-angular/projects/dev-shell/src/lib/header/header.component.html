@@ -1,3 +1,26 @@
-<div class="header">
-    <input type="text" placeholder="Enter ID" #searchInput (keyup.enter)="search(searchInput.value)">
+<div class="header-container">
+  <div class="task-selection-container">
+    <div class="select-container" [ngClass]="{ 'phone': isPhone }">
+      <select [ngModel]="selectedTaskId" (change)="onTaskSelect($event)">
+        <option value="">Select user task</option>
+        <option *ngFor="let option of taskOptions" [value]="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+      <button *ngIf="hasMorePages" (click)="loadMoreTasks()" class="more-button">Load more</button>
+    </div>
+    
+    <app-task-toggle [value]="taskFilter" (onChange)="onFilterChange($event)"></app-task-toggle>
+  </div>
+  
+  <div class="view-menu">
+    <div class="dropdown">
+      <button class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
+      <div class="dropdown-content" *ngIf="selectedTaskId">
+        <a (click)="navigateToView('form')">form</a>
+        <a (click)="navigateToView('list')">list</a>
+        <a (click)="navigateToView('icon')">icon</a>
+      </div>
+    </div>
+  </div>
 </div>
