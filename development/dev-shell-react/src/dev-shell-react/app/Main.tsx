@@ -42,8 +42,7 @@ const Main = ({
             });
     }, []);
 
-    const changeUser = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        const userId = event.target.value;
+    const changeUser = (userId: string) => {
         fetch(`/dev-shell/user/${userId}`, {
             method: 'POST',
             credentials: 'include',

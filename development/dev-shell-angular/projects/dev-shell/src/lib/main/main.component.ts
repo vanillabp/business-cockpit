@@ -5,6 +5,15 @@ import { NgForOf, NgIf } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpClient, HttpClientModule } from "@angular/common/http";
 
+interface User {
+  id: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  groups?: string[];
+  attributes?: Record<string, string[]> | null;
+}
+
 @Component({
   selector: 'lib-main',
   standalone: true,
@@ -27,9 +36,9 @@ export class MainComponent {
 
   dataObserver: Subscription | undefined = undefined;
   additionalRoutes: string[] = [];
-  users: string[] = [];
+  users: User[] = [];
   currentUser: string | undefined = undefined;
-  baseUrl = "http://localhost:9080";
+  baseUrl = "/dev-shell";
 
   ngOnInit() {
     this.dataObserver = this.route.data.subscribe(data => this.additionalRoutes = data["additionalRoutes"]);
@@ -45,9 +54,9 @@ export class MainComponent {
   }
 
   loadUsers() {
-    this.http.get<string[]>(`${this.baseUrl}/user/all`)
+    this.http.get<User[]>(`${this.baseUrl}/user/all`)
       .subscribe({
-        next: (allUsers: string[]) => {
+        next: (allUsers: User[]) => {
           this.users = allUsers;
           this.getCurrentUser();
         },
@@ -58,7 +67,7 @@ export class MainComponent {
   }
 
   getCurrentUser() {
-    this.http.get(`${this.baseUrl}/user/get-user`, {
+    this.http.get(`${this.baseUrl}/user/`, {
       responseType: 'text',
       withCredentials: true
     }).subscribe({

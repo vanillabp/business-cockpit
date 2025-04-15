@@ -1,0 +1,21 @@
+.task-toggle-container {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.toggle-option {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+}
+
+.toggle-option.active {
+  border-color: #7D4CDB;
+  font-weight: bold;
+} 
