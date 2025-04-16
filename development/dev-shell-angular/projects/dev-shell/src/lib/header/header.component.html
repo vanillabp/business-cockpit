@@ -1,13 +1,23 @@
 <div class="header-container">
   <div class="task-selection-container">
     <div class="select-container" [ngClass]="{ 'phone': isPhone }">
-      <select [ngModel]="selectedTaskId" (change)="onTaskSelect($event)">
+      <!-- User Task Select -->
+      <select *ngIf="isUserTaskView" [ngModel]="selectedTaskId" (change)="onItemSelect($event)">
         <option value="">Select user task</option>
-        <option *ngFor="let option of taskOptions" [value]="option.value">
+        <option *ngFor="let option of userTaskOptions" [value]="option.value">
           {{ option.label }}
         </option>
       </select>
-      <button *ngIf="hasMorePages" (click)="loadMoreTasks()" class="more-button">Load more</button>
+      
+      <!-- Workflow Select -->
+      <select *ngIf="isWorkflowView" [ngModel]="selectedWorkflowId" (change)="onItemSelect($event)">
+        <option value="">Select workflow</option>
+        <option *ngFor="let option of workflowOptions" [value]="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+      
+      <button *ngIf="hasMorePages" (click)="loadMoreItems()" class="more-button">Load more</button>
     </div>
     
     <app-task-toggle [value]="taskFilter" (onChange)="onFilterChange($event)"></app-task-toggle>
@@ -15,9 +25,18 @@
   
   <div class="view-menu">
     <div class="dropdown">
-      <button class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
-      <div class="dropdown-content" *ngIf="selectedTaskId">
+      <!-- User Task Views -->
+      <button *ngIf="isUserTaskView" class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
+      <div *ngIf="isUserTaskView && selectedTaskId" class="dropdown-content">
         <a (click)="navigateToView('form')">form</a>
+        <a (click)="navigateToView('list')">list</a>
+        <a (click)="navigateToView('icon')">icon</a>
+      </div>
+      
+      <!-- Workflow Views -->
+      <button *ngIf="isWorkflowView" class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
+      <div *ngIf="isWorkflowView && selectedWorkflowId" class="dropdown-content">
+        <a (click)="navigateToView('page')">page</a>
         <a (click)="navigateToView('list')">list</a>
         <a (click)="navigateToView('icon')">icon</a>
       </div>
