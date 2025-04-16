@@ -12,6 +12,12 @@ interface UserTask {
   bpmnProcessId: string;
 }
 
+interface Workflow {
+  id: string;
+  businessId: string;
+  bpmnProcessId: string;
+}
+
 interface Page {
   number: number;
   totalPages: number;
@@ -19,6 +25,11 @@ interface Page {
 
 interface UserTasksResponse {
   userTasks: UserTask[];
+  page: Page;
+}
+
+interface WorkflowsResponse {
+  workflows: Workflow[];
   page: Page;
 }
 
@@ -36,6 +47,18 @@ interface UserTasksRequest {
   mode: UserTaskRetrieveMode;
 }
 
+interface WorkflowsRequest {
+  pageNumber: number;
+  pageSize: number;
+  sort: string;
+  sortAscending: boolean;
+}
+
+enum ContentType {
+  UserTask = 'usertask',
+  Workflow = 'workflow'
+}
+
 @Component({
   selector: 'lib-header',
   standalone: true,
@@ -44,13 +67,22 @@ interface UserTasksRequest {
   styleUrl: './header.component.css'
 })
 export class HeaderComponent implements OnInit {
-  userTasks: UserTask[] = [];
-  taskOptions: { label: string, value: string }[] = [];
-  selectedTaskId?: string;
+  // Shared properties
+  contentType: ContentType = ContentType.UserTask;
   page = 0;
   hasMorePages = true;
   taskFilter: 'all' | 'open' | 'closed' = 'all';
   isPhone = window.innerWidth < 768;
+  
+  // User task properties
+  userTasks: UserTask[] = [];
+  userTaskOptions: { label: string, value: string }[] = [];
+  selectedTaskId?: string;
+  
+  // Workflow properties
+  workflows: Workflow[] = [];
+  workflowOptions: { label: string, value: string }[] = [];
+  selectedWorkflowId?: string;
 
   constructor(
     private router: Router,
@@ -59,17 +91,41 @@ export class HeaderComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Determine content type based on URL
+    const url = this.router.url;
+    if (url.includes('/workflow')) {
+      this.contentType = ContentType.Workflow;
+    } else {
+      this.contentType = ContentType.UserTask;
+    }
+
+    // Set up event listeners for route parameters
     this.route.params.subscribe(params => {
-      this.selectedTaskId = params['userTaskId'];
-      this.fetchTasks(0, this.selectedTaskId);
+      if (this.contentType === ContentType.UserTask) {
+        this.selectedTaskId = params['userTaskId'];
+        this.fetchUserTasks(0, this.selectedTaskId);
+      } else {
+        this.selectedWorkflowId = params['workflowId'];
+        this.fetchWorkflows(0, this.selectedWorkflowId);
+      }
     });
 
+    // Responsive handler
     window.addEventListener('resize', () => {
       this.isPhone = window.innerWidth < 768;
     });
   }
 
-  fetchTasks(pageToFetch: number = 0, currentTaskId?: string): void {
+  get isUserTaskView(): boolean {
+    return this.contentType === ContentType.UserTask;
+  }
+
+  get isWorkflowView(): boolean {
+    return this.contentType === ContentType.Workflow;
+  }
+
+  // User Task methods
+  fetchUserTasks(pageToFetch: number = 0, currentTaskId?: string): void {
     let mode: UserTaskRetrieveMode;
     
     if (this.taskFilter === 'open') {
@@ -102,7 +158,7 @@ export class HeaderComponent implements OnInit {
           }
 
           if (pageToFetch === 0) {
-            this.taskOptions = data.userTasks.map(task => ({
+            this.userTaskOptions = data.userTasks.map(task => ({
               label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
               value: task.id
             }));
@@ -111,7 +167,7 @@ export class HeaderComponent implements OnInit {
               label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
               value: task.id
             }));
-            this.taskOptions = [...this.taskOptions, ...newOptions];
+            this.userTaskOptions = [...this.userTaskOptions, ...newOptions];
           }
 
           this.page = pageToFetch;
@@ -119,41 +175,114 @@ export class HeaderComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error fetching tasks:', error);
-          this.taskOptions = [];
+          this.userTaskOptions = [];
         }
       });
   }
 
-  loadMoreTasks(): void {
+  // Workflow methods
+  fetchWorkflows(pageToFetch: number = 0, currentWorkflowId?: string): void {
+    const request: WorkflowsRequest = {
+      pageNumber: pageToFetch,
+      pageSize: 20,
+      sort: 'createdAt',
+      sortAscending: false
+    };
+
+    this.http.post<WorkflowsResponse>('/official-api/v1/workflow', request)
+      .subscribe({
+        next: (data: WorkflowsResponse) => {
+          this.workflows = data.workflows;
+
+          if (currentWorkflowId) {
+            const stillExists = data.workflows.some(workflow => workflow.id === currentWorkflowId);
+            if (!stillExists) {
+              this.router.navigate(['/workflow'], { replaceUrl: true });
+              this.selectedWorkflowId = undefined;
+            }
+          }
+
+          if (pageToFetch === 0) {
+            this.workflowOptions = data.workflows.map(workflow => ({
+              label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
+              value: workflow.id
+            }));
+          } else {
+            const newOptions = data.workflows.map(workflow => ({
+              label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
+              value: workflow.id
+            }));
+            this.workflowOptions = [...this.workflowOptions, ...newOptions];
+          }
+
+          this.page = pageToFetch;
+          this.hasMorePages = data.page.number + 1 < data.page.totalPages;
+        },
+        error: (error) => {
+          console.error('Error fetching workflows:', error);
+          this.workflowOptions = [];
+        }
+      });
+  }
+
+  loadMoreItems(): void {
     if (this.hasMorePages) {
-      this.fetchTasks(this.page + 1);
+      if (this.isUserTaskView) {
+        this.fetchUserTasks(this.page + 1);
+      } else {
+        this.fetchWorkflows(this.page + 1);
+      }
     }
   }
 
-  onTaskSelect(event: Event): void {
+  onItemSelect(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
-    this.selectedTaskId = selectElement.value;
-    this.loadUserTask();
+    const selectedId = selectElement.value;
+    
+    if (this.isUserTaskView) {
+      this.selectedTaskId = selectedId;
+      this.loadUserTask();
+    } else {
+      this.selectedWorkflowId = selectedId;
+      this.loadWorkflow();
+    }
   }
 
   loadUserTask(taskId?: string): void {
     this.router.navigate(['/task', taskId || this.selectedTaskId], { replaceUrl: true });
   }
 
+  loadWorkflow(workflowId?: string): void {
+    this.router.navigate(['/workflow', workflowId || this.selectedWorkflowId], { replaceUrl: true });
+  }
+
   onFilterChange(filter: 'all' | 'open' | 'closed'): void {
     this.taskFilter = filter;
-    this.fetchTasks(0, this.selectedTaskId);
+    
+    if (this.isUserTaskView) {
+      this.fetchUserTasks(0, this.selectedTaskId);
+    } else {
+      this.fetchWorkflows(0, this.selectedWorkflowId);
+    }
   }
 
   navigateToView(view: string): void {
-    if (!this.selectedTaskId) return;
-    
-    if (view === 'form') {
-      this.router.navigate(['/task', this.selectedTaskId]);
-    } else if (view === 'list') {
-      this.router.navigate(['/task', this.selectedTaskId, 'list']);
-    } else if (view === 'icon') {
-      this.router.navigate(['/task', this.selectedTaskId, 'icon']);
+    if (this.isUserTaskView && this.selectedTaskId) {
+      if (view === 'form') {
+        this.router.navigate(['/task', this.selectedTaskId]);
+      } else if (view === 'list') {
+        this.router.navigate(['/task', this.selectedTaskId, 'list']);
+      } else if (view === 'icon') {
+        this.router.navigate(['/task', this.selectedTaskId, 'icon']);
+      }
+    } else if (this.isWorkflowView && this.selectedWorkflowId) {
+      if (view === 'page') {
+        this.router.navigate(['/workflow', this.selectedWorkflowId]);
+      } else if (view === 'list') {
+        this.router.navigate(['/workflow', this.selectedWorkflowId, 'list']);
+      } else if (view === 'icon') {
+        this.router.navigate(['/workflow', this.selectedWorkflowId, 'icon']);
+      }
     }
   }
 }

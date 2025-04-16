@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HeaderComponent } from "../header/header.component";
 import { NgIf } from '@angular/common';
-import { ActivatedRoute, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 
 @Component({
     selector: 'user-task',
@@ -19,9 +19,15 @@ export class UserTaskComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
-    this.userTaskId = this.route.snapshot.paramMap.get("userTaskId")
+    this.userTaskId = this.route.snapshot.paramMap.get("userTaskId");
+    
+    // Force reload of the header when directly navigating to user task page
+    if (!this.router.url.includes('task') && this.userTaskId) {
+      this.router.navigate(['/task', this.userTaskId], { replaceUrl: true });
+    }
   }
 }

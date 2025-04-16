@@ -1,0 +1,28 @@
+div {
+    padding: 1.5rem;
+    font-family: 'Arial', sans-serif;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+p {
+    color: #444;
+    margin-bottom: 0.75rem;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+button:hover {
+    background-color: #e0e0e0;
+}
