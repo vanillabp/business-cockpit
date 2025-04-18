@@ -5,13 +5,16 @@ import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
+import io.camunda.zeebe.protocol.record.intent.ProcessEventIntent;
+import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.protocol.record.value.JobRecordValue;
+import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
-import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
@@ -30,15 +33,18 @@ public class KafkaController {
     private static final Logger logger = LoggerFactory.getLogger(KafkaController.class);
     private static final String CLIENT_ID = "zeebe-client";
 
+    private final DeploymentService deploymentService;
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
     private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
     private final Supplier<Set<String>> idNames;
 
     public KafkaController(
+            DeploymentService deploymentService,
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
             Supplier<Set<String>> idNames) {
 
+        this.deploymentService = deploymentService;
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
         this.idNames = idNames;
@@ -56,40 +62,100 @@ public class KafkaController {
             handleProcessInstanceCreationRecord(value);
             return;
         }
-
-        if(valueType.equals(ValueType.PROCESS_INSTANCE)) {
+        if (valueType.equals(ValueType.PROCESS_EVENT)) {
+            handleProcessEventRecordValue(value);
+            return;
+        }
+        if (valueType.equals(ValueType.PROCESS_INSTANCE)) {
             handleProcessInstanceRecord(value);
             return;
         }
-
-        if(valueType.equals(ValueType.JOB)) {
+        if (valueType.equals(ValueType.JOB)) {
             handleJobRecord(value);
             return;
         }
 
     }
 
+    private void handleProcessInstanceCreationRecord(
+            final Record<?> value) {
 
-    private void handleProcessInstanceCreationRecord(Record<?> value) {
         if(value.getKey() == -1){
             return;
         }
-
-        ProcessInstanceCreationRecordValue processInstanceCreationRecordValue =
-                (ProcessInstanceCreationRecordValue) value.getValue();
-
-        Camunda8WorkflowCreatedEvent workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(
-                processInstanceCreationRecordValue, idNames);
-        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value);
+        // empty (none) start event
+        final var processInstanceCreationRecordValue = (ProcessInstanceCreationRecordValue) value.getValue();
+        final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue);
+        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
+        camunda8WorkflowEventHandler.saveBusinessKeyForRootProcessInstance(workflowCreatedEvent);
         camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
+
+    }
+
+    private void handleProcessEventRecordValue(Record<?> value) {
+        if (!value.getIntent().equals(ProcessEventIntent.TRIGGERING)) {
+            return;
+        }
+        final var processEventRecordValue = (ProcessEventRecordValue) value.getValue();
+        if (processEventRecordValue.getScopeKey() != processEventRecordValue.getProcessDefinitionKey()) {
+            // not a process start event
+            return;
+        }
+        // message start event
+        final var processInformation = deploymentService.getProcessInformationByDefinitionKey(
+                processEventRecordValue.getProcessDefinitionKey());
+        if (processInformation.isEmpty()) {
+            if (camunda8WorkflowEventHandler.isTenantKnown(processEventRecordValue.getTenantId())) {
+                logger.warn("No process information found for process definition key '{}'!" +
+                                "The workflow of tenant '{}' with target element id '{}' will not be shown in business cockpit!",
+                        processEventRecordValue.getProcessDefinitionKey(),
+                        processEventRecordValue.getTenantId(),
+                        processEventRecordValue.getTargetElementId());
+            }
+            return;
+        }
+        final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper
+                .map(processEventRecordValue, processInformation.get());
+        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
+        camunda8WorkflowEventHandler.saveBusinessKeyForRootProcessInstance(workflowCreatedEvent);
+        camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
+
     }
 
     private void handleProcessInstanceRecord(Record<?> value) {
         ProcessInstanceRecordValue processInstanceRecordValue =
                 (ProcessInstanceRecordValue) value.getValue();
         String intent = value.getIntent().name();
-        if(processInstanceRecordValue.getBpmnElementType().equals(BpmnElementType.PROCESS) &&
-                        (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED"))){
+        if (!processInstanceRecordValue.getBpmnElementType().equals(BpmnElementType.PROCESS)) {
+            return;
+        }
+        // call-activity
+        if ((value.getIntent().equals(ProcessInstanceIntent.ELEMENT_ACTIVATING))
+                && processInstanceRecordValue.getBpmnElementType().equals(BpmnElementType.PROCESS)
+                && (processInstanceRecordValue.getParentProcessInstanceKey() != -1)
+                && (processInstanceRecordValue.getFlowScopeKey() == -1)) {
+            final var processInformation = deploymentService.getProcessInformationByDefinitionKey(
+                    processInstanceRecordValue.getProcessDefinitionKey());
+            if (processInformation.isEmpty()) {
+                if (camunda8WorkflowEventHandler.isTenantKnown(processInstanceRecordValue.getTenantId())) {
+                    logger.warn("No process information found for process definition key '{}'!" +
+                                    "The workflow of tenant '{}' with id '{}' may not work properly!",
+                            processInstanceRecordValue.getProcessDefinitionKey(),
+                            processInstanceRecordValue.getTenantId(),
+                            processInstanceRecordValue.getBpmnProcessId());
+                }
+                return;
+            }
+            camunda8WorkflowEventHandler.saveBusinessKeyForSubProcessStartedByCallActivity(
+                    processInstanceRecordValue.getParentProcessInstanceKey(),
+                    processInstanceRecordValue.getProcessDefinitionKey(),
+                    processInstanceRecordValue.getBpmnProcessId(),
+                    processInformation.get().getVersion(),
+                    processInstanceRecordValue.getProcessInstanceKey(),
+                    processInstanceRecordValue.getTenantId());
+        }
+        // process instance lifecycle
+        if (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED")) {
             Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent = WorkflowEventZeebeRecordMapper.map(processInstanceRecordValue);
             WorkflowEventZeebeRecordMapper.addMetaData(workflowLifeCycleEvent, value);
             camunda8WorkflowEventHandler.processWorkflowLifecycleEvent(workflowLifeCycleEvent);
@@ -99,21 +165,20 @@ public class KafkaController {
     private void handleJobRecord(Record<?> value) {
         JobRecordValue jobRecordValue = (JobRecordValue) value.getValue();
 
-        if(!value.getRecordType().equals(RecordType.EVENT)){
+        if (!value.getRecordType().equals(RecordType.EVENT)){
             return;
         }
-
-        if(!jobRecordValue.getType().equals("io.camunda.zeebe:userTask")){
+        if (!jobRecordValue.getType().equals("io.camunda.zeebe:userTask")){
             return;
         }
-
+        // job lifecycle
         String intentName = value.getIntent().name();
-        if(intentName.equals("CREATED")){
+        if (intentName.equals("CREATED")) {
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue, idNames);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskCreatedEvent, value);
             camunda8UserTaskEventHandler.notify(camunda8UserTaskCreatedEvent);
-        } else if(Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)){
+        } else if (Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)) {
             Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskLifecycleInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskLifecycleEvent, value);

@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
@@ -49,8 +48,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     private final String bpmnProcessName;
 
-    private final ProcessInstancePersistence processInstancePersistence;
-
     private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
 
     public Camunda8WorkflowHandler(
@@ -59,7 +56,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessName,
             final Optional<Configuration> templating,
-            final ProcessInstancePersistence processInstancePersistence,
             final CrudRepository<Object, Object> workflowAggregateRepository,
             final Object bean,
             final Method method,
@@ -70,7 +66,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         this.processService = processService;
         this.bpmnProcessId = bpmnProcessId;
         this.bpmnProcessName = bpmnProcessName;
-        this.processInstancePersistence = processInstancePersistence;
 
         determineBusinessKeyToIdMapper();
     }
@@ -145,7 +140,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                 List.of(language)
         );
         fillWorkflowCreatedEvent(camunda8WorkflowCreatedEvent, workflowCreatedEvent);
-        saveBusinessKeyProcessInstanceConnection(camunda8WorkflowCreatedEvent);
 
         return workflowCreatedEvent;
         
@@ -337,17 +331,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         }
 
     }
-
-    private void saveBusinessKeyProcessInstanceConnection(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
-        processInstancePersistence.save(
-                camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
-                camunda8WorkflowCreatedEvent.getBusinessKey(),
-                camunda8WorkflowCreatedEvent.getBpmnProcessId(),
-                camunda8WorkflowCreatedEvent.getVersion(),
-                camunda8WorkflowCreatedEvent.getProcessDefinitionKey(),
-                camunda8WorkflowCreatedEvent.getTenantId());
-    }
-
 
     // TODO GWI - refactor, copy of Camunda7UserTaskHandler
     private void determineBusinessKeyToIdMapper() {

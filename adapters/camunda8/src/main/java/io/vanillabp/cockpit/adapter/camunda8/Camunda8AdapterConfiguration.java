@@ -77,9 +77,11 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
     @Bean
     public Camunda8WorkflowEventHandler ccamunda8BusinessCockpitWorkflowEventHandler(
+            final ProcessInstancePersistence processInstancePersistence,
             final ApplicationEventPublisher applicationEventPublisher,
             final WorkflowPublishing workflowPublishing){
-        return new Camunda8WorkflowEventHandler(applicationEventPublisher, workflowPublishing);
+        return new Camunda8WorkflowEventHandler(
+                processInstancePersistence, applicationEventPublisher, workflowPublishing);
     }
 
 
@@ -135,7 +137,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 getConnectableServices(),
                 templating,
                 workflowEventListener,
-                processInstancePersistence,
                 workflowModulePublishing);
     }
 

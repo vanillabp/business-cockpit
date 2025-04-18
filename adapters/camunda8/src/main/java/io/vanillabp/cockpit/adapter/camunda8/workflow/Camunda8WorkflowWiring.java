@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
@@ -41,8 +40,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final Optional<Configuration> templating;
 
-    private final ProcessInstancePersistence processInstancePersistence;
-
     private final Camunda8VanillaBpProperties camunda8Properties;
 
     public Camunda8WorkflowWiring(
@@ -55,7 +52,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final ProcessInstancePersistence processInstancePersistence,
             final WorkflowModulePublishing workflowModulePublishing) {
         super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.properties = properties;
@@ -63,7 +59,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.connectableCockpitServices = connectableCockpitServices;
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
-        this.processInstancePersistence = processInstancePersistence;
         this.camunda8Properties = camunda8Properties;
     }
 
@@ -231,7 +226,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
                 bpmnProcessId,
                 connectable.processName(),
                 templating,
-                processInstancePersistence,
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository(),
                 bean,
                 method,
