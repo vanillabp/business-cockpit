@@ -59,10 +59,18 @@ const Main = ({
 
     return (
         <Box margin="large" gap="medium">
-            <Text weight='bold'>{t('title.long')}</Text>
-            <Box direction="row" gap="small" align="center">
-                <Text>User:</Text>
+            <Text style={{ color: '#613500', fontSize: '1.5rem'}}
+                  weight='bold'>{t('title.long')}</Text>
+            <Box style={{
+                color: '#613500',
+            }} direction="row" gap="small" align="center">
+                <Text style={{
+                    color: '#613500',
+                }}>User:</Text>
                 <Select
+                    style={{
+                        color: '#613500'
+                    }}
                     size="medium"
                     placeholder="Select user"
                     options={selectOptions}
@@ -75,10 +83,12 @@ const Main = ({
                     }}
                 />
             </Box>
-            <Anchor color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
+            <Anchor style={{color: '#b88d00'}}
+                    color='accent-2' onClick={() => navigate(t('url-usertask') as string)}>
                 {t('link-usertask')}
             </Anchor>
-            <Anchor color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
+            <Anchor style={{color: '#b88d00'}}
+                    color='accent-2' onClick={() => navigate(t('url-workflow') as string)}>
                 {t('link-workflow')}
             </Anchor>
             {additionalComponents.map(componentName => (
