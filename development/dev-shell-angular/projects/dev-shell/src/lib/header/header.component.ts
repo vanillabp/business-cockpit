@@ -73,12 +73,12 @@ export class HeaderComponent implements OnInit {
   hasMorePages = true;
   taskFilter: 'all' | 'open' | 'closed' = 'all';
   isPhone = window.innerWidth < 768;
-  
+
   // User task properties
   userTasks: UserTask[] = [];
   userTaskOptions: { label: string, value: string }[] = [];
   selectedTaskId?: string;
-  
+
   // Workflow properties
   workflows: Workflow[] = [];
   workflowOptions: { label: string, value: string }[] = [];
@@ -101,12 +101,15 @@ export class HeaderComponent implements OnInit {
 
     // Set up event listeners for route parameters
     this.route.params.subscribe(params => {
+      const newTaskId = params['userTaskId'];
       if (this.contentType === ContentType.UserTask) {
-        this.selectedTaskId = params['userTaskId'];
-        this.fetchUserTasks(0, this.selectedTaskId);
-      } else {
-        this.selectedWorkflowId = params['workflowId'];
-        this.fetchWorkflows(0, this.selectedWorkflowId);
+        if (newTaskId) {
+          this.selectedTaskId = newTaskId;
+          this.fetchUserTasks(0, newTaskId);
+        } else {
+          this.selectedTaskId = undefined;
+          this.fetchUserTasks(0);
+        }
       }
     });
 
@@ -126,8 +129,8 @@ export class HeaderComponent implements OnInit {
 
   // User Task methods
   fetchUserTasks(pageToFetch: number = 0, currentTaskId?: string): void {
+    // Determine the filter mode
     let mode: UserTaskRetrieveMode;
-    
     if (this.taskFilter === 'open') {
       mode = UserTaskRetrieveMode.OpenTasks;
     } else if (this.taskFilter === 'closed') {
@@ -136,6 +139,7 @@ export class HeaderComponent implements OnInit {
       mode = UserTaskRetrieveMode.All;
     }
 
+    // Create request
     const request: UserTasksRequest = {
       pageNumber: pageToFetch,
       pageSize: 20,
@@ -144,11 +148,13 @@ export class HeaderComponent implements OnInit {
       mode: mode
     };
 
+    // Call API
     this.http.post<UserTasksResponse>('/official-api/v1/usertask', request)
       .subscribe({
         next: (data: UserTasksResponse) => {
           this.userTasks = data.userTasks;
 
+          // Check if current task still exists
           if (currentTaskId) {
             const stillExists = data.userTasks.some(task => task.id === currentTaskId);
             if (!stillExists) {
@@ -157,6 +163,7 @@ export class HeaderComponent implements OnInit {
             }
           }
 
+          // Update options list
           if (pageToFetch === 0) {
             this.userTaskOptions = data.userTasks.map(task => ({
               label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
@@ -170,6 +177,7 @@ export class HeaderComponent implements OnInit {
             this.userTaskOptions = [...this.userTaskOptions, ...newOptions];
           }
 
+          // Update pagination
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
         },
@@ -225,20 +233,10 @@ export class HeaderComponent implements OnInit {
       });
   }
 
-  loadMoreItems(): void {
-    if (this.hasMorePages) {
-      if (this.isUserTaskView) {
-        this.fetchUserTasks(this.page + 1);
-      } else {
-        this.fetchWorkflows(this.page + 1);
-      }
-    }
-  }
-
   onItemSelect(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
     const selectedId = selectElement.value;
-    
+
     if (this.isUserTaskView) {
       this.selectedTaskId = selectedId;
       this.loadUserTask();
@@ -256,13 +254,28 @@ export class HeaderComponent implements OnInit {
     this.router.navigate(['/workflow', workflowId || this.selectedWorkflowId], { replaceUrl: true });
   }
 
+  // Handle filter changes
   onFilterChange(filter: 'all' | 'open' | 'closed'): void {
+    // Update filter and clear selection
     this.taskFilter = filter;
-    
+
     if (this.isUserTaskView) {
-      this.fetchUserTasks(0, this.selectedTaskId);
+      // Clear the selected task
+      const wasTaskSelected = !!this.selectedTaskId;
+      this.selectedTaskId = undefined;
+
+      // Fetch tasks with new filter
+      this.fetchUserTasks(0);
+
+      // Update URL if task was previously selected
+      if (wasTaskSelected) {
+        this.router.navigate(['/task'], { replaceUrl: true });
+      }
     } else {
-      this.fetchWorkflows(0, this.selectedWorkflowId);
+      // For workflow view
+      this.selectedWorkflowId = undefined;
+      this.router.navigate(['/workflow'], { replaceUrl: true });
+      this.fetchWorkflows(0);
     }
   }
 

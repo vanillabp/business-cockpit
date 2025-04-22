@@ -9,6 +9,7 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   min-height: 3.5rem;
   font-family: 'Arial', sans-serif;
+  width: 100%;
 }
 
 .task-selection-container {
@@ -22,7 +23,7 @@
 .select-container {
   display: flex;
   flex-direction: column;
-  width: 26rem;
+  width: 100%;
   position: relative;
 }
 
@@ -30,7 +31,6 @@
   width: 15rem;
 }
 
-/* Main page styles with VanillaBP theme */
 :host-context(.main-page) select {
   padding: 0.5rem;
   border: 1px solid #b88d00;
@@ -41,7 +41,6 @@
   cursor: pointer;
   appearance: none;
   padding-right: 1.5rem;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23613500' width='18px' height='18px'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
 }
@@ -96,7 +95,6 @@
   background-color: #fbe495;
 }
 
-/* Neutral theme for task/workflow pages */
 select {
   padding: 0.5rem;
   border: 1px solid #ccc;
@@ -107,7 +105,6 @@ select {
   cursor: pointer;
   appearance: none;
   padding-right: 1.5rem;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black' width='18px' height='18px'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
 }

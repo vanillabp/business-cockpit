@@ -3,26 +3,25 @@
     <div class="select-container" [ngClass]="{ 'phone': isPhone }">
       <!-- User Task Select -->
       <select *ngIf="isUserTaskView" [ngModel]="selectedTaskId" (change)="onItemSelect($event)">
-        <option value="">Select user task</option>
         <option *ngFor="let option of userTaskOptions" [value]="option.value">
           {{ option.label }}
         </option>
       </select>
-      
+
       <!-- Workflow Select -->
       <select *ngIf="isWorkflowView" [ngModel]="selectedWorkflowId" (change)="onItemSelect($event)">
-        <option value="">Select workflow</option>
         <option *ngFor="let option of workflowOptions" [value]="option.value">
           {{ option.label }}
         </option>
       </select>
-      
-      <button *ngIf="hasMorePages" (click)="loadMoreItems()" class="more-button">Load more</button>
     </div>
-    
-    <app-task-toggle [value]="taskFilter" (onChange)="onFilterChange($event)"></app-task-toggle>
+
+    <app-task-toggle
+      [value]="taskFilter"
+      (onChange)="onFilterChange($event)">
+    </app-task-toggle>
   </div>
-  
+
   <div class="view-menu">
     <div class="dropdown">
       <!-- User Task Views -->
@@ -32,7 +31,7 @@
         <a (click)="navigateToView('list')">list</a>
         <a (click)="navigateToView('icon')">icon</a>
       </div>
-      
+
       <!-- Workflow Views -->
       <button *ngIf="isWorkflowView" class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
       <div *ngIf="isWorkflowView && selectedWorkflowId" class="dropdown-content">
