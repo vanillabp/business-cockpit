@@ -2,15 +2,25 @@
   <div class="task-selection-container">
     <div class="select-container" [ngClass]="{ 'phone': isPhone }">
       <!-- User Task Select -->
-      <select *ngIf="isUserTaskView" [ngModel]="selectedTaskId" (change)="onItemSelect($event)">
-        <option *ngFor="let option of userTaskOptions" [value]="option.value">
+      <select 
+        *ngIf="isUserTaskView" 
+        id="task-select"
+        [ngModel]="selectedTaskId" 
+        (change)="onItemSelect($event)">
+        <option value="" disabled>Select a task</option>
+        <option *ngFor="let option of userTaskOptions" [value]="option.value" [selected]="option.value === selectedTaskId">
           {{ option.label }}
         </option>
       </select>
 
       <!-- Workflow Select -->
-      <select *ngIf="isWorkflowView" [ngModel]="selectedWorkflowId" (change)="onItemSelect($event)">
-        <option *ngFor="let option of workflowOptions" [value]="option.value">
+      <select 
+        *ngIf="isWorkflowView" 
+        id="workflow-select"
+        [ngModel]="selectedWorkflowId" 
+        (change)="onItemSelect($event)">
+        <option value="" disabled>Select a workflow</option>
+        <option *ngFor="let option of workflowOptions" [value]="option.value" [selected]="option.value === selectedWorkflowId">
           {{ option.label }}
         </option>
       </select>

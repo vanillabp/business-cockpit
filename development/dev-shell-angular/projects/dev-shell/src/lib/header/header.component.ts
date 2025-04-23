@@ -95,8 +95,10 @@ export class HeaderComponent implements OnInit {
     const url = this.router.url;
     if (url.includes('/workflow')) {
       this.contentType = ContentType.Workflow;
+      this.fetchWorkflows(0);
     } else {
       this.contentType = ContentType.UserTask;
+      this.fetchUserTasks(0);
     }
 
     // Set up event listeners for route parameters
@@ -108,7 +110,16 @@ export class HeaderComponent implements OnInit {
           this.fetchUserTasks(0, newTaskId);
         } else {
           this.selectedTaskId = undefined;
-          this.fetchUserTasks(0);
+        }
+      }
+
+      const newWorkflowId = params['workflowId'];
+      if (this.contentType === ContentType.Workflow) {
+        if (newWorkflowId) {
+          this.selectedWorkflowId = newWorkflowId;
+          this.fetchWorkflows(0, newWorkflowId);
+        } else {
+          this.selectedWorkflowId = undefined;
         }
       }
     });
@@ -160,6 +171,8 @@ export class HeaderComponent implements OnInit {
             if (!stillExists) {
               this.router.navigate(['/task'], { replaceUrl: true });
               this.selectedTaskId = undefined;
+            } else {
+              this.selectedTaskId = currentTaskId;
             }
           }
 
@@ -180,6 +193,11 @@ export class HeaderComponent implements OnInit {
           // Update pagination
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
+
+          // Force update of select element if needed
+          setTimeout(() => {
+            this.updateSelectElement();
+          });
         },
         error: (error) => {
           console.error('Error fetching tasks:', error);
@@ -207,6 +225,8 @@ export class HeaderComponent implements OnInit {
             if (!stillExists) {
               this.router.navigate(['/workflow'], { replaceUrl: true });
               this.selectedWorkflowId = undefined;
+            } else {
+              this.selectedWorkflowId = currentWorkflowId;
             }
           }
 
@@ -225,6 +245,11 @@ export class HeaderComponent implements OnInit {
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
+
+          // Force update of select element if needed
+          setTimeout(() => {
+            this.updateSelectElement();
+          });
         },
         error: (error) => {
           console.error('Error fetching workflows:', error);
@@ -233,16 +258,35 @@ export class HeaderComponent implements OnInit {
       });
   }
 
+  updateSelectElement(): void {
+    // Force the select element to sync with the model
+    if (this.isUserTaskView) {
+      const selectElement = document.getElementById('task-select') as HTMLSelectElement;
+      if (selectElement && this.selectedTaskId) {
+        selectElement.value = this.selectedTaskId;
+      }
+    } else if (this.isWorkflowView) {
+      const selectElement = document.getElementById('workflow-select') as HTMLSelectElement;
+      if (selectElement && this.selectedWorkflowId) {
+        selectElement.value = this.selectedWorkflowId;
+      }
+    }
+  }
+
   onItemSelect(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
     const selectedId = selectElement.value;
 
     if (this.isUserTaskView) {
       this.selectedTaskId = selectedId;
-      this.loadUserTask();
+      if (selectedId) {
+        this.loadUserTask();
+      }
     } else {
       this.selectedWorkflowId = selectedId;
-      this.loadWorkflow();
+      if (selectedId) {
+        this.loadWorkflow();
+      }
     }
   }
 
