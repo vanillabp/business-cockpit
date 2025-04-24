@@ -278,10 +278,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.userTaskOptions = [];
       this.fetchUserTasks(0);
     } else {
-      // Assuming filter only applies to user tasks, but if it applied to workflows:
-      // this.workflows = [];
-      // this.workflowOptions = [];
-      // this.fetchWorkflows(0);
+      // Filter only applies to user task page atm.
     }
     this.cdRef.detectChanges();
   }

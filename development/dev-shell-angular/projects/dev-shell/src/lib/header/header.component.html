@@ -22,7 +22,6 @@
         [scrollHeight]="'250px'">
         <ng-template pTemplate="selectedItem" let-selectedOption>
           <div class="flex items-center gap-2" *ngIf="selectedOption">
-            <!-- Custom selected item display (similar to React) -->
             <ng-container *ngIf="selectedOption.label.includes('|')">
                 <span class="font-bold">{{ selectedOption.label.split('|')[0].trim() }}</span>
                 <span class="font-normal"> | {{ selectedOption.label.split('|')[1].trim() }}</span>
