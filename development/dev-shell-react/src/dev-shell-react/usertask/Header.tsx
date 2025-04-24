@@ -6,7 +6,6 @@ import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
 import { ButtonExtendedProps } from 'grommet/components/Button';
-import { BcUserTask } from '@vanillabp/bc-shared';
 import {UserTasksRequest, UserTaskRetrieveMode, UserTask} from '@vanillabp/bc-official-gui-client';
 import { TaskToggle } from '../components/ToggleComponent.js';
 
