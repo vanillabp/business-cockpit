@@ -28,15 +28,27 @@ const Header = () => {
     const navigate = useNavigate();
     const { t: tApp } = useTranslation(appNs);
     const { t } = useTranslation('usertask-header');
-    const userTaskId: string | undefined = useParams()['userTaskId'];
-    const [taskId, setTaskId] = useState(userTaskId);
-    const [options, setOptions] = useState<Array<{ label: string, value: string | undefined }>>([]);
-    const [userTasks, setUserTasks] = useState<UserTask[]>([]);
-    const [page, setPage] = useState(0);
-    const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'closed'>('all');
-    const [hasMorePages, setHasMorePages] = useState(true);
 
-    const fetchTasks = async (pageToFetch: number = 0, currentTaskId?: string) => {
+    const userTaskIdParam: string | undefined = useParams()['userTaskId'];
+    const [taskId, setTaskId] = useState(userTaskIdParam);
+    const [userTasks, setUserTasks] = useState<UserTask[]>([]);
+    const [searchText, setSearchText] = useState('');
+    const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'closed'>('all');
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+
+    const selectOptions = userTasks.map(task => ({
+        label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
+        value: task.id
+    }));
+
+    const filteredOptions = selectOptions.filter(option => {
+        const escapedText = searchText.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&');
+        const regex = new RegExp(escapedText, 'i');
+        return regex.test(option.label);
+    });
+
+    const fetchTasks = async () => {
         let mode;
         if (taskFilter === 'open') {
             mode = UserTaskRetrieveMode.OpenTasks;
@@ -53,7 +65,7 @@ const Header = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    pageNumber: pageToFetch,
+                    pageNumber: page,
                     pageSize: 20,
                     sort: 'createdAt',
                     sortAscending: false,
@@ -67,44 +79,32 @@ const Header = () => {
 
             const data = await response.json();
 
-            setUserTasks(data.userTasks);
+            setUserTasks(prev => [...prev, ...data.userTasks]);
 
-            // navigate to / on respective taskfilter change
-            if (currentTaskId) {
-                const stillExists = data.userTasks.some((task: { id: string; }) => task.id === currentTaskId);
-                if (!stillExists) {
-                    navigate(`/${tApp('url-usertask')}`, { replace: true });
-                    setTaskId(undefined);
-                }
+            const totalPages = data.page?.totalPages ?? 0;
+            if (page + 1 >= totalPages) {
+                setHasMore(false);
             }
-
-
-            const formattedTasks = data.userTasks.map((task: BcUserTask) =>
-                `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`
-            );
-
-            if (pageToFetch === 0) {
-                setOptions(formattedTasks);
-            } else {
-                setOptions((prev) => [...prev, ...formattedTasks]);
-            }
-
-            setPage(pageToFetch);
-            setHasMorePages(data.page.number + 1 < data.page.totalPages);
-
         } catch (error) {
             console.error('Error fetching tasks:', error);
-            setOptions([]);
+            setUserTasks([]);
         }
     };
 
     useEffect(() => {
-        fetchTasks(0, taskId);
+        // Reset everything when filter changes
+        setUserTasks([]);
+        setPage(0);
+        setHasMore(true);
     }, [taskFilter]);
 
+    useEffect(() => {
+        fetchTasks();
+    }, [page, taskFilter]);
+
     const onMore = () => {
-        if (hasMorePages) {
-            fetchTasks(page + 1);
+        if (hasMore) {
+            setPage(prev => prev + 1);
         }
     };
 
@@ -115,13 +115,6 @@ const Header = () => {
         { label: t('view-form'), onClick: () => navigate(`/${tApp('url-usertask')}/${taskId}`) },
         { label: t('view-list'), onClick: () => navigate(`/${tApp('url-usertask')}/${taskId}/${tApp('url-list')}`) },
         { label: t('view-icon'), onClick: () => navigate(`/${tApp('url-usertask')}/${taskId}/${tApp('url-icon')}`) },
-    ];
-
-    const selectOptions = [
-        ...userTasks.map(task => ({
-            label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
-            value: task.id
-        }))
     ];
 
     const renderOption = (option: { label: string, value: string }) => {
@@ -135,7 +128,11 @@ const Header = () => {
     };
 
     return (
-        <Box fill direction="row" justify="between" pad="small" gap="small">
+        <Box
+            fill
+            direction="row"
+            justify="between"
+            gap="small">
             <Box direction="row" gap="small" align="center" fill>
                 <Box width={isPhone ? '15rem' : '26rem'} fill>
                     <Select
@@ -143,6 +140,7 @@ const Header = () => {
                         placeholder="Select user task"
                         labelKey="label"
                         valueKey={{ key: 'value', reduce: true }}
+                        value={taskId}
                         valueLabel={
                             (() => {
                                 const selected = selectOptions.find(o => o.value === taskId);
@@ -156,21 +154,13 @@ const Header = () => {
                                 );
                             })()
                         }
-                        value={taskId}
-                        options={selectOptions}
+                        options={filteredOptions}
                         onChange={({ value }) => {
                             setTaskId(value);
                             loadUserTask(value);
                         }}
-                        onClose={() => setOptions(options)}
-                        onMore={hasMorePages ? onMore : undefined}
-                        onSearch={(text) => {
-                            const escapedText = text.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&');
-                            const exp = new RegExp(escapedText, 'i');
-                            setOptions(
-                                selectOptions.filter((option) => exp.test(option.label))
-                            );
-                        }}
+                        onMore={hasMore ? onMore : undefined}
+                        onSearch={text => setSearchText(text)}
                     >
                         {(option, state) => (
                             <Box pad="small" background={state.active ? 'active' : undefined}>
@@ -178,13 +168,12 @@ const Header = () => {
                             </Box>
                         )}
                     </Select>
-
                 </Box>
                 <TaskToggle value={taskFilter} onChange={setTaskFilter} />
             </Box>
             <Box>
                 <Menu
-                    disabled={!Boolean(userTaskId)}
+                    disabled={!Boolean(taskId)}
                     label={t('views-label')}
                     items={viewMenuItems}
                 />

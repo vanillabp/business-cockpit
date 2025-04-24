@@ -1,9 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { TaskToggleComponent } from '../components/task-toggle.component';
+import { DropdownModule } from 'primeng/dropdown';
+import { Subscription } from 'rxjs';
+
+interface SelectOption {
+  label: string;
+  value: string;
+}
 
 interface UserTask {
   id: string;
@@ -62,72 +69,81 @@ enum ContentType {
 @Component({
   selector: 'lib-header',
   standalone: true,
-  imports: [CommonModule, FormsModule, TaskToggleComponent],
+  imports: [CommonModule, FormsModule, TaskToggleComponent, DropdownModule],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
   // Shared properties
   contentType: ContentType = ContentType.UserTask;
   page = 0;
   hasMorePages = true;
+  isLoading = false;
   taskFilter: 'all' | 'open' | 'closed' = 'all';
   isPhone = window.innerWidth < 768;
+  private routeSubscription: Subscription | undefined;
+  private resizeListener: () => void;
 
   // User task properties
   userTasks: UserTask[] = [];
-  userTaskOptions: { label: string, value: string }[] = [];
+  userTaskOptions: SelectOption[] = [];
   selectedTaskId?: string;
 
   // Workflow properties
   workflows: Workflow[] = [];
-  workflowOptions: { label: string, value: string }[] = [];
+  workflowOptions: SelectOption[] = [];
   selectedWorkflowId?: string;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private http: HttpClient
-  ) {}
+    private http: HttpClient,
+    private cdRef: ChangeDetectorRef
+  ) {
+    this.resizeListener = () => {
+      this.isPhone = window.innerWidth < 768;
+      this.cdRef.detectChanges();
+    };
+  }
 
   ngOnInit(): void {
-    // Determine content type based on URL
+    // Determine content type based on URL and load initial data
     const url = this.router.url;
     if (url.includes('/workflow')) {
       this.contentType = ContentType.Workflow;
+      this.selectedWorkflowId = this.route.snapshot.paramMap.get('workflowId') || undefined;
       this.fetchWorkflows(0);
     } else {
       this.contentType = ContentType.UserTask;
+      this.selectedTaskId = this.route.snapshot.paramMap.get('userTaskId') || undefined;
       this.fetchUserTasks(0);
     }
 
-    // Set up event listeners for route parameters
-    this.route.params.subscribe(params => {
+    // Subscribe to route parameter changes
+    this.routeSubscription = this.route.params.subscribe(params => {
       const newTaskId = params['userTaskId'];
-      if (this.contentType === ContentType.UserTask) {
-        if (newTaskId) {
-          this.selectedTaskId = newTaskId;
-          this.fetchUserTasks(0, newTaskId);
-        } else {
-          this.selectedTaskId = undefined;
-        }
+      const newWorkflowId = params['workflowId'];
+
+      if (this.contentType === ContentType.UserTask && newTaskId !== this.selectedTaskId) {
+        this.selectedTaskId = newTaskId;
+        this.cdRef.detectChanges();
       }
 
-      const newWorkflowId = params['workflowId'];
-      if (this.contentType === ContentType.Workflow) {
-        if (newWorkflowId) {
-          this.selectedWorkflowId = newWorkflowId;
-          this.fetchWorkflows(0, newWorkflowId);
-        } else {
-          this.selectedWorkflowId = undefined;
-        }
+      if (this.contentType === ContentType.Workflow && newWorkflowId !== this.selectedWorkflowId) {
+        this.selectedWorkflowId = newWorkflowId;
+        this.cdRef.detectChanges();
       }
     });
 
     // Responsive handler
-    window.addEventListener('resize', () => {
-      this.isPhone = window.innerWidth < 768;
-    });
+    window.addEventListener('resize', this.resizeListener);
+  }
+
+  ngOnDestroy(): void {
+    if (this.routeSubscription) {
+      this.routeSubscription.unsubscribe();
+    }
+    window.removeEventListener('resize', this.resizeListener);
   }
 
   get isUserTaskView(): boolean {
@@ -139,207 +155,146 @@ export class HeaderComponent implements OnInit {
   }
 
   // User Task methods
-  fetchUserTasks(pageToFetch: number = 0, currentTaskId?: string): void {
-    // Determine the filter mode
-    let mode: UserTaskRetrieveMode;
-    if (this.taskFilter === 'open') {
-      mode = UserTaskRetrieveMode.OpenTasks;
-    } else if (this.taskFilter === 'closed') {
-      mode = UserTaskRetrieveMode.ClosedTasksOnly;
-    } else {
-      mode = UserTaskRetrieveMode.All;
-    }
+  fetchUserTasks(pageToFetch: number): void {
+    if (this.isLoading) return;
+    this.isLoading = true;
 
-    // Create request
+    let mode: UserTaskRetrieveMode;
+    if (this.taskFilter === 'open') mode = UserTaskRetrieveMode.OpenTasks;
+    else if (this.taskFilter === 'closed') mode = UserTaskRetrieveMode.ClosedTasksOnly;
+    else mode = UserTaskRetrieveMode.All;
+
     const request: UserTasksRequest = {
-      pageNumber: pageToFetch,
-      pageSize: 20,
-      sort: 'createdAt',
-      sortAscending: false,
-      mode: mode
+      pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false, mode: mode
     };
 
-    // Call API
     this.http.post<UserTasksResponse>('/official-api/v1/usertask', request)
       .subscribe({
         next: (data: UserTasksResponse) => {
-          this.userTasks = data.userTasks;
+          this.userTasks = pageToFetch === 0 ? data.userTasks : [...this.userTasks, ...data.userTasks];
 
-          // Check if current task still exists
-          if (currentTaskId) {
-            const stillExists = data.userTasks.some(task => task.id === currentTaskId);
-            if (!stillExists) {
-              this.router.navigate(['/task'], { replaceUrl: true });
-              this.selectedTaskId = undefined;
-            } else {
-              this.selectedTaskId = currentTaskId;
-            }
-          }
+          this.userTaskOptions = this.userTasks.map(task => ({
+            label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
+            value: task.id
+          }));
 
-          // Update options list
-          if (pageToFetch === 0) {
-            this.userTaskOptions = data.userTasks.map(task => ({
-              label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
-              value: task.id
-            }));
-          } else {
-            const newOptions = data.userTasks.map(task => ({
-              label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
-              value: task.id
-            }));
-            this.userTaskOptions = [...this.userTaskOptions, ...newOptions];
-          }
-
-          // Update pagination
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
-
-          // Force update of select element if needed
-          setTimeout(() => {
-            this.updateSelectElement();
-          });
+          this.isLoading = false;
+          this.cdRef.detectChanges();
         },
         error: (error) => {
           console.error('Error fetching tasks:', error);
-          this.userTaskOptions = [];
+          if (pageToFetch === 0) {
+            this.userTasks = [];
+            this.userTaskOptions = [];
+          }
+          this.isLoading = false;
+          this.hasMorePages = false;
+          this.cdRef.detectChanges();
         }
       });
   }
 
   // Workflow methods
-  fetchWorkflows(pageToFetch: number = 0, currentWorkflowId?: string): void {
+  fetchWorkflows(pageToFetch: number): void {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
     const request: WorkflowsRequest = {
-      pageNumber: pageToFetch,
-      pageSize: 20,
-      sort: 'createdAt',
-      sortAscending: false
+      pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false
     };
 
     this.http.post<WorkflowsResponse>('/official-api/v1/workflow', request)
       .subscribe({
         next: (data: WorkflowsResponse) => {
-          this.workflows = data.workflows;
+          this.workflows = pageToFetch === 0 ? data.workflows : [...this.workflows, ...data.workflows];
 
-          if (currentWorkflowId) {
-            const stillExists = data.workflows.some(workflow => workflow.id === currentWorkflowId);
-            if (!stillExists) {
-              this.router.navigate(['/workflow'], { replaceUrl: true });
-              this.selectedWorkflowId = undefined;
-            } else {
-              this.selectedWorkflowId = currentWorkflowId;
-            }
-          }
-
-          if (pageToFetch === 0) {
-            this.workflowOptions = data.workflows.map(workflow => ({
-              label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
-              value: workflow.id
-            }));
-          } else {
-            const newOptions = data.workflows.map(workflow => ({
-              label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
-              value: workflow.id
-            }));
-            this.workflowOptions = [...this.workflowOptions, ...newOptions];
-          }
+          this.workflowOptions = this.workflows.map(workflow => ({
+            label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
+            value: workflow.id
+          }));
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
-
-          // Force update of select element if needed
-          setTimeout(() => {
-            this.updateSelectElement();
-          });
+          this.isLoading = false;
+          this.cdRef.detectChanges();
         },
         error: (error) => {
           console.error('Error fetching workflows:', error);
-          this.workflowOptions = [];
+          if (pageToFetch === 0) {
+            this.workflows = [];
+            this.workflowOptions = [];
+          }
+          this.isLoading = false;
+          this.hasMorePages = false;
+          this.cdRef.detectChanges();
         }
       });
   }
 
-  updateSelectElement(): void {
-    // Force the select element to sync with the model
-    if (this.isUserTaskView) {
-      const selectElement = document.getElementById('task-select') as HTMLSelectElement;
-      if (selectElement && this.selectedTaskId) {
-        selectElement.value = this.selectedTaskId;
-      }
-    } else if (this.isWorkflowView) {
-      const selectElement = document.getElementById('workflow-select') as HTMLSelectElement;
-      if (selectElement && this.selectedWorkflowId) {
-        selectElement.value = this.selectedWorkflowId;
+  loadMore(): void {
+    if (!this.isLoading && this.hasMorePages) {
+      const nextPage = this.page + 1;
+      if (this.isUserTaskView) {
+        this.fetchUserTasks(nextPage);
+      } else {
+        this.fetchWorkflows(nextPage);
       }
     }
   }
 
-  onItemSelect(event: Event): void {
-    const selectElement = event.target as HTMLSelectElement;
-    const selectedId = selectElement.value;
-
-    if (this.isUserTaskView) {
-      this.selectedTaskId = selectedId;
-      if (selectedId) {
-        this.loadUserTask();
-      }
-    } else {
-      this.selectedWorkflowId = selectedId;
-      if (selectedId) {
-        this.loadWorkflow();
-      }
+  onItemSelect(itemId: string | undefined): void {
+    if (this.isUserTaskView && itemId) {
+      this.loadUserTask(itemId);
+    } else if (this.isWorkflowView && itemId) {
+      this.loadWorkflow(itemId);
+    } else if (!itemId) {
+      if (this.isUserTaskView) this.router.navigate(['/task']);
+      else if (this.isWorkflowView) this.router.navigate(['/workflow']);
     }
   }
 
-  loadUserTask(taskId?: string): void {
-    this.router.navigate(['/task', taskId || this.selectedTaskId], { replaceUrl: true });
+  loadUserTask(taskId: string): void {
+    if (this.route.snapshot.paramMap.get('userTaskId') !== taskId) {
+      this.router.navigate(['/task', taskId]);
+    }
   }
 
-  loadWorkflow(workflowId?: string): void {
-    this.router.navigate(['/workflow', workflowId || this.selectedWorkflowId], { replaceUrl: true });
+  loadWorkflow(workflowId: string): void {
+    if (this.route.snapshot.paramMap.get('workflowId') !== workflowId) {
+      this.router.navigate(['/workflow', workflowId]);
+    }
   }
 
-  // Handle filter changes
   onFilterChange(filter: 'all' | 'open' | 'closed'): void {
-    // Update filter and clear selection
     this.taskFilter = filter;
+    this.page = 0;
+    this.hasMorePages = true;
+    this.isLoading = false;
 
     if (this.isUserTaskView) {
-      // Clear the selected task
-      const wasTaskSelected = !!this.selectedTaskId;
-      this.selectedTaskId = undefined;
-
-      // Fetch tasks with new filter
+      this.userTasks = [];
+      this.userTaskOptions = [];
       this.fetchUserTasks(0);
-
-      // Update URL if task was previously selected
-      if (wasTaskSelected) {
-        this.router.navigate(['/task'], { replaceUrl: true });
-      }
     } else {
-      // For workflow view
-      this.selectedWorkflowId = undefined;
-      this.router.navigate(['/workflow'], { replaceUrl: true });
-      this.fetchWorkflows(0);
+      // Assuming filter only applies to user tasks, but if it applied to workflows:
+      // this.workflows = [];
+      // this.workflowOptions = [];
+      // this.fetchWorkflows(0);
     }
+    this.cdRef.detectChanges();
   }
 
   navigateToView(view: string): void {
-    if (this.isUserTaskView && this.selectedTaskId) {
-      if (view === 'form') {
-        this.router.navigate(['/task', this.selectedTaskId]);
-      } else if (view === 'list') {
-        this.router.navigate(['/task', this.selectedTaskId, 'list']);
-      } else if (view === 'icon') {
-        this.router.navigate(['/task', this.selectedTaskId, 'icon']);
-      }
-    } else if (this.isWorkflowView && this.selectedWorkflowId) {
-      if (view === 'page') {
-        this.router.navigate(['/workflow', this.selectedWorkflowId]);
-      } else if (view === 'list') {
-        this.router.navigate(['/workflow', this.selectedWorkflowId, 'list']);
-      } else if (view === 'icon') {
-        this.router.navigate(['/workflow', this.selectedWorkflowId, 'icon']);
-      }
+    const currentBase = this.isUserTaskView ? `/task/${this.selectedTaskId}` : `/workflow/${this.selectedWorkflowId}`;
+    const targetRoute = view === 'form' || view === 'page' ? [currentBase] : [currentBase, view];
+
+    const currentUrl = this.router.url;
+    const targetUrl = this.router.createUrlTree(targetRoute).toString();
+
+    if (currentUrl !== targetUrl) {
+      this.router.navigate(targetRoute);
     }
   }
 }

@@ -1,29 +1,92 @@
 <div class="header-container">
   <div class="task-selection-container">
     <div class="select-container" [ngClass]="{ 'phone': isPhone }">
-      <!-- User Task Select -->
-      <select 
-        *ngIf="isUserTaskView" 
-        id="task-select"
-        [ngModel]="selectedTaskId" 
-        (change)="onItemSelect($event)">
-        <option value="" disabled>Select a task</option>
-        <option *ngFor="let option of userTaskOptions" [value]="option.value" [selected]="option.value === selectedTaskId">
-          {{ option.label }}
-        </option>
-      </select>
+      <!-- User Task Dropdown -->
+      <p-dropdown
+        *ngIf="isUserTaskView"
+        styleClass="header-dropdown"
+        [options]="userTaskOptions"
+        [(ngModel)]="selectedTaskId"
+        (ngModelChange)="onItemSelect($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a task"
+        [virtualScroll]="true"
+        [filter]="true"
+        filterBy="label"
+        [showClear]="true"
+        [lazy]="true"
+        (onLazyLoad)="loadMore()"
+        [virtualScrollItemSize]="38"
+        [style]="{ 'width': '100%' }"
+        [scrollHeight]="'250px'">
+        <ng-template pTemplate="selectedItem" let-selectedOption>
+          <div class="flex items-center gap-2" *ngIf="selectedOption">
+            <!-- Custom selected item display (similar to React) -->
+            <ng-container *ngIf="selectedOption.label.includes('|')">
+                <span class="font-bold">{{ selectedOption.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ selectedOption.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!selectedOption.label.includes('|')">
+                <span>{{ selectedOption.label }}</span>
+              </ng-container>
+          </div>
+        </ng-template>
+        <ng-template let-option pTemplate="item">
+          <div class="flex items-center gap-2">
+             <ng-container *ngIf="option.label.includes('|')">
+               <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
+               <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
+             </ng-container>
+             <ng-container *ngIf="!option.label.includes('|')">
+               <span>{{ option.label }}</span>
+             </ng-container>
+          </div>
+        </ng-template>
+      </p-dropdown>
 
-      <!-- Workflow Select -->
-      <select 
-        *ngIf="isWorkflowView" 
-        id="workflow-select"
-        [ngModel]="selectedWorkflowId" 
-        (change)="onItemSelect($event)">
-        <option value="" disabled>Select a workflow</option>
-        <option *ngFor="let option of workflowOptions" [value]="option.value" [selected]="option.value === selectedWorkflowId">
-          {{ option.label }}
-        </option>
-      </select>
+      <!-- Workflow Dropdown -->
+      <p-dropdown
+        *ngIf="isWorkflowView"
+        styleClass="header-dropdown"
+        [options]="workflowOptions"
+        [(ngModel)]="selectedWorkflowId"
+        (ngModelChange)="onItemSelect($event)"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a workflow"
+        [virtualScroll]="true"
+        [filter]="true"
+        filterBy="label"
+        [showClear]="true"
+        [lazy]="true"
+        (onLazyLoad)="loadMore()"
+        [virtualScrollItemSize]="38"
+        [style]="{ 'width': '100%' }"
+        [scrollHeight]="'250px'">
+         <ng-template pTemplate="selectedItem" let-selectedOption>
+           <div class="flex items-center gap-2" *ngIf="selectedOption">
+             <ng-container *ngIf="selectedOption.label.includes('|')">
+                <span class="font-bold">{{ selectedOption.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ selectedOption.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!selectedOption.label.includes('|')">
+                <span>{{ selectedOption.label }}</span>
+              </ng-container>
+           </div>
+         </ng-template>
+         <ng-template let-option pTemplate="item">
+           <div class="flex items-center gap-2">
+              <ng-container *ngIf="option.label.includes('|')">
+                <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
+                <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
+              </ng-container>
+              <ng-container *ngIf="!option.label.includes('|')">
+                <span>{{ option.label }}</span>
+              </ng-container>
+           </div>
+         </ng-template>
+      </p-dropdown>
     </div>
 
     <app-task-toggle
