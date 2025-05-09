@@ -1,0 +1,9 @@
+<div class="task-toggle-container">
+  <div *ngFor="let option of options" 
+      class="toggle-option" 
+      [ngClass]="{ 'active': value === option.value }"
+      [style.background-color]="option.background"
+      (click)="onChange.emit(option.value)">
+    {{ option.label }}
+  </div>
+</div> 

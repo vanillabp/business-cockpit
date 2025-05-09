@@ -164,6 +164,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.vanillabp.businesscockpit</groupId>
+      <artifactId>dev-shell-simulator</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.devskiller</groupId>
       <artifactId>jfairy</artifactId>
       <version>0.6.2</version>

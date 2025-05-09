@@ -1,0 +1,23 @@
+dev-shell-simulator:
+  users:
+      - id: john
+        email: john@doe.com
+        first-name: John
+        last-name: Doe
+        groups: ADMIN, RISK_ASSESSMENT
+        attributes:
+          office365-uuid: 7bda0fe7-881e-4aa3-b0ee-258cddb71711
+      - id: jane
+        email: jane@doe.com
+        first-name: Jane
+        last-name: Doe
+        groups: ADMIN
+        attributes:
+          office365-uuid: f9107b18-8fdf-40c1-aac4-531054b5bd5c
+      - id: joe
+        email: joe@doe.com
+        first-name: Joe
+        last-name: Doe
+        groups: RISK_ASSESSMENT
+        attributes:
+          office365-uuid: 8b778542-096b-4f07-93f4-574466d15711

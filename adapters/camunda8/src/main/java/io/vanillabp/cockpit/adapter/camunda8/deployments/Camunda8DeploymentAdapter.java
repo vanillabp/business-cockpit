@@ -163,11 +163,21 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                     try (var inputStream = new ByteArrayInputStream(
                             bpmn.getResource())) {
 
-                        logger.info("About to verify old BPMN '{}' of workflow-module with id '{}' for business-cockpit",
-                                bpmn.getResourceName(), workflowModuleId);
+                        logger.info("About to verify old BPMN '{}' of workflow-module with id '{}' for business-cockpit." +
+                                "If not required any, remove from repository!",
+                                bpmn.getResourceName(),
+                                workflowModuleId);
+
                         final var model = bpmnParser.parseModelFromStream(inputStream);
 
                         processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model);
+
+                        bpmn
+                                .getDeployments()
+                                .stream()
+                                .filter(deployment -> deployment instanceof DeployedProcess)
+                                .map(deployment -> (DeployedProcess) deployment)
+                                .forEach(process -> deploymentService.registerOldProcess(process, bpmn));
 
                     } catch (IOException e) {
                         throw new RuntimeException(e.getMessage());

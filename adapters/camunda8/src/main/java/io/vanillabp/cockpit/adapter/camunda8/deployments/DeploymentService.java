@@ -5,7 +5,10 @@ import io.camunda.zeebe.model.bpmn.Bpmn;
 import io.camunda.zeebe.model.bpmn.BpmnModelInstance;
 import java.io.ByteArrayOutputStream;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
@@ -15,6 +18,28 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class DeploymentService {
+
+    public static class ProcessInformation {
+        private String bpmnProcessId;
+        private long version;
+
+        public ProcessInformation(
+                final String bpmnProcessId,
+                final long version) {
+            this.bpmnProcessId = bpmnProcessId;
+            this.version = version;
+        }
+
+        public long getVersion() {
+            return version;
+        }
+
+        public String getBpmnProcessId() {
+            return bpmnProcessId;
+        }
+    }
+
+    private static final Map<Long, ProcessInformation> cachedProcessInformation = new HashMap<>();
 
     private final DeploymentPersistence persistence;
 
@@ -85,6 +110,33 @@ public class DeploymentService {
 
     }
 
+    private void cacheProcessInformation(
+            final DeployedProcess process) {
+
+        final var processInformation = new ProcessInformation(
+                process.getBpmnProcessId(),
+                process.getVersion());
+        cachedProcessInformation.put(
+                process.getDefinitionKey(),
+                processInformation);
+
+    }
+
+    public void registerOldProcess(
+            final DeployedProcess process,
+            final DeployedBpmn bpmn) {
+
+        cacheProcessInformation(process);
+
+    }
+
+    public Optional<ProcessInformation> getProcessInformationByDefinitionKey(
+            final long processDefinitionKey) {
+
+        return Optional.ofNullable(cachedProcessInformation.get(processDefinitionKey));
+
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Retryable(
             retryFor = { OptimisticLockingFailureException.class, ObjectOptimisticLockingFailureException.class },
@@ -98,18 +150,23 @@ public class DeploymentService {
         final var versionedId = camunda8DeployedProcess.getProcessDefinitionKey();
 
         final var previous = persistence.findDeployedProcess(versionedId);
+        final DeployedProcess result;
         if ((previous.isPresent())
                 && (previous.get().getPackageId() == packageId)) {
-            return (DeployedProcess) previous.get();
+            result = (DeployedProcess) previous.get();
+        } else {
+            result = persistence.addDeployedProcess(
+                    versionedId,
+                    camunda8DeployedProcess.getVersion(),
+                    packageId,
+                    camunda8DeployedProcess.getBpmnProcessId(),
+                    bpmn,
+                    OffsetDateTime.now());
         }
 
-        return persistence.addDeployedProcess(
-                versionedId,
-                camunda8DeployedProcess.getVersion(),
-                packageId,
-                camunda8DeployedProcess.getBpmnProcessId(),
-                bpmn,
-                OffsetDateTime.now());
+        cacheProcessInformation(result);
+
+        return result;
 
     }
 
