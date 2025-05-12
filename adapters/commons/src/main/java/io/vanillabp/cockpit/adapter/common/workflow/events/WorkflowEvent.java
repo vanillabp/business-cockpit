@@ -8,6 +8,13 @@ public interface WorkflowEvent {
 
     void setEventId(String eventId);
 
+    String getWorkflowId();
+
+    void setWorkflowId(String workflowId);
+
+    String getWorkflowModuleId();
+
+    void setWorkflowModuleId(String workflowModuleId);
 
     String getComment();
 

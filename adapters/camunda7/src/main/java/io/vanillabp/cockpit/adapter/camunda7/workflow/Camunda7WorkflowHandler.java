@@ -72,12 +72,12 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessName,
             final String bpmnProcessVersion) {
 
-        final String workflowModuleId = processInstance.getTenantId();
+        final String workflowModuleId = processService.getWorkflowModuleId();
         
         WorkflowEvent workflowEvent = null;
         if (processInstance.getEndTime() != null) {
             WorkflowCompletedEvent workflowCompletedEvent = new WorkflowCompletedEvent();
-            fillLifecycleEvent(bpmnProcessId, bpmnProcessVersion, processInstance, workflowCompletedEvent);
+            fillLifecycleEvent(workflowModuleId, bpmnProcessId, bpmnProcessVersion, processInstance, workflowCompletedEvent);
             workflowEvent = workflowCompletedEvent;
         } else {
             WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
@@ -97,7 +97,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             String bpmnProcessVersion
     ) {
 
-        final String workflowModuleId = processInstanceEvent.getTenantId();
+        final String workflowModuleId = processService.getWorkflowModuleId();
 
         WorkflowEvent workflowEvent;
 
@@ -117,7 +117,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                     new WorkflowCancelledEvent() :
                     new WorkflowCompletedEvent();
 
-            fillLifecycleEvent(bpmnProcessId, bpmnProcessVersion, processInstanceEvent, workflowLifecycleEvent);
+            fillLifecycleEvent(workflowModuleId, bpmnProcessId, bpmnProcessVersion, processInstanceEvent, workflowLifecycleEvent);
             workflowEvent = workflowLifecycleEvent;
 
         } else {
@@ -339,6 +339,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     }
 
     private void fillLifecycleEvent(
+            final String workflowModuleId,
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
@@ -353,6 +354,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         event.setComment(processInstanceEvent.getDeleteReason());
         event.setTimestamp(OffsetDateTime.now());
         event.setWorkflowId(processInstanceEvent.getProcessInstanceId());
+        event.setWorkflowModuleId(workflowModuleId);
         event.setInitiator(null); // TODO
         event.setBpmnProcessId(bpmnProcessId);
         event.setBpmnProcessVersion(bpmnProcessVersion);
@@ -360,6 +362,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     }
 
     private void fillLifecycleEvent(
+            final String workflowModuleId,
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstance processInstance,
@@ -372,6 +375,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         event.setComment(processInstance.getDeleteReason());
         event.setTimestamp(OffsetDateTime.now());
         event.setWorkflowId(processInstance.getId());
+        event.setWorkflowModuleId(workflowModuleId);
         event.setInitiator(null); // TODO
         event.setBpmnProcessId(bpmnProcessId);
         event.setBpmnProcessVersion(bpmnProcessVersion);

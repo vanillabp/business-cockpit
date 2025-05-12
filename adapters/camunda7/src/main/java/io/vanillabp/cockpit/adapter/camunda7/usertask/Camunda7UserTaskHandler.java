@@ -107,27 +107,28 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final TaskEntity task,
             final String eventName) {
 
-        final var i18nLanguages = properties.getI18nLanguages(processService.getWorkflowModuleId(), bpmnProcessId);
+        final var workflowModuleId = processService.getWorkflowModuleId();
+        final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
         final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
                 switch (eventName) {
                     case TaskListener.EVENTNAME_CREATE:
-                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), i18nLanguages);
+                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(workflowModuleId, i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
                         yield userTaskCreatedEvent;
 
                     case TaskListener.EVENTNAME_UPDATE:
-                        UserTaskUpdatedEvent userTaskUpdatedEvent = new UserTaskUpdatedEvent(task.getTenantId(), i18nLanguages);
+                        UserTaskUpdatedEvent userTaskUpdatedEvent = new UserTaskUpdatedEvent(workflowModuleId, i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskUpdatedEvent);
                         yield userTaskUpdatedEvent;
 
                     case TaskListener.EVENTNAME_COMPLETE:
                         UserTaskCompletedEvent userTaskCompletedEvent = new UserTaskCompletedEvent();
-                        fillLifecycleEvent(task, userTaskCompletedEvent);
+                        fillLifecycleEvent(workflowModuleId, task, userTaskCompletedEvent);
                         yield userTaskCompletedEvent;
 
                     case TaskListener.EVENTNAME_DELETE:
                         UserTaskCancelledEvent userTaskCancelledEvent = new UserTaskCancelledEvent();
-                        fillLifecycleEvent(task, userTaskCancelledEvent);
+                        fillLifecycleEvent(workflowModuleId, task, userTaskCancelledEvent);
                         yield userTaskCancelledEvent;
 
                     default: throw new RuntimeException(
@@ -403,6 +404,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     }
 
     private void fillLifecycleEvent(
+            final String workflowModuleId,
             final DelegateTask delegateTask,
             final UserTaskLifecycleEvent event) {
         
@@ -412,6 +414,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                 + delegateTask.getProcessInstanceId()
                 + "#"
                 + delegateTask.getId());
+        event.setWorkflowModuleId(workflowModuleId);
         event.setComment(
                 delegateTask.getDeleteReason());
         event.setTimestamp(OffsetDateTime.now());

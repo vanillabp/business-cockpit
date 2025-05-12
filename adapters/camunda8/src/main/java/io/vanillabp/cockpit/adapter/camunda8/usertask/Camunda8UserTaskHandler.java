@@ -166,6 +166,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
         userTaskLifecycleEvent.setUserTaskId(
                 String.valueOf(camunda8UserTaskLifecycleEvent.getKey()));
 
+        final var workflowModuleId = processService.getWorkflowModuleId();
+        userTaskLifecycleEvent.setWorkflowModuleId(workflowModuleId);
+
 //        userTaskLifecycleEvent.setComment(
 //                camunda8UserTaskLifecycleEvent.getDeleteReason()
 //        );
@@ -179,7 +182,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     public void notify(
             final Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
 
-        String workflowModuleId = processService.getWorkflowModuleId();
+        final var workflowModuleId = processService.getWorkflowModuleId();
         final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
         UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
                 workflowModuleId,

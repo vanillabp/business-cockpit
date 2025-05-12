@@ -8,6 +8,13 @@ public interface UserTaskEvent {
 
     void setEventId(String id);
 
+    String getUserTaskId();
+
+    void setUserTaskId(String id);
+
+    String getWorkflowModuleId();
+
+    void setWorkflowModuleId(String id);
 
     String getComment();
 
