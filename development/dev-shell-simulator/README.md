@@ -35,7 +35,7 @@ those users.
 ## Running the Dev-Shell Simulator
 
 1. Download runnable JAR from
-   [Maven-Central](https://central.sonatype.com/artifact/io.vanillabp.businesscockpit/dev-shell-simulator)
+   [Github](https://github.com/vanillabp/business-cockpit/releases/tag/0.0.7)
    or the latest [snapshot](https://github.com/orgs/vanillabp/packages?q=dev&tab=packages&q=dev-shell-simulator).
 1. Prepare a configuration file `users.yaml` defining users and their groups (authorities):
    ```yaml

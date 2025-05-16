@@ -6,6 +6,8 @@ public class UserTaskLifecycleEvent implements UserTaskEvent {
 
   private String eventId;
 
+  private String workflowModuleId;
+
   private String userTaskId;
 
   private String initiator;
@@ -73,5 +75,12 @@ public class UserTaskLifecycleEvent implements UserTaskEvent {
     this.comment = comment;
   }
 
+  public String getWorkflowModuleId() {
+    return workflowModuleId;
+  }
+
+  public void setWorkflowModuleId(String workflowModuleId) {
+    this.workflowModuleId = workflowModuleId;
+  }
 }
 

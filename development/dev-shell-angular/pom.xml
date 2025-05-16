@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.0.7-SNAPSHOT</version>
+    <version>0.0.8-SNAPSHOT</version>
   </parent>
 
   <packaging>pom</packaging>
@@ -19,6 +19,13 @@
         <artifactId>maven-clean-plugin</artifactId>
         <configuration>
           <filesets>
+            <fileset>
+              <directory>${project.basedir}/.angular</directory>
+              <includes>
+                <include>**/*</include>
+              </includes>
+              <followSymlinks>false</followSymlinks>
+            </fileset>
             <fileset>
               <directory>${project.basedir}/dist/dev-shell</directory>
               <includes>
@@ -48,7 +55,7 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}</workingDirectory>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared</arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared --legacy-peer-deps</arguments>
             </configuration>
           </execution>
         </executions>
@@ -59,6 +66,15 @@
         <configuration>
           <workingDirectory>${project.basedir}</workingDirectory>
         </configuration>
+        <executions>
+          <execution>
+            <id>npm install</id>
+            <configuration>
+              <skip>${skip.npm.update}</skip>
+              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --legacy-peer-deps</arguments>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 public class WorkflowLifecycleEvent implements WorkflowEvent {
     private String eventId;
     private String workflowId;
+    private String workflowModuleId;
     private String initiator;
     private OffsetDateTime timestamp;
     private String source;
@@ -84,5 +85,13 @@ public class WorkflowLifecycleEvent implements WorkflowEvent {
 
     public void setBpmnProcessVersion(String bpmnProcessVersion) {
         this.bpmnProcessVersion = bpmnProcessVersion;
+    }
+
+    public String getWorkflowModuleId() {
+        return workflowModuleId;
+    }
+
+    public void setWorkflowModuleId(String workflowModuleId) {
+        this.workflowModuleId = workflowModuleId;
     }
 }
