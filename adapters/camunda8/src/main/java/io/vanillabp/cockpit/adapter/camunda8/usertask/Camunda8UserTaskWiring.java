@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,6 +38,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final Method noopUserTaskMethod;
 
+    private final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers;
+
     public Camunda8UserTaskWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
@@ -46,7 +49,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Camunda8UserTaskEventHandler userTaskEventHandler,
-            final ProcessInstancePersistence processInstancePersistence) throws Exception {
+            final ProcessInstancePersistence processInstancePersistence,
+            final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers) throws Exception {
         
         super(applicationContext, springBeanUtil, new UserTaskMethodParameterFactory());
         this.connectableServices = connectableServices;
@@ -55,6 +59,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
         this.processInstancePersistence = processInstancePersistence;
+        this.userTaskHandlers = userTaskHandlers;
 
         noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
 
@@ -122,8 +127,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         CrudRepository<Object, Object> workflowAggregateRepository =
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository();
 
-
-        Camunda8UserTaskHandler taskHandler = new Camunda8UserTaskHandler(
+        final var taskHandler = userTaskHandlers.getObject(
                 connectable.getTaskDefinition(),
                 vanillaBpCockpitProperties,
                 applicationEventPublisher,
