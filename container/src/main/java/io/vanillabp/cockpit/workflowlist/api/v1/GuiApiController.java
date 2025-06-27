@@ -34,6 +34,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
+            final List<String> businessIds,
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
@@ -46,6 +47,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         true,
                         null,
                         null,
+                        businessIds,
                         searchQueries,
                         sort,
                         sortAscending);

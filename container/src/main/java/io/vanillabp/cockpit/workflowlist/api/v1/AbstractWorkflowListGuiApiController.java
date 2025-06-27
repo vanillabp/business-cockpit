@@ -42,6 +42,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
+            final List<String> businessIds,
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending);
@@ -69,6 +70,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                 entry.getT2().getPageNumber(),
                                 entry.getT2().getPageSize(),
                                 timestamp,
+                                entry.getT2().getBusinessIds(),
                                 mapper.toModel(entry.getT2().getSearchQueries()),
                                 entry.getT2().getSort(),
                                 entry.getT2().getSortAscending()))

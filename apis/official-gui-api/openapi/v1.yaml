@@ -881,6 +881,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
+        businessIds:
+          type: array
+          items:
+            type: string
+          description: Filters the response to include only entries associated with the specified business IDs
         sort:
           type: string
         sortAscending:
