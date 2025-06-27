@@ -8,9 +8,6 @@ spring:
   web:
     resources:
       static-locations: "classpath:/static/"
-  data:
-    mongodb:
-      auto-index-creation: true
 
 server:
   compression:

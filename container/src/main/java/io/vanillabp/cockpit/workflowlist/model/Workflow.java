@@ -47,7 +47,6 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private String bpmnProcessVersion;
 
-    @Indexed(unique = true)
     private String businessId;
 
     private Map<String, String> title;

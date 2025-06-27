@@ -20,6 +20,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+import static io.vanillabp.cockpit.workflowlist.WorkflowlistService.INDEX_CUSTOM_SORT_PREFIX;
+
 @Component("V100_Workflow")
 @ChangesetConfiguration(author = "gwieshammer")
 public class V000001 {
@@ -28,6 +30,7 @@ public class V000001 {
     private static final String INDEX_WORKFLOWMODULE_URI = Workflow.COLLECTION_NAME + "_workflowModuleUri";
     private static final String INDEX_ENDED_AT = Workflow.COLLECTION_NAME + "_endedAt";
     private static final String INDEX_FULLTEXT = Workflow.COLLECTION_NAME + "_fulltext";
+    private static final String INDEX_BUSINESS_ID = INDEX_CUSTOM_SORT_PREFIX + "businessId";
 
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
@@ -268,7 +271,7 @@ public class V000001 {
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
                 .getIndexInfo()
-                .filter(indexInfo -> indexInfo.getName().startsWith(WorkflowlistService.INDEX_CUSTOM_SORT_PREFIX))
+                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
                 .flatMap(indexInfo -> mongo.indexOps(Workflow.COLLECTION_NAME).dropIndex(indexInfo.getName()))
                 .collectList()
                 .block();
@@ -294,4 +297,19 @@ public class V000001 {
 
     }
 
+    @Changeset(order = 1011, author = "martingreilinger")
+    public String addBusinessIdIndex(
+            final ReactiveMongoTemplate mongo) {
+
+        mongo
+                .indexOps(Workflow.COLLECTION_NAME)
+                .ensureIndex(new Index()
+                        .on("businessId", Sort.Direction.ASC)
+                        .on("createdAt", Sort.Direction.ASC)
+                        .on("_id", Sort.Direction.ASC)
+                        .named(INDEX_BUSINESS_ID))
+                .block();
+
+        return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_BUSINESS_ID + "' }";
+    }
 }
