@@ -192,7 +192,8 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         endedSince,
                         mode,
-                        null, businessIds));
+                        null,
+                        businessIds));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
