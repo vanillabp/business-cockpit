@@ -142,6 +142,7 @@ public class WorkflowlistService {
             final boolean includeDanglingWorkflows,
             final Collection<String> accessibleToUsers,
             final Collection<String> accessibleToGroups,
+            final Collection<String> businessIds,
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
@@ -154,6 +155,7 @@ public class WorkflowlistService {
                 accessibleToUsers,
                 accessibleToGroups,
                 RetrieveItemsMode.Active,
+                businessIds,
                 searchQueries,
                 sort,
                 sortAscending);
@@ -167,6 +169,7 @@ public class WorkflowlistService {
             final Collection<String> accessibleToUsers,
             final Collection<String> accessibleToGroups,
             final RetrieveItemsMode mode,
+            final Collection<String> businessIds,
             final Collection<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending) {
@@ -189,7 +192,8 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         endedSince,
                         mode,
-                        null));
+                        null,
+                        businessIds));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
@@ -316,7 +320,8 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         initialTimestamp,
                         RetrieveItemsMode.Active,
-                        null));
+                        null,
+			null));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
@@ -449,7 +454,8 @@ public class WorkflowlistService {
                         accessibleToGroups,
                         endedSince,
                         RetrieveItemsMode.Active,
-                        searchCriteria);
+                        searchCriteria,
+			null);
 
         return kwicService.getKwicAggregatedResults(Workflow.class, match, searchQueries, path, query);
     }
@@ -460,7 +466,8 @@ public class WorkflowlistService {
             final Collection<String> accessibleToGroups,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode,
-            final List<Criteria> predefinedCriterias) {
+            final List<Criteria> predefinedCriterias,
+	    final Collection<String> businessIds) {
 
         final var subCriterias = new LinkedList<Criteria>();
 
@@ -507,6 +514,10 @@ public class WorkflowlistService {
                         + mode
                         + "'! Did you forget to extend this switch instruction?");
         }
+
+	if(businessIds != null && !businessIds.isEmpty()) {
+	    subCriterias.add(Criteria.where("businessId").in(businessIds));
+	}
 
         // limit result according to predefined filters
 
