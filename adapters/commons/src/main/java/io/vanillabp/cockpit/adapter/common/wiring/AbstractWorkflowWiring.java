@@ -13,6 +13,7 @@ import io.vanillabp.springboot.parameters.MethodParameter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.context.ApplicationContext;
 
@@ -110,6 +111,7 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
         event.setUri(getWorkflowModuleUri(workflowModuleId));
         event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
         event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
+        event.setPermittedRoles(getPermittedRoles(workflowModuleId));
         workflowModulePublishing.publish(event);
 
     }
@@ -141,5 +143,6 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
     protected abstract String getTaskProviderApiUriPath(String workflowModuleId);
 
     protected abstract String getWorkflowProviderApiUriPath(String workflowModuleId);
-    
+
+    protected abstract List<String> getPermittedRoles(String workflowModuleId);
 }

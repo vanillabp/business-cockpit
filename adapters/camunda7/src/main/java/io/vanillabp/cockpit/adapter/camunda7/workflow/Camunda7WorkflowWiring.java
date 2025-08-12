@@ -243,4 +243,9 @@ public class Camunda7WorkflowWiring extends AbstractWorkflowWiring<Camunda7Conne
 
     }
 
+    @Override
+    protected List<String> getPermittedRoles(String workflowModuleId) {
+        return properties.getPermittedRoles(workflowModuleId);
+    }
+
 }

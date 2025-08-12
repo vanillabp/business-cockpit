@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.common.workflowmodule.events;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
 
@@ -17,6 +18,8 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
     private String taskProviderApiUriPath;
 
     private String workflowProviderApiUriPath;
+
+    private List<String> permittedRoles;
 
     @Override
     public String getId() {
@@ -82,4 +85,11 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
         this.source = source;
     }
 
+    public List<String> getPermittedRoles() {
+        return permittedRoles;
+    }
+
+    public void setPermittedRoles(List<String> permittedRoles) {
+        this.permittedRoles = permittedRoles;
+    }
 }
