@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.workflowmodules.model;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -20,6 +22,8 @@ public class WorkflowModule {
     private String taskProviderApiUriPath;
 
     private String workflowProviderApiUriPath;
+
+    private List<String> permittedRoles;
 
     public static WorkflowModule withId(
             final String id) {
@@ -70,4 +74,11 @@ public class WorkflowModule {
         this.workflowProviderApiUriPath = workflowProviderApiUriPath;
     }
 
+    public List<String> getPermittedRoles() {
+        return permittedRoles;
+    }
+
+    public void setPermittedRoles(List<String> permittedRoles) {
+        this.permittedRoles = permittedRoles;
+    }
 }

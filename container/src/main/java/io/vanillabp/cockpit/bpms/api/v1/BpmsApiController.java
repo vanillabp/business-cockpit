@@ -225,7 +225,8 @@ public class BpmsApiController implements BpmsApi {
                         id,
                         event.getUri(),
                         event.getTaskProviderApiUriPath(),
-                        event.getWorkflowProviderApiUriPath()))
+                        event.getWorkflowProviderApiUriPath(),
+                        event.getPermittedRoles()))
                 .map(module -> ResponseEntity.ok().<Void>build());
 
     }
