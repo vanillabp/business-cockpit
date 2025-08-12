@@ -4,6 +4,8 @@ import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModuleRepository;
 import jakarta.annotation.PostConstruct;
+
+import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -40,7 +42,8 @@ public class WorkflowModuleService {
             final String id,
             final String uri,
             final String taskProviderApiUriPath,
-            final String workflowProviderApiUriPath) {
+            final String workflowProviderApiUriPath,
+            final List<String> permittedRoles) {
 
         final var updateWorkflowModule = workflowModules
                 .findById(id)
@@ -55,12 +58,16 @@ public class WorkflowModuleService {
                     if ((workflowProviderApiUriPath == null) && (workflowModule.getWorkflowProviderApiUriPath() != null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && (workflowModule.getWorkflowProviderApiUriPath() == null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && !workflowProviderApiUriPath.equals(workflowModule.getWorkflowProviderApiUriPath())) return Mono.just(workflowModule);
+                    if ((permittedRoles == null) && (workflowModule.getPermittedRoles() != null)) return Mono.just(workflowModule);
+                    if ((permittedRoles != null) && (workflowModule.getPermittedRoles() == null)) return  Mono.just(workflowModule);
+                    if ((permittedRoles != null) && !permittedRoles.equals(workflowModule.getPermittedRoles())) return Mono.just(workflowModule);
                     return Mono.empty();
                 })
                 .doOnNext(workflowModule -> {
                     workflowModule.setUri(uri);
                     workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
                     workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
+                    workflowModule.setPermittedRoles(permittedRoles);
                 })
                 .flatMap(workflowModules::save)
                 .doOnNext(workflowModule -> {
