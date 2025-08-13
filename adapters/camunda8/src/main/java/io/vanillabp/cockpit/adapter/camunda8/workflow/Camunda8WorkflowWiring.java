@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.repository.CrudRepository;
 
@@ -42,6 +43,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final Camunda8VanillaBpProperties camunda8Properties;
 
+    private final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers;
+
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final VanillaBpCockpitProperties properties,
@@ -52,7 +55,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final Collection<Camunda8BusinessCockpitService<?>> connectableCockpitServices,
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final WorkflowModulePublishing workflowModulePublishing) {
+            final WorkflowModulePublishing workflowModulePublishing,
+            final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers) {
         super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.properties = properties;
         this.connectableServices = connectableServices;
@@ -60,6 +64,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.workflowEventListener = workflowEventListener;
         this.templating = templating;
         this.camunda8Properties = camunda8Properties;
+        this.workflowHandlers = workflowHandlers;
     }
 
     public Camunda8BusinessCockpitService<?> wireService(
@@ -220,7 +225,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         String bpmnProcessId = connectable.bpmnProcessId();
 
         @SuppressWarnings("unchecked")
-        final var workflowHandler = new Camunda8WorkflowHandler(
+        final var workflowHandler = workflowHandlers.getObject(
                 properties,
                 processService,
                 bpmnProcessId,
