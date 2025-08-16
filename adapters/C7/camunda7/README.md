@@ -1,4 +1,4 @@
-![](../../readme/vanillabp-headline.png)
+![](../../../readme/vanillabp-headline.png)
 
 # Camunda 7 adapter
 
@@ -20,4 +20,4 @@ reflected properly.
 </dependency>
 ```
 
-For details see documentation of [SPI for Java](../../spi-for-java).
+For details see documentation of [SPI for Java](../../../spi-for-java).

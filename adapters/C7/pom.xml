@@ -4,19 +4,18 @@
 
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>business-cockpit-parent</artifactId>
+    <artifactId>adapters</artifactId>
     <version>0.0.9-SNAPSHOT</version>
   </parent>
 
-  <artifactId>adapters</artifactId>
-  <name>Adapters responsible for plugging VanillaBP business cockpit into workflow applications</name>
+  <artifactId>C7</artifactId>
+  <name>C7 Adapter and integration test responsible for plugging VanillaBP business cockpit into workflow applications</name>
   <packaging>pom</packaging>
   
    <modules>
-    <module>C7</module>
-    <module>camunda8</module>
-     <module>commons</module>
-  </modules>
+     <module>camunda7</module>
+     <module>integration</module>
+   </modules>
 
   <licenses>
     <license>
