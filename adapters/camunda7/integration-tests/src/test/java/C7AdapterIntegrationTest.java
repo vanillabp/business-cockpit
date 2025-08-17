@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.Network;
@@ -14,6 +15,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +31,7 @@ public class C7AdapterIntegrationTest {
 	static GenericContainer<MongoDBContainer> mongoDBSetUp;
 	static GenericContainer<?> simulator;
 	private static String mongoConnectionString;
+	private static String simulatorUrl;
 
 	@BeforeAll
 	static void beforeAll() {
@@ -63,13 +67,16 @@ public class C7AdapterIntegrationTest {
 
 		simulator = new GenericContainer<>(simulatorImage)
 				.withNetwork(Network.SHARED)
-				.withNetworkAliases(DOCKER_NETWORK_SIMULATOR).withExposedPorts(8078).withReuse(true)
+				.withNetworkAliases(DOCKER_NETWORK_SIMULATOR).withExposedPorts(8079).withReuse(true)
 				.withEnv("spring.datasource.url", mongoConnectionString)
 				.withEnv("spring.datasource.username", "business-cockpit")
 				.withEnv("spring.datasource.password", "business-cockpit")
 				.waitingFor(Wait.forLogMessage(".*Started BusinessCockpitSimulator.*", 1));
 
 		simulator.start();
+
+		simulatorUrl = "http://%s:%d"
+				.formatted(simulator.getHost(), simulator.getMappedPort(8079));
 	}
 
 	@AfterAll
@@ -93,4 +100,17 @@ public class C7AdapterIntegrationTest {
 		assertTrue(true, "This should always pass");
 		System.out.println(">>> C7AdapterIntegrationTest.sanityTest() ran – integration tests are wired up correctly! <<<");
 	}
+
+	@Test
+	public void getUserFromSimulator() {
+		final var restClient = RestClient.create();
+		final var result = restClient.get().uri(getSimulatorUrl("/official-api/v1/usertask/123"))
+				.retrieve().body(UserTask.class);
+		assertThat(result.getId()).isEqualTo("123");
+	}
+
+	public String getSimulatorUrl(final String path) {
+		return path.startsWith("/") ? simulatorUrl + path : simulatorUrl + "/" + path;
+	}
+
 }
