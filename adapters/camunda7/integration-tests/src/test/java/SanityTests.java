@@ -1,5 +1,3 @@
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
 import org.testcontainers.DockerClientFactory;
 
@@ -20,25 +18,17 @@ public class SanityTests {
 	@Test
 	void dockerInfoShouldBeNonNullAndValid() {
 		Info info;
-		try (DockerClient client = DockerClientFactory.lazyClient()) {
-			info = client.infoCmd().exec();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		DockerClient client = DockerClientFactory.lazyClient();
+		info = client.infoCmd().exec();
 		assertThat(info).isNotNull();
 	}
 
 	@Test
 	void dockerVersionShouldBeNonEmpty() {
 		String version;
-		try (DockerClient client = DockerClientFactory.lazyClient()) {
-			version = client.versionCmd().exec().getVersion();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		assertThat(version)
-				.isNotNull()
-				.isNotBlank();
+		DockerClient client = DockerClientFactory.lazyClient();
+		version = client.versionCmd().exec().getVersion();
+		assertThat(version).isNotNull().isNotBlank();
 		System.out.println("> Docker daemon version: " + version);
 	}
 
