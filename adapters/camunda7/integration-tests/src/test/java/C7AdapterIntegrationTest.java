@@ -1,3 +1,4 @@
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.junit.jupiter.api.AfterAll;
@@ -5,6 +6,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -18,21 +21,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Testcontainers
 public class C7AdapterIntegrationTest {
 
+	private static final String DOCKER_NETWORK_MONGO = "mongo";
+	private static final String DOCKER_NETWORK_SIMULATOR = "simulator";
+
 	static MongoDBContainer mongoDB;
 	static GenericContainer<MongoDBContainer> mongoDBSetUp;
-	private static String connectionString;
+	static GenericContainer<?> simulator;
+	private static String mongoConnectionString;
 
 	@BeforeAll
 	static void beforeAll() {
 
 		mongoDB = new MongoDBContainer("mongo:4.4")
-				.withCommand("/usr/bin/mongod", "--replSet", "rs-business-cockpit", "--bind_ip_all");;
+				.withCommand("/usr/bin/mongod", "--replSet", "rs-business-cockpit", "--bind_ip_all")
+				.withNetwork(Network.SHARED)
+				.withNetworkAliases(DOCKER_NETWORK_MONGO);
 		mongoDB.start();
 
 		String host = mongoDB.getHost();
 		Integer port = mongoDB.getMappedPort(27017);
 		String name = mongoDB.getContainerName();
-		connectionString = String.format("mongodb://%s:%d", host, port);
+		mongoConnectionString = String.format("mongodb://%s:%d", host, port);
 
 
 		ImageFromDockerfile mongoDBSetUpImage = new ImageFromDockerfile()
@@ -40,16 +49,39 @@ public class C7AdapterIntegrationTest {
 
 		mongoDBSetUp = new GenericContainer<MongoDBContainer>(mongoDBSetUpImage)
 				.withCommand("bash", "-c", "chmod a+x /config/*.sh && /config/wait-for-it.sh " + name + ":27017 -- /config/mongo-setup.sh");
+
+		mongoDBSetUp.start();
+
+		Path targetDir = Paths.get("../../../development/simulator/target");
+		ImageFromDockerfile simulatorImage = new ImageFromDockerfile()
+				.withFileFromPath(".", targetDir)
+				.withFileFromString("Dockerfile", """
+				 FROM amazoncorretto:17
+				 COPY *-runnable.jar /simulator.jar
+				 ENTRYPOINT ["java", "-Dspring.profiles.active=local", "--add-opens=java.base/java.lang=ALL-UNNAMED", "-jar", "simulator.jar"]
+				""");
+
+		simulator = new GenericContainer<>(simulatorImage)
+				.withNetwork(Network.SHARED)
+				.withNetworkAliases(DOCKER_NETWORK_SIMULATOR).withExposedPorts(8078).withReuse(true)
+				.withEnv("spring.datasource.url", mongoConnectionString)
+				.withEnv("spring.datasource.username", "business-cockpit")
+				.withEnv("spring.datasource.password", "business-cockpit")
+				.waitingFor(Wait.forLogMessage(".*Started BusinessCockpitSimulator.*", 1));
+
+		simulator.start();
 	}
 
 	@AfterAll
 	static void afterAll() {
 		mongoDB.stop();
+		mongoDBSetUp.stop();
+		simulator.stop();
 	}
 
 	@Test
 	public void testMongoDBAvailable() {
-		try (MongoClient client = MongoClients.create(connectionString)) {
+		try (MongoClient client = MongoClients.create(mongoConnectionString)) {
 			MongoDatabase db = client.getDatabase("test");
 			db.createCollection("test");
 			assertThat(db.listCollectionNames()).contains("test");
