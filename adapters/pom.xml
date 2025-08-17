@@ -13,7 +13,7 @@
   <packaging>pom</packaging>
   
    <modules>
-    <module>C7</module>
+    <module>camunda7</module>
     <module>camunda8</module>
      <module>commons</module>
   </modules>

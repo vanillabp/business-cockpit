@@ -8,13 +8,13 @@
     <version>0.0.9-SNAPSHOT</version>
   </parent>
 
-  <artifactId>C7</artifactId>
-  <name>C7 Adapter and integration test responsible for plugging VanillaBP business cockpit into workflow applications</name>
+  <artifactId>camunda7-spring-boot-adapter-parent</artifactId>
+  <name>Camunda 7 Adapter and integration test responsible for plugging VanillaBP business cockpit into workflow applications</name>
   <packaging>pom</packaging>
   
    <modules>
-     <module>camunda7</module>
-     <module>integration</module>
+     <module>adapter</module>
+     <module>integration-tests</module>
    </modules>
 
   <licenses>
