@@ -1,13 +1,12 @@
 package io.vanillabp.cockpit.adapter.common.properties;
 
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.util.StringUtils;
-
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.StringUtils;
 
 @ConfigurationProperties(prefix = VanillaBpProperties.PREFIX, ignoreUnknownFields = true)
 public class VanillaBpCockpitProperties {
@@ -38,27 +37,11 @@ public class VanillaBpCockpitProperties {
 
     }
 
-    private WorkflowModuleAdapterProperties getWorkflowModule(
-            final String workflowModuleId) {
-
-        final var workflowModule = getWorkflowModules().get(workflowModuleId);
-        if (workflowModule == null) {
-            throw new RuntimeException(
-                    "No property '"
-                            + VanillaBpProperties.PREFIX
-                            + ".workflow-modules."
-                            + workflowModuleId
-                            + "' found!");
-        }
-        return workflowModule;
-
-    }
-
     public String getUiUriType(
             final String workflowModuleId) {
 
-        final var workflowModule = getWorkflowModule(workflowModuleId);
-        final var uiUriType = workflowModule.getCockpit().getUiUriType();
+        final var workflowModule = getWorkflowModules().get(workflowModuleId);
+        final var uiUriType = workflowModule == null ? null : workflowModule.getCockpit().getUiUriType();
         if (!StringUtils.hasText(uiUriType)) {
             throw new RuntimeException(
                     "Property for UI-URI-type not found:\n  "
@@ -74,8 +57,8 @@ public class VanillaBpCockpitProperties {
     public String getWorkflowModuleUri(
             final String workflowModuleId) {
 
-        final var workflowModule = getWorkflowModule(workflowModuleId);
-        final var workflowModuleUri = workflowModule.getCockpit().getWorkflowModuleUri();
+        final var workflowModule = getWorkflowModules().get(workflowModuleId);
+        final var workflowModuleUri = workflowModule == null ? null : workflowModule.getCockpit().getWorkflowModuleUri();
         if (!StringUtils.hasText(workflowModuleUri)) {
             throw new RuntimeException(
                     "Property for workflow-module-uri not found:\n  "
@@ -92,8 +75,8 @@ public class VanillaBpCockpitProperties {
     public String getUiUriPath(
             final String workflowModuleId) {
 
-        final var workflowModule = getWorkflowModule(workflowModuleId);
-        final var uiUriPath = workflowModule.getCockpit().getUiUriPath();
+        final var workflowModule = getWorkflowModules().get(workflowModuleId);
+        final var uiUriPath = workflowModule == null ? null : workflowModule.getCockpit().getUiUriPath();
         if (!StringUtils.hasText(uiUriPath)) {
             throw new RuntimeException(
                     "Property for UI-URI-path not found:\n  "
@@ -110,9 +93,9 @@ public class VanillaBpCockpitProperties {
             final String workflowModuleId,
             final String bpmnProcessId) {
 
-        final var workflowModule = getWorkflowModule(workflowModuleId);
-        var i18nLanguages = workflowModule.getCockpit().getI18nLanguages();
-        final var workflow = workflowModule.getWorkflows().get(bpmnProcessId);
+        final var workflowModule = getWorkflowModules().get(workflowModuleId);
+        var i18nLanguages = workflowModule == null ? null : workflowModule.getCockpit().getI18nLanguages();
+        final var workflow = workflowModule == null ? null : workflowModule.getWorkflows().get(bpmnProcessId);
         if ((workflow != null)
                 && (workflow.getCockpit().getI18nLanguages() != null)) {
             i18nLanguages = workflow.getCockpit().getI18nLanguages();
@@ -139,9 +122,9 @@ public class VanillaBpCockpitProperties {
             final String workflowModuleId,
             final String bpmnProcessId) {
 
-        final var workflowModule = getWorkflowModule(workflowModuleId);
-        var language = workflowModule.getCockpit().getBpmnDescriptionLanguage();
-        final var workflow = workflowModule.getWorkflows().get(bpmnProcessId);
+        final var workflowModule = getWorkflowModules().get(workflowModuleId);
+        var language = workflowModule == null ? null : workflowModule.getCockpit().getBpmnDescriptionLanguage();
+        final var workflow = workflowModule == null ? null : workflowModule.getWorkflows().get(bpmnProcessId);
         if ((workflow != null)
                 && StringUtils.hasText(workflow.getCockpit().getBpmnDescriptionLanguage())) {
             language = workflow.getCockpit().getBpmnDescriptionLanguage();

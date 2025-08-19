@@ -16,6 +16,7 @@ import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.io.ByteArrayInputStream;
@@ -50,7 +51,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final Camunda8VanillaBpProperties camunda8Properties;
 
-    private final VanillaBpProperties vanillaBpProperties;
+    private final VanillaBpCockpitProperties cockpitProperties;
 
     private ZeebeClient client;
 
@@ -58,14 +59,15 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final String applicationName,
             final VanillaBpProperties properties,
             final Camunda8VanillaBpProperties camunda8Properties,
+            final VanillaBpCockpitProperties cockpitProperties,
             final DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring) {
 
         super(properties, applicationName);
         this.camunda8Properties = camunda8Properties;
+        this.cockpitProperties = cockpitProperties;
         this.deploymentService = deploymentService;
-        this.vanillaBpProperties = properties;
         this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
         this.camunda8WorkflowWiring = camunda8WorkflowWiring;
@@ -92,7 +94,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         this.client = event.getClient();
 
         // deploy only modules listed in configuration, if modules are in classpath not syncing to business cockpit
-        deploySelectedWorkflowModules(vanillaBpProperties.getWorkflowModules().keySet());
+        deploySelectedWorkflowModules(cockpitProperties.getWorkflowModules().keySet());
     }
 
     @Override

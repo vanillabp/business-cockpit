@@ -224,6 +224,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8DeploymentAdapter camunda8BusinessCockpitDeploymentAdapter(
             final VanillaBpProperties properties,
             final Camunda8VanillaBpProperties camunda8Properties,
+            final VanillaBpCockpitProperties cockpitProperties,
             final @Qualifier("camunda8BusinessCockpitDeploymentService") DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring){
@@ -232,6 +233,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 applicationName,
                 properties,
                 camunda8Properties,
+                cockpitProperties,
                 deploymentService,
                 camunda8UserTaskWiring,
                 camunda8WorkflowWiring);
