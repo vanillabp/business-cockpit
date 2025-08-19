@@ -50,6 +50,8 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final Camunda8VanillaBpProperties camunda8Properties;
 
+    private final VanillaBpProperties vanillaBpProperties;
+
     private ZeebeClient client;
 
     public Camunda8DeploymentAdapter(
@@ -63,6 +65,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         super(properties, applicationName);
         this.camunda8Properties = camunda8Properties;
         this.deploymentService = deploymentService;
+        this.vanillaBpProperties = properties;
         this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
         this.camunda8WorkflowWiring = camunda8WorkflowWiring;
@@ -89,7 +92,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         this.client = event.getClient();
 
         // deploy only modules listed in configuration, if modules are in classpath not syncing to business cockpit
-        deploySelectedWorkflowModules(camunda8Properties.getWorkflowModules().keySet());
+        deploySelectedWorkflowModules(vanillaBpProperties.getWorkflowModules().keySet());
     }
 
     @Override
