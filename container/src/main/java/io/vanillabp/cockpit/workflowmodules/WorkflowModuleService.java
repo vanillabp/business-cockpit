@@ -94,7 +94,7 @@ public class WorkflowModuleService {
 
     public Flux<WorkflowModule> getWorkflowModules(List<String> userRoles) {
 
-        return workflowModules.findByPermittedRolesNullOrPermittedRolesIn(userRoles);
+        return workflowModules.findByPermittedRoles(userRoles);
 
     }
 
