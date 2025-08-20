@@ -28,6 +28,8 @@ public class WorkflowModuleProtobufMapper {
                 .ifPresent(builder::setTaskProviderApiUriPath);
         Optional.ofNullable(event.getWorkflowProviderApiUriPath())
                 .ifPresent(builder::setWorkflowProviderApiUriPath);
+        Optional.ofNullable(event.getPermittedRoles())
+                .ifPresent(builder::addAllPermittedRoles);
 
         return builder.build();
 
