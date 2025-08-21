@@ -12,9 +12,9 @@ import reactor.core.publisher.Flux;
 public interface WorkflowModuleRepository extends ReactiveMongoRepository<WorkflowModule, String> {
 
     @Query("{ '$or': [ " +
-            "  { 'permittedRoles': { $in: ?0 } }, " +
-            "  { 'permittedRoles': { $exists: false } }, " +
-            "  { 'permittedRoles': { $size: 0 } } " +
+            "  { 'accessibleToGroups': { $in: ?0 } }, " +
+            "  { 'accessibleToGroups': { $exists: false } }, " +
+            "  { 'accessibleToGroups': { $size: 0 } } " +
             "] }")
-    Flux<WorkflowModule> findByPermittedRoles(List<String> permittedRoles);
+    Flux<WorkflowModule> findByPermittedAccessibleToGroups(List<String> groups);
 }

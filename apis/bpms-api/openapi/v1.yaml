@@ -615,8 +615,8 @@ components:
           type: string
           description: A path added to workflowModuleUri to build a URI for the workflow-provider API
           example: /api/v1/workflow-details-provider
-        permittedRoles:
+        accessibleToGroups:
           type: array
-          description: The list of roles that are allowed to view this workflow module
+          description: The list of groups that are allowed to view this workflow module
           items:
             type: string

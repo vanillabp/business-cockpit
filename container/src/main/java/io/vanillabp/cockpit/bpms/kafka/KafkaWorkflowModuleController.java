@@ -55,7 +55,7 @@ public class KafkaWorkflowModuleController {
                         event.getUri(),
                         event.getTaskProviderApiUriPath(),
                         event.getWorkflowProviderApiUriPath(),
-                        event.getPermittedRolesList())
+                        event.getAccessibleToGroupsList())
                 .subscribe();
 
     }
