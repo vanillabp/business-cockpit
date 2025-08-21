@@ -32,12 +32,6 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
-
       - name: Configure npm authentication
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
 
@@ -59,7 +53,7 @@ jobs:
             sed -i "s/\">=.*-SNAPSHOT <[0-9.]*\"/\"${{ github.event.inputs.release_version }}\"/" "$f"
           done
           
-      - name: Workaround to avoid npm DNS replication delay between publish and consume
+      - name: Hacky workaround to avoid npm DNS replication delay between publish and consume
         run: |
           IP=$(nslookup registry.npmjs.com | awk '/^Address: / { print $2; exit }')
           echo "$IP registry.npmjs.com" | sudo tee -a /etc/hosts
@@ -102,6 +96,7 @@ jobs:
               - Built runnable JARs included
           files: |
             **/*-runnable.jar
+          draft: true
 
       - name: Set next snapshot version
         run: |
