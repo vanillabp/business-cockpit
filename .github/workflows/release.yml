@@ -122,3 +122,12 @@ jobs:
           git add -A
           git commit -m "Set next version ${{ github.event.inputs.next_snapshot }}"
           git push origin HEAD:release/${{ github.event.inputs.release_version }}
+          
+      - name: Create PR to merge release branch into main
+        run: |
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+          gh pr create \
+            --title "Merge release/${{ github.event.inputs.release_version }} into main" \
+            --body "Automated PR to merge release branch." \
+            --base main \
+            --head release/${{ github.event.inputs.release_version }} \
