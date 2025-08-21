@@ -30,7 +30,7 @@ public abstract class WorkflowModulePublishingBase {
         event.setTaskProviderApiUriPath("/task-provider"); // TODO
         event.setWorkflowProviderApiUriPath("/workflow-provider"); // TODO
         event.setUri(properties.getWorkflowModuleUri(event.getId()));
-        event.setPermittedRoles(properties.getPermittedRoles(event.getId()));
+        event.setAccessibleToGroups(properties.getPermittedRoles(event.getId()));
 
     }
 

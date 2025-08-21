@@ -19,7 +19,7 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
 
     private String workflowProviderApiUriPath;
 
-    private List<String> permittedRoles;
+    private List<String> accessibleToGroups;
 
     @Override
     public String getId() {
@@ -85,11 +85,11 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
         this.source = source;
     }
 
-    public List<String> getPermittedRoles() {
-        return permittedRoles;
+    public List<String> getAccessibleToGroups() {
+        return accessibleToGroups;
     }
 
-    public void setPermittedRoles(List<String> permittedRoles) {
-        this.permittedRoles = permittedRoles;
+    public void setAccessibleToGroups(List<String> accessibleToGroups) {
+        this.accessibleToGroups = accessibleToGroups;
     }
 }

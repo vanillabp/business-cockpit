@@ -23,7 +23,7 @@ public class WorkflowModule {
 
     private String workflowProviderApiUriPath;
 
-    private List<String> permittedRoles;
+    private List<String> accessibleToGroups;
 
     public static WorkflowModule withId(
             final String id) {
@@ -74,11 +74,11 @@ public class WorkflowModule {
         this.workflowProviderApiUriPath = workflowProviderApiUriPath;
     }
 
-    public List<String> getPermittedRoles() {
-        return permittedRoles;
+    public List<String> getAccessibleToGroups() {
+        return accessibleToGroups;
     }
 
-    public void setPermittedRoles(List<String> permittedRoles) {
-        this.permittedRoles = permittedRoles;
+    public void setAccessibleToGroups(List<String> accessibleToGroups) {
+        this.accessibleToGroups = accessibleToGroups;
     }
 }

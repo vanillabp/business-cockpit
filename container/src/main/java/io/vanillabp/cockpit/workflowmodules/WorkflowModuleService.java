@@ -44,7 +44,7 @@ public class WorkflowModuleService {
             final String uri,
             final String taskProviderApiUriPath,
             final String workflowProviderApiUriPath,
-            final List<String> permittedRoles) {
+            final List<String> accessibleToGroups) {
 
         final var updateWorkflowModule = workflowModules
                 .findById(id)
@@ -59,16 +59,16 @@ public class WorkflowModuleService {
                     if ((workflowProviderApiUriPath == null) && (workflowModule.getWorkflowProviderApiUriPath() != null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && (workflowModule.getWorkflowProviderApiUriPath() == null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && !workflowProviderApiUriPath.equals(workflowModule.getWorkflowProviderApiUriPath())) return Mono.just(workflowModule);
-                    if ((permittedRoles == null) && (workflowModule.getPermittedRoles() != null)) return Mono.just(workflowModule);
-                    if ((permittedRoles != null) && (workflowModule.getPermittedRoles() == null)) return  Mono.just(workflowModule);
-                    if ((permittedRoles != null) && !permittedRoles.equals(workflowModule.getPermittedRoles())) return Mono.just(workflowModule);
+                    if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return Mono.just(workflowModule);
+                    if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return  Mono.just(workflowModule);
+                    if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return Mono.just(workflowModule);
                     return Mono.empty();
                 })
                 .doOnNext(workflowModule -> {
                     workflowModule.setUri(uri);
                     workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
                     workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
-                    workflowModule.setPermittedRoles(permittedRoles);
+                    workflowModule.setAccessibleToGroups(accessibleToGroups);
                 })
                 .flatMap(workflowModules::save)
                 .doOnNext(workflowModule -> microserviceProxyRegistry.registerMicroservice(
@@ -94,7 +94,7 @@ public class WorkflowModuleService {
 
     public Flux<WorkflowModule> getWorkflowModules(List<String> userRoles) {
 
-        return workflowModules.findByPermittedRoles(userRoles);
+        return workflowModules.findByPermittedAccessibleToGroups(userRoles);
 
     }
 
