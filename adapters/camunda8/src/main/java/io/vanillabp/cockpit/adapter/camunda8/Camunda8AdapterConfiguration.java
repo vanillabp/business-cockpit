@@ -7,9 +7,11 @@ import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTaskEventPublisher;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
@@ -22,15 +24,20 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import io.vanillabp.springboot.parameters.MethodParameter;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -39,7 +46,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Scope;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.retry.annotation.EnableRetry;
 
 @AutoConfigurationPackage(basePackageClasses = Camunda8AdapterConfiguration.class)
 @EnableConfigurationProperties(Camunda8VanillaBpProperties.class)
@@ -48,6 +57,7 @@ import org.springframework.data.repository.CrudRepository;
         "io.camunda.zeebe.spring.client.CamundaAutoConfiguration", // community-hub client
         "io.camunda.zeebe.spring.client.configuration.CamundaAutoConfiguration" // official client
 })
+@EnableRetry
 public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camunda8BusinessCockpitService<?>> {
 
     public static final String ADAPTER_ID = "camunda8";
@@ -102,7 +112,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
-            final Camunda8UserTaskEventHandler userTaskEventHandler
+            final Camunda8UserTaskEventHandler userTaskEventHandler,
+            final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers
     ) throws Exception {
         return new Camunda8UserTaskWiring(
                 applicationContext,
@@ -112,8 +123,67 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 templating,
                 connectableServices,
                 userTaskEventHandler,
-                processInstancePersistence
+                processInstancePersistence,
+                userTaskHandlers
         );
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public Camunda8WorkflowHandler camunda8WorkflowHandler(
+            final VanillaBpCockpitProperties cockpitProperties,
+            final AdapterAwareProcessService<?> processService,
+            final String bpmnProcessId,
+            final String bpmnProcessName,
+            final Optional<Configuration> templating,
+            final CrudRepository<Object, Object> workflowAggregateRepository,
+            final Object bean,
+            final Method method,
+            final List<MethodParameter> parameters) {
+
+        return new Camunda8WorkflowHandler(
+                cockpitProperties,
+                processService,
+                bpmnProcessId,
+                bpmnProcessName,
+                templating,
+                workflowAggregateRepository,
+                bean,
+                method,
+                parameters);
+
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public Camunda8UserTaskHandler camunda8UserTaskHandler(
+            final String taskDefinition,
+            final VanillaBpCockpitProperties cockpitProperties,
+            final ApplicationEventPublisher applicationEventPublisher,
+            final Optional<Configuration> templating,
+            final String bpmnProcessId,
+            final String taskTitle,
+            final AdapterAwareProcessService<?> processService,
+            final ProcessInstancePersistence processInstancePersistence,
+            final CrudRepository<Object, Object> workflowAggregateRepository,
+            final Object bean,
+            final Method method,
+            final List<MethodParameter> parameters) {
+
+        return new Camunda8UserTaskHandler(
+                taskDefinition,
+                cockpitProperties,
+                applicationEventPublisher,
+                templating,
+                bpmnProcessId,
+                taskTitle,
+                processService,
+                processInstancePersistence,
+                workflowAggregateRepository,
+                bean,
+                method,
+                parameters);
+
     }
 
     @Bean
@@ -126,7 +196,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
-            final WorkflowModulePublishing workflowModulePublishing){
+            final WorkflowModulePublishing workflowModulePublishing,
+            final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers) {
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 cockpitProperties,
@@ -137,7 +208,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 getConnectableServices(),
                 templating,
                 workflowEventListener,
-                workflowModulePublishing);
+                workflowModulePublishing,
+                workflowHandlers);
     }
 
     @Bean
@@ -152,6 +224,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8DeploymentAdapter camunda8BusinessCockpitDeploymentAdapter(
             final VanillaBpProperties properties,
             final Camunda8VanillaBpProperties camunda8Properties,
+            final VanillaBpCockpitProperties cockpitProperties,
             final @Qualifier("camunda8BusinessCockpitDeploymentService") DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring){
@@ -160,6 +233,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 applicationName,
                 properties,
                 camunda8Properties,
+                cockpitProperties,
                 deploymentService,
                 camunda8UserTaskWiring,
                 camunda8WorkflowWiring);
