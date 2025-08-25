@@ -17,5 +17,5 @@ public interface WorkflowModuleRepository extends ReactiveMongoRepository<Workfl
 	      { 'accessibleToGroups': { $exists: false } }, \
 	      { 'accessibleToGroups': { $size: 0 } } \
 	    ] }""")
-    Flux<WorkflowModule> findByPermittedAccessibleToGroups(List<String> groups);
+    Flux<WorkflowModule> findByAccessibleToGroups(List<String> groups);
 }

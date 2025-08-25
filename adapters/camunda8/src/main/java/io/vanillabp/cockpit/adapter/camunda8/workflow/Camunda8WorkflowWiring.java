@@ -264,9 +264,4 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     }
 
-    @Override
-    protected List<String> getPermittedRoles(String workflowModuleId) {
-        return properties.getPermittedRoles(workflowModuleId);
-    }
-
 }

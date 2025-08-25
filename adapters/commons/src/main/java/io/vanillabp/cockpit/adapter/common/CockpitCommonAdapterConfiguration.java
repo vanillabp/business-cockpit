@@ -21,6 +21,7 @@ import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import io.vanillabp.springboot.modules.WorkflowModuleProperties;
@@ -35,7 +36,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import no.api.freemarker.java8.Java8ObjectWrapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InjectionPoint;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,9 +61,14 @@ import org.springframework.util.StringUtils;
 @EnableConfigurationProperties({ VanillaBpCockpitProperties.class })
 public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase {
 
+    private static final Logger logger = LoggerFactory.getLogger(CockpitCommonAdapterConfiguration.class);
+
     public static final String TEMPLATING_QUALIFIER = "BusinessCockpit";
     
     private static final Version FREEMARKER_VERSION = freemarker.template.Configuration.VERSION_2_3_31;
+
+    @Autowired
+    private ObjectProvider<List<WorkflowModuleDetailsProvider>> workflowModuleDetailsProviders;
     
     @Value("${workerId}")
     private String workerId;
@@ -87,6 +97,26 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                     + "See https://github.com/vanillabp/spring-boot-support#workflow-modules.");
         }
 
+        var providers = workflowModuleDetailsProviders.getIfAvailable();
+        if (providers != null && !providers.isEmpty()) {
+            var workflowModuleDetailsWithDuplicates = providers
+                    .stream()
+                    .collect(Collectors.groupingBy(WorkflowModuleDetailsProvider::getWorkflowModuleId))
+                    .entrySet()
+                    .stream()
+                    .filter(entry -> entry.getValue().size() > 1)
+                    .toList();
+
+            if (!workflowModuleDetailsWithDuplicates.isEmpty()) {
+                var errorMessage = workflowModuleDetailsWithDuplicates
+                        .stream()
+                        .map(entry -> "  - %d in %s".formatted(entry.getValue().size(), entry.getKey()))
+                        .collect(Collectors.joining("\n", "Duplicate WorkflowModuleDetailsProviders found:\n", ""));
+                throw new RuntimeException(errorMessage);
+            }
+        } else {
+            logger.info("No WorkflowModuleDetailsProviders found, skipping duplicate check.");
+        }
     }
 
     @Bean
@@ -125,6 +155,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                 workerId,
                 bpmsApi,
                 properties,
+                workflowModuleDetailsProviders,
                 new WorkflowModuleRestMapper()
         );
     }
