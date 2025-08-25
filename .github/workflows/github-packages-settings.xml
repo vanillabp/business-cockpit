@@ -61,7 +61,7 @@
         <server>
             <id>github</id>
             <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
+            <password>${env.GITHUB_TOKEN}</password>
         </server>
         <server>
             <id>vanillabp-spring-boot-support</id>
