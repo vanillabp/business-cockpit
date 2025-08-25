@@ -28,6 +28,8 @@ public class WorkflowModuleProtobufMapper {
                 .ifPresent(builder::setTaskProviderApiUriPath);
         Optional.ofNullable(event.getWorkflowProviderApiUriPath())
                 .ifPresent(builder::setWorkflowProviderApiUriPath);
+        Optional.ofNullable(event.getAccessibleToGroups())
+                .ifPresent(builder::addAllAccessibleToGroups);
 
         return builder.build();
 
