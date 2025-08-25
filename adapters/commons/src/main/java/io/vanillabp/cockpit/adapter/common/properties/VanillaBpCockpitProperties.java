@@ -147,13 +147,6 @@ public class VanillaBpCockpitProperties {
 
     }
 
-    public List<String> getPermittedRoles(
-            final String workflowModuleId) {
-
-        return getWorkflowModule(workflowModuleId).getCockpit().getPermittedRoles();
-
-    }
-
     public String getTemplatePath(
             final String workflowModuleId) {
 
@@ -268,8 +261,6 @@ public class VanillaBpCockpitProperties {
 
         private List<String> i18nLanguages;
 
-        private List<String> permittedRoles;
-
         public String getWorkflowModuleUri() {
             return workflowModuleUri;
         }
@@ -310,13 +301,6 @@ public class VanillaBpCockpitProperties {
             this.bpmnDescriptionLanguage = bpmnDescriptionLanguage;
         }
 
-        public List<String> getPermittedRoles() {
-            return permittedRoles;
-        }
-
-        public void setPermittedRoles(List<String> permittedRoles) {
-            this.permittedRoles = permittedRoles;
-        }
     }
 
     public static class WorkflowAdapterProperties {
