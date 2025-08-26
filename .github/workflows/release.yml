@@ -34,12 +34,12 @@ jobs:
 
       - name: Configure npm authentication
         run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
-          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+          echo "//registry.npmjs.com/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.com/" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
 
       - name: Sanity check npm login
-        run: npm whoami --registry https://registry.npmjs.org
+        run: npm whoami
 
       - name: Create release branch
         run: |
