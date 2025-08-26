@@ -78,7 +78,10 @@ jobs:
           mvn -B -DskipTests -DskipITs \
             -DaltDeploymentRepository=local::default::file:target/staging \
             -Dnpm.registry=https://registry.npmjs.com \
+            -Dgpg.passphrase=$GPG_PASSPHRASE \
             clean deploy -P release,central-portal,release-npm
+        env:
+          GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Commit release version
         run: |
