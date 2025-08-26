@@ -174,7 +174,7 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>run publish:release -- --@vanillabp:registry=${npm.registry} --otp=</arguments>
+                <arguments>run publish:release -- --@vanillabp:registry=${npm.registry}</arguments>
                 <skip>${skip.npm.publish-release}</skip>
               </configuration>
             </execution>
