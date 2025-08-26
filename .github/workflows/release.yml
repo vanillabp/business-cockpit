@@ -36,10 +36,7 @@ jobs:
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
 
       - name: Sanity check npm login
-        run: |
-          npm whoami --registry https://registry.npmjs.org || true
-        env:
-          NPM_CONFIG_USERCONFIG: ${{ github.workspace }}/.npmrc
+        run: npm whoami --registry https://registry.npmjs.org
 
       - name: Create release branch
         run: |
