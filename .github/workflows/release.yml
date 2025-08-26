@@ -49,11 +49,23 @@ jobs:
 
       - name: Update npm package.json versions
         run: |
-          # Simple sed replacement for package.json version and deps
-          find . -name package.json | while read f; do
-            sed -i "s/-SNAPSHOT//g" "$f"
-            sed -i "s/\"version\": \".*\"/\"version\": \"${{ github.event.inputs.release_version }}\"/" "$f"
-            sed -i "s/\">=.*-SNAPSHOT <[0-9.]*\"/\"${{ github.event.inputs.release_version }}\"/" "$f"
+          find . -name package.json | while read file; do
+          tmp=$(mktemp)
+          jq --arg v "${{ github.event.inputs.release_version }}" '
+           .version = $v
+           | if .dependencies then
+               .dependencies |= with_entries(
+                 if (.key | startswith("@vanillabp/")) 
+                 then .value = $v else . end
+               )
+             else . end
+           | if .devDependencies then
+               .devDependencies |= with_entries(
+                 if (.key | startswith("@vanillabp/")) 
+                 then .value = $v else . end
+               )
+             else . end
+          ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
 
       - name: Check for SNAPSHOT dependencies
@@ -125,11 +137,30 @@ jobs:
           mvn versions:set -DnewVersion=${{ github.event.inputs.next_snapshot }}
           find . -name pom.xml.versionsBackup -delete
 
-          find . -name package.json | while read f; do
-            sed -i "s/\"version\": \".*\"/\"version\": \"${{ github.event.inputs.next_snapshot }}\"/" "$f"
-            SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
-            NEXT_MINOR=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
-            sed -i "s/\"@vanillabp\/bc-official-gui-client\": \".*\"/\"@vanillabp\/bc-official-gui-client\": \">=${{ github.event.inputs.next_snapshot }} <${NEXT_MINOR}\"/" "$f"
+          SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
+          NEXT_MINOR=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
+
+          # Update all package.json files using jq
+          find . -name package.json | while read file; do
+            echo "🔧 Updating $file"
+            tmp=$(mktemp)
+
+            jq --arg v "${{ github.event.inputs.next_snapshot }}" \
+               --arg range ">=${{ github.event.inputs.next_snapshot }} <${NEXT_MINOR}" '
+              .version = $v
+              | if .dependencies then
+                  .dependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+              | if .devDependencies then
+                  .devDependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+            ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
 
           mvn -B -DskipTests -DskipITs package -Punpublish-npm
