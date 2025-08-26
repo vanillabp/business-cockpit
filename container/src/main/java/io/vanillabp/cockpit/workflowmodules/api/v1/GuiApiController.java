@@ -13,7 +13,7 @@ import java.util.Collections;
 public class GuiApiController extends AbstractWorkflowModulesGuiApiController {
 
     @Override
-    protected Flux<WorkflowModule> getWorkflowMoules(UserDetails userDetails) {
-	return service.getWorkflowModules(Collections.emptyList());
+    protected Flux<WorkflowModule> getWorkflowModules(UserDetails userDetails) {
+	    return service.getWorkflowModules(Collections.emptyList());
     }
 }

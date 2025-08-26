@@ -41,7 +41,7 @@ public abstract class AbstractWorkflowModulesGuiApiController implements Officia
             final ServerWebExchange exchange) {
 
         return userContext.getUserLoggedInDetailsAsMono().flatMap(userDetails ->
-                        getWorkflowMoules(userDetails)
+                        getWorkflowModules(userDetails)
                         .map(mapper::toApi)
                         .collectList()
                         .map(modules -> new WorkflowModules().modules(modules))
@@ -49,7 +49,7 @@ public abstract class AbstractWorkflowModulesGuiApiController implements Officia
                 );
     }
 
-    protected abstract Flux<io.vanillabp.cockpit.workflowmodules.model.WorkflowModule> getWorkflowMoules(
+    protected abstract Flux<io.vanillabp.cockpit.workflowmodules.model.WorkflowModule> getWorkflowModules(
             UserDetails userDetails);
 
 }

@@ -11,11 +11,11 @@ import reactor.core.publisher.Flux;
 @Repository
 public interface WorkflowModuleRepository extends ReactiveMongoRepository<WorkflowModule, String> {
 
-    @Query("""
-	    { '$or': [ \
-	      { 'accessibleToGroups': { $in: ?0 } }, \
-	      { 'accessibleToGroups': { $exists: false } }, \
-	      { 'accessibleToGroups': { $size: 0 } } \
-	    ] }""")
-    Flux<WorkflowModule> findByAccessibleToGroups(List<String> groups);
+	@Query("""
+			{ '$or': [ \
+			  { 'accessibleToGroups': { $in: ?0 } }, \
+			  { 'accessibleToGroups': { $exists: false } }, \
+			  { 'accessibleToGroups': { $size: 0 } } \
+			] }""")
+	Flux<WorkflowModule> findByAccessibleToGroups(List<String> groups);
 }
