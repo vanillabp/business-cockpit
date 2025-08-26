@@ -52,6 +52,19 @@ jobs:
             sed -i "s/\"version\": \".*\"/\"version\": \"${{ github.event.inputs.release_version }}\"/" "$f"
             sed -i "s/\">=.*-SNAPSHOT <[0-9.]*\"/\"${{ github.event.inputs.release_version }}\"/" "$f"
           done
+
+      - name: Check for SNAPSHOT dependencies
+        run: |
+          SNAPSHOT_POMS=$(grep -R ".*SNAPSHOT" . --include=pom.xml || true)
+          SNAPSHOT_PKGS=$(grep -R "\".*SNAPSHOT\"" . --include=package.json || true)
+      
+          if [ -n "$SNAPSHOT_POMS" ] || [ -n "$SNAPSHOT_PKGS" ]; then
+            echo "::warning::Found SNAPSHOT dependencies in the project:"
+            [ -n "$SNAPSHOT_POMS" ] && echo "$SNAPSHOT_POMS"
+            [ -n "$SNAPSHOT_PKGS" ] && echo "$SNAPSHOT_PKGS"
+          else
+            echo "✅ No SNAPSHOT dependencies found."
+          fi
           
       - name: Hacky workaround to avoid npm DNS replication delay between publish and consume
         run: |
@@ -61,10 +74,9 @@ jobs:
       - name: Build & deploy to Maven Central and npm
         run: |
           mvn -B -DskipTests -DskipITs \
-            -Dgpg.passphrase=$GPG_PASSPHRASE -DaltDeploymentRepository=local::default::file:target/staging -Dnpm.registry=http://localhost:4873/ \
+            -DaltDeploymentRepository=local::default::file:target/staging \
+            -Dnpm.registry=https://registry.npmjs.com \
             clean deploy -P release,central-portal,release-npm
-        env:
-          GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Commit release version
         run: |
