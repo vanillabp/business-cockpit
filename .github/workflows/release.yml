@@ -55,7 +55,7 @@ jobs:
 
       - name: Check for SNAPSHOT dependencies
         run: |
-          SNAPSHOT_POMS=$(grep -R "<.*>.*SNAPSHOT</.*>" . --include=pom.xml || true)
+          SNAPSHOT_POMS=$(grep -R "<.*>.*SNAPSHOT<\/.*>" . --include=pom.xml || true)
           SNAPSHOT_PKGS=$(grep -R "\".*SNAPSHOT\"" . --include=package.json || true)
       
           if [ -n "$SNAPSHOT_POMS" ] || [ -n "$SNAPSHOT_PKGS" ]; then
