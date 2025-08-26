@@ -88,6 +88,7 @@ jobs:
             clean deploy -P release,central-portal,release-npm
         env:
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          npm_config_userconfig: ~/.npmrc
 
       - name: Commit release version
         run: |
