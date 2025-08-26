@@ -107,6 +107,13 @@
           <version>1.15.0</version>
           <executions>
             <execution>
+              <id>install node and npm install</id>
+              <phase>generate-resources</phase>
+              <goals>
+                <goal>install-node-and-npm</goal>
+              </goals>
+            </execution>
+            <execution>
               <id>check npm authentication</id>
               <phase>generate-resources</phase>
               <goals>
@@ -115,13 +122,6 @@
               <configuration>
                 <arguments>whoami</arguments>
               </configuration>
-            </execution>
-            <execution>
-              <id>install node and npm install</id>
-              <phase>generate-resources</phase>
-              <goals>
-                <goal>install-node-and-npm</goal>
-              </goals>
             </execution>
             <execution>
               <id>npm install</id>
