@@ -20,6 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Extract last released version
+        run: |
+          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SNAP_BASE=$(echo "$CURRENT_VERSION" | sed 's/-SNAPSHOT//')
+          echo "Last released version: $SNAP_BASE"
+          echo "LAST_RELEASED_VERSION=$SNAP_BASE" >> $GITHUB_ENV
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -49,11 +56,30 @@ jobs:
 
       - name: Update npm package.json versions
         run: |
-          # Simple sed replacement for package.json version and deps
-          find . -name package.json | while read f; do
-            sed -i "s/-SNAPSHOT//g" "$f"
-            sed -i "s/\"version\": \".*\"/\"version\": \"${{ github.event.inputs.release_version }}\"/" "$f"
-            sed -i "s/\">=.*-SNAPSHOT <[0-9.]*\"/\"${{ github.event.inputs.release_version }}\"/" "$f"
+          find . -name package.json | while read file; do
+            echo "🔧 Updating $file"
+            tmp=$(mktemp)
+            jq --arg v "${{ github.event.inputs.release_version }}" '
+             .version = $v
+             | if .dependencies then
+                 .dependencies |= with_entries(
+                   if (.key | startswith("@vanillabp/")) 
+                   then .value = $v else . end
+                 )
+               else . end
+             | if .devDependencies then
+                 .devDependencies |= with_entries(
+                   if (.key | startswith("@vanillabp/")) 
+                   then .value = $v else . end
+                 )
+               else . end
+             | if .peerDependencies then
+                 .peerDependencies |= with_entries(
+                   if (.key | startswith("@vanillabp/")) 
+                   then .value = $v else . end
+                 )
+               else . end
+            ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
 
       - name: Check for SNAPSHOT dependencies
@@ -116,6 +142,8 @@ jobs:
               - Published to Maven Central
               - Published to npm
               - Built runnable JARs included
+          
+            [Full Changelog](https://github.com/vanillabp/business-cockpit/compare/${{ env.LAST_RELEASED_VERSION }}...${{ github.event.inputs.release_version }})
           files: |
             **/*-runnable.jar
           draft: true
@@ -125,11 +153,36 @@ jobs:
           mvn versions:set -DnewVersion=${{ github.event.inputs.next_snapshot }}
           find . -name pom.xml.versionsBackup -delete
 
-          find . -name package.json | while read f; do
-            sed -i "s/\"version\": \".*\"/\"version\": \"${{ github.event.inputs.next_snapshot }}\"/" "$f"
-            SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
-            NEXT_MINOR=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
-            sed -i "s/\"@vanillabp\/bc-official-gui-client\": \".*\"/\"@vanillabp\/bc-official-gui-client\": \">=${{ github.event.inputs.next_snapshot }} <${NEXT_MINOR}\"/" "$f"
+          SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
+          NEXT_PATCH=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
+
+          # Update all package.json files using jq
+          find . -name package.json | while read file; do
+            echo "🔧 Updating $file"
+            tmp=$(mktemp)
+
+            jq --arg v "${{ github.event.inputs.next_snapshot }}" \
+               --arg range ">=${{ github.event.inputs.next_snapshot }} <${NEXT_PATCH}" '
+              .version = $v
+              | if .dependencies then
+                  .dependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+              | if .devDependencies then
+                  .devDependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+              | if .peerDependencies then
+                  .peerDependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+            ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
 
           mvn -B -DskipTests -DskipITs package -Punpublish-npm
