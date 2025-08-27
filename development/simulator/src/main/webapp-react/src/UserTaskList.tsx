@@ -2,7 +2,7 @@ import { lazy } from 'react';
 import { bpmnProcessId as Test_bpmnProcessId, userTaskListColumns as Test_userTaskListColumns } from './Test';
 import { ColumnsOfUserTaskFunction, UserTaskListCell, WarningListCell } from '@vanillabp/bc-shared';
 
-const Test_UserTaskListCell = lazy(() => import('./Test/UserTaskList'));
+const TestUserTaskListCell = lazy(() => import('./Test/UserTaskList'));
 
 const buildVersion = process.env.BUILD_VERSION;
 const buildTimestamp = new Date(process.env.BUILD_TIMESTAMP);
@@ -22,7 +22,7 @@ const UserTaskListCellComponent: UserTaskListCell = ({
   return props.column.path === 'id'
       ? <DefaultCell item={ item } { ...props } />
       : item.data.bpmnProcessId === Test_bpmnProcessId
-      ? <Test_UserTaskListCell item={ item } { ...props } />
+      ? <TestUserTaskListCell item={ item } { ...props } />
       : props.column.path === 'title'
       ? <DefaultCell item={ item } { ...props } />
       : <WarningListCell message={ `unknown BPMN process ID '${ item.data.bpmnProcessId }'` }/>;
