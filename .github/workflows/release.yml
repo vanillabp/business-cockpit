@@ -20,6 +20,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Extract current project version
+        run: |
+          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current project version: $CURRENT_VERSION"
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -61,6 +67,12 @@ jobs:
              else . end
            | if .devDependencies then
                .devDependencies |= with_entries(
+                 if (.key | startswith("@vanillabp/")) 
+                 then .value = $v else . end
+               )
+             else . end
+           | if .peerDependencies then
+               .peerDependencies |= with_entries(
                  if (.key | startswith("@vanillabp/")) 
                  then .value = $v else . end
                )
@@ -128,6 +140,8 @@ jobs:
               - Published to Maven Central
               - Published to npm
               - Built runnable JARs included
+          
+            [Full Changelog](https://github.com/vanillabp/business-cockpit/compare/${{ env.CURRENT_VERSION }}...${{ github.event.inputs.release_version }})
           files: |
             **/*-runnable.jar
           draft: true
@@ -138,7 +152,7 @@ jobs:
           find . -name pom.xml.versionsBackup -delete
 
           SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
-          NEXT_MINOR=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
+          NEXT_PATCH=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
 
           # Update all package.json files using jq
           find . -name package.json | while read file; do
@@ -146,7 +160,7 @@ jobs:
             tmp=$(mktemp)
 
             jq --arg v "${{ github.event.inputs.next_snapshot }}" \
-               --arg range ">=${{ github.event.inputs.next_snapshot }} <${NEXT_MINOR}" '
+               --arg range ">=${{ github.event.inputs.next_snapshot }} <${NEXT_PATCH}" '
               .version = $v
               | if .dependencies then
                   .dependencies |= with_entries(
@@ -156,6 +170,12 @@ jobs:
                 else . end
               | if .devDependencies then
                   .devDependencies |= with_entries(
+                    if (.key | startswith("@vanillabp/"))
+                    then .value = $range else . end
+                  )
+                else . end
+              | if .peerDependencies then
+                  .peerDependencies |= with_entries(
                     if (.key | startswith("@vanillabp/"))
                     then .value = $range else . end
                   )
