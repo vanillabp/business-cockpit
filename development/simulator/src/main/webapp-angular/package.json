@@ -1,6 +1,6 @@
 {
   "name": "webapp-angular",
-  "version": "0.0.9-SNAPSHOT",
+  "version": "0.0.18",
   "scripts": {
     "ng": "ng",
     "prettier": "prettier --write \"**/*.{js,json,css,scss,less,md,ts,html,component.html}\"",
@@ -15,8 +15,8 @@
   },
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.0.9-SNAPSHOT <0.0.10",
-    "@vanillabp/bc-dev-shell-angular": ">=0.0.9-SNAPSHOT <0.0.10",
+    "@vanillabp/bc-shared": "0.0.18",
+    "@vanillabp/bc-dev-shell-angular": "0.0.18",
     "@angular/animations": "^17.2.0",
     "@angular/common": "^17.2.0",
     "@angular/compiler": "^17.2.0",
