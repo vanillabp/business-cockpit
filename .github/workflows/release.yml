@@ -123,9 +123,9 @@ jobs:
 
       - name: Build runnable JARs
         run: |
-          cd container && mvn -B -DskipTests -DskipITs package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd development/simulator && mvn -B -DskipTests -DskipITs package spring-boot:repackage -Pskip-release-npm && cd ../..
-          cd dev-shell-simulator && mvn -B -DskipTests -DskipITs package spring-boot:repackage -Pskip-release-npm && cd ../..
+          cd container && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
+          cd development/simulator && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
+          cd dev-shell-simulator && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
 
       - name: Create Git tag
         run: |
