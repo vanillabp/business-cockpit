@@ -156,8 +156,8 @@ jobs:
           SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
           NEXT_PATCH=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
 
-          # Update all package.json files using jq
-          find . -name package.json | while read file; do
+          # Update all package.json files using jq excluding node_modules
+          find . -name node_modules -prune -o -name package.json -print | while read file; do
             echo "🔧 Updating $file"
             tmp=$(mktemp)
 
@@ -184,8 +184,6 @@ jobs:
                 else . end
             ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
-
-          mvn -B -DskipTests -DskipITs package -Punpublish-npm
 
       - name: Commit next snapshot version
         run: |
