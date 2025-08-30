@@ -6,9 +6,6 @@ on:
       release_version:
         description: 'Version to release (e.g. 1.2.3)'
         required: true
-      next_snapshot:
-        description: 'Next development snapshot (e.g. 1.2.4-SNAPSHOT)'
-        required: true
 
 jobs:
   release:
@@ -136,24 +133,27 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.release_version }}
-          name: Release ${{ github.event.inputs.release_version }}
-          body: |
-            Automated release for version ${{ github.event.inputs.release_version }}.
-              - Published to Maven Central
-              - Published to npm
-              - Built runnable JARs included
-          
-            [Full Changelog](https://github.com/vanillabp/business-cockpit/compare/${{ env.LAST_RELEASED_VERSION }}...${{ github.event.inputs.release_version }})
+          name: v${{ github.event.inputs.release_version }}
+          generate_release_notes: true
+          append_body: |
+            
+            **Full Changelog:** [`${{ env.LAST_RELEASED_VERSION }}...${{ github.event.inputs.release_version }}`](https://github.com/vanillabp/business-cockpit/compare/${{ env.LAST_RELEASED_VERSION }}...${{ github.event.inputs.release_version }})
           files: |
             **/*-runnable.jar
           draft: true
 
+      - name: Calculate next snapshot version
+        run: |
+          NEXT_SNAPSHOT==${LAST_RELEASED_VERSION}-SNAPSHOT
+          echo "Next snapshot version: $NEXT_SNAPSHOT"
+          echo "NEXT_SNAPSHOT=$LAST_RELEASED_VERSION-SNAPSHOT" >> $GITHUB_ENV
+
       - name: Set next snapshot version
         run: |
-          mvn versions:set -DnewVersion=${{ github.event.inputs.next_snapshot }}
+          mvn versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT }}
           find . -name pom.xml.versionsBackup -delete
 
-          SNAP_BASE=$(echo "${{ github.event.inputs.next_snapshot }}" | sed 's/-SNAPSHOT//')
+          SNAP_BASE=$(echo "${{ env.NEXT_SNAPSHOT }}" | sed 's/-SNAPSHOT//')
           NEXT_PATCH=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
 
           # Update all package.json files using jq excluding node_modules
@@ -161,8 +161,8 @@ jobs:
             echo "🔧 Updating $file"
             tmp=$(mktemp)
 
-            jq --arg v "${{ github.event.inputs.next_snapshot }}" \
-               --arg range ">=${{ github.event.inputs.next_snapshot }} <${NEXT_PATCH}" '
+            jq --arg v "${{ env.NEXT_SNAPSHOT }}" \
+               --arg range ">=${{ env.NEXT_SNAPSHOT }} <${NEXT_PATCH}" '
               .version = $v
               | if .dependencies then
                   .dependencies |= with_entries(
@@ -188,7 +188,7 @@ jobs:
       - name: Commit next snapshot version
         run: |
           git add -A
-          git commit -m "Set next version ${{ github.event.inputs.next_snapshot }}"
+          git commit -m "Set next version ${{ env.NEXT_SNAPSHOT }}"
           git push origin HEAD:release/${{ github.event.inputs.release_version }}
           
       - name: Create PR to merge release branch into main
