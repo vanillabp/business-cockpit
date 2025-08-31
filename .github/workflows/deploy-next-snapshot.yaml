@@ -1,4 +1,4 @@
-name: Publish to GitHub Packages
+name: Test-Deploy next snapshot
 on:
   workflow_dispatch:
 
