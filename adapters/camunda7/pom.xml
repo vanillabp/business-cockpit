@@ -1,40 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.vanillabp.businesscockpit</groupId>
-    <artifactId>adapters</artifactId>
-    <version>0.0.9-SNAPSHOT</version>
-  </parent>
+    <parent>
+        <groupId>io.vanillabp.businesscockpit</groupId>
+        <artifactId>adapters</artifactId>
+        <version>0.0.9-SNAPSHOT</version>
+    </parent>
 
     <properties>
-    <camunda.version>7.17.0</camunda.version>
+        <camunda.version>7.17.0</camunda.version>
     </properties>
 
     <artifactId>camunda7-spring-boot-adapter</artifactId>
     <name>Camunda7 Spring Boot Business Cockpit Adapter</name>
     <description>camunda7</description>
     <url>https://www.vanillabp.io/</url>
-  
-   <modules>
-     <module>adapter</module>
-     <module>integration-tests</module>
-   </modules>
 
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+    <modules>
+        <module>adapter</module>
+        <module>integration-tests</module>
+    </modules>
 
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>VanillaBP</id>
+            <organization>Phactum Softwareentwicklung GmbH</organization>
+            <organizationUrl>https://www.phactum.at</organizationUrl>
+        </developer>
+    </developers>
 </project>

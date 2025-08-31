@@ -47,6 +47,7 @@
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver-sync</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -74,6 +75,7 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>official-gui-api-server</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -81,7 +83,7 @@
         <license>
             <name>Apache License, Version 2.0</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution> </distribution>
+            <distribution></distribution>
         </license>
     </licenses>
 
