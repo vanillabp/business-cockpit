@@ -27,7 +27,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: adopt
           java-version: 17
           cache: maven
           server-id: vanillabp-central
@@ -101,11 +101,11 @@ jobs:
 
       - name: Build & deploy to Maven Central and npm
         run: |
-          mvn -B -DskipTests -DskipITs \
+          mvn --batch-mode -DskipTests -DskipITs \
             -DaltDeploymentRepository=local::default::file:target/staging \
             -Dnpm.registry=https://registry.npmjs.com \
             -Dgpg.passphrase=$GPG_PASSPHRASE \
-            clean deploy -P release,central-portal,release-npm
+            clean deploy -Prelease,central-portal,release-npm
         env:
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
@@ -120,9 +120,9 @@ jobs:
 
       - name: Build runnable JARs
         run: |
-          cd container && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd development/simulator && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd dev-shell-simulator && mvn -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
+          cd container && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
+          cd development/simulator && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
+          cd dev-shell-simulator && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
 
       - name: Create Git tag
         run: |
