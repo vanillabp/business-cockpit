@@ -34,7 +34,7 @@ jobs:
       - name: Configure npm authentication for GitHub Packages
         run: |
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-          echo "registry=https://npm.pkg.github.com/" >> ~/.npmrc
+          echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
       - name: Build & publish new snapshot packages
         run: |
