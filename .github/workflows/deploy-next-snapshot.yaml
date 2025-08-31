@@ -1,0 +1,43 @@
+name: Publish to GitHub Packages
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+#    permissions:
+#      contents: read
+#      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: adopt
+          java-version: 17
+          cache: maven
+          server-id: vanillabp-central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: '20.x'
+#          registry-url: 'https://npm.pkg.github.com'
+#          scope: '@vanillabp'
+#          always-auth: true
+
+      - name: Build & publish new snapshot packages
+        run: |
+          mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml --batch-mode \
+          deploy -Dnpm.registry=https://npm.pkg.github.com/
+        env:
+          USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
+          USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
