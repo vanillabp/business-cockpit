@@ -14,6 +14,7 @@ public class WorkflowModuleRestMapper {
         result.setUri(event.getUri());
         result.setTaskProviderApiUriPath(event.getTaskProviderApiUriPath());
         result.setWorkflowProviderApiUriPath(event.getWorkflowProviderApiUriPath());
+        result.setAccessibleToGroups(event.getAccessibleToGroups());
         return result;
 
     }

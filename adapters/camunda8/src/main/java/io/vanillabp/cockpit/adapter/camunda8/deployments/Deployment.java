@@ -10,6 +10,8 @@ public interface Deployment {
 
     int getPackageId();
 
+    String getWorkflowModuleId();
+
     OffsetDateTime getPublishedAt();
 
     <R extends DeploymentResource> R getDeployedResource();

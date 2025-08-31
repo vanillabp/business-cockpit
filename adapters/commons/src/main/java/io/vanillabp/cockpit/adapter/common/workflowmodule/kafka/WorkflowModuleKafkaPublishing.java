@@ -6,7 +6,12 @@ import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishi
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.WorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
+
+import java.util.List;
 import java.util.function.Consumer;
+
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.core.KafkaTemplate;
 
 public class WorkflowModuleKafkaPublishing extends WorkflowModulePublishingBase implements WorkflowModulePublishing {
@@ -18,10 +23,11 @@ public class WorkflowModuleKafkaPublishing extends WorkflowModulePublishingBase 
     public WorkflowModuleKafkaPublishing(
             String workerId,
             VanillaBpCockpitProperties properties,
+            ObjectProvider<List<WorkflowModuleDetailsProvider>> workflowModuleDetailsProviders,
             WorkflowModuleProtobufMapper mapper,
             KafkaTemplate<String, byte[]> kafkaTemplate) {
 
-        super(workerId, properties);
+        super(workerId, properties, workflowModuleDetailsProviders);
         this.mapper = mapper;
         this.kafkaTemplate = kafkaTemplate;
 
@@ -33,7 +39,7 @@ public class WorkflowModuleKafkaPublishing extends WorkflowModulePublishingBase 
 
         if (eventObject instanceof RegisterWorkflowModuleEvent registerWorkflowModuleEvent){
 
-            editRegisterWorkflowModuleEvent(registerWorkflowModuleEvent);
+            enrichRegisterWorkflowModuleEvent(registerWorkflowModuleEvent);
             final var event = mapper.map(registerWorkflowModuleEvent);
             this.sendWorkflowModuleEvent(
                     event.getWorkflowModuleId(),

@@ -8,9 +8,14 @@
     <version>0.0.9-SNAPSHOT</version>
   </parent>
 
-  <artifactId>camunda7-spring-boot-adapter-parent</artifactId>
-  <name>Camunda 7 Adapter and integration test responsible for plugging VanillaBP business cockpit into workflow applications</name>
-  <packaging>pom</packaging>
+    <properties>
+    <camunda.version>7.17.0</camunda.version>
+    </properties>
+
+    <artifactId>camunda7-spring-boot-adapter</artifactId>
+    <name>Camunda7 Spring Boot Business Cockpit Adapter</name>
+    <description>camunda7</description>
+    <url>https://www.vanillabp.io/</url>
   
    <modules>
      <module>adapter</module>

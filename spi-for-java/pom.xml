@@ -9,6 +9,9 @@
   </parent>
 
   <artifactId>spi-for-java</artifactId>
+  <name>VanillaBP - Release Parent Pom</name>
+  <description>This pom defines the required plugins and profiles to perfom a release build.</description>
+  <url>https://www.vanillabp.io</url>
 
   <dependencies>
     <dependency>

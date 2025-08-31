@@ -17,7 +17,7 @@ const TestForm3: UserTaskForm = ({ userTask }) => {
         .catch((err) => {
           console.error(err.message);
         });
-  }, [ userTask ]);
+  }, [ userDetails, userTask ]);
 
   return (<div>
     TestForm3: '{userTask.title.de}' { buildVersion } from { buildTimestamp.toLocaleString() }

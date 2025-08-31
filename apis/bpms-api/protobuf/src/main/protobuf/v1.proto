@@ -169,4 +169,5 @@ message RegisterWorkflowModuleEvent {
   string uri = 5;
   optional string task_provider_api_uri_path = 6;
   optional string workflow_provider_api_uri_path = 7;
+  repeated string accessible_to_groups = 8;
 }

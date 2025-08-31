@@ -1,13 +1,16 @@
 package io.vanillabp.cockpit.workflowmodules;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.stereotype.Service;
+
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModuleRepository;
 import jakarta.annotation.PostConstruct;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +43,8 @@ public class WorkflowModuleService {
             final String id,
             final String uri,
             final String taskProviderApiUriPath,
-            final String workflowProviderApiUriPath) {
+            final String workflowProviderApiUriPath,
+            final List<String> accessibleToGroups) {
 
         final var updateWorkflowModule = workflowModules
                 .findById(id)
@@ -55,19 +59,21 @@ public class WorkflowModuleService {
                     if ((workflowProviderApiUriPath == null) && (workflowModule.getWorkflowProviderApiUriPath() != null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && (workflowModule.getWorkflowProviderApiUriPath() == null)) return Mono.just(workflowModule);
                     if ((workflowProviderApiUriPath != null) && !workflowProviderApiUriPath.equals(workflowModule.getWorkflowProviderApiUriPath())) return Mono.just(workflowModule);
+                    if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return Mono.just(workflowModule);
+                    if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return  Mono.just(workflowModule);
+                    if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return Mono.just(workflowModule);
                     return Mono.empty();
                 })
                 .doOnNext(workflowModule -> {
                     workflowModule.setUri(uri);
                     workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
                     workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
+                    workflowModule.setAccessibleToGroups(accessibleToGroups);
                 })
                 .flatMap(workflowModules::save)
-                .doOnNext(workflowModule -> {
-                    microserviceProxyRegistry.registerMicroservice(
-                            workflowModule.getId(),
-                            workflowModule.getUri());
-                });
+                .doOnNext(workflowModule -> microserviceProxyRegistry.registerMicroservice(
+                        workflowModule.getId(),
+                        workflowModule.getUri()));
 
         return updateWorkflowModule
                 .onErrorResume(OptimisticLockingFailureException.class, e -> updateWorkflowModule)
@@ -86,9 +92,9 @@ public class WorkflowModuleService {
 
     }
 
-    public Flux<WorkflowModule> getWorkflowModules() {
+    public Flux<WorkflowModule> getWorkflowModules(List<String> userRoles) {
 
-        return workflowModules.findAll(); // TODO: Limit to permitted workflow modules
+        return workflowModules.findByAccessibleToGroups(userRoles);
 
     }
 

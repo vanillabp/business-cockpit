@@ -15,12 +15,16 @@ import io.vanillabp.cockpit.adapter.common.workflow.kafka.WorkflowProtobufMapper
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleKafkaPublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.kafka.WorkflowModuleProtobufMapper;
+import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
+
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -78,11 +82,13 @@ public class CockpitCommonAdapterKafkaConfiguration {
 
     @Bean
     public WorkflowModulePublishing workflowModuleKafkaPublishing(
-            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate) {
+            @Qualifier("businessCockpitKafkaTemplate") KafkaTemplate<String, byte[]> kafkaTemplate,
+            ObjectProvider<List<WorkflowModuleDetailsProvider>> workflowModuleDetailsProviders) {
 
         return new WorkflowModuleKafkaPublishing(
                 workerId,
                 properties,
+                workflowModuleDetailsProviders,
                 new WorkflowModuleProtobufMapper(),
                 kafkaTemplate
         );
