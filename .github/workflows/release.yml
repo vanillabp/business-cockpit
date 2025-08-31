@@ -36,7 +36,7 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
-      - name: Configure npm authentication
+      - name: Configure npm authentication for npmjs.com
         run: |
           echo "//registry.npmjs.com/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
           echo "registry=https://registry.npmjs.com/" >> ~/.npmrc
@@ -184,6 +184,20 @@ jobs:
                 else . end
             ' "$file" > "$tmp" && mv "$tmp" "$file"
           done
+
+      - name: Configure npm authentication for GitHub Packages
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
+          echo "always-auth=true" >> ~/.npmrc
+      - name: Build & publish new snapshot packages
+        run: |
+          mvn --batch-mode -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          deploy -Dnpm.registry=https://npm.pkg.github.com/
+        env:
+          USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
+          USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit next snapshot version
         run: |
