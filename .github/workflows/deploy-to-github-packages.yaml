@@ -37,7 +37,7 @@ jobs:
 
       - name: Publish package
         run: |
-          mvn -s --batch-mode $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
           -Dnpm.registry=https://npm.pkg.github.com/ \
           deploy
