@@ -147,7 +147,7 @@ jobs:
           $RELEASE_VERSION=${{ github.event.inputs.release_version }}
           IFS='.' read -r major minor patch <<< "$RELEASE_VERSION"
           NEXT_PATCH=$((patch + 1))
-          echo "NEXT_SNAPSHOT=$major.$minor.$NEXT_PATCH-SNAPSHOT" >> $GITHUB_ENV
+          echo "NEXT_SNAPSHOT=$major.$minor.${NEXT_PATCH}-SNAPSHOT" >> $GITHUB_ENV
 
       - name: Set next snapshot version
         run: |
