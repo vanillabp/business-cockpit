@@ -31,12 +31,16 @@ jobs:
         # use first NPM package published as part of this pipeline (bc-official-gui-client) to determine new NPM prerelease id
         run: |
           VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L 'https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions?per_page=100')
-          echo "Versions Response: $VERSIONS"
           ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')
-          echo "ID: $ID"
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
+          echo "Next NPM prerelease version: $PACKAGE_ID"
+
       - name: Publish package
-        run: mvn -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} --batch-mode deploy -Dnpm.registry=https://npm.pkg.github.com/
+        run: |
+          mvn -s --batch-mode $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
+          -Dnpm.registry=https://npm.pkg.github.com/ \
+          deploy
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
