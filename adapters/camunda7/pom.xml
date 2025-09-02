@@ -3,11 +3,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>io.vanillabp.businesscockpit</groupId>
-        <artifactId>adapters</artifactId>
-        <version>0.0.9-SNAPSHOT</version>
-    </parent>
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>adapters</artifactId>
+    <version>0.0.19-SNAPSHOT</version>
+  </parent>
 
     <properties>
         <camunda.version>7.17.0</camunda.version>
@@ -16,6 +16,7 @@
     <artifactId>camunda7-spring-boot-adapter</artifactId>
     <name>Camunda7 Spring Boot Business Cockpit Adapter</name>
     <description>camunda7</description>
+    <packaging>pom</packaging>
     <url>https://www.vanillabp.io/</url>
 
     <modules>
