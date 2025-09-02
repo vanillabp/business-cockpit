@@ -6,10 +6,10 @@
     <parent>
         <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>camunda7-spring-boot-adapter-parent</artifactId>
-        <version>0.0.9-SNAPSHOT</version>
+        <version>0.0.19-SNAPSHOT</version>
     </parent>
 
-    <artifactId>integration</artifactId>
+    <artifactId>integration-tests</artifactId>
 
     <dependencyManagement>
         <dependencies>
@@ -83,7 +83,7 @@
         <license>
             <name>Apache License, Version 2.0</name>
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution></distribution>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
