@@ -296,6 +296,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         } else {
             final var templatesPathes = List.of(properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
 
+            final var fulltextSearch = new StringBuilder();
             event
                     .getI18nLanguages()
                     .forEach(language -> {
@@ -320,7 +321,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                 details.getTemplateContext(),
                                 errorLoggingContext);
 
-                        event.setDetailsFulltextSearch(
+                        fulltextSearch.append(
                                 renderText(
                                         e -> errorLoggingContext.apply(
                                                 "details-fulltext-search.ftl",
@@ -330,8 +331,11 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                         "details-fulltext-search.ftl",
                                         details.getTemplateContext(),
                                         () -> bpmnProcessName));
+                        fulltextSearch.append("\n");
 
                     });
+
+            event.setDetailsFulltextSearch(fulltextSearch.toString());
 
         }
 
