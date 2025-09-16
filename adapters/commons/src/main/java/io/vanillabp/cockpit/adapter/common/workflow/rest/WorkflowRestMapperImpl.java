@@ -1,25 +1,23 @@
 package io.vanillabp.cockpit.adapter.common.workflow.rest;
 
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUiUriType;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
-
+import io.vanillabp.cockpit.bpms.api.v1_1.UiUriType;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class WorkflowRestMapperImpl implements WorkflowRestMapper {
 
     @Override
-    public io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent map(WorkflowCancelledEvent workflowCancelledEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent map(WorkflowCancelledEvent workflowCancelledEvent) {
         if ( workflowCancelledEvent == null ) {
             return null;
         }
 
-        io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent workflowCancelledEvent1 = new io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent();
+        io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent workflowCancelledEvent1 = new io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent();
 
         workflowCancelledEvent1.setId( workflowCancelledEvent.getEventId() );
         workflowCancelledEvent1.setWorkflowId( workflowCancelledEvent.getWorkflowId() );
@@ -34,97 +32,117 @@ public class WorkflowRestMapperImpl implements WorkflowRestMapper {
     }
 
     @Override
-    public WorkflowCompletedEvent map(io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowCompletedEvent) {
         if ( workflowCompletedEvent == null ) {
             return null;
         }
 
-        WorkflowCompletedEvent workflowCompletedEvent1 = new WorkflowCompletedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent();
 
-        workflowCompletedEvent1.setId( workflowCompletedEvent.getEventId() );
-        workflowCompletedEvent1.setWorkflowId( workflowCompletedEvent.getWorkflowId() );
-        workflowCompletedEvent1.setInitiator( workflowCompletedEvent.getInitiator() );
-        workflowCompletedEvent1.setTimestamp( workflowCompletedEvent.getTimestamp() );
-        workflowCompletedEvent1.setSource( workflowCompletedEvent.getSource() );
-        workflowCompletedEvent1.setComment( workflowCompletedEvent.getComment() );
-        workflowCompletedEvent1.setBpmnProcessId( workflowCompletedEvent.getBpmnProcessId() );
-        workflowCompletedEvent1.setBpmnProcessVersion( workflowCompletedEvent.getBpmnProcessVersion() );
+        result.setId( workflowCompletedEvent.getEventId() );
+        result.setWorkflowId( workflowCompletedEvent.getWorkflowId() );
+        result.setBusinessId( workflowCompletedEvent.getBusinessId() );
+        result.setInitiator( workflowCompletedEvent.getInitiator() );
+        result.setTimestamp( workflowCompletedEvent.getTimestamp() );
+        result.setSource( workflowCompletedEvent.getSource() );
+        result.setWorkflowModuleId( workflowCompletedEvent.getWorkflowModuleId() );
+        Map<String, String> map = workflowCompletedEvent.getTitle();
+        if ( map != null ) {
+            result.setTitle( new LinkedHashMap<String, String>( map ) );
+        }
+        result.setComment( workflowCompletedEvent.getComment() );
+        result.setBpmnProcessId( workflowCompletedEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( workflowCompletedEvent.getBpmnProcessVersion() );
+        result.setUiUriPath( workflowCompletedEvent.getUiUriPath() );
+        result.setUiUriType( workflowUiUriTypeToUiUriType( workflowCompletedEvent.getUiUriType() ) );
+        Map<String, Object> map1 = workflowCompletedEvent.getDetails();
+        if ( map1 != null ) {
+            result.setDetails( new LinkedHashMap<String, Object>( map1 ) );
+        }
+        result.setDetailsFulltextSearch( workflowCompletedEvent.getDetailsFulltextSearch() );
+        result.setAccessibleToUsers( workflowCompletedEvent.getAccessibleToUsers() );
+        result.setAccessibleToGroups( workflowCompletedEvent.getAccessibleToGroups() );
 
-        return workflowCompletedEvent1;
+        result.setUpdated( true );
+
+        return result;
+
     }
 
     @Override
-    public WorkflowCreatedOrUpdatedEvent map(WorkflowCreatedEvent workflowCreatedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent map(WorkflowCreatedEvent workflowCreatedEvent) {
         if ( workflowCreatedEvent == null ) {
             return null;
         }
 
-        WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent = new WorkflowCreatedOrUpdatedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent();
 
-        workflowCreatedOrUpdatedEvent.setId( workflowCreatedEvent.getEventId() );
-        workflowCreatedOrUpdatedEvent.setWorkflowId( workflowCreatedEvent.getWorkflowId() );
-        workflowCreatedOrUpdatedEvent.setBusinessId( workflowCreatedEvent.getBusinessId() );
-        workflowCreatedOrUpdatedEvent.setInitiator( workflowCreatedEvent.getInitiator() );
-        workflowCreatedOrUpdatedEvent.setTimestamp( workflowCreatedEvent.getTimestamp() );
-        workflowCreatedOrUpdatedEvent.setSource( workflowCreatedEvent.getSource() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModuleId( workflowCreatedEvent.getWorkflowModuleId() );
+        result.setId( workflowCreatedEvent.getEventId() );
+        result.setWorkflowId( workflowCreatedEvent.getWorkflowId() );
+        result.setBusinessId( workflowCreatedEvent.getBusinessId() );
+        result.setInitiator( workflowCreatedEvent.getInitiator() );
+        result.setTimestamp( workflowCreatedEvent.getTimestamp() );
+        result.setSource( workflowCreatedEvent.getSource() );
+        result.setWorkflowModuleId( workflowCreatedEvent.getWorkflowModuleId() );
         Map<String, String> map = workflowCreatedEvent.getTitle();
         if ( map != null ) {
-            workflowCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map ) );
+            result.setTitle( new LinkedHashMap<String, String>( map ) );
         }
-        workflowCreatedOrUpdatedEvent.setComment( workflowCreatedEvent.getComment() );
-        workflowCreatedOrUpdatedEvent.setBpmnProcessId( workflowCreatedEvent.getBpmnProcessId() );
-        workflowCreatedOrUpdatedEvent.setBpmnProcessVersion( workflowCreatedEvent.getBpmnProcessVersion() );
-        workflowCreatedOrUpdatedEvent.setUiUriPath( workflowCreatedEvent.getUiUriPath() );
-        workflowCreatedOrUpdatedEvent.setUiUriType( workflowUiUriTypeToUiUriType( workflowCreatedEvent.getUiUriType() ) );
+        result.setComment( workflowCreatedEvent.getComment() );
+        result.setBpmnProcessId( workflowCreatedEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( workflowCreatedEvent.getBpmnProcessVersion() );
+        result.setUiUriPath( workflowCreatedEvent.getUiUriPath() );
+        result.setUiUriType( workflowUiUriTypeToUiUriType( workflowCreatedEvent.getUiUriType() ) );
         Map<String, Object> map1 = workflowCreatedEvent.getDetails();
         if ( map1 != null ) {
-            workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
+            result.setDetails( new LinkedHashMap<String, Object>( map1 ) );
         }
-        workflowCreatedOrUpdatedEvent.setDetailsFulltextSearch( workflowCreatedEvent.getDetailsFulltextSearch() );
-        workflowCreatedOrUpdatedEvent.setAccessibleToUsers( workflowCreatedEvent.getAccessibleToUsers() );
-        workflowCreatedOrUpdatedEvent.setAccessibleToGroups( workflowCreatedEvent.getAccessibleToGroups() );
+        result.setDetailsFulltextSearch( workflowCreatedEvent.getDetailsFulltextSearch() );
+        result.setAccessibleToUsers( workflowCreatedEvent.getAccessibleToUsers() );
+        result.setAccessibleToGroups( workflowCreatedEvent.getAccessibleToGroups() );
 
-        workflowCreatedOrUpdatedEvent.setUpdated( false );
+        result.setUpdated( false );
 
-        return workflowCreatedOrUpdatedEvent;
+        return result;
+
     }
 
     @Override
-    public WorkflowCreatedOrUpdatedEvent map(WorkflowUpdatedEvent workflowUpdatedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent map(WorkflowUpdatedEvent workflowUpdatedEvent) {
         if ( workflowUpdatedEvent == null ) {
             return null;
         }
 
-        WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent = new WorkflowCreatedOrUpdatedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent();
 
-        workflowCreatedOrUpdatedEvent.setId( workflowUpdatedEvent.getEventId() );
-        workflowCreatedOrUpdatedEvent.setWorkflowId( workflowUpdatedEvent.getWorkflowId() );
-        workflowCreatedOrUpdatedEvent.setBusinessId( workflowUpdatedEvent.getBusinessId() );
-        workflowCreatedOrUpdatedEvent.setInitiator( workflowUpdatedEvent.getInitiator() );
-        workflowCreatedOrUpdatedEvent.setTimestamp( workflowUpdatedEvent.getTimestamp() );
-        workflowCreatedOrUpdatedEvent.setSource( workflowUpdatedEvent.getSource() );
-        workflowCreatedOrUpdatedEvent.setWorkflowModuleId( workflowUpdatedEvent.getWorkflowModuleId() );
+        result.setId( workflowUpdatedEvent.getEventId() );
+        result.setWorkflowId( workflowUpdatedEvent.getWorkflowId() );
+        result.setBusinessId( workflowUpdatedEvent.getBusinessId() );
+        result.setInitiator( workflowUpdatedEvent.getInitiator() );
+        result.setTimestamp( workflowUpdatedEvent.getTimestamp() );
+        result.setSource( workflowUpdatedEvent.getSource() );
+        result.setWorkflowModuleId( workflowUpdatedEvent.getWorkflowModuleId() );
         Map<String, String> map = workflowUpdatedEvent.getTitle();
         if ( map != null ) {
-            workflowCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map ) );
+            result.setTitle( new LinkedHashMap<String, String>( map ) );
         }
-        workflowCreatedOrUpdatedEvent.setComment( workflowUpdatedEvent.getComment() );
-        workflowCreatedOrUpdatedEvent.setBpmnProcessId( workflowUpdatedEvent.getBpmnProcessId() );
-        workflowCreatedOrUpdatedEvent.setBpmnProcessVersion( workflowUpdatedEvent.getBpmnProcessVersion() );
-        workflowCreatedOrUpdatedEvent.setUiUriPath( workflowUpdatedEvent.getUiUriPath() );
-        workflowCreatedOrUpdatedEvent.setUiUriType( workflowUiUriTypeToUiUriType( workflowUpdatedEvent.getUiUriType() ) );
+        result.setComment( workflowUpdatedEvent.getComment() );
+        result.setBpmnProcessId( workflowUpdatedEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( workflowUpdatedEvent.getBpmnProcessVersion() );
+        result.setUiUriPath( workflowUpdatedEvent.getUiUriPath() );
+        result.setUiUriType( workflowUiUriTypeToUiUriType( workflowUpdatedEvent.getUiUriType() ) );
         Map<String, Object> map1 = workflowUpdatedEvent.getDetails();
         if ( map1 != null ) {
-            workflowCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map1 ) );
+            result.setDetails( new LinkedHashMap<String, Object>( map1 ) );
         }
-        workflowCreatedOrUpdatedEvent.setDetailsFulltextSearch( workflowUpdatedEvent.getDetailsFulltextSearch() );
-        workflowCreatedOrUpdatedEvent.setAccessibleToUsers( workflowUpdatedEvent.getAccessibleToUsers() );
-        workflowCreatedOrUpdatedEvent.setAccessibleToGroups( workflowUpdatedEvent.getAccessibleToGroups() );
+        result.setDetailsFulltextSearch( workflowUpdatedEvent.getDetailsFulltextSearch() );
+        result.setAccessibleToUsers( workflowUpdatedEvent.getAccessibleToUsers() );
+        result.setAccessibleToGroups( workflowUpdatedEvent.getAccessibleToGroups() );
 
-        workflowCreatedOrUpdatedEvent.setUpdated( true );
+        result.setUpdated( true );
 
-        return workflowCreatedOrUpdatedEvent;
+        return result;
+
     }
 
     protected UiUriType workflowUiUriTypeToUiUriType(WorkflowUiUriType workflowUiUriType) {

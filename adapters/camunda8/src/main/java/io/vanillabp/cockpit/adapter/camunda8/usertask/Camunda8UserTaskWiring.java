@@ -1,7 +1,9 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.worker.JobWorkerBuilderStep1;
+import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
@@ -10,19 +12,26 @@ import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParam
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
+import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
+import io.vanillabp.springboot.adapter.SpringDataUtil;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.repository.CrudRepository;
 
-public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> {
+public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> implements Consumer<CamundaClient> {
+
+    public static final String TASKDEFINITION_USERTASK_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
 
     private final VanillaBpCockpitProperties vanillaBpCockpitProperties;
 
@@ -34,37 +43,73 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final Camunda8UserTaskEventHandler userTaskEventHandler;
 
-    private final ProcessInstancePersistence processInstancePersistence;
-
     private final Method noopUserTaskMethod;
 
     private final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers;
 
+    private CamundaClient client;
+
+    private final Map<String, JobWorkerBuilderStep1.JobWorkerBuilderStep3> workers = new HashMap<>();
+
+    private final SpringDataUtil springDataUtil;
+
+    private final String workerId;
+
+    final Camunda8VanillaBpProperties camunda8Properties;
+
     public Camunda8UserTaskWiring(
             final ApplicationContext applicationContext,
+            final Camunda8VanillaBpProperties camunda8Properties,
+            final String workerId,
             final SpringBeanUtil springBeanUtil,
+            final SpringDataUtil springDataUtil,
             final VanillaBpCockpitProperties vanillaBpCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             final Camunda8UserTaskEventHandler userTaskEventHandler,
-            final ProcessInstancePersistence processInstancePersistence,
             final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers) throws Exception {
         
         super(applicationContext, springBeanUtil, new UserTaskMethodParameterFactory());
+        this.workerId = workerId;
         this.connectableServices = connectableServices;
         this.vanillaBpCockpitProperties = vanillaBpCockpitProperties;
         this.applicationEventPublisher = applicationEventPublisher;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
-        this.processInstancePersistence = processInstancePersistence;
         this.userTaskHandlers = userTaskHandlers;
+        this.springDataUtil = springDataUtil;
+        this.camunda8Properties = camunda8Properties;
 
         noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
 
     }
-    
+
+    /**
+     * Called by <i>Camunda8DeploymentAdapter#processBpmnModel(String, BpmnModelInstanceImpl, boolean)</i> to
+     * ensure client is available before using wire-methods.
+     */
+    @Override
+    public void accept(
+            final CamundaClient client) {
+
+        this.client = client;
+
+    }
+
+    @EventListener
+    public void openWorkers(
+            final ModuleAwareBpmnDeployment.BpmnModelCacheProcessed event) {
+
+        userTaskEventHandler.updateVersionInfos(event);
+
+        workers
+                .values()
+                .forEach(JobWorkerBuilderStep1.JobWorkerBuilderStep3::open);
+
+    }
+
     public void wireTask(
             final String workflowModuleId,
             final Camunda8UserTaskConnectable connectable) {
@@ -124,8 +169,14 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                     + "' which is mandatory for methods providing user-task details!");
         }
 
+        final var jobType = TASKDEFINITION_USERTASK_DETAILSPROVIDER + connectable.getTaskDefinition();
+        if (workers.containsKey(jobType)) {
+            return;
+        }
+
         CrudRepository<Object, Object> workflowAggregateRepository =
                 (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository();
+        final var aggregateIdPropertyName = springDataUtil.getIdName(processService.getWorkflowAggregateClass());
 
         final var taskHandler = userTaskHandlers.getObject(
                 connectable.getTaskDefinition(),
@@ -133,17 +184,40 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 applicationEventPublisher,
                 templating,
                 connectable.getBpmnProcessId(),
+                connectable.getVersionInfo(),
+                connectable.getBpmnProcessName(),
                 connectable.getTitle(),
                 processService,
-                processInstancePersistence,
+                aggregateIdPropertyName,
                 workflowAggregateRepository,
                 bean,
                 method,
-                parameters
+                parameters,
+                client
         );
         userTaskEventHandler.addTaskHandler(connectable, taskHandler);
+
+        final var worker = client
+                .newWorker()
+                .jobType(jobType)
+                .handler(userTaskEventHandler)
+                .name(workerId)
+                .fetchVariables(List.of(aggregateIdPropertyName));
+
+        final var workerProperties = camunda8Properties.getWorkerProperties(
+                workflowModuleId,
+                connectable.getBpmnProcessId(),
+                connectable.getTaskDefinition());
+        workerProperties.applyToWorker(worker);
+
+        workers.put(
+                jobType,
+                connectable.getTenantId() != null
+                        ? worker.tenantId(connectable.getTenantId())
+                        : worker);
+
     }
-    
+
     @SuppressWarnings("unchecked")
     protected List<MethodParameter> validateParameters(
             final Class<?> workflowAggregateClass,
@@ -157,6 +231,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                         parameter,
                         index),
                 super::validateTaskParam,
+                super::validateDetailsEvent,
                 super::validateMultiInstanceTotal,
                 super::validateMultiInstanceIndex,
                 super::validateMultiInstanceElement,

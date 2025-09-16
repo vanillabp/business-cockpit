@@ -1,10 +1,9 @@
 package io.vanillabp.cockpit.adapter.common.usertask;
 
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,7 @@ public abstract class UserTaskPublishingBase {
     }
 
     protected void editUserTaskCreatedOrUpdatedEvent(
-            final UserTaskCreatedEvent event) {
+            final UserTaskEventImpl event) {
 
         event.setSource(workerId);
         event.setUiUriPath(properties.getUiUriPath(event.getWorkflowModuleId()));

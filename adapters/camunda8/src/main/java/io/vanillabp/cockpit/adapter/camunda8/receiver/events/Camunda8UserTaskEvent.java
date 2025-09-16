@@ -1,40 +1,59 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
+import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
-public class Camunda8UserTaskCreatedEvent {
-    private long key;
-    private long timestamp;
+public class Camunda8UserTaskEvent {
+    private long userTaskKey;
+    private long jobKey;
+    private OffsetDateTime timestamp;
+    private DetailsEvent.Event event;
     private String bpmnProcessId;
     private String tenantId;
-    private int workflowDefinitionVersion;
+    private int processDefinitionVersion;
     private long processDefinitionKey;
     private long processInstanceKey;
     private String elementId;
-    private long elementInstanceKey;
-    private String formKey;
-    private String businessKey;
+    private String taskDefinition;
     private String assignee;
     private List<String> candidateUsers;
     private List<String> candidateGroups;
     private OffsetDateTime dueDate;
     private OffsetDateTime followUpDate;
 
+    private Map<String, Object> variables;
 
-    public long getKey() {
-        return key;
+    public long getJobKey() {
+        return jobKey;
     }
 
-    public void setKey(long key) {
-        this.key = key;
+    public void setJobKey(long jobKey) {
+        this.jobKey = jobKey;
     }
 
-    public long getTimestamp() {
+    public long getUserTaskKey() {
+        return userTaskKey;
+    }
+
+    public void setUserTaskKey(long userTaskKey) {
+        this.userTaskKey = userTaskKey;
+    }
+
+    public DetailsEvent.Event getEvent() {
+        return event;
+    }
+
+    public void setEvent(DetailsEvent.Event event) {
+        this.event = event;
+    }
+
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(long timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -46,12 +65,12 @@ public class Camunda8UserTaskCreatedEvent {
         this.bpmnProcessId = bpmnProcessId;
     }
 
-    public int getWorkflowDefinitionVersion() {
-        return workflowDefinitionVersion;
+    public int getProcessDefinitionVersion() {
+        return processDefinitionVersion;
     }
 
-    public void setWorkflowDefinitionVersion(int workflowDefinitionVersion) {
-        this.workflowDefinitionVersion = workflowDefinitionVersion;
+    public void setProcessDefinitionVersion(int processDefinitionVersion) {
+        this.processDefinitionVersion = processDefinitionVersion;
     }
 
     public long getProcessDefinitionKey() {
@@ -76,30 +95,6 @@ public class Camunda8UserTaskCreatedEvent {
 
     public void setElementId(String elementId) {
         this.elementId = elementId;
-    }
-
-    public long getElementInstanceKey() {
-        return elementInstanceKey;
-    }
-
-    public void setElementInstanceKey(long elementInstanceKey) {
-        this.elementInstanceKey = elementInstanceKey;
-    }
-
-    public String getFormKey() {
-        return formKey;
-    }
-
-    public void setFormKey(String formKey) {
-        this.formKey = formKey;
-    }
-
-    public String getBusinessKey() {
-        return businessKey;
-    }
-
-    public void setBusinessKey(String businessKey) {
-        this.businessKey = businessKey;
     }
 
     public List<String> getCandidateUsers() {
@@ -148,5 +143,21 @@ public class Camunda8UserTaskCreatedEvent {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(Map<String, Object> variables) {
+        this.variables = variables;
+    }
+
+    public String getTaskDefinition() {
+        return taskDefinition;
+    }
+
+    public void setTaskDefinition(String taskDefinition) {
+        this.taskDefinition = taskDefinition;
     }
 }

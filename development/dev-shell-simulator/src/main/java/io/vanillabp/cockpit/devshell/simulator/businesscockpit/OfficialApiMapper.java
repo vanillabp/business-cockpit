@@ -7,6 +7,10 @@ import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.Group;
 import io.vanillabp.cockpit.gui.api.v1.Person;
@@ -14,6 +18,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowModule;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -24,7 +29,11 @@ public abstract class OfficialApiMapper {
 
     @Mapping(target = "id", expression = "java(id)")
     @Mapping(target = "version", ignore = true)
-    public abstract WorkflowModule toApi(RegisterWorkflowModuleEvent event, String id);
+    public abstract WorkflowModule toModel(RegisterWorkflowModuleEvent event, String id);
+
+    @Mapping(target = "id", expression = "java(id)")
+    @Mapping(target = "version", ignore = true)
+    public abstract WorkflowModule toModel(io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent event, String id);
 
     @Named("group")
     @Mapping(target = "id", expression = "java(group)")
@@ -41,7 +50,7 @@ public abstract class OfficialApiMapper {
         return groups
                 .stream()
                 .map(this::toGroupApi)
-                .toList();
+                .collect(Collectors.toList());
 
     }
 
@@ -63,39 +72,37 @@ public abstract class OfficialApiMapper {
         return persons
                 .stream()
                 .map(this::toPersonApi)
-                .toList();
+                .collect(Collectors.toList());
 
     }
 
     @NoMappingMethod
     protected String proxiedUiUri(
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final String workflowModuleId,
+            final String uiUriPath) {
 
-        if (event.getWorkflowModuleId() == null) {
+        if (workflowModuleId == null) {
             return null;
         }
-        if (event.getUiUriPath() == null) {
+        if (uiUriPath == null) {
             return null;
         }
 
         return "/wm/"
-                + event.getWorkflowModuleId()
-                + (event.getUiUriPath().startsWith("/")
-                ? event.getUiUriPath()
-                : "/" + event.getUiUriPath());
+                + workflowModuleId
+                + (uiUriPath.startsWith("/") ? uiUriPath : "/" + uiUriPath);
 
     }
 
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final String workflowModuleId) {
 
-        if (event.getWorkflowModuleId() == null) {
+        if (workflowModuleId == null) {
             return null;
         }
 
-        return "/wm/"
-                + event.getWorkflowModuleId();
+        return "/wm/" + workflowModuleId;
 
     }
 
@@ -106,10 +113,22 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "initiator", qualifiedByName = "person")
     @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
     @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
-    @Mapping(target = "version", source = "bpmnProcessVersion")
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
-    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
-    public abstract Workflow toApi(WorkflowCreatedOrUpdatedEvent event);
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
+    public abstract Workflow toModel(WorkflowCreatedOrUpdatedEvent event);
+
+    @Mapping(target = "id", source = "workflowId")
+    @Mapping(target = "createdAt", source = "timestamp")
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "initiator", qualifiedByName = "person")
+    @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
+    @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
+    public abstract Workflow toModel(WorkflowCreatedEvent event);
 
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -118,10 +137,22 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "initiator", qualifiedByName = "person")
     @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
     @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
-    @Mapping(target = "version", source = "bpmnProcessVersion")
+    @Mapping(target = "version", ignore = true)
     @Mapping(target = "uiUri", ignore = true)
     @Mapping(target = "workflowModuleUri", ignore = true)
     public abstract void ontoApi(@MappingTarget Workflow workflow, WorkflowCreatedOrUpdatedEvent event);
+
+    @Mapping(target = "id", source = "workflowId")
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "initiator", qualifiedByName = "person")
+    @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
+    @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    public abstract void ontoApi(@MappingTarget Workflow workflow, WorkflowUpdatedEvent event);
 
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -159,37 +190,29 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "detailsFulltextSearch", ignore = true)
     public abstract void ontoApi(@MappingTarget Workflow workflow, WorkflowCancelledEvent event);
 
-    @NoMappingMethod
-    protected String proxiedUiUri(
-            final UserTaskCreatedOrUpdatedEvent event) {
+    @Mapping(target = "id", source = "workflowId")
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "endedAt", source = "timestamp")
+    @Mapping(target = "initiator", qualifiedByName = "person")
+    @Mapping(target = "accessibleToUsers", ignore = true)
+    @Mapping(target = "accessibleToGroups", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    public abstract void ontoApi(@MappingTarget Workflow workflow, io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent event);
 
-        if (event.getWorkflowModuleId() == null) {
-            return null;
-        }
-        if (event.getUiUriPath() == null) {
-            return null;
-        }
-
-        return "/wm/"
-                + event.getWorkflowModuleId()
-                + (event.getUiUriPath().startsWith("/")
-                ? event.getUiUriPath()
-                : "/" + event.getUiUriPath());
-
-    }
-
-    @NoMappingMethod
-    protected String proxiedWorkflowModuleUri(
-            final UserTaskCreatedOrUpdatedEvent event) {
-
-        if (event.getWorkflowModuleId() == null) {
-            return null;
-        }
-
-        return "/wm/"
-                + event.getWorkflowModuleId();
-
-    }
+    @Mapping(target = "id", source = "workflowId")
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "endedAt", source = "timestamp")
+    @Mapping(target = "initiator", qualifiedByName = "person")
+    @Mapping(target = "accessibleToUsers", ignore = true)
+    @Mapping(target = "accessibleToGroups", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    public abstract void ontoApi(@MappingTarget Workflow workflow, io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent event);
 
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "createdAt", source = "timestamp")
@@ -198,11 +221,11 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "assignee", qualifiedByName = "person")
     @Mapping(target = "candidateUsers", qualifiedByName = "persons")
     @Mapping(target = "candidateGroups", qualifiedByName = "groups")
-    @Mapping(target = "version", source = "bpmnProcessVersion")
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event))")
-    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event))")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
     @Mapping(target = "read", ignore = true)
-    public abstract UserTask toApi(UserTaskCreatedOrUpdatedEvent event);
+    public abstract UserTask toModel(UserTaskCreatedOrUpdatedEvent event);
 
     @Mapping(target = "id", source = "event.userTaskId")
     @Mapping(target = "createdAt", ignore = true)
@@ -211,11 +234,63 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "assignee", qualifiedByName = "person")
     @Mapping(target = "candidateUsers", qualifiedByName = "persons")
     @Mapping(target = "candidateGroups", qualifiedByName = "groups")
-    @Mapping(target = "version", source = "event.bpmnProcessVersion")
+    @Mapping(target = "version", ignore = true)
     @Mapping(target = "uiUri", ignore = true)
     @Mapping(target = "workflowModuleUri", ignore = true)
     @Mapping(target = "read", ignore = true)
     public abstract void ontoApi(@MappingTarget UserTask userTask, UserTaskCreatedOrUpdatedEvent event);
+
+    @Mapping(target = "id", source = "event.userTaskId")
+    @Mapping(target = "createdAt", source = "event.timestamp")
+    @Mapping(target = "updatedAt", source = "event.timestamp")
+    @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "assignee", qualifiedByName = "person")
+    @Mapping(target = "candidateUsers", qualifiedByName = "persons")
+    @Mapping(target = "candidateGroups", qualifiedByName = "groups")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
+    @Mapping(target = "read", ignore = true)
+    public abstract UserTask toModel(UserTaskCreatedEvent event);
+
+    @Mapping(target = "id", source = "event.userTaskId")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", source = "event.timestamp")
+    @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "assignee", qualifiedByName = "person")
+    @Mapping(target = "candidateUsers", qualifiedByName = "persons")
+    @Mapping(target = "candidateGroups", qualifiedByName = "groups")
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    @Mapping(target = "read", ignore = true)
+    public abstract void ontoApi(@MappingTarget UserTask userTask, UserTaskUpdatedEvent event);
+
+    @Mapping(target = "id", source = "event.userTaskId")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", source = "event.timestamp")
+    @Mapping(target = "endedAt", source = "event.timestamp")
+    @Mapping(target = "assignee", ignore = true)
+    @Mapping(target = "candidateUsers", ignore = true)
+    @Mapping(target = "candidateGroups", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    @Mapping(target = "read", ignore = true)
+    public abstract void ontoApi(@MappingTarget UserTask userTask, io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent event);
+
+    @Mapping(target = "id", source = "event.userTaskId")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", source = "event.timestamp")
+    @Mapping(target = "endedAt", source = "event.timestamp")
+    @Mapping(target = "assignee", ignore = true)
+    @Mapping(target = "candidateUsers", ignore = true)
+    @Mapping(target = "candidateGroups", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "uiUri", ignore = true)
+    @Mapping(target = "workflowModuleUri", ignore = true)
+    @Mapping(target = "read", ignore = true)
+    public abstract void ontoApi(@MappingTarget UserTask userTask, io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent event);
 
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "updatedAt", source = "timestamp")

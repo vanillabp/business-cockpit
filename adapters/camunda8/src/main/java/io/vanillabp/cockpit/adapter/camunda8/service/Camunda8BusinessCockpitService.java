@@ -1,8 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
+import io.camunda.client.CamundaClient;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
-import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
@@ -25,16 +24,15 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     private AdapterAwareBusinessCockpitService<WA> parent;
 
-    private ProcessInstancePersistence processInstancePersistence;
-
     private Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
+
+    private CamundaClient client;
 
     public Camunda8BusinessCockpitService(CrudRepository<WA, Object> workflowAggregateRepository,
                                           Class<WA> workflowAggregateClass,
                                           Function<WA, ?> getWorkflowAggregateId,
                                           Function<String, Object> parseWorkflowAggregateIdFromBusinessKey,
                                           String workflowAggregateIdName,
-                                          ProcessInstancePersistence processInstancePersistence,
                                           Camunda8WorkflowEventHandler workflowEventHandler) {
 
         this.workflowAggregateRepository = workflowAggregateRepository;
@@ -42,11 +40,11 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
         this.getWorkflowAggregateId = getWorkflowAggregateId;
         this.parseWorkflowAggregateIdFromBusinessKey = parseWorkflowAggregateIdFromBusinessKey;
         this.workflowAggregateIdName = workflowAggregateIdName;
-        this.processInstancePersistence = processInstancePersistence;
         this.camunda8WorkflowEventHandler = workflowEventHandler;
     }
 
     public void wire(
+            final CamundaClient client,
             final String workflowModuleId,
             final String bpmnProcessId,
             boolean isPrimary) {
@@ -58,6 +56,7 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
         }
 
+        this.client = client;
         parent.wire(
                 Camunda8AdapterConfiguration.ADAPTER_ID,
                 workflowModuleId,
@@ -83,6 +82,8 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
 
     @Override
     public void aggregateChanged(WA workflowAggregate) {
+        // TODO
+        /*
         String businessKey = getWorkflowAggregateId.apply(workflowAggregate).toString();
 
         this.processInstancePersistence
@@ -105,6 +106,8 @@ public class Camunda8BusinessCockpitService <WA> implements BusinessCockpitServi
                     return camunda8WorkflowCreatedEvent;
                 })
                 .forEach(camunda8WorkflowEventHandler::processWorkflowUpdateEvent);
+
+         */
     }
 
     @Override

@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.vanillabp.businesscockpit</groupId>
         <artifactId>bpms-api</artifactId>
-        <version>0.0.19-SNAPSHOT</version>
+        <version>0.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>bpms-protobuf-api</artifactId>

@@ -1,12 +1,11 @@
 package io.vanillabp.cockpit.adapter.camunda7.wiring;
 
+import java.util.LinkedList;
 import org.camunda.bpm.engine.impl.cfg.AbstractProcessEnginePlugin;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.persistence.deploy.Deployer;
 import org.camunda.bpm.engine.impl.persistence.entity.DeploymentEntity;
 import org.camunda.bpm.engine.impl.util.ParseUtil;
-
-import java.util.LinkedList;
 
 public class Camunda7WiringPlugin extends AbstractProcessEnginePlugin {
 

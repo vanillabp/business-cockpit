@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
+import io.camunda.client.CamundaClient;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
@@ -25,11 +26,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.repository.CrudRepository;
 
-public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserTaskConnectable, WorkflowMethodParameterFactory, Camunda8BusinessCockpitService<?>> {
+public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserTaskConnectable, WorkflowMethodParameterFactory, Camunda8BusinessCockpitService<?>>
+        implements Consumer<CamundaClient> {
+
+    public static final String TASKDEFINITION_WORKFLOW_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
 
     private final VanillaBpCockpitProperties properties;
 
@@ -44,6 +49,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
     private final Camunda8VanillaBpProperties camunda8Properties;
 
     private final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers;
+
+    private CamundaClient client;
 
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
@@ -65,6 +72,12 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         this.templating = templating;
         this.camunda8Properties = camunda8Properties;
         this.workflowHandlers = workflowHandlers;
+    }
+
+    @Override
+    public void accept(
+            final CamundaClient camundaClient) {
+        this.client = camundaClient;
     }
 
     public Camunda8BusinessCockpitService<?> wireService(
@@ -106,6 +119,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         // BusinessCockpitService is not required
         if (bcService != null) {
             bcService.wire(
+                    this.client,
                     workflowModuleId,
                     bpmnProcessId,
                     isPrimary);

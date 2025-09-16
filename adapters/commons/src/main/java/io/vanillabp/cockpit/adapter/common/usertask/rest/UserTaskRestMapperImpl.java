@@ -1,15 +1,13 @@
 package io.vanillabp.cockpit.adapter.common.usertask.rest;
 
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUiUriType;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
-
+import io.vanillabp.cockpit.bpms.api.v1_1.UiUriType;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,202 +16,298 @@ import java.util.Map;
 public class UserTaskRestMapperImpl implements UserTaskRestMapper {
 
     @Override
-    public UserTaskActivatedEvent map(io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent userTaskActivatedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent map(UserTaskActivatedEvent userTaskActivatedEvent) {
         if ( userTaskActivatedEvent == null ) {
             return null;
         }
 
-        UserTaskActivatedEvent userTaskActivatedEvent1 = new UserTaskActivatedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent();
 
-        userTaskActivatedEvent1.setId( userTaskActivatedEvent.getEventId() );
-        userTaskActivatedEvent1.setUserTaskId( userTaskActivatedEvent.getUserTaskId() );
-        userTaskActivatedEvent1.setInitiator( userTaskActivatedEvent.getInitiator() );
-        userTaskActivatedEvent1.setTimestamp( userTaskActivatedEvent.getTimestamp() );
-        userTaskActivatedEvent1.setSource( userTaskActivatedEvent.getSource() );
-        userTaskActivatedEvent1.setComment( userTaskActivatedEvent.getComment() );
+        result.setId( userTaskActivatedEvent.getEventId() );
+        result.setUserTaskId( userTaskActivatedEvent.getUserTaskId() );
+        result.setInitiator( userTaskActivatedEvent.getInitiator() );
+        result.setTimestamp( userTaskActivatedEvent.getTimestamp() );
+        result.setSource( userTaskActivatedEvent.getSource() );
+        result.setComment( userTaskActivatedEvent.getComment() );
 
-        return userTaskActivatedEvent1;
+        return result;
+
     }
 
     @Override
-    public io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent map(UserTaskCancelledEvent userTaskCancelledEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent map(UserTaskCancelledEvent userTaskCancelledEvent) {
         if ( userTaskCancelledEvent == null ) {
             return null;
         }
 
-        io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent userTaskCancelledEvent1 = new io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent();
 
-        userTaskCancelledEvent1.setId( userTaskCancelledEvent.getEventId() );
-        userTaskCancelledEvent1.setUserTaskId( userTaskCancelledEvent.getUserTaskId() );
-        userTaskCancelledEvent1.setInitiator( userTaskCancelledEvent.getInitiator() );
-        userTaskCancelledEvent1.setTimestamp( userTaskCancelledEvent.getTimestamp() );
-        userTaskCancelledEvent1.setSource( userTaskCancelledEvent.getSource() );
-        userTaskCancelledEvent1.setComment( userTaskCancelledEvent.getComment() );
+        result.setId( userTaskCancelledEvent.getEventId() );
+        result.setUserTaskId( userTaskCancelledEvent.getUserTaskId() );
+        result.setInitiator( userTaskCancelledEvent.getInitiator() );
+        result.setTimestamp( userTaskCancelledEvent.getTimestamp() );
+        result.setSource( userTaskCancelledEvent.getSource() );
+        result.setWorkflowModuleId( userTaskCancelledEvent.getWorkflowModuleId() );
+        result.setComment( userTaskCancelledEvent.getComment() );
+        result.setBpmnProcessId( userTaskCancelledEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( userTaskCancelledEvent.getBpmnProcessVersion() );
+        Map<String, String> map = userTaskCancelledEvent.getWorkflowTitle();
+        if ( map != null ) {
+            result.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
+        }
+        result.setWorkflowId( userTaskCancelledEvent.getWorkflowId() );
+        result.setSubWorkflowId( userTaskCancelledEvent.getSubWorkflowId() );
+        result.setBusinessId( userTaskCancelledEvent.getBusinessId() );
+        Map<String, String> map1 = userTaskCancelledEvent.getTitle();
+        if ( map1 != null ) {
+            result.setTitle( new LinkedHashMap<String, String>( map1 ) );
+        }
+        result.setBpmnTaskId( userTaskCancelledEvent.getBpmnTaskId() );
+        result.setTaskDefinition( userTaskCancelledEvent.getTaskDefinition() );
+        Map<String, String> map2 = userTaskCancelledEvent.getTaskDefinitionTitle();
+        if ( map2 != null ) {
+            result.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
+        }
+        result.setUiUriPath( userTaskCancelledEvent.getUiUriPath() );
+        result.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCancelledEvent.getUiUriType() ) );
+        result.setAssignee( userTaskCancelledEvent.getAssignee() );
+        List<String> list = userTaskCancelledEvent.getCandidateUsers();
+        if ( list != null ) {
+            result.setCandidateUsers( new ArrayList<String>( list ) );
+        }
+        List<String> list1 = userTaskCancelledEvent.getCandidateGroups();
+        if ( list1 != null ) {
+            result.setCandidateGroups( new ArrayList<String>( list1 ) );
+        }
+        List<String> list2 = userTaskCancelledEvent.getExcludedCandidateUsers();
+        if ( list2 != null ) {
+            result.excludedCandidateUsers( new ArrayList<String>( list2 ) );
+        }
+        result.setDueDate( userTaskCancelledEvent.getDueDate() );
+        result.setFollowUpDate( userTaskCancelledEvent.getFollowUpDate() );
+        Map<String, Object> map3 = userTaskCancelledEvent.getDetails();
+        if ( map3 != null ) {
+            result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
+        }
+        result.setDetailsFulltextSearch( userTaskCancelledEvent.getDetailsFulltextSearch() );
 
-        return userTaskCancelledEvent1;
+        result.setUpdated( true );
+
+
+        return result;
+
     }
 
     @Override
-    public io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent map(UserTaskCompletedEvent userTaskCompletedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent map(UserTaskCompletedEvent userTaskCompletedEvent) {
         if ( userTaskCompletedEvent == null ) {
             return null;
         }
 
-        io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent userTaskCompletedEvent1 = new io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent();
 
-        userTaskCompletedEvent1.setId( userTaskCompletedEvent.getEventId() );
-        userTaskCompletedEvent1.setUserTaskId( userTaskCompletedEvent.getUserTaskId() );
-        userTaskCompletedEvent1.setInitiator( userTaskCompletedEvent.getInitiator() );
-        userTaskCompletedEvent1.setTimestamp( userTaskCompletedEvent.getTimestamp() );
-        userTaskCompletedEvent1.setSource( userTaskCompletedEvent.getSource() );
-        userTaskCompletedEvent1.setComment( userTaskCompletedEvent.getComment() );
+        result.setId( userTaskCompletedEvent.getEventId() );
+        result.setUserTaskId( userTaskCompletedEvent.getUserTaskId() );
+        result.setInitiator( userTaskCompletedEvent.getInitiator() );
+        result.setTimestamp( userTaskCompletedEvent.getTimestamp() );
+        result.setSource( userTaskCompletedEvent.getSource() );
+        result.setWorkflowModuleId( userTaskCompletedEvent.getWorkflowModuleId() );
+        result.setComment( userTaskCompletedEvent.getComment() );
+        result.setBpmnProcessId( userTaskCompletedEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( userTaskCompletedEvent.getBpmnProcessVersion() );
+        Map<String, String> map = userTaskCompletedEvent.getWorkflowTitle();
+        if ( map != null ) {
+            result.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
+        }
+        result.setWorkflowId( userTaskCompletedEvent.getWorkflowId() );
+        result.setSubWorkflowId( userTaskCompletedEvent.getSubWorkflowId() );
+        result.setBusinessId( userTaskCompletedEvent.getBusinessId() );
+        Map<String, String> map1 = userTaskCompletedEvent.getTitle();
+        if ( map1 != null ) {
+            result.setTitle( new LinkedHashMap<String, String>( map1 ) );
+        }
+        result.setBpmnTaskId( userTaskCompletedEvent.getBpmnTaskId() );
+        result.setTaskDefinition( userTaskCompletedEvent.getTaskDefinition() );
+        Map<String, String> map2 = userTaskCompletedEvent.getTaskDefinitionTitle();
+        if ( map2 != null ) {
+            result.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
+        }
+        result.setUiUriPath( userTaskCompletedEvent.getUiUriPath() );
+        result.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCompletedEvent.getUiUriType() ) );
+        result.setAssignee( userTaskCompletedEvent.getAssignee() );
+        List<String> list = userTaskCompletedEvent.getCandidateUsers();
+        if ( list != null ) {
+            result.setCandidateUsers( new ArrayList<String>( list ) );
+        }
+        List<String> list1 = userTaskCompletedEvent.getCandidateGroups();
+        if ( list1 != null ) {
+            result.setCandidateGroups( new ArrayList<String>( list1 ) );
+        }
+        List<String> list2 = userTaskCompletedEvent.getExcludedCandidateUsers();
+        if ( list2 != null ) {
+            result.excludedCandidateUsers( new ArrayList<String>( list2 ) );
+        }
+        result.setDueDate( userTaskCompletedEvent.getDueDate() );
+        result.setFollowUpDate( userTaskCompletedEvent.getFollowUpDate() );
+        Map<String, Object> map3 = userTaskCompletedEvent.getDetails();
+        if ( map3 != null ) {
+            result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
+        }
+        result.setDetailsFulltextSearch( userTaskCompletedEvent.getDetailsFulltextSearch() );
 
-        return userTaskCompletedEvent1;
+        result.setUpdated( true );
+
+        return result;
+
     }
 
     @Override
-    public UserTaskSuspendedEvent map(io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent userTaskSuspendedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent map(UserTaskSuspendedEvent userTaskSuspendedEvent) {
         if ( userTaskSuspendedEvent == null ) {
             return null;
         }
 
-        UserTaskSuspendedEvent userTaskSuspendedEvent1 = new UserTaskSuspendedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent();
 
-        userTaskSuspendedEvent1.setId( userTaskSuspendedEvent.getEventId() );
-        userTaskSuspendedEvent1.setUserTaskId( userTaskSuspendedEvent.getUserTaskId() );
-        userTaskSuspendedEvent1.setInitiator( userTaskSuspendedEvent.getInitiator() );
-        userTaskSuspendedEvent1.setTimestamp( userTaskSuspendedEvent.getTimestamp() );
-        userTaskSuspendedEvent1.setSource( userTaskSuspendedEvent.getSource() );
-        userTaskSuspendedEvent1.setComment( userTaskSuspendedEvent.getComment() );
+        result.setId( userTaskSuspendedEvent.getEventId() );
+        result.setUserTaskId( userTaskSuspendedEvent.getUserTaskId() );
+        result.setInitiator( userTaskSuspendedEvent.getInitiator() );
+        result.setTimestamp( userTaskSuspendedEvent.getTimestamp() );
+        result.setSource( userTaskSuspendedEvent.getSource() );
+        result.setComment( userTaskSuspendedEvent.getComment() );
 
-        return userTaskSuspendedEvent1;
+        return result;
+
     }
 
     @Override
-    public UserTaskCreatedOrUpdatedEvent map(UserTaskCreatedEvent userTaskCreatedEvent) {
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent map(UserTaskCreatedEvent userTaskEvent) {
+        if ( userTaskEvent == null ) {
+            return null;
+        }
+
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent();
+
+        result.setId( userTaskEvent.getEventId() );
+        result.setUserTaskId( userTaskEvent.getUserTaskId() );
+        result.setInitiator( userTaskEvent.getInitiator() );
+        result.setTimestamp( userTaskEvent.getTimestamp() );
+        result.setSource( userTaskEvent.getSource() );
+        result.setWorkflowModuleId( userTaskEvent.getWorkflowModuleId() );
+        result.setComment( userTaskEvent.getComment() );
+        result.setBpmnProcessId( userTaskEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( userTaskEvent.getBpmnProcessVersion() );
+        Map<String, String> map = userTaskEvent.getWorkflowTitle();
+        if ( map != null ) {
+            result.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
+        }
+        result.setWorkflowId( userTaskEvent.getWorkflowId() );
+        result.setSubWorkflowId( userTaskEvent.getSubWorkflowId() );
+        result.setBusinessId( userTaskEvent.getBusinessId() );
+        Map<String, String> map1 = userTaskEvent.getTitle();
+        if ( map1 != null ) {
+            result.setTitle( new LinkedHashMap<String, String>( map1 ) );
+        }
+        result.setBpmnTaskId( userTaskEvent.getBpmnTaskId() );
+        result.setTaskDefinition( userTaskEvent.getTaskDefinition() );
+        Map<String, String> map2 = userTaskEvent.getTaskDefinitionTitle();
+        if ( map2 != null ) {
+            result.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
+        }
+        result.setUiUriPath( userTaskEvent.getUiUriPath() );
+        result.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskEvent.getUiUriType() ) );
+        result.setAssignee( userTaskEvent.getAssignee() );
+        List<String> list = userTaskEvent.getCandidateUsers();
+        if ( list != null ) {
+            result.setCandidateUsers( new ArrayList<String>( list ) );
+        }
+        List<String> list1 = userTaskEvent.getCandidateGroups();
+        if ( list1 != null ) {
+            result.setCandidateGroups( new ArrayList<String>( list1 ) );
+        }
+        List<String> list2 = userTaskEvent.getExcludedCandidateUsers();
+        if ( list2 != null ) {
+            result.excludedCandidateUsers( new ArrayList<String>( list2 ) );
+        }
+        result.setDueDate( userTaskEvent.getDueDate() );
+        result.setFollowUpDate( userTaskEvent.getFollowUpDate() );
+        Map<String, Object> map3 = userTaskEvent.getDetails();
+        if ( map3 != null ) {
+            result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
+        }
+        result.setDetailsFulltextSearch( userTaskEvent.getDetailsFulltextSearch() );
+
+        result.setUpdated( false );
+
+        return result;
+
+    }
+
+    @Override
+    public io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent map(UserTaskUpdatedEvent userTaskCreatedEvent) {
         if ( userTaskCreatedEvent == null ) {
             return null;
         }
 
-        UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdatedEvent = new UserTaskCreatedOrUpdatedEvent();
+        final var result = new io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent();
 
-        userTaskCreatedOrUpdatedEvent.setId( userTaskCreatedEvent.getId() );
-        userTaskCreatedOrUpdatedEvent.setUserTaskId( userTaskCreatedEvent.getUserTaskId() );
-        userTaskCreatedOrUpdatedEvent.setInitiator( userTaskCreatedEvent.getInitiator() );
-        userTaskCreatedOrUpdatedEvent.setTimestamp( userTaskCreatedEvent.getTimestamp() );
-        userTaskCreatedOrUpdatedEvent.setSource( userTaskCreatedEvent.getSource() );
-        userTaskCreatedOrUpdatedEvent.setWorkflowModuleId( userTaskCreatedEvent.getWorkflowModuleId() );
-        userTaskCreatedOrUpdatedEvent.setComment( userTaskCreatedEvent.getComment() );
-        userTaskCreatedOrUpdatedEvent.setBpmnProcessId( userTaskCreatedEvent.getBpmnProcessId() );
-        userTaskCreatedOrUpdatedEvent.setBpmnProcessVersion( userTaskCreatedEvent.getBpmnProcessVersion() );
+        result.setId( userTaskCreatedEvent.getEventId() );
+        result.setUserTaskId( userTaskCreatedEvent.getUserTaskId() );
+        result.setInitiator( userTaskCreatedEvent.getInitiator() );
+        result.setTimestamp( userTaskCreatedEvent.getTimestamp() );
+        result.setSource( userTaskCreatedEvent.getSource() );
+        result.setWorkflowModuleId( userTaskCreatedEvent.getWorkflowModuleId() );
+        result.setComment( userTaskCreatedEvent.getComment() );
+        result.setBpmnProcessId( userTaskCreatedEvent.getBpmnProcessId() );
+        result.setBpmnProcessVersion( userTaskCreatedEvent.getBpmnProcessVersion() );
         Map<String, String> map = userTaskCreatedEvent.getWorkflowTitle();
         if ( map != null ) {
-            userTaskCreatedOrUpdatedEvent.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
+            result.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
         }
-        userTaskCreatedOrUpdatedEvent.setWorkflowId( userTaskCreatedEvent.getWorkflowId() );
-        userTaskCreatedOrUpdatedEvent.setSubWorkflowId( userTaskCreatedEvent.getSubWorkflowId() );
-        userTaskCreatedOrUpdatedEvent.setBusinessId( userTaskCreatedEvent.getBusinessId() );
+        result.setWorkflowId( userTaskCreatedEvent.getWorkflowId() );
+        result.setSubWorkflowId( userTaskCreatedEvent.getSubWorkflowId() );
+        result.setBusinessId( userTaskCreatedEvent.getBusinessId() );
         Map<String, String> map1 = userTaskCreatedEvent.getTitle();
         if ( map1 != null ) {
-            userTaskCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map1 ) );
+            result.setTitle( new LinkedHashMap<String, String>( map1 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setBpmnTaskId( userTaskCreatedEvent.getBpmnTaskId() );
-        userTaskCreatedOrUpdatedEvent.setTaskDefinition( userTaskCreatedEvent.getTaskDefinition() );
+        result.setBpmnTaskId( userTaskCreatedEvent.getBpmnTaskId() );
+        result.setTaskDefinition( userTaskCreatedEvent.getTaskDefinition() );
         Map<String, String> map2 = userTaskCreatedEvent.getTaskDefinitionTitle();
         if ( map2 != null ) {
-            userTaskCreatedOrUpdatedEvent.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
+            result.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
-        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
-        userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );
+        result.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
+        result.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
+        result.setAssignee( userTaskCreatedEvent.getAssignee() );
         List<String> list = userTaskCreatedEvent.getCandidateUsers();
         if ( list != null ) {
-            userTaskCreatedOrUpdatedEvent.setCandidateUsers( new ArrayList<String>( list ) );
+            result.setCandidateUsers( new ArrayList<String>( list ) );
         }
         List<String> list1 = userTaskCreatedEvent.getCandidateGroups();
         if ( list1 != null ) {
-            userTaskCreatedOrUpdatedEvent.setCandidateGroups( new ArrayList<String>( list1 ) );
+            result.setCandidateGroups( new ArrayList<String>( list1 ) );
         }
         List<String> list2 = userTaskCreatedEvent.getExcludedCandidateUsers();
         if ( list2 != null ) {
-            userTaskCreatedOrUpdatedEvent.excludedCandidateUsers( new ArrayList<String>( list2 ) );
+            result.excludedCandidateUsers( new ArrayList<String>( list2 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setDueDate( userTaskCreatedEvent.getDueDate() );
-        userTaskCreatedOrUpdatedEvent.setFollowUpDate( userTaskCreatedEvent.getFollowUpDate() );
+        result.setDueDate( userTaskCreatedEvent.getDueDate() );
+        result.setFollowUpDate( userTaskCreatedEvent.getFollowUpDate() );
         Map<String, Object> map3 = userTaskCreatedEvent.getDetails();
         if ( map3 != null ) {
-            userTaskCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map3 ) );
+            result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
         }
-        userTaskCreatedOrUpdatedEvent.setDetailsFulltextSearch( userTaskCreatedEvent.getDetailsFulltextSearch() );
+        result.setDetailsFulltextSearch( userTaskCreatedEvent.getDetailsFulltextSearch() );
 
-        userTaskCreatedOrUpdatedEvent.setUpdated( false );
+        result.setUpdated( true );
 
-        return userTaskCreatedOrUpdatedEvent;
-    }
+        return result;
 
-    @Override
-    public UserTaskCreatedOrUpdatedEvent map(UserTaskUpdatedEvent userTaskCreatedEvent) {
-        if ( userTaskCreatedEvent == null ) {
-            return null;
-        }
-
-        UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdatedEvent = new UserTaskCreatedOrUpdatedEvent();
-
-        userTaskCreatedOrUpdatedEvent.setId( userTaskCreatedEvent.getId() );
-        userTaskCreatedOrUpdatedEvent.setUserTaskId( userTaskCreatedEvent.getUserTaskId() );
-        userTaskCreatedOrUpdatedEvent.setInitiator( userTaskCreatedEvent.getInitiator() );
-        userTaskCreatedOrUpdatedEvent.setTimestamp( userTaskCreatedEvent.getTimestamp() );
-        userTaskCreatedOrUpdatedEvent.setSource( userTaskCreatedEvent.getSource() );
-        userTaskCreatedOrUpdatedEvent.setWorkflowModuleId( userTaskCreatedEvent.getWorkflowModuleId() );
-        userTaskCreatedOrUpdatedEvent.setComment( userTaskCreatedEvent.getComment() );
-        userTaskCreatedOrUpdatedEvent.setBpmnProcessId( userTaskCreatedEvent.getBpmnProcessId() );
-        userTaskCreatedOrUpdatedEvent.setBpmnProcessVersion( userTaskCreatedEvent.getBpmnProcessVersion() );
-        Map<String, String> map = userTaskCreatedEvent.getWorkflowTitle();
-        if ( map != null ) {
-            userTaskCreatedOrUpdatedEvent.setWorkflowTitle( new LinkedHashMap<String, String>( map ) );
-        }
-        userTaskCreatedOrUpdatedEvent.setWorkflowId( userTaskCreatedEvent.getWorkflowId() );
-        userTaskCreatedOrUpdatedEvent.setSubWorkflowId( userTaskCreatedEvent.getSubWorkflowId() );
-        userTaskCreatedOrUpdatedEvent.setBusinessId( userTaskCreatedEvent.getBusinessId() );
-        Map<String, String> map1 = userTaskCreatedEvent.getTitle();
-        if ( map1 != null ) {
-            userTaskCreatedOrUpdatedEvent.setTitle( new LinkedHashMap<String, String>( map1 ) );
-        }
-        userTaskCreatedOrUpdatedEvent.setBpmnTaskId( userTaskCreatedEvent.getBpmnTaskId() );
-        userTaskCreatedOrUpdatedEvent.setTaskDefinition( userTaskCreatedEvent.getTaskDefinition() );
-        Map<String, String> map2 = userTaskCreatedEvent.getTaskDefinitionTitle();
-        if ( map2 != null ) {
-            userTaskCreatedOrUpdatedEvent.setTaskDefinitionTitle( new LinkedHashMap<String, String>( map2 ) );
-        }
-        userTaskCreatedOrUpdatedEvent.setUiUriPath( userTaskCreatedEvent.getUiUriPath() );
-        userTaskCreatedOrUpdatedEvent.setUiUriType( userTaskUiUriTypeToUiUriType( userTaskCreatedEvent.getUiUriType() ) );
-        userTaskCreatedOrUpdatedEvent.setAssignee( userTaskCreatedEvent.getAssignee() );
-        List<String> list = userTaskCreatedEvent.getCandidateUsers();
-        if ( list != null ) {
-            userTaskCreatedOrUpdatedEvent.setCandidateUsers( new ArrayList<String>( list ) );
-        }
-        List<String> list1 = userTaskCreatedEvent.getCandidateGroups();
-        if ( list1 != null ) {
-            userTaskCreatedOrUpdatedEvent.setCandidateGroups( new ArrayList<String>( list1 ) );
-        }
-        List<String> list2 = userTaskCreatedEvent.getExcludedCandidateUsers();
-        if ( list2 != null ) {
-            userTaskCreatedOrUpdatedEvent.excludedCandidateUsers( new ArrayList<String>( list2 ) );
-        }
-        userTaskCreatedOrUpdatedEvent.setDueDate( userTaskCreatedEvent.getDueDate() );
-        userTaskCreatedOrUpdatedEvent.setFollowUpDate( userTaskCreatedEvent.getFollowUpDate() );
-        Map<String, Object> map3 = userTaskCreatedEvent.getDetails();
-        if ( map3 != null ) {
-            userTaskCreatedOrUpdatedEvent.setDetails( new LinkedHashMap<String, Object>( map3 ) );
-        }
-        userTaskCreatedOrUpdatedEvent.setDetailsFulltextSearch( userTaskCreatedEvent.getDetailsFulltextSearch() );
-
-        userTaskCreatedOrUpdatedEvent.setUpdated( true );
-
-        return userTaskCreatedOrUpdatedEvent;
     }
 
     protected UiUriType userTaskUiUriTypeToUiUriType(UserTaskUiUriType userTaskUiUriType) {
+
         if ( userTaskUiUriType == null ) {
             return null;
         }
@@ -229,5 +323,6 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         }
 
         return uiUriType;
+
     }
 }
