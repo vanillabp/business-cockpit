@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-angular",
-  "version": "0.0.20",
+  "version": "0.0.21-SNAPSHOT",
   "repository": {
     "type": "git",
     "url": "https://github.com/vanillabp/business-cockpit.git"
@@ -10,8 +10,8 @@
     "@angular/common": "^17.2.0",
     "@angular/core": "^17.2.0",
     "@angular/router": "^17.2.0",
-    "@vanillabp/bc-official-gui-client": "0.0.20",
-    "@vanillabp/bc-shared": "0.0.20"
+    "@vanillabp/bc-official-gui-client": ">=0.0.21-SNAPSHOT <0.0.22",
+    "@vanillabp/bc-shared": ">=0.0.21-SNAPSHOT <0.0.22"
   },
   "dependencies": {
     "tslib": "^2.3.0"

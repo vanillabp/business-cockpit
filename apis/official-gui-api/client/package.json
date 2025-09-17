@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-official-gui-client",
-  "version": "0.0.20",
+  "version": "0.0.21-SNAPSHOT.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/vanillabp/business-cockpit.git"
