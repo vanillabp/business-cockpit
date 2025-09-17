@@ -144,7 +144,7 @@ jobs:
 
       - name: Calculate next snapshot version
         run: |
-          $RELEASE_VERSION=${{ github.event.inputs.release_version }}
+          RELEASE_VERSION=${{ github.event.inputs.release_version }}
           IFS='.' read -r major minor patch <<< "$RELEASE_VERSION"
           NEXT_PATCH=$((patch + 1))
           echo "NEXT_SNAPSHOT=$major.$minor.${NEXT_PATCH}-SNAPSHOT" >> $GITHUB_ENV
