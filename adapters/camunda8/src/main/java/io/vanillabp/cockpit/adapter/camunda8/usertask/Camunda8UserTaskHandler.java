@@ -417,6 +417,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
             UserTaskCreatedEvent event,
             UserTaskDetails details) {
 
+        final var fulltextSearch = new StringBuilder();
         final var templatesPaths = List.of(
                 properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId, taskDefinition),
                 properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
@@ -469,7 +470,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                             details.getTemplateContext(),
                             errorLoggingContext);
 
-                    event.setDetailsFulltextSearch(
+                    fulltextSearch.append(
                             renderText(
                                     e -> errorLoggingContext.apply(
                                             "details-fulltext-search.ftl",
@@ -479,8 +480,12 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                                     "details-fulltext-search.ftl",
                                     details.getTemplateContext(),
                                     () -> taskName));
+                    fulltextSearch.append("\n");
 
                 });
+
+        event.setDetailsFulltextSearch(fulltextSearch.toString());
+
     }
 
 
