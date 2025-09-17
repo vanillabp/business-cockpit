@@ -1,11 +1,11 @@
 {
   "name": "library",
-  "version": "0.0.19-SNAPSHOT",
+  "version": "0.0.20",
   "peerDependencies": {
     "@angular/common": "^17.2.0",
     "@angular/core": "^17.2.0",
-    "@vanillabp/bc-official-gui-client": ">=0.0.19-SNAPSHOT <0.0.20",
-    "@vanillabp/bc-shared": ">=0.0.19-SNAPSHOT <0.0.20"
+    "@vanillabp/bc-official-gui-client": "0.0.20",
+    "@vanillabp/bc-shared": "0.0.20"
   },
   "dependencies": {
     "tslib": "^2.3.0"
