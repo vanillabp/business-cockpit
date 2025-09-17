@@ -33,7 +33,7 @@ jobs:
           VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L 'https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions?per_page=100')
           ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')
           echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
-          echo "Next NPM prerelease version: $PACKAGE_ID"
+          echo "Next NPM prerelease version: $ID"
 
       - name: Publish package
         run: |
