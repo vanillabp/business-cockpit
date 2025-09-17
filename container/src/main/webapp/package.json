@@ -1,10 +1,10 @@
 {
   "name": "vanillabp-business-cockpit",
-  "version": "0.0.19-SNAPSHOT",
+  "version": "0.0.19",
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.0.19-SNAPSHOT <0.0.20",
-    "@vanillabp/bc-ui": ">=0.0.19-SNAPSHOT <0.0.20",
+    "@vanillabp/bc-shared": "0.0.19",
+    "@vanillabp/bc-ui": "0.0.19",
     "@fontsource/roboto": "4.5.8",
     "grommet": "2.33.2",
     "grommet-icons": "4.12.1",
