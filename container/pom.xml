@@ -33,6 +33,7 @@
             </execution>
           </executions>
           <configuration>
+            <classifier>runnable</classifier>
             <mainClass>io.vanillabp.cockpit.BusinessCockpitApplication</mainClass>
           </configuration>
         </plugin>
@@ -267,4 +268,18 @@
       <organizationUrl>https://www.phactum.at</organizationUrl>
     </developer>
   </developers>
+
+    <profiles>
+        <profile>
+            <id>build-runnable-jars</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
