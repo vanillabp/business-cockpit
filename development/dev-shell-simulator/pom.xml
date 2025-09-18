@@ -31,6 +31,7 @@
             </execution>
           </executions>
           <configuration>
+            <classifier>runnable</classifier>
             <mainClass>io.vanillabp.cockpit.devshell.simulator.DevShellSimulator</mainClass>
             <layout>JAR</layout>
           </configuration>
@@ -122,4 +123,18 @@
       <version>3.6.0</version>
     </dependency>
   </dependencies>
+
+    <profiles>
+        <profile>
+            <id>build-runnable-jars</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
