@@ -40,7 +40,7 @@ jobs:
           mvn --batch-mode -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
           -Dnpm.registry=https://npm.pkg.github.com/ \
-          deploy
+          deploy -P build-runnable-jars
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
