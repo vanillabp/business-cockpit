@@ -7,6 +7,7 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEven
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEventImpl;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
@@ -68,21 +69,19 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     
     public WorkflowEvent wrapProcessInstance(
             final HistoricProcessInstance processInstance,
-            final String bpmnProcessName,
             final String bpmnProcessVersion) {
 
-        final String workflowModuleId = processService.getWorkflowModuleId();
-        
+        final var workflowModuleId = processService.getWorkflowModuleId();
+        final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
+
         WorkflowEvent workflowEvent = null;
         if (processInstance.getEndTime() != null) {
-            WorkflowCompletedEvent workflowCompletedEvent = new WorkflowCompletedEvent();
-            fillLifecycleEvent(workflowModuleId, bpmnProcessId, bpmnProcessVersion, processInstance, workflowCompletedEvent);
+            WorkflowCompletedEvent workflowCompletedEvent = new WorkflowCompletedEvent(workflowModuleId, i18nLanguages);
+            fillWorkflowEvent((HistoricProcessInstanceEventEntity) processInstance, bpmnProcessId, bpmnProcessVersion, workflowCompletedEvent);
             workflowEvent = workflowCompletedEvent;
         } else {
-            WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
-                    workflowModuleId,
-                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId));
-            fillWorkflowCreatedEvent(processInstance, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
+            WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(workflowModuleId, i18nLanguages);
+            fillWorkflowEvent((HistoricProcessInstanceEventEntity) processInstance, bpmnProcessId, bpmnProcessVersion, workflowUpdatedEvent);
             workflowEvent = workflowUpdatedEvent;
         }
         return workflowEvent;
@@ -97,6 +96,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     ) {
 
         final String workflowModuleId = processService.getWorkflowModuleId();
+        final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
 
         WorkflowEvent workflowEvent;
 
@@ -104,27 +104,27 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
             WorkflowCreatedEvent workflowCreatedEvent = new WorkflowCreatedEvent(
                     workflowModuleId,
-                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId)
+                    i18nLanguages
             );
 
-            fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowCreatedEvent);
+            fillWorkflowEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowCreatedEvent);
             workflowEvent = workflowCreatedEvent;
 
         } else if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
 
-            WorkflowCreatedEvent workflowLifecycleEvent = processInstanceEvent.getDeleteReason() != null ?
-                    new WorkflowCancelledEvent() :
-                    new WorkflowCompletedEvent();
+            WorkflowEventImpl workflowLifecycleEvent = processInstanceEvent.getDeleteReason() != null
+                    ? new WorkflowCancelledEvent(workflowModuleId, i18nLanguages)
+                    : new WorkflowCompletedEvent(workflowModuleId, i18nLanguages);
 
-            fillLifecycleEvent(workflowModuleId, bpmnProcessId, bpmnProcessVersion, processInstanceEvent, workflowLifecycleEvent);
+            fillWorkflowEvent(processInstanceEvent, bpmnProcessId, bpmnProcessVersion, workflowLifecycleEvent);
             workflowEvent = workflowLifecycleEvent;
 
         } else {
 
             WorkflowUpdatedEvent workflowUpdatedEvent = new WorkflowUpdatedEvent(
                     workflowModuleId,
-                    properties.getI18nLanguages(workflowModuleId, bpmnProcessId));
-            fillWorkflowCreatedEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
+                    i18nLanguages);
+            fillWorkflowEvent(processInstanceEvent, bpmnProcessName, bpmnProcessVersion, workflowUpdatedEvent);
             workflowEvent = workflowUpdatedEvent;
         }
 
@@ -133,7 +133,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
     }
 
 
-    private void fillWorkflowCreatedEvent(HistoricProcessInstance processInstance, String bpmnProcessName, String bpmnProcessVersion, WorkflowCreatedEvent workflowCreatedEvent) {
+    private void fillCreatedEvent(HistoricProcessInstance processInstance, String bpmnProcessName, String bpmnProcessVersion, WorkflowCreatedEvent workflowCreatedEvent) {
         final var bpmnProcessId = processInstance.getProcessDefinitionKey();
 
         final var prefilledWorkflowDetails = prefillWorkflowDetails(
@@ -159,20 +159,18 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
                         : details);
     }
 
-    private void fillWorkflowCreatedEvent(
+    private void fillWorkflowEvent(
             HistoricProcessInstanceEventEntity processInstanceEvent,
             String bpmnProcessName,
             String bpmnProcessVersion,
-            WorkflowCreatedEvent workflowCreatedEvent
+            WorkflowEventImpl workflowCreatedEvent
     ) {
-
 
         final var bpmnProcessId = processInstanceEvent.getProcessDefinitionKey();
 
         final var prefilledWorkflowDetails = prefillWorkflowDetails(
                 bpmnProcessId,
                 bpmnProcessVersion,
-                bpmnProcessName,
                 processInstanceEvent,
                 workflowCreatedEvent);
 
@@ -196,7 +194,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final String bpmnProcessName,
-            WorkflowCreatedEvent event,
+            WorkflowEventImpl event,
             WorkflowDetails details
     ) {
         // a different object was returned then provided
@@ -287,12 +285,11 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
         
     }
 
-    private WorkflowCreatedEvent prefillWorkflowDetails(
+    private WorkflowEventImpl prefillWorkflowDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
-            final String bpmnProcessName,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
-            final WorkflowCreatedEvent event) {
+            final WorkflowEventImpl event) {
 
         final var prefilledWorkflowDetails = event;
 

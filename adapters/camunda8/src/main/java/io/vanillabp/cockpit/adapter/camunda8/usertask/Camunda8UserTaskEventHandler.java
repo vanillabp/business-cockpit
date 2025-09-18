@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
-import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.search.enums.JobKind;
 import io.camunda.client.api.worker.JobClient;
@@ -29,15 +28,9 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
     private static final Logger logger = LoggerFactory
             .getLogger(Camunda8UserTaskEventHandler.class);
     
-    private final Map<Camunda8UserTaskConnectable, Camunda8UserTaskHandler> taskHandlers;
+    private final Map<Camunda8UserTaskConnectable, Camunda8UserTaskHandler> taskHandlers = new HashMap<>();
 
     private final Set<String> knownTenantIds = new HashSet<>();
-
-    private CamundaClient client;
-
-    public Camunda8UserTaskEventHandler() {
-        this.taskHandlers = new HashMap<>();
-    }
 
     public void addTaskHandler(
             final Camunda8UserTaskConnectable connectable,
@@ -47,9 +40,9 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
         
     }
 
-    public void notify(
+    public void processCreatedEvent(
             final Camunda8UserTaskCreatedEvent userTaskCreatedEvent) {
-        notify(
+        processEvent(
                 userTaskCreatedEvent.getTenantId(),
                 userTaskCreatedEvent.getElementId(),
                 userTaskCreatedEvent.getBpmnProcessId(),
@@ -60,9 +53,9 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
         );
     }
 
-    public void notify(
+    public void processLifecycleEvent(
             final Camunda8UserTaskLifecycleEvent lifecycleEvent) {
-        notify(
+        processEvent(
                 lifecycleEvent.getTenantId(),
                 lifecycleEvent.getElementId(),
                 lifecycleEvent.getBpmnProcessId(),
@@ -111,7 +104,7 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
             return;
         }
         if (job.getUserTask() == null) {
-            logger.warn("Received job of type '{}' which is not a task task listener! Will ignore it.", job.getKind());
+            logger.warn("Received job of type '{}' which does not contain a user task! Will ignore it.", job.getKind());
             client.newCompleteCommand(job).send().join();
             return;
         }
@@ -142,12 +135,12 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
         //event.setDueDate(job.getUserTask().getDueDate());
         event.setVariables(job.getVariablesAsMap());
 
-        final var taskDefinition = job.getType().startsWith(Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER)
-                ? job.getType().substring(Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER.length())
+        final var taskDefinition = job.getType().startsWith(Camunda8UserTaskWiring.JOBTYPE_DETAILSPROVIDER)
+                ? job.getType().substring(Camunda8UserTaskWiring.JOBTYPE_DETAILSPROVIDER.length())
                 : job.getType();
         event.setTaskDefinition(taskDefinition);
 
-        notify(
+        processEvent(
                 job.getTenantId(),
                 job.getElementId(),
                 job.getBpmnProcessId(),
@@ -166,7 +159,7 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
         return this.knownTenantIds.contains(mapTenantId(tenantId));
     }
 
-    private void notify(
+    private void processEvent(
             String tenantId,
             String elementId,
             String bpmnProcessId,

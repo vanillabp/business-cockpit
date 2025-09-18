@@ -2,11 +2,11 @@ package io.vanillabp.cockpit.adapter.camunda8.usertask.publishing;
 
 import org.springframework.context.ApplicationEvent;
 
-public class ProcessUserTaskEvent extends ApplicationEvent {
+public class ProcessUserTaskAfterTransactionEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
 
-    public ProcessUserTaskEvent(Object source) {
+    public ProcessUserTaskAfterTransactionEvent(Object source) {
         super(source);
     }
 

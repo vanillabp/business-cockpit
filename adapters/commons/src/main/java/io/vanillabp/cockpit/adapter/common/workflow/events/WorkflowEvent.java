@@ -20,7 +20,6 @@ public interface WorkflowEvent {
 
     void setComment(String comment);
 
-
     OffsetDateTime getTimestamp();
 
     void setTimestamp(OffsetDateTime timestamp);

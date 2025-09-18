@@ -13,6 +13,8 @@ public class Camunda8WorkflowCreatedEvent {
 
     private long processDefinitionKey;
 
+    private int workflowDefinitionVersion;
+
     private String businessKey;
 
     private String tenantId;
@@ -80,4 +82,13 @@ public class Camunda8WorkflowCreatedEvent {
     public void setBusinessKey(String businessKey) {
         this.businessKey = businessKey;
     }
+
+    public int getWorkflowDefinitionVersion() {
+        return workflowDefinitionVersion;
+    }
+
+    public void setWorkflowDefinitionVersion(int workflowDefinitionVersion) {
+        this.workflowDefinitionVersion = workflowDefinitionVersion;
+    }
+
 }

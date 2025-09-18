@@ -5,7 +5,7 @@ import io.camunda.client.CamundaClient;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
-import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.ProcessUserTaskEvent;
+import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.ProcessUserTaskAfterTransactionEvent;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
@@ -175,6 +175,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
     @Recover
+    @SuppressWarnings("unused")
     public void recoverNotify(
             final Exception exception,
             final Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent) {
@@ -195,7 +196,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
 
         final var workflowModuleId = processService.getWorkflowModuleId();
         final var i18nLanguages = properties.getI18nLanguages(workflowModuleId, bpmnProcessId);
-        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(
+        final var userTaskCreatedEvent = new UserTaskCreatedEvent(
                 workflowModuleId,
                 i18nLanguages
         );
@@ -226,6 +227,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
     @Recover
+    @SuppressWarnings("unused")
     public void recoverNotify(
             final Exception exception,
             final Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent) {
@@ -262,6 +264,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
     }
 
     @Recover
+    @SuppressWarnings("unused")
     public void recoverNotify(
             final Exception exception,
             final Camunda8UserTaskEvent camunda8UserTaskEvent) {
@@ -546,7 +549,6 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                 });
     }
 
-
     public void publishEvent(UserTaskEvent userTaskEvent){
 
         applicationEventPublisher.publishEvent(
@@ -555,9 +557,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase {
                         userTaskEvent));
 
         applicationEventPublisher.publishEvent(
-                new ProcessUserTaskEvent(Camunda8UserTaskHandler.class));
-    }
+                new ProcessUserTaskAfterTransactionEvent(Camunda8UserTaskHandler.class));
 
+    }
 
     public void updateVersionInfo(
             final String versionInfo) {

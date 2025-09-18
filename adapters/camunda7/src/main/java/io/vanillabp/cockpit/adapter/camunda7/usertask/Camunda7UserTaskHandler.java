@@ -8,8 +8,8 @@ import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
 import io.vanillabp.spi.cockpit.details.DetailsEvent;
@@ -113,7 +113,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
                 switch (eventName) {
                     case TaskListener.EVENTNAME_CREATE:
-                        UserTaskEventImpl userTaskCreatedEvent = new UserTaskEventImpl(workflowModuleId, i18nLanguages);
+                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(workflowModuleId, i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
                         yield userTaskCreatedEvent;
 
@@ -402,25 +402,6 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         
         return prefilledUserTaskDetails;
         
-    }
-
-    private void fillLifecycleEvent(
-            final String workflowModuleId,
-            final DelegateTask delegateTask,
-            final UserTaskLifecycleEvent event) {
-        
-        event.setEventId(
-                System.nanoTime()
-                + "@"
-                + delegateTask.getProcessInstanceId()
-                + "#"
-                + delegateTask.getId());
-        event.setWorkflowModuleId(workflowModuleId);
-        event.setComment(
-                delegateTask.getDeleteReason());
-        event.setTimestamp(OffsetDateTime.now());
-        event.setUserTaskId(
-                delegateTask.getId());
     }
 
     @SuppressWarnings("unchecked")

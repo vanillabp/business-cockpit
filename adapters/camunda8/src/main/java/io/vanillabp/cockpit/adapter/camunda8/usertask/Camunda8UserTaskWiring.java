@@ -27,11 +27,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.repository.CrudRepository;
 
 public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> implements Consumer<CamundaClient> {
 
-    public static final String TASKDEFINITION_USERTASK_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
+    public static final String JOBTYPE_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
 
     private final VanillaBpCockpitProperties vanillaBpCockpitProperties;
 
@@ -169,13 +168,11 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                     + "' which is mandatory for methods providing user-task details!");
         }
 
-        final var jobType = TASKDEFINITION_USERTASK_DETAILSPROVIDER + connectable.getTaskDefinition();
+        final var jobType = JOBTYPE_DETAILSPROVIDER + connectable.getTaskDefinition();
         if (workers.containsKey(jobType)) {
             return;
         }
 
-        CrudRepository<Object, Object> workflowAggregateRepository =
-                (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository();
         final var aggregateIdPropertyName = springDataUtil.getIdName(processService.getWorkflowAggregateClass());
 
         final var taskHandler = userTaskHandlers.getObject(
@@ -189,7 +186,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 connectable.getTitle(),
                 processService,
                 aggregateIdPropertyName,
-                workflowAggregateRepository,
+                processService.getWorkflowAggregateRepository(),
                 bean,
                 method,
                 parameters,

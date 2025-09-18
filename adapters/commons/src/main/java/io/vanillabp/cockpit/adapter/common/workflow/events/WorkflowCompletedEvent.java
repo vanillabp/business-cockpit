@@ -1,4 +1,9 @@
 package io.vanillabp.cockpit.adapter.common.workflow.events;
 
-public class WorkflowCompletedEvent extends WorkflowCreatedEvent {
+import java.util.List;
+
+public class WorkflowCompletedEvent extends WorkflowEventImpl {
+    public WorkflowCompletedEvent(String workflowModuleId, List<String> i18nLanguages) {
+        super(workflowModuleId, i18nLanguages);
+    }
 }
