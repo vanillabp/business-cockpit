@@ -9,7 +9,7 @@
 
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.0.19-SNAPSHOT</version>
+  <version>0.0.21-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
