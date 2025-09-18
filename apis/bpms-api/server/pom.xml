@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>bpms-api</artifactId>
-    <version>0.0.21-SNAPSHOT</version>
+    <version>0.5.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>bpms-api-server</artifactId>
@@ -21,31 +21,44 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.4.0</version>
+        <configuration>
+          <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
+          <generatorName>spring</generatorName>
+          <generateSupportingFiles>true</generateSupportingFiles>
+          <configOptions>
+              <useTags>true</useTags>
+              <interfaceOnly>true</interfaceOnly>
+              <useSpringController>true</useSpringController>
+              <enablePostProcessFile>true</enablePostProcessFile>
+          </configOptions>
+          <addCompileSourceRoot>true</addCompileSourceRoot>
+          <generateApiTests>false</generateApiTests>
+          <generateModelTests>false</generateModelTests>
+          <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+        </configuration>
         <executions>
           <execution>
-            <id>generate-api-service</id>
+            <id>generate-api-service-v1</id>
             <goals>
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/../openapi/v1.yaml</inputSpec>
-              <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
-              <generatorName>spring</generatorName>
-              <apiPackage>io.vanillabp.cockpit.bpms.api.v1</apiPackage>
-              <modelPackage>io.vanillabp.cockpit.bpms.api.v1</modelPackage>
-              <generateSupportingFiles>true</generateSupportingFiles>
-              <configOptions>
-                <useTags>true</useTags>
-                <interfaceOnly>true</interfaceOnly>
-                <useSpringController>true</useSpringController>
-                <enablePostProcessFile>true</enablePostProcessFile>
-              </configOptions>
-              <addCompileSourceRoot>true</addCompileSourceRoot>
-              <generateApiTests>false</generateApiTests>
-              <generateModelTests>false</generateModelTests>
-              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+                <inputSpec>${project.basedir}/../openapi/v1.yaml</inputSpec>
+                <apiPackage>io.vanillabp.cockpit.bpms.api.v1</apiPackage>
+                <modelPackage>io.vanillabp.cockpit.bpms.api.v1</modelPackage>
             </configuration>
           </execution>
+            <execution>
+                <id>generate-api-service-v1.1</id>
+                <goals>
+                    <goal>generate</goal>
+                </goals>
+                <configuration>
+                    <inputSpec>${project.basedir}/../openapi/v1_1.yaml</inputSpec>
+                    <apiPackage>io.vanillabp.cockpit.bpms.api.v1_1</apiPackage>
+                    <modelPackage>io.vanillabp.cockpit.bpms.api.v1_1</modelPackage>
+                </configuration>
+            </execution>
         </executions>
       </plugin>
     </plugins>

@@ -1,18 +1,16 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.gui.api.v1.*;
-
+import io.vanillabp.cockpit.gui.api.v1.Page;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
+import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
+import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,13 +33,12 @@ public class TaskService {
 
     public void createTask(
             final String userTaskId,
-            final UserTaskCreatedOrUpdatedEvent event) {
+            final UserTask userTask) {
 
-        if ((userTaskId == null) || (event == null)) {
-            throw new IllegalArgumentException("UserTask ID or event must not be null!");
+        if ((userTaskId == null) || (userTask == null)) {
+            throw new IllegalArgumentException("UserTask ID or UserTask must not be null!");
         }
 
-        final var userTask = mapper.toApi(event);
         userTasks.put(userTaskId, userTask);
 
     }
@@ -130,15 +127,15 @@ public class TaskService {
      * Updates an existing UserTask in the task map.
      *
      * @param userTaskId The ID of the UserTask to update.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      * @throws IllegalArgumentException If the task ID is null.
      * @throws IllegalStateException    If the task does not exist.
      */
     public void updateTask(
             final String userTaskId,
-            final UserTaskCreatedOrUpdatedEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
+        if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID or event cannot be null!");
         }
         if (!userTasks.containsKey(userTaskId)) {
@@ -146,7 +143,7 @@ public class TaskService {
         }
 
         final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        mapOnto.accept(userTask);
 
     }
 
@@ -154,13 +151,13 @@ public class TaskService {
      * Method that gets called when the user task is to be completed. The Main Purpose is to set the end date.
      *
      * @param userTaskId The ID of the UserTask to be completed.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      */
     public void completeTask(
             final String userTaskId,
-            final UserTaskCompletedEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
+        if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID or event cannot be null!");
         }
         if (!userTasks.containsKey(userTaskId)) {
@@ -168,7 +165,7 @@ public class TaskService {
         }
 
         final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        mapOnto.accept(userTask);
 
     }
 
@@ -176,21 +173,21 @@ public class TaskService {
      * Method that gets called when the user task is to be cancelled. The Main Purpose is to set the end date.
      *
      * @param userTaskId The ID of the UserTask to be completed.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      */
     public void cancelTask(
             final String userTaskId,
-            final UserTaskCancelledEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
-            throw new IllegalArgumentException("UserTask ID or event cannot be null!");
+        if (userTaskId == null) {
+            throw new IllegalArgumentException("UserTask ID cannot be null!");
         }
         if (!userTasks.containsKey(userTaskId)) {
             throw new IllegalStateException("Task with ID " + userTaskId + " not found");
         }
 
         final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        mapOnto.accept(userTask);
 
     }
 

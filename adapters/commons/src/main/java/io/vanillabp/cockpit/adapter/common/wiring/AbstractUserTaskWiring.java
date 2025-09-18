@@ -1,12 +1,14 @@
 package io.vanillabp.cockpit.adapter.common.wiring;
 
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParameterFactory;
+import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
+import java.lang.reflect.MalformedParametersException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import org.springframework.context.ApplicationContext;
@@ -44,6 +46,35 @@ public abstract class AbstractUserTaskWiring<T extends Connectable, M extends Us
                         index,
                         parameter.getName());
         
+    }
+
+    protected MethodParameter validateDetailsEvent(
+            final Method method,
+            final Parameter parameter,
+            final int index) {
+
+        final var userTaskEventAnnotation = parameter.getAnnotation(DetailsEvent.class);
+        if (userTaskEventAnnotation == null) {
+            return null;
+        }
+        if (!parameter.getType().equals(DetailsEvent.Event.class)) {
+            throw new MalformedParametersException(
+                    "Parameters having annotation @"
+                            + DetailsEvent.class.getName()
+                            + " must be of type "
+                            + DetailsEvent.Event.class.getName()
+                            + ": "
+                            + method.toString()
+                            + "["
+                            + index
+                            + "]!");
+        }
+
+        return methodParameterFactory
+                .getDetailsEventParameter(
+                        index,
+                        parameter.getName());
+
     }
 
     protected boolean methodMatchesElementId(

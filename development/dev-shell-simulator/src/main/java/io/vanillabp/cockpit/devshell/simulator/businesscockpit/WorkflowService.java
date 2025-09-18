@@ -1,19 +1,14 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.gui.api.v1.Page;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
-
+import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import io.vanillabp.cockpit.gui.api.v1.Workflows;
-import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.function.Consumer;
 import org.springframework.stereotype.Service;
 
 /**
@@ -25,9 +20,6 @@ public class WorkflowService {
 
     private final Map<String, Workflow> workflows = new HashMap<>();
 
-    @Autowired
-    private OfficialApiMapper mapper;
-
     /**
      * Creates a new Workflow from details and adds it to the workflow map.
      *
@@ -35,13 +27,12 @@ public class WorkflowService {
      */
     public void createWorkflow(
             final String workflowId,
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final Workflow workflow) {
 
-        if ((workflowId == null) || (event == null)) {
+        if ((workflowId == null) || (workflow == null)) {
             throw new IllegalArgumentException("Workflow ID or event must not be null!");
         }
 
-        final var workflow = mapper.toApi(event);
         workflows.put(workflowId, workflow);
 
     }
@@ -50,23 +41,23 @@ public class WorkflowService {
      * Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCreatedOrUpdatedEvent containing update details.
+     * @param mapOnto      Mapper.
      * @throws IllegalArgumentException If the workflow ID is null.
      * @throws IllegalStateException    If the workflow does not exist.
      */
     public void updateWorkflow(
             final String workflowId,
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID must not be null!");
         }
         if (!workflows.containsKey(workflowId)) {
             throw new IllegalStateException("Workflow with ID " + workflowId + " not found");
         }
 
         final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        mapOnto.accept(workflow);
 
     }
 
@@ -147,36 +138,36 @@ public class WorkflowService {
      * Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCompletedEvent containing update details.
+     * @param mapOnto      Mapper.
      */
     public void completeWorkflow(
             final String workflowId,
-            final WorkflowCompletedEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID must not be null!");
         }
 
         final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        mapOnto.accept(workflow);
 
     }
 
     /** Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCancelledEvent containing update details.
+     * @param mapOnto      Mapper.
      */
     public void cancelWorkflow(
             final String workflowId,
-            final WorkflowCancelledEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
+        if (workflowId == null) {
             throw new IllegalArgumentException("Workflow ID or event must not be null!");
         }
 
         final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        mapOnto.accept(workflow);
 
     }
 

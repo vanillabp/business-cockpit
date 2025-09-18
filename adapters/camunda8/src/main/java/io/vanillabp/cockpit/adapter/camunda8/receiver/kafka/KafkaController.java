@@ -1,7 +1,9 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.kafka;
 
-
 import at.phactum.zeebe.exporters.kafka.serde.RecordId;
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ClientException;
+import io.camunda.spring.client.event.CamundaClientCreatedEvent;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
 import io.camunda.zeebe.protocol.record.ValueType;
@@ -12,42 +14,81 @@ import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.kafka.annotation.KafkaListener;
 
 import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
 public class KafkaController {
 
+    public static class ProcessInformation {
+        private String bpmnProcessId;
+        private long version;
+        private String versionTag;
+
+        public ProcessInformation(
+                final String bpmnProcessId,
+                final String versionTag,
+                final long version) {
+            this.bpmnProcessId = bpmnProcessId;
+            this.version = version;
+            this.versionTag = versionTag;
+        }
+
+        public long getVersion() {
+            return version;
+        }
+
+        public String getBpmnProcessId() {
+            return bpmnProcessId;
+        }
+
+        public String getVersionTag() {
+            return versionTag;
+        }
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(KafkaController.class);
     private static final String CLIENT_ID = "zeebe-client";
 
-    private final DeploymentService deploymentService;
+    private static final Map<Long, ProcessInformation> processDefinitions = new HashMap<>();
+
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
     private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
     private final Supplier<Set<String>> idNames;
 
+    private CamundaClient client;
+
     public KafkaController(
-            DeploymentService deploymentService,
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
             Supplier<Set<String>> idNames) {
 
-        this.deploymentService = deploymentService;
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
         this.idNames = idNames;
+    }
+
+    @EventListener
+    public void camundaClientCreated(
+            final CamundaClientCreatedEvent event) {
+
+        this.client = event.getClient();
+
     }
 
     @KafkaListener(topics = "${" + KafkaConfiguration.ZEEBE_KAFKA_EXPORTER_TOPIC_PROPERTY + "}",
@@ -85,10 +126,45 @@ public class KafkaController {
         }
         // empty (none) start event
         final var processInstanceCreationRecordValue = (ProcessInstanceCreationRecordValue) value.getValue();
-        final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue);
+        final var processInformation = getProcessInformation(processInstanceCreationRecordValue.getProcessDefinitionKey());
+        if (processInformation.isEmpty()) {
+            if (camunda8WorkflowEventHandler.isTenantKnown(processInstanceCreationRecordValue.getTenantId())) {
+                logger.warn("No process information found for process definition key '{}'!" +
+                                "The workflow of tenant '{}' with id '{}' may not work properly!",
+                        processInstanceCreationRecordValue.getProcessDefinitionKey(),
+                        processInstanceCreationRecordValue.getTenantId(),
+                        processInstanceCreationRecordValue.getBpmnProcessId());
+            }
+            return;
+        }
+        final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue, processInformation.get());
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
-        camunda8WorkflowEventHandler.saveBusinessKeyForRootProcessInstance(workflowCreatedEvent);
         camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
+
+    }
+
+    private Optional<ProcessInformation> getProcessInformation(final long processDefinitionKey) {
+
+        final var cachedResult = processDefinitions.get(processDefinitionKey);
+        if (cachedResult != null) {
+            return Optional.of(cachedResult);
+        }
+
+        try {
+            final var processDefinition = client
+                    .newProcessDefinitionGetRequest(processDefinitionKey)
+                    .send()
+                    .join();
+            final var result = new ProcessInformation(
+                    processDefinition.getProcessDefinitionId(),
+                    processDefinition.getVersionTag(),
+                    processDefinition.getVersion());
+            processDefinitions.put(processDefinitionKey, result);
+            return Optional.of(result);
+        } catch (ClientException e) {
+            logger.warn("Could not load process information for process definition key '{}'.", processDefinitionKey, e);
+            return Optional.empty();
+        }
 
     }
 
@@ -102,8 +178,7 @@ public class KafkaController {
             return;
         }
         // message start event
-        final var processInformation = deploymentService.getProcessInformationByDefinitionKey(
-                processEventRecordValue.getProcessDefinitionKey());
+        final var processInformation = getProcessInformation(processEventRecordValue.getProcessDefinitionKey());
         if (processInformation.isEmpty()) {
             if (camunda8WorkflowEventHandler.isTenantKnown(processEventRecordValue.getTenantId())) {
                 logger.warn("No process information found for process definition key '{}'!" +
@@ -117,7 +192,6 @@ public class KafkaController {
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper
                 .map(processEventRecordValue, processInformation.get());
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
-        camunda8WorkflowEventHandler.saveBusinessKeyForRootProcessInstance(workflowCreatedEvent);
         camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
 
     }
@@ -134,8 +208,7 @@ public class KafkaController {
                 && processInstanceRecordValue.getBpmnElementType().equals(BpmnElementType.PROCESS)
                 && (processInstanceRecordValue.getParentProcessInstanceKey() != -1)
                 && (processInstanceRecordValue.getFlowScopeKey() == -1)) {
-            final var processInformation = deploymentService.getProcessInformationByDefinitionKey(
-                    processInstanceRecordValue.getProcessDefinitionKey());
+            final var processInformation = getProcessInformation(processInstanceRecordValue.getProcessDefinitionKey());
             if (processInformation.isEmpty()) {
                 if (camunda8WorkflowEventHandler.isTenantKnown(processInstanceRecordValue.getTenantId())) {
                     logger.warn("No process information found for process definition key '{}'!" +
@@ -146,13 +219,6 @@ public class KafkaController {
                 }
                 return;
             }
-            camunda8WorkflowEventHandler.saveBusinessKeyForSubProcessStartedByCallActivity(
-                    processInstanceRecordValue.getParentProcessInstanceKey(),
-                    processInstanceRecordValue.getProcessDefinitionKey(),
-                    processInstanceRecordValue.getBpmnProcessId(),
-                    processInformation.get().getVersion(),
-                    processInstanceRecordValue.getProcessInstanceKey(),
-                    processInstanceRecordValue.getTenantId());
         }
         // process instance lifecycle
         if (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED")) {

@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.workflowmodule.rest;
 
-import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
 
 public class WorkflowModuleRestMapper {
 

@@ -5,8 +5,6 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCre
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
-import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowLifecycleEvent;
@@ -75,6 +73,14 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         return logger;
     }
 
+    public String getBpmnProcessId() {
+        return bpmnProcessId;
+    }
+
+    public String getWorkflowModuleId() {
+        return processService.getWorkflowModuleId();
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Retryable(
             retryFor = { Exception.class },
@@ -82,7 +88,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
     public WorkflowEvent processLifeCycleEvent(
             final Camunda8WorkflowLifeCycleEvent camunda8WorkflowLifeCycleEvent) {
+        // TODO
 
+/*
         WorkflowLifecycleEvent workflowCreatedEvent =
                 switch (camunda8WorkflowLifeCycleEvent.getIntent()) {
                     case CANCELLED -> new WorkflowCancelledEvent();
@@ -90,8 +98,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                 };
         final var workflowModuleId = processService.getWorkflowModuleId();
         fillLifecycleEvent(workflowModuleId, camunda8WorkflowLifeCycleEvent, workflowCreatedEvent);
-
         return workflowCreatedEvent;
+*/
+        return null;
 
     }
 
@@ -133,7 +142,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             retryFor = { Exception.class },
             maxAttempts = 4,
             backoff = @Backoff(delay = 500, maxDelay = 1500, multiplier = 1.5))
-    public WorkflowEvent processCreatedEvent(
+    public WorkflowEvent processWorkflowEvent(
             final Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
 
         final var workflowModuleId = processService.getWorkflowModuleId();
@@ -296,7 +305,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         } else {
             final var templatesPathes = List.of(properties.getTemplatePath(processService.getWorkflowModuleId(), bpmnProcessId));
 
-            final var fulltextSearch = new StringBuilder();
             event
                     .getI18nLanguages()
                     .forEach(language -> {
@@ -321,7 +329,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                 details.getTemplateContext(),
                                 errorLoggingContext);
 
-                        fulltextSearch.append(
+                        event.setDetailsFulltextSearch(
                                 renderText(
                                         e -> errorLoggingContext.apply(
                                                 "details-fulltext-search.ftl",
@@ -331,11 +339,8 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
                                         "details-fulltext-search.ftl",
                                         details.getTemplateContext(),
                                         () -> bpmnProcessName));
-                        fulltextSearch.append("\n");
 
                     });
-
-            event.setDetailsFulltextSearch(fulltextSearch.toString());
 
         }
 

@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.adapter.common.usertask.events;
 
 import java.time.OffsetDateTime;
 
-public class UserTaskLifecycleEvent implements UserTaskEvent {
+public abstract class UserTaskLifecycleEvent implements UserTaskEvent {
 
   private String eventId;
 

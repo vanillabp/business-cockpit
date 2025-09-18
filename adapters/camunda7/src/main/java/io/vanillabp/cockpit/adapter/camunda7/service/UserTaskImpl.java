@@ -1,18 +1,17 @@
 package io.vanillabp.cockpit.adapter.camunda7.service;
 
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
 public class UserTaskImpl implements UserTask {
 
-    private final UserTaskCreatedEvent event;
+    private final UserTaskEventImpl event;
 
     public UserTaskImpl(
-            final UserTaskCreatedEvent event) {
+            final UserTaskEventImpl event) {
 
         this.event = event;
 

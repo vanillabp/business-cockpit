@@ -5,16 +5,13 @@ import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishi
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishingBase;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.WorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import jakarta.annotation.PostConstruct;
-
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.lang.Nullable;
 
 public class WorkflowModuleRestPublishing extends WorkflowModulePublishingBase implements WorkflowModulePublishing {
 

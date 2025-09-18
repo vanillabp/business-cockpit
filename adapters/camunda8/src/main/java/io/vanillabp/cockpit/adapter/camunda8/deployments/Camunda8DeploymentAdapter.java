@@ -1,51 +1,84 @@
 package io.vanillabp.cockpit.adapter.camunda8.deployments;
 
-import io.camunda.zeebe.client.ZeebeClient;
-import io.camunda.zeebe.client.api.response.DeploymentEvent;
+import io.camunda.client.CamundaClient;
+import io.camunda.spring.client.event.CamundaClientCreatedEvent;
 import io.camunda.zeebe.model.bpmn.impl.BpmnModelInstanceImpl;
 import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeFormDefinition;
-import io.camunda.zeebe.spring.client.event.ZeebeClientCreatedEvent;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskListener;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskListenerEventType;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskListeners;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeUserTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeVersionTag;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
+import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
-import io.vanillabp.cockpit.adapter.camunda8.utils.HashCodeInputStream;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.camunda.bpm.model.xml.impl.util.IoUtil;
 import org.camunda.bpm.model.xml.instance.ModelElementInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-@Transactional
+import static io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER;
+
 public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda8DeploymentAdapter.class);
 
+    public static final String VERSIONINFO_CURRENT = "current";
+    public static final String ADAPTER_PACKAGE = "io.vanillabp.camunda8.businesscockpit";
+    public static final String PROPERTY_DEPLOYMENT_PRIORITY = "io.vanillabp.deployment.priority";
+
+    public static final String PROPERTY_TASKLISTENER_PREFIXES = "io.vanillabp.businesscockpit.tasklistener.prefixes";
+
+    public static final String PROPERTY_EXECUTIONLISTENER_PREFIXES = "io.vanillabp.businesscockpit.executionlistener.prefixes";
+
+    public static final Pattern PROPERTY_TASKLISTENER_PREFIXES_REGEX = Pattern.compile("io\\.vanillabp.+tasklistener\\.prefixes");
+
+    public static final Pattern PROPERTY_EXECUTIONLISTENER_PREFIXES_REGEX = Pattern.compile("io\\.vanillabp.+executionlistener\\.prefixes");
+
     private final BpmnParser bpmnParser = new BpmnParser();
 
-    private final DeploymentService deploymentService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     private final Camunda8UserTaskWiring camunda8UserTaskWiring;
 
     private final Camunda8WorkflowWiring camunda8WorkflowWiring;
+
+    private final Camunda8UserTaskEventHandler userTaskEventHandler;
+
+    private final Camunda8WorkflowEventHandler workflowEventHandler;
 
     private final String applicationName;
 
@@ -53,24 +86,49 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private final VanillaBpCockpitProperties cockpitProperties;
 
-    private ZeebeClient client;
+    private CamundaClient client;
+
+    @SuppressWarnings("unchecked")
+    public static void initializeCrossCuttingProperties() {
+        ModuleAwareBpmnDeployment.adapterProperties.put(
+                PROPERTY_TASKLISTENER_PREFIXES,
+                List.of(Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER));
+        ModuleAwareBpmnDeployment.adapterProperties.put(
+                PROPERTY_EXECUTIONLISTENER_PREFIXES,
+                List.of(Camunda8WorkflowWiring.TASKDEFINITION_WORKFLOW_DETAILSPROVIDER));
+
+        final var existingPriorities = (List<String>) ModuleAwareBpmnDeployment.adapterProperties
+                .get(PROPERTY_DEPLOYMENT_PRIORITY);
+        if (existingPriorities == null) {
+            final var priorities = new LinkedList<String>();
+            priorities.add(ADAPTER_PACKAGE);
+            ModuleAwareBpmnDeployment.adapterProperties.put(PROPERTY_DEPLOYMENT_PRIORITY, priorities);
+        } else {
+            // set priority of business cockpit adapter to lowest, to enforce task-listeners are added after other adapters
+            existingPriorities.add(existingPriorities.size(), ADAPTER_PACKAGE);
+        }
+    }
 
     public Camunda8DeploymentAdapter(
             final String applicationName,
             final VanillaBpProperties properties,
             final Camunda8VanillaBpProperties camunda8Properties,
             final VanillaBpCockpitProperties cockpitProperties,
-            final DeploymentService deploymentService,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
-            final Camunda8WorkflowWiring camunda8WorkflowWiring) {
+            final Camunda8WorkflowWiring camunda8WorkflowWiring,
+            final Camunda8UserTaskEventHandler userTaskEventHandler,
+            final Camunda8WorkflowEventHandler workflowEventHandler,
+            final ApplicationEventPublisher applicationEventPublisher) {
 
         super(properties, applicationName);
         this.camunda8Properties = camunda8Properties;
         this.cockpitProperties = cockpitProperties;
-        this.deploymentService = deploymentService;
         this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
         this.camunda8WorkflowWiring = camunda8WorkflowWiring;
+        this.userTaskEventHandler = userTaskEventHandler;
+        this.workflowEventHandler = workflowEventHandler;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Override
@@ -87,14 +145,113 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     }
 
+    private void examineProcessVersionTags(
+            final BpmnModelInstanceImpl model,
+            final BiConsumer<String, String> versionTagConsumer) {
+
+        model
+                .getModelElementsByType(Process.class)
+                .stream()
+                .filter(Process::isExecutable)
+                .filter(process -> process.getSingleExtensionElement(ZeebeVersionTag.class) != null)
+                .forEach(process -> versionTagConsumer.accept(process.getId(), process.getSingleExtensionElement(ZeebeVersionTag.class).getValue()));
+
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void deployBpmnModels() {
+
+        synchronized (ModuleAwareBpmnDeployment.bpmnModelCache) {
+
+            if (ModuleAwareBpmnDeployment.bpmnModelCache.isEmpty()) {
+                return;
+            }
+
+            final var resourcesDeployed = new HashSet<String>();
+
+            ModuleAwareBpmnDeployment.bpmnModelCache
+                    .entrySet()
+                    .stream()
+                    .collect(Collectors.groupingBy(
+                            entry -> entry.getValue().getKey(),  // grouping by workflow module id
+                            Collectors.mapping(entry -> Map.entry(entry.getKey(), entry.getValue().getValue()), // preserve resource and model
+                                    Collectors.toSet())))
+                    // for each workflow module
+                    .forEach((workflowModuleId, resources) -> {
+                        final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
+                        final var deployResourceCommand = client.newDeployResourceCommand();
+                        final var processVersionTags = new HashMap<String, String>();
+                        // deploy all bpmns at once
+                        resources
+                                .stream()
+                                .peek(resource -> {
+                                    if (logger.isTraceEnabled()) {
+                                        logger.warn("Generated BPMN (business cockpit):\n{}", IoUtil.convertXmlDocumentToString(
+                                                ((BpmnModelInstanceImpl) resource.getValue()).getDocument()));
+                                    }
+                                })
+                                .map(resource -> {
+                                    final var model = (BpmnModelInstanceImpl) resource.getValue();
+                                    examineProcessVersionTags(model, processVersionTags::put);
+                                    resourcesDeployed.add(resource.getKey());
+                                    return deployResourceCommand.addProcessModel(model, resource.getKey());
+                                })
+                                .reduce((first, second) -> second)
+                                .map(command -> tenantId == null ? command : command.tenantId(tenantId))
+                                .map(command -> {
+                                    logger.info("About to deploy BPMNs of workflow-module '{}' for business cockpit", workflowModuleId);
+                                    return command.send().join();
+                                })
+                                .ifPresent(result -> {
+                                    logger.info("Deployed {} BPMNs of workflow-module '{}' for business cockpit",
+                                            result.getProcesses().size(), workflowModuleId);
+                                    ModuleAwareBpmnDeployment.bpmnModelCache.remove(workflowModuleId);
+                                    applicationEventPublisher.publishEvent(new BpmnModelCacheProcessed(
+                                            this.getClass().getName(),
+                                            workflowModuleId,
+                                            result
+                                                    .getProcesses()
+                                                    .stream()
+                                                    .map(process -> Map.entry(
+                                                            process.getBpmnProcessId(),
+                                                            processVersionTags.containsKey(process.getBpmnProcessId())
+                                                                    ? "%s:%d".formatted(processVersionTags.get(process.getBpmnProcessId()), process.getVersion())
+                                                                    : "%d".formatted(process.getVersion())))
+                                                    .toList()));
+                                });
+                    });
+
+            resourcesDeployed.forEach(ModuleAwareBpmnDeployment.bpmnModelCache::remove);
+
+        }
+
+    }
+
     @EventListener
-    public void zeebeClientCreated(
-            final ZeebeClientCreatedEvent event) {
+    @SuppressWarnings("unchecked")
+    public void camundaClientCreated(
+            final CamundaClientCreatedEvent event) {
+
+        final var existingPriorities = (List<String>) ModuleAwareBpmnDeployment.adapterProperties
+                .get(PROPERTY_DEPLOYMENT_PRIORITY);
+        if (existingPriorities.isEmpty()) {
+            return;
+        }
+        if (!existingPriorities.get(0).equals(ADAPTER_PACKAGE)) {
+            return;
+        }
+        existingPriorities.remove(0);
 
         this.client = event.getClient();
+        camunda8WorkflowWiring.accept(client);
+        camunda8UserTaskWiring.accept(client);
 
         // deploy only modules listed in configuration, if modules are in classpath not syncing to business cockpit
         deploySelectedWorkflowModules(cockpitProperties.getWorkflowModules().keySet());
+
+        // next adapter
+        applicationEventPublisher.publishEvent(event);
+
     }
 
     @Override
@@ -104,100 +261,82 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final Resource[] dmns,
             final Resource[] cmms) throws Exception {
 
-        final var deploymentHashCode = new int[] { 0 };
+        final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
 
-        final var deployResourceCommand = client.newDeployResourceCommand();
-        final var deployedProcesses = new HashMap<String, DeployedBpmn>();
-
-        final boolean hasDeployables[] = { false };
-
-        // Add all BPMNs to deploy-command: on one hand to deploy them and on the
+        // Add all BPMNs to model cache: on one hand to deploy them and on the
         // other hand to wire them to the using project beans according to the SPI
-        final var deploymentCommand = Arrays
+        Arrays
                 .stream(bpmns)
-                .map(resource -> {
-                    try (var inputStream = new HashCodeInputStream(
-                            resource.getInputStream(),
-                            deploymentHashCode[0])) {
+                .forEach(resource -> {
+                    try (var inputStream = resource.getInputStream()) {
 
-                        logger.info("About to deploy '{}' of workflow-module with id '{}' for business-cockpit",
-                                resource.getFilename(), workflowModuleId);
-                        final var model = bpmnParser.parseModelFromStream(inputStream);
-
-                        final var bpmn = deploymentService.addBpmn(
-                                model,
-                                inputStream.hashCode(),
-                                resource.getDescription());
-
-                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model);
-                        deploymentHashCode[0] = inputStream.getTotalHashCode();
-
-                        hasDeployables[0] = true;
-
-                        return deployResourceCommand.addProcessModel(model, resource.getFilename());
-
-                    } catch (IOException e) {
-                        throw new RuntimeException(e.getMessage());
-                    }
-                })
-                .filter(Objects::nonNull)
-                .reduce((first, second) -> second);
-
-        if (hasDeployables[0]) {
-            final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
-            final DeploymentEvent deployedResources = deploymentCommand
-                    .map(command -> tenantId == null ? command : command.tenantId(tenantId))
-                    .map(command -> command.send().join())
-                    .orElseThrow();
-
-            // BPMNs which are part of the current package will stored
-            deployedResources
-                    .getProcesses()
-                    .forEach(process ->  {
-                        deploymentService.addProcess(
-                                workflowModuleId,
-                                deploymentHashCode[0],
-                                process,
-                                deployedProcesses.get(process.getBpmnProcessId()));
-                    });
-
-        }
-
-        // BPMNs which were deployed in the past need to be forced to be parsed for wiring
-        deploymentService
-                .getBpmnNotOfPackage(workflowModuleId, deploymentHashCode[0])
-                .forEach(bpmn -> {
-                    try (var inputStream = new ByteArrayInputStream(
-                            bpmn.getResource())) {
-
-                        logger.info("About to verify old BPMN '{}' of workflow-module with id '{}' for business-cockpit." +
-                                "If not required any, remove from repository!",
-                                bpmn.getResourceName(),
+                        final var filename = resource.getFilename();
+                        logger.info("About to process '{}' of workflow-module '{}'",
+                                filename,
                                 workflowModuleId);
-
-                        final var model = bpmnParser.parseModelFromStream(inputStream);
-
-                        processBpmnModel(workflowModuleId, deployedProcesses, bpmn, model);
-
-                        bpmn
-                                .getDeployments()
-                                .stream()
-                                .filter(deployment -> deployment instanceof DeployedProcess)
-                                .map(deployment -> (DeployedProcess) deployment)
-                                .forEach(process -> deploymentService.registerOldProcess(process, bpmn));
+                        Optional
+                                .ofNullable(ModuleAwareBpmnDeployment.bpmnModelCache.get(filename))
+                                .or(() -> {
+                                    final var uncachedModel = bpmnParser.parseModelFromStream(inputStream);
+                                    final var entry = Map.<String, Object>entry(workflowModuleId, uncachedModel);
+                                    ModuleAwareBpmnDeployment.bpmnModelCache.put(filename, entry);
+                                    return Optional.of(entry);
+                                })
+                                .map(Map.Entry::getValue)
+                                .ifPresent(model -> processBpmnModel(
+                                            workflowModuleId, VERSIONINFO_CURRENT, (BpmnModelInstanceImpl) model, true)
+                                );
 
                     } catch (IOException e) {
                         throw new RuntimeException(e.getMessage());
                     }
                 });
 
+        // BPMNs which were deployed in the past need to be forced to be parsed for wiring
+        int currentPage = 0;
+        while (currentPage != -1) {
+            final var finalPage = currentPage;
+            var request = client
+                    .newProcessDefinitionSearchRequest()
+                    .sort(sort -> sort.name().version())
+                    .page(page -> page.from(finalPage).limit(1));
+            if (tenantId != null) {
+                request = request.filter(filter -> filter.tenantId(tenantId));
+            }
+            var processDefinitions = request.send().join();
+            currentPage = processDefinitions.page().hasMoreTotalItems() ? currentPage + 1 : -1;
+
+            processDefinitions
+                    .items()
+                    .stream()
+                    .map(processDefinition -> Map.entry(processDefinition, client.newProcessDefinitionGetXmlRequest(processDefinition.getProcessDefinitionKey())))
+                    .map(bpmnRequest -> Map.entry(bpmnRequest.getKey(), bpmnRequest.getValue().send().join()))
+                    .map(bpmn -> Map.entry(bpmn.getKey(), new ByteArrayInputStream(bpmn.getValue().getBytes(StandardCharsets.UTF_8))))
+                    .map(bpmnStream -> Map.entry(bpmnStream.getKey(), bpmnParser.parseModelFromStream(bpmnStream.getValue())))
+                    .map(bpmnModel -> {
+                        final var versionTag = bpmnModel.getKey().getVersionTag();
+                        final String versionInfo;
+                        if (versionTag != null) {
+                            versionInfo = "%s:%d".formatted(versionTag, bpmnModel.getKey().getVersion());
+                        } else {
+                            versionInfo = "%d".formatted(bpmnModel.getKey().getVersion());
+                        }
+                        return Map.entry(versionInfo, bpmnModel.getValue());
+                    })
+                    .forEach(model -> processBpmnModel(
+                            workflowModuleId,
+                            model.getKey(),
+                            model.getValue(),
+                            false));
+        }
+
     }
 
     private void processBpmnModel(
             final String workflowModuleId,
-            final Map<String, DeployedBpmn> deployedProcesses,
-            final DeployedBpmn bpmn,
-            final BpmnModelInstanceImpl model) {
+            final String versionInfo,
+            final BpmnModelInstanceImpl model,
+            final boolean isNewProcess) {
 
         List<Process> executableProcesses = model
                 .getModelElementsByType(Process.class)
@@ -205,15 +344,16 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .filter(Process::isExecutable)
                 .toList();
 
-        executableProcesses
-                .forEach(process -> deployedProcesses.put(process.getId(), bpmn));
-
-        wireWorkflows(workflowModuleId, executableProcesses);
-        wireUserTasks(workflowModuleId, model, executableProcesses);
+        wireWorkflows(workflowModuleId, versionInfo, executableProcesses, isNewProcess);
+        wireUserTasks(workflowModuleId, versionInfo, model, executableProcesses, isNewProcess);
 
     }
 
-    private void wireWorkflows(String workflowModuleId, List<Process> executableProcesses) {
+    private void wireWorkflows(
+            final String workflowModuleId,
+            final String versionInfo,
+            final List<Process> executableProcesses,
+            final boolean isNewProcess) {
         executableProcesses
                 .stream()
                 .map(process -> new Camunda8WorkflowConnectable(process.getId(), process.getName()))
@@ -223,35 +363,160 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 });
     }
 
-    private void wireUserTasks(String workflowModuleId, BpmnModelInstanceImpl model, List<Process> executableProcesses) {
+    private void wireUserTasks(
+            final String workflowModuleId,
+            final String versionInfo,
+            final BpmnModelInstanceImpl model,
+            final List<Process> executableProcesses,
+            final boolean isNewProcess) {
         executableProcesses
                 .stream()
-                .flatMap(process -> getUserTaskConnectables(workflowModuleId, process, model))
+                .flatMap(process -> getUserTaskConnectables(workflowModuleId, process, versionInfo, model, isNewProcess))
                 .forEach(connectable ->
                         camunda8UserTaskWiring.wireTask(workflowModuleId, connectable));
     }
 
-
+    @SuppressWarnings("unchecked")
     public Stream<Camunda8UserTaskConnectable> getUserTaskConnectables(
             final String workflowModuleId,
             final Process process,
-            final BpmnModelInstanceImpl model) {
+            final String versionInfo,
+            final BpmnModelInstanceImpl model,
+            final boolean isNewProcess) {
+
+        final var taskListenerPrefixes = adapterProperties
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().equals(PROPERTY_TASKLISTENER_PREFIXES))
+                .flatMap(entry -> ((Collection<String>) entry.getValue()).stream())
+                .toList();
 
         final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
         return model
                 .getModelElementsByType(UserTask.class)
                 .stream()
                 .filter(element -> Objects.equals(getOwningProcess(element), process))
-                .map(element -> new Camunda8UserTaskConnectable(
-                        tenantId,
-                        process,
-                        element.getId(),
-                        getFormKey(element),
-                        getTaskName(element)))
+                .filter(element -> element.getSingleExtensionElement(ZeebeUserTask.class) != null) // only Camunda user tasks
+                .flatMap(element -> {
+                    final List<Camunda8UserTaskConnectable> result = new LinkedList<>();
+                    final var externalFormReference = getTaskDefinition(element);
+                    getExistingTaskListenersJobTypes(taskListenerPrefixes, element)
+                            .stream()
+                            .map(jobType ->new Camunda8UserTaskConnectable(
+                                    workflowModuleId,
+                                    tenantId,
+                                    process,
+                                    versionInfo,
+                                    element.getId(),
+                                    jobType.startsWith(TASKDEFINITION_USERTASK_DETAILSPROVIDER) ? externalFormReference : jobType,
+                                    getTaskName(element)))
+                            .forEach(result::add);
+                    if (isNewProcess && StringUtils.hasText(externalFormReference)) {
+                        addTaskListenersToBpmnModel(externalFormReference, element);
+                        result
+                                .add(new Camunda8UserTaskConnectable(
+                                        workflowModuleId,
+                                        tenantId,
+                                        process,
+                                        versionInfo,
+                                        element.getId(),
+                                        externalFormReference,
+                                        getTaskName(element)));
+                    }
+                    return result.stream();
+                })
                 .filter(Camunda8UserTaskConnectable::isExecutableProcess);
 
     }
 
+    /**
+     * Order of listeners:
+     *
+     * <ul>
+     *     <li>VanillaBP "creating"</li>
+     *     <li>any custom "creating"</li>
+     *     <li>Business Cockpit "creating": Business Cockpit should reflect all modifications done by previous listeners</li>
+     *     <li>any custom listener other than "creating"</li>
+     *     <li>VanillaBP "canceling"</li>
+     *     <li>Business Cockpit "canceling": Business Cockpit should reflect all modifications done by previous listeners</li>
+     *     <li>Business Cockpit "completing": Business Cockpit should reflect all modifications done by previous listeners</li>
+     * </ul>
+     *
+     * @param externalFormReference
+     * @param element
+     */
+    private void addTaskListenersToBpmnModel(
+            final String externalFormReference,
+            final BaseElement element) {
+
+        final ZeebeTaskListeners taskListeners;
+        final boolean isNew;
+        if (element.getSingleExtensionElement(ZeebeTaskListeners.class) != null) {
+            taskListeners = element.getSingleExtensionElement(ZeebeTaskListeners.class);
+            isNew = false;
+        } else {
+            taskListeners = element.getExtensionElements().addExtensionElement(ZeebeTaskListeners.class);
+            isNew = true;
+        }
+
+        final var createListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
+        createListener.setEventType(ZeebeTaskListenerEventType.creating);
+        createListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        createListener.setRetries("0");
+
+        if (isNew) {
+            taskListeners.insertElementAfter(createListener, null); // insert as first listener
+        } else {
+            final var previousListeners = new LinkedList<>(taskListeners.getTaskListeners()
+                    .stream()
+                    .filter(listener -> listener.getEventType().equals(ZeebeTaskListenerEventType.creating))
+                    .toList());
+            taskListeners.insertElementAfter(createListener, previousListeners.isEmpty() ? null : previousListeners.getLast());
+        }
+
+        final var cancelListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
+        cancelListener.setEventType(ZeebeTaskListenerEventType.canceling);
+        cancelListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        cancelListener.setRetries("0");
+
+        if (isNew) {
+            taskListeners.insertElementAfter(cancelListener, createListener);
+        } else {
+            final var previousListener = new LinkedList<>(taskListeners.getTaskListeners())
+                    .getLast();
+            taskListeners.insertElementAfter(cancelListener, previousListener);
+        }
+
+        final var completeListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
+        completeListener.setEventType(ZeebeTaskListenerEventType.completing);
+        completeListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        completeListener.setRetries("0");
+
+        if (isNew) {
+            taskListeners.insertElementAfter(completeListener, createListener);
+        } else {
+            final var previousListener = new LinkedList<>(taskListeners.getTaskListeners())
+                    .getLast();
+            taskListeners.insertElementAfter(completeListener, previousListener);
+        }
+
+    }
+
+    private List<String> getExistingTaskListenersJobTypes(
+            final List<String> taskListenerPrefixes,
+            final BaseElement element) {
+
+        return Optional
+                .ofNullable(element.getSingleExtensionElement(ZeebeTaskListeners.class))
+                .stream()
+                .flatMap(zeebeTaskListeners -> zeebeTaskListeners.getTaskListeners().stream())
+                .map(ZeebeTaskListener::getType)
+                .filter(type -> taskListenerPrefixes
+                        .stream()
+                        .anyMatch(type::startsWith))
+                .toList();
+
+    }
 
     private static Process getOwningProcess(
             final ModelElementInstance element) {
@@ -264,9 +529,13 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         return parent == null ? null : getOwningProcess(parent);
     }
 
-    private String getFormKey(final BaseElement element) {
-        final ZeebeFormDefinition formDefinition = element.getSingleExtensionElement(ZeebeFormDefinition.class);
-        return formDefinition == null ? null : formDefinition.getFormKey();
+    private String getTaskDefinition(final BaseElement element) {
+        return Optional
+                .ofNullable(element.getSingleExtensionElement(ZeebeFormDefinition.class))
+                .map(formDefinition -> formDefinition.getFormKey() != null
+                        ? formDefinition.getFormKey()
+                        : formDefinition.getExternalReference())
+                .orElse(null);
     }
 
     private String getTaskName(

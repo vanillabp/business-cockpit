@@ -5,7 +5,6 @@ import io.camunda.zeebe.protocol.record.RecordValueWithVariables;
 import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import java.util.Set;
@@ -14,11 +13,15 @@ import java.util.function.Supplier;
 public class WorkflowEventZeebeRecordMapper {
 
     public static Camunda8WorkflowCreatedEvent map(
-            ProcessInstanceCreationRecordValue record) {
+            ProcessInstanceCreationRecordValue record,
+            KafkaController.ProcessInformation processInformation) {
         final var workflowCreatedEvent = new Camunda8WorkflowCreatedEvent();
 
         workflowCreatedEvent.setTenantId(record.getTenantId());
-        workflowCreatedEvent.setVersion(record.getVersion());
+        final var version = processInformation.getVersionTag() != null
+                ? "%s:%d".formatted(processInformation.getVersionTag(), processInformation.getVersion())
+                : "%d".formatted(processInformation.getVersion());
+        workflowCreatedEvent.setVersion(version);
         workflowCreatedEvent.setProcessDefinitionKey(record.getProcessDefinitionKey());
         workflowCreatedEvent.setProcessInstanceKey(record.getProcessInstanceKey());
         workflowCreatedEvent.setBpmnProcessId(record.getBpmnProcessId());
@@ -28,11 +31,14 @@ public class WorkflowEventZeebeRecordMapper {
 
     public static Camunda8WorkflowCreatedEvent map(
             ProcessEventRecordValue record,
-            DeploymentService.ProcessInformation processInformation) {
+            KafkaController.ProcessInformation processInformation) {
         final var workflowCreatedEvent = new Camunda8WorkflowCreatedEvent();
 
         workflowCreatedEvent.setTenantId(record.getTenantId());
-        workflowCreatedEvent.setVersion(processInformation.getVersion());
+        final var version = processInformation.getVersionTag() != null
+                ? "%s:%d".formatted(processInformation.getVersionTag(), processInformation.getVersion())
+                : "%d".formatted(processInformation.getVersion());
+        workflowCreatedEvent.setVersion(version);
         workflowCreatedEvent.setProcessDefinitionKey(record.getProcessDefinitionKey());
         workflowCreatedEvent.setProcessInstanceKey(record.getProcessInstanceKey());
         workflowCreatedEvent.setBpmnProcessId(processInformation.getBpmnProcessId());

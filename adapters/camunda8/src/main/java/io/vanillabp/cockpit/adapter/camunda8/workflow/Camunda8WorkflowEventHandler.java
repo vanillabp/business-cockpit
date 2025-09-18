@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
-import io.vanillabp.cockpit.adapter.camunda8.deployments.ProcessInstancePersistence;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.ProcessWorkflowEvent;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-@Transactional
 public class Camunda8WorkflowEventHandler {
     private static final Logger logger = LoggerFactory.getLogger(Camunda8WorkflowEventHandler.class);
 
@@ -31,14 +29,11 @@ public class Camunda8WorkflowEventHandler {
     private final Set<String> knownTenantIds = new HashSet<>();
     private final Map<String, Camunda8WorkflowHandler> camunda8WorkflowHandlerMap = new HashMap<>();
     private final WorkflowPublishing workflowPublishing;
-    private final ProcessInstancePersistence processInstancePersistence;
 
-    public Camunda8WorkflowEventHandler(ProcessInstancePersistence processInstancePersistence,
-                                        ApplicationEventPublisher applicationEventPublisher,
+    public Camunda8WorkflowEventHandler(ApplicationEventPublisher applicationEventPublisher,
                                         WorkflowPublishing workflowPublishing) {
         this.applicationEventPublisher = applicationEventPublisher;
         this.workflowPublishing = workflowPublishing;
-        this.processInstancePersistence = processInstancePersistence;
     }
 
     private String getHandlerMapKey(String tenantId, String bpmnProcessId) {
@@ -54,7 +49,7 @@ public class Camunda8WorkflowEventHandler {
     }
 
     private String mapTenantId(String tenantId) {
-        return tenantId == null ? "default" : tenantId;
+        return tenantId == null ? "<default>" : tenantId;
     }
 
     public boolean isTenantKnown(String tenantId) {
@@ -80,9 +75,9 @@ public class Camunda8WorkflowEventHandler {
         }
 
         io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent =
-                camunda8WorkflowHandler.processCreatedEvent(workflowCreatedEvent);
-
+                camunda8WorkflowHandler.processWorkflowEvent(workflowCreatedEvent);
         sendWorkflowEvent(workflowEvent);
+
     }
 
 
@@ -110,12 +105,14 @@ public class Camunda8WorkflowEventHandler {
     public void processWorkflowUpdateEvent(Camunda8WorkflowCreatedEvent camunda8WorkflowCreatedEvent) {
         Camunda8WorkflowHandler camunda8WorkflowHandler =
                 camunda8WorkflowHandlerMap.get(getHandlerMapKey(camunda8WorkflowCreatedEvent));
-        if ((camunda8WorkflowHandler == null) && isTenantKnown(camunda8WorkflowCreatedEvent.getTenantId())) {
-            logger.debug("No handler found for workflow update event of workflow: '{}' (version: '{}', key: '{}') and tenant '{}'!",
-                    camunda8WorkflowCreatedEvent.getBpmnProcessId(),
-                    camunda8WorkflowCreatedEvent.getVersion(),
-                    camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
-                    camunda8WorkflowCreatedEvent.getTenantId());
+        if (camunda8WorkflowHandler == null) {
+            if (isTenantKnown(camunda8WorkflowCreatedEvent.getTenantId())) {
+                logger.debug("No handler found for workflow update event of workflow: '{}' (version: '{}', key: '{}') and tenant '{}'!",
+                        camunda8WorkflowCreatedEvent.getBpmnProcessId(),
+                        camunda8WorkflowCreatedEvent.getVersion(),
+                        camunda8WorkflowCreatedEvent.getProcessInstanceKey(),
+                        camunda8WorkflowCreatedEvent.getTenantId());
+            }
             return;
         }
 
@@ -123,44 +120,6 @@ public class Camunda8WorkflowEventHandler {
                 camunda8WorkflowHandler.processUpdatedEvent(camunda8WorkflowCreatedEvent);
 
         sendWorkflowEvent(workflowEvent);
-    }
-
-    @Transactional
-    public void saveBusinessKeyForRootProcessInstance(
-            final Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
-        processInstancePersistence.save(
-                workflowCreatedEvent.getProcessInstanceKey(),
-                workflowCreatedEvent.getBusinessKey(),
-                workflowCreatedEvent.getBpmnProcessId(),
-                workflowCreatedEvent.getVersion(),
-                workflowCreatedEvent.getProcessDefinitionKey(),
-                workflowCreatedEvent.getTenantId());
-    }
-
-    @Transactional
-    public void saveBusinessKeyForSubProcessStartedByCallActivity(
-            final long parentProcessInstanceKey,
-            final long processDefinitionKey,
-            final String bpmnProcessId,
-            final long bpmnProcessVersion,
-            final long processInstanceKey,
-            final String tenantId) {
-        final var parent = processInstancePersistence
-                .findById(parentProcessInstanceKey);
-        if (parent.isEmpty()) {
-            logger.warn(
-                    "Could not find parent process instance with key '{}' for processing a call-activity! " +
-                    "This may effect processing of tasks of the sub process.",
-                    parentProcessInstanceKey);
-            return;
-        }
-        processInstancePersistence.save(
-                processInstanceKey,
-                parent.get().getBusinessKey(),
-                bpmnProcessId,
-                bpmnProcessVersion,
-                processDefinitionKey,
-                tenantId);
     }
 
     private void sendWorkflowEvent(io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent workflowEvent) {

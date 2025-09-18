@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.simulator.config;
 
-import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.commons.rest.adapter.Client;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
 import org.springframework.beans.factory.annotation.Autowired;

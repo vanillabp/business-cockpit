@@ -5,15 +5,18 @@ import io.vanillabp.springboot.adapter.Connectable;
 public class Camunda7Connectable implements Connectable {
     
     private final String bpmnProcessId;
+    private final String versionInfo;
     private final String elementId;
     private final String taskDefinition;
     
     public Camunda7Connectable(
             final String bpmnProcessId,
+            final String versionInfo,
             final String elementId,
             final String taskDefinition) {
 
         this.bpmnProcessId = bpmnProcessId;
+        this.versionInfo = versionInfo;
         this.elementId = elementId;
         this.taskDefinition = taskDefinition;
 
@@ -47,6 +50,13 @@ public class Camunda7Connectable implements Connectable {
         
         return bpmnProcessId;
         
+    }
+
+    @Override
+    public String getVersionInfo() {
+
+        return versionInfo;
+
     }
 
     @Override

@@ -7,7 +7,6 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEven
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
-import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowLifecycleEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
@@ -113,7 +112,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
 
         } else if (processInstanceEvent.isEventOfType(HistoryEventTypes.PROCESS_INSTANCE_END)) {
 
-            WorkflowLifecycleEvent workflowLifecycleEvent = processInstanceEvent.getDeleteReason() != null ?
+            WorkflowCreatedEvent workflowLifecycleEvent = processInstanceEvent.getDeleteReason() != null ?
                     new WorkflowCancelledEvent() :
                     new WorkflowCompletedEvent();
 
@@ -343,7 +342,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstanceEventEntity processInstanceEvent,
-            final WorkflowLifecycleEvent event) {
+            final WorkflowCreatedEvent event) {
 
         event.setEventId(
                 System.nanoTime()
@@ -366,7 +365,7 @@ public class Camunda7WorkflowHandler extends WorkflowHandlerBase {
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final HistoricProcessInstance processInstance,
-            final WorkflowLifecycleEvent event) {
+            final WorkflowCreatedEvent event) {
 
         event.setEventId(
                 System.nanoTime()

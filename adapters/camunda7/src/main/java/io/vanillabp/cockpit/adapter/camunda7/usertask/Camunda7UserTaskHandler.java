@@ -8,10 +8,11 @@ import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskHandlerBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.commons.utils.DateTimeUtil;
+import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
@@ -112,7 +113,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         final io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent userTaskEvent =
                 switch (eventName) {
                     case TaskListener.EVENTNAME_CREATE:
-                        UserTaskCreatedEvent userTaskCreatedEvent = new UserTaskCreatedEvent(workflowModuleId, i18nLanguages);
+                        UserTaskEventImpl userTaskCreatedEvent = new UserTaskEventImpl(workflowModuleId, i18nLanguages);
                         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
                         yield userTaskCreatedEvent;
 
@@ -122,13 +123,13 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         yield userTaskUpdatedEvent;
 
                     case TaskListener.EVENTNAME_COMPLETE:
-                        UserTaskCompletedEvent userTaskCompletedEvent = new UserTaskCompletedEvent();
-                        fillLifecycleEvent(workflowModuleId, task, userTaskCompletedEvent);
+                        UserTaskCompletedEvent userTaskCompletedEvent = new UserTaskCompletedEvent(workflowModuleId, i18nLanguages);
+                        fillUserTaskCreatedEvent(task, userTaskCompletedEvent);
                         yield userTaskCompletedEvent;
 
                     case TaskListener.EVENTNAME_DELETE:
-                        UserTaskCancelledEvent userTaskCancelledEvent = new UserTaskCancelledEvent();
-                        fillLifecycleEvent(workflowModuleId, task, userTaskCancelledEvent);
+                        UserTaskCancelledEvent userTaskCancelledEvent = new UserTaskCancelledEvent(workflowModuleId, i18nLanguages);
+                        fillUserTaskCreatedEvent(task, userTaskCancelledEvent);
                         yield userTaskCancelledEvent;
 
                     default: throw new RuntimeException(
@@ -150,14 +151,14 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
     public UserTask getUserTask(
             final TaskEntity task) {
 
-        final var userTaskCreatedEvent = new UserTaskCreatedEvent(task.getTenantId(), properties.getI18nLanguages(
+        final var userTaskCreatedEvent = new UserTaskEventImpl(task.getTenantId(), properties.getI18nLanguages(
                 processService.getWorkflowModuleId(), bpmnProcessId));
         fillUserTaskCreatedEvent(task, userTaskCreatedEvent);
         return new UserTaskImpl(userTaskCreatedEvent);
 
     }
 
-    private void fillUserTaskCreatedEvent(TaskEntity task, UserTaskCreatedEvent userTaskCreatedEvent) {
+    private void fillUserTaskCreatedEvent(TaskEntity task, UserTaskEventImpl userTaskCreatedEvent) {
 
         final var execution = (ExecutionEntity) task.getExecution();
         final var processDefinition = execution
@@ -203,7 +204,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
             final String bpmnProcessVersion,
             final String bpmnProcessName,
             final TaskEntity delegateTask,
-            final UserTaskCreatedEvent event,
+            final UserTaskEventImpl event,
             final UserTaskDetails details) {
         
         // a different object was returned then provided
@@ -341,14 +342,14 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
         
     }
             
-    private UserTaskCreatedEvent prefillUserTaskDetails(
+    private UserTaskEventImpl prefillUserTaskDetails(
             final String bpmnProcessId,
             final String bpmnProcessVersion,
             final DelegateTask delegateTask,
-            final UserTaskCreatedEvent event) {
+            final UserTaskEventImpl event) {
         
         final var prefilledUserTaskDetails = event;
-        
+
         prefilledUserTaskDetails.setEventId(
                 System.nanoTime()
                 + "@"
@@ -450,6 +451,13 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                     .apply(execution.getBusinessKey());
             
             final var workflowAggregateCache = new WorkflowAggregateCache();
+
+            final var detailsEvent = switch (delegateTask.getEventName()) {
+                case TaskListener.EVENTNAME_CREATE -> DetailsEvent.Event.CREATED;
+                case TaskListener.EVENTNAME_COMPLETE -> DetailsEvent.Event.COMPLETED;
+                case TaskListener.EVENTNAME_DELETE -> DetailsEvent.Event.CANCELED;
+                default -> DetailsEvent.Event.UPDATED;
+            };
             
             return super.execute(
                     workflowAggregateCache,
@@ -463,6 +471,10 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                             args,
                             param,
                             delegateTask::getId),
+                    (args, param) -> processDetailsEventParameter(
+                            args,
+                            param,
+                            () -> detailsEvent),
                     (args, param) -> processPrefilledUserTaskDetailsParameter(
                             args,
                             param,

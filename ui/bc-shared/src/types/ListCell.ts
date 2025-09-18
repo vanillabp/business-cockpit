@@ -3,19 +3,16 @@ interface Title {
   [key: string]: string;
 }
 
-export type ColumnType = 'value' | 'i18n' | 'person' | 'date' | 'date-time' | 'time';
-
 export interface Column {
   title: Title;
   path: string;
-  type?: ColumnType;
+  type?: 'value' | 'i18n' | 'person' | 'date' | 'date-time' | 'time';
   priority: number;
   width: string;
   show: boolean;
   sortable: boolean;
   filterable: boolean;
   resizeable: boolean;
-  exportable?: boolean;
 }
 
 export interface Person {
