@@ -22,7 +22,6 @@ public class Camunda8UserTaskEvent {
     private List<String> candidateGroups;
     private OffsetDateTime dueDate;
     private OffsetDateTime followUpDate;
-
     private Map<String, Object> variables;
 
     public long getJobKey() {

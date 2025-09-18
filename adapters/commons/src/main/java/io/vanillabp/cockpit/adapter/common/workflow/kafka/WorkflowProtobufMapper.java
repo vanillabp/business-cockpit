@@ -7,10 +7,10 @@ import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEventImpl;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
-
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -49,7 +49,7 @@ public class WorkflowProtobufMapper {
 
 
     private void fillWorkflowCreatedOrUpdatedEvent(
-            WorkflowCreatedEvent workflowUpdatedEvent,
+            WorkflowEventImpl workflowUpdatedEvent,
             WorkflowCreatedOrUpdatedEvent.Builder builder) {
 
         // required parameters

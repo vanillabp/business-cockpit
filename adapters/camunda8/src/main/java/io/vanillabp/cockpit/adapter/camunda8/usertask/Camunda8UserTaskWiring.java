@@ -27,11 +27,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.repository.CrudRepository;
 
 public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserTaskConnectable, UserTaskMethodParameterFactory> implements Consumer<CamundaClient> {
 
-    public static final String TASKDEFINITION_USERTASK_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
+    public static final String JOBTYPE_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
 
     private final VanillaBpCockpitProperties vanillaBpCockpitProperties;
 
@@ -43,7 +42,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final Camunda8UserTaskEventHandler userTaskEventHandler;
 
-    private final Method noopUserTaskMethod;
+    private final Method noopUserTaskDetailsMethod;
 
     private final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers;
 
@@ -82,7 +81,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         this.springDataUtil = springDataUtil;
         this.camunda8Properties = camunda8Properties;
 
-        noopUserTaskMethod = getClass().getMethod("noopUserTaskMethod", PrefilledUserTaskDetails.class);
+        noopUserTaskDetailsMethod = getClass().getMethod("noopUserTaskDetailsMethod", PrefilledUserTaskDetails.class);
 
     }
 
@@ -134,17 +133,17 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             return;
         }
         
-        final var noopUserTaskMethodParameters = validateParameters(
+        final var noopUserTaskDetailsMethodParameters = validateParameters(
                 workflowAggregateClass,
-                noopUserTaskMethod);
+                noopUserTaskDetailsMethod);
 
         connectToBpms(
                 workflowModuleId,
                 processService,
                 this,
                 connectable,
-                noopUserTaskMethod,
-                noopUserTaskMethodParameters);
+                noopUserTaskDetailsMethod,
+                noopUserTaskDetailsMethodParameters);
 
     }
     
@@ -169,13 +168,11 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                     + "' which is mandatory for methods providing user-task details!");
         }
 
-        final var jobType = TASKDEFINITION_USERTASK_DETAILSPROVIDER + connectable.getTaskDefinition();
+        final var jobType = JOBTYPE_DETAILSPROVIDER + connectable.getTaskDefinition();
         if (workers.containsKey(jobType)) {
             return;
         }
 
-        CrudRepository<Object, Object> workflowAggregateRepository =
-                (CrudRepository<Object, Object>) processService.getWorkflowAggregateRepository();
         final var aggregateIdPropertyName = springDataUtil.getIdName(processService.getWorkflowAggregateClass());
 
         final var taskHandler = userTaskHandlers.getObject(
@@ -189,7 +186,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 connectable.getTitle(),
                 processService,
                 aggregateIdPropertyName,
-                workflowAggregateRepository,
+                processService.getWorkflowAggregateRepository(),
                 bean,
                 method,
                 parameters,
@@ -239,7 +236,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         
     }
         
-    public UserTaskDetails noopUserTaskMethod(
+    public UserTaskDetails noopUserTaskDetailsMethod(
             final PrefilledUserTaskDetails userTaskDetails) {
         
         return userTaskDetails;

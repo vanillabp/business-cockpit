@@ -25,6 +25,8 @@ public class WorkflowEventZeebeRecordMapper {
         workflowCreatedEvent.setProcessDefinitionKey(record.getProcessDefinitionKey());
         workflowCreatedEvent.setProcessInstanceKey(record.getProcessInstanceKey());
         workflowCreatedEvent.setBpmnProcessId(record.getBpmnProcessId());
+        workflowCreatedEvent.setProcessDefinitionKey(
+                record.getProcessDefinitionKey());
 
         return workflowCreatedEvent;
     }
@@ -42,6 +44,8 @@ public class WorkflowEventZeebeRecordMapper {
         workflowCreatedEvent.setProcessDefinitionKey(record.getProcessDefinitionKey());
         workflowCreatedEvent.setProcessInstanceKey(record.getProcessInstanceKey());
         workflowCreatedEvent.setBpmnProcessId(processInformation.getBpmnProcessId());
+        workflowCreatedEvent.setProcessDefinitionKey(
+                record.getProcessDefinitionKey());
 
         return workflowCreatedEvent;
     }
@@ -82,10 +86,12 @@ public class WorkflowEventZeebeRecordMapper {
         Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent = new Camunda8WorkflowLifeCycleEvent();
         workflowLifeCycleEvent.setProcessInstanceKey(
                 processInstanceRecord.getProcessInstanceKey());
+        workflowLifeCycleEvent.setProcessDefinitionKey(
+                processInstanceRecord.getProcessDefinitionKey());
         workflowLifeCycleEvent.setBpmnProcessId(
                 processInstanceRecord.getBpmnProcessId());
-        workflowLifeCycleEvent.setBpmnProcessVersion(
-                Integer.toString(processInstanceRecord.getVersion()));
+        workflowLifeCycleEvent.setWorkflowDefinitionVersion(
+                processInstanceRecord.getVersion());
         workflowLifeCycleEvent.setTenantId(
                 processInstanceRecord.getTenantId());
         return workflowLifeCycleEvent;

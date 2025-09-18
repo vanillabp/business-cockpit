@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.adapter.camunda8.usertask.publishing.Camunda8UserTas
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
+import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.Camunda8WorkflowEventPublisher;
 import io.vanillabp.cockpit.adapter.common.CockpitCommonAdapterConfiguration;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
@@ -77,7 +78,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Autowired
     private Camunda8VanillaBpProperties properties;
 
-    private final Map<Class<?>, Camunda8BusinessCockpitService> cockpitServices = new HashMap<>();
+    private final Map<Class<?>, Camunda8BusinessCockpitService<?>> cockpitServices = new HashMap<>();
 
     @Override
     public String getAdapterId() {
@@ -90,12 +91,17 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     }
 
     @Bean
-    public Camunda8WorkflowEventHandler ccamunda8BusinessCockpitWorkflowEventHandler(
-            final ApplicationEventPublisher applicationEventPublisher,
-            final WorkflowPublishing workflowPublishing) {
-        return new Camunda8WorkflowEventHandler(applicationEventPublisher, workflowPublishing);
+    public Camunda8WorkflowEventHandler ccamunda8BusinessCockpitWorkflowEventHandler() {
+        return new Camunda8WorkflowEventHandler();
     }
 
+    @Bean
+    public Camunda8WorkflowEventPublisher camunda8BusinessCockpitWorkflowEventPublisher(
+            final WorkflowPublishing workflowPublishing) {
+
+        return new Camunda8WorkflowEventPublisher(
+                workflowPublishing);
+    }
 
     @Bean
     public Camunda8UserTaskEventPublisher camunda8BusinessCockpitUserTaskEventPublisher(
@@ -138,25 +144,33 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public Camunda8WorkflowHandler camunda8WorkflowHandler(
             final VanillaBpCockpitProperties cockpitProperties,
+            final ApplicationEventPublisher applicationEventPublisher,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
-            final String bpmnProcessName,
+            final String bpmnProcessVersionInfo,
+            final String processTitle,
             final Optional<Configuration> templating,
+            final String aggregateIdPropertyName,
             final CrudRepository<Object, Object> workflowAggregateRepository,
             final Object bean,
             final Method method,
-            final List<MethodParameter> parameters) {
+            final List<MethodParameter> parameters,
+            final CamundaClient client) {
 
         final var result = new Camunda8WorkflowHandler(
                 cockpitProperties,
+                applicationEventPublisher,
                 processService,
                 bpmnProcessId,
-                bpmnProcessName,
+                bpmnProcessVersionInfo,
+                processTitle,
                 templating,
+                aggregateIdPropertyName,
                 workflowAggregateRepository,
                 bean,
                 method,
-                parameters);
+                parameters,
+                client);
         final var cockpitService = cockpitServices.get(processService.getWorkflowAggregateClass());
         if (cockpitService != null) {
             final var tenantId = properties.getTenantId(processService.getWorkflowModuleId());
@@ -208,20 +222,25 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Bean
     public Camunda8WorkflowWiring camunda8BusinessCockpitWorkflowWiring(
             final ApplicationContext applicationContext,
+            final ApplicationEventPublisher applicationEventPublisher,
             final VanillaBpCockpitProperties cockpitProperties,
             final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
+            final SpringDataUtil springDataUtil,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Camunda8WorkflowEventHandler workflowEventListener,
             final WorkflowModulePublishing workflowModulePublishing,
-            final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers) {
+            final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers) throws Exception {
         return new Camunda8WorkflowWiring(
                 applicationContext,
+                applicationEventPublisher,
+                workerId,
                 cockpitProperties,
                 camunda8Properties,
                 springBeanUtil,
+                springDataUtil,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
                 getConnectableServices(),
@@ -238,8 +257,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final VanillaBpCockpitProperties cockpitProperties,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring,
-            final Camunda8UserTaskEventHandler userTaskEventHandler,
-            final Camunda8WorkflowEventHandler workflowEventHandler,
             final ApplicationEventPublisher applicationEventPublisher) {
 
         return new Camunda8DeploymentAdapter(
@@ -249,8 +266,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 cockpitProperties,
                 camunda8UserTaskWiring,
                 camunda8WorkflowWiring,
-                userTaskEventHandler,
-                workflowEventHandler,
                 applicationEventPublisher);
     }
 
@@ -296,7 +311,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             }
         }
 
-        final var result = new Camunda8BusinessCockpitService<WA>(
+        final var result = new Camunda8BusinessCockpitService<>(
                 workflowAggregateRepository,
                 workflowAggregateClass,
                 springDataUtil::getId,

@@ -1,12 +1,11 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask.publishing;
 
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
+import java.util.LinkedList;
+import java.util.List;
 import org.springframework.context.event.EventListener;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.LinkedList;
-import java.util.List;
 
 public class Camunda8UserTaskEventPublisher {
 
@@ -30,11 +29,11 @@ public class Camunda8UserTaskEventPublisher {
     }
 
     @TransactionalEventListener(
-            value = ProcessUserTaskEvent.class,
+            value = ProcessUserTaskAfterTransactionEvent.class,
             fallbackExecution = true,
             phase = TransactionPhase.AFTER_COMMIT)
     public void handle(
-            final ProcessUserTaskEvent triggerEvent) {
+            final ProcessUserTaskAfterTransactionEvent triggerEvent) {
         
         try {
             events
@@ -42,8 +41,6 @@ public class Camunda8UserTaskEventPublisher {
                     .stream()
                     .map(UserTaskEvent::getEvent)
                     .forEach(userTaskPublishing::publish);
-
-
         } finally {
             
             events.get().clear();
@@ -53,11 +50,11 @@ public class Camunda8UserTaskEventPublisher {
     }
 
     @TransactionalEventListener(
-            value = ProcessUserTaskEvent.class,
+            value = ProcessUserTaskAfterTransactionEvent.class,
             fallbackExecution = false,
             phase = TransactionPhase.AFTER_ROLLBACK)
     public void handleRollback(
-            final ProcessUserTaskEvent triggerEvent) {
+            final ProcessUserTaskAfterTransactionEvent triggerEvent) {
         
         events.get().clear();
 

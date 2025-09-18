@@ -36,9 +36,9 @@ import static io.vanillabp.cockpit.adapter.camunda8.receiver.kafka.KafkaConfigur
 public class KafkaController {
 
     public static class ProcessInformation {
-        private String bpmnProcessId;
-        private long version;
-        private String versionTag;
+        private final String bpmnProcessId;
+        private final long version;
+        private final String versionTag;
 
         public ProcessInformation(
                 final String bpmnProcessId,
@@ -139,7 +139,7 @@ public class KafkaController {
         }
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue, processInformation.get());
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
-        camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
+        camunda8WorkflowEventHandler.processCreatedEvent(workflowCreatedEvent);
 
     }
 
@@ -192,7 +192,7 @@ public class KafkaController {
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper
                 .map(processEventRecordValue, processInformation.get());
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
-        camunda8WorkflowEventHandler.processWorkflowCreatedEvent(workflowCreatedEvent);
+        camunda8WorkflowEventHandler.processCreatedEvent(workflowCreatedEvent);
 
     }
 
@@ -224,17 +224,17 @@ public class KafkaController {
         if (intent.equals("ELEMENT_TERMINATED") || intent.equals("ELEMENT_COMPLETED")) {
             Camunda8WorkflowLifeCycleEvent workflowLifeCycleEvent = WorkflowEventZeebeRecordMapper.map(processInstanceRecordValue);
             WorkflowEventZeebeRecordMapper.addMetaData(workflowLifeCycleEvent, value);
-            camunda8WorkflowEventHandler.processWorkflowLifecycleEvent(workflowLifeCycleEvent);
+            camunda8WorkflowEventHandler.processLifecycleEvent(workflowLifeCycleEvent);
         }
     }
 
     private void handleJobRecord(Record<?> value) {
         JobRecordValue jobRecordValue = (JobRecordValue) value.getValue();
 
-        if (!value.getRecordType().equals(RecordType.EVENT)){
+        if (!value.getRecordType().equals(RecordType.EVENT)) {
             return;
         }
-        if (!jobRecordValue.getType().equals("io.camunda.zeebe:userTask")){
+        if (jobRecordValue.getType().equals("io.camunda.zeebe:userTask")) {
             return;
         }
         // job lifecycle
@@ -243,12 +243,12 @@ public class KafkaController {
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue, idNames);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskCreatedEvent, value);
-            camunda8UserTaskEventHandler.notify(camunda8UserTaskCreatedEvent);
+            camunda8UserTaskEventHandler.processCreatedEvent(camunda8UserTaskCreatedEvent);
         } else if (Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)) {
             Camunda8UserTaskLifecycleEvent camunda8UserTaskLifecycleEvent =
                     UserTaskEventZeebeRecordMapper.mapToUserTaskLifecycleInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskLifecycleEvent, value);
-            camunda8UserTaskEventHandler.notify(camunda8UserTaskLifecycleEvent);
+            camunda8UserTaskEventHandler.processLifecycleEvent(camunda8UserTaskLifecycleEvent);
         }
 
     }

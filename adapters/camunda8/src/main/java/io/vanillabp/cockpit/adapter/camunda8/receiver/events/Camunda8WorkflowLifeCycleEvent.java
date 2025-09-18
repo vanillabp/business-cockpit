@@ -12,7 +12,8 @@ public class Camunda8WorkflowLifeCycleEvent {
     private String deleteReason;
     private long processInstanceKey;
     private String bpmnProcessId;
-    private String bpmnProcessVersion;
+    private int workflowDefinitionVersion;
+    private long processDefinitionKey;
     private Intent intent;
 
     private String tenantId;
@@ -65,12 +66,12 @@ public class Camunda8WorkflowLifeCycleEvent {
         this.bpmnProcessId = bpmnProcessId;
     }
 
-    public String getBpmnProcessVersion() {
-        return bpmnProcessVersion;
+    public int getWorkflowDefinitionVersion() {
+        return workflowDefinitionVersion;
     }
 
-    public void setBpmnProcessVersion(String bpmnProcessVersion) {
-        this.bpmnProcessVersion = bpmnProcessVersion;
+    public void setWorkflowDefinitionVersion(int workflowDefinitionVersion) {
+        this.workflowDefinitionVersion = workflowDefinitionVersion;
     }
 
     public String getTenantId() {
@@ -79,6 +80,14 @@ public class Camunda8WorkflowLifeCycleEvent {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public long getProcessDefinitionKey() {
+        return processDefinitionKey;
+    }
+
+    public void setProcessDefinitionKey(long processDefinitionKey) {
+        this.processDefinitionKey = processDefinitionKey;
     }
 
 }

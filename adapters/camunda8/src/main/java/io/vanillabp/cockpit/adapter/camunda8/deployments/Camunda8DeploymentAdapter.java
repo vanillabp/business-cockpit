@@ -5,8 +5,12 @@ import io.camunda.spring.client.event.CamundaClientCreatedEvent;
 import io.camunda.zeebe.model.bpmn.impl.BpmnModelInstanceImpl;
 import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
+import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.Process;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListener;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListenerEventType;
+import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListeners;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeFormDefinition;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskListener;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeTaskListenerEventType;
@@ -15,11 +19,9 @@ import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeUserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeVersionTag;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
-import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8WorkflowConnectable;
-import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.springboot.adapter.ModuleAwareBpmnDeployment;
@@ -37,7 +39,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.camunda.bpm.model.xml.impl.util.IoUtil;
@@ -50,7 +51,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 
-import static io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER;
+import static io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring.JOBTYPE_DETAILSPROVIDER;
 
 public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
@@ -64,10 +65,6 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     public static final String PROPERTY_EXECUTIONLISTENER_PREFIXES = "io.vanillabp.businesscockpit.executionlistener.prefixes";
 
-    public static final Pattern PROPERTY_TASKLISTENER_PREFIXES_REGEX = Pattern.compile("io\\.vanillabp.+tasklistener\\.prefixes");
-
-    public static final Pattern PROPERTY_EXECUTIONLISTENER_PREFIXES_REGEX = Pattern.compile("io\\.vanillabp.+executionlistener\\.prefixes");
-
     private final BpmnParser bpmnParser = new BpmnParser();
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -75,12 +72,6 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     private final Camunda8UserTaskWiring camunda8UserTaskWiring;
 
     private final Camunda8WorkflowWiring camunda8WorkflowWiring;
-
-    private final Camunda8UserTaskEventHandler userTaskEventHandler;
-
-    private final Camunda8WorkflowEventHandler workflowEventHandler;
-
-    private final String applicationName;
 
     private final Camunda8VanillaBpProperties camunda8Properties;
 
@@ -92,7 +83,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     public static void initializeCrossCuttingProperties() {
         ModuleAwareBpmnDeployment.adapterProperties.put(
                 PROPERTY_TASKLISTENER_PREFIXES,
-                List.of(Camunda8UserTaskWiring.TASKDEFINITION_USERTASK_DETAILSPROVIDER));
+                List.of(Camunda8UserTaskWiring.JOBTYPE_DETAILSPROVIDER));
         ModuleAwareBpmnDeployment.adapterProperties.put(
                 PROPERTY_EXECUTIONLISTENER_PREFIXES,
                 List.of(Camunda8WorkflowWiring.TASKDEFINITION_WORKFLOW_DETAILSPROVIDER));
@@ -116,18 +107,13 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final VanillaBpCockpitProperties cockpitProperties,
             final Camunda8UserTaskWiring camunda8UserTaskWiring,
             final Camunda8WorkflowWiring camunda8WorkflowWiring,
-            final Camunda8UserTaskEventHandler userTaskEventHandler,
-            final Camunda8WorkflowEventHandler workflowEventHandler,
             final ApplicationEventPublisher applicationEventPublisher) {
 
         super(properties, applicationName);
         this.camunda8Properties = camunda8Properties;
         this.cockpitProperties = cockpitProperties;
-        this.applicationName = applicationName;
         this.camunda8UserTaskWiring = camunda8UserTaskWiring;
         this.camunda8WorkflowWiring = camunda8WorkflowWiring;
-        this.userTaskEventHandler = userTaskEventHandler;
-        this.workflowEventHandler = workflowEventHandler;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -271,7 +257,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                     try (var inputStream = resource.getInputStream()) {
 
                         final var filename = resource.getFilename();
-                        logger.info("About to process '{}' of workflow-module '{}'",
+                        logger.info("About to process '{}' of workflow-module '{}' for business cockpit",
                                 filename,
                                 workflowModuleId);
                         Optional
@@ -356,11 +342,133 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             final boolean isNewProcess) {
         executableProcesses
                 .stream()
-                .map(process -> new Camunda8WorkflowConnectable(process.getId(), process.getName()))
+                .flatMap(process -> getWorkflowConnectables(workflowModuleId, process, versionInfo, isNewProcess))
                 .forEach(connectable -> {
                     camunda8WorkflowWiring.wireService(workflowModuleId, connectable);
                     camunda8WorkflowWiring.wireWorkflow(workflowModuleId, connectable);
                 });
+    }
+
+    @SuppressWarnings("unchecked")
+    public Stream<Camunda8WorkflowConnectable> getWorkflowConnectables(
+            final String workflowModuleId,
+            final Process process,
+            final String versionInfo,
+            final boolean isNewProcess) {
+
+        final var executionListenerPrefixes = adapterProperties
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().equals(PROPERTY_EXECUTIONLISTENER_PREFIXES))
+                .flatMap(entry -> ((Collection<String>) entry.getValue()).stream())
+                .toList();
+
+        final var tenantId = camunda8Properties.getTenantId(workflowModuleId);
+
+        final List<Camunda8WorkflowConnectable> result = new LinkedList<>();
+
+        getExistingExecutionListenersJobTypes(executionListenerPrefixes, process)
+                .stream()
+                .map(jobType ->new Camunda8WorkflowConnectable(
+                        workflowModuleId,
+                        tenantId,
+                        process,
+                        versionInfo))
+                .forEach(result::add);
+
+        if (isNewProcess) {
+            addExecutionListenersToBpmnModel(process);
+            result
+                    .add(new Camunda8WorkflowConnectable(
+                            workflowModuleId,
+                            tenantId,
+                            process,
+                            versionInfo));
+        }
+
+        return result.stream();
+
+    }
+
+    /**
+     * Order of listeners:
+     *
+     * <ul>
+     *     <li>any custom "start"</li>
+     *     <li>Business Cockpit "start": Business Cockpit should reflect all modifications done by previous listeners</li>
+     *     <li>any custom listener</li>
+     *     <li>Business Cockpit "end": Business Cockpit should reflect all modifications done by previous listeners</li>
+     *     <li>Business Cockpit "canceled": Business Cockpit should reflect all modifications done by previous listeners</li>
+     * </ul>
+     *
+     * @param element
+     */
+    private void addExecutionListenersToBpmnModel(
+            final Process element) {
+
+        final var bpmnProcessId = element.getId();
+
+        final ZeebeExecutionListeners executionListeners;
+        final boolean isNew;
+        if (element.getSingleExtensionElement(ZeebeExecutionListeners.class) != null) {
+            executionListeners = element.getSingleExtensionElement(ZeebeExecutionListeners.class);
+            isNew = false;
+        } else {
+            final ExtensionElements extensionElements;
+            if (element.getExtensionElements() == null) {
+                extensionElements = element.getModelInstance().newInstance(ExtensionElements.class);
+                element.addChildElement(extensionElements);
+            } else {
+                extensionElements = element.getExtensionElements();
+            }
+            executionListeners = extensionElements.addExtensionElement(ZeebeExecutionListeners.class);
+            isNew = true;
+        }
+
+        final var startListener = element.getModelInstance().newInstance(ZeebeExecutionListener.class);
+        startListener.setEventType(ZeebeExecutionListenerEventType.start);
+        startListener.setType(JOBTYPE_DETAILSPROVIDER + bpmnProcessId);
+        startListener.setRetries("0");
+
+        if (isNew) {
+            executionListeners.insertElementAfter(startListener, null); // insert as first listener
+        } else {
+            final var previousListeners = new LinkedList<>(executionListeners.getExecutionListeners()
+                    .stream()
+                    .filter(listener -> listener.getEventType().equals(ZeebeExecutionListenerEventType.start))
+                    .toList());
+            executionListeners.insertElementAfter(startListener, previousListeners.isEmpty() ? null : previousListeners.getLast());
+        }
+
+        final var endListener = element.getModelInstance().newInstance(ZeebeExecutionListener.class);
+        endListener.setEventType(ZeebeExecutionListenerEventType.end);
+        endListener.setType(JOBTYPE_DETAILSPROVIDER + bpmnProcessId);
+        endListener.setRetries("0");
+
+        if (isNew) {
+            executionListeners.insertElementAfter(endListener, startListener);
+        } else {
+            final var previousListener = new LinkedList<>(executionListeners.getExecutionListeners())
+                    .getLast();
+            executionListeners.insertElementAfter(endListener, previousListener);
+        }
+
+    }
+
+    private List<String> getExistingExecutionListenersJobTypes(
+            final List<String> executionListenerPrefixes,
+            final BaseElement element) {
+
+        return Optional
+                .ofNullable(element.getSingleExtensionElement(ZeebeExecutionListeners.class))
+                .stream()
+                .flatMap(zeebeTaskListeners -> zeebeTaskListeners.getExecutionListeners().stream())
+                .map(ZeebeExecutionListener::getType)
+                .filter(type -> executionListenerPrefixes
+                        .stream()
+                        .anyMatch(type::startsWith))
+                .toList();
+
     }
 
     private void wireUserTasks(
@@ -408,7 +516,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                     process,
                                     versionInfo,
                                     element.getId(),
-                                    jobType.startsWith(TASKDEFINITION_USERTASK_DETAILSPROVIDER) ? externalFormReference : jobType,
+                                    jobType.startsWith(JOBTYPE_DETAILSPROVIDER) ? externalFormReference : jobType,
                                     getTaskName(element)))
                             .forEach(result::add);
                     if (isNewProcess && StringUtils.hasText(externalFormReference)) {
@@ -424,8 +532,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                         getTaskName(element)));
                     }
                     return result.stream();
-                })
-                .filter(Camunda8UserTaskConnectable::isExecutableProcess);
+                });
 
     }
 
@@ -461,7 +568,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
         final var createListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
         createListener.setEventType(ZeebeTaskListenerEventType.creating);
-        createListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        createListener.setType(JOBTYPE_DETAILSPROVIDER + externalFormReference);
         createListener.setRetries("0");
 
         if (isNew) {
@@ -476,7 +583,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
         final var cancelListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
         cancelListener.setEventType(ZeebeTaskListenerEventType.canceling);
-        cancelListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        cancelListener.setType(JOBTYPE_DETAILSPROVIDER + externalFormReference);
         cancelListener.setRetries("0");
 
         if (isNew) {
@@ -489,7 +596,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
         final var completeListener = element.getModelInstance().newInstance(ZeebeTaskListener.class);
         completeListener.setEventType(ZeebeTaskListenerEventType.completing);
-        completeListener.setType(TASKDEFINITION_USERTASK_DETAILSPROVIDER + externalFormReference);
+        completeListener.setType(JOBTYPE_DETAILSPROVIDER + externalFormReference);
         completeListener.setRetries("0");
 
         if (isNew) {
