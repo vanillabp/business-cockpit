@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.kafka;
 
-
 import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordType;
@@ -85,6 +84,15 @@ public class KafkaController {
         }
         // empty (none) start event
         final var processInstanceCreationRecordValue = (ProcessInstanceCreationRecordValue) value.getValue();
+	final var processDefinitionKey = processInstanceCreationRecordValue.getProcessDefinitionKey();
+	if (hasNoProcessInformation(processDefinitionKey)) {
+	    final var tenantId = processInstanceCreationRecordValue.getTenantId();
+	    if (camunda8WorkflowEventHandler.isTenantKnown(tenantId)) {
+		logUnknownProcessDefinitionWarning(tenantId, processDefinitionKey);
+	    }
+	    return;
+	}
+
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue);
         WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
         camunda8WorkflowEventHandler.saveBusinessKeyForRootProcessInstance(workflowCreatedEvent);
@@ -171,6 +179,16 @@ public class KafkaController {
         if (!jobRecordValue.getType().equals("io.camunda.zeebe:userTask")){
             return;
         }
+
+	long processDefinitionKey = jobRecordValue.getProcessDefinitionKey();
+	if (hasNoProcessInformation(processDefinitionKey)) {
+	    String tenantId = jobRecordValue.getTenantId();
+	    if (camunda8WorkflowEventHandler.isTenantKnown(tenantId)) {
+		logUnknownProcessDefinitionWarning(tenantId, processDefinitionKey);
+	    }
+	    return;
+	}
+
         // job lifecycle
         String intentName = value.getIntent().name();
         if (intentName.equals("CREATED")) {
@@ -187,4 +205,13 @@ public class KafkaController {
 
     }
 
+    private boolean hasNoProcessInformation(long definitionKey) {
+	return deploymentService.getProcessInformationByDefinitionKey(definitionKey).isEmpty();
+    }
+
+    private void logUnknownProcessDefinitionWarning(String tenantId, long processDefinitionKey) {
+	logger.warn("Tenant {} has no process information for definition key '{}'!",
+		tenantId,
+		processDefinitionKey);
+    }
 }
