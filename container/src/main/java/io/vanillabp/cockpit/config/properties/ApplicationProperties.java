@@ -5,6 +5,8 @@ import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
 
+import java.util.Map;
+
 @ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = false)
 public class ApplicationProperties {
 
@@ -23,8 +25,10 @@ public class ApplicationProperties {
     
     @NonNull
     private String applicationUri;
-    
+
     private JwtProperties jwt = new JwtProperties();
+
+    private Map<String, Object> additionalProperties;
 
     public GuiSseProperties getGuiSse() {
         return guiSse;
@@ -80,6 +84,14 @@ public class ApplicationProperties {
 
     public void setBuildTimestamp(String buildTimestamp) {
         this.buildTimestamp = buildTimestamp;
+    }
+
+    public void setAdditionalProperties(Map<String, Object> additionalProperties) {
+	this.additionalProperties = additionalProperties;
+    }
+
+    public Map<String, Object> getAdditionalProperties() {
+	return additionalProperties;
     }
 
 }
