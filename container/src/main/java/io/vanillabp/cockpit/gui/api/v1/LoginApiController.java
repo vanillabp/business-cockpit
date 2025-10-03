@@ -135,8 +135,7 @@ public class LoginApiController implements LoginApi {
             updateEmitters
                     .entrySet()
                     .stream()
-                    // TODO: get affected users/groups (old doc, new doc) and also take mappings (user substitutes) into account
-                     .filter(emitter -> guiEvent.matchesTargetGroups(emitter.getValue().getGroups()))
+                     .filter(emitter -> guiEvent.relevantForTargetGroups(emitter.getValue().getGroups()))
                     .forEach(emitter -> emitter.getValue().collectEvent(guiEvent));
         }
 

@@ -44,4 +44,12 @@ public class GuiEvent extends ApplicationEvent {
         
     }
 
+    public boolean relevantForTargetGroups(final Collection<String> groups) {
+        if (targetGroups == null) {
+	    return true;
+	}
+
+	return targetGroups.stream().anyMatch(groups::contains);
+    }
+
 }
