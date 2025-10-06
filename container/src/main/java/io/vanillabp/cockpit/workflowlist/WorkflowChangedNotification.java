@@ -18,12 +18,14 @@ public class WorkflowChangedNotification extends NotificationEvent {
     public WorkflowChangedNotification(
             final Type type,
             final String workflowId,
-            final Collection<String> targetGroups) {
+            final Collection<String> targetGroups,
+	    final Collection<String> targetUsers) {
         
         super(
                 "Workflow",
                 type,
-                targetGroups);
+                targetGroups,
+		targetUsers);
         
         this.workflowId = workflowId;
         
@@ -53,7 +55,8 @@ public class WorkflowChangedNotification extends NotificationEvent {
                 Type.valueOf(type.name()),
                 message.getRaw().getDocumentKey().get(
                         message.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                null);
+                null,
+		null);
         
     }
     
@@ -81,7 +84,8 @@ public class WorkflowChangedNotification extends NotificationEvent {
                 Type.valueOf(type.name()),
                 event.getRaw().getDocumentKey().get(
                         event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                null);
+                null,
+		null);
         
     }
 

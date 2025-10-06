@@ -19,7 +19,8 @@ public class UserTaskChangedNotification extends NotificationEvent {
     public UserTaskChangedNotification(
             final Type type,
             final String userTaskId,
-            final Collection<String> targetGroups) {
+            final Collection<String> targetGroups,
+	    final Collection<String> targetUsers) {
         
         super(
                 "UserTask",
