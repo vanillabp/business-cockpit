@@ -103,9 +103,9 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
     1. Add VanillaBP Business Cockpit webapp:
        ```shell
        cd demo/src/main
-       
-       cp my-git-folder/business-cp
+       cp my-git-folder/business-cockpit/container/src/main/webapp .
        ```
+    1. t.b.d.
 
 ## Architecture
 
