@@ -1,19 +1,21 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
+import com.mongodb.reactivestreams.client.MongoClient;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import java.time.OffsetDateTime;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.mapping.event.ReactiveBeforeConvertCallback;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
-@ConditionalOnProperty(prefix = "spring.data.mongodb", name = "uri")
+@ConditionalOnClass({ MongoClient.class, ReactiveMongoTemplate.class })
 public class UpdateInformationEventListener implements ReactiveBeforeConvertCallback<Object> {
 
     @Autowired
@@ -40,5 +42,5 @@ public class UpdateInformationEventListener implements ReactiveBeforeConvertCall
         return Mono.just(entityObj);
 
     }
-    
+
 }
