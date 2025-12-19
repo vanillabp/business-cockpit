@@ -101,6 +101,24 @@ those users.
    };
    ```
 
+## Persistence of workflows and user tasks
+
+The *Dev-Shell Simulator* uses H2 to persist workflow modules, workflows and user tasks
+reported in memory only. The consequence is that drop-downs in *Dev-Shell UI* to select workflows
+or user tasks getting empty after restarting the *Dev-Shell Simulator*.
+
+You make those values persistent by letting H2 store data in a file. Simply override the JDBC like this:
+
+```shell
+   java -Dspring.datasource.url="jdbc:h2:file:./dev-shell-simulator.h2;DB_CLOSE_ON_EXIT=FALSE" \
+      -jar dev-shell-simulator-*-runnable.jar \
+      --spring.config.additional-location=./users.yaml
+   ```
+
+*Hint:* Doing so may show workflows or user tasks in the drop-downs of the *Dev-Shell UI* which
+may not exist any more in your application or in the underlying BPMS. It is your task to delete
+the H2 storage file to clean up those drop-downs.
+
 ## Noteworthy & Contributors
 
 VanillaBP was developed by [Phactum](https://www.phactum.at) with the intention of giving back to the community as it

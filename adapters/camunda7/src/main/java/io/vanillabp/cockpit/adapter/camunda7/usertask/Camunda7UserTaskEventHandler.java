@@ -1,5 +1,8 @@
 package io.vanillabp.cockpit.adapter.camunda7.usertask;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 import org.camunda.bpm.engine.delegate.DelegateTask;
 import org.camunda.bpm.engine.delegate.TaskListener;
 import org.camunda.bpm.engine.impl.persistence.entity.ExecutionEntity;
@@ -7,10 +10,6 @@ import org.camunda.bpm.engine.impl.persistence.entity.TaskEntity;
 import org.camunda.bpm.model.bpmn.instance.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 public class Camunda7UserTaskEventHandler implements TaskListener {
 

@@ -1,19 +1,22 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.gui.api.v1.*;
+import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
+import java.time.OffsetDateTime;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.OffsetDateTime;
 /**
  * REST controller for the official task list API.
  * Allows retrieving UserTasks.
  */
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/official-api/v1")
 public class OfficialApiTaskController implements OfficialTasklistApi {
 
@@ -21,18 +24,7 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
 
     private final TaskService taskService;
 
-    /**
-     * Constructor for usertask.OfficialApiTaskController.
-     *
-     * @param taskService The usertask.TaskService for managing UserTasks.
-     */
-    @Autowired
-    public OfficialApiTaskController(
-            final TaskService taskService) {
-
-        this.taskService = taskService;
-
-    }
+    private final OfficialApiMapper mapper;
 
     /**
      * Retrieves a UserTask by its ID.
@@ -45,15 +37,12 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
             final String userTaskId,
             final Boolean markAsRead) {
 
-        final UserTask userTask = taskService.getUserTask(userTaskId);
-
-        if (userTask == null) {
-            return ResponseEntity.notFound().build();
-        }
+        final var userTaskFound = taskService.getUserTask(userTaskId);
+        final var apiUserTask = mapper.toApi(userTaskFound);
 
         log.info("Client retrieved UserTask {}", userTaskId);
 
-        return ResponseEntity.ok(userTask);
+        return ResponseEntity.ok(apiUserTask);
 
     }
 
@@ -62,11 +51,15 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
             final UserTasksRequest userTasksRequest,
             final OffsetDateTime initialTimestamp) {
         
-        final var userTasks = taskService.getUserTasks(userTasksRequest);
+        final var userTasks = taskService.getUserTasks(
+                mapper.toModel(userTasksRequest.getMode()),
+                userTasksRequest.getPageNumber(),
+                userTasksRequest.getPageSize());
+        final var apiUserTasks = mapper.toUserTasksApi(userTasks);
 
-        log.info("Client retrieved all UserTasks, total: {}", userTasks.getUserTasks().size());
+        log.info("Client retrieved UserTasks, total: {}", userTasks.getTotalElements());
 
-        return ResponseEntity.ok(userTasks);
+        return ResponseEntity.ok(apiUserTasks);
     }
 
 }

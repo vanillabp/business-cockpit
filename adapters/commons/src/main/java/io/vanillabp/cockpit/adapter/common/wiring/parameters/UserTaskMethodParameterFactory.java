@@ -14,4 +14,12 @@ public class UserTaskMethodParameterFactory extends MethodParameterFactory {
 
     }
 
+    public DetailsEventMethodParameter getDetailsEventParameter(
+            final int index,
+            final String parameter) {
+
+        return new DetailsEventMethodParameter(index, parameter);
+
+    }
+
 }

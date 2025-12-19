@@ -1,18 +1,11 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.gui.api.v1.*;
-
-import java.time.OffsetDateTime;
-import java.util.HashMap;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTaskRepository;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,10 +15,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaskService {
 
-    private final Map<String, UserTask> userTasks = new HashMap<>();
+    public enum RetrieveMode {
+        ALL,
+        OPENTASKS,
+        OPENTASKSWITHOUTFOLLOWUP,
+        OPENTASKSWITHFOLLOWUP,
+        CLOSEDTASKSONLY
+    };
 
     @Autowired
-    private OfficialApiMapper mapper;
+    private UserTaskRepository userTasks;
 
     /**
      * Creates a new UserTask from details and adds it to the task map.
@@ -35,14 +34,13 @@ public class TaskService {
 
     public void createTask(
             final String userTaskId,
-            final UserTaskCreatedOrUpdatedEvent event) {
+            final UserTask userTask) {
 
-        if ((userTaskId == null) || (event == null)) {
-            throw new IllegalArgumentException("UserTask ID or event must not be null!");
+        if ((userTaskId == null) || (userTask == null)) {
+            throw new IllegalArgumentException("UserTask ID or UserTask must not be null!");
         }
 
-        final var userTask = mapper.toApi(event);
-        userTasks.put(userTaskId, userTask);
+        userTasks.save(userTask);
 
     }
 
@@ -59,35 +57,30 @@ public class TaskService {
             throw new IllegalArgumentException("UserTask ID must not be null");
         }
 
-        return userTasks.get(userTaskId);
+        return userTasks
+                .findById(userTaskId)
+                .orElseThrow(() -> new IllegalStateException("User task with ID " + userTasks + " not found"));
 
     }
 
     // ID, businessId, titel
     /**
      * Creates a UserTasks object containing all user tasks with pagination.
-     *
-     * @param userTasksRequest Request containing pagination parameters
-     * @return UserTasks object with tasks and pagination info
      */
-    public UserTasks getUserTasks(final UserTasksRequest userTasksRequest) {
+    public Page<UserTask> getUserTasks(
+            final RetrieveMode retrieveMode,
+            final Integer pageNumberRequested,
+            final Integer pageSizeRequested) {
 
-        var allTasks = getAllUserTasks();
+        final var allTasks = switch (retrieveMode) {
+            case OPENTASKS -> userTasks.findByEndedAtIsNull();
+            case CLOSEDTASKSONLY ->  userTasks.findByEndedAtIsNotNull();
+            default -> userTasks.findAll();
+        };
 
-        // Filter based on mode
-        if (userTasksRequest.getMode().equals(UserTaskRetrieveMode.OPENTASKS)) {
-            allTasks = allTasks.stream()
-                    .filter(task -> task.getEndedAt() == null)
-                    .toList();
-        } else if (userTasksRequest.getMode().equals(UserTaskRetrieveMode.CLOSEDTASKSONLY)) {
-            allTasks = allTasks.stream()
-                    .filter(task -> task.getEndedAt() != null)
-                    .toList();
-        }
-
-        // Extract pagination params
-        int pageSize = userTasksRequest.getPageSize() != null ? userTasksRequest.getPageSize() : 20;
-        int pageNumber = userTasksRequest.getPageNumber() != null ? userTasksRequest.getPageNumber() : 0;
+        // Set default pagination values if not provided
+        int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
+        int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
 
         // Total count after filtering
         int totalElements = allTasks.size();
@@ -98,19 +91,53 @@ public class TaskService {
         int toIndex = Math.min(fromIndex + pageSize, totalElements);
         List<UserTask> pagedTasks = allTasks.subList(fromIndex, toIndex);
 
-        // Build page metadata
-        final var page = new Page();
-        page.setNumber(pageNumber);
-        page.setSize(pageSize);
-        page.setTotalPages(totalPages);
-
-        return new UserTasks()
-                .serverTimestamp(OffsetDateTime.now())
-                .page(page)
-                .userTasks(pagedTasks);
+        // Build the Page metadata
+        return Page
+                .<UserTask>builder()
+                .number(pageNumber)
+                .size(pageSize)
+                .totalPages(totalPages)
+                .pageObjects(pagedTasks)
+                .build();
     }
 
+    /**
+     * Creates a UserTasks object containing all user tasks with pagination.
+     */
+    public Page<UserTask> getUserTasksOfWorkflow(
+            final String workflowId,
+            final RetrieveMode retrieveMode,
+            final Integer pageNumberRequested,
+            final Integer pageSizeRequested) {
 
+        final var allTasks = switch (retrieveMode) {
+            case OPENTASKS -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId);
+            case CLOSEDTASKSONLY ->  userTasks.findByWorkflowIdAndEndedAtIsNotNull(workflowId);
+            default -> userTasks.findByWorkflowId(workflowId);
+        };
+
+        // Set default pagination values if not provided
+        int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
+        int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
+
+        // Total count after filtering
+        int totalElements = allTasks.size();
+        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+
+        // Calculate start and end index
+        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
+        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        List<UserTask> pagedTasks = allTasks.subList(fromIndex, toIndex);
+
+        // Build the Page metadata
+        return Page
+                .<UserTask>builder()
+                .number(pageNumber)
+                .size(pageSize)
+                .totalPages(totalPages)
+                .pageObjects(pagedTasks)
+                .build();
+    }
 
     /**
      * Retrieves all user tasks from the Hashmap.
@@ -120,9 +147,7 @@ public class TaskService {
     public List<UserTask> getAllUserTasks() {
 
         return userTasks
-                .values()
-                .stream()
-                .toList();
+                .findAll();
 
     }
 
@@ -130,23 +155,25 @@ public class TaskService {
      * Updates an existing UserTask in the task map.
      *
      * @param userTaskId The ID of the UserTask to update.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      * @throws IllegalArgumentException If the task ID is null.
      * @throws IllegalStateException    If the task does not exist.
      */
     public void updateTask(
             final String userTaskId,
-            final UserTaskCreatedOrUpdatedEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
+        if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID or event cannot be null!");
         }
-        if (!userTasks.containsKey(userTaskId)) {
-            throw new IllegalStateException("Task with ID " + userTaskId + " not found");
-        }
 
-        final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        final var userTaskFound = userTasks
+                .findById(userTaskId)
+                .orElseThrow(() -> new IllegalStateException("User task with ID " + userTaskId + " not found"));
+
+        mapOnto.accept(userTaskFound);
+
+        userTasks.save(userTaskFound);
 
     }
 
@@ -154,21 +181,23 @@ public class TaskService {
      * Method that gets called when the user task is to be completed. The Main Purpose is to set the end date.
      *
      * @param userTaskId The ID of the UserTask to be completed.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      */
     public void completeTask(
             final String userTaskId,
-            final UserTaskCompletedEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
+        if (userTaskId == null) {
             throw new IllegalArgumentException("UserTask ID or event cannot be null!");
         }
-        if (!userTasks.containsKey(userTaskId)) {
-            throw new IllegalStateException("Task with ID " + userTaskId + " not found");
-        }
 
-        final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        final var userTaskFound = userTasks
+                .findById(userTaskId)
+                .orElseThrow(() -> new IllegalStateException("User task with ID " + userTaskId + " not found"));
+
+        mapOnto.accept(userTaskFound);
+
+        userTasks.save(userTaskFound);
 
     }
 
@@ -176,21 +205,22 @@ public class TaskService {
      * Method that gets called when the user task is to be cancelled. The Main Purpose is to set the end date.
      *
      * @param userTaskId The ID of the UserTask to be completed.
-     * @param event      UserTaskCreatedOrUpdatedEvent that contains all variables to update.
+     * @param mapOnto      Mapper.
      */
     public void cancelTask(
             final String userTaskId,
-            final UserTaskCancelledEvent event) {
+            final Consumer<UserTask> mapOnto) {
 
-        if ((userTaskId == null) || (event == null)) {
-            throw new IllegalArgumentException("UserTask ID or event cannot be null!");
-        }
-        if (!userTasks.containsKey(userTaskId)) {
-            throw new IllegalStateException("Task with ID " + userTaskId + " not found");
+        if (userTaskId == null) {
+            throw new IllegalArgumentException("UserTask ID cannot be null!");
         }
 
-        final var userTask = userTasks.get(userTaskId);
-        mapper.ontoApi(userTask, event);
+        userTasks
+                .findById(userTaskId)
+                .ifPresent(userTaskFound -> {
+                    mapOnto.accept(userTaskFound);
+                    userTasks.save(userTaskFound);
+                });
 
     }
 

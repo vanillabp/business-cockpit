@@ -1,0 +1,593 @@
+openapi: 3.0.3
+info:
+  description: Business Cockpit API
+  version: '1.0'
+  title: BC-API
+servers:
+  - url: /api/v1_1
+tags:
+  - name: bpms
+    description: BPMS Events
+
+paths:
+  /workflow-module/{id}:
+    post:
+      tags:
+        - bpms
+      summary: register a workflow-module or update the registration
+      operationId: registerWorkflowModule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterWorkflowModuleEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /usertask/created:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task CREATED event
+      operationId: userTaskCreatedEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskCreatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+  /usertask/{userTaskId}/updated:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task UPDATED event
+      operationId: userTaskUpdatedEvent
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskUpdatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+  /usertask/{userTaskId}/suspended:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task SUSPENDED event
+      operationId: userTaskSuspendedEvent
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskSuspendedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+  /usertask/{userTaskId}/activated:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task ACTIVATED event
+      operationId: userTaskActivatedEvent
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskActivatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+  /usertask/{userTaskId}/completed:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task COMPLETED event
+      operationId: userTaskCompletedEvent
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskCompletedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden 
+  /usertask/{userTaskId}/cancelled:
+    post:
+      tags:
+        - bpms
+      summary: processes a user task CANCELLED event
+      operationId: userTaskCancelledEvent
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskCancelledEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/created:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow CREATED event
+      operationId: workflowCreatedEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCreatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/updated:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow UPDATED event
+      operationId: workflowUpdatedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowUpdatedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/completed:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow COMPLETED event
+      operationId: workflowCompletedEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCompletedEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+  /workflow/{workflowId}/cancelled:
+    post:
+      tags:
+        - bpms
+      summary: processes a workflow CANCELLED event
+      operationId: workflowCancelledEvent
+      parameters:
+        - in: path
+          name: workflowId
+          description: The unique key of the workflow
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCancelledEvent"
+      responses:
+        200:
+          description: successful operation
+        400:
+          description: Bad request (validation failed)
+        401:
+          description: You are not authorized to view the resource
+        403:
+          description: Accessing the resource you were trying to reach is forbidden
+
+components:
+  schemas:
+    UiUriType:
+      type: string
+      enum:
+      - EXTERNAL
+      - WEBPACK_MF_REACT  # MF ... Module Federation
+    UserTaskUpdatedEvent:
+      type: object
+      required:
+      - id
+      - userTaskId
+      - timestamp
+      - bpmnProcessId
+      - taskDefinition
+      - title
+      - uiUriPath
+      - uiUriType
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        updated:
+          type: boolean
+          description: Whether this event is about an update (otherwise creating a user task)
+        userTaskId:
+          type: string
+          description: user task id
+          example: Has to be unique across all reporting systems
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        workflowModuleId:
+          type: string
+          description: The workflow module sending this event
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process
+        workflowTitle:
+          type: object
+          description: BPMN process title
+          additionalProperties:
+            type: string
+          example:
+            en: Taxi Ride
+            de: Taxifahrt
+        workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        subWorkflowId:
+          type: string
+          description: The unique key of the Call-Activity which caused the user task (or the workflowId)
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        businessId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: 123456
+        title:
+          type: object
+          description: The rendered title of the user-task (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Do ride #4711"
+            de: "Führe die Fahrt #4711 durch"
+        bpmnTaskId:
+          type: string
+          description: The BPMN user task's ID
+          example: "Task_TaxiRide"
+        taskDefinition:
+          type: string
+          description: The task's formkey
+          example: "DoRideForm"
+        taskDefinitionTitle:
+          type: object
+          description: The generic title of the user-task (must not contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: Do ride
+            de: Führe die Fahrt durch
+        uiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: /remoteEntry.js
+        uiUriType:
+          $ref: '#/components/schemas/UiUriType'
+        assignee:
+          type: string
+          example: driverA
+        candidateUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        candidateGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
+        excludedCandidateUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        dueDate:
+          type: string
+          format: date-time
+          example: 2020-05-21T13:30:26.202Z
+        followUpDate:
+          type: string
+          format: date-time
+          example: null
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: true
+          example: '{ "customer": "passanger A" }'
+        detailsFulltextSearch:
+          type: string
+          description: List of words for fulltext searching details
+    UserTaskLifecycleEvent:
+      type: object
+      required:
+      - id
+      - userTaskId
+      - timestamp
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        userTaskId:
+          type: string
+          description: user task id
+          example: Has to be unique across all reporting systems
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+    UserTaskCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskUpdatedEvent"
+    UserTaskCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskUpdatedEvent"
+    UserTaskCancelledEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskUpdatedEvent"
+    UserTaskSuspendedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+    UserTaskActivatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/UserTaskLifecycleEvent"
+    WorkflowUpdatedEvent:
+      type: object
+      required:
+        - id
+        - workflowId
+        - timestamp
+        - bpmnProcessId
+        - workflowModuleId
+        - uiUriPath
+        - uiUriType
+      properties:
+        id:
+          type: string
+          description: event id withing the source system
+        updated:
+          type: boolean
+          description: Whether this event is about an update (otherwise creating a user task)
+        workflowId:
+          type: string
+          description: The unique key of the workflow
+          example: c26f4d10-a7a7-44e5-97ed-cbfd06e760e1
+        businessId:
+          type: string
+          description: The natural ID of the workflow (e.g. order-id)
+          example: AT0815
+        initiator:
+          type: string
+          description: The user who triggered the update. Null if the update is done by the system.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the initial cause of this event (e.g. the time the task was created for ACTIVATED)
+          example: 2019-05-21T13:30:26.202Z
+        source:
+          type: string
+          description: name of the source system sending this event
+        workflowModuleId:
+          type: string
+          description: The workflow module sending this event
+        title:
+          type: object
+          description: The rendered title of the workflow (may contain specific data)
+          additionalProperties:
+            type: string
+          example:
+            en: "Ride request #4711"
+            de: "Fahrtanfrage #4711"
+        comment:
+          type: string
+          example: A comment describing the event. Is interpreted in the context of the event. E.g. the reason which caused CANCELLATION
+        bpmnProcessId:
+          type: string
+          description: BPMN process ID
+          example: taxi-ride
+        bpmnProcessVersion:
+          type: string
+          description: Version of the BPMN process (beneath the version tag)
+        uiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          example: /remoteEntry.js
+        uiUriType:
+          $ref: '#/components/schemas/UiUriType'
+        accessibleToUsers:
+          type: array
+          items:
+            type: string
+          example: []
+        accessibleToGroups:
+          type: array
+          items:
+            type: string
+          example: [ "drivers" ]
+        details:
+          type: object
+          description: Properties for individual searches
+          additionalProperties: true
+          example: '{ "ride-request": "4711" }'
+        detailsFulltextSearch:
+          type: string
+          description: List of words for fulltext searching details
+    WorkflowCompletedEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+    WorkflowCancelledEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+    WorkflowCreatedEvent:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+    RegisterWorkflowModuleEvent:
+      type: object
+      required:
+        - id
+      properties:
+        uri:
+          type: string
+          description: An URI reachable to the business cockpit server providing APIs (task-provider, UI)
+          example: http://localhost:9000/taxiride
+        taskProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the task-provider API
+          example: /api/v1/task-provider
+        workflowProviderApiUriPath:
+          type: string
+          description: A path added to workflowModuleUri to build a URI for the workflow-provider API
+          example: /api/v1/workflow-details-provider
+        accessibleToGroups:
+          type: array
+          description: The list of groups that are allowed to view this workflow module
+          items:
+            type: string

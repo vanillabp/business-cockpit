@@ -7,11 +7,8 @@ import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
 
 // @Mapper
 public interface WorkflowRestMapper {
-    io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent map(WorkflowCancelledEvent workflowCancelledEvent);
-    io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowCompletedEvent);
-
-//    @Mapping(target = "updated", constant = "false")
-    io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent map(WorkflowCreatedEvent workflowCreatedEvent);
-//    @Mapping(target = "updated", constant = "true")
-    io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent map(WorkflowUpdatedEvent workflowUpdatedEvent);
+    io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent map(WorkflowCancelledEvent workflowCancelledEvent);
+    io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowCompletedEvent);
+    io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent map(WorkflowCreatedEvent workflowCreatedEvent);
+    io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent map(WorkflowUpdatedEvent workflowUpdatedEvent);
 }

@@ -39,6 +39,10 @@ message BcEvent {
     WorkflowCompletedEvent workflowCompleted = 7;
     WorkflowCancelledEvent workflowCancelled = 8;
     RegisterWorkflowModuleEvent registerWorkflowModule = 9;
+    UserTaskCreatedOrUpdatedEvent userTaskCreatedV1_1 = 10;
+    UserTaskCreatedOrUpdatedEvent userTaskUpdatedV1_1 = 11;
+    UserTaskCreatedOrUpdatedEvent userTaskCompletedV1_1 = 12;
+    UserTaskCreatedOrUpdatedEvent userTaskCancelledV1_1 = 13;
   }
 }
 

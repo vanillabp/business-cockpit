@@ -1,6 +1,21 @@
 server:
   port: 8079
 
+spring:
+  datasource:
+    url: jdbc:h2:mem:devshellsimulator
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+
 application:
   jwt:
     hmacSHA256-base64: 4FTHgU8uHPy/ahy8IhXHj/K/BVlh7snSUtf3m1XWLkg=

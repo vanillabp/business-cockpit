@@ -1,32 +1,32 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.gui.api.v1.Page;
-import io.vanillabp.cockpit.gui.api.v1.Workflow;
-
-import java.time.OffsetDateTime;
-import java.util.HashMap;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Page;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow;
+import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowRepository;
 import java.util.List;
-import java.util.Map;
-
-import io.vanillabp.cockpit.gui.api.v1.Workflows;
-import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
+import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service class for managing Workflows.
  * Contains the Map {@code workflows} to store and retrieve tasks.
  */
 @Service
+@Transactional
 public class WorkflowService {
 
-    private final Map<String, Workflow> workflows = new HashMap<>();
+    public enum RetrieveMode {
+        ALL,
+        OPENTASKS,
+        OPENTASKSWITHOUTFOLLOWUP,
+        OPENTASKSWITHFOLLOWUP,
+        CLOSEDTASKSONLY
+    };
 
     @Autowired
-    private OfficialApiMapper mapper;
+    private WorkflowRepository workflows;
 
     /**
      * Creates a new Workflow from details and adds it to the workflow map.
@@ -35,14 +35,13 @@ public class WorkflowService {
      */
     public void createWorkflow(
             final String workflowId,
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final Workflow workflow) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
+        if ((workflowId == null) || (workflow == null)) {
+            throw new IllegalArgumentException("Workflow ID or workflow must not be null!");
         }
 
-        final var workflow = mapper.toApi(event);
-        workflows.put(workflowId, workflow);
+        workflows.save(workflow);
 
     }
 
@@ -50,23 +49,26 @@ public class WorkflowService {
      * Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCreatedOrUpdatedEvent containing update details.
+     * @param mapOnto    Mapper
      * @throws IllegalArgumentException If the workflow ID is null.
      * @throws IllegalStateException    If the workflow does not exist.
      */
     public void updateWorkflow(
             final String workflowId,
-            final WorkflowCreatedOrUpdatedEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
-        }
-        if (!workflows.containsKey(workflowId)) {
-            throw new IllegalStateException("Workflow with ID " + workflowId + " not found");
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID must not be null!");
         }
 
-        final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        final var workflowFound = workflows
+                .findById(workflowId)
+                .orElseThrow(() -> new IllegalStateException("Workflow with ID " + workflowId + " not found"));
+
+        mapOnto.accept(workflowFound);
+
+        workflows.save(workflowFound);
+
 
     }
 
@@ -78,9 +80,7 @@ public class WorkflowService {
     public List<Workflow> getAllWorkflows() {
 
         return workflows
-                .values()
-                .stream()
-                .toList();
+                .findAll();
 
     }
 
@@ -97,7 +97,9 @@ public class WorkflowService {
             throw new IllegalArgumentException("Workflow ID must not be null");
         }
 
-        return workflows.get(workflowId);
+        return workflows
+                .findById(workflowId)
+                .orElseThrow(() -> new IllegalStateException("Workflow with ID " + workflowId + " not found"));
 
     }
 
@@ -107,19 +109,16 @@ public class WorkflowService {
      * <p>This method applies pagination to the full list of workflows. It also sets default values
      * if pagination parameters are not provided. The method returns only the current page of workflows
      * along with metadata like page size, number, and total pages.</p>
-     *
-     * @param workflowsRequest The request object containing optional pagination and sorting information.
-     * @return A {@link Workflows} object containing the paginated list and metadata.
      */
-    public Workflows getWorkflowsResponse(final WorkflowsRequest workflowsRequest) {
+    public Page<Workflow> getWorkflows(
+            final Integer pageNumberRequested,
+            final Integer pageSizeRequested) {
 
         List<Workflow> allWorkflows = getAllWorkflows();
 
         // Set default pagination values if not provided
-        int pageSize = (workflowsRequest != null && workflowsRequest.getPageSize() != null)
-                ? workflowsRequest.getPageSize() : 20;
-        int pageNumber = (workflowsRequest != null && workflowsRequest.getPageNumber() != null)
-                ? workflowsRequest.getPageNumber() : 0;
+        int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
+        int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
 
         // Calculate total values
         int totalElements = allWorkflows.size();
@@ -131,52 +130,59 @@ public class WorkflowService {
         List<Workflow> pagedWorkflows = allWorkflows.subList(fromIndex, toIndex);
 
         // Build the Page metadata
-        Page page = new Page();
-        page.setNumber(pageNumber);
-        page.setSize(pageSize);
-        page.setTotalPages(totalPages);
+        return Page
+                .<Workflow>builder()
+                .number(pageNumber)
+                .size(pageSize)
+                .totalPages(totalPages)
+                .pageObjects(pagedWorkflows)
+                .build();
 
-        return new Workflows()
-                .serverTimestamp(OffsetDateTime.now())
-                .page(page)
-                .workflows(pagedWorkflows);
     }
-
 
     /**
      * Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCompletedEvent containing update details.
+     * @param mapOnto    Mapper
      */
     public void completeWorkflow(
             final String workflowId,
-            final WorkflowCompletedEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID must not be null!");
         }
 
-        final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        final var workflowFound = workflows
+                .findById(workflowId)
+                .orElseThrow(() -> new IllegalStateException("Workflow with ID " + workflowId + " not found"));
+
+        mapOnto.accept(workflowFound);
+
+        workflows.save(workflowFound);
 
     }
 
     /** Updates an existing Workflow in the workflow map.
      *
      * @param workflowId The ID of the Workflow to update.
-     * @param event      WorkflowCancelledEvent containing update details.
+     * @param mapOnto    Mapper
      */
     public void cancelWorkflow(
             final String workflowId,
-            final WorkflowCancelledEvent event) {
+            final Consumer<Workflow> mapOnto) {
 
-        if ((workflowId == null) || (event == null)) {
-            throw new IllegalArgumentException("Workflow ID or event must not be null!");
+        if (workflowId == null) {
+            throw new IllegalArgumentException("Workflow ID must not be null!");
         }
 
-        final var workflow = workflows.get(workflowId);
-        mapper.ontoApi(workflow, event);
+        workflows
+                .findById(workflowId)
+                .ifPresent(workflowFound -> {
+                    mapOnto.accept(workflowFound);
+                    workflows.save(workflowFound);
+                });
 
     }
 

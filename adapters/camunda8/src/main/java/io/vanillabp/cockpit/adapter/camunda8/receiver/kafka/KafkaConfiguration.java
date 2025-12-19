@@ -5,7 +5,6 @@ import at.phactum.zeebe.exporters.kafka.serde.RecordId;
 import at.phactum.zeebe.exporters.kafka.serde.RecordIdDeserializer;
 import io.camunda.zeebe.protocol.record.Record;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
-import io.vanillabp.cockpit.adapter.camunda8.deployments.DeploymentService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
@@ -55,7 +54,6 @@ public class KafkaConfiguration {
 
     @Bean
     public KafkaController kafkaController(
-            DeploymentService deploymentService,
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
             Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
             Camunda8AdapterConfiguration camunda8AdapterConfiguration,
@@ -72,7 +70,6 @@ public class KafkaConfiguration {
         }
 
         return new KafkaController(
-                deploymentService,
                 camunda8UserTaskEventHandler,
                 camunda8WorkflowEventHandler,
                 camunda8AdapterConfiguration::getIdNames);

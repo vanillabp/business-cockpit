@@ -7,11 +7,13 @@ public class Camunda8WorkflowCreatedEvent {
 
     private String bpmnProcessId;
 
-    private long version;
+    private String version;
 
     private long processInstanceKey;
 
     private long processDefinitionKey;
+
+    private int workflowDefinitionVersion;
 
     private String businessKey;
 
@@ -65,11 +67,11 @@ public class Camunda8WorkflowCreatedEvent {
         this.timestamp = timestamp;
     }
 
-    public long getVersion() {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion(long version) {
+    public void setVersion(String version) {
         this.version = version;
     }
 
@@ -80,4 +82,13 @@ public class Camunda8WorkflowCreatedEvent {
     public void setBusinessKey(String businessKey) {
         this.businessKey = businessKey;
     }
+
+    public int getWorkflowDefinitionVersion() {
+        return workflowDefinitionVersion;
+    }
+
+    public void setWorkflowDefinitionVersion(int workflowDefinitionVersion) {
+        this.workflowDefinitionVersion = workflowDefinitionVersion;
+    }
+
 }

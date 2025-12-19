@@ -143,6 +143,7 @@ public class Camunda7UserTaskWiring extends AbstractUserTaskWiring<Camunda7Conne
                         parameter,
                         index),
                 super::validateTaskParam,
+                super::validateDetailsEvent,
                 super::validateMultiInstanceTotal,
                 super::validateMultiInstanceIndex,
                 super::validateMultiInstanceElement,

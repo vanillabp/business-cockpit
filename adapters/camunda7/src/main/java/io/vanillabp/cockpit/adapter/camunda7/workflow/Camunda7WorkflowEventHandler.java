@@ -6,6 +6,12 @@ import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowAfterTr
 import io.vanillabp.cockpit.adapter.camunda7.workflow.publishing.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.history.HistoricProcessInstance;
@@ -17,13 +23,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.util.StringUtils;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 public class Camunda7WorkflowEventHandler {
     private static final Logger logger = LoggerFactory
@@ -104,7 +103,7 @@ public class Camunda7WorkflowEventHandler {
             logger.trace("No workflow handler available for bpmnProcessId '{}'", processInstance.getProcessDefinitionId());
             return null;
         }
-        final String bpmnProcessName = processInstance.getProcessDefinitionKey();
+
         final var processDefinition = repositoryService.getProcessDefinition(processInstance.getProcessDefinitionId());
         final String bpmnProcessVersion;
         if (StringUtils.hasText(processDefinition.getVersionTag())) {
@@ -115,8 +114,7 @@ public class Camunda7WorkflowEventHandler {
             bpmnProcessVersion = Integer.toString(processDefinition.getVersion());
         }
 
-        return workflowHandler.wrapProcessInstance(
-                processInstance, bpmnProcessName, bpmnProcessVersion);
+        return workflowHandler.wrapProcessInstance(processInstance, bpmnProcessVersion);
         
     }
 
