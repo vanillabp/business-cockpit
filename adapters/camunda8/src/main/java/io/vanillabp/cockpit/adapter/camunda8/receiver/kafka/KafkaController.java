@@ -14,6 +14,7 @@ import io.camunda.zeebe.protocol.record.value.JobRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
+import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskLifecycleEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
@@ -23,8 +24,6 @@ import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,18 +68,18 @@ public class KafkaController {
 
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
     private final Camunda8WorkflowEventHandler camunda8WorkflowEventHandler;
-    private final Supplier<Set<String>> idNames;
+    private final Camunda8DeploymentAdapter camunda8DeploymentAdapter;
 
     private CamundaClient client;
 
     public KafkaController(
+            Camunda8DeploymentAdapter camunda8DeploymentAdapter,
             Camunda8UserTaskEventHandler camunda8UserTaskEventHandler,
-            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler,
-            Supplier<Set<String>> idNames) {
+            Camunda8WorkflowEventHandler camunda8WorkflowEventHandler) {
 
+        this.camunda8DeploymentAdapter = camunda8DeploymentAdapter;
         this.camunda8UserTaskEventHandler = camunda8UserTaskEventHandler;
         this.camunda8WorkflowEventHandler = camunda8WorkflowEventHandler;
-        this.idNames = idNames;
     }
 
     @EventListener
@@ -99,7 +98,7 @@ public class KafkaController {
         Record<?> value = record.value();
         ValueType valueType = value.getValueType();
 
-        if(valueType.equals(ValueType.PROCESS_INSTANCE_CREATION)) {
+        if (valueType.equals(ValueType.PROCESS_INSTANCE_CREATION)) {
             handleProcessInstanceCreationRecord(value);
             return;
         }
@@ -126,6 +125,9 @@ public class KafkaController {
         }
         // empty (none) start event
         final var processInstanceCreationRecordValue = (ProcessInstanceCreationRecordValue) value.getValue();
+        if (!camunda8DeploymentAdapter.processDefinitionNeedsKafka(processInstanceCreationRecordValue.getProcessDefinitionKey())) {
+            return;
+        }
         final var processInformation = getProcessInformation(processInstanceCreationRecordValue.getProcessDefinitionKey());
         if (processInformation.isEmpty()) {
             if (camunda8WorkflowEventHandler.isTenantKnown(processInstanceCreationRecordValue.getTenantId())) {
@@ -138,7 +140,8 @@ public class KafkaController {
             return;
         }
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper.map(processInstanceCreationRecordValue, processInformation.get());
-        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
+        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value);
+        workflowCreatedEvent.setVariables(processInstanceCreationRecordValue.getVariables());
         camunda8WorkflowEventHandler.processCreatedEvent(workflowCreatedEvent);
 
     }
@@ -173,6 +176,9 @@ public class KafkaController {
             return;
         }
         final var processEventRecordValue = (ProcessEventRecordValue) value.getValue();
+        if (!camunda8DeploymentAdapter.processDefinitionNeedsKafka(processEventRecordValue.getProcessDefinitionKey())) {
+            return;
+        }
         if (processEventRecordValue.getScopeKey() != processEventRecordValue.getProcessDefinitionKey()) {
             // not a process start event
             return;
@@ -191,7 +197,7 @@ public class KafkaController {
         }
         final var workflowCreatedEvent = WorkflowEventZeebeRecordMapper
                 .map(processEventRecordValue, processInformation.get());
-        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value, idNames);
+        WorkflowEventZeebeRecordMapper.addMetaData(workflowCreatedEvent, value);
         camunda8WorkflowEventHandler.processCreatedEvent(workflowCreatedEvent);
 
     }
@@ -199,6 +205,10 @@ public class KafkaController {
     private void handleProcessInstanceRecord(Record<?> value) {
         ProcessInstanceRecordValue processInstanceRecordValue =
                 (ProcessInstanceRecordValue) value.getValue();
+        if (!camunda8DeploymentAdapter.processDefinitionNeedsKafka(processInstanceRecordValue.getProcessDefinitionKey())) {
+            return;
+        }
+
         String intent = value.getIntent().name();
         if (!processInstanceRecordValue.getBpmnElementType().equals(BpmnElementType.PROCESS)) {
             return;
@@ -254,7 +264,7 @@ public class KafkaController {
         String intentName = value.getIntent().name();
         if (intentName.equals("CREATED")) {
             Camunda8UserTaskCreatedEvent camunda8UserTaskCreatedEvent =
-                    UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue, idNames);
+                    UserTaskEventZeebeRecordMapper.mapToUserTaskCreatedInformation(jobRecordValue);
             UserTaskEventZeebeRecordMapper.addMetaData(camunda8UserTaskCreatedEvent, value);
             camunda8UserTaskEventHandler.processCreatedEvent(camunda8UserTaskCreatedEvent);
         } else if (Camunda8UserTaskLifecycleEvent.getIntentValueNames().contains(intentName)) {

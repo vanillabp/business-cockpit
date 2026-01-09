@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.JsonMapper;
 import io.camunda.client.api.worker.JobWorkerBuilderStep1;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
@@ -61,6 +62,8 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     private final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers;
 
+    private final JsonMapper camundaJsonMapper;
+
     private final SpringDataUtil springDataUtil;
 
     private final Method noopWorkflowDetailsMethod;
@@ -72,6 +75,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
     public Camunda8WorkflowWiring(
             final ApplicationContext applicationContext,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             final String workerId,
             final VanillaBpCockpitProperties properties,
             final Camunda8VanillaBpProperties camunda8Properties,
@@ -87,6 +91,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
         super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.applicationEventPublisher = applicationEventPublisher;
+        this.camundaJsonMapper = camundaJsonMapper;
         this.workerId = workerId;
         this.properties = properties;
         this.springDataUtil = springDataUtil;
@@ -310,6 +315,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         final var workflowHandler = workflowHandlers.getObject(
                 properties,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 processService,
                 connectable.getBpmnProcessId(),
                 connectable.getVersionInfo(),

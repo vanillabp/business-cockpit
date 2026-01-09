@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
 import freemarker.template.Configuration;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.JsonMapper;
 import io.camunda.client.api.worker.JobWorkerBuilderStep1;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8VanillaBpProperties;
 import io.vanillabp.cockpit.adapter.camunda8.wiring.Camunda8UserTaskConnectable;
@@ -46,6 +47,8 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     private final ObjectProvider<Camunda8UserTaskHandler> userTaskHandlers;
 
+    private final JsonMapper camundaJsonMapper;
+
     private CamundaClient client;
 
     private final Map<String, JobWorkerBuilderStep1.JobWorkerBuilderStep3> workers = new HashMap<>();
@@ -64,6 +67,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
             final SpringDataUtil springDataUtil,
             final VanillaBpCockpitProperties vanillaBpCockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -75,6 +79,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
         this.connectableServices = connectableServices;
         this.vanillaBpCockpitProperties = vanillaBpCockpitProperties;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.camundaJsonMapper = camundaJsonMapper;
         this.templating = templating;
         this.userTaskEventHandler = userTaskEventHandler;
         this.userTaskHandlers = userTaskHandlers;
@@ -179,6 +184,7 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
                 connectable.getTaskDefinition(),
                 vanillaBpCockpitProperties,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 templating,
                 connectable.getBpmnProcessId(),
                 connectable.getVersionInfo(),

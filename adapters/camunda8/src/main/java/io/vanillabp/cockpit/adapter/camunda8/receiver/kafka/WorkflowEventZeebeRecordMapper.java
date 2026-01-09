@@ -1,14 +1,11 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.kafka;
 
 import io.camunda.zeebe.protocol.record.Record;
-import io.camunda.zeebe.protocol.record.RecordValueWithVariables;
 import io.camunda.zeebe.protocol.record.value.ProcessEventRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceCreationRecordValue;
 import io.camunda.zeebe.protocol.record.value.ProcessInstanceRecordValue;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
-import java.util.Set;
-import java.util.function.Supplier;
 
 public class WorkflowEventZeebeRecordMapper {
 
@@ -52,33 +49,10 @@ public class WorkflowEventZeebeRecordMapper {
 
     public static void addMetaData(
             final Camunda8WorkflowCreatedEvent workflowCreatedEvent,
-            final Record<?> value,
-            final Supplier<Set<String>> idNames){
+            final Record<?> value){
         
         workflowCreatedEvent.setKey(value.getKey());
         workflowCreatedEvent.setTimestamp(value.getTimestamp());
-        setBusinessKey(value, workflowCreatedEvent, idNames);
-
-    }
-
-    private static void setBusinessKey(Record<?> value,
-                                       Camunda8WorkflowCreatedEvent workflowCreatedEvent,
-                                       Supplier<Set<String>> idNames) {
-
-        if (!(value.getValue() instanceof RecordValueWithVariables variableValue)) {
-            return;
-        }
-        final var variables = variableValue.getVariables();
-        if ((variables == null) || variables.isEmpty()) {
-            return;
-        }
-
-        idNames
-                .get()
-                .stream()
-                .filter(variables::containsKey)
-                .findFirst()
-                .ifPresent(idName -> workflowCreatedEvent.setBusinessKey((String) variables.get(idName)));
 
     }
 

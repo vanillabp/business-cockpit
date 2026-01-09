@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
+import java.util.Map;
+
 public class Camunda8WorkflowCreatedEvent {
     private long key;
 
@@ -15,9 +17,9 @@ public class Camunda8WorkflowCreatedEvent {
 
     private int workflowDefinitionVersion;
 
-    private String businessKey;
-
     private String tenantId;
+
+    private Map<String, Object> variables;
 
     public long getKey() {
         return key;
@@ -75,14 +77,6 @@ public class Camunda8WorkflowCreatedEvent {
         this.version = version;
     }
 
-    public String getBusinessKey() {
-        return businessKey;
-    }
-
-    public void setBusinessKey(String businessKey) {
-        this.businessKey = businessKey;
-    }
-
     public int getWorkflowDefinitionVersion() {
         return workflowDefinitionVersion;
     }
@@ -91,4 +85,11 @@ public class Camunda8WorkflowCreatedEvent {
         this.workflowDefinitionVersion = workflowDefinitionVersion;
     }
 
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(Map<String, Object> variables) {
+        this.variables = variables;
+    }
 }

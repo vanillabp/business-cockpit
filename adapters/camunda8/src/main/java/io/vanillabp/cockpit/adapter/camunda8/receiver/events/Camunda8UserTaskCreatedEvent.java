@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8.receiver.events;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 public class Camunda8UserTaskCreatedEvent {
     private long key;
@@ -14,13 +15,12 @@ public class Camunda8UserTaskCreatedEvent {
     private String elementId;
     private long elementInstanceKey;
     private String formKey;
-    private String businessKey;
     private String assignee;
     private List<String> candidateUsers;
     private List<String> candidateGroups;
     private OffsetDateTime dueDate;
     private OffsetDateTime followUpDate;
-
+    private Map<String, Object> variables;
 
     public long getKey() {
         return key;
@@ -94,14 +94,6 @@ public class Camunda8UserTaskCreatedEvent {
         this.formKey = formKey;
     }
 
-    public String getBusinessKey() {
-        return businessKey;
-    }
-
-    public void setBusinessKey(String businessKey) {
-        this.businessKey = businessKey;
-    }
-
     public List<String> getCandidateUsers() {
         return candidateUsers;
     }
@@ -148,5 +140,13 @@ public class Camunda8UserTaskCreatedEvent {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public Map<String, Object> getVariables() {
+        return variables;
+    }
+
+    public void setVariables(Map<String, Object> variables) {
+        this.variables = variables;
     }
 }

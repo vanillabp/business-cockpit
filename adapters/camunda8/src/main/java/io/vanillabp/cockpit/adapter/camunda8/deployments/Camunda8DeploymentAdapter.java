@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.deployments;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.ProcessDefinition;
 import io.camunda.client.event.CamundaClientCreatedEvent;
 import io.camunda.zeebe.model.bpmn.impl.BpmnModelInstanceImpl;
 import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
@@ -57,6 +58,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda8DeploymentAdapter.class);
 
+    public static final String MODELCACHE_PREFIX = "C8_";
     public static final String VERSIONINFO_CURRENT = "current";
     public static final String ADAPTER_PACKAGE = "io.vanillabp.camunda8.businesscockpit";
     public static final String PROPERTY_DEPLOYMENT_PRIORITY = "io.vanillabp.deployment.priority";
@@ -78,6 +80,8 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     private final VanillaBpCockpitProperties cockpitProperties;
 
     private CamundaClient client;
+
+    private HashSet<Long> keysOfKafkaDependentProcessDefinitions = new HashSet<>();
 
     @SuppressWarnings("unchecked")
     public static void initializeCrossCuttingProperties() {
@@ -158,6 +162,8 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
             ModuleAwareBpmnDeployment.bpmnModelCache
                     .entrySet()
                     .stream()
+                    .filter(entry -> entry.getKey().startsWith(MODELCACHE_PREFIX))
+                    .map(entry -> Map.entry(entry.getKey().substring(MODELCACHE_PREFIX.length()), entry.getValue()))
                     .collect(Collectors.groupingBy(
                             entry -> entry.getValue().getKey(),  // grouping by workflow module id
                             Collectors.mapping(entry -> Map.entry(entry.getKey(), entry.getValue().getValue()), // preserve resource and model
@@ -172,14 +178,14 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                 .stream()
                                 .peek(resource -> {
                                     if (logger.isTraceEnabled()) {
-                                        logger.warn("Generated BPMN (business cockpit):\n{}", IoUtil.convertXmlDocumentToString(
+                                        logger.trace("Generated BPMN (business cockpit):\n{}", IoUtil.convertXmlDocumentToString(
                                                 ((BpmnModelInstanceImpl) resource.getValue()).getDocument()));
                                     }
                                 })
                                 .map(resource -> {
                                     final var model = (BpmnModelInstanceImpl) resource.getValue();
                                     examineProcessVersionTags(model, processVersionTags::put);
-                                    resourcesDeployed.add(resource.getKey());
+                                    resourcesDeployed.add(MODELCACHE_PREFIX + resource.getKey());
                                     return deployResourceCommand.addProcessModel(model, resource.getKey());
                                 })
                                 .reduce((first, second) -> second)
@@ -191,7 +197,6 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                 .ifPresent(result -> {
                                     logger.info("Deployed {} BPMNs of workflow-module '{}' for business cockpit",
                                             result.getProcesses().size(), workflowModuleId);
-                                    ModuleAwareBpmnDeployment.bpmnModelCache.remove(workflowModuleId);
                                     applicationEventPublisher.publishEvent(new BpmnModelCacheProcessed(
                                             this.getClass().getName(),
                                             workflowModuleId,
@@ -240,6 +245,37 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
 
     }
 
+    @SuppressWarnings("unchecked")
+    private void determineKafkaDependentProcessDefinitions(
+            final ProcessDefinition processDefinition,
+            final BpmnModelInstanceImpl model) {
+
+        final var executionListenerPrefixes = adapterProperties
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getKey().equals(PROPERTY_EXECUTIONLISTENER_PREFIXES))
+                .flatMap(entry -> ((Collection<String>) entry.getValue()).stream())
+                .toList();
+
+        final var needsKafka = model
+                .getModelElementsByType(Process.class)
+                .stream()
+                .filter(process -> process.getId().equals(processDefinition.getProcessDefinitionId()))
+                .anyMatch(process -> getExistingExecutionListenersJobTypes(executionListenerPrefixes, process).isEmpty());
+
+        if (needsKafka) {
+            keysOfKafkaDependentProcessDefinitions.add(processDefinition.getProcessDefinitionKey());
+        }
+
+    }
+
+    public boolean processDefinitionNeedsKafka(
+            final long processDefinitionId) {
+
+        return keysOfKafkaDependentProcessDefinitions.contains(processDefinitionId);
+
+    }
+
     @Override
     public void doDeployment(
             final String workflowModuleId,
@@ -261,11 +297,11 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                 filename,
                                 workflowModuleId);
                         Optional
-                                .ofNullable(ModuleAwareBpmnDeployment.bpmnModelCache.get(filename))
+                                .ofNullable(ModuleAwareBpmnDeployment.bpmnModelCache.get(MODELCACHE_PREFIX + filename))
                                 .or(() -> {
                                     final var uncachedModel = bpmnParser.parseModelFromStream(inputStream);
                                     final var entry = Map.<String, Object>entry(workflowModuleId, uncachedModel);
-                                    ModuleAwareBpmnDeployment.bpmnModelCache.put(filename, entry);
+                                    ModuleAwareBpmnDeployment.bpmnModelCache.put(MODELCACHE_PREFIX + filename, entry);
                                     return Optional.of(entry);
                                 })
                                 .map(Map.Entry::getValue)
@@ -299,6 +335,7 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                     .map(bpmnRequest -> Map.entry(bpmnRequest.getKey(), bpmnRequest.getValue().send().join()))
                     .map(bpmn -> Map.entry(bpmn.getKey(), new ByteArrayInputStream(bpmn.getValue().getBytes(StandardCharsets.UTF_8))))
                     .map(bpmnStream -> Map.entry(bpmnStream.getKey(), bpmnParser.parseModelFromStream(bpmnStream.getValue())))
+                    .peek(bpmnModel -> determineKafkaDependentProcessDefinitions(bpmnModel.getKey(), bpmnModel.getValue()))
                     .map(bpmnModel -> {
                         final var versionTag = bpmnModel.getKey().getVersionTag();
                         final String versionInfo;
@@ -504,23 +541,34 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 .getModelElementsByType(UserTask.class)
                 .stream()
                 .filter(element -> Objects.equals(getOwningProcess(element), process))
-                .filter(element -> element.getSingleExtensionElement(ZeebeUserTask.class) != null) // only Camunda user tasks
                 .flatMap(element -> {
                     final List<Camunda8UserTaskConnectable> result = new LinkedList<>();
-                    final var externalFormReference = getTaskDefinition(element);
-                    getExistingTaskListenersJobTypes(taskListenerPrefixes, element)
-                            .stream()
-                            .map(jobType ->new Camunda8UserTaskConnectable(
-                                    workflowModuleId,
-                                    tenantId,
-                                    process,
-                                    versionInfo,
-                                    element.getId(),
-                                    jobType.startsWith(JOBTYPE_DETAILSPROVIDER) ? externalFormReference : jobType,
-                                    getTaskName(element)))
-                            .forEach(result::add);
-                    if (isNewProcess && StringUtils.hasText(externalFormReference)) {
-                        addTaskListenersToBpmnModel(externalFormReference, element);
+                    if (element.getSingleExtensionElement(ZeebeUserTask.class) != null) { // Camunda user task
+                        final var externalFormReference = getTaskDefinition(element);
+                        getExistingTaskListenersJobTypes(taskListenerPrefixes, element)
+                                .stream()
+                                .map(jobType -> new Camunda8UserTaskConnectable(
+                                        workflowModuleId,
+                                        tenantId,
+                                        process,
+                                        versionInfo,
+                                        element.getId(),
+                                        jobType.startsWith(JOBTYPE_DETAILSPROVIDER) ? externalFormReference : jobType,
+                                        getTaskName(element)))
+                                .forEach(result::add);
+                        if (isNewProcess && StringUtils.hasText(externalFormReference)) {
+                            addTaskListenersToBpmnModel(externalFormReference, element);
+                            result
+                                    .add(new Camunda8UserTaskConnectable(
+                                            workflowModuleId,
+                                            tenantId,
+                                            process,
+                                            versionInfo,
+                                            element.getId(),
+                                            externalFormReference,
+                                            getTaskName(element)));
+                        }
+                    } else { // job based user task
                         result
                                 .add(new Camunda8UserTaskConnectable(
                                         workflowModuleId,
@@ -528,12 +576,17 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                                         process,
                                         versionInfo,
                                         element.getId(),
-                                        externalFormReference,
+                                        getFormKey(element),
                                         getTaskName(element)));
                     }
                     return result.stream();
                 });
 
+    }
+
+    private String getFormKey(final BaseElement element) {
+        final ZeebeFormDefinition formDefinition = element.getSingleExtensionElement(ZeebeFormDefinition.class);
+        return formDefinition == null ? null : formDefinition.getFormKey();
     }
 
     /**

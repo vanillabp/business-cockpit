@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.camunda8;
 
 import freemarker.template.Configuration;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.JsonMapper;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitSupportService;
@@ -31,9 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -126,6 +125,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final SpringBeanUtil springBeanUtil,
             final SpringDataUtil springDataUtil,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -140,6 +140,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 springDataUtil,
                 properties,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 templating,
                 connectableServices,
                 userTaskEventHandler,
@@ -152,6 +153,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8WorkflowHandler camunda8WorkflowHandler(
             final VanillaBpCockpitProperties cockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
             final String bpmnProcessVersionInfo,
@@ -167,6 +169,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         final var result = new Camunda8WorkflowHandler(
                 cockpitProperties,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 processService,
                 bpmnProcessId,
                 bpmnProcessVersionInfo,
@@ -194,6 +197,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final String taskDefinition,
             final VanillaBpCockpitProperties cockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             final Optional<Configuration> templating,
             final String bpmnProcessId,
             final String bpmnProcessVersionInfo,
@@ -211,6 +215,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 taskDefinition,
                 cockpitProperties,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 templating,
                 bpmnProcessId,
                 bpmnProcessVersionInfo,
@@ -230,6 +235,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda8WorkflowWiring camunda8BusinessCockpitWorkflowWiring(
             final ApplicationContext applicationContext,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             final VanillaBpCockpitProperties cockpitProperties,
             final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
@@ -243,6 +249,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
         return new Camunda8WorkflowWiring(
                 applicationContext,
                 applicationEventPublisher,
+                camundaJsonMapper,
                 workerId,
                 cockpitProperties,
                 camunda8Properties,
@@ -344,13 +351,6 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
         return result;
 
-    }
-
-    public Set<String> getIdNames(){
-        return this.getConnectableServices()
-                .stream()
-                .map(Camunda8BusinessCockpitService::getWorkflowAggregateIdName)
-                .collect(Collectors.toSet());
     }
 
 }

@@ -2,9 +2,11 @@ package io.vanillabp.cockpit.adapter.camunda8.workflow;
 
 import freemarker.template.Configuration;
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.JsonMapper;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowLifeCycleEvent;
+import io.vanillabp.cockpit.adapter.camunda8.utils.AggregateIdParser;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.publishing.ProcessWorkflowAfterTransactionEvent;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowHandlerBase;
@@ -21,7 +23,6 @@ import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.wiring.WorkflowAggregateCache;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import java.lang.reflect.Method;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -31,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Transactional
-public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
+public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements AggregateIdParser {
     private static final Logger logger = LoggerFactory.getLogger(Camunda8WorkflowHandler.class);
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -59,7 +59,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     private final String aggregateIdPropertyName;
 
-    private Function<String, Object> parseWorkflowAggregateIdFromBusinessKey;
+    private final AggregateIdParserFunction parseWorkflowAggregateIdFromBusinessKey;
 
     private String bpmnProcessVersionInfo;
 
@@ -68,6 +68,7 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
     public Camunda8WorkflowHandler(
             final VanillaBpCockpitProperties cockpitProperties,
             final ApplicationEventPublisher applicationEventPublisher,
+            final JsonMapper camundaJsonMapper,
             final AdapterAwareProcessService<?> processService,
             final String bpmnProcessId,
             final String bpmnProcessVersionInfo,
@@ -89,12 +90,16 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         this.bpmnProcessVersionInfo = bpmnProcessVersionInfo;
         this.bpmnProcessName = bpmnProcessName;
         this.client = client;
+        this.parseWorkflowAggregateIdFromBusinessKey = determineBusinessKeyToIdMapper(
+                camundaJsonMapper,
+                processService.getWorkflowAggregateIdClass(),
+                processService.getWorkflowAggregateIdClass(),
+                aggregateIdPropertyName);
 
-        determineBusinessKeyToIdMapper();
     }
 
     @Override
-    protected Logger getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 
@@ -126,7 +131,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         final var camunda8WorkflowEvent = new Camunda8WorkflowEvent();
         camunda8WorkflowEvent.setJobKey(camunda8WorkflowLifeCycleEvent.getKey());
         camunda8WorkflowEvent.setBpmnProcessId(bpmnProcessId);
-        camunda8WorkflowEvent.setVariables(getBusinessKeyVariablesFromProcessInstanceKey(camunda8WorkflowLifeCycleEvent.getProcessInstanceKey()));
+        camunda8WorkflowEvent.setVariables(loadBusinessKeyVariablesForProcessInstanceKey(
+                client, aggregateIdPropertyName, parseWorkflowAggregateIdFromBusinessKey,
+                camunda8WorkflowLifeCycleEvent.getProcessInstanceKey()));
         camunda8WorkflowEvent.setTenantId(camunda8WorkflowLifeCycleEvent.getTenantId());
         camunda8WorkflowEvent.setEvent(intent == Camunda8WorkflowLifeCycleEvent.Intent.COMPLETED ? DetailsEvent.Event.COMPLETED : DetailsEvent.Event.CANCELED);
         camunda8WorkflowEvent.setProcessInstanceKey(camunda8WorkflowLifeCycleEvent.getProcessInstanceKey());
@@ -137,21 +144,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         this.fillWorkflowEvent(camunda8WorkflowEvent, workflowEvent);
 
         publishEvent(workflowEvent);
-
-    }
-
-    private Map<String, Object> getBusinessKeyVariablesFromProcessInstanceKey(
-            long processInstanceKey) {
-
-        final var businessKeyVariable = client
-                .newVariableSearchRequest()
-                .filter(filter -> filter
-                        .processInstanceKey(processInstanceKey)
-                        .name(aggregateIdPropertyName))
-                .send()
-                .join()
-                .singleItem();
-        return Map.of(businessKeyVariable.getName(), businessKeyVariable.getValue());
 
     }
 
@@ -244,7 +236,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
         final var camunda8WorkflowEvent = new Camunda8WorkflowEvent();
         camunda8WorkflowEvent.setJobKey(camunda8WorkflowCreatedEvent.getKey());
         camunda8WorkflowEvent.setBpmnProcessId(bpmnProcessId);
-        camunda8WorkflowEvent.setVariables(Map.of(aggregateIdPropertyName, camunda8WorkflowCreatedEvent.getBusinessKey()));
+        camunda8WorkflowEvent.setVariables(transformBusinessKeyInGivenVariables(
+                aggregateIdPropertyName, parseWorkflowAggregateIdFromBusinessKey,
+                camunda8WorkflowCreatedEvent.getProcessInstanceKey(), camunda8WorkflowCreatedEvent.getVariables()));
         camunda8WorkflowEvent.setTenantId(camunda8WorkflowCreatedEvent.getTenantId());
         camunda8WorkflowEvent.setEvent(DetailsEvent.Event.CREATED);
         camunda8WorkflowEvent.setProcessInstanceKey(camunda8WorkflowCreatedEvent.getProcessInstanceKey());
@@ -275,24 +269,22 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
             WorkflowEventImpl workflowEvent
     ) {
 
-        final var rawBusinessKey = camunda8WorkflowEvent.getVariables().get(aggregateIdPropertyName);
-        if (rawBusinessKey == null) {
+        final var businessKey = camunda8WorkflowEvent.getVariables().get(aggregateIdPropertyName);
+        if (businessKey == null) {
             logger.error("Could not find process variable '{}' in event for type '{}'! Will ignore this event.",
                     aggregateIdPropertyName, camunda8WorkflowEvent.getBpmnProcessId());
             return;
         }
-        final var parsedBusinessKey = parseWorkflowAggregateIdFromBusinessKey.apply(rawBusinessKey.toString());
-
         prefillWorkflowDetails(
                 camunda8WorkflowEvent,
                 workflowEvent,
-                parsedBusinessKey);
+                businessKey);
 
         String processInstanceKey = String.valueOf(camunda8WorkflowEvent.getProcessInstanceKey());
 
         final WorkflowDetails details = callWorkflowDetailsProviderMethod(
                 processInstanceKey,
-                parsedBusinessKey,
+                businessKey,
                 workflowEvent);
 
         fillWorkflowDetailsByCustomDetails(
@@ -438,44 +430,4 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase {
 
     }
 
-    // TODO GWI - refactor, copy of Camunda7UserTaskHandler
-    private void determineBusinessKeyToIdMapper() {
-
-        final var workflowAggregateIdClass = processService.getWorkflowAggregateIdClass();
-
-        if (String.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = businessKey -> businessKey;
-        } else if (int.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = Integer::valueOf;
-        } else if (long.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = Long::valueOf;
-        } else if (float.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = Float::valueOf;
-        } else if (double.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = Double::valueOf;
-        } else if (byte.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = Byte::valueOf;
-        } else if (BigInteger.class.isAssignableFrom(workflowAggregateIdClass)) {
-            parseWorkflowAggregateIdFromBusinessKey = BigInteger::new;
-        } else {
-            try {
-                final var valueOfMethod = workflowAggregateIdClass.getMethod("valueOf", String.class);
-                parseWorkflowAggregateIdFromBusinessKey = businessKey -> {
-                    try {
-                        return valueOfMethod.invoke(null, businessKey);
-                    } catch (Exception e) {
-                        throw new RuntimeException("Could not determine the workflow's aggregate id!", e);
-                    }
-                };
-            } catch (Exception e) {
-                throw new RuntimeException(
-                        String.format(
-                                "The id's class '%s' of the workflow-aggregate '%s' does not implement a method 'public static %s valueOf(String businessKey)'! Please add this method required by VanillaBP 'camunda7' Business Cockpit adapter.",
-                                workflowAggregateIdClass.getName(),
-                                processService.getWorkflowAggregateClass(),
-                                workflowAggregateIdClass.getSimpleName()));
-            }
-        }
-
-    }
 }
