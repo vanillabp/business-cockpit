@@ -22,8 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 
-//@Component
-//@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServiceImplementation<WA> {
 
     private static final Logger logger = LoggerFactory.getLogger(Camunda8BusinessCockpitService.class);
