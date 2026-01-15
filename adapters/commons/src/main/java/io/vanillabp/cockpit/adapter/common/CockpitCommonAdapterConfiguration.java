@@ -16,9 +16,9 @@ import io.vanillabp.cockpit.adapter.common.workflow.rest.WorkflowRestPublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.rest.WorkflowModuleRestMapper;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.rest.WorkflowModuleRestPublishing;
-import io.vanillabp.cockpit.bpms.api.v1.ApiClient;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
+import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.UiUriType;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import no.api.freemarker.java8.Java8ObjectWrapper;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InjectionPoint;
@@ -122,7 +121,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @Bean
     @ConditionalOnMissingBean
     public UserTaskPublishing userTaskRestPublishing(
-            @Qualifier("bpmsApiV1")
+            @Qualifier("bpmsApiV1_1")
             final Optional<BpmsApi> bpmsApi) {
 
         return new UserTaskRestPublishing(
@@ -136,7 +135,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @Bean
     @ConditionalOnMissingBean
     public WorkflowPublishing workflowRestPublishing(
-            @Qualifier("bpmsApiV1")
+            @Qualifier("bpmsApiV1_1")
             final Optional<BpmsApi> bpmsApi) {
         return new WorkflowRestPublishing(
                 workerId,
@@ -149,7 +148,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @Bean
     @ConditionalOnMissingBean
     public WorkflowModulePublishing workflowModuleRestPublishing(
-            @Qualifier("bpmsApiV1")
+            @Qualifier("bpmsApiV1_1")
             final Optional<BpmsApi> bpmsApi) {
         return new WorkflowModuleRestPublishing(
                 workerId,
@@ -190,11 +189,11 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     @ConditionalOnProperty(
             prefix = VanillaBpProperties.PREFIX + ".cockpit.rest",
             name = "base-url")
-    @Qualifier("bpmsApiV1")
+    @Qualifier("bpmsApiV1_1")
     public BpmsApi bpmsApiClient() {
 
         final var config = properties.getCockpit().getRest();
-        final var apiUrl = config.getBaseUrl().endsWith("/") ? "bpms/api/v1" : "/bpms/api/v1";
+        final var apiUrl = config.getBaseUrl().endsWith("/") ? "bpms/api/v1_1" : "/bpms/api/v1_1";
         final var client = new ApiClient().setBasePath(config.getBaseUrl() + apiUrl);
 
         super.configureFeignBuilder(

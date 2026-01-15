@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-@RestController
+@RestController("bpmsApiControllerV1")
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
 @Secured(BpmsApiWebSecurityConfiguration.BPMS_API_AUTHORITY)
 public class BpmsApiController implements BpmsApi {

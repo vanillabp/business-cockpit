@@ -6,8 +6,8 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishingBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
@@ -42,7 +42,7 @@ public class UserTaskKafkaPublishing extends UserTaskPublishingBase implements U
                     event.getUserTaskId(),
                     builder -> builder.setUserTaskCreatedOrUpdated(event));
 
-        } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
+        } else if (eventObject instanceof UserTaskEventImpl userTaskCreatedEvent){
 
             editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
             var event = this.userTaskMapper.map(userTaskCreatedEvent);

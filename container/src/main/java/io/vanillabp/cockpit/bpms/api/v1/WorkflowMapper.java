@@ -10,7 +10,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Mapper
+@Mapper(implementationName = "WorkflowMapperV1Impl")
 public abstract class WorkflowMapper {
 
     private static final String PERSON_MAPPING = "personMapping";

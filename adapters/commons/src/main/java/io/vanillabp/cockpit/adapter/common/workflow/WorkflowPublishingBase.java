@@ -1,10 +1,9 @@
 package io.vanillabp.cockpit.adapter.common.workflow;
 
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
-import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEventImpl;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUiUriType;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
-
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,7 @@ public abstract class WorkflowPublishingBase {
     }
 
     protected void editWorkflowCreatedOrUpdatedEvent(
-            final WorkflowCreatedEvent event) {
+            final WorkflowEventImpl event) {
 
         event.setSource(workerId);
         event.setUiUriPath(properties.getUiUriPath(event.getWorkflowModuleId()));

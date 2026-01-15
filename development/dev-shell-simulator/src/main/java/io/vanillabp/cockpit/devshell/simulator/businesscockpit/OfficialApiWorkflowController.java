@@ -1,11 +1,14 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
-import io.vanillabp.cockpit.gui.api.v1.*;
-
+import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
+import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
+import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
-
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Allows retrieving UserTasks.
  */
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/official-api/v1")
 public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
@@ -26,20 +30,13 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
     private final TaskService taskService;
 
-    public OfficialApiWorkflowController(
-            final WorkflowService workflowService,
-            final TaskService taskService) {
-
-        this.workflowService = workflowService;
-        this.taskService = taskService;
-
-    }
+    private final OfficialApiMapper mapper;
 
     /**
      * Method that returns a List of UserTasks of a specific Workflow.
      *
      * @param workflowId       unique Id for each workflow. (required)
-     * @param llatcup          (required)
+     * @param llatcup          limitListAccordingToCurrentUsersPermissions (required)
      * @param userTasksRequest (required)
      * @return
      */
@@ -49,12 +46,13 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
             final Boolean llatcup,
             final UserTasksRequest userTasksRequest) {
 
-        List<UserTask> filteredUserTasks = taskService.getAllUserTasks().stream().
-                filter(task -> task.getWorkflowId().equals(workflowId)).toList();
+        final var filteredUserTasks = taskService
+                .getUserTasksOfWorkflow(workflowId, mapper.toModel(userTasksRequest.getMode()), null, null);
+        final var apiUsertasks = mapper.toUserTasksApi(filteredUserTasks);
 
         log.info("Client retrieved user tasks of workflow {}", workflowId);
 
-        return ResponseEntity.ok(filteredUserTasks);
+        return ResponseEntity.ok(apiUsertasks.getUserTasks());
 
     }
 
@@ -68,9 +66,12 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
     public ResponseEntity<Workflow> getWorkflow(
             final String workflowId) {
 
+        final var workflowFound = workflowService.getWorkflow(workflowId);
+        final var apiWorkflow = mapper.toApi(workflowFound);
+
         log.info("Client retrieved workflow {}", workflowId);
 
-        return ResponseEntity.ok(workflowService.getWorkflow(workflowId));
+        return ResponseEntity.ok(apiWorkflow);
 
     }
 
@@ -80,8 +81,12 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
             String requestId,
             OffsetDateTime initialTimestamp) {
 
-        Workflows workflows = workflowService.getWorkflowsResponse(workflowsRequest);
+        final var workflows = workflowService.getWorkflows(
+                workflowsRequest.getPageNumber(),
+                workflowsRequest.getPageSize());
+        final var apiWorkflows = mapper.toWorkflowsApi(workflows);
 
-        return ResponseEntity.ok(workflows);
+        return ResponseEntity.ok(apiWorkflows);
+
     }
 }

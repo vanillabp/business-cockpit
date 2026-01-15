@@ -128,7 +128,7 @@ const SseProvider = ({ url, Context, buildFetchApi, children, ...rest }: React.P
     fetchEventSource(
         url, {
           // since we use locking fetch-api the server has to sent an
-          // ping-message immediatelly, to make the client release the lock
+          // ping-message immediately, to make the client release the lock
           fetch: buildFetchApi(),
           headers: {
             "cache-control": "no-cache"

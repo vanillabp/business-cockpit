@@ -6,10 +6,9 @@ import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishingBase;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowEvent;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import jakarta.annotation.PostConstruct;
-
 import java.util.Optional;
 
 public class WorkflowRestPublishing extends WorkflowPublishingBase implements WorkflowPublishing {
@@ -49,7 +48,7 @@ public class WorkflowRestPublishing extends WorkflowPublishingBase implements Wo
 
             editWorkflowCreatedOrUpdatedEvent(workflowUpdatedEvent);
             final var event = workflowMapper.map(workflowUpdatedEvent);
-            bpmsApi.get().workflowUpdatedEvent(event.getWorkflowId(), event);
+            bpmsApi.get().workflowUpdatedEvent(workflowUpdatedEvent.getWorkflowId(), event);
 
         } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
 
@@ -60,12 +59,12 @@ public class WorkflowRestPublishing extends WorkflowPublishingBase implements Wo
         } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent workflowCancelledEvent){
 
             final var event = workflowMapper.map(workflowCancelledEvent);
-            bpmsApi.get().workflowCancelledEvent(event.getWorkflowId(), event);
+            bpmsApi.get().workflowCancelledEvent(workflowCancelledEvent.getWorkflowId(), event);
 
         } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
 
             final var event = workflowMapper.map(workflowCompletedEvent);
-            bpmsApi.get().workflowCompletedEvent(event.getWorkflowId(), event);
+            bpmsApi.get().workflowCompletedEvent(workflowCompletedEvent.getWorkflowId(), event);
         }
         // else if suspended
         // else if activated
