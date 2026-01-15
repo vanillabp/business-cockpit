@@ -19,17 +19,18 @@ jobs:
 
       - name: Extract last released version
         run: |
-          final var apiUrl="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
-          final var lastReleasedVersion=$(curl -s \
-            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+          apiUrl="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
+          lastReleasedVersionApiResult=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "${apiUrl}" \
-            | jq -r '.tag_name')          
+            "${apiUrl}")
+          lastReleasedVersion=$(echo "${lastReleasedVersionApiResult}" \
+            | jq -r '.tag_name')
           if [ "${lastReleasedVersion}" = "null" ] || [ -z "${lastReleasedVersion}" ]; then
-            echo "No GitHub release found, falling back to first commit"
+            echo "No GitHub release found using ${apiUrl}, falling back to first commit"
           
             git fetch --quiet --depth=1 origin
-            final var firstCommit=$(git rev-list --max-parents=0 HEAD)
+            firstCommit=$(git rev-list --max-parents=0 HEAD)
           
             lastReleasedVersion="${firstCommit}"
           else
@@ -37,7 +38,7 @@ jobs:
             lastReleasedVersion="${lastReleasedVersion#v}"
           fi          
           echo "LAST_RELEASED_VERSION=${lastReleasedVersion}" >> "${GITHUB_ENV}"
-          echo "Last released version: {lastReleasedVersion}"
+          echo "Last released version: ${lastReleasedVersion}"
 
       - name: Setup Java
         uses: actions/setup-java@v4
