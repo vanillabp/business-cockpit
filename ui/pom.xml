@@ -15,6 +15,7 @@
     <modules>
         <module>bc-shared</module>
         <module>bc-ui</module>
+        <module>bc-types</module>
     </modules>
 
     <licenses>
