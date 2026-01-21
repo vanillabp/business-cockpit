@@ -4,10 +4,10 @@ import {
   SearchQuery,
   UserSearchResult,
   UserTask,
+  UserTasks,
   Workflow,
   Workflows
 } from "@vanillabp/bc-official-gui-client";
-import { UserTasks } from "@vanillabp/bc-official-gui-client/dist/models/UserTasks";
 
 /**
  * This helps to initialize the given API hook late by

@@ -126,7 +126,7 @@ const loadUserTasks = async (
 
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.userTasks.map(userTask => mapToBcUserTask(userTask)),
+      items: result.userTasks.map((userTask: UserTask) => mapToBcUserTask(userTask)),
   	};
 };
 
@@ -164,7 +164,7 @@ const reloadUserTasks = async (
 
   return {
       serverTimestamp: result.serverTimestamp,
-      items: result.userTasks.map(userTask => {
+      items: result.userTasks.map((userTask: UserTask) => {
         return {
           ...mapToBcUserTask(userTask),
           selected: allSelected,
