@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "target": "es6",
     "lib": [
       "dom",
       "dom.iterable",
@@ -11,20 +10,20 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "allowJs": true,
     "checkJs": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "node16",
     "resolveJsonModule": true,
     "isolatedModules": false,
-    "jsx": "react-jsx",
-    "sourceMap": true
+    "sourceMap": true,
+    "emitDeclarationOnly": false,
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "bundler",
+    "strict": true
   },
   "include": [
     "src/**/*"
