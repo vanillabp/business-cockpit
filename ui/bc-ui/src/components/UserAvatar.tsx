@@ -3,7 +3,8 @@ import { User as UserMale } from 'grommet-icons';
 import { Avatar, Box } from 'grommet';
 import { BorderType } from 'grommet/utils';
 import React, { useRef, useState } from 'react';
-import { TranslationFunction, useOnClickOutside, UserDetailsBox, useResponsiveScreen } from '@vanillabp/bc-shared';
+import { useOnClickOutside, UserDetailsBox, useResponsiveScreen } from '@vanillabp/bc-shared';
+import { TranslationFunction } from '@vanillabp/bc-types';
 
 type UserAvatarProps = {
   t: TranslationFunction;

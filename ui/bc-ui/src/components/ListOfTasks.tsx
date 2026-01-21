@@ -2,8 +2,6 @@ import React, { FC, memo, useCallback, useEffect, useMemo, useRef, useState } fr
 import { SearchQuery, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
-  BcUserTask,
-  Column,
   debounce,
   DefaultListCell,
   DefaultListCellProps,
@@ -13,10 +11,8 @@ import {
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
-  Person,
   ShowLoadingIndicatorFunction,
   textColorAccordingToStatus,
-  TranslationFunction,
   useOnClickOutside,
   UserDetailsBox,
   useResponsiveScreen,
@@ -57,6 +53,7 @@ import { User } from "./User.js";
 import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { BackgroundType, ColorType } from "grommet/utils";
 import styled, { useTheme } from "styled-components";
+import { Column, Person, TranslationFunction, BcUserTask } from '@vanillabp/bc-types';
 
 interface Columns {
   [key: string]: Column;

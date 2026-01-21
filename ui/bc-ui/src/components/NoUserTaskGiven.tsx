@@ -1,5 +1,6 @@
-import { ShowLoadingIndicatorFunction, TranslationFunction, UserTaskAppLayout } from '@vanillabp/bc-shared';
+import { ShowLoadingIndicatorFunction, UserTaskAppLayout } from '@vanillabp/bc-shared';
 import { NoElementGivenByModule } from './index.js';
+import { TranslationFunction } from '@vanillabp/bc-types';
 
 const NoUserTaskGiven = ({
   loading = false,

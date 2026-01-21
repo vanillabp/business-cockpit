@@ -1,8 +1,9 @@
 import React, { MutableRefObject, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { Box, ColumnConfig } from 'grommet';
 import { SnapScrollingDataTable } from './SnapScrollingDataTable.js';
-import { keepOldItemsInArray, ListItemStatus, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
+import { keepOldItemsInArray, ShowLoadingIndicatorFunction } from '@vanillabp/bc-shared';
 import { BackgroundType, ColorType } from "grommet/utils";
+import { ListItemStatus } from '@vanillabp/bc-types';
 
 const itemsBatchSize = 30;
 

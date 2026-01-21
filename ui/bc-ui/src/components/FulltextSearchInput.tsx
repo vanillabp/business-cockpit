@@ -1,4 +1,5 @@
-import {debounce, TranslationFunction, useResponsiveScreen} from "@vanillabp/bc-shared";
+import {debounce, useResponsiveScreen} from "@vanillabp/bc-shared";
+import {TranslationFunction} from "@vanillabp/bc-types";
 import {ReactNode, useMemo, useRef, useState} from "react";
 import {Box, Grid, Text, TextInput, Tip} from "grommet";
 import {Clear, Search} from "grommet-icons";

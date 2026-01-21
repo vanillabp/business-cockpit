@@ -1,13 +1,11 @@
 import { ListItem, ListItemData, Module, ModuleDefinition } from '../index.js';
 import {
-  Column,
   DefaultListCellAwareProps,
   DefaultListCellProps,
-  Person,
-  TranslationFunction,
   useResponsiveScreen,
   WarningListCell,
 } from '@vanillabp/bc-shared';
+import { Column, Person, TranslationFunction } from '@vanillabp/bc-types';
 import { FC, memo, Suspense } from "react";
 
 export enum TypeOfItem {

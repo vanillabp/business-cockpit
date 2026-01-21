@@ -1,11 +1,12 @@
 import React, { MutableRefObject, PropsWithChildren, useCallback, useContext, useMemo } from 'react';
 import { getOfficialWorkflowlistApi } from '../client/guiClient.js';
-import { BcUserTask, BcWorkflow, GetUserTasksFunction, Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { NavigateFunction, useParams } from 'react-router-dom';
 import { useAppContext } from '../DevShellAppContext.js';
 import { OfficialWorkflowlistApi, Workflow } from '@vanillabp/bc-official-gui-client';
 import { useTranslation } from 'react-i18next';
 import { appNs } from '../app/DevShellApp.js';
+import { BcUserTask, BcUserTasksProvider, BcWorkflow } from '@vanillabp/bc-types';
 
 const WorkflowAppContext = React.createContext<{
   workflowId: string;
@@ -42,9 +43,9 @@ const loadWorkflow = (
     inprogress = new Promise<BcWorkflow | null>((resolve, reject) => {
         workflowlistApi.getWorkflow({ workflowId })
             .then((value: Workflow) => {
-              const getUserTasksFunction: GetUserTasksFunction = async (
-                  activeOnly,
-                  limitListAccordingToCurrentUsersPermissions
+              const getUserTasksFunction: BcUserTasksProvider = async (
+                  activeOnly: boolean,
+                  limitListAccordingToCurrentUsersPermissions: boolean
                 ) => {
                   return (await workflowlistApi
                       .getUserTasksOfWorkflow({
@@ -58,8 +59,8 @@ const loadWorkflow = (
                         ...userTask,
                         open: () => openTask(userTask.id),
                         navigateToWorkflow: () => openWorkflow(userTask.workflowId!),
-                        assign: userId => {},
-                        unassign: userId => {},
+                        assign: (userId: string) => {},
+                        unassign: (userId: string) => {},
                         claim: () => {},
                         unclaim: () => {}
                       }) as BcUserTask);

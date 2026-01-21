@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { catchError, map, of } from 'rxjs';
 import { OfficialTasklistApi, OfficialWorkflowlistApi, UserTask, Workflow } from "@vanillabp/bc-official-gui-client";
-import { BcUserTask, BcWorkflow } from '@vanillabp/bc-shared';
 import { fromPromise } from "rxjs/internal/observable/innerFrom";
+import { BcUserTask, BcWorkflow } from '@vanillabp/bc-types';
 
 @Injectable({
   providedIn: 'root'

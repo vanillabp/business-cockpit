@@ -1,7 +1,7 @@
-import { Column } from "../types";
 import { FC } from "react";
 import { Box, CheckBox, Text, Tip } from "grommet";
 import { Ascend, ContactInfo, Descend, Unsorted } from "grommet-icons";
+import { Column } from '@vanillabp/bc-types';
 
 export interface DefaultListHeaderProps<D> {
   column: Column;

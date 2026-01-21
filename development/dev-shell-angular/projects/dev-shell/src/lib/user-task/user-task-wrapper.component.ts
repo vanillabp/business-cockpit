@@ -1,7 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { NgIf } from '@angular/common';
-import { BcUserTask } from "@vanillabp/bc-shared";
 import { RouterOutlet } from "@angular/router";
+import { BcUserTask } from '@vanillabp/bc-types';
 
 @Component({
     selector: 'user-task-wrapper',

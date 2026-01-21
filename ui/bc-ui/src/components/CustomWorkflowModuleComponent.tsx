@@ -2,12 +2,12 @@ import { ModuleDefinition, UiUriType, useFederationModule } from "../utils/index
 import {
   ShowLoadingIndicatorFunction,
   ToastFunction,
-  TranslationFunction,
   WorkflowModuleComponent
 } from "@vanillabp/bc-shared";
 import { WorkflowModule } from "@vanillabp/bc-official-gui-client";
 import { NoElementGivenByModule } from "./NoElementGivenByModule.js";
 import { useMemo } from "react";
+import {TranslationFunction} from "@vanillabp/bc-types";
 
 const CustomWorkflowModuleComponent = ({
   showLoadingIndicator,

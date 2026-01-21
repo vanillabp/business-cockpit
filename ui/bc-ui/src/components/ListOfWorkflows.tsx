@@ -3,22 +3,16 @@ import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui
 import { Box, CheckBox, ColumnConfig, Grid, Text, Tip } from 'grommet';
 import {
   backgroundColorAccordingToStatus,
-  BcUserTask,
-  BcWorkflow,
-  Column,
   DefaultListCell,
   DefaultListCellProps,
   DefaultListHeaderAwareProps,
   EventMessage,
   EventSourceMessage,
-  GetUserTasksFunction,
   GuiSseHook,
   Link,
   ListCell as StyledListCell,
-  Person,
   ShowLoadingIndicatorFunction,
   textColorAccordingToStatus,
-  TranslationFunction,
   useResponsiveScreen,
   WakeupSseCallback,
 } from "@vanillabp/bc-shared";
@@ -45,6 +39,7 @@ import {
 import { AUTO_SIZE_COLUMN, ListColumnHeader } from "./ListColumnHeader.js";
 import { Refresh } from "grommet-icons";
 import { BackgroundType, ColorType } from "grommet/utils";
+import { Column, BcWorkflow, BcUserTask, TranslationFunction, Person, BcUserTasksProvider } from '@vanillabp/bc-types';
 
 interface Columns {
   [key: string]: Column;
@@ -542,9 +537,9 @@ const ListOfWorkflows = ({
   const refreshItemRef = useRef<RefreshItemCallbackFunction | undefined>(undefined);
 
   const mapToBcWorkflow = (workflow: Workflow): BcWorkflow => {
-    const getUserTasksFunction: GetUserTasksFunction = async (
-        activeOnly,
-        limitListAccordingToCurrentUsersPermissions
+    const getUserTasksFunction: BcUserTasksProvider = async (
+        activeOnly: boolean,
+        limitListAccordingToCurrentUsersPermissions: boolean
     ) => {
       return (await workflowlistApi
           .getUserTasksOfWorkflow(

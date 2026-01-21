@@ -1,12 +1,11 @@
 import {
-  ColumnsOfUserTaskFunction,
-  ColumnsOfWorkflowFunction,
   UserTaskForm,
   UserTaskListCell,
   WorkflowListCell,
-  WorkflowPage
+  WorkflowPage,
 } from '@vanillabp/bc-shared';
 import { useEffect, useState } from 'react';
+import { ColumnsOfUserTaskFunction, ColumnsOfWorkflowFunction } from '@vanillabp/bc-types';
 
 export enum UiUriType {
   External = 'EXTERNAL',
