@@ -5,13 +5,12 @@ import { BcWorkflow } from '@vanillabp/bc-types';
 
 @Component({
     selector: 'workflow-page-wrapper',
-    standalone: true,
     imports: [
-      RouterOutlet,
-      NgIf,
+        RouterOutlet,
+        NgIf,
     ],
     templateUrl: './workflow-page-wrapper.component.html',
-    styleUrl: './workflow-page-wrapper.component.css',
+    styleUrl: './workflow-page-wrapper.component.css'
 })
 export class WorkflowPageWrapperComponent {
   @Input() workflow?: BcWorkflow;

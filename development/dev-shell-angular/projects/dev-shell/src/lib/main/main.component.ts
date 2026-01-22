@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from "rxjs";
-import { NgForOf, NgIf } from "@angular/common";
-import { FormsModule } from "@angular/forms";
-import { HttpClient } from "@angular/common/http";
+import { Subscription } from 'rxjs';
+import { NgForOf } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 
 interface User {
   id: string;
@@ -11,26 +11,19 @@ interface User {
   firstName?: string;
   lastName?: string;
   groups?: string[];
-  attributes?: Record<string, string[]> | null;
+  attributes?: Record<string, string[]>|null;
 }
 
 @Component({
   selector: 'lib-main',
-  standalone: true,
   imports: [
     NgForOf,
-    NgIf,
     FormsModule,
-    
-// TODO: `HttpClientModule` should not be imported into a component directly.
-// Please refactor the code to add `provideHttpClient()` call to the provider list in the
-// application bootstrap logic and remove the `HttpClientModule` import from this component.
-HttpClientModule
   ],
   templateUrl: './main.component.html',
   styleUrl: './main.component.css'
 })
-export class MainComponent {
+export class MainComponent implements OnInit, OnDestroy{
   constructor(
     private readonly router: Router,
     private readonly route: ActivatedRoute,
@@ -38,14 +31,14 @@ export class MainComponent {
   ) {
   }
 
-  dataObserver: Subscription | undefined = undefined;
+  dataObserver: Subscription|undefined = undefined;
   additionalRoutes: string[] = [];
   users: User[] = [];
-  currentUser: string | undefined = undefined;
-  baseUrl = "/dev-shell";
+  currentUser: string|undefined = undefined;
+  baseUrl = '/dev-shell';
 
   ngOnInit() {
-    this.dataObserver = this.route.data.subscribe(data => this.additionalRoutes = data["additionalRoutes"]);
+    this.dataObserver = this.route.data.subscribe(data => this.additionalRoutes = data['additionalRoutes']);
     this.loadUsers();
   }
 

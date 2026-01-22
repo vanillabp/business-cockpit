@@ -67,11 +67,10 @@ enum ContentType {
 }
 
 @Component({
-  selector: 'lib-header',
-  standalone: true,
-  imports: [CommonModule, FormsModule, TaskToggleComponent, DropdownModule],
-  templateUrl: './header.component.html',
-  styleUrl: './header.component.css'
+    selector: 'lib-header',
+    imports: [CommonModule, FormsModule, TaskToggleComponent, DropdownModule],
+    templateUrl: './header.component.html',
+    styleUrl: './header.component.css'
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   // Shared properties

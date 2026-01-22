@@ -5,13 +5,12 @@ import { BcUserTask } from '@vanillabp/bc-types';
 
 @Component({
     selector: 'user-task-wrapper',
-    standalone: true,
     imports: [
-      RouterOutlet,
-      NgIf,
+        RouterOutlet,
+        NgIf,
     ],
     templateUrl: './user-task-wrapper.component.html',
-    styleUrl: './user-task-wrapper.component.css',
+    styleUrl: './user-task-wrapper.component.css'
 })
 export class UserTaskWrapperComponent {
   @Input() userTask?: BcUserTask;
