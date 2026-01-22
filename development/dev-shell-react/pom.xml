@@ -50,7 +50,7 @@
               <goal>npm</goal>
             </goals>
             <configuration>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared</arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared</arguments>
             </configuration>
           </execution>
           <execution>
