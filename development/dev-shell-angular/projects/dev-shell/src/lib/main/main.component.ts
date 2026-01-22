@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { NgForOf } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 
@@ -17,9 +17,8 @@ interface User {
 @Component({
   selector: 'lib-main',
   imports: [
-    NgForOf,
-    FormsModule,
-  ],
+    FormsModule
+],
   templateUrl: './main.component.html',
   styleUrl: './main.component.css'
 })

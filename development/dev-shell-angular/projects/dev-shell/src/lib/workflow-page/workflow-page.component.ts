@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { HeaderComponent } from "../header/header.component";
-import { NgIf } from '@angular/common';
+
 import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 
 @Component({
     selector: 'workflow-page',
     imports: [
-        RouterOutlet,
-        HeaderComponent,
-        NgIf,
-    ],
+    RouterOutlet,
+    HeaderComponent
+],
     templateUrl: './workflow-page.component.html',
     styleUrl: './workflow-page.component.css'
 })

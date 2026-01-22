@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { TaskToggleComponent } from '../components/task-toggle.component';
-import { DropdownModule } from 'primeng/dropdown';
 import { Subscription } from 'rxjs';
+import { AutoComplete } from 'primeng/autocomplete';
 
 interface SelectOption {
   label: string;
@@ -67,10 +67,10 @@ enum ContentType {
 }
 
 @Component({
-    selector: 'lib-header',
-    imports: [CommonModule, FormsModule, TaskToggleComponent, DropdownModule],
-    templateUrl: './header.component.html',
-    styleUrl: './header.component.css'
+  selector: 'lib-header',
+  imports: [CommonModule, FormsModule, TaskToggleComponent, AutoComplete],
+  templateUrl: './header.component.html',
+  styleUrl: './header.component.css'
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   // Shared properties
@@ -78,9 +78,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   page = 0;
   hasMorePages = true;
   isLoading = false;
-  taskFilter: 'all' | 'open' | 'closed' = 'all';
+  taskFilter: 'all'|'open'|'closed' = 'all';
   isPhone = window.innerWidth < 768;
-  private routeSubscription: Subscription | undefined;
+  private routeSubscription: Subscription|undefined;
   private resizeListener: () => void;
 
   // User task properties
@@ -243,7 +243,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onItemSelect(itemId: string | undefined): void {
+  onItemSelect(itemId: string|undefined): void {
     if (this.isUserTaskView && itemId) {
       this.loadUserTask(itemId);
     } else if (this.isWorkflowView && itemId) {
@@ -266,7 +266,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onFilterChange(filter: 'all' | 'open' | 'closed'): void {
+  onFilterChange(filter: 'all'|'open'|'closed'): void {
     this.taskFilter = filter;
     this.page = 0;
     this.hasMorePages = true;

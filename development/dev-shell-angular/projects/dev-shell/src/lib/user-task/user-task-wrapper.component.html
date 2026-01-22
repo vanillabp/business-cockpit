@@ -1,4 +1,8 @@
-<div *ngIf="!userTask">
-  <p>Could not load user-task</p>
-</div>
-<router-outlet *ngIf="userTask" />
+@if (!userTask) {
+  <div>
+    <p>Could not load user-task</p>
+  </div>
+}
+@if (userTask) {
+  <router-outlet />
+}

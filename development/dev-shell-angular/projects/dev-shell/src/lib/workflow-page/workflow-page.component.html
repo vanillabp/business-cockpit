@@ -1,5 +1,9 @@
 <lib-header/>
-<div *ngIf="!workflowId">
-  <p>Unknown workflow</p>
-</div>
-<router-outlet *ngIf="workflowId" />
+@if (!workflowId) {
+  <div>
+    <p>Unknown workflow</p>
+  </div>
+}
+@if (workflowId) {
+  <router-outlet />
+}

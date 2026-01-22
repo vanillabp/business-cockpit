@@ -1,14 +1,13 @@
 import { Component, Input } from '@angular/core';
-import { NgIf } from '@angular/common';
+
 import { RouterOutlet } from "@angular/router";
 import { BcWorkflow } from '@vanillabp/bc-types';
 
 @Component({
     selector: 'workflow-page-wrapper',
     imports: [
-        RouterOutlet,
-        NgIf,
-    ],
+    RouterOutlet
+],
     templateUrl: './workflow-page-wrapper.component.html',
     styleUrl: './workflow-page-wrapper.component.css'
 })
