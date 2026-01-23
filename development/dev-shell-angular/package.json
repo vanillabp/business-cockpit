@@ -8,7 +8,6 @@
   "homepage": "https://github.com/vanillabp/business-cockpit",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
     "build": "ng build dev-shell",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -17,34 +16,29 @@
     "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version",
     "publish:release": "cd dist/dev-shell && npm publish --access public"
   },
-  "dependencies": {
-    "@angular/animations": "20.3.16",
-    "@angular/common": "20.3.16",
-    "@angular/compiler": "20.3.16",
-    "@angular/core": "20.3.16",
-    "@angular/forms": "20.3.16",
-    "@angular/platform-browser": "20.3.16",
-    "@angular/platform-browser-dynamic": "20.3.16",
-    "@angular/router": "20.3.16",
-    "primeng": "20.4.0",
-    "rxjs": "7.8.2",
-    "tslib": "2.8.1",
-    "zone.js": "~0.15.1"
-  },
   "devDependencies": {
-    "@angular/build": "20.3.15",
-    "@angular/cli": "20.3.15",
-    "@angular/compiler-cli": "20.3.16",
+    "@angular/build": "21.1.1",
+    "@angular/cli": "21.1.1",
+    "@angular/common": "21.1.1",
+    "@angular/compiler": "21.1.1",
+    "@angular/compiler-cli": "21.1.1",
+    "@angular/core": "21.1.1",
+    "@angular/forms": "21.1.1",
+    "@angular/platform-browser": "21.1.1",
+    "@angular/router": "21.1.1",
     "@types/jasmine": "~5.1.0",
-    "@vanillabp/bc-official-gui-client": "0.1.1-SNAPSHOT.14",
-    "@vanillabp/bc-types": "0.1.1-SNAPSHOT.14",
+    "@vanillabp/bc-official-gui-client": "0.1.1-SNAPSHOT.16",
+    "@vanillabp/bc-types": "0.1.1-SNAPSHOT.16",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "ng-packagr": "20.3.2",
-    "typescript": "5.8.3"
+    "ng-packagr": "21.1.0",
+    "primeng": "21.0.4",
+    "rxjs": "7.8.2",
+    "typescript": "5.9.3",
+    "zone.js": "~0.15.1"
   }
 }
