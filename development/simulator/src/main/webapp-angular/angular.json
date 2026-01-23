@@ -10,7 +10,7 @@
             "prefix": "lib",
             "architect": {
                 "build": {
-                    "builder": "@angular-devkit/build-angular:ng-packagr",
+                    "builder": "@angular/build:ng-packagr",
                     "options": {
                         "project": "projects/library/ng-package.json"
                     },
@@ -25,7 +25,7 @@
                     "defaultConfiguration": "production"
                 },
                 "test": {
-                    "builder": "@angular-devkit/build-angular:karma",
+                    "builder": "@angular/build:karma",
                     "options": {
                         "tsConfig": "projects/library/tsconfig.spec.json",
                         "polyfills": ["zone.js", "zone.js/testing"]
@@ -45,7 +45,7 @@
             "prefix": "app",
             "architect": {
                 "build": {
-                    "builder": "@angular-devkit/build-angular:application",
+                    "builder": "@angular/build:application",
                     "options": {
                         "outputPath": "dist/library-web-components",
                         "index": "projects/library-web-components/src/index.html",
@@ -92,7 +92,7 @@
                     "defaultConfiguration": "production"
                 },
                 "serve": {
-                    "builder": "@angular-devkit/build-angular:dev-server",
+                    "builder": "@angular/build:dev-server",
                     "configurations": {
                         "production": {
                             "buildTarget": "library-web-components:build:production"
@@ -104,13 +104,13 @@
                     "defaultConfiguration": "development"
                 },
                 "extract-i18n": {
-                    "builder": "@angular-devkit/build-angular:extract-i18n",
+                    "builder": "@angular/build:extract-i18n",
                     "options": {
                         "buildTarget": "library-web-components:build"
                     }
                 },
                 "test": {
-                    "builder": "@angular-devkit/build-angular:karma",
+                    "builder": "@angular/build:karma",
                     "options": {
                         "polyfills": ["zone.js", "zone.js/testing"],
                         "tsConfig": "projects/library-web-components/tsconfig.spec.json",
@@ -139,7 +139,7 @@
           "prefix": "app",
           "architect": {
             "build": {
-              "builder": "@angular-devkit/build-angular:application",
+              "builder": "@angular/build:application",
               "options": {
                 "outputPath": "dist/webapp",
                 "index": "projects/webapp/src/index.html",
@@ -186,7 +186,7 @@
               "options": {
                 "proxyConfig": "./proxy.config.json"
               },
-              "builder": "@angular-devkit/build-angular:dev-server",
+              "builder": "@angular/build:dev-server",
               "configurations": {
                 "production": {
                   "buildTarget": "webapp:build:production"
@@ -198,13 +198,13 @@
               "defaultConfiguration": "development"
             },
             "extract-i18n": {
-              "builder": "@angular-devkit/build-angular:extract-i18n",
+              "builder": "@angular/build:extract-i18n",
               "options": {
                 "buildTarget": "webapp:build"
               }
             },
             "test": {
-              "builder": "@angular-devkit/build-angular:karma",
+              "builder": "@angular/build:karma",
               "options": {
                 "polyfills": [
                   "zone.js",
@@ -227,5 +227,31 @@
     },
     "cli": {
         "analytics": false
+    },
+    "schematics": {
+      "@schematics/angular:component": {
+        "type": "component"
+      },
+      "@schematics/angular:directive": {
+        "type": "directive"
+      },
+      "@schematics/angular:service": {
+        "type": "service"
+      },
+      "@schematics/angular:guard": {
+        "typeSeparator": "."
+      },
+      "@schematics/angular:interceptor": {
+        "typeSeparator": "."
+      },
+      "@schematics/angular:module": {
+        "typeSeparator": "."
+      },
+      "@schematics/angular:pipe": {
+        "typeSeparator": "."
+      },
+      "@schematics/angular:resolver": {
+        "typeSeparator": "."
+      }
     }
 }
