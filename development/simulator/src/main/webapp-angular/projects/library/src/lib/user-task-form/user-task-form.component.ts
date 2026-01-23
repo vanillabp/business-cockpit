@@ -3,7 +3,6 @@ import { BcUserTask } from "@vanillabp/bc-types";
 
 @Component({
     selector: "lib-user-task-form",
-    standalone: true,
     templateUrl: "./user-task-form.component.html",
     styleUrl: "./user-task-form.component.css"
 })

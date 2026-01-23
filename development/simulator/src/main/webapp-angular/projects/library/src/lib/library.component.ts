@@ -2,7 +2,6 @@ import { Component, Input } from "@angular/core";
 
 @Component({
     selector: "lib-library",
-    standalone: true,
     imports: [],
     templateUrl: "./library.component.html",
     styleUrl: "./library.component.scss"
