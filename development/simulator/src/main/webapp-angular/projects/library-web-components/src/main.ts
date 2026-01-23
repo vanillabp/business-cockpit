@@ -5,17 +5,17 @@ import { ApplicationRef } from "@angular/core";
 import { LibraryComponent } from "../../library/src/lib/library.component";
 import { UserTaskFormComponent } from "../../library/src/lib/user-task-form/user-task-form.component";
 import { WorkflowPageComponent } from "../../library/src/lib/workflow-page/workflow-page.component";
-import { appConfig } from "@vanillabp/bc-dev-shell-angular";
+// import { appConfig } from "@vanillabp/bc-dev-shell-angular";
 
 (async () => {
     const app: ApplicationRef = await createApplication(
-        appConfig(
-            "/official-api/v1",
-            UserTaskFormComponent,
-            WorkflowPageComponent,
-            {},
-            []
-        )
+        // appConfig( fixme in angular v20
+        //     "/official-api/v1",
+        //     UserTaskFormComponent,
+        //     WorkflowPageComponent,
+        //     {},
+        //     []
+        // )
     );
 
     // Define Web Components
