@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { TaskToggleComponent } from '../components/task-toggle.component';
-import { DropdownModule } from 'primeng/dropdown';
 import { Subscription } from 'rxjs';
+import { AutoComplete } from 'primeng/autocomplete';
 
 interface SelectOption {
   label: string;
@@ -75,8 +75,7 @@ enum ContentType {
 
 @Component({
   selector: 'lib-header',
-  standalone: true,
-  imports: [CommonModule, FormsModule, TaskToggleComponent, DropdownModule],
+  imports: [CommonModule, FormsModule, TaskToggleComponent, AutoComplete],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
@@ -89,7 +88,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   taskFilter: string = 'all';
   workflowFilter: string = 'all';
   isPhone = window.innerWidth < 768;
-  private routeSubscription: Subscription | undefined;
+  private routeSubscription: Subscription|undefined;
   private resizeListener: () => void;
 
   taskToggleOptions = [
@@ -269,7 +268,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onItemSelect(itemId: string | undefined): void {
+  onItemSelect(itemId: string|undefined): void {
     if (this.isUserTaskView && itemId) {
       this.loadUserTask(itemId);
     } else if (this.isWorkflowView && itemId) {

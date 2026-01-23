@@ -1,5 +1,9 @@
 <lib-header/>
-<div *ngIf="!userTaskId">
-  <p>Unknown task</p>
-</div>
-<router-outlet *ngIf="userTaskId" />
+@if (!userTaskId) {
+  <div>
+    <p>Unknown task</p>
+  </div>
+}
+@if (userTaskId) {
+  <router-outlet />
+}

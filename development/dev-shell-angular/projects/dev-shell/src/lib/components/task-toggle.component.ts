@@ -14,11 +14,10 @@ const TASK_OPTIONS: ToggleOption[] = [
 ];
 
 @Component({
-  selector: 'app-task-toggle',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './task-toggle.component.html',
-  styleUrl: './task-toggle.component.css'
+    selector: 'app-task-toggle',
+    imports: [CommonModule],
+    templateUrl: './task-toggle.component.html',
+    styleUrl: './task-toggle.component.css'
 })
 export class TaskToggleComponent {
   @Input() value: string = 'all';
