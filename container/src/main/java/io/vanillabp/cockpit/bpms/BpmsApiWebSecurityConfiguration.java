@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.bpms;
 
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApiController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
@@ -11,6 +10,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpBasicServerAuthenticationEntryPoint;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
+import org.springframework.security.web.server.util.matcher.OrServerWebExchangeMatcher;
 import org.springframework.security.web.server.util.matcher.PathPatternParserServerWebExchangeMatcher;
 
 public class BpmsApiWebSecurityConfiguration {
@@ -29,10 +29,13 @@ public class BpmsApiWebSecurityConfiguration {
         
         final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
         basicEntryPoint.setRealm(properties.getRealmName());
-        
+
         http
-                .securityMatcher(new PathPatternParserServerWebExchangeMatcher(
-                        BpmsApiController.BPMS_API_URL_PREFIX + "/**"))
+                .securityMatcher(new OrServerWebExchangeMatcher(
+                        new PathPatternParserServerWebExchangeMatcher(
+                                io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.BPMS_API_URL_PREFIX + "/**"),
+                        new PathPatternParserServerWebExchangeMatcher(
+                                io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.BPMS_API_URL_PREFIX + "/**")))
                 .csrf().disable()
                 .cors().disable()
                 .authorizeExchange()
