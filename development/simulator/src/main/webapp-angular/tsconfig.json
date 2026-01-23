@@ -10,7 +10,7 @@
       "noImplicitReturns": true,
       "paths": {
         "@library": [
-          "projects/library/src/public-api.ts"
+          "./projects/library/src/public-api.ts"
         ]
       },
       "noFallthroughCasesInSwitch": true,
