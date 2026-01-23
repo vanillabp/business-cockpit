@@ -1,6 +1,5 @@
 import { Component, Input } from "@angular/core";
-
-import { BcWorkflowModule, ToastFunction } from "@vanillabp/bc-shared";
+import { BcWorkflowModule } from "@vanillabp/bc-types";
 
 @Component({
     selector: "lib-header",
@@ -11,5 +10,4 @@ import { BcWorkflowModule, ToastFunction } from "@vanillabp/bc-shared";
 })
 export class HeaderComponent {
     @Input() workflowModule!: BcWorkflowModule;
-    @Input() toast!: ToastFunction;
 }
