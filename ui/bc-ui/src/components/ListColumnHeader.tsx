@@ -1,12 +1,11 @@
 import {
-  Column,
   DefaultListHeader,
   DefaultListHeaderAwareProps,
-  TranslationFunction,
   useResponsiveScreen
 } from "@vanillabp/bc-shared";
 import { FC, MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "grommet";
+import { Column, TranslationFunction } from '@vanillabp/bc-types';
 
 const AUTO_SIZE_COLUMN = '';
 

@@ -1,7 +1,7 @@
 import { Grid, Text } from "grommet";
 import React from "react";
-import { Person as ListCellPerson, TranslationFunction } from '../types/index.js';
 import { Person } from "@vanillabp/bc-official-gui-client";
+import { TranslationFunction, Person as ListCellPerson } from '@vanillabp/bc-types';
 
 const UserDetailsBox = ({
   t,

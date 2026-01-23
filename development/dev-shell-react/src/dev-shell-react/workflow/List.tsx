@@ -1,6 +1,7 @@
 import { Box, RadioButtonGroup, TextInput } from "grommet";
-import { BcWorkflow, Column, DefaultListCell, ListItemStatus, WorkflowListCell } from "@vanillabp/bc-shared";
+import { DefaultListCell, WorkflowListCell } from "@vanillabp/bc-shared";
 import { ChangeEvent, useState } from "react";
+import { BcWorkflow, Column, ListItemStatus } from "@vanillabp/bc-types";
 
 const SESSION_STORAGE_KEY = "devShellColumns";
 

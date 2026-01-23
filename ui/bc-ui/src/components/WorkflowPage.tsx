@@ -10,14 +10,11 @@ import {
   WorkflowlistApiHook
 } from '../index.js';
 import {
-  BcUserTask,
-  BcWorkflow,
-  GetUserTasksFunction,
   ShowLoadingIndicatorFunction,
-  ToastFunction,
-  TranslationFunction
+  ToastFunction
 } from '@vanillabp/bc-shared';
 import { Box } from 'grommet';
+import { BcUserTask, BcUserTasksProvider, BcWorkflow, TranslationFunction } from '@vanillabp/bc-types';
 
 const loadWorkflow = async (
     workflowId: string,
@@ -27,7 +24,7 @@ const loadWorkflow = async (
     setWorkflow: (workflow: BcWorkflow) => void,
 ) => {
   const workflow = await workflowListApi.getWorkflow(workflowId);
-  const getUserTasksFunction: GetUserTasksFunction = async (
+  const getUserTasksFunction: BcUserTasksProvider = async (
       activeOnly,
       limitListAccordingToCurrentUsersPermissions
   ) => {

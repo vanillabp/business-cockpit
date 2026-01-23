@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { UserTask } from "@vanillabp/bc-official-gui-client";
-import { Column } from "@vanillabp/bc-shared";
+import { Column } from '@vanillabp/bc-types';
 
 export type ListOfTasksHeaderFooterFunction = (
     isPhone: boolean,

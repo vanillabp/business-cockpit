@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Box, Button, Text } from 'grommet';
-import { ShowLoadingIndicatorFunction, TranslationFunction } from "@vanillabp/bc-shared";
+import { ShowLoadingIndicatorFunction } from "@vanillabp/bc-shared";
+import { TranslationFunction } from '@vanillabp/bc-types';
 
 const NoElementGivenByModule = ({
   loading = false,

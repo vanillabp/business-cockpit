@@ -1,11 +1,12 @@
 import React, { MutableRefObject, PropsWithChildren, useCallback, useContext, useMemo } from 'react';
 import { getOfficialTasklistApi } from '../client/guiClient.js';
-import { BcUserTask, Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
+import { Toast, WakeupSseCallback } from '@vanillabp/bc-shared';
 import { useParams } from 'react-router-dom';
 import { OfficialTasklistApi, UserTask } from '@vanillabp/bc-official-gui-client';
 import { useAppContext } from '../DevShellAppContext.js';
 import { useTranslation } from 'react-i18next';
 import { appNs } from '../app/DevShellApp.js';
+import { BcUserTask } from '@vanillabp/bc-types';
 
 const UserTaskAppContext = React.createContext<{
   userTaskId: string;
@@ -42,8 +43,8 @@ const loadUserTask = (
                   ...value,
                   open: () => openTask(value?.id!),
                   navigateToWorkflow: () => openWorkflow(value?.workflowId!),
-                  assign: userId => {},
-                  unassign: userId => {},
+                  assign: (userId: string) => {},
+                  unassign: (userId: string) => {},
                   claim: () => {},
                   unclaim: () => {},
                 } as BcUserTask;

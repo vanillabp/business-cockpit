@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>bc-types</module>
         <module>bc-shared</module>
         <module>bc-ui</module>
     </modules>

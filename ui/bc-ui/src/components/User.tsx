@@ -1,8 +1,9 @@
 import { Grid, Text } from 'grommet';
 import { Person } from '@vanillabp/bc-official-gui-client';
 import { UserAvatar } from './UserAvatar.js';
-import { TranslationFunction, UserDetailsBox } from "@vanillabp/bc-shared";
+import { UserDetailsBox } from "@vanillabp/bc-shared";
 import React from "react";
+import { TranslationFunction } from '@vanillabp/bc-types';
 
 type UserProps = {
   t: TranslationFunction;

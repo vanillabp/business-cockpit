@@ -1,4 +1,4 @@
-import { Column } from "@vanillabp/bc-shared";
+import { Column } from '@vanillabp/bc-types';
 
 const sortWithoutColumnTypeSpecificAttributes = (currentLanguage: string, effectiveSort?: string) =>
   effectiveSort?.endsWith(`.${currentLanguage}`) // column type 'i18n'

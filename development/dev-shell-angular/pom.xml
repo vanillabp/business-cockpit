@@ -55,7 +55,7 @@
             </goals>
             <configuration>
               <workingDirectory>${project.basedir}</workingDirectory>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared --legacy-peer-deps</arguments>
+              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared --legacy-peer-deps</arguments>
             </configuration>
           </execution>
         </executions>

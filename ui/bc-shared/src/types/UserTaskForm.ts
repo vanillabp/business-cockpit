@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { BcUserTask } from "./BcUserTask";
+import { FC } from 'react';
+import { BcUserTask } from '@vanillabp/bc-types';
 
 interface UserTaskFormProps {
   userTask: BcUserTask;

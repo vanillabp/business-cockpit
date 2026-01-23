@@ -1,7 +1,6 @@
 import { Box, BoxExtendedProps, Text, TextExtendedProps } from 'grommet';
 import { BackgroundType, ColorType } from 'grommet/utils/index.js';
 import React, { FC, memo, PropsWithChildren } from 'react';
-import { Column, ListItem, ListItemStatus, Person, TranslationFunction } from '../types/index.js';
 import {
   getObjectProperty,
   toLocaleDateString,
@@ -9,6 +8,7 @@ import {
   toLocaleTimeStringWithoutSeconds,
 } from '../utils/index.js';
 import { UserDetailsBox } from "./index.js";
+import { Column, ListItem, ListItemStatus, TranslationFunction, Person } from '@vanillabp/bc-types';
 
 const DATE_REGEXP = /^(\d{4})-(\d{2})-(\d{2})/;
 

@@ -180,8 +180,8 @@
             </execution>
           </executions>
           <configuration>
-            <nodeVersion>v18.16.0</nodeVersion>
-            <npmVersion>9.6.5</npmVersion>
+            <nodeVersion>v22.22.0</nodeVersion>
+            <npmVersion>10.9.4</npmVersion>
             <installDirectory>${java.io.tmpdir}/frontend-maven-plugin</installDirectory>
           </configuration>
         </plugin>

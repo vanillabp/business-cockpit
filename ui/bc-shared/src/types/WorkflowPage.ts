@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { BcWorkflow } from "./BcWorkflow";
+import { FC } from 'react';
+import { BcWorkflow } from '@vanillabp/bc-types';
 
 interface WorkflowPageProps {
   workflow: BcWorkflow;

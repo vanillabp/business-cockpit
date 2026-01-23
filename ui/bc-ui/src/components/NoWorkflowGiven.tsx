@@ -1,5 +1,6 @@
 import { NoElementGivenByModule } from './index.js';
-import { ShowLoadingIndicatorFunction, TranslationFunction } from "@vanillabp/bc-shared";
+import { ShowLoadingIndicatorFunction } from "@vanillabp/bc-shared";
+import { TranslationFunction } from '@vanillabp/bc-types';
 
 const NoWorkflowGiven = ({
   loading = false,
