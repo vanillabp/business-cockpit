@@ -187,6 +187,11 @@
       <artifactId>spring-kafka-test</artifactId>
       <scope>compile</scope><!-- use embedded Kafka meant to be used for tests -->
     </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-validator</artifactId>
+      <version>6.1.7.Final</version>
+    </dependency>
   </dependencies>
 
   <licenses>
