@@ -11,8 +11,10 @@
     "build": "ng build dev-shell",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "unpublish:snapshot": "cd dist/dev-shell && npm unpublish --force",
+    "unpublish:snapshot": "npm run unpublish:dev-shell && npm run unpublish:module",
+    "unpublish:module": "npm view --registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "publish:snapshot": "cd dist/dev-shell && npm publish --tag snapshot",
+    "unpublish:dev-shell": "cd dist/dev-shell && npm view --registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version",
     "publish:release": "cd dist/dev-shell && npm publish --access public"
   },
