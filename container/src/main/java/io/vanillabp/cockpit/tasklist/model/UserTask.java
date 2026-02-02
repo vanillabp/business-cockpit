@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.springframework.data.annotation.AccessType;
 import org.springframework.data.annotation.Id;
@@ -93,6 +94,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
                 .orElse(List.of())
                 .stream()
                 .map(Group::getId)
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -103,6 +105,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
                 .orElse(List.of())
                 .stream()
                 .map(Person::getId)
+                .filter(Objects::nonNull)
                 .toList();
     }
 

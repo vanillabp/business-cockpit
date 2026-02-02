@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.simulator.workflow;
 
-import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import org.mapstruct.Mapper;
@@ -18,11 +18,11 @@ public abstract class OfficialWorkflowlistApiMapper {
     @Mapping(target = "accessibleToUsers", ignore = true)  // TODO
     @Mapping(target = "accessibleToGroups", ignore = true) // TODO
     @Mapping(target = "initiator", ignore = true)          // TODO
-    public abstract Workflow toApi(WorkflowCreatedOrUpdatedEvent event);
+    public abstract Workflow toApi(WorkflowCreatedEvent event);
     
     @NoMappingMethod
     protected String proxiedUiUri(
-            final WorkflowCreatedOrUpdatedEvent workflow) {
+            final WorkflowCreatedEvent workflow) {
         
         if (workflow.getWorkflowModuleId() == null) {
             return null;
@@ -39,7 +39,7 @@ public abstract class OfficialWorkflowlistApiMapper {
     
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
-            final WorkflowCreatedOrUpdatedEvent workflow) {
+            final WorkflowCreatedEvent workflow) {
         
         if (workflow.getWorkflowModuleId() == null) {
             return null;
