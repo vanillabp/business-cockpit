@@ -1,12 +1,12 @@
 package io.vanillabp.cockpit.simulator.usertask.testdata;
 
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.simulator.common.FairyHelper;
+import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import io.vanillabp.cockpit.simulator.common.FairyHelper;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -16,15 +16,12 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import jakarta.annotation.PostConstruct;
-
 @Controller
 @RequestMapping(path = "/testdata/usertask")
 public class UserTaskTestDataController {
     
     @Autowired
-    private ObjectProvider<BpmsApi> bpmsApiProvider;
+    private BpmsApi bpmsApiProvider;
     
     @GetMapping(path = "/form")
     public String form() {
@@ -79,7 +76,7 @@ public class UserTaskTestDataController {
                     i != parameters.getNoOfConcurrentRequest()
                             ? noOfEvents
                             : remainingNoOfTasks,
-                    bpmsApiProvider.getObject(),
+                    bpmsApiProvider,
                     users,
                     groups,
                     fairies,
