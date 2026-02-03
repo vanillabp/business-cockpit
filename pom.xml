@@ -25,6 +25,7 @@
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <version.jupiter>5.10.1</version.jupiter>
+    <version.jacoco>0.8.12</version.jacoco>
   </properties>
 
   <modules>
@@ -36,6 +37,7 @@
     <module>development</module>
     <module>spi-for-java</module>
     <module>adapters</module>
+    <module>coverage-report</module>
   </modules>
 
   <build>
@@ -77,6 +79,11 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
           <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${version.jacoco}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -187,6 +194,28 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <phase>initialize</phase>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <dependencyManagement>

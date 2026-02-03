@@ -51,6 +51,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
+                            <skip>${skip.npm.update}</skip>
                             <arguments>link @vanillabp/bc-official-gui-client</arguments>
                         </configuration>
                     </execution>
@@ -61,6 +62,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
+                            <skip>${skip.npm.update}</skip>
                             <arguments>link</arguments>
                         </configuration>
                     </execution>

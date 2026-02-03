@@ -89,6 +89,7 @@
               <goal>npm</goal>
             </goals>
             <configuration>
+              <skip>${skip.npm.update}</skip>
               <arguments>link</arguments>
             </configuration>
           </execution>

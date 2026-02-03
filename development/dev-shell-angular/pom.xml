@@ -54,6 +54,7 @@
               <goal>npm</goal>
             </goals>
             <configuration>
+              <skip>${skip.npm.update}</skip>
               <workingDirectory>${project.basedir}</workingDirectory>
               <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared --legacy-peer-deps</arguments>
             </configuration>
