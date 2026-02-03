@@ -4,7 +4,7 @@ info:
   version: '1.0'
   title: BC-API
 servers:
-  - url: /api/v1
+  - url: http://localhost:8080/api/v1
 tags:
   - name: bpms
     description: BPMS Events

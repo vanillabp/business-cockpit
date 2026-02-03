@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   description: Business Cockpit API
-  version: '1.0'
+  version: '1.1'
   title: BC-API
 servers:
-  - url: /api/v1_1
+  - url: http://localhost:8080/api/v1_1
 tags:
   - name: bpms
     description: BPMS Events
@@ -57,7 +57,7 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/{userTaskId}/updated:
     post:
       tags:
@@ -84,7 +84,7 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/{userTaskId}/suspended:
     post:
       tags:
@@ -111,7 +111,7 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/{userTaskId}/activated:
     post:
       tags:
@@ -138,7 +138,7 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/{userTaskId}/completed:
     post:
       tags:
@@ -165,7 +165,7 @@ paths:
         401:
           description: You are not authorized to view the resource
         403:
-          description: Accessing the resource you were trying to reach is forbidden 
+          description: Accessing the resource you were trying to reach is forbidden
   /usertask/{userTaskId}/cancelled:
     post:
       tags:
@@ -304,19 +304,19 @@ components:
     UiUriType:
       type: string
       enum:
-      - EXTERNAL
-      - WEBPACK_MF_REACT  # MF ... Module Federation
+        - EXTERNAL
+        - WEBPACK_MF_REACT  # MF ... Module Federation
     UserTaskUpdatedEvent:
       type: object
       required:
-      - id
-      - userTaskId
-      - timestamp
-      - bpmnProcessId
-      - taskDefinition
-      - title
-      - uiUriPath
-      - uiUriType
+        - id
+        - userTaskId
+        - timestamp
+        - bpmnProcessId
+        - taskDefinition
+        - title
+        - uiUriPath
+        - uiUriType
       properties:
         id:
           type: string
@@ -409,7 +409,7 @@ components:
           type: array
           items:
             type: string
-          example: []
+          example: [ ]
         candidateGroups:
           type: array
           items:
@@ -419,7 +419,7 @@ components:
           type: array
           items:
             type: string
-          example: []
+          example: [ ]
         dueDate:
           type: string
           format: date-time
@@ -439,9 +439,9 @@ components:
     UserTaskLifecycleEvent:
       type: object
       required:
-      - id
-      - userTaskId
-      - timestamp
+        - id
+        - userTaskId
+        - timestamp
       properties:
         id:
           type: string
@@ -546,7 +546,7 @@ components:
           type: array
           items:
             type: string
-          example: []
+          example: [ ]
         accessibleToGroups:
           type: array
           items:
