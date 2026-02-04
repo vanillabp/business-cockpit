@@ -5,7 +5,9 @@
     <span>User:</span>
     <select [ngModel]="currentUser || ''" (change)="changeUser($event)">
       <option value="---">---</option>
-      <option *ngFor="let user of users" [value]="user.id">{{ user.id }}, {{ user.firstName }} {{ user.lastName }}</option>
+      @for (user of users; track user) {
+        <option [value]="user.id">{{ user.id }}, {{ user.firstName }} {{ user.lastName }}</option>
+      }
     </select>
   </div>
 
@@ -16,7 +18,9 @@
 
   <div>Custom module-federation components:</div>
   <div class="componentButtons">
-    <button *ngFor="let route of additionalRoutes" (click)="navigateTo(route)">{{ route }}</button>
+    @for (route of additionalRoutes; track route) {
+      <button (click)="navigateTo(route)">{{ route }}</button>
+    }
   </div>
 
 

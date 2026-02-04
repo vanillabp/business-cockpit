@@ -2,13 +2,10 @@
   "name": "library",
   "version": "0.1.1-SNAPSHOT",
   "peerDependencies": {
-    "@angular/common": "^17.2.0",
-    "@angular/core": "^17.2.0",
+    "@angular/common": "^21.1.1",
+    "@angular/core": "^21.1.1",
     "@vanillabp/bc-official-gui-client": ">=0.1.1-SNAPSHOT <0.1.2",
-    "@vanillabp/bc-shared": ">=0.1.1-SNAPSHOT <0.1.2"
-  },
-  "dependencies": {
-    "tslib": "^2.3.0"
+    "@vanillabp/bc-types": ">=0.1.1-SNAPSHOT <0.1.2"
   },
   "sideEffects": false
 }

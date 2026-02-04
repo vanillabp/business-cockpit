@@ -152,7 +152,10 @@
                 <goal>npm</goal>
               </goals>
               <configuration>
-                <arguments>run unpublish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
+                <environmentVariables>
+                  <NPM_REGISTRY>${npm.registry}</NPM_REGISTRY>
+                </environmentVariables>
+                <arguments>run unpublish:snapshot</arguments>
                 <skip>${skip.npm.unpublish}</skip>
               </configuration>
             </execution>

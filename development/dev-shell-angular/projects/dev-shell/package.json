@@ -7,14 +7,15 @@
   },
   "homepage": "https://github.com/vanillabp/business-cockpit",
   "peerDependencies": {
-    "@angular/common": "^17.2.0",
-    "@angular/core": "^17.2.0",
-    "@angular/router": "^17.2.0",
+    "@angular/common": "^21.1.1",
+    "@angular/core": "^21.1.1",
+    "@angular/router": "^21.1.1",
+    "@angular/forms": "^21.1.1",
+    "@angular/platform-browser": "^21.1.1",
     "@vanillabp/bc-official-gui-client": ">=0.1.1-SNAPSHOT <0.1.2",
-    "@vanillabp/bc-types": ">=0.1.1-SNAPSHOT <0.1.2"
-  },
-  "dependencies": {
-    "tslib": "^2.3.0"
+    "@vanillabp/bc-types": ">=0.1.1-SNAPSHOT <0.1.2",
+    "primeng": "^21.0.4",
+    "rxjs": "^7.8.2"
   },
   "sideEffects": false
 }

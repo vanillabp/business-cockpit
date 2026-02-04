@@ -4,9 +4,7 @@ import { OfficialTasklistApi, OfficialWorkflowlistApi, UserTask, Workflow } from
 import { fromPromise } from "rxjs/internal/observable/innerFrom";
 import { BcUserTask, BcWorkflow } from '@vanillabp/bc-types';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({providedIn: 'root'})
 export class DevShellAppContextService {
 
   constructor(private tasklistApi: OfficialTasklistApi, private workflowlistApi: OfficialWorkflowlistApi) {
