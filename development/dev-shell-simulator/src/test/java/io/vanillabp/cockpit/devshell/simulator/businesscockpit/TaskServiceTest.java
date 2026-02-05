@@ -35,13 +35,13 @@ class TaskServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Offene Aufgabe ohne endedAt
+        // Open task without endedAt
         openTask = new UserTask();
         openTask.setId("task-1");
         openTask.setWorkflowId("wf-1");
         openTask.setCreatedAt(OffsetDateTime.now());
 
-        // Abgeschlossene Aufgabe mit endedAt
+        // Completed task with endedAt
         closedTask = new UserTask();
         closedTask.setId("task-2");
         closedTask.setWorkflowId("wf-1");
@@ -53,16 +53,16 @@ class TaskServiceTest {
 
     @Test
     void createTask_withValidInput_savesTask() {
-        // Aufgabe mit gueltigem Input anlegen
+        // Create task with valid input
         taskService.createTask("task-1", openTask);
 
-        // Sicherstellen, dass die Aufgabe im Repository gespeichert wird
+        // Verify task is saved to repository
         verify(userTasks).save(openTask);
     }
 
     @Test
     void createTask_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.createTask(null, openTask))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -70,7 +70,7 @@ class TaskServiceTest {
 
     @Test
     void createTask_withNullTask_throwsIllegalArgumentException() {
-        // Null-Aufgabe muss zu einer IllegalArgumentException fuehren
+        // Null task must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.createTask("task-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -80,10 +80,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTask_withExistingId_returnsTask() {
-        // Repository gibt die Aufgabe zurueck
+        // Repository returns the task
         when(userTasks.findById("task-1")).thenReturn(Optional.of(openTask));
 
-        // Aufgabe abrufen und pruefen
+        // Retrieve task and verify
         final var result = taskService.getUserTask("task-1");
 
         assertThat(result).isSameAs(openTask);
@@ -91,7 +91,7 @@ class TaskServiceTest {
 
     @Test
     void getUserTask_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.getUserTask(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -99,23 +99,23 @@ class TaskServiceTest {
 
     @Test
     void getUserTask_withNonExistingId_throwsIllegalStateException() {
-        // Repository findet keine Aufgabe
+        // Repository finds no task
         when(userTasks.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException fuer nicht existierende Aufgabe
+        // Expect IllegalStateException for non-existing task
         assertThatThrownBy(() -> taskService.getUserTask("unknown"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
     }
 
-    // --- getUserTasks mit RetrieveMode ---
+    // --- getUserTasks with RetrieveMode ---
 
     @Test
     void getUserTasks_withAllMode_returnsAllTasks() {
-        // Repository gibt alle Aufgaben zurueck
+        // Repository returns all tasks
         when(userTasks.findAll()).thenReturn(List.of(openTask, closedTask));
 
-        // Alle Aufgaben im ALL-Modus abfragen
+        // Query all tasks in ALL mode
         final var result = taskService.getUserTasks(RetrieveMode.ALL, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(openTask, closedTask);
@@ -123,10 +123,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTasks_withOpenTasksMode_returnsOnlyOpenTasks() {
-        // Repository gibt nur offene Aufgaben zurueck
+        // Repository returns only open tasks
         when(userTasks.findByEndedAtIsNull()).thenReturn(List.of(openTask));
 
-        // Nur offene Aufgaben im OPENTASKS-Modus abfragen
+        // Query only open tasks in OPENTASKS mode
         final var result = taskService.getUserTasks(RetrieveMode.OPENTASKS, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(openTask);
@@ -134,50 +134,50 @@ class TaskServiceTest {
 
     @Test
     void getUserTasks_withClosedTasksMode_returnsOnlyClosedTasks() {
-        // Repository gibt nur abgeschlossene Aufgaben zurueck
+        // Repository returns only closed tasks
         when(userTasks.findByEndedAtIsNotNull()).thenReturn(List.of(closedTask));
 
-        // Nur abgeschlossene Aufgaben im CLOSEDTASKSONLY-Modus abfragen
+        // Query only closed tasks in CLOSEDTASKSONLY mode
         final var result = taskService.getUserTasks(RetrieveMode.CLOSEDTASKSONLY, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(closedTask);
     }
 
     /**
-     * Verifiziert, dass die Retrieve-Modi OPENTASKSWITHOUTFOLLOWUP und
-     * OPENTASKSWITHFOLLOWUP auf den Default-Zweig (findAll) fallen.
+     * Verifies that retrieve modes OPENTASKSWITHOUTFOLLOWUP and
+     * OPENTASKSWITHFOLLOWUP fall back to the default branch (findAll).
      */
     @Test
     void getUserTasks_withFallbackModes_returnsAllTasks() {
-        // Repository gibt alle Aufgaben zurueck (Default-Zweig)
+        // Repository returns all tasks (default branch)
         when(userTasks.findAll()).thenReturn(List.of(openTask, closedTask));
 
-        // OPENTASKSWITHOUTFOLLOWUP faellt auf den Default-Zweig
+        // OPENTASKSWITHOUTFOLLOWUP falls back to default branch
         final var resultWithout = taskService.getUserTasks(RetrieveMode.OPENTASKSWITHOUTFOLLOWUP, 0, 20);
         assertThat(resultWithout.getPageObjects()).hasSize(2);
 
-        // OPENTASKSWITHFOLLOWUP faellt ebenfalls auf den Default-Zweig
+        // OPENTASKSWITHFOLLOWUP also falls back to default branch
         final var resultWith = taskService.getUserTasks(RetrieveMode.OPENTASKSWITHFOLLOWUP, 0, 20);
         assertThat(resultWith.getPageObjects()).hasSize(2);
     }
 
-    // --- Paginierung ---
+    // --- Pagination ---
 
     @Test
     void getUserTasks_withPagination_returnsCorrectPage() {
-        // Drei Aufgaben anlegen, um Paginierung mit Seitengroesse 2 zu testen
+        // Create three tasks to test pagination with page size 2
         final var task3 = new UserTask();
         task3.setId("task-3");
         when(userTasks.findAll()).thenReturn(List.of(openTask, closedTask, task3));
 
-        // Erste Seite mit 2 Eintraegen abfragen
+        // Query first page with 2 entries
         final var firstPage = taskService.getUserTasks(RetrieveMode.ALL, 0, 2);
         assertThat(firstPage.getPageObjects()).hasSize(2);
         assertThat(firstPage.getNumber()).isEqualTo(0);
         assertThat(firstPage.getSize()).isEqualTo(2);
         assertThat(firstPage.getTotalPages()).isEqualTo(2);
 
-        // Zweite Seite mit 1 Eintrag abfragen
+        // Query second page with 1 entry
         final var secondPage = taskService.getUserTasks(RetrieveMode.ALL, 1, 2);
         assertThat(secondPage.getPageObjects()).hasSize(1);
         assertThat(secondPage.getNumber()).isEqualTo(1);
@@ -185,23 +185,23 @@ class TaskServiceTest {
 
     @Test
     void getUserTasks_withNullPaginationParams_usesDefaults() {
-        // Repository gibt eine Aufgabe zurueck
+        // Repository returns one task
         when(userTasks.findAll()).thenReturn(List.of(openTask));
 
-        // Abfrage ohne Paginierungsparameter (null-Werte verwenden Defaults)
+        // Query without pagination parameters (null values use defaults)
         final var result = taskService.getUserTasks(RetrieveMode.ALL, null, null);
 
-        // Default-Werte: pageNumber=0, pageSize=20
+        // Default values: pageNumber=0, pageSize=20
         assertThat(result.getNumber()).isEqualTo(0);
         assertThat(result.getSize()).isEqualTo(20);
     }
 
     @Test
     void getUserTasks_beyondLastPage_returnsEmptyPageObjects() {
-        // Repository gibt 2 Aufgaben zurueck
+        // Repository returns 2 tasks
         when(userTasks.findAll()).thenReturn(List.of(openTask, closedTask));
 
-        // Seitennummer liegt jenseits der letzten Seite
+        // Page number is beyond the last page
         final var result = taskService.getUserTasks(RetrieveMode.ALL, 100, 20);
 
         assertThat(result.getPageObjects()).isEmpty();
@@ -209,10 +209,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTasks_withEmptyResult_returnsEmptyPage() {
-        // Repository gibt keine Aufgaben zurueck
+        // Repository returns no tasks
         when(userTasks.findAll()).thenReturn(List.of());
 
-        // Leere Ergebnismenge abfragen
+        // Query empty result set
         final var result = taskService.getUserTasks(RetrieveMode.ALL, 0, 20);
 
         assertThat(result.getPageObjects()).isEmpty();
@@ -223,10 +223,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTasksOfWorkflow_withOpenTasksMode_filtersCorrectly() {
-        // Repository gibt offene Aufgaben eines bestimmten Workflows zurueck
+        // Repository returns open tasks of a specific workflow
         when(userTasks.findByWorkflowIdAndEndedAtIsNull("wf-1")).thenReturn(List.of(openTask));
 
-        // Offene Aufgaben eines Workflows abfragen
+        // Query open tasks of a workflow
         final var result = taskService.getUserTasksOfWorkflow("wf-1", RetrieveMode.OPENTASKS, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(openTask);
@@ -234,10 +234,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTasksOfWorkflow_withClosedTasksMode_filtersCorrectly() {
-        // Repository gibt abgeschlossene Aufgaben eines bestimmten Workflows zurueck
+        // Repository returns closed tasks of a specific workflow
         when(userTasks.findByWorkflowIdAndEndedAtIsNotNull("wf-1")).thenReturn(List.of(closedTask));
 
-        // Abgeschlossene Aufgaben eines Workflows abfragen
+        // Query closed tasks of a workflow
         final var result = taskService.getUserTasksOfWorkflow("wf-1", RetrieveMode.CLOSEDTASKSONLY, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(closedTask);
@@ -245,10 +245,10 @@ class TaskServiceTest {
 
     @Test
     void getUserTasksOfWorkflow_withAllMode_returnsAllTasksOfWorkflow() {
-        // Repository gibt alle Aufgaben des Workflows zurueck
+        // Repository returns all tasks of the workflow
         when(userTasks.findByWorkflowId("wf-1")).thenReturn(List.of(openTask, closedTask));
 
-        // Alle Aufgaben des Workflows abfragen
+        // Query all tasks of the workflow
         final var result = taskService.getUserTasksOfWorkflow("wf-1", RetrieveMode.ALL, 0, 20);
 
         assertThat(result.getPageObjects()).containsExactly(openTask, closedTask);
@@ -258,10 +258,10 @@ class TaskServiceTest {
 
     @Test
     void getAllUserTasks_returnsAllStoredTasks() {
-        // Repository gibt alle gespeicherten Aufgaben zurueck
+        // Repository returns all stored tasks
         when(userTasks.findAll()).thenReturn(List.of(openTask, closedTask));
 
-        // Alle Aufgaben abfragen
+        // Query all tasks
         final var result = taskService.getAllUserTasks();
 
         assertThat(result).containsExactly(openTask, closedTask);
@@ -271,27 +271,27 @@ class TaskServiceTest {
 
     @Test
     void updateTask_withExistingTask_appliesConsumerAndSaves() {
-        // Repository findet die Aufgabe
+        // Repository finds the task
         when(userTasks.findById("task-1")).thenReturn(Optional.of(openTask));
 
-        // Consumer, der die Aufgabe modifiziert
+        // Consumer that modifies the task
         final var consumerCalled = new AtomicBoolean(false);
         taskService.updateTask("task-1", task -> {
             task.setComment("updated");
             consumerCalled.set(true);
         });
 
-        // Consumer muss aufgerufen worden sein
+        // Consumer must have been called
         assertThat(consumerCalled).isTrue();
         assertThat(openTask.getComment()).isEqualTo("updated");
 
-        // Geaenderte Aufgabe muss gespeichert werden
+        // Modified task must be saved
         verify(userTasks).save(openTask);
     }
 
     @Test
     void updateTask_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.updateTask(null, task -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -299,10 +299,10 @@ class TaskServiceTest {
 
     @Test
     void updateTask_withNonExistingTask_throwsIllegalStateException() {
-        // Repository findet keine Aufgabe
+        // Repository finds no task
         when(userTasks.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException
+        // Expect IllegalStateException
         assertThatThrownBy(() -> taskService.updateTask("unknown", task -> {}))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
@@ -312,20 +312,20 @@ class TaskServiceTest {
 
     @Test
     void completeTask_withExistingTask_appliesConsumerAndSaves() {
-        // Repository findet die Aufgabe
+        // Repository finds the task
         when(userTasks.findById("task-1")).thenReturn(Optional.of(openTask));
 
-        // Consumer setzt endedAt
+        // Consumer sets endedAt
         taskService.completeTask("task-1", task -> task.setEndedAt(OffsetDateTime.now()));
 
-        // Aufgabe muss beendet und gespeichert worden sein
+        // Task must be ended and saved
         assertThat(openTask.getEndedAt()).isNotNull();
         verify(userTasks).save(openTask);
     }
 
     @Test
     void completeTask_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.completeTask(null, task -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -333,10 +333,10 @@ class TaskServiceTest {
 
     @Test
     void completeTask_withNonExistingTask_throwsIllegalStateException() {
-        // Repository findet keine Aufgabe
+        // Repository finds no task
         when(userTasks.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException
+        // Expect IllegalStateException
         assertThatThrownBy(() -> taskService.completeTask("unknown", task -> {}))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
@@ -346,36 +346,36 @@ class TaskServiceTest {
 
     @Test
     void cancelTask_withExistingTask_appliesConsumerAndSaves() {
-        // Repository findet die Aufgabe
+        // Repository finds the task
         when(userTasks.findById("task-1")).thenReturn(Optional.of(openTask));
 
-        // Consumer setzt endedAt
+        // Consumer sets endedAt
         taskService.cancelTask("task-1", task -> task.setEndedAt(OffsetDateTime.now()));
 
-        // Aufgabe muss beendet und gespeichert worden sein
+        // Task must be ended and saved
         assertThat(openTask.getEndedAt()).isNotNull();
         verify(userTasks).save(openTask);
     }
 
     /**
-     * Stellt sicher, dass cancelTask keine Exception wirft, wenn die
-     * Aufgabe nicht existiert (im Gegensatz zu completeTask).
+     * Ensures that cancelTask does not throw an exception when the
+     * task does not exist (unlike completeTask).
      */
     @Test
     void cancelTask_withNonExistingTask_doesNothing() {
-        // Repository findet keine Aufgabe
+        // Repository finds no task
         when(userTasks.findById("unknown")).thenReturn(Optional.empty());
 
-        // cancelTask soll ohne Fehler durchlaufen
+        // cancelTask should complete without error
         taskService.cancelTask("unknown", task -> task.setEndedAt(OffsetDateTime.now()));
 
-        // save darf nicht aufgerufen worden sein
+        // save must not have been called
         verify(userTasks).findById("unknown");
     }
 
     @Test
     void cancelTask_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> taskService.cancelTask(null, task -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");

@@ -35,7 +35,7 @@ class OfficialApiWorkflowControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Controller nutzt Constructor-Injection via @RequiredArgsConstructor
+        // Controller uses constructor injection via @RequiredArgsConstructor
         controller = new OfficialApiWorkflowController(workflowService, taskService, mapper);
     }
 
@@ -43,7 +43,7 @@ class OfficialApiWorkflowControllerTest {
 
     @Test
     void getWorkflow_returnsApiMappedWorkflow() {
-        // Domain-Workflow und API-Workflow vorbereiten
+        // Prepare domain workflow and API workflow
         final var domainWorkflow = new io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow();
         domainWorkflow.setId("wf-1");
         final var apiWorkflow = new io.vanillabp.cockpit.gui.api.v1.Workflow();
@@ -52,25 +52,25 @@ class OfficialApiWorkflowControllerTest {
         when(workflowService.getWorkflow("wf-1")).thenReturn(domainWorkflow);
         when(mapper.toApi(domainWorkflow)).thenReturn(apiWorkflow);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.getWorkflow("wf-1");
 
-        // Antwort muss HTTP 200 mit dem gemappten API-Workflow sein
+        // Response must be HTTP 200 with the mapped API workflow
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(apiWorkflow);
     }
 
     @Test
     void getWorkflow_delegatesIdToWorkflowService() {
-        // Domain-Workflow vorbereiten
+        // Prepare domain workflow
         final var domainWorkflow = new io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow();
         when(workflowService.getWorkflow("wf-42")).thenReturn(domainWorkflow);
         when(mapper.toApi(domainWorkflow)).thenReturn(new io.vanillabp.cockpit.gui.api.v1.Workflow());
 
-        // Controller-Aufruf mit spezifischer ID
+        // Execute controller call with specific ID
         controller.getWorkflow("wf-42");
 
-        // WorkflowService muss mit der korrekten ID aufgerufen werden
+        // WorkflowService must be called with the correct ID
         verify(workflowService).getWorkflow("wf-42");
     }
 
@@ -78,12 +78,12 @@ class OfficialApiWorkflowControllerTest {
 
     @Test
     void getWorkflows_returnsPaginatedWorkflows() {
-        // Request mit Paginierungsparametern vorbereiten
+        // Prepare request with pagination parameters
         final var request = new WorkflowsRequest();
         request.setPageNumber(0);
         request.setPageSize(10);
 
-        // Domain-Page und API-Response vorbereiten
+        // Prepare domain page and API response
         final var domainPage = Page.<io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow>builder()
                 .number(0).size(10).totalPages(1).pageObjects(List.of()).build();
         final var apiWorkflows = new Workflows();
@@ -91,10 +91,10 @@ class OfficialApiWorkflowControllerTest {
         when(workflowService.getWorkflows(0, 10)).thenReturn(domainPage);
         when(mapper.toWorkflowsApi(domainPage)).thenReturn(apiWorkflows);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.getWorkflows(request, null, null);
 
-        // Antwort muss HTTP 200 mit der gemappten API-Paginierung sein
+        // Response must be HTTP 200 with the mapped API pagination
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(apiWorkflows);
     }
@@ -103,11 +103,11 @@ class OfficialApiWorkflowControllerTest {
 
     @Test
     void getUserTasksOfWorkflow_returnsFilteredTasks() {
-        // Request mit Retrieve-Mode vorbereiten
+        // Prepare request with retrieve mode
         final var request = new UserTasksRequest();
         request.setMode(UserTaskRetrieveMode.ALL);
 
-        // Domain-Page und API-UserTasks vorbereiten
+        // Prepare domain page and API UserTasks
         final var taskPage = Page.<UserTask>builder()
                 .number(0).size(20).totalPages(1).pageObjects(List.of()).build();
         final var apiUserTasks = new UserTasks();
@@ -118,17 +118,17 @@ class OfficialApiWorkflowControllerTest {
                 .thenReturn(taskPage);
         when(mapper.toUserTasksApi(taskPage)).thenReturn(apiUserTasks);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.getUserTasksOfWorkflow("wf-1", true, request);
 
-        // Antwort muss HTTP 200 mit der UserTask-Liste sein
+        // Response must be HTTP 200 with the UserTask list
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(List.of());
     }
 
     @Test
     void getUserTasksOfWorkflow_passesWorkflowIdToTaskService() {
-        // Request vorbereiten
+        // Prepare request
         final var request = new UserTasksRequest();
         request.setMode(UserTaskRetrieveMode.OPENTASKS);
 
@@ -142,10 +142,10 @@ class OfficialApiWorkflowControllerTest {
                 .thenReturn(taskPage);
         when(mapper.toUserTasksApi(taskPage)).thenReturn(apiUserTasks);
 
-        // Controller-Aufruf mit spezifischer Workflow-ID
+        // Execute controller call with specific workflow ID
         controller.getUserTasksOfWorkflow("wf-99", false, request);
 
-        // TaskService muss mit der korrekten Workflow-ID aufgerufen werden
+        // TaskService must be called with the correct workflow ID
         verify(taskService).getUserTasksOfWorkflow("wf-99", TaskService.RetrieveMode.OPENTASKS, null, null);
     }
 

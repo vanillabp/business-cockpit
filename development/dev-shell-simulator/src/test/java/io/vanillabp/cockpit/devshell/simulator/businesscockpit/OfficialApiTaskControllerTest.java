@@ -30,7 +30,7 @@ class OfficialApiTaskControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Controller nutzt Constructor-Injection via @RequiredArgsConstructor
+        // Controller uses constructor injection via @RequiredArgsConstructor
         controller = new OfficialApiTaskController(taskService, mapper);
     }
 
@@ -38,7 +38,7 @@ class OfficialApiTaskControllerTest {
 
     @Test
     void getUserTask_returnsApiMappedTask() {
-        // Domain-Task und zugehoeriges API-Objekt vorbereiten
+        // Prepare domain task and corresponding API object
         final var domainTask = new UserTask();
         domainTask.setId("task-1");
         final var apiTask = new io.vanillabp.cockpit.gui.api.v1.UserTask();
@@ -47,25 +47,25 @@ class OfficialApiTaskControllerTest {
         when(taskService.getUserTask("task-1")).thenReturn(domainTask);
         when(mapper.toApi(domainTask)).thenReturn(apiTask);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.getUserTask("task-1", false);
 
-        // Antwort muss HTTP 200 mit dem gemappten API-Task sein
+        // Response must be HTTP 200 with the mapped API task
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(apiTask);
     }
 
     @Test
     void getUserTask_delegatesIdToTaskService() {
-        // Domain-Task vorbereiten
+        // Prepare domain task
         final var domainTask = new UserTask();
         when(taskService.getUserTask("task-42")).thenReturn(domainTask);
         when(mapper.toApi(domainTask)).thenReturn(new io.vanillabp.cockpit.gui.api.v1.UserTask());
 
-        // Controller-Aufruf mit spezifischer ID
+        // Execute controller call with specific ID
         controller.getUserTask("task-42", null);
 
-        // TaskService muss mit der korrekten ID aufgerufen werden
+        // TaskService must be called with the correct ID
         verify(taskService).getUserTask("task-42");
     }
 
@@ -73,13 +73,13 @@ class OfficialApiTaskControllerTest {
 
     @Test
     void getUserTasks_returnsPaginatedTasks() {
-        // Request mit Paginierungsparametern vorbereiten
+        // Prepare request with pagination parameters
         final var request = new UserTasksRequest();
         request.setMode(UserTaskRetrieveMode.ALL);
         request.setPageNumber(0);
         request.setPageSize(10);
 
-        // Domain-Page und API-Response vorbereiten
+        // Prepare domain page and API response
         final var domainPage = Page.<UserTask>builder()
                 .number(0)
                 .size(10)
@@ -92,17 +92,17 @@ class OfficialApiTaskControllerTest {
         when(taskService.getUserTasks(TaskService.RetrieveMode.ALL, 0, 10)).thenReturn(domainPage);
         when(mapper.toUserTasksApi(domainPage)).thenReturn(apiUserTasks);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.getUserTasks(request, null);
 
-        // Antwort muss HTTP 200 mit der gemappten API-Paginierung sein
+        // Response must be HTTP 200 with the mapped API pagination
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isSameAs(apiUserTasks);
     }
 
     @Test
     void getUserTasks_mapsRetrieveModeToDomainModel() {
-        // Request mit spezifischem Retrieve-Mode vorbereiten
+        // Prepare request with specific retrieve mode
         final var request = new UserTasksRequest();
         request.setMode(UserTaskRetrieveMode.OPENTASKS);
         request.setPageNumber(0);
@@ -115,10 +115,10 @@ class OfficialApiTaskControllerTest {
         when(taskService.getUserTasks(TaskService.RetrieveMode.OPENTASKS, 0, 20)).thenReturn(domainPage);
         when(mapper.toUserTasksApi(domainPage)).thenReturn(new UserTasks());
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         controller.getUserTasks(request, null);
 
-        // Retrieve-Mode muss korrekt gemappt und weitergegeben werden
+        // Retrieve mode must be correctly mapped and passed
         verify(mapper).toModel(UserTaskRetrieveMode.OPENTASKS);
         verify(taskService).getUserTasks(TaskService.RetrieveMode.OPENTASKS, 0, 20);
     }

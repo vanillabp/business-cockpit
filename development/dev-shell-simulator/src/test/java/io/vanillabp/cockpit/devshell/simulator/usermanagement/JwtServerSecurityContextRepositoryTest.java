@@ -47,7 +47,7 @@ class JwtServerSecurityContextRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // JwtCookie mit Default-Werten konfigurieren
+        // Configure JwtCookie with default values
         jwtCookie = new JwtCookie();
         jwtCookie.setName("bc");
         jwtCookie.setPath("/");
@@ -55,7 +55,7 @@ class JwtServerSecurityContextRepositoryTest {
         jwtCookie.setSecure(false);
         jwtCookie.setExpiresDuration("PT12H");
 
-        // Repository mit gemockten Abhaengigkeiten instanziieren
+        // Instantiate repository with mocked dependencies
         repository = new JwtServerSecurityContextRepository(jwtProperties, jwtMapper);
     }
 
@@ -63,18 +63,18 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void loadContext_withJwtCookie_returnsSecurityContext() {
-        // Request mit JWT-Cookie vorbereiten
+        // Prepare request with JWT cookie
         final var jwtCookieValue = new Cookie("bc", "jwt-token-value");
         when(jwtProperties.getCookie()).thenReturn(jwtCookie);
 
         final var holder = new HttpRequestResponseHolder(request, response);
         when(request.getCookies()).thenReturn(new Cookie[]{jwtCookieValue});
 
-        // JwtMapper gibt einen SecurityContext zurueck
+        // JwtMapper returns a SecurityContext
         final var expectedContext = new SecurityContextImpl();
         when(jwtMapper.toSecurityContext("jwt-token-value")).thenReturn(expectedContext);
 
-        // loadContext ausfuehren und Ergebnis pruefen
+        // Execute loadContext and verify result
         final var result = repository.loadContext(holder);
 
         assertThat(result).isSameAs(expectedContext);
@@ -82,11 +82,11 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void loadContext_withNoCookies_returnsNull() {
-        // Request ohne Cookies
+        // Request without cookies
         final var holder = new HttpRequestResponseHolder(request, response);
         when(request.getCookies()).thenReturn(null);
 
-        // loadContext muss null zurueckgeben
+        // loadContext must return null
         final var result = repository.loadContext(holder);
 
         assertThat(result).isNull();
@@ -94,14 +94,14 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void loadContext_withoutMatchingCookie_returnsNull() {
-        // Request mit einem Cookie, das nicht dem JWT-Namen entspricht
+        // Request with a cookie that does not match the JWT name
         final var otherCookie = new Cookie("other", "value");
         when(jwtProperties.getCookie()).thenReturn(jwtCookie);
 
         final var holder = new HttpRequestResponseHolder(request, response);
         when(request.getCookies()).thenReturn(new Cookie[]{otherCookie});
 
-        // loadContext muss null zurueckgeben, da kein passender Cookie vorhanden
+        // loadContext must return null since no matching cookie is present
         final var result = repository.loadContext(holder);
 
         assertThat(result).isNull();
@@ -111,23 +111,23 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void saveContext_withValidContext_setsCookieOnResponse() {
-        // SecurityContext mit Authentication vorbereiten
+        // Prepare SecurityContext with authentication
         final var auth = new UsernamePasswordAuthenticationToken("user", "pass");
         final var context = new SecurityContextImpl(auth);
 
-        // JwtMapper gibt Token zurueck
+        // JwtMapper returns token
         when(jwtProperties.getCookie()).thenReturn(jwtCookie);
         when(jwtMapper.toToken(context))
                 .thenReturn(Optional.of(new AbstractMap.SimpleEntry<>("encoded-jwt-token", null)));
 
-        // saveContext ausfuehren
+        // Execute saveContext
         repository.saveContext(context, request, response);
 
-        // Cookie muss auf der Response gesetzt werden
+        // Cookie must be set on the response
         final var cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
         verify(response).addCookie(cookieCaptor.capture());
 
-        // Cookie-Eigenschaften pruefen
+        // Verify cookie properties
         final var savedCookie = cookieCaptor.getValue();
         assertThat(savedCookie.getName()).isEqualTo("bc");
         assertThat(savedCookie.getValue()).isEqualTo("encoded-jwt-token");
@@ -138,29 +138,29 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void saveContext_withNoToken_doesNotSetCookie() {
-        // SecurityContext ohne gueltigen Token
+        // SecurityContext without valid token
         final var context = new SecurityContextImpl();
         when(jwtMapper.toToken(context)).thenReturn(Optional.empty());
 
-        // saveContext ausfuehren
+        // Execute saveContext
         repository.saveContext(context, request, response);
 
-        // Kein Cookie darf gesetzt worden sein (verify mit never() ist nicht noetig,
-        // da addCookie bei einem leeren Optional nicht aufgerufen wird)
+        // No cookie should be set (verify with never() is not needed,
+        // since addCookie is not called when Optional is empty)
     }
 
     // --- containsContext ---
 
     @Test
     void containsContext_withMatchingCookie_returnsTrue() {
-        // Request mit dem JWT-Cookie
+        // Request with the JWT cookie
         final var jwtCookieValue = new Cookie("bc", "token");
         when(jwtProperties.getCookie()).thenReturn(jwtCookie);
         when(request.getCookies()).thenReturn(new Cookie[]{jwtCookieValue});
 
-        // containsContext pruefen
-        // Hinweis: Die aktuelle Implementierung gibt isEmpty() zurueck,
-        // d.h. wenn ein Cookie gefunden wird, ist findFirst().isEmpty() == false
+        // Check containsContext
+        // Note: The current implementation returns isEmpty(),
+        // i.e., when a cookie is found, findFirst().isEmpty() == false
         final var result = repository.containsContext(request);
 
         assertThat(result).isFalse();
@@ -168,13 +168,13 @@ class JwtServerSecurityContextRepositoryTest {
 
     @Test
     void containsContext_withoutMatchingCookie_returnsTrue() {
-        // Request ohne den JWT-Cookie
+        // Request without the JWT cookie
         final var otherCookie = new Cookie("other", "value");
         when(jwtProperties.getCookie()).thenReturn(jwtCookie);
         when(request.getCookies()).thenReturn(new Cookie[]{otherCookie});
 
-        // containsContext pruefen
-        // Die Implementierung gibt isEmpty() zurueck, d.h. kein Match -> true
+        // Check containsContext
+        // The implementation returns isEmpty(), i.e., no match -> true
         final var result = repository.containsContext(request);
 
         assertThat(result).isTrue();

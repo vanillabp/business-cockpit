@@ -28,7 +28,7 @@ class WorkflowModuleServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Test-Modul mit grundlegenden Eigenschaften
+        // Test module with basic properties
         module = new WorkflowModule();
         module.setId("module-1");
         module.setUri("http://localhost:8081");
@@ -38,16 +38,16 @@ class WorkflowModuleServiceTest {
 
     @Test
     void registerWorkflowModule_withValidInput_savesModule() {
-        // Modul registrieren
+        // Register module
         workflowModuleService.registerWorkflowModule("module-1", module);
 
-        // Modul muss im Repository gespeichert werden
+        // Module must be saved to repository
         verify(workflowModules).save(module);
     }
 
     @Test
     void registerWorkflowModule_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowModuleService.registerWorkflowModule(null, module))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -55,7 +55,7 @@ class WorkflowModuleServiceTest {
 
     @Test
     void registerWorkflowModule_withNullModule_throwsIllegalArgumentException() {
-        // Null-Modul muss zu einer IllegalArgumentException fuehren
+        // Null module must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowModuleService.registerWorkflowModule("module-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -65,10 +65,10 @@ class WorkflowModuleServiceTest {
 
     @Test
     void getWorkflowModule_withExistingId_returnsModule() {
-        // Repository gibt das Modul zurueck
+        // Repository returns the module
         when(workflowModules.findById("module-1")).thenReturn(Optional.of(module));
 
-        // Modul abrufen und pruefen
+        // Retrieve module and verify
         final var result = workflowModuleService.getWorkflowModule("module-1");
 
         assertThat(result).isSameAs(module);
@@ -76,7 +76,7 @@ class WorkflowModuleServiceTest {
 
     @Test
     void getWorkflowModule_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowModuleService.getWorkflowModule(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -84,10 +84,10 @@ class WorkflowModuleServiceTest {
 
     @Test
     void getWorkflowModule_withNonExistingId_throwsIllegalStateException() {
-        // Repository findet kein Modul
+        // Repository finds no module
         when(workflowModules.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException
+        // Expect IllegalStateException
         assertThatThrownBy(() -> workflowModuleService.getWorkflowModule("unknown"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");

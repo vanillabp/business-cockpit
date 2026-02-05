@@ -13,7 +13,7 @@ class PropertiesTest {
 
     @BeforeEach
     void setUp() {
-        // Test-Benutzer fuer die Properties-Instanz anlegen
+        // Create test users for the Properties instance
         final var john = User.builder().id("john").firstName("John").lastName("Doe").build();
         final var jane = User.builder().id("jane").firstName("Jane").lastName("Doe").build();
         properties = new Properties(List.of(john, jane));
@@ -23,10 +23,10 @@ class PropertiesTest {
 
     @Test
     void getUser_withExistingId_returnsMatchingUser() {
-        // Benutzer mit bekannter ID suchen
+        // Search for user with known ID
         final var user = properties.getUser("john");
 
-        // Der gefundene Benutzer muss die korrekte ID haben
+        // The found user must have the correct ID
         assertThat(user).isNotNull();
         assertThat(user.getId()).isEqualTo("john");
         assertThat(user.getFirstName()).isEqualTo("John");
@@ -34,16 +34,16 @@ class PropertiesTest {
 
     @Test
     void getUser_withNonExistingId_returnsNull() {
-        // Benutzer mit unbekannter ID suchen
+        // Search for user with unknown ID
         final var user = properties.getUser("unknown");
 
-        // Fuer unbekannte IDs muss null zurueckgegeben werden
+        // For unknown IDs, null must be returned
         assertThat(user).isNull();
     }
 
     @Test
     void getUser_withNullId_returnsNull() {
-        // Null-ID muss null zurueckgeben
+        // Null ID must return null
         final var user = properties.getUser(null);
 
         assertThat(user).isNull();
@@ -51,10 +51,10 @@ class PropertiesTest {
 
     @Test
     void getUser_returnsFirstMatchWhenMultipleUsersExist() {
-        // Zweiten Benutzer mit derselben ID "jane" suchen
+        // Search for the second user with ID "jane"
         final var user = properties.getUser("jane");
 
-        // Der korrekte Benutzer muss gefunden werden
+        // The correct user must be found
         assertThat(user).isNotNull();
         assertThat(user.getId()).isEqualTo("jane");
         assertThat(user.getFirstName()).isEqualTo("Jane");
@@ -64,10 +64,10 @@ class PropertiesTest {
 
     @Test
     void getUsers_returnsConfiguredUserList() {
-        // Gesamte Benutzerliste abrufen
+        // Retrieve the complete user list
         final var users = properties.getUsers();
 
-        // Liste muss alle konfigurierten Benutzer enthalten
+        // List must contain all configured users
         assertThat(users).hasSize(2);
     }
 

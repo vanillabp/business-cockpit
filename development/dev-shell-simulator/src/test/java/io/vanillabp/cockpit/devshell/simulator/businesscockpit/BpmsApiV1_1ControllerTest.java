@@ -48,15 +48,15 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void registerWorkflowModule_delegatesToServiceViaMapper() {
-        // Event und gemapptes Modul vorbereiten
+        // Prepare event and mapped module
         final var event = new RegisterWorkflowModuleEvent();
         final var mappedModule = new WorkflowModule();
         when(mapper.toModel(event, "mod-1")).thenReturn(mappedModule);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.registerWorkflowModule("mod-1", event);
 
-        // Modul muss ueber Mapper konvertiert und registriert werden
+        // Module must be converted via mapper and registered
         verify(mapper).toModel(event, "mod-1");
         verify(workflowModuleService).registerWorkflowModule("mod-1", mappedModule);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -66,16 +66,16 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void userTaskCreatedEvent_mapsEventAndCreatesTask() {
-        // Event mit Task-ID vorbereiten
+        // Prepare event with task ID
         final var event = new UserTaskCreatedEvent();
         event.setUserTaskId("task-1");
         final var mappedTask = new UserTask();
         when(mapper.toModel(event)).thenReturn(mappedTask);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.userTaskCreatedEvent(event);
 
-        // Task muss gemappt und angelegt werden
+        // Task must be mapped and created
         verify(mapper).toModel(event);
         verify(taskService).createTask("task-1", mappedTask);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -85,20 +85,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void userTaskUpdatedEvent_delegatesToUpdateTask() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new UserTaskUpdatedEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.userTaskUpdatedEvent("task-1", event);
 
-        // updateTask muss mit der korrekten Task-ID aufgerufen werden
+        // updateTask must be called with correct task ID
         verify(taskService).updateTask(eq("task-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void userTaskUpdatedEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.userTaskUpdatedEvent("task-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -108,20 +108,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void userTaskCompletedEvent_delegatesToCompleteTask() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new UserTaskCompletedEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.userTaskCompletedEvent("task-1", event);
 
-        // completeTask muss aufgerufen werden
+        // completeTask must be called
         verify(taskService).completeTask(eq("task-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void userTaskCompletedEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.userTaskCompletedEvent("task-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -131,20 +131,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void userTaskCancelledEvent_delegatesToCancelTask() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new UserTaskCancelledEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.userTaskCancelledEvent("task-1", event);
 
-        // cancelTask muss aufgerufen werden
+        // cancelTask must be called
         verify(taskService).cancelTask(eq("task-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void userTaskCancelledEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.userTaskCancelledEvent("task-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -154,16 +154,16 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void workflowCreatedEvent_mapsEventAndCreatesWorkflow() {
-        // Event mit Workflow-ID vorbereiten
+        // Prepare event with workflow ID
         final var event = new WorkflowCreatedEvent();
         event.setWorkflowId("wf-1");
         final var mappedWorkflow = new Workflow();
         when(mapper.toModel(event)).thenReturn(mappedWorkflow);
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.workflowCreatedEvent(event);
 
-        // Workflow muss gemappt und angelegt werden
+        // Workflow must be mapped and created
         verify(mapper).toModel(event);
         verify(workflowService).createWorkflow("wf-1", mappedWorkflow);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -171,7 +171,7 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void workflowCreatedEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.workflowCreatedEvent(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -181,20 +181,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void workflowUpdatedEvent_delegatesToUpdateWorkflow() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new WorkflowUpdatedEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.workflowUpdatedEvent("wf-1", event);
 
-        // updateWorkflow muss aufgerufen werden
+        // updateWorkflow must be called
         verify(workflowService).updateWorkflow(eq("wf-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void workflowUpdatedEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.workflowUpdatedEvent("wf-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -204,20 +204,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void workflowCompletedEvent_delegatesToCompleteWorkflow() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new WorkflowCompletedEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.workflowCompletedEvent("wf-1", event);
 
-        // completeWorkflow muss aufgerufen werden
+        // completeWorkflow must be called
         verify(workflowService).completeWorkflow(eq("wf-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void workflowCompletedEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.workflowCompletedEvent("wf-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");
@@ -227,20 +227,20 @@ class BpmsApiV1_1ControllerTest {
 
     @Test
     void workflowCancelledEvent_delegatesToCancelWorkflow() {
-        // Event vorbereiten
+        // Prepare event
         final var event = new WorkflowCancelledEvent();
 
-        // Controller-Aufruf durchfuehren
+        // Execute controller call
         final var response = controller.workflowCancelledEvent("wf-1", event);
 
-        // cancelWorkflow muss aufgerufen werden
+        // cancelWorkflow must be called
         verify(workflowService).cancelWorkflow(eq("wf-1"), any());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void workflowCancelledEvent_withNullEvent_throwsIllegalArgumentException() {
-        // Null-Event muss zu einer IllegalArgumentException fuehren
+        // Null event must throw IllegalArgumentException
         assertThatThrownBy(() -> controller.workflowCancelledEvent("wf-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("null");

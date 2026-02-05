@@ -32,13 +32,13 @@ class WorkflowServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Aktiver Workflow ohne endedAt
+        // Active workflow without endedAt
         activeWorkflow = new Workflow();
         activeWorkflow.setId("wf-1");
         activeWorkflow.setBusinessId("BIZ-001");
         activeWorkflow.setCreatedAt(OffsetDateTime.now());
 
-        // Abgeschlossener Workflow mit endedAt
+        // Completed workflow with endedAt
         completedWorkflow = new Workflow();
         completedWorkflow.setId("wf-2");
         completedWorkflow.setBusinessId("BIZ-002");
@@ -50,16 +50,16 @@ class WorkflowServiceTest {
 
     @Test
     void createWorkflow_withValidInput_savesWorkflow() {
-        // Workflow anlegen
+        // Create workflow
         workflowService.createWorkflow("wf-1", activeWorkflow);
 
-        // Workflow muss im Repository gespeichert werden
+        // Workflow must be saved to repository
         verify(workflows).save(activeWorkflow);
     }
 
     @Test
     void createWorkflow_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.createWorkflow(null, activeWorkflow))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -67,7 +67,7 @@ class WorkflowServiceTest {
 
     @Test
     void createWorkflow_withNullWorkflow_throwsIllegalArgumentException() {
-        // Null-Workflow muss zu einer IllegalArgumentException fuehren
+        // Null workflow must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.createWorkflow("wf-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -77,10 +77,10 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflow_withExistingId_returnsWorkflow() {
-        // Repository gibt den Workflow zurueck
+        // Repository returns the workflow
         when(workflows.findById("wf-1")).thenReturn(Optional.of(activeWorkflow));
 
-        // Workflow abrufen und pruefen
+        // Retrieve workflow and verify
         final var result = workflowService.getWorkflow("wf-1");
 
         assertThat(result).isSameAs(activeWorkflow);
@@ -88,7 +88,7 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflow_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.getWorkflow(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -96,10 +96,10 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflow_withNonExistingId_throwsIllegalStateException() {
-        // Repository findet keinen Workflow
+        // Repository finds no workflow
         when(workflows.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException fuer nicht existierenden Workflow
+        // Expect IllegalStateException for non-existing workflow
         assertThatThrownBy(() -> workflowService.getWorkflow("unknown"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
@@ -109,10 +109,10 @@ class WorkflowServiceTest {
 
     @Test
     void getAllWorkflows_returnsAllStoredWorkflows() {
-        // Repository gibt alle Workflows zurueck
+        // Repository returns all workflows
         when(workflows.findAll()).thenReturn(List.of(activeWorkflow, completedWorkflow));
 
-        // Alle Workflows abfragen
+        // Query all workflows
         final var result = workflowService.getAllWorkflows();
 
         assertThat(result).containsExactly(activeWorkflow, completedWorkflow);
@@ -120,25 +120,25 @@ class WorkflowServiceTest {
 
     @Test
     void getAllWorkflows_withEmptyRepository_returnsEmptyList() {
-        // Repository gibt leere Liste zurueck
+        // Repository returns empty list
         when(workflows.findAll()).thenReturn(List.of());
 
-        // Leere Ergebnismenge pruefen
+        // Verify empty result
         final var result = workflowService.getAllWorkflows();
 
         assertThat(result).isEmpty();
     }
 
-    // --- getWorkflows (paginiert) ---
+    // --- getWorkflows (paginated) ---
 
     @Test
     void getWorkflows_withPagination_returnsCorrectPage() {
-        // Drei Workflows anlegen fuer Paginierungstest
+        // Create three workflows for pagination test
         final var wf3 = new Workflow();
         wf3.setId("wf-3");
         when(workflows.findAll()).thenReturn(List.of(activeWorkflow, completedWorkflow, wf3));
 
-        // Erste Seite mit 2 Eintraegen abfragen
+        // Query first page with 2 entries
         final var firstPage = workflowService.getWorkflows(0, 2);
 
         assertThat(firstPage.getPageObjects()).hasSize(2);
@@ -149,12 +149,12 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflows_secondPage_returnsRemainingItems() {
-        // Drei Workflows fuer zweite Seite
+        // Three workflows for second page
         final var wf3 = new Workflow();
         wf3.setId("wf-3");
         when(workflows.findAll()).thenReturn(List.of(activeWorkflow, completedWorkflow, wf3));
 
-        // Zweite Seite mit 2 Eintraegen abfragen
+        // Query second page with 2 entries
         final var secondPage = workflowService.getWorkflows(1, 2);
 
         assertThat(secondPage.getPageObjects()).hasSize(1);
@@ -163,23 +163,23 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflows_withNullPaginationParams_usesDefaults() {
-        // Repository gibt einen Workflow zurueck
+        // Repository returns one workflow
         when(workflows.findAll()).thenReturn(List.of(activeWorkflow));
 
-        // Abfrage ohne Paginierungsparameter
+        // Query without pagination parameters
         final var result = workflowService.getWorkflows(null, null);
 
-        // Default-Werte: pageNumber=0, pageSize=20
+        // Default values: pageNumber=0, pageSize=20
         assertThat(result.getNumber()).isEqualTo(0);
         assertThat(result.getSize()).isEqualTo(20);
     }
 
     @Test
     void getWorkflows_beyondLastPage_returnsEmptyPageObjects() {
-        // Repository gibt 2 Workflows zurueck
+        // Repository returns 2 workflows
         when(workflows.findAll()).thenReturn(List.of(activeWorkflow, completedWorkflow));
 
-        // Seitennummer weit jenseits der letzten Seite
+        // Page number is far beyond the last page
         final var result = workflowService.getWorkflows(100, 20);
 
         assertThat(result.getPageObjects()).isEmpty();
@@ -187,10 +187,10 @@ class WorkflowServiceTest {
 
     @Test
     void getWorkflows_withEmptyResult_returnsEmptyPage() {
-        // Repository gibt keine Workflows zurueck
+        // Repository returns no workflows
         when(workflows.findAll()).thenReturn(List.of());
 
-        // Leere Ergebnismenge abfragen
+        // Query empty result set
         final var result = workflowService.getWorkflows(0, 20);
 
         assertThat(result.getPageObjects()).isEmpty();
@@ -201,27 +201,27 @@ class WorkflowServiceTest {
 
     @Test
     void updateWorkflow_withExistingWorkflow_appliesConsumerAndSaves() {
-        // Repository findet den Workflow
+        // Repository finds the workflow
         when(workflows.findById("wf-1")).thenReturn(Optional.of(activeWorkflow));
 
-        // Consumer modifiziert den Workflow
+        // Consumer modifies the workflow
         final var consumerCalled = new AtomicBoolean(false);
         workflowService.updateWorkflow("wf-1", workflow -> {
             workflow.setComment("updated");
             consumerCalled.set(true);
         });
 
-        // Consumer muss aufgerufen worden sein
+        // Consumer must have been called
         assertThat(consumerCalled).isTrue();
         assertThat(activeWorkflow.getComment()).isEqualTo("updated");
 
-        // Geaenderter Workflow muss gespeichert werden
+        // Modified workflow must be saved
         verify(workflows).save(activeWorkflow);
     }
 
     @Test
     void updateWorkflow_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.updateWorkflow(null, wf -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -229,10 +229,10 @@ class WorkflowServiceTest {
 
     @Test
     void updateWorkflow_withNonExistingWorkflow_throwsIllegalStateException() {
-        // Repository findet keinen Workflow
+        // Repository finds no workflow
         when(workflows.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException
+        // Expect IllegalStateException
         assertThatThrownBy(() -> workflowService.updateWorkflow("unknown", wf -> {}))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
@@ -242,20 +242,20 @@ class WorkflowServiceTest {
 
     @Test
     void completeWorkflow_withExistingWorkflow_appliesConsumerAndSaves() {
-        // Repository findet den Workflow
+        // Repository finds the workflow
         when(workflows.findById("wf-1")).thenReturn(Optional.of(activeWorkflow));
 
-        // Consumer setzt endedAt
+        // Consumer sets endedAt
         workflowService.completeWorkflow("wf-1", wf -> wf.setEndedAt(OffsetDateTime.now()));
 
-        // Workflow muss beendet und gespeichert worden sein
+        // Workflow must be ended and saved
         assertThat(activeWorkflow.getEndedAt()).isNotNull();
         verify(workflows).save(activeWorkflow);
     }
 
     @Test
     void completeWorkflow_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.completeWorkflow(null, wf -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
@@ -263,10 +263,10 @@ class WorkflowServiceTest {
 
     @Test
     void completeWorkflow_withNonExistingWorkflow_throwsIllegalStateException() {
-        // Repository findet keinen Workflow
+        // Repository finds no workflow
         when(workflows.findById("unknown")).thenReturn(Optional.empty());
 
-        // Erwarte IllegalStateException
+        // Expect IllegalStateException
         assertThatThrownBy(() -> workflowService.completeWorkflow("unknown", wf -> {}))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("not found");
@@ -276,36 +276,36 @@ class WorkflowServiceTest {
 
     @Test
     void cancelWorkflow_withExistingWorkflow_appliesConsumerAndSaves() {
-        // Repository findet den Workflow
+        // Repository finds the workflow
         when(workflows.findById("wf-1")).thenReturn(Optional.of(activeWorkflow));
 
-        // Consumer setzt endedAt
+        // Consumer sets endedAt
         workflowService.cancelWorkflow("wf-1", wf -> wf.setEndedAt(OffsetDateTime.now()));
 
-        // Workflow muss beendet und gespeichert worden sein
+        // Workflow must be ended and saved
         assertThat(activeWorkflow.getEndedAt()).isNotNull();
         verify(workflows).save(activeWorkflow);
     }
 
     /**
-     * Stellt sicher, dass cancelWorkflow keine Exception wirft, wenn der
-     * Workflow nicht existiert (verwendet ifPresent statt orElseThrow).
+     * Ensures that cancelWorkflow does not throw an exception when the
+     * workflow does not exist (uses ifPresent instead of orElseThrow).
      */
     @Test
     void cancelWorkflow_withNonExistingWorkflow_doesNothing() {
-        // Repository findet keinen Workflow
+        // Repository finds no workflow
         when(workflows.findById("unknown")).thenReturn(Optional.empty());
 
-        // cancelWorkflow soll ohne Fehler durchlaufen
+        // cancelWorkflow should complete without error
         workflowService.cancelWorkflow("unknown", wf -> wf.setEndedAt(OffsetDateTime.now()));
 
-        // findById wurde aufgerufen, aber save nicht
+        // findById was called, but save was not
         verify(workflows).findById("unknown");
     }
 
     @Test
     void cancelWorkflow_withNullId_throwsIllegalArgumentException() {
-        // Null-ID muss zu einer IllegalArgumentException fuehren
+        // Null ID must throw IllegalArgumentException
         assertThatThrownBy(() -> workflowService.cancelWorkflow(null, wf -> {}))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must not be null");
