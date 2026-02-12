@@ -58,11 +58,13 @@ public class WorkflowRestPublishing extends WorkflowPublishingBase implements Wo
 
         } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent workflowCancelledEvent){
 
+            editWorkflowCreatedOrUpdatedEvent(workflowCancelledEvent);
             final var event = workflowMapper.map(workflowCancelledEvent);
             bpmsApi.get().workflowCancelledEvent(workflowCancelledEvent.getWorkflowId(), event);
 
         } else if(eventObject instanceof io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCompletedEvent workflowCompletedEvent) {
 
+            editWorkflowCreatedOrUpdatedEvent(workflowCompletedEvent);
             final var event = workflowMapper.map(workflowCompletedEvent);
             bpmsApi.get().workflowCompletedEvent(workflowCompletedEvent.getWorkflowId(), event);
         }

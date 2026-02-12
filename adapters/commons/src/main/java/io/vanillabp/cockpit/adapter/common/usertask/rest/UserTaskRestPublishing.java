@@ -64,11 +64,13 @@ public class UserTaskRestPublishing extends UserTaskPublishingBase implements Us
 
         } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
 
+            editUserTaskCreatedOrUpdatedEvent(userTaskCompletedEvent);
             final var event = userTaskMapper.map(userTaskCompletedEvent);
             bpmsApi.get().userTaskCompletedEvent(eventObject.getUserTaskId(), event);
 
         } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
 
+            editUserTaskCreatedOrUpdatedEvent(userTaskCancelledEvent);
             final var event = userTaskMapper.map(userTaskCancelledEvent);
             bpmsApi.get().userTaskCancelledEvent(eventObject.getUserTaskId(), event);
 
