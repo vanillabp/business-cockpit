@@ -6,8 +6,8 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishingBase;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEvent;
-import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
@@ -40,30 +40,32 @@ public class UserTaskKafkaPublishing extends UserTaskPublishingBase implements U
             var event = this.userTaskMapper.map(userTaskUpdatedEvent);
             sendUserTaskEvent(
                     event.getUserTaskId(),
-                    builder -> builder.setUserTaskCreatedOrUpdated(event));
+                    builder -> builder.setUserTaskUpdatedV11(event));
 
-        } else if (eventObject instanceof UserTaskEventImpl userTaskCreatedEvent){
+        } else if (eventObject instanceof UserTaskCreatedEvent userTaskCreatedEvent){
 
             editUserTaskCreatedOrUpdatedEvent(userTaskCreatedEvent);
             var event = this.userTaskMapper.map(userTaskCreatedEvent);
             sendUserTaskEvent(
                     event.getUserTaskId(),
-                    builder -> builder.setUserTaskCreatedOrUpdated(event));
+                    builder -> builder.setUserTaskCreatedV11(event));
 
         } else if (eventObject instanceof UserTaskCompletedEvent userTaskCompletedEvent) {
 
+            editUserTaskCreatedOrUpdatedEvent(userTaskCompletedEvent);
             var event = userTaskMapper.map(userTaskCompletedEvent);
-            BcEvent.newBuilder().setUserTaskCompleted(event);
+            BcEvent.newBuilder().setUserTaskCompletedV11(event);
             sendUserTaskEvent(
                     event.getUserTaskId(),
-                    builder -> builder.setUserTaskCompleted(event));
+                    builder -> builder.setUserTaskCompletedV11(event));
 
         } else if (eventObject instanceof UserTaskCancelledEvent userTaskCancelledEvent) {
 
+            editUserTaskCreatedOrUpdatedEvent(userTaskCancelledEvent);
             var event = userTaskMapper.map(userTaskCancelledEvent);
             sendUserTaskEvent(
                     event.getUserTaskId(),
-                    builder -> builder.setUserTaskCancelled(event));
+                    builder -> builder.setUserTaskCancelledV11(event));
 
         } else if (eventObject instanceof UserTaskActivatedEvent userTaskActivatedEvent) {
 

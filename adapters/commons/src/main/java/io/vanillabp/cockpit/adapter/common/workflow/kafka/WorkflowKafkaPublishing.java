@@ -36,7 +36,7 @@ public class WorkflowKafkaPublishing extends WorkflowPublishingBase implements i
             var event = workflowMapper.map(workflowUpdatedEvent);
             this.sendWorkflowEvent(
                     event.getWorkflowId(),
-                    builder -> builder.setWorkflowCreatedOrUpdated(event));
+                    builder -> builder.setWorkflowUpdatedV11(event));
 
         } else if(eventObject instanceof WorkflowCreatedEvent workflowCreatedEvent){
 
@@ -44,21 +44,23 @@ public class WorkflowKafkaPublishing extends WorkflowPublishingBase implements i
             var event = workflowMapper.map(workflowCreatedEvent);
             this.sendWorkflowEvent(
                     event.getWorkflowId(),
-                    builder -> builder.setWorkflowCreatedOrUpdated(event));
+                    builder -> builder.setWorkflowCreatedV11(event));
 
         } else if(eventObject instanceof WorkflowCancelledEvent workflowCancelledEvent){
 
+            editWorkflowCreatedOrUpdatedEvent(workflowCancelledEvent);
             var event = workflowMapper.map(workflowCancelledEvent);
             this.sendWorkflowEvent(
                     event.getWorkflowId(),
-                    builder -> builder.setWorkflowCancelled(event));
+                    builder -> builder.setWorkflowCancelledV11(event));
 
         } else if(eventObject instanceof WorkflowCompletedEvent workflowCompletedEvent) {
 
+            editWorkflowCreatedOrUpdatedEvent(workflowCompletedEvent);
             var event = workflowMapper.map(workflowCompletedEvent);
             this.sendWorkflowEvent(
                     event.getWorkflowId(),
-                    builder -> builder.setWorkflowCompleted(event));
+                    builder -> builder.setWorkflowCompletedV11(event));
 
         }
         // else if suspended

@@ -37,7 +37,6 @@ public class WorkflowProtobufMapper {
         return builder.build();
     }
 
-
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent map(
             WorkflowUpdatedEvent workflowUpdatedEvent) {
 
@@ -47,6 +46,25 @@ public class WorkflowProtobufMapper {
         return builder.build();
     }
 
+    public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent map(
+            WorkflowCompletedEvent workflowEvent) {
+
+        WorkflowCreatedOrUpdatedEvent.Builder builder = WorkflowCreatedOrUpdatedEvent.newBuilder();
+        fillWorkflowCreatedOrUpdatedEvent(workflowEvent, builder);
+        builder.setUpdated(true);
+        return builder.build();
+
+    }
+
+    public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent map(
+            WorkflowCancelledEvent workflowEvent) {
+
+        WorkflowCreatedOrUpdatedEvent.Builder builder = WorkflowCreatedOrUpdatedEvent.newBuilder();
+        fillWorkflowCreatedOrUpdatedEvent(workflowEvent, builder);
+        builder.setUpdated(true);
+        return builder.build();
+
+    }
 
     private void fillWorkflowCreatedOrUpdatedEvent(
             WorkflowEventImpl workflowUpdatedEvent,
@@ -90,57 +108,6 @@ public class WorkflowProtobufMapper {
                 .stream()
                 .flatMap(Collection::stream)
                 .forEach(builder::addAccessibleToGroups);
-    }
-
-    public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent map(WorkflowCompletedEvent workflowEvent) {
-        io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent.Builder builder =
-                io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent.newBuilder();
-
-        // required properties
-        builder.setId(workflowEvent.getEventId());
-        builder.setApiVersion(API_VERSION);
-        builder.setWorkflowId(workflowEvent.getWorkflowId());
-        builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));
-
-        // optional properties
-        Optional.ofNullable(workflowEvent.getInitiator())
-                .ifPresent(builder::setInitiator);
-        Optional.ofNullable(workflowEvent.getSource())
-                .ifPresent(builder::setSource);
-        Optional.ofNullable(workflowEvent.getComment())
-                .ifPresent(builder::setComment);
-        Optional.ofNullable(workflowEvent.getBpmnProcessId())
-                .ifPresent(builder::setBpmnProcessId);
-        Optional.ofNullable(workflowEvent.getBpmnProcessVersion())
-                .ifPresent(builder::setBpmnProcessVersion);
-
-        return builder.build();
-    }
-
-
-    public io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent map(WorkflowCancelledEvent workflowEvent) {
-        io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent.Builder builder =
-                io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCancelledEvent.newBuilder();
-
-        // required properties
-        builder.setId(workflowEvent.getEventId());
-        builder.setApiVersion(API_VERSION);
-        builder.setWorkflowId(workflowEvent.getWorkflowId());
-        builder.setTimestamp(mapTimestamp(workflowEvent.getTimestamp()));
-
-        // optional properties
-        Optional.ofNullable(workflowEvent.getInitiator())
-                .ifPresent(builder::setInitiator);
-        Optional.ofNullable(workflowEvent.getSource())
-                .ifPresent(builder::setSource);
-        Optional.ofNullable(workflowEvent.getComment())
-                .ifPresent(builder::setComment);
-        Optional.ofNullable(workflowEvent.getBpmnProcessId())
-                .ifPresent(builder::setBpmnProcessId);
-        Optional.ofNullable(workflowEvent.getBpmnProcessVersion())
-                .ifPresent(builder::setBpmnProcessVersion);
-
-        return builder.build();
     }
 
     public Timestamp mapTimestamp(OffsetDateTime value) {
