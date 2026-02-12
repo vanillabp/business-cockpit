@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskEventImpl;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskUpdatedEvent;
@@ -27,7 +28,7 @@ public class UserTaskProtobufMapper {
         this.objectMapper = objectMapper;
     }
 
-    public UserTaskCreatedOrUpdatedEvent map(UserTaskEventImpl userTaskCreatedEvent){
+    public UserTaskCreatedOrUpdatedEvent map(UserTaskCreatedEvent userTaskCreatedEvent){
         UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
         this.addUserTaskCreatedInfo(builder, userTaskCreatedEvent);
         builder.setUpdated(false);
@@ -35,6 +36,20 @@ public class UserTaskProtobufMapper {
     }
 
     public UserTaskCreatedOrUpdatedEvent map(UserTaskUpdatedEvent userTaskUpdatedEvent){
+        UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
+        this.addUserTaskCreatedInfo(builder, userTaskUpdatedEvent);
+        builder.setUpdated(true);
+        return builder.build();
+    }
+
+    public UserTaskCreatedOrUpdatedEvent map(UserTaskCompletedEvent userTaskUpdatedEvent){
+        UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
+        this.addUserTaskCreatedInfo(builder, userTaskUpdatedEvent);
+        builder.setUpdated(true);
+        return builder.build();
+    }
+
+    public UserTaskCreatedOrUpdatedEvent map(UserTaskCancelledEvent userTaskUpdatedEvent){
         UserTaskCreatedOrUpdatedEvent.Builder builder = UserTaskCreatedOrUpdatedEvent.newBuilder();
         this.addUserTaskCreatedInfo(builder, userTaskUpdatedEvent);
         builder.setUpdated(true);
@@ -98,29 +113,6 @@ public class UserTaskProtobufMapper {
                 .ifPresent(builder::setDetailsFulltextSearch);
     }
 
-
-    public io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent map(
-            UserTaskCompletedEvent userTaskCompletedEvent){
-
-        io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent.Builder builder =
-                io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCompletedEvent.newBuilder();
-
-        builder.setId(userTaskCompletedEvent.getEventId());
-        builder.setApiVersion(API_VERSION);
-        builder.setUserTaskId(userTaskCompletedEvent.getUserTaskId());
-        builder.setTimestamp(mapTimeStamp(userTaskCompletedEvent.getTimestamp()));
-
-        // optional parameters
-        Optional.ofNullable(userTaskCompletedEvent.getInitiator())
-                .ifPresent(builder::setInitiator);
-        Optional.ofNullable(userTaskCompletedEvent.getSource())
-                .ifPresent(builder::setSource);
-        Optional.ofNullable(userTaskCompletedEvent.getComment())
-                .ifPresent(builder::setComment);
-
-        return builder.build();
-    }
-
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent map(UserTaskActivatedEvent userTaskEvent){
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent.newBuilder();
@@ -141,7 +133,6 @@ public class UserTaskProtobufMapper {
         return builder.build();
     }
 
-
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent map(UserTaskSuspendedEvent userTaskEvent){
         io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent.Builder builder =
                 io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskSuspendedEvent.newBuilder();
@@ -161,28 +152,6 @@ public class UserTaskProtobufMapper {
 
         return builder.build();
     }
-
-
-    public io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent map(UserTaskCancelledEvent userTaskEvent){
-        io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent.Builder builder =
-                io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCancelledEvent.newBuilder();
-
-        builder.setId(userTaskEvent.getEventId());
-        builder.setApiVersion(API_VERSION);
-        builder.setUserTaskId(userTaskEvent.getUserTaskId());
-        builder.setTimestamp(mapTimeStamp(userTaskEvent.getTimestamp()));
-
-        // optional parameters
-        Optional.ofNullable(userTaskEvent.getInitiator())
-                .ifPresent(builder::setInitiator);
-        Optional.ofNullable(userTaskEvent.getSource())
-                .ifPresent(builder::setSource);
-        Optional.ofNullable(userTaskEvent.getComment())
-                .ifPresent(builder::setComment);
-
-        return builder.build();
-    }
-
 
     public Timestamp mapTimeStamp(OffsetDateTime value) {
         Instant instant = value.toInstant();

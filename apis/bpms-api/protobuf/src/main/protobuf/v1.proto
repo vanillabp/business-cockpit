@@ -43,6 +43,10 @@ message BcEvent {
     UserTaskCreatedOrUpdatedEvent userTaskUpdatedV1_1 = 11;
     UserTaskCreatedOrUpdatedEvent userTaskCompletedV1_1 = 12;
     UserTaskCreatedOrUpdatedEvent userTaskCancelledV1_1 = 13;
+    WorkflowCreatedOrUpdatedEvent workflowCreatedV1_1 = 14;
+    WorkflowCreatedOrUpdatedEvent workflowUpdatedV1_1 = 15;
+    WorkflowCreatedOrUpdatedEvent workflowCompletedV1_1 = 16;
+    WorkflowCreatedOrUpdatedEvent workflowCancelledV1_1 = 17;
   }
 }
 
