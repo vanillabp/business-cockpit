@@ -800,6 +800,12 @@ components:
         size:
           type: integer
           format: int32
+    WorkflowRetrieveMode:
+      type: string
+      enum:
+        - All
+        - Active
+        - Inactive
     UserTaskRetrieveMode:
       type: string
       enum:
@@ -890,6 +896,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+        mode:
+          $ref: '#/components/schemas/WorkflowRetrieveMode'
     Workflows:
       type: object
       required:

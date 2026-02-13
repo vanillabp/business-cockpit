@@ -145,7 +145,8 @@ public class WorkflowlistService {
             final Collection<String> businessIds,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final WorkflowlistService.RetrieveItemsMode mode) {
 
         return getWorkflows(
                 pageNumber,
@@ -154,7 +155,7 @@ public class WorkflowlistService {
                 includeDanglingWorkflows,
                 accessibleToUsers,
                 accessibleToGroups,
-                RetrieveItemsMode.Active,
+                mode,
                 businessIds,
                 searchQueries,
                 sort,

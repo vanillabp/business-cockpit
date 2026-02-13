@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.gui.api.v1.Group;
 import io.vanillabp.cockpit.gui.api.v1.Person;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,7 +44,17 @@ public abstract class OfficialApiMapper {
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Group toGroupModel(String group);
 
     public TaskService.RetrieveMode toModel(UserTaskRetrieveMode retrieveMode) {
+        if (retrieveMode == null) {
+            return TaskService.RetrieveMode.ALL;
+        }
         return TaskService.RetrieveMode.valueOf(retrieveMode.name());
+    }
+
+    public WorkflowService.RetrieveMode toModel(WorkflowRetrieveMode retrieveMode) {
+        if (retrieveMode == null) {
+            return WorkflowService.RetrieveMode.ALL;
+        }
+        return WorkflowService.RetrieveMode.valueOf(retrieveMode.name());
     }
 
     @Named("apiGroup")

@@ -89,28 +89,34 @@
     </div>
 
     <app-task-toggle
+      *ngIf="isUserTaskView"
       [value]="taskFilter"
+      [options]="taskToggleOptions"
+      (onChange)="onFilterChange($event)">
+    </app-task-toggle>
+    <app-task-toggle
+      *ngIf="isWorkflowView"
+      [value]="workflowFilter"
+      [options]="workflowToggleOptions"
       (onChange)="onFilterChange($event)">
     </app-task-toggle>
   </div>
-
-  <div class="view-menu">
-    <div class="dropdown">
-      <!-- User Task Views -->
-      <button *ngIf="isUserTaskView" class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
-      <div *ngIf="isUserTaskView && selectedTaskId" class="dropdown-content">
-        <a (click)="navigateToView('form')">form</a>
-        <a (click)="navigateToView('list')">list</a>
-        <a (click)="navigateToView('icon')">icon</a>
-      </div>
-
-      <!-- Workflow Views -->
-      <button *ngIf="isWorkflowView" class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
-      <div *ngIf="isWorkflowView && selectedWorkflowId" class="dropdown-content">
-        <a (click)="navigateToView('page')">page</a>
-        <a (click)="navigateToView('list')">list</a>
-        <a (click)="navigateToView('icon')">icon</a>
+  @if (false) {
+    <div class="view-menu">
+      <div class="dropdown">
+        <button *ngIf="isUserTaskView" class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
+        <div *ngIf="isUserTaskView && selectedTaskId" class="dropdown-content">
+          <a (click)="navigateToView('form')">form</a>
+          <a (click)="navigateToView('list')">list</a>
+          <a (click)="navigateToView('icon')">icon</a>
+        </div>
+        <button *ngIf="isWorkflowView" class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
+        <div *ngIf="isWorkflowView && selectedWorkflowId" class="dropdown-content">
+          <a (click)="navigateToView('page')">page</a>
+          <a (click)="navigateToView('list')">list</a>
+          <a (click)="navigateToView('icon')">icon</a>
+        </div>
       </div>
     </div>
-  </div>
+  }
 </div>

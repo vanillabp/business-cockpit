@@ -1,25 +1,18 @@
 <script setup lang="ts">
-type TaskFilter = 'all' | 'open' | 'closed'
-
-interface Option {
+interface ToggleOption {
   label: string
-  value: TaskFilter
+  value: string
   background: string
 }
 
 defineProps<{
-  modelValue: TaskFilter
+  modelValue: string
+  options: ToggleOption[]
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: TaskFilter]
+  'update:modelValue': [value: string]
 }>()
-
-const options: Option[] = [
-  { label: 'All Tasks', value: 'all', background: '#f2f2f2' },
-  { label: 'Open Tasks', value: 'open', background: 'rgba(0, 200, 0, 0.2)' },
-  { label: 'Closed Tasks', value: 'closed', background: 'rgba(200, 0, 0, 0.2)' },
-]
 </script>
 
 <template>

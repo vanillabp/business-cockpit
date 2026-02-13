@@ -82,6 +82,7 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
             OffsetDateTime initialTimestamp) {
 
         final var workflows = workflowService.getWorkflows(
+                mapper.toModel(workflowsRequest.getMode()),
                 workflowsRequest.getPageNumber(),
                 workflowsRequest.getPageSize());
         final var apiWorkflows = mapper.toWorkflowsApi(workflows);

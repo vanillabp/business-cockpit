@@ -38,7 +38,20 @@ interface WorkflowsResponse {
 }
 
 type TaskFilter = 'all' | 'open' | 'closed'
+type WorkflowFilter = 'all' | 'active' | 'inactive'
 type ContentType = 'usertask' | 'workflow'
+
+const taskToggleOptions = [
+  { label: 'All', value: 'all', background: '#f2f2f2' },
+  { label: 'Open', value: 'open', background: 'rgba(0, 200, 0, 0.2)' },
+  { label: 'Closed', value: 'closed', background: 'rgba(200, 0, 0, 0.2)' },
+]
+
+const workflowToggleOptions = [
+  { label: 'All', value: 'all', background: '#f2f2f2' },
+  { label: 'Active', value: 'active', background: 'rgba(0, 200, 0, 0.2)' },
+  { label: 'Inactive', value: 'inactive', background: 'rgba(200, 0, 0, 0.2)' },
+]
 
 const route = useRoute()
 const router = useRouter()
@@ -48,6 +61,7 @@ const page = ref(0)
 const hasMorePages = ref(true)
 const isLoading = ref(false)
 const taskFilter = ref<TaskFilter>('all')
+const workflowFilter = ref<WorkflowFilter>('all')
 
 // User task state
 const userTasks = ref<UserTaskItem[]>([])
@@ -125,11 +139,17 @@ function fetchWorkflows(pageToFetch: number) {
   if (isLoading.value) return
   isLoading.value = true
 
+  let mode: string
+  if (workflowFilter.value === 'active') mode = 'Active'
+  else if (workflowFilter.value === 'inactive') mode = 'Inactive'
+  else mode = 'All'
+
   const request = {
     pageNumber: pageToFetch,
     pageSize: 20,
     sort: 'createdAt',
     sortAscending: false,
+    mode,
   }
 
   fetch('/official-api/v1/workflow', {
@@ -186,16 +206,21 @@ function onItemSelect(itemId: string | undefined) {
   }
 }
 
-function onFilterChange(filter: TaskFilter) {
-  taskFilter.value = filter
+function onFilterChange(filter: string) {
   page.value = 0
   hasMorePages.value = true
   isLoading.value = false
 
   if (isUserTaskView.value) {
+    taskFilter.value = filter as TaskFilter
     userTasks.value = []
     userTaskOptions.value = []
     fetchUserTasks(0)
+  } else {
+    workflowFilter.value = filter as WorkflowFilter
+    workflows.value = []
+    workflowOptions.value = []
+    fetchWorkflows(0)
   }
 }
 
@@ -292,9 +317,20 @@ watch(
         </Select>
       </div>
 
-      <TaskToggle v-if="isUserTaskView" :modelValue="taskFilter" @update:modelValue="onFilterChange" />
+      <TaskToggle
+        v-if="isUserTaskView"
+        :modelValue="taskFilter"
+        :options="taskToggleOptions"
+        @update:modelValue="onFilterChange"
+      />
+      <TaskToggle
+        v-if="isWorkflowView"
+        :modelValue="workflowFilter"
+        :options="workflowToggleOptions"
+        @update:modelValue="onFilterChange"
+      />
     </div>
-
+    <!--
     <div class="view-menu">
       <div class="dropdown">
         <template v-if="isUserTaskView">
@@ -315,6 +351,7 @@ watch(
         </template>
       </div>
     </div>
+    -->
   </div>
 </template>
 

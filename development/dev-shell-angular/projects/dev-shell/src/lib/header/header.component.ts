@@ -46,6 +46,12 @@ enum UserTaskRetrieveMode {
   ClosedTasksOnly = 'ClosedTasksOnly'
 }
 
+enum WorkflowRetrieveMode {
+  All = 'All',
+  Active = 'Active',
+  Inactive = 'Inactive'
+}
+
 interface UserTasksRequest {
   pageNumber: number;
   pageSize: number;
@@ -59,6 +65,7 @@ interface WorkflowsRequest {
   pageSize: number;
   sort: string;
   sortAscending: boolean;
+  mode: WorkflowRetrieveMode;
 }
 
 enum ContentType {
@@ -79,10 +86,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
   page = 0;
   hasMorePages = true;
   isLoading = false;
-  taskFilter: 'all' | 'open' | 'closed' = 'all';
+  taskFilter: string = 'all';
+  workflowFilter: string = 'all';
   isPhone = window.innerWidth < 768;
   private routeSubscription: Subscription | undefined;
   private resizeListener: () => void;
+
+  taskToggleOptions = [
+    { label: 'All', value: 'all', background: '#f2f2f2' },
+    { label: 'Open', value: 'open', background: 'rgba(0, 200, 0, 0.2)' },
+    { label: 'Closed', value: 'closed', background: 'rgba(200, 0, 0, 0.2)' }
+  ];
+
+  workflowToggleOptions = [
+    { label: 'All', value: 'all', background: '#f2f2f2' },
+    { label: 'Active', value: 'active', background: 'rgba(0, 200, 0, 0.2)' },
+    { label: 'Inactive', value: 'inactive', background: 'rgba(200, 0, 0, 0.2)' }
+  ];
 
   // User task properties
   userTasks: UserTask[] = [];
@@ -201,8 +221,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     if (this.isLoading) return;
     this.isLoading = true;
 
+    let mode: WorkflowRetrieveMode;
+    if (this.workflowFilter === 'active') mode = WorkflowRetrieveMode.Active;
+    else if (this.workflowFilter === 'inactive') mode = WorkflowRetrieveMode.Inactive;
+    else mode = WorkflowRetrieveMode.All;
+
     const request: WorkflowsRequest = {
-      pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false
+      pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false, mode: mode
     };
 
     this.http.post<WorkflowsResponse>('/official-api/v1/workflow', request)
@@ -267,18 +292,21 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onFilterChange(filter: 'all' | 'open' | 'closed'): void {
-    this.taskFilter = filter;
+  onFilterChange(filter: string): void {
     this.page = 0;
     this.hasMorePages = true;
     this.isLoading = false;
 
     if (this.isUserTaskView) {
+      this.taskFilter = filter;
       this.userTasks = [];
       this.userTaskOptions = [];
       this.fetchUserTasks(0);
     } else {
-      // Filter only applies to user task page atm.
+      this.workflowFilter = filter;
+      this.workflows = [];
+      this.workflowOptions = [];
+      this.fetchWorkflows(0);
     }
     this.cdRef.detectChanges();
   }

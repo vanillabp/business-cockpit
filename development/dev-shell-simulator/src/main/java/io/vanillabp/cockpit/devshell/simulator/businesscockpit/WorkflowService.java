@@ -19,10 +19,8 @@ public class WorkflowService {
 
     public enum RetrieveMode {
         ALL,
-        OPENTASKS,
-        OPENTASKSWITHOUTFOLLOWUP,
-        OPENTASKSWITHFOLLOWUP,
-        CLOSEDTASKSONLY
+        ACTIVE,
+        INACTIVE
     };
 
     @Autowired
@@ -111,10 +109,15 @@ public class WorkflowService {
      * along with metadata like page size, number, and total pages.</p>
      */
     public Page<Workflow> getWorkflows(
+            final RetrieveMode retrieveMode,
             final Integer pageNumberRequested,
             final Integer pageSizeRequested) {
 
-        List<Workflow> allWorkflows = getAllWorkflows();
+        List<Workflow> allWorkflows = switch(retrieveMode) {
+            case ACTIVE -> workflows.findByEndedAtIsNull();
+            case INACTIVE -> workflows.findByEndedAtIsNotNull();
+            default -> getAllWorkflows();
+        };
 
         // Set default pagination values if not provided
         int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
