@@ -41,21 +41,37 @@ public class KafkaWorkflowController {
                 WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent =
                         event.getWorkflowCreatedOrUpdated();
 
-                if (workflowCreatedOrUpdatedEvent.getUpdated()){
-                    this.handleWorkflowUpdatedEvent(workflowCreatedOrUpdatedEvent);
-                }else{
-                    this.handleWorkflowCreatedEvent(workflowCreatedOrUpdatedEvent);
+                if (workflowCreatedOrUpdatedEvent.getUpdated()) {
+                    this.handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
+                } else {
+                    this.handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
                 }
 
             } else if (event.hasWorkflowCompleted()) {
 
-                this.handleWorkflowCompletedEvent(
+                this.handleWorkflowCompletedEventV1(
                         event.getWorkflowCompleted());
 
             } else if (event.hasWorkflowCancelled()) {
 
-                this.handleWorkflowCancelledEvent(
+                this.handleWorkflowCancelledEventV1(
                         event.getWorkflowCancelled());
+
+            } else if (event.hasWorkflowCreatedV11()) {
+
+                this.handleWorkflowCreatedEventV1_1(event.getWorkflowCreatedV11());
+
+            } else if (event.hasWorkflowUpdatedV11()) {
+
+                this.handleWorkflowUpdatedEventV1_1(event.getWorkflowUpdatedV11());
+
+            } else if (event.hasWorkflowCompletedV11()) {
+
+                this.handleWorkflowCompletedEventV1_1(event.getWorkflowCompletedV11());
+
+            } else if (event.hasWorkflowCancelledV11()) {
+
+                this.handleWorkflowCancelledEventV1_1(event.getWorkflowCancelledV11());
 
             } else {
                 throw new RuntimeException(
@@ -78,13 +94,16 @@ public class KafkaWorkflowController {
 
     }
 
-    private void handleWorkflowCreatedEvent(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    private void handleWorkflowCreatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
         workflowCreateMono(workflowCreatedOrUpdatedEvent)
                 .subscribe();
     }
 
+    private void handleWorkflowCreatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+        handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
+    }
 
-    private void handleWorkflowUpdatedEvent(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+    private void handleWorkflowUpdatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
         workflowlistService
                 .getWorkflow(workflowCreatedOrUpdatedEvent.getWorkflowId())
                 .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow))
@@ -93,27 +112,41 @@ public class KafkaWorkflowController {
                 .subscribe();
     }
 
+    private void handleWorkflowUpdatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
+        handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
+    }
 
-    private void handleWorkflowCompletedEvent(WorkflowCompletedEvent workflowCompletedEvent){
+    private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
         workflowlistService
                 .getWorkflow(workflowCompletedEvent.getWorkflowId())
                 .zipWith(Mono.just(workflowCompletedEvent))
                 .flatMap(t -> {
-                    final var task = t.getT1();
+                    final var workflow = t.getT1();
                     final var completedEvent = t.getT2();
 
                     OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
-                    task.setEndedAt(timestamp);
+                    workflow.setEndedAt(timestamp);
 
                     return workflowlistService.completeWorkflow(
-                            task,
+                            workflow,
                             timestamp);
                 })
                 .subscribe();
     }
 
+    private void handleWorkflowCompletedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
 
-    private void handleWorkflowCancelledEvent(WorkflowCancelledEvent workflowCancelledEvent){
+        workflowlistService
+                .getWorkflow(workflowCompletedEvent.getWorkflowId())
+                .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCompletedEvent, workflow))
+                .flatMap(workflow -> workflowlistService.completeWorkflow(
+                        workflow,
+                        workflow.getUpdatedAt()))
+                .subscribe();
+
+    }
+
+    private void handleWorkflowCancelledEventV1(WorkflowCancelledEvent workflowCancelledEvent) {
         workflowlistService
                 .getWorkflow(workflowCancelledEvent.getWorkflowId())
                 .zipWith(Mono.just(workflowCancelledEvent))
@@ -131,4 +164,18 @@ public class KafkaWorkflowController {
                 })
                 .subscribe();
     }
+
+    private void handleWorkflowCancelledEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
+
+        workflowlistService
+                .getWorkflow(workflowCancelledEvent.getWorkflowId())
+                .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCancelledEvent, workflow))
+                .flatMap(workflow -> workflowlistService.cancelWorkflow(
+                        workflow,
+                        workflow.getUpdatedAt(),
+                        workflow.getComment()))
+                .subscribe();
+
+    }
+
 }

@@ -43,20 +43,36 @@ public class KafkaUserTaskController {
                         event.getUserTaskCreatedOrUpdated();
 
                 if(userTaskCreatedOrUpdated.getUpdated()) {
-                    handleUserTaskUpdateEvent(userTaskCreatedOrUpdated);
+                    handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
                 } else {
-                    handleUserTaskCreated(userTaskCreatedOrUpdated);
+                    handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
                 }
 
             } else if (event.hasUserTaskCompleted()) {
 
-                handleUserTaskCompletedEvent(
+                handleUserTaskCompletedEventV1(
                         event.getUserTaskCompleted());
 
             } else if (event.hasUserTaskCancelled()) {
 
-                handleUserTaskCancelledEvent(
+                handleUserTaskCancelledEventV1(
                         event.getUserTaskCancelled());
+
+            } else if (event.hasUserTaskCreatedV11()) {
+
+                handleUserTaskCreatedV1_1(event.getUserTaskCreatedV11());
+
+            } else if (event.hasUserTaskUpdatedV11()) {
+
+                handleUserTaskUpdateEventV1_1(event.getUserTaskUpdatedV11());
+
+            } else if (event.hasUserTaskCompletedV11()) {
+
+                handleUserTaskCompletedEventV1_1(event.getUserTaskCompletedV11());
+
+            } else if (event.hasUserTaskCancelledV11()) {
+
+                handleUserTaskCancelledEventV1_1(event.getUserTaskCancelledV11());
 
             } else {
                 throw new RuntimeException(
@@ -68,29 +84,39 @@ public class KafkaUserTaskController {
         } catch (InvalidProtocolBufferException e) {
             throw new RuntimeException(e);
         }
+
     }
 
-    private Mono<Boolean> userTaskCreatedMono(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    private Mono<Boolean> userTaskCreatedMonoV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
         return Mono.just(userTaskCreatedOrUpdated)
                 .map(protobufUserTaskMapper::toNewTask)
                 .flatMap(userTaskService::createUserTask);
     }
-    private void handleUserTaskCreated(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        userTaskCreatedMono(userTaskCreatedOrUpdated)
+
+    private void handleUserTaskCreatedV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+        userTaskCreatedMonoV1(userTaskCreatedOrUpdated)
                 .subscribe();
     }
 
-    private void handleUserTaskUpdateEvent(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+    private void handleUserTaskCreatedV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+        handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
+    }
+
+    private void handleUserTaskUpdateEventV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
         userTaskService
                 .getUserTask(userTaskCreatedOrUpdated.getUserTaskId())
                 .zipWith(Mono.just(userTaskCreatedOrUpdated))
                 .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
                 .flatMap(userTaskService::updateUserTask)
-                .switchIfEmpty(userTaskCreatedMono(userTaskCreatedOrUpdated))
+                .switchIfEmpty(userTaskCreatedMonoV1(userTaskCreatedOrUpdated))
                 .subscribe();
     }
 
-    private void handleUserTaskCompletedEvent(UserTaskCompletedEvent userTaskCompleted) {
+    private void handleUserTaskUpdateEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
+        handleUserTaskUpdateEventV1(userTaskCreatedOrUpdated);
+    }
+
+    private void handleUserTaskCompletedEventV1(UserTaskCompletedEvent userTaskCompleted) {
         userTaskService
                 .getUserTask(userTaskCompleted.getUserTaskId())
                 .zipWith(Mono.just(userTaskCompleted))
@@ -108,7 +134,20 @@ public class KafkaUserTaskController {
                 .subscribe();
     }
 
-    private void handleUserTaskCancelledEvent(UserTaskCancelledEvent userTaskCancelledEvent) {
+    private void handleUserTaskCompletedEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
+
+        userTaskService
+                .getUserTask(userTaskCompleted.getUserTaskId())
+                .zipWith(Mono.just(userTaskCompleted))
+                .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
+                .flatMap(task -> userTaskService.completeUserTask(
+                            task,
+                            task.getUpdatedAt()))
+                .subscribe();
+
+    }
+
+    private void handleUserTaskCancelledEventV1(UserTaskCancelledEvent userTaskCancelledEvent) {
         userTaskService
                 .getUserTask(userTaskCancelledEvent.getUserTaskId())
                 .zipWith(Mono.just(userTaskCancelledEvent))
@@ -126,4 +165,19 @@ public class KafkaUserTaskController {
                 })
                 .subscribe();
     }
+
+    private void handleUserTaskCancelledEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
+
+        userTaskService
+                .getUserTask(userTaskCompleted.getUserTaskId())
+                .zipWith(Mono.just(userTaskCompleted))
+                .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
+                .flatMap(task -> userTaskService.cancelUserTask(
+                            task,
+                            task.getUpdatedAt(),
+                            task.getComment()))
+                .subscribe();
+
+    }
+
 }
