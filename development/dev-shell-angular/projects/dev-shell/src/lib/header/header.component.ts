@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -85,12 +85,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   // User task properties
   userTasks: UserTask[] = [];
-  userTaskOptions: SelectOption[] = [];
+  userTaskOptions = signal<SelectOption[]>([])
   selectedTaskId?: string;
 
   // Workflow properties
   workflows: Workflow[] = [];
-  workflowOptions: SelectOption[] = [];
+  workflowOptions = signal<SelectOption[]>([]);
   selectedWorkflowId?: string;
 
   constructor(
@@ -172,10 +172,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
         next: (data: UserTasksResponse) => {
           this.userTasks = pageToFetch === 0 ? data.userTasks : [...this.userTasks, ...data.userTasks];
 
-          this.userTaskOptions = this.userTasks.map(task => ({
+          this.userTaskOptions.set(this.userTasks.map(task => ({
             label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
             value: task.id
-          }));
+          })));
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
@@ -186,7 +186,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
           console.error('Error fetching tasks:', error);
           if (pageToFetch === 0) {
             this.userTasks = [];
-            this.userTaskOptions = [];
+            this.userTaskOptions.set([]);
           }
           this.isLoading = false;
           this.hasMorePages = false;
@@ -209,10 +209,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
         next: (data: WorkflowsResponse) => {
           this.workflows = pageToFetch === 0 ? data.workflows : [...this.workflows, ...data.workflows];
 
-          this.workflowOptions = this.workflows.map(workflow => ({
+          this.workflowOptions.set(this.workflows.map(workflow => ({
             label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
             value: workflow.id
-          }));
+          })));
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
@@ -223,7 +223,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
           console.error('Error fetching workflows:', error);
           if (pageToFetch === 0) {
             this.workflows = [];
-            this.workflowOptions = [];
+            this.workflowOptions.set([]);
           }
           this.isLoading = false;
           this.hasMorePages = false;
@@ -274,7 +274,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     if (this.isUserTaskView) {
       this.userTasks = [];
-      this.userTaskOptions = [];
+      this.userTaskOptions.set([]);
       this.fetchUserTasks(0);
     } else {
       // Filter only applies to user task page atm.
