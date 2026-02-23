@@ -2,12 +2,12 @@
   <div class="task-selection-container">
     <div class="select-container" [ngClass]="{ 'phone': isPhone }">
       <!-- User Task Dropdown -->
-      @if (isUserTaskView) {
+      @if (isUserTaskView()) {
         <p-auto-complete
           [dropdown]="true"
           [class]="'header-dropdown'"
           [suggestions]="userTaskOptions()"
-          [ngModel]="selectedTaskId"
+          [ngModel]="selectedTaskId()"
           (ngModelChange)="onItemSelect($event)"
           optionLabel="label"
           optionValue="value"
@@ -26,8 +26,8 @@
                   <span class="font-bold">{{ value.label.split('|')[0].trim() }}</span>
                   <span class="font-normal"> | {{ value.label.split('|')[1].trim() }}</span>
                 } @else {
-                <span>{{ value.label }}</span>
-              }
+                  <span>{{ value.label }}</span>
+                }
               </div>
             }
           </ng-template>
@@ -37,15 +37,15 @@
                 <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
                 <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
               } @else {
-              <span>{{ option.label }}</span>
-            }
+                <span>{{ option.label }}</span>
+              }
             </div>
           </ng-template>
         </p-auto-complete>
       }
 
       <!-- Workflow Dropdown -->
-      @if (isWorkflowView) {
+      @if (isWorkflowView()) {
         <p-auto-complete
           [dropdown]="true"
           [class]="'header-dropdown'"
@@ -69,8 +69,8 @@
                   <span class="font-bold">{{ value.label.split('|')[0].trim() }}</span>
                   <span class="font-normal"> | {{ value.label.split('|')[1].trim() }}</span>
                 } @else {
-                <span>{{ value.label }}</span>
-              }
+                  <span>{{ value.label }}</span>
+                }
               </div>
             }
           </ng-template>
@@ -81,8 +81,8 @@
                 <span class="font-bold">{{ option.label.split('|')[0].trim() }}</span>
                 <span class="font-normal"> | {{ option.label.split('|')[1].trim() }}</span>
               } @else {
-              <span>{{ option.label }}</span>
-            }
+                <span>{{ option.label }}</span>
+              }
             </div>
           </ng-template>
         </p-auto-complete>
@@ -90,7 +90,7 @@
     </div>
 
     <app-task-toggle
-      [value]="taskFilter"
+      [value]="taskFilter()"
       (onChange)="onFilterChange($event)">
     </app-task-toggle>
   </div>
@@ -98,26 +98,30 @@
   <div class="view-menu">
     <div class="dropdown">
       <!-- User Task Views -->
-      @if (isUserTaskView) {
-        <button class="dropdown-button" [disabled]="!selectedTaskId">Views</button>
-      } @if (isUserTaskView && selectedTaskId) {
-      <div class="dropdown-content">
-        <a (click)="navigateToView('form')">form</a>
-        <a (click)="navigateToView('list')">list</a>
-        <a (click)="navigateToView('icon')">icon</a>
-      </div>
-    }
+      @if (isUserTaskView()) {
+        <button class="dropdown-button" [disabled]="!selectedTaskId()">Views</button>
+
+        @if (selectedTaskId()) {
+          <div class="dropdown-content">
+            <a (click)="navigateToView('form')">form</a>
+            <a (click)="navigateToView('list')">list</a>
+            <a (click)="navigateToView('icon')">icon</a>
+          </div>
+        }
+      }
 
       <!-- Workflow Views -->
-      @if (isWorkflowView) {
+      @if (isWorkflowView()) {
         <button class="dropdown-button" [disabled]="!selectedWorkflowId">Views</button>
-      } @if (isWorkflowView && selectedWorkflowId) {
-      <div class="dropdown-content">
-        <a (click)="navigateToView('page')">page</a>
-        <a (click)="navigateToView('list')">list</a>
-        <a (click)="navigateToView('icon')">icon</a>
-      </div>
-    }
+
+        @if (selectedWorkflowId()) {
+          <div class="dropdown-content">
+            <a (click)="navigateToView('form')">form</a>
+            <a (click)="navigateToView('list')">list</a>
+            <a (click)="navigateToView('icon')">icon</a>
+          </div>
+        }
+      }
     </div>
   </div>
 </div>

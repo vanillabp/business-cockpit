@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { TaskToggleComponent } from '../components/task-toggle.component';
 import { Subscription } from 'rxjs';
 import { AutoComplete } from 'primeng/autocomplete';
+import { WINDOW_REF } from '../window-ref';
 
 interface SelectOption {
   label: string;
@@ -74,47 +75,57 @@ enum ContentType {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   // Shared properties
-  contentType: ContentType = ContentType.UserTask;
+  contentType = signal(ContentType.UserTask);
   page = 0;
   hasMorePages = true;
   isLoading = false;
-  taskFilter: 'all'|'open'|'closed' = 'all';
-  isPhone = window.innerWidth < 768;
+  taskFilter = signal<'all'|'open'|'closed'>('all');
   private routeSubscription: Subscription|undefined;
-  private resizeListener: () => void;
 
   // User task properties
-  userTasks: UserTask[] = [];
-  userTaskOptions = signal<SelectOption[]>([])
-  selectedTaskId?: string;
+  userTasks = signal<UserTask[]>([]);
+  userTaskOptions = computed<SelectOption[]>(() => this.userTasks().map(task => ({
+    label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
+    value: task.id
+  })));
+  selectedTaskId = signal<string|undefined>(undefined);
 
   // Workflow properties
-  workflows: Workflow[] = [];
-  workflowOptions = signal<SelectOption[]>([]);
-  selectedWorkflowId?: string;
+  workflows = signal<Workflow[]>([]);
+  workflowOptions = computed<SelectOption[]>(() => this.workflows().map(workflow => ({
+    label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
+    value: workflow.id
+  })));
+  selectedWorkflowId = signal<string|undefined>(undefined);
+
+  private readonly windowRef = inject(WINDOW_REF);
+
+  readonly isPhone = signal(false);
+
+  private resizeListener() {
+    this.isPhone.set(this.windowRef.innerWidth < 768);
+  }
+
+  readonly isWorkflowView = computed(() => this.contentType() === ContentType.Workflow);
+  readonly isUserTaskView = computed(() => this.contentType() === ContentType.UserTask);
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private http: HttpClient,
-    private cdRef: ChangeDetectorRef
   ) {
-    this.resizeListener = () => {
-      this.isPhone = window.innerWidth < 768;
-      this.cdRef.detectChanges();
-    };
   }
 
   ngOnInit(): void {
     // Determine content type based on URL and load initial data
     const url = this.router.url;
     if (url.includes('/workflow')) {
-      this.contentType = ContentType.Workflow;
-      this.selectedWorkflowId = this.route.snapshot.paramMap.get('workflowId') || undefined;
+      this.contentType.set(ContentType.Workflow);
+      this.selectedWorkflowId.set(this.route.snapshot.paramMap.get('workflowId') ?? undefined);
       this.fetchWorkflows(0);
     } else {
-      this.contentType = ContentType.UserTask;
-      this.selectedTaskId = this.route.snapshot.paramMap.get('userTaskId') || undefined;
+      this.contentType.set(ContentType.UserTask);
+      this.selectedTaskId.set(this.route.snapshot.paramMap.get('userTaskId') ?? undefined);
       this.fetchUserTasks(0);
     }
 
@@ -123,14 +134,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
       const newTaskId = params['userTaskId'];
       const newWorkflowId = params['workflowId'];
 
-      if (this.contentType === ContentType.UserTask && newTaskId !== this.selectedTaskId) {
-        this.selectedTaskId = newTaskId;
-        this.cdRef.detectChanges();
+      if (this.isUserTaskView() && newTaskId !== this.selectedTaskId) {
+        this.selectedTaskId.set(newTaskId);
       }
 
-      if (this.contentType === ContentType.Workflow && newWorkflowId !== this.selectedWorkflowId) {
-        this.selectedWorkflowId = newWorkflowId;
-        this.cdRef.detectChanges();
+      if (this.isWorkflowView() && newWorkflowId !== this.selectedWorkflowId) {
+        this.selectedWorkflowId.set(newWorkflowId);
       }
     });
 
@@ -145,22 +154,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
     window.removeEventListener('resize', this.resizeListener);
   }
 
-  get isUserTaskView(): boolean {
-    return this.contentType === ContentType.UserTask;
-  }
-
-  get isWorkflowView(): boolean {
-    return this.contentType === ContentType.Workflow;
-  }
-
   // User Task methods
   fetchUserTasks(pageToFetch: number): void {
     if (this.isLoading) return;
     this.isLoading = true;
 
     let mode: UserTaskRetrieveMode;
-    if (this.taskFilter === 'open') mode = UserTaskRetrieveMode.OpenTasks;
-    else if (this.taskFilter === 'closed') mode = UserTaskRetrieveMode.ClosedTasksOnly;
+    if (this.taskFilter() === 'open') mode = UserTaskRetrieveMode.OpenTasks;
+    else if (this.taskFilter() === 'closed') mode = UserTaskRetrieveMode.ClosedTasksOnly;
     else mode = UserTaskRetrieveMode.All;
 
     const request: UserTasksRequest = {
@@ -170,27 +171,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.http.post<UserTasksResponse>('/official-api/v1/usertask', request)
       .subscribe({
         next: (data: UserTasksResponse) => {
-          this.userTasks = pageToFetch === 0 ? data.userTasks : [...this.userTasks, ...data.userTasks];
-
-          this.userTaskOptions.set(this.userTasks.map(task => ({
-            label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
-            value: task.id
-          })));
+          this.userTasks.set(pageToFetch === 0 ? data.userTasks : [...this.userTasks(), ...data.userTasks]);
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
           this.isLoading = false;
-          this.cdRef.detectChanges();
         },
         error: (error) => {
           console.error('Error fetching tasks:', error);
           if (pageToFetch === 0) {
-            this.userTasks = [];
-            this.userTaskOptions.set([]);
+            this.userTasks.set([]);
           }
           this.isLoading = false;
           this.hasMorePages = false;
-          this.cdRef.detectChanges();
         }
       });
   }
@@ -207,27 +200,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.http.post<WorkflowsResponse>('/official-api/v1/workflow', request)
       .subscribe({
         next: (data: WorkflowsResponse) => {
-          this.workflows = pageToFetch === 0 ? data.workflows : [...this.workflows, ...data.workflows];
-
-          this.workflowOptions.set(this.workflows.map(workflow => ({
-            label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
-            value: workflow.id
-          })));
+          this.workflows.set(pageToFetch === 0 ? data.workflows : [...this.workflows(), ...data.workflows]);
 
           this.page = pageToFetch;
           this.hasMorePages = data.page.number + 1 < data.page.totalPages;
           this.isLoading = false;
-          this.cdRef.detectChanges();
         },
         error: (error) => {
           console.error('Error fetching workflows:', error);
           if (pageToFetch === 0) {
-            this.workflows = [];
-            this.workflowOptions.set([]);
+            this.workflows.set([]);
           }
           this.isLoading = false;
           this.hasMorePages = false;
-          this.cdRef.detectChanges();
         }
       });
   }
@@ -235,7 +220,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   loadMore(): void {
     if (!this.isLoading && this.hasMorePages) {
       const nextPage = this.page + 1;
-      if (this.isUserTaskView) {
+      if (this.isUserTaskView()) {
         this.fetchUserTasks(nextPage);
       } else {
         this.fetchWorkflows(nextPage);
@@ -243,14 +228,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onItemSelect(itemId: string|undefined): void {
-    if (this.isUserTaskView && itemId) {
+  onItemSelect(itemId?: string): void {
+    if (this.isUserTaskView() && itemId) {
       this.loadUserTask(itemId);
-    } else if (this.isWorkflowView && itemId) {
+    } else if (this.isWorkflowView() && itemId) {
       this.loadWorkflow(itemId);
     } else if (!itemId) {
-      if (this.isUserTaskView) this.router.navigate(['/task']);
-      else if (this.isWorkflowView) this.router.navigate(['/workflow']);
+      if (this.isUserTaskView()) this.router.navigate(['/task']);
+      else if (this.isWorkflowView()) this.router.navigate(['/workflow']);
     }
   }
 
@@ -267,23 +252,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange(filter: 'all'|'open'|'closed'): void {
-    this.taskFilter = filter;
+    this.taskFilter.set(filter);
     this.page = 0;
     this.hasMorePages = true;
     this.isLoading = false;
 
-    if (this.isUserTaskView) {
-      this.userTasks = [];
-      this.userTaskOptions.set([]);
+    if (this.isUserTaskView()) {
+      this.userTasks.set([]);
       this.fetchUserTasks(0);
-    } else {
-      // Filter only applies to user task page atm.
     }
-    this.cdRef.detectChanges();
   }
 
   navigateToView(view: string): void {
-    const currentBase = this.isUserTaskView ? `/task/${this.selectedTaskId}` : `/workflow/${this.selectedWorkflowId}`;
+    const currentBase = this.isUserTaskView() ? `/task/${this.selectedTaskId}` : `/workflow/${this.selectedWorkflowId}`;
     const targetRoute = view === 'form' || view === 'page' ? [currentBase] : [currentBase, view];
 
     const currentUrl = this.router.url;
