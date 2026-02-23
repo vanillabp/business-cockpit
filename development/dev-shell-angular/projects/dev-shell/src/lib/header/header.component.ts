@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,59 +7,19 @@ import { TaskToggleComponent } from '../components/task-toggle.component';
 import { Subscription } from 'rxjs';
 import { AutoComplete } from 'primeng/autocomplete';
 import { WINDOW_REF } from '../window-ref';
+import {
+  UserTasks,
+  UserTask,
+  Workflow,
+  UserTasksRequest,
+  WorkflowsRequest,
+  Workflows,
+  UserTaskRetrieveMode
+} from '@vanillabp/bc-official-gui-client';
 
 interface SelectOption {
   label: string;
   value: string;
-}
-
-interface UserTask {
-  id: string;
-  businessId: string;
-  taskDefinition: string;
-  bpmnProcessId: string;
-}
-
-interface Workflow {
-  id: string;
-  businessId: string;
-  bpmnProcessId: string;
-}
-
-interface Page {
-  number: number;
-  totalPages: number;
-}
-
-interface UserTasksResponse {
-  userTasks: UserTask[];
-  page: Page;
-}
-
-interface WorkflowsResponse {
-  workflows: Workflow[];
-  page: Page;
-}
-
-enum UserTaskRetrieveMode {
-  All = 'All',
-  OpenTasks = 'OpenTasks',
-  ClosedTasksOnly = 'ClosedTasksOnly'
-}
-
-interface UserTasksRequest {
-  pageNumber: number;
-  pageSize: number;
-  sort: string;
-  sortAscending: boolean;
-  mode: UserTaskRetrieveMode;
-}
-
-interface WorkflowsRequest {
-  pageNumber: number;
-  pageSize: number;
-  sort: string;
-  sortAscending: boolean;
 }
 
 enum ContentType {
@@ -75,32 +35,32 @@ enum ContentType {
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   // Shared properties
-  contentType = signal(ContentType.UserTask);
+  private readonly contentType = signal(ContentType.UserTask);
   page = 0;
   hasMorePages = true;
   isLoading = false;
-  taskFilter = signal<'all'|'open'|'closed'>('all');
+  protected readonly taskFilter = signal<'all'|'open'|'closed'>('all');
   private routeSubscription: Subscription|undefined;
 
   // User task properties
-  userTasks = signal<UserTask[]>([]);
-  userTaskOptions = computed<SelectOption[]>(() => this.userTasks().map(task => ({
+  private readonly userTasks = signal<UserTask[]>([]);
+  protected readonly userTaskOptions = computed<SelectOption[]>(() => this.userTasks().map(task => ({
     label: `${task.businessId || ''} | ${task.taskDefinition}/${task.bpmnProcessId} | (${task.id})`,
     value: task.id
   })));
-  selectedTaskId = signal<string|undefined>(undefined);
+  protected readonly selectedTaskId = signal<string|undefined>(undefined);
 
   // Workflow properties
-  workflows = signal<Workflow[]>([]);
-  workflowOptions = computed<SelectOption[]>(() => this.workflows().map(workflow => ({
+  private readonly workflows = signal<Workflow[]>([]);
+  protected readonly workflowOptions = computed<SelectOption[]>(() => this.workflows().map(workflow => ({
     label: `${workflow.businessId || ''} | ${workflow.bpmnProcessId} (${workflow.id})`,
     value: workflow.id
   })));
-  selectedWorkflowId = signal<string|undefined>(undefined);
+  protected readonly selectedWorkflowId = signal<string|undefined>(undefined);
 
   private readonly windowRef = inject(WINDOW_REF);
 
-  readonly isPhone = signal(false);
+  protected readonly isPhone = signal(false);
 
   private resizeListener() {
     this.isPhone.set(this.windowRef.innerWidth < 768);
@@ -114,6 +74,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private http: HttpClient,
   ) {
+    effect(() => console.log('UT Options: ', this.userTaskOptions()))
+    effect(() => console.log('WF Options: ', this.workflowOptions()))
   }
 
   ngOnInit(): void {
@@ -168,9 +130,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false, mode: mode
     };
 
-    this.http.post<UserTasksResponse>('/official-api/v1/usertask', request)
+    this.http.post<UserTasks>('/official-api/v1/usertask', request)
       .subscribe({
-        next: (data: UserTasksResponse) => {
+        next: (data) => {
           this.userTasks.set(pageToFetch === 0 ? data.userTasks : [...this.userTasks(), ...data.userTasks]);
 
           this.page = pageToFetch;
@@ -197,9 +159,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       pageNumber: pageToFetch, pageSize: 20, sort: 'createdAt', sortAscending: false
     };
 
-    this.http.post<WorkflowsResponse>('/official-api/v1/workflow', request)
+    this.http.post<Workflows>('/official-api/v1/workflow', request)
       .subscribe({
-        next: (data: WorkflowsResponse) => {
+        next: (data) => {
           this.workflows.set(pageToFetch === 0 ? data.workflows : [...this.workflows(), ...data.workflows]);
 
           this.page = pageToFetch;
@@ -251,7 +213,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  onFilterChange(filter: 'all'|'open'|'closed'): void {
+  changeFilter(filter: 'all'|'open'|'closed'): void {
     this.taskFilter.set(filter);
     this.page = 0;
     this.hasMorePages = true;

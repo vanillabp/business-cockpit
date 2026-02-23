@@ -1,6 +1,6 @@
 <div class="header-container">
   <div class="task-selection-container">
-    <div class="select-container" [ngClass]="{ 'phone': isPhone }">
+    <div class="select-container" [class.phone]="isPhone()">
       <!-- User Task Dropdown -->
       @if (isUserTaskView()) {
         <p-auto-complete
@@ -50,7 +50,7 @@
           [dropdown]="true"
           [class]="'header-dropdown'"
           [suggestions]="workflowOptions()"
-          [ngModel]="selectedWorkflowId"
+          [ngModel]="selectedWorkflowId()"
           (ngModelChange)="onItemSelect($event)"
           optionLabel="label"
           optionValue="value"
@@ -91,8 +91,7 @@
 
     <app-task-toggle
       [value]="taskFilter()"
-      (onChange)="onFilterChange($event)">
-    </app-task-toggle>
+      (onChange)="changeFilter($event)" />
   </div>
 
   <div class="view-menu">
