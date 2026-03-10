@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.workflowmodules.model;
 
 import java.util.List;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -24,6 +23,8 @@ public class WorkflowModule {
     private String workflowProviderApiUriPath;
 
     private List<String> accessibleToGroups;
+
+    private List<GroupHierarchy> groupHierarchy = null;
 
     public static WorkflowModule withId(
             final String id) {
@@ -81,4 +82,13 @@ public class WorkflowModule {
     public void setAccessibleToGroups(List<String> accessibleToGroups) {
         this.accessibleToGroups = accessibleToGroups;
     }
+
+    public List<GroupHierarchy> getGroupHierarchy() {
+        return groupHierarchy;
+    }
+
+    public void setGroupHierarchy(List<GroupHierarchy> groupHierarchy) {
+        this.groupHierarchy = groupHierarchy;
+    }
+
 }

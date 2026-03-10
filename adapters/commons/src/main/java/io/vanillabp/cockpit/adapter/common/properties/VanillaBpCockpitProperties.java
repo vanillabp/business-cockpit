@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.adapter.common.properties;
 
 import io.vanillabp.springboot.adapter.VanillaBpProperties;
 import java.io.File;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -261,6 +262,10 @@ public class VanillaBpCockpitProperties {
 
         private List<String> i18nLanguages;
 
+        private String groupHierarchyBeanName;
+
+        private Map<String, Collection<String>> groupHierarchy = null;
+
         public String getWorkflowModuleUri() {
             return workflowModuleUri;
         }
@@ -299,6 +304,22 @@ public class VanillaBpCockpitProperties {
 
         public void setBpmnDescriptionLanguage(String bpmnDescriptionLanguage) {
             this.bpmnDescriptionLanguage = bpmnDescriptionLanguage;
+        }
+
+        public Map<String, Collection<String>> getGroupHierarchy() {
+            return groupHierarchy;
+        }
+
+        public void setGroupHierarchy(Map<String, Collection<String>> groupHierarchy) {
+            this.groupHierarchy = groupHierarchy;
+        }
+
+        public String getGroupHierarchyBeanName() {
+            return groupHierarchyBeanName;
+        }
+
+        public void setGroupHierarchyBeanName(String groupHierarchyBeanName) {
+            this.groupHierarchyBeanName = groupHierarchyBeanName;
         }
 
     }

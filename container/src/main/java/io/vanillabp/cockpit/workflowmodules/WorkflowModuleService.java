@@ -1,16 +1,19 @@
 package io.vanillabp.cockpit.workflowmodules;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.stereotype.Service;
-
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.cockpit.workflowmodules.model.GroupHierarchy;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModule;
 import io.vanillabp.cockpit.workflowmodules.model.WorkflowModuleRepository;
 import jakarta.annotation.PostConstruct;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -25,6 +28,18 @@ public class WorkflowModuleService {
 
     @PostConstruct
     public void registerProxiesForWorkflowModules() {
+
+        // prefill cache
+        workflowModules
+                .findAll()
+                .doOnNext(workflowModule -> {
+                    final var groupHierarchy = Optional
+                            .ofNullable(workflowModule.getGroupHierarchy())
+                            .stream()
+                            .flatMap(List::stream)
+                            .collect(Collectors.toMap(GroupHierarchy::group, hierarchy -> (Collection<String>) hierarchy.targets()));
+                    GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
+                }).subscribe();
 
         workflowModules
                 .findAll()
@@ -44,7 +59,8 @@ public class WorkflowModuleService {
             final String uri,
             final String taskProviderApiUriPath,
             final String workflowProviderApiUriPath,
-            final List<String> accessibleToGroups) {
+            final List<String> accessibleToGroups,
+            final Map<String, Collection<String>> groupHierarchy) {
 
         final var updateWorkflowModule = workflowModules
                 .findById(id)
@@ -62,6 +78,9 @@ public class WorkflowModuleService {
                     if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return Mono.just(workflowModule);
                     if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return  Mono.just(workflowModule);
                     if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return Mono.just(workflowModule);
+                    if ((groupHierarchy != null) && (workflowModule.getGroupHierarchy() == null)) return Mono.just(workflowModule);
+                    if ((groupHierarchy == null) && (workflowModule.getGroupHierarchy() != null)) return Mono.just(workflowModule);
+                    if ((groupHierarchy != null) && !groupHierarchy.equals(workflowModule.getGroupHierarchy())) return Mono.just(workflowModule);
                     return Mono.empty();
                 })
                 .doOnNext(workflowModule -> {
@@ -69,6 +88,16 @@ public class WorkflowModuleService {
                     workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
                     workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
                     workflowModule.setAccessibleToGroups(accessibleToGroups);
+                    final var modelGroupHierarchy = Optional
+                            .ofNullable(groupHierarchy)
+                            .map(hierarchy -> hierarchy
+                                    .entrySet()
+                                    .stream()
+                                    .map(entry -> new GroupHierarchy(entry.getKey(), new LinkedList<>(entry.getValue())))
+                                    .toList())
+                            .orElse(null);
+                    workflowModule.setGroupHierarchy(modelGroupHierarchy);
+                    GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
                 })
                 .flatMap(workflowModules::save)
                 .doOnNext(workflowModule -> microserviceProxyRegistry.registerMicroservice(

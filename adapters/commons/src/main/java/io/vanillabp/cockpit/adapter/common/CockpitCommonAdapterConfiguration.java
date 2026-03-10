@@ -4,6 +4,7 @@ import freemarker.cache.TemplateLookupStrategy;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.TemplateException;
 import freemarker.template.Version;
+import io.vanillabp.cockpit.adapter.common.properties.PropertiesBasedWorkflowModuleGroupHierarchy;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import io.vanillabp.cockpit.adapter.common.service.AdapterConfigurationBase;
@@ -85,6 +86,22 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
     
     @Autowired
     private List<AdapterConfigurationBase<?>> adapterConfigurations;
+
+    /**
+     * Provide WorkflowModuleGroupHierarchy bean merging all
+     * configuration-based group hierarchies. This bean may be used
+     * next to application-provided WorkflowModuleGroupHierarchy beans
+     * to retrieve all group-hierarchies by simple injecting
+     * &quot;List<WorkflowModuleGroupHierarchy>&quot;
+     *
+     * @return WorkflowModuleGroupHierarchy merging all configuration-based group hierarchies
+     */
+    @Bean
+    public PropertiesBasedWorkflowModuleGroupHierarchy defaultWorkflowModuleGroupHierarchyBean() {
+
+        return new PropertiesBasedWorkflowModuleGroupHierarchy(properties);
+
+    }
 
     @PostConstruct
     public void validateConfiguration() {

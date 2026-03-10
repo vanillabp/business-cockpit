@@ -1,8 +1,8 @@
 package io.vanillabp.cockpit.adapter.common.workflowmodule.kafka;
 
 import com.google.protobuf.Timestamp;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.GroupHierarchy;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
-
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -30,6 +30,21 @@ public class WorkflowModuleProtobufMapper {
                 .ifPresent(builder::setWorkflowProviderApiUriPath);
         Optional.ofNullable(event.getAccessibleToGroups())
                 .ifPresent(builder::addAllAccessibleToGroups);
+
+        final var groupHierarchy = event.getGroupHierarchy();
+        if (groupHierarchy != null) {
+            var groupHierarchyBuilder = GroupHierarchy
+                    .newBuilder();
+            groupHierarchy
+                    .entrySet()
+                    .stream()
+                    .map(entry -> GroupHierarchy
+                            .newBuilder()
+                            .setGroup(entry.getKey())
+                            .addAllTarget(entry.getValue())
+                            .build())
+                    .forEach(builder::addGroupHierarchy);
+        }
 
         return builder.build();
 

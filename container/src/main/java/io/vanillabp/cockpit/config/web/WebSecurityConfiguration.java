@@ -11,16 +11,16 @@ import io.vanillabp.cockpit.commons.security.jwt.ReactiveJwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.cockpit.workflowmodules.GroupHierarchyService;
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.UserDetailsRepositoryReactiveAuthenticationManager;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -66,9 +66,12 @@ public class WebSecurityConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
+    public JwtMapper<? extends JwtAuthenticationToken> jwtMapper(
+            final GroupHierarchyService groupHierarchyService) {
 
-        return new JwtAuthenticationTokenMapper(properties.getJwt());
+        return new JwtAuthenticationTokenMapper(
+                properties.getJwt(),
+                groupHierarchyService::resolveGroups);
 
     }
 
@@ -88,8 +91,7 @@ public class WebSecurityConfiguration {
     public SecurityWebFilterChain guiHttpSecurity(
             final ServerHttpSecurity http,
             final JwtServerSecurityContextRepository jwtServerSecurityContextRepository,
-            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
-            final MapReactiveUserDetailsService userDetailsService) {
+            final UserDetailsProvider userService) {
         
         final var basicEntryPoint = new HttpBasicServerAuthenticationEntryPoint();
         basicEntryPoint.setRealm(properties.getTitleShort());
@@ -108,7 +110,10 @@ public class WebSecurityConfiguration {
                 .httpBasic()
                         .securityContextRepository(jwtServerSecurityContextRepository)
                         .authenticationEntryPoint(basicEntryPoint)
-                        .and()
+                        .authenticationManager(
+                                new UserDetailsRepositoryReactiveAuthenticationManager(
+                                        localUserDetailsService(userService)))
+                .and()
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(jwtLogoutSuccessHandler()))
@@ -126,10 +131,7 @@ public class WebSecurityConfiguration {
 
     }
 
-    @Bean
-    @Primary
-    @Profile("local")
-    public MapReactiveUserDetailsService userDetailsService(
+    private MapReactiveUserDetailsService localUserDetailsService(
             final UserDetailsProvider userService) {
 
         final var users = userService

@@ -18,9 +18,14 @@ import io.vanillabp.cockpit.adapter.common.wiring.parameters.UserTaskMethodParam
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
+import java.math.BigInteger;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.RepositoryService;
@@ -39,11 +44,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.repository.CrudRepository;
-
-import java.math.BigInteger;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 
 @AutoConfigurationPackage(basePackageClasses = Camunda7AdapterConfiguration.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
@@ -144,6 +144,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
     public Camunda7WorkflowWiring cockpitCamunda7WorkflowWiring(
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
+            final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans,
             @Qualifier(CockpitCommonAdapterConfiguration.TEMPLATING_QUALIFIER)
             final Optional<Configuration> templating,
             final Map<Class<?>, AdapterAwareProcessService<?>> connectableServices,
@@ -153,6 +154,7 @@ public class Camunda7AdapterConfiguration extends AdapterConfigurationBase<Camun
                 applicationContext,
                 springBeanUtil,
                 properties,
+                groupHierarchyBeans,
                 new WorkflowMethodParameterFactory(),
                 connectableServices,
                 getConnectableServices(),

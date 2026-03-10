@@ -7,6 +7,7 @@ import io.vanillabp.cockpit.devshell.simulator.usermanagement.JwtServerSecurityC
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -91,7 +92,10 @@ public class SecurityConfig {
     public JwtMapper<? extends AbstractAuthenticationToken> jwtMapper(
             final JwtProperties jwtProperties) {
 
-        return new JwtAuthenticationTokenMapper(jwtProperties);
+        return new JwtAuthenticationTokenMapper(
+                jwtProperties,
+                // no group resolving in Dev-Shell-Simulator - mapping of groups is done via business application
+                Function.identity());
 
     }
 

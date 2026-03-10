@@ -5,6 +5,9 @@ import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import jakarta.validation.Valid;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -216,7 +219,15 @@ public class BpmsApiController implements BpmsApi {
                         event.getUri(),
                         event.getTaskProviderApiUriPath(),
                         event.getWorkflowProviderApiUriPath(),
-                        event.getAccessibleToGroups()))
+                        event.getAccessibleToGroups(),
+                        Optional
+                                .ofNullable(event.getGroupHierarchy())
+                                .map(hierarchies -> hierarchies
+                                        .stream()
+                                        .collect(Collectors.toMap(
+                                                GroupHierarchy::getGroup,
+                                                hierarchy -> (Collection<String>) hierarchy.getTargets())))
+                                .orElse(null)))
                 .map(module -> ResponseEntity.ok().<Void>build());
 
     }

@@ -21,6 +21,7 @@ import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflow.WorkflowPublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy;
 import io.vanillabp.springboot.adapter.AdapterAwareProcessService;
 import io.vanillabp.springboot.adapter.SpringBeanUtil;
 import io.vanillabp.springboot.adapter.SpringDataUtil;
@@ -237,6 +238,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
             final ApplicationEventPublisher applicationEventPublisher,
             final JsonMapper camundaJsonMapper,
             final VanillaBpCockpitProperties cockpitProperties,
+            final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans,
             final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
             final SpringDataUtil springDataUtil,
@@ -252,6 +254,7 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 camundaJsonMapper,
                 workerId,
                 cockpitProperties,
+                groupHierarchyBeans,
                 camunda8Properties,
                 springBeanUtil,
                 springDataUtil,
