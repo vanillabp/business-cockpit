@@ -1,4 +1,5 @@
-import { Box, Menu, Select, Text } from 'grommet';
+import { Box, Button, Menu, Select, Text } from 'grommet';
+import { Home } from 'grommet-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
@@ -133,6 +134,11 @@ const Header = () => {
             justify="between"
             gap="small">
             <Box direction="row" gap="small" align="center" fill>
+                <Button
+                    icon={<Home />}
+                    onClick={() => navigate('/')}
+                    tip="Home"
+                />
                 <Box width={isPhone ? '15rem' : '26rem'} fill>
                     <Select
                         size="medium"

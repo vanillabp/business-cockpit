@@ -311,6 +311,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.cdRef.detectChanges();
   }
 
+  navigateHome(): void {
+    this.router.navigate(['/']);
+  }
+
   navigateToView(view: string): void {
     const currentBase = this.isUserTaskView ? `/task/${this.selectedTaskId}` : `/workflow/${this.selectedWorkflowId}`;
     const targetRoute = view === 'form' || view === 'page' ? [currentBase] : [currentBase, view];
