@@ -65,7 +65,7 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
 
     public static final String TEMPLATING_QUALIFIER = "BusinessCockpit";
     
-    private static final Version FREEMARKER_VERSION = freemarker.template.Configuration.VERSION_2_3_31;
+    private static final Version FREEMARKER_VERSION = freemarker.template.Configuration.VERSION_2_3_34;
 
     @Autowired
     private ObjectProvider<List<WorkflowModuleDetailsProvider>> workflowModuleDetailsProviders;
@@ -245,7 +245,10 @@ public class CockpitCommonAdapterConfiguration extends ClientsConfigurationBase 
                 config.setLocalizedLookup(true);
                 config.setRecognizeStandardFileExtensions(true);
                 final var objectWrapper = new Java8ObjectWrapper(FREEMARKER_VERSION);
-                objectWrapper.setExposureLevel(BeansWrapper.EXPOSE_PROPERTIES_ONLY);
+                // EXPOSE_SAFE is required for Java record support: Freemarker 2.3.33+ only
+                // promotes record component accessors to template properties when the exposure
+                // level is lower than EXPOSE_PROPERTIES_ONLY (see ClassIntrospector#addBeanInfoToClassIntrospectionData).
+                objectWrapper.setExposureLevel(BeansWrapper.EXPOSE_SAFE);
                 config.setObjectWrapper(objectWrapper);
             };
 
