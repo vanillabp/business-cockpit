@@ -5,7 +5,9 @@ import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow;
 import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowRepository;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -110,26 +112,42 @@ public class WorkflowService {
      */
     public Page<Workflow> getWorkflows(
             final RetrieveMode retrieveMode,
+            final List<String> businessIds,
+            final String sortField,
+            final Boolean sortAscending,
             final Integer pageNumberRequested,
             final Integer pageSizeRequested) {
 
+        final String effectiveSortField = sortField != null ? sortField : "createdAt";
+        final Sort.Direction direction = Boolean.TRUE.equals(sortAscending)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        final Sort sort = Sort.by(direction, effectiveSortField);
+
         List<Workflow> allWorkflows = switch(retrieveMode) {
-            case ACTIVE -> workflows.findByEndedAtIsNull();
-            case INACTIVE -> workflows.findByEndedAtIsNotNull();
-            default -> getAllWorkflows();
+            case ACTIVE -> workflows.findByEndedAtIsNull(sort);
+            case INACTIVE -> workflows.findByEndedAtIsNotNull(sort);
+            default -> workflows.findAll(sort);
         };
+
+        if (businessIds != null && !businessIds.isEmpty()) {
+            allWorkflows = allWorkflows
+                    .stream()
+                    .filter(w -> businessIds.contains(w.getBusinessId()))
+                    .collect(Collectors.toList());
+        }
 
         // Set default pagination values if not provided
         int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
         int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
 
         // Calculate total values
-        int totalElements = allWorkflows.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+        long totalElements = allWorkflows.size();
+        int totalPages = pageSize > 0 ? (int) Math.ceil((double) totalElements / pageSize) : 0;
 
         // Calculate page slice boundaries
-        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
-        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, totalElements);
+        int toIndex = (int) Math.min((long) fromIndex + pageSize, totalElements);
         List<Workflow> pagedWorkflows = allWorkflows.subList(fromIndex, toIndex);
 
         // Build the Page metadata
@@ -137,6 +155,7 @@ public class WorkflowService {
                 .<Workflow>builder()
                 .number(pageNumber)
                 .size(pageSize)
+                .totalElements(totalElements)
                 .totalPages(totalPages)
                 .pageObjects(pagedWorkflows)
                 .build();

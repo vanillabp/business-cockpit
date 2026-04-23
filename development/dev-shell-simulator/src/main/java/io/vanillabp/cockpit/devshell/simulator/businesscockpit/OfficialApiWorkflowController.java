@@ -47,7 +47,13 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
             final UserTasksRequest userTasksRequest) {
 
         final var filteredUserTasks = taskService
-                .getUserTasksOfWorkflow(workflowId, mapper.toModel(userTasksRequest.getMode()), null, null);
+                .getUserTasksOfWorkflow(
+                        workflowId,
+                        mapper.toModel(userTasksRequest.getMode()),
+                        userTasksRequest.getSort(),
+                        userTasksRequest.getSortAscending(),
+                        userTasksRequest.getPageNumber(),
+                        userTasksRequest.getPageSize());
         final var apiUsertasks = mapper.toUserTasksApi(filteredUserTasks);
 
         log.info("Client retrieved user tasks of workflow {}", workflowId);
@@ -83,6 +89,9 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
         final var workflows = workflowService.getWorkflows(
                 mapper.toModel(workflowsRequest.getMode()),
+                workflowsRequest.getBusinessIds(),
+                workflowsRequest.getSort(),
+                workflowsRequest.getSortAscending(),
                 workflowsRequest.getPageNumber(),
                 workflowsRequest.getPageSize());
         final var apiWorkflows = mapper.toWorkflowsApi(workflows);

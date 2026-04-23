@@ -53,6 +53,8 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
         
         final var userTasks = taskService.getUserTasks(
                 mapper.toModel(userTasksRequest.getMode()),
+                userTasksRequest.getSort(),
+                userTasksRequest.getSortAscending(),
                 userTasksRequest.getPageNumber(),
                 userTasksRequest.getPageSize());
         final var apiUserTasks = mapper.toUserTasksApi(userTasks);
