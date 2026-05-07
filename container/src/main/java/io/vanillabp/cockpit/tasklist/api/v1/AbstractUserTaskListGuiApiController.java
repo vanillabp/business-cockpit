@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.tasklist.api.v1;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
@@ -11,6 +12,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
+import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -23,6 +25,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
@@ -392,6 +395,32 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 		return result
 				.map(userTasks -> ResponseEntity.ok().<Void>build())
+				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+
+	}
+
+	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> setFollowUpDate(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId,
+			final OffsetDateTime followUpDate);
+
+	@Override
+	public Mono<ResponseEntity<UserTask>> setFollowUpDate(
+			final String userTaskId,
+			final Mono<FollowUpDateRequest> followUpDateRequest,
+			final ServerWebExchange exchange) {
+
+		final var requestOrEmpty = followUpDateRequest
+				.defaultIfEmpty(new FollowUpDateRequest());
+
+		return userContext
+				.getUserLoggedInDetailsAsMono()
+				.flatMap(user -> requestOrEmpty
+						.flatMap(request -> setFollowUpDate(user, userTaskId, request.getTimestamp()))
+						.map(task -> mapper.toApi(task, user.getId())))
+				.map(ResponseEntity::ok)
+				.onErrorResume(UserTaskAlreadyCompletedException.class,
+						e -> Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build()))
 				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
 
 	}

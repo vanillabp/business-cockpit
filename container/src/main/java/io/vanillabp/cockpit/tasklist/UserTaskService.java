@@ -57,6 +57,7 @@ public class UserTaskService {
         OpenTasks,
         OpenTasksWithoutFollowUp,
         OpenTasksWithFollowUp,
+        OpenTaskOnlyFollowUp,
         ClosedTasksOnly
     }
 
@@ -248,6 +249,21 @@ public class UserTaskService {
                             userTask.removeCandidatePerson(personId);
                             return userTask;
                         }));
+
+    }
+
+    public Mono<UserTask> setFollowUpDate(
+            final String userTaskId,
+            final OffsetDateTime followUpDate) {
+
+        return getUserTask(userTaskId)
+                .flatMap(userTask -> {
+                    if (userTask.getEndedAt() != null) {
+                        return Mono.error(new UserTaskAlreadyCompletedException(userTaskId));
+                    }
+                    userTask.setFollowUpDate(followUpDate);
+                    return userTasks.save(userTask);
+                });
 
     }
 
@@ -771,6 +787,7 @@ public class UserTaskService {
             case OpenTasks:
             case OpenTasksWithFollowUp:
             case OpenTasksWithoutFollowUp:
+            case OpenTaskOnlyFollowUp:
                 if (initialTimestamp == null) {
                     subCriterias.add(
                             Criteria.where("endedAt").exists(false));
@@ -795,6 +812,8 @@ public class UserTaskService {
             final Criteria inPast = Criteria.where("followUpDate").lte(OffsetDateTime.now());
             final Criteria excludeFollowUps = new Criteria().orOperator(notSet, inPast);
             subCriterias.add(excludeFollowUps);
+        } else if (mode == RetrieveItemsMode.OpenTaskOnlyFollowUp) {
+            subCriterias.add(Criteria.where("followUpDate").gt(OffsetDateTime.now()));
         }
 
         // limit result according to predefined filters

@@ -57,6 +57,7 @@ public abstract class UserTaskMapper {
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
     @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "followUpDate", ignore = true)
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)

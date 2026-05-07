@@ -68,6 +68,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "dangling", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
+    @Mapping(target = "followUpDate", ignore = true)
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)

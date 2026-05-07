@@ -82,6 +82,7 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "OpenTasks", source = "OPENTASKS")
     @ValueMapping(target = "OpenTasksWithoutFollowUp", source = "OPENTASKSWITHOUTFOLLOWUP")
     @ValueMapping(target = "OpenTasksWithFollowUp", source = "OPENTASKSWITHFOLLOWUP")
+    @ValueMapping(target = "OpenTaskOnlyFollowUp", source = "OPENTASKONLYFOLLOWUP")
     @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
     public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
 

@@ -203,4 +203,14 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 
 	}
 
+	@Override
+	protected Mono<UserTask> setFollowUpDate(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId,
+			final OffsetDateTime followUpDate) {
+
+		return userTaskService.setFollowUpDate(userTaskId, followUpDate);
+
+	}
+
 }

@@ -155,6 +155,35 @@ paths:
           description: Usertask changed successfully
         404:
           description: User task is unknown
+  /usertask/{userTaskId}/follow-up-date:
+    patch:
+      tags:
+        - officialTasklist
+      summary: set, change or clear the follow-up date of a task
+      operationId: setFollowUpDate
+      parameters:
+        - in: path
+          name: userTaskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FollowUpDateRequest"
+      responses:
+        200:
+          description: Follow-up date updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTask'
+        404:
+          description: User task is unknown
+        409:
+          description: User task already completed
   /usertask/{userTaskId}:
     get:
       tags:
@@ -528,6 +557,14 @@ components:
           type: array
           items:
             type: string
+    FollowUpDateRequest:
+      type: object
+      description: Body for PATCH /usertask/{userTaskId}/follow-up-date. A missing or null timestamp clears the follow-up date.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-05-08T14:00:00+02:00
     UserTask:
       type: object
       required:
@@ -813,6 +850,7 @@ components:
         - OpenTasks
         - OpenTasksWithoutFollowUp
         - OpenTasksWithFollowUp
+        - OpenTaskOnlyFollowUp
         - ClosedTasksOnly
     UserTasksRequest:
       type: object

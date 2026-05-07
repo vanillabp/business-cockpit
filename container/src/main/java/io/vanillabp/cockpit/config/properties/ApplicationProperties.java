@@ -2,12 +2,11 @@ package io.vanillabp.cockpit.config.properties;
 
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
+import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
 
-import java.util.Map;
-
-@ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = false)
+@ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = true)
 public class ApplicationProperties {
 
     private GuiSseProperties guiSse = new GuiSseProperties();
