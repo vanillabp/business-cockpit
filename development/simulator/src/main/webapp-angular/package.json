@@ -10,7 +10,7 @@
     "publish:snapshot": "echo 'no publish for webapps'",
     "unpublish:snapshot": "echo 'no unpublish for webapps'",
     "test": "ng test",
-    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version --allow-same-version",
     "publish:release": "echo 'no publish for webapps'"
   },
   "private": true,
