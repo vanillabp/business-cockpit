@@ -912,6 +912,8 @@ components:
           type: array
           items:
             type: string
+        mode:
+          $ref: '#/components/schemas/UserTaskRetrieveMode'
     WorkflowsRequest:
       type: object
       properties:
@@ -975,6 +977,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+        mode:
+          $ref: '#/components/schemas/WorkflowRetrieveMode'
     KwicRequest:
       type: object
       properties:

@@ -1,5 +1,5 @@
 import React, { FC, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SearchQuery, UserTask, UserTaskEvent } from '@vanillabp/bc-official-gui-client';
+import { SearchQuery, UserTask, UserTaskEvent, UserTaskRetrieveMode } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Drop, Grid, Grommet, Text, TextInput, Tip } from 'grommet';
 import {
   debounce,
@@ -106,6 +106,7 @@ const loadUserTasks = async (
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
+  mode: UserTaskRetrieveMode | undefined,
 ): Promise<ListItems<UserTask>> => {
   const result = await tasklistApi.getUserTasks(
       new Date().getTime().toString(),
@@ -114,7 +115,8 @@ const loadUserTasks = async (
       sort,
       sortAscending,
       searchQueries,
-      initialTimestamp);
+      initialTimestamp,
+      mode);
 
   if (numberOfUserTask !== result!.page.totalElements) {
     setNumberOfUserTasks(result!.page.totalElements);
@@ -143,6 +145,7 @@ const reloadUserTasks = async (
   sortAscending: boolean,
   mapToBcUserTask: (userTask: UserTask) => BcUserTask,
   allSelected: boolean,
+  mode: UserTaskRetrieveMode | undefined,
 ): Promise<ListItems<UserTask>> => {
 
   const result = await tasklistApi.getUserTasksUpdate(
@@ -152,7 +155,8 @@ const reloadUserTasks = async (
       sort,
       sortAscending,
       searchQueries,
-      initialTimestamp);
+      initialTimestamp,
+      mode);
 
   if (numberOfUserTask !== result!.page.totalElements) {
     setNumberOfUserTasks(result!.page.totalElements);
@@ -1043,6 +1047,7 @@ const ListOfTasks = ({
     columnHeaderBackground = 'dark-3',
     columnHeaderSeparator = 'light-6',
     defaultSearchQueries = [],
+    mode,
 }: {
     showLoadingIndicator: ShowLoadingIndicatorFunction,
     useGuiSse: GuiSseHook,
@@ -1070,6 +1075,7 @@ const ListOfTasks = ({
     columnHeaderBackground?: BackgroundType,
     columnHeaderSeparator?: ColorType | null,
     defaultSearchQueries?: Array<SearchQuery>,
+    mode?: UserTaskRetrieveMode,
 }) => {
 
   const { isPhone, isTablet } = useResponsiveScreen();
@@ -1110,7 +1116,7 @@ const ListOfTasks = ({
       const loadMetaInformation = async () => {
         await loadUserTasks(tasklistApi, numberOfTasks, setNumberOfTasks, modulesOfTasks,
             setModulesOfTasks, definitionsOfTasks, setDefinitionsOfTasks, 20, 0, undefined,
-            searchQueries, undefined, true, mapToBcUserTask);
+            searchQueries, undefined, true, mapToBcUserTask, mode);
       };
       if (userTasks.current === undefined) {
         showLoadingIndicator(true);
@@ -1505,7 +1511,8 @@ const ListOfTasks = ({
                                 searchQueries,
                                 effectiveSort,
                                 sortAscending,
-                                mapToBcUserTask) }
+                                mapToBcUserTask,
+                                mode) }
                         reloadItems={ async (numberOfItems, updatedItemsIds, initialTimestamp) =>
   // @ts-ignore
                             await reloadUserTasks(
@@ -1522,7 +1529,9 @@ const ListOfTasks = ({
                                 searchQueries,
                                 effectiveSort,
                                 sortAscending,
-                                mapToBcUserTask) }
+                                mapToBcUserTask,
+                                false,
+                                mode) }
                       />
                     </Box>
           }

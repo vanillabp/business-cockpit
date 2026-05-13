@@ -581,13 +581,16 @@ public class UserTaskService {
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final RetrieveItemsMode mode) {
 
         final var orderBySort = getUserTaskListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
                 .withSort(Sort.by(orderBySort.order()));
+
+        final var effectiveMode = mode != null ? mode : RetrieveItemsMode.OpenTasks;
 
         final var query = new Query();
         query.fields().include("_id");
@@ -600,7 +603,7 @@ public class UserTaskService {
                         candidateGroups,
                         candidatesToBeExcluded,
                         initialTimestamp,
-                        RetrieveItemsMode.OpenTasks,
+                        effectiveMode,
                         null));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         if (searchCriteria != null) {

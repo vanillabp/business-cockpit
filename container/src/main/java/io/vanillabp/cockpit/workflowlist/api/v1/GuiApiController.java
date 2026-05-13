@@ -63,7 +63,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final OffsetDateTime initialTimestamp,
             final List<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final WorkflowlistService.RetrieveItemsMode mode) {
 
         return workflowlistService
                 .getWorkflowsUpdated(
@@ -75,7 +76,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         initialTimestamp,
                         searchQueries,
                         sort,
-                        sortAscending);
+                        sortAscending,
+                        mode);
 
     }
 

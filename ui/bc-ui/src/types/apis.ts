@@ -4,8 +4,10 @@ import {
   SearchQuery,
   UserSearchResult,
   UserTask,
+  UserTaskRetrieveMode,
   UserTasks,
   Workflow,
+  WorkflowRetrieveMode,
   Workflows
 } from "@vanillabp/bc-official-gui-client";
 
@@ -18,9 +20,9 @@ export interface WakeupSseCallbackReference {
   current: WakeupSseCallback | undefined;
 }
 
-type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistApiCall = (listId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date, mode?: UserTaskRetrieveMode) => Promise<UserTasks>;
 
-type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<UserTasks>;
+type TasklistUpdateCall = (listId: string, size: number, knownUserTasksIds: Array<string>, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date, mode?: UserTaskRetrieveMode) => Promise<UserTasks>;
 
 type TasklistMarkAsReadCall = (userTaskId: string, unread?: boolean) => void;
 
@@ -54,9 +56,9 @@ export interface TasklistApi {
   kwicUserTasks: KwicUserTasksApiCall
 }
 
-type GetWorkflowsApiCall = (requestId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<Workflows>;
+type GetWorkflowsApiCall = (requestId: string, pageNumber: number, pageSize: number, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date, mode?: WorkflowRetrieveMode) => Promise<Workflows>;
 
-type GetWorkflowsUpdateApiCall = (requestId: string, size: number, knownWorkflowsIds: Array<string>, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date) => Promise<Workflows>;
+type GetWorkflowsUpdateApiCall = (requestId: string, size: number, knownWorkflowsIds: Array<string>, sort: string | undefined, sortAscending: boolean, searchQueries?: Array<SearchQuery>, initialTimestamp?: Date, mode?: WorkflowRetrieveMode) => Promise<Workflows>;
 
 type GetUserTasksOfWorkflowApiCall = (workflowId: string, activeOnlyRequested?: boolean, limitListAccordingToCurrentUsersPermissions?: boolean) => Promise<Array<UserTask>>;
 

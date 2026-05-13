@@ -304,13 +304,16 @@ public class WorkflowlistService {
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final RetrieveItemsMode mode) {
 
         final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
                 .ofSize(size)
                 .withPage(0)
                 .withSort(Sort.by(orderBySort.order()));
+
+        final var effectiveMode = mode != null ? mode : RetrieveItemsMode.Active;
 
         final var query = new Query();
         query.fields().include("_id");
@@ -320,7 +323,7 @@ public class WorkflowlistService {
                         accessibleToUsers,
                         accessibleToGroups,
                         initialTimestamp,
-                        RetrieveItemsMode.Active,
+                        effectiveMode,
                         null,
 			null));
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);

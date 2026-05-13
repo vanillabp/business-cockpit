@@ -71,7 +71,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending) {
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode mode) {
 
 		return userTaskService.getUserTasksUpdated(
 				true,
@@ -85,7 +86,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				initialTimestamp,
 				searchQueries,
 				sort,
-				sortAscending);
+				sortAscending,
+				mode);
 
 	}
 

@@ -90,7 +90,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending);
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode mode);
 
 	@Override
 	public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
@@ -112,13 +113,16 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 										entry.getT2(),
 										mapper.toModel(entry.getT1().getSearchQueries()),
 										entry.getT1().getSort(),
-										entry.getT1().getSortAscending()),
+										entry.getT1().getSortAscending(),
+										entry.getT1().getMode() != null
+												? mapper.toModel(entry.getT1().getMode())
+												: UserTaskService.RetrieveItemsMode.OpenTasks),
 								Mono.just(entry.getT2())))
 						.map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), user.getId()))
 						.map(ResponseEntity::ok)
 						.switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
 				);
-            
+
 	}
 
     protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
