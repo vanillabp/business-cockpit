@@ -256,12 +256,16 @@ public class UserTaskService {
             final String userTaskId,
             final OffsetDateTime followUpDate) {
 
+        final var normalizedFollowUpDate = followUpDate == null
+                ? null
+                : followUpDate.withSecond(0).withNano(0);
+
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     if (userTask.getEndedAt() != null) {
                         return Mono.error(new UserTaskAlreadyCompletedException(userTaskId));
                     }
-                    userTask.setFollowUpDate(followUpDate);
+                    userTask.setFollowUpDate(normalizedFollowUpDate);
                     return userTasks.save(userTask);
                 });
 
