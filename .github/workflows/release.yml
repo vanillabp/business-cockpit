@@ -71,7 +71,7 @@ jobs:
 
       - name: Set Maven release version
         run: |
-          mvn versions:set -DnewVersion=${{ github.event.inputs.release_version }}
+          mvn --no-transfer-progress versions:set -DnewVersion=${{ github.event.inputs.release_version }}
           find . -name pom.xml.versionsBackup -delete
 
       - name: Update npm package.json versions
@@ -129,7 +129,7 @@ jobs:
 
       - name: Build & deploy to Maven Central and npm
         run: |
-          mvn --batch-mode -DskipTests -DskipITs \
+          mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs \
             -DaltDeploymentRepository=local::default::file:target/staging \
             -Dnpm.registry=https://registry.npmjs.com \
             -Dgpg.passphrase=$GPG_PASSPHRASE \
@@ -148,9 +148,9 @@ jobs:
 
       - name: Build runnable JARs
         run: |
-          cd container && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd development/simulator && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd dev-shell-simulator && mvn --batch-mode -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
+          cd container && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
+          cd development/simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
+          cd dev-shell-simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
 
       - name: Create Git tag
         run: |
@@ -179,7 +179,7 @@ jobs:
 
       - name: Set next snapshot version
         run: |
-          mvn versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT }}
+          mvn --no-transfer-progress versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT }}
           find . -name pom.xml.versionsBackup -delete
 
           SNAP_BASE=$(echo "${{ env.NEXT_SNAPSHOT }}" | sed 's/-SNAPSHOT//')
@@ -221,7 +221,7 @@ jobs:
           echo "always-auth=true" >> ~/.npmrc
       - name: Build & publish new snapshot packages
         run: |
-          mvn --batch-mode -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Dnpm.prerelease=0 \
           -Dnpm.registry=https://npm.pkg.github.com/ \
           deploy
