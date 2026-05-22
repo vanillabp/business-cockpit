@@ -59,6 +59,11 @@ jobs:
           echo "//registry.npmjs.com/:_authToken=${{ github.event.inputs.npm-bypass-2fa-token }}" > ~/.npmrc
           echo "registry=https://registry.npmjs.com/" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
+          # Retries against CDN replication lag after publishing a dependency
+          echo "fetch-retries=10" >> ~/.npmrc
+          echo "fetch-retry-mintimeout=20000" >> ~/.npmrc
+          echo "fetch-retry-maxtimeout=120000" >> ~/.npmrc
+          echo "fetch-retry-factor=2" >> ~/.npmrc
 
       - name: Create release branch
         run: |
@@ -114,7 +119,12 @@ jobs:
           
       - name: Hacky workaround to avoid npm DNS replication delay between publish and consume
         run: |
-          IP=$(nslookup registry.npmjs.com | awk '/^Address: / { print $2; exit }')
+          IP=$(getent ahostsv4 registry.npmjs.com | awk '{print $1; exit}')
+          if [ -z "$IP" ]; then
+            echo "Failed to resolve registry.npmjs.com" >&2
+            exit 1
+          fi
+          echo "Pinning registry.npmjs.com -> $IP"
           echo "$IP registry.npmjs.com" | sudo tee -a /etc/hosts
 
       - name: Build & deploy to Maven Central and npm
