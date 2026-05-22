@@ -127,6 +127,59 @@ jobs:
           echo "Pinning registry.npmjs.com -> $IP"
           echo "$IP registry.npmjs.com" | sudo tee -a /etc/hosts
 
+      - name: Install npm wrapper that waits after publish for registry propagation
+        run: |
+          mkdir -p "$HOME/.npm-wait"
+          cat > "$HOME/.npm-wait/npm" <<'WRAPPER'
+          #!/usr/bin/env bash
+          # Waits after `npm publish` until the new version is queryable on the
+          # registry. npm does not retry ETARGET responses, so a subsequent
+          # install/update in the same pipeline can hit a stale CDN node.
+          set -e
+
+          SELF=$(readlink -f "$0")
+          REAL_NPM=""
+          IFS=':' read -ra DIRS <<< "$PATH"
+          for dir in "${DIRS[@]}"; do
+            candidate="$dir/npm"
+            [ -x "$candidate" ] || continue
+            [ "$(readlink -f "$candidate")" = "$SELF" ] && continue
+            REAL_NPM="$candidate"
+            break
+          done
+          if [ -z "$REAL_NPM" ]; then
+            echo "npm wrapper: cannot locate the real npm binary" >&2
+            exit 127
+          fi
+
+          "$REAL_NPM" "$@"
+          RC=$?
+
+          is_publish=false
+          for arg in "$@"; do
+            [ "$arg" = "publish" ] && { is_publish=true; break; }
+          done
+
+          if [ "$is_publish" = true ] && [ $RC -eq 0 ] && [ -f package.json ]; then
+            name=$(jq -r '.name // empty' package.json 2>/dev/null || true)
+            version=$(jq -r '.version // empty' package.json 2>/dev/null || true)
+            if [ -n "$name" ] && [ -n "$version" ]; then
+              echo ">>> Waiting for ${name}@${version} to be queryable on registry..."
+              for i in $(seq 1 60); do
+                if "$REAL_NPM" view "${name}@${version}" version >/dev/null 2>&1; then
+                  echo ">>> ${name}@${version} available after attempt ${i}"
+                  break
+                fi
+                sleep 5
+              done
+            fi
+          fi
+
+          exit $RC
+          WRAPPER
+          chmod +x "$HOME/.npm-wait/npm"
+          echo "$HOME/.npm-wait" >> "$GITHUB_PATH"
+
       - name: Build & deploy to Maven Central and npm
         run: |
           mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs \
@@ -145,6 +198,37 @@ jobs:
           git config user.email "github-actions@github.com"
           git add -A
           git commit -m "Prepare release v${{ github.event.inputs.release_version }}"
+
+      - name: Wait for all @vanillabp/* npm packages to be available on registry
+        run: |
+          VERSION=${{ github.event.inputs.release_version }}
+          NAMES=$(find . -name node_modules -prune -o -name package.json -print | \
+            while read -r pkg; do
+              name=$(jq -r '.name // ""' "$pkg" 2>/dev/null)
+              case "$name" in
+                @vanillabp/*) echo "$name" ;;
+              esac
+            done | sort -u)
+          if [ -z "$NAMES" ]; then
+            echo "No @vanillabp/* packages found, skipping."
+            exit 0
+          fi
+          for name in $NAMES; do
+            echo ">>> Verifying ${name}@${VERSION}..."
+            ok=false
+            for i in $(seq 1 60); do
+              if npm view "${name}@${VERSION}" version >/dev/null 2>&1; then
+                echo "  ✓ available (attempt ${i})"
+                ok=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ok" = false ]; then
+              echo "::error::${name}@${VERSION} did not appear on the registry within timeout"
+              exit 1
+            fi
+          done
 
       - name: Build runnable JARs
         run: |
