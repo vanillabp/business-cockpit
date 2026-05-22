@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-types",
-  "version": "0.1.2-SNAPSHOT.0",
+  "version": "0.1.3-SNAPSHOT.0",
   "description": "Library providing shared types for VanillaBP UI development",
   "author": "Phactum Softwareentwicklung GmbH",
   "repository": {
@@ -29,7 +29,7 @@
     "typecheck": "tsc --noEmit",
     "unpublish:snapshot": "npm view --@vanillabp:registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --@vanillabp:registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "publish:snapshot": "npm publish --tag snapshot",
-    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
+    "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version --allow-same-version",
     "publish:release": "npm publish --access public"
   },
   "devDependencies": {
@@ -42,6 +42,6 @@
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "@vanillabp/bc-official-gui-client": ">=0.1.2-SNAPSHOT <0.1.3"
+    "@vanillabp/bc-official-gui-client": ">=0.1.3-SNAPSHOT <0.1.4"
   }
 }

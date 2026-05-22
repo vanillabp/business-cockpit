@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SearchQuery, Workflow, WorkflowEvent } from '@vanillabp/bc-official-gui-client';
+import { SearchQuery, Workflow, WorkflowEvent, WorkflowRetrieveMode } from '@vanillabp/bc-official-gui-client';
 import { Box, CheckBox, ColumnConfig, Grid, Text, Tip } from 'grommet';
 import {
   backgroundColorAccordingToStatus,
@@ -92,10 +92,11 @@ const loadWorkflows = async (
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
+  mode: WorkflowRetrieveMode | undefined,
 ): Promise<ListItems<Workflow>> => {
 
   const result = await workflowlistApi
-        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp);
+        .getWorkflows(new Date().getTime().toString(), pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp, mode);
 
   if (numberOfWorkflows !== result!.page.totalElements) {
     setNumberOfWorkflows(result!.page.totalElements);
@@ -124,6 +125,7 @@ const reloadWorkflows = async (
   sort: string | undefined,
   sortAscending: boolean,
   mapToBcWorkflow: (workflow: Workflow) => BcWorkflow,
+  mode: WorkflowRetrieveMode | undefined,
 ): Promise<ListItems<Workflow>> => {
 
   const result = await workflowlistApi.getWorkflowsUpdate(
@@ -133,7 +135,8 @@ const reloadWorkflows = async (
       sort,
       sortAscending,
       searchQueries,
-      initialTimestamp);
+      initialTimestamp,
+      mode);
 
   if (numberOfWorkflows !== result!.page.totalElements) {
     setNumberOfWorkflows(result!.page.totalElements);
@@ -486,6 +489,7 @@ const ListOfWorkflows = ({
   columnHeaderBackground = 'dark-3',
   columnHeaderSeparator = 'light-6',
   defaultSearchQueries = [],
+  mode,
 }: {
   showLoadingIndicator: ShowLoadingIndicatorFunction,
   useGuiSse: GuiSseHook,
@@ -514,6 +518,7 @@ const ListOfWorkflows = ({
   columnHeaderSeparator?: ColorType | null,
   t: TranslationFunction,
   defaultSearchQueries?: Array<SearchQuery>,
+  mode?: WorkflowRetrieveMode,
 }) => {
 
   const { isPhone, isTablet, isNotPhone } = useResponsiveScreen();
@@ -571,7 +576,7 @@ const ListOfWorkflows = ({
       const loadMetaInformation = async () => {
         await loadWorkflows(workflowlistApi, numberOfWorkflows, setNumberOfWorkflows, modulesOfWorkflows, setModulesOfWorkflows,
             definitionsOfWorkflows, setDefinitionsOfWorkflows,20, 0, undefined,
-            searchQueries, undefined, true, mapToBcWorkflow);
+            searchQueries, undefined, true, mapToBcWorkflow, mode);
       };
       if (workflows.current === undefined) {
         showLoadingIndicator(true);
@@ -868,7 +873,8 @@ const ListOfWorkflows = ({
                               searchQueries,
                               effectiveSort,
                               sortAscending,
-                              mapToBcWorkflow) }
+                              mapToBcWorkflow,
+                              mode) }
                       reloadItems={ (numberOfItems, updatedItemsIds, initialTimestamp) =>
 // @ts-ignore
                           reloadWorkflows(
@@ -885,7 +891,8 @@ const ListOfWorkflows = ({
                               searchQueries,
                               effectiveSort,
                               sortAscending,
-                              mapToBcWorkflow) }
+                              mapToBcWorkflow,
+                              mode) }
                     />
                 </Box>
         }

@@ -9,7 +9,7 @@ public abstract class NotificationEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
     
-    public static enum Type { INSERT, UPDATE, DELETE };
+    public enum Type { INSERT, UPDATE, DELETE, FOLLOWUP };
     
     private final Type type;
     

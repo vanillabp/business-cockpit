@@ -88,7 +88,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final OffsetDateTime initialTimestamp,
             final List<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending);
+            final boolean sortAscending,
+            final WorkflowlistService.RetrieveItemsMode mode);
 
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflowsUpdate(
@@ -111,7 +112,10 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                 timestamp,
                                 mapper.toModel(entry.getT2().getSearchQueries()),
                                 entry.getT2().getSort(),
-                                entry.getT2().getSortAscending()))
+                                entry.getT2().getSortAscending(),
+                                entry.getT2().getMode() != null
+                                        ? mapper.toModel(entry.getT2().getMode())
+                                        : WorkflowlistService.RetrieveItemsMode.Active))
                 .map(ids -> mapper.toApi(ids, timestamp, requestId))
                 .map(ResponseEntity::ok)
                 .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));

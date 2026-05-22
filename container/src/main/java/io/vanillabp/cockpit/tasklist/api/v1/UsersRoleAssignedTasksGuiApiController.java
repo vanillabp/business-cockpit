@@ -71,7 +71,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
-			final boolean sortAscending) {
+			final boolean sortAscending,
+			final UserTaskService.RetrieveItemsMode mode) {
 
 		return userTaskService.getUserTasksUpdated(
 				true,
@@ -85,7 +86,8 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 				initialTimestamp,
 				searchQueries,
 				sort,
-				sortAscending);
+				sortAscending,
+				mode);
 
 	}
 
@@ -199,6 +201,16 @@ public class UsersRoleAssignedTasksGuiApiController extends AbstractUserTaskList
 			return userTaskService.unassignTask(userTaskIds, userId);
 		}
 		return userTaskService.assignTask(userTaskIds, personAndGroupMapper.toModelPerson(userId));
+
+	}
+
+	@Override
+	protected Mono<UserTask> setFollowUpDate(
+			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+			final String userTaskId,
+			final OffsetDateTime followUpDate) {
+
+		return userTaskService.setFollowUpDate(userTaskId, followUpDate);
 
 	}
 

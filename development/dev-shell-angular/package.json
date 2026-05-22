@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-angular-module",
-  "version": "0.1.2-SNAPSHOT",
+  "version": "0.1.3-SNAPSHOT",
   "repository": {
     "type": "git",
     "url": "https://github.com/vanillabp/business-cockpit.git"

@@ -6,10 +6,10 @@ import { OfficialTasklistApi, SearchQuery } from "@vanillabp/bc-official-gui-cli
 
 const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi => {
   return {
-    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
-        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending } }),
-    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending } }),
+    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp, mode) => tasklistApi
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending, mode } }),
+    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp, mode) => tasklistApi
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending, mode } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
@@ -36,10 +36,10 @@ const wrapOfficialTasklistApi = (tasklistApi: OfficialTasklistApi): TasklistApi 
 const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): TasklistApi => {
   const tasklistApi = useTasklistApi(wakeupSseCallback);
   return {
-    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
-        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending } }),
-    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp) => tasklistApi
-        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending } }),
+    getUserTasks: (listId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp, mode) => tasklistApi
+        .getUserTasks({ initialTimestamp, userTasksRequest: { pageNumber, pageSize, searchQueries, sort, sortAscending, mode } }),
+    getUserTasksUpdate: (listId, size, knownUserTasksIds, sort, sortAscending, searchQueries, initialTimestamp, mode) => tasklistApi
+        .getUserTasksUpdate({ initialTimestamp, userTasksUpdateRequest: { size, knownUserTasksIds, searchQueries, sort, sortAscending, mode } }),
     getUserTask: (userTaskId, markAsRead) => tasklistApi
         .getUserTask({ userTaskId, markAsRead }),
     markUserTaskAsRead: (userTaskId, unread) => tasklistApi
@@ -66,10 +66,10 @@ const useStandardTasklistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCa
 const useStandardWorkflowlistApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): WorkflowlistApi => {
   const workflowlistApi = useWorkflowlistApi(wakeupSseCallback);
   return {
-    getWorkflows: (requestId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
-        .getWorkflows({ requestId, initialTimestamp, workflowsRequest: { sort, sortAscending, searchQueries, pageNumber, pageSize } }),
-    getWorkflowsUpdate: (requestId, size, knownWorkflowsIds, sort, sortAscending, searchQueries, initialTimestamp) => workflowlistApi
-        .getWorkflowsUpdate({ requestId, initialTimestamp, workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, searchQueries } }),
+    getWorkflows: (requestId, pageNumber, pageSize, sort, sortAscending, searchQueries, initialTimestamp, mode) => workflowlistApi
+        .getWorkflows({ requestId, initialTimestamp, workflowsRequest: { sort, sortAscending, searchQueries, pageNumber, pageSize, mode } }),
+    getWorkflowsUpdate: (requestId, size, knownWorkflowsIds, sort, sortAscending, searchQueries, initialTimestamp, mode) => workflowlistApi
+        .getWorkflowsUpdate({ requestId, initialTimestamp, workflowsUpdateRequest: { size, knownWorkflowsIds, sort, sortAscending, searchQueries, mode } }),
     getWorkflow: workflowId => workflowlistApi
         .getWorkflow({ workflowId }),
     getUserTasksOfWorkflow: (workflowId, activeOnlyRequested, limitListAccordingToCurrentUsersPermissions) => workflowlistApi
