@@ -1,5 +1,10 @@
 package io.vanillabp.cockpit.util.microserviceproxy;
 
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
@@ -9,12 +14,6 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
-
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MicroserviceProxyRegistry implements RouteLocator {
 
@@ -93,7 +92,9 @@ public class MicroserviceProxyRegistry implements RouteLocator {
         try {
             
             readLock.lock();
-            if (routes.containsKey(id)) {
+            final var currentUri = routes.get(id);
+            if ((currentUri != null)
+                    && currentUri.equals(uri)) {
                 return;
             }
             
@@ -104,7 +105,9 @@ public class MicroserviceProxyRegistry implements RouteLocator {
         try {
             
             writeLock.lock();
-            if (routes.containsKey(id)) {
+            final var currentUri = routes.get(id);
+            if ((currentUri != null)
+                    && currentUri.equals(uri)) {
                 return;
             }
             

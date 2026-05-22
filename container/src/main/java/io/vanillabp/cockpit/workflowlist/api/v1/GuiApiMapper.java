@@ -4,16 +4,19 @@ import io.vanillabp.cockpit.commons.mapstruct.NoMappingMethod;
 import io.vanillabp.cockpit.gui.api.v1.KwicResult;
 import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
@@ -37,6 +40,11 @@ public abstract class GuiApiMapper {
             final Group group) {
         return personAndGroupMapper.groupToApiGroup(group);
     }
+
+    @ValueMapping(target = "All", source = "ALL")
+    @ValueMapping(target = "Active", source = "ACTIVE")
+    @ValueMapping(target = "Inactive", source = "INACTIVE")
+    public abstract WorkflowlistService.RetrieveItemsMode toModel(WorkflowRetrieveMode mode);
 
     @Mapping(target = "uiUri", expression = "java(proxiedUiUri(workflow))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(workflow))")

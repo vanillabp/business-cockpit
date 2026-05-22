@@ -1,7 +1,8 @@
 package io.vanillabp.cockpit.config.web;
 
 import java.util.concurrent.TimeUnit;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.web.WebProperties;
@@ -23,7 +24,6 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
-
 import reactor.core.publisher.Mono;
 
 /**
@@ -34,7 +34,8 @@ import reactor.core.publisher.Mono;
 public class SpaNoHandlerFoundExceptionHandler
         extends AbstractErrorWebExceptionHandler
         implements ErrorWebExceptionHandler {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(SpaNoHandlerFoundExceptionHandler.class);
     @Value("${application.spa-default-file:classpath:/static/index.html}")
     private String defaultFile;
     
@@ -71,8 +72,11 @@ public class SpaNoHandlerFoundExceptionHandler
             return handleNotFound();
         }
 
+        final var error = getError(request);
+        log.warn("Error during HTTP request handling", error);
+
         return ServerResponse
-                .status(HttpStatus.BAD_REQUEST)
+                .status(responseStatus != null ? responseStatus : HttpStatus.BAD_REQUEST.value())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(errorPropertiesMap));
         

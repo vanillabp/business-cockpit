@@ -1,12 +1,13 @@
-import { Box, Menu, Select, Text} from 'grommet';
+import { Box, Button, Menu, Select, Text } from 'grommet';
+import { Home } from 'grommet-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
 import { ButtonExtendedProps } from 'grommet/components/Button';
-import {UserTasksRequest, UserTaskRetrieveMode, UserTask} from '@vanillabp/bc-official-gui-client';
+import { UserTask, UserTaskRetrieveMode, UserTasksRequest } from '@vanillabp/bc-official-gui-client';
 import { TaskToggle } from '../components/ToggleComponent.js';
 
 i18n.addResources('en', 'usertask-header', {
@@ -133,6 +134,11 @@ const Header = () => {
             justify="between"
             gap="small">
             <Box direction="row" gap="small" align="center" fill>
+                <Button
+                    icon={<Home />}
+                    onClick={() => navigate('/')}
+                    tip="Home"
+                />
                 <Box width={isPhone ? '15rem' : '26rem'} fill>
                     <Select
                         size="medium"
@@ -168,7 +174,7 @@ const Header = () => {
                         )}
                     </Select>
                 </Box>
-                <TaskToggle value={taskFilter} onChange={setTaskFilter} />
+                <TaskToggle taskValue={taskFilter} taskOnChange={setTaskFilter} workflow={ false } />
             </Box>
             <Box>
                 <Menu

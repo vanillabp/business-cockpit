@@ -15,18 +15,21 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "WORKFLOW_MODULE")
+@Table(name = "SIMULATOR_WORKFLOW_MODULE")
 public class WorkflowModule {
 
     @Id
+    @Column(name = "ID")
     private String id;
 
+    @Column(name = "VERSION")
     private Long version;
 
+    @Column(name = "URI")
     private String uri;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "JSON")
+    @Column(name = "ACCESSIBLE_TO_GROUPS", columnDefinition = "JSON")
     private List<String> accessibleToGroups = null;
 
 }

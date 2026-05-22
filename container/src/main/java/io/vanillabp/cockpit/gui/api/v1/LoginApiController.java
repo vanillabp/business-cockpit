@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -226,22 +227,25 @@ public class LoginApiController implements LoginApi {
         
         return userContext
                 .getUserLoggedInDetailsAsMono()
-                .map(user -> {
-                    final var person = personAndGroupMapper
-                            .toApiPerson(user.getId());
-                    return new User()
-                            .id(person.getId())
-                            .email(person.getEmail())
-                            .avatar(person.getAvatar())
-                            .display(person.getDisplay())
-                            .displayShort(person.getDisplayShort())
-                            .details(person.getDetails())
-                            .groups(user
-                                    .getAuthorities()
-                                    .stream()
-                                    .map(personAndGroupMapper::authorityToApiGroup)
-                                    .toList());
-                })
+                .map(user -> Optional
+                        .ofNullable(personAndGroupMapper.toApiPerson(user.getId()))
+                        .map(person -> new User()
+                                .id(person.getId())
+                                .email(person.getEmail())
+                                .avatar(person.getAvatar())
+                                .display(person.getDisplay())
+                                .displayShort(person.getDisplayShort())
+                                .details(person.getDetails()))
+                        .orElse(new User()
+                                .id(user.getId())
+                                .display(user.getDisplay())
+                                .displayShort(user.getDisplayShort())
+                                .email(user.getEmail()))
+                        .groups(user
+                                .getAuthorities()
+                                .stream()
+                                .map(personAndGroupMapper::authorityToApiGroup)
+                                .toList()))
                 .map(ResponseEntity::ok);
         
     }

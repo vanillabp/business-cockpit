@@ -7,16 +7,15 @@ import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
 
 @RestController("workflowListGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
@@ -37,7 +36,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
             final List<String> businessIds,
             final List<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final WorkflowlistService.RetrieveItemsMode mode) {
 
         return workflowlistService
                 .getWorkflows(
@@ -50,7 +50,8 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
                         businessIds,
                         searchQueries,
                         sort,
-                        sortAscending);
+                        sortAscending,
+                        mode);
 
     }
 

@@ -59,7 +59,7 @@
     "build-storybook": "storybook build",
     "start": "tsup --watch",
     "build": "tsup",
-    "unpublish:snapshot": "npm unpublish --force",
+    "unpublish:snapshot": "npm view --@vanillabp:registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --@vanillabp:registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "publish:snapshot": "npm publish --tag snapshot",
     "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version",
     "publish:release": "npm publish --access public"

@@ -9,6 +9,7 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 import io.vanillabp.cockpit.devshell.simulator.config.Properties;
 import io.vanillabp.cockpit.devshell.simulator.usermanagement.UserController;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,7 +62,7 @@ public class WebSecurityConfiguration {
     @Bean
     public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
 
-        return new JwtAuthenticationTokenMapper(properties.getJwt());
+        return new JwtAuthenticationTokenMapper(properties.getJwt(), Function.identity());
 
     }
 

@@ -569,6 +569,15 @@ components:
     WorkflowCreatedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+    GroupHierarchy:
+      type: object
+      properties:
+        group:
+          type: string
+        targets:
+          type: array
+          items:
+            type: string
     RegisterWorkflowModuleEvent:
       type: object
       required:
@@ -591,3 +600,7 @@ components:
           description: The list of groups that are allowed to view this workflow module
           items:
             type: string
+        groupHierarchy:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupHierarchy'

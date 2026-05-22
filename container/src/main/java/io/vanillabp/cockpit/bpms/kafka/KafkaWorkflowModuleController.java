@@ -4,8 +4,11 @@ package io.vanillabp.cockpit.bpms.kafka;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.GroupHierarchy;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
+import java.util.Collection;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 
@@ -49,13 +52,24 @@ public class KafkaWorkflowModuleController {
     private void handleRegisterWorkflowModuleEvent(
             final RegisterWorkflowModuleEvent event) {
 
+        final var groupHierarchy = event.getGroupHierarchyCount() > 0
+                ? event
+                        .getGroupHierarchyList()
+                        .stream()
+                        .collect(Collectors.toMap(GroupHierarchy::getGroup, hierarchy -> (Collection<String>) hierarchy
+                                .getTargetList()
+                                .stream()
+                                .toList()))
+                : null;
+
         workflowModuleService
                 .registerOrUpdateWorkflowModule(
                         event.getWorkflowModuleId(),
                         event.getUri(),
                         event.getTaskProviderApiUriPath(),
                         event.getWorkflowProviderApiUriPath(),
-                        event.getAccessibleToGroupsList())
+                        event.getAccessibleToGroupsList(),
+                        groupHierarchy)
                 .subscribe();
 
     }

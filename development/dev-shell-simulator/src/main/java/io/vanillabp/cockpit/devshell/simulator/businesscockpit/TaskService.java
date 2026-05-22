@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTaskRep
 import java.util.List;
 import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 /**
@@ -63,19 +64,34 @@ public class TaskService {
 
     }
 
+    private static Sort resolveSort(
+            final String sortField,
+            final Boolean sortAscending) {
+
+        final String effectiveSortField = sortField != null ? sortField : "createdAt";
+        final Sort.Direction direction = Boolean.TRUE.equals(sortAscending)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        return Sort.by(direction, effectiveSortField);
+    }
+
     // ID, businessId, titel
     /**
      * Creates a UserTasks object containing all user tasks with pagination.
      */
     public Page<UserTask> getUserTasks(
             final RetrieveMode retrieveMode,
+            final String sortField,
+            final Boolean sortAscending,
             final Integer pageNumberRequested,
             final Integer pageSizeRequested) {
 
+        final Sort sort = resolveSort(sortField, sortAscending);
+
         final var allTasks = switch (retrieveMode) {
-            case OPENTASKS -> userTasks.findByEndedAtIsNull();
-            case CLOSEDTASKSONLY ->  userTasks.findByEndedAtIsNotNull();
-            default -> userTasks.findAll();
+            case OPENTASKS -> userTasks.findByEndedAtIsNull(sort);
+            case CLOSEDTASKSONLY ->  userTasks.findByEndedAtIsNotNull(sort);
+            default -> userTasks.findAll(sort);
         };
 
         // Set default pagination values if not provided
@@ -83,12 +99,12 @@ public class TaskService {
         int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
 
         // Total count after filtering
-        int totalElements = allTasks.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+        long totalElements = allTasks.size();
+        int totalPages = pageSize > 0 ? (int) Math.ceil((double) totalElements / pageSize) : 0;
 
         // Calculate start and end index
-        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
-        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, totalElements);
+        int toIndex = (int) Math.min((long) fromIndex + pageSize, totalElements);
         List<UserTask> pagedTasks = allTasks.subList(fromIndex, toIndex);
 
         // Build the Page metadata
@@ -96,6 +112,7 @@ public class TaskService {
                 .<UserTask>builder()
                 .number(pageNumber)
                 .size(pageSize)
+                .totalElements(totalElements)
                 .totalPages(totalPages)
                 .pageObjects(pagedTasks)
                 .build();
@@ -107,13 +124,17 @@ public class TaskService {
     public Page<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final RetrieveMode retrieveMode,
+            final String sortField,
+            final Boolean sortAscending,
             final Integer pageNumberRequested,
             final Integer pageSizeRequested) {
 
+        final Sort sort = resolveSort(sortField, sortAscending);
+
         final var allTasks = switch (retrieveMode) {
-            case OPENTASKS -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId);
-            case CLOSEDTASKSONLY ->  userTasks.findByWorkflowIdAndEndedAtIsNotNull(workflowId);
-            default -> userTasks.findByWorkflowId(workflowId);
+            case OPENTASKS -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId, sort);
+            case CLOSEDTASKSONLY ->  userTasks.findByWorkflowIdAndEndedAtIsNotNull(workflowId, sort);
+            default -> userTasks.findByWorkflowId(workflowId, sort);
         };
 
         // Set default pagination values if not provided
@@ -121,12 +142,12 @@ public class TaskService {
         int pageNumber = pageNumberRequested != null ? pageNumberRequested : 0;
 
         // Total count after filtering
-        int totalElements = allTasks.size();
-        int totalPages = (int) Math.ceil((double) totalElements / pageSize);
+        long totalElements = allTasks.size();
+        int totalPages = pageSize > 0 ? (int) Math.ceil((double) totalElements / pageSize) : 0;
 
         // Calculate start and end index
-        int fromIndex = Math.min(pageNumber * pageSize, totalElements);
-        int toIndex = Math.min(fromIndex + pageSize, totalElements);
+        int fromIndex = (int) Math.min((long) pageNumber * pageSize, totalElements);
+        int toIndex = (int) Math.min((long) fromIndex + pageSize, totalElements);
         List<UserTask> pagedTasks = allTasks.subList(fromIndex, toIndex);
 
         // Build the Page metadata
@@ -134,6 +155,7 @@ public class TaskService {
                 .<UserTask>builder()
                 .number(pageNumber)
                 .size(pageSize)
+                .totalElements(totalElements)
                 .totalPages(totalPages)
                 .pageObjects(pagedTasks)
                 .build();

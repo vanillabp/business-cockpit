@@ -13,10 +13,11 @@
   <packaging>pom</packaging>
   
    <modules>
-    <module>dev-shell-simulator</module>
-    <module>dev-shell-angular</module>
-    <module>dev-shell-react</module>
-    <module>simulator</module>
+     <module>dev-shell-simulator</module>
+     <module>dev-shell-vue</module>
+     <module>dev-shell-angular</module>
+     <module>dev-shell-react</module>
+     <module>simulator</module>
   </modules>
 
     <licenses>

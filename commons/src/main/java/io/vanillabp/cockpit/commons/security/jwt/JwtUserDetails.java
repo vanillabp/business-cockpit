@@ -13,7 +13,6 @@ public class JwtUserDetails implements UserDetails {
 
     private final JwtAuthenticationToken authenticationToken;
 
-
     public JwtUserDetails(
             final JwtAuthenticationToken authenticationToken) {
 
@@ -59,6 +58,9 @@ public class JwtUserDetails implements UserDetails {
                 return familyName;
             }
             return familyName + ", " + givenName;
+        }
+        if (name == null) {
+            return null;
         }
         final var posOfSeparator = name.indexOf(' ');
         if (posOfSeparator == -1) {

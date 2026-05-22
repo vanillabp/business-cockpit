@@ -30,20 +30,29 @@ public class UserController {
 
     private final JwtProperties jwtProperties;
 
-    @GetMapping(value = "/all/id")
+    /**
+     * Used by the Dev-Shell to get the list of all user ids.
+     */
+    @GetMapping(value = "/all/id", produces = "application/json")
     public ResponseEntity<List<String>> allUsersIds() {
 
         return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
 
     }
 
-    @GetMapping("/all")
+    /**
+     * Used by the Dev-Shell to get the list of all user details.
+     */
+    @GetMapping(value = "/all", produces = "application/json")
     public ResponseEntity<List<User>> allUsers() {
 
         return ResponseEntity.ok(properties.getUsers());
 
     }
 
+    /**
+     * Used by Dev-Shell to retrieve the user id based on the JWT.
+     */
     @GetMapping(value = "/", produces = "text/plain")
     public ResponseEntity<String> getUser(
             final HttpServletRequest request) {
@@ -62,6 +71,54 @@ public class UserController {
 
     }
 
+    /**
+     * Used by business applications to load the current user based on the JWT.
+     */
+    @GetMapping(value = "/details", produces = "application/json")
+    public ResponseEntity<User> getUserDetails(
+            final HttpServletRequest request) {
+
+        final var context = securityContextRepository
+                .loadDeferredContext(request)
+                .get();
+        if (context == null) {
+            return ResponseEntity.notFound().build();
+        }
+        final var auth = context.getAuthentication();
+        if (auth == null) {
+            return ResponseEntity.notFound().build();
+        }
+        final var userId = auth.getName();
+        if (userId == null) {
+            return ResponseEntity.notFound().build();
+        }
+        final var user = properties.getUser(userId);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(user);
+
+    }
+
+    /**
+     * Used by business applications to get user details by user id.
+     */
+    @GetMapping(value = "/{userId}", produces = "application/json")
+    public ResponseEntity<User> getUserById(
+            @PathVariable("userId")
+            final String userId) {
+
+        return Optional
+                .ofNullable(properties.getUser(userId))
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+
+    }
+
+    /**
+     * Used by Dev-Shell to change the user logged on.
+     */
     @PostMapping(value = "/{userId}")
     public ResponseEntity<Void> changeUser(
             final HttpServletRequest request,
@@ -80,6 +137,9 @@ public class UserController {
 
     }
 
+    /**
+     * Used by Dev-Shell to logout the current user.
+     */
     private void logout(
             final HttpServletResponse response) {
 

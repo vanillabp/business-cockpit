@@ -1,7 +1,9 @@
 package io.vanillabp.cockpit.adapter.common.workflowmodule.events;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
 
@@ -20,6 +22,8 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
     private String workflowProviderApiUriPath;
 
     private List<String> accessibleToGroups;
+
+    private Map<String, Collection<String>> groupHierarchy;
 
     @Override
     public String getId() {
@@ -91,5 +95,13 @@ public class RegisterWorkflowModuleEvent implements WorkflowModuleEvent {
 
     public void setAccessibleToGroups(List<String> accessibleToGroups) {
         this.accessibleToGroups = accessibleToGroups;
+    }
+
+    public Map<String, Collection<String>> getGroupHierarchy() {
+        return groupHierarchy;
+    }
+
+    public void setGroupHierarchy(Map<String, Collection<String>> groupHierarchy) {
+        this.groupHierarchy = groupHierarchy;
     }
 }

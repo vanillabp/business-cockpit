@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties
 import io.vanillabp.cockpit.adapter.common.wiring.AbstractWorkflowWiring;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
+import io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
@@ -43,8 +44,6 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         implements Consumer<CamundaClient> {
 
     public static final String TASKDEFINITION_WORKFLOW_DETAILSPROVIDER = "io.vanillabp.businesscockpit:";
-
-    private final VanillaBpCockpitProperties properties;
 
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -78,6 +77,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final JsonMapper camundaJsonMapper,
             final String workerId,
             final VanillaBpCockpitProperties properties,
+            final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans,
             final Camunda8VanillaBpProperties camunda8Properties,
             final SpringBeanUtil springBeanUtil,
             final SpringDataUtil springDataUtil,
@@ -89,11 +89,10 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
             final WorkflowModulePublishing workflowModulePublishing,
             final ObjectProvider<Camunda8WorkflowHandler> workflowHandlers) throws Exception {
 
-        super(applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
+        super(properties, groupHierarchyBeans, applicationContext, springBeanUtil, methodParameterFactory, workflowModulePublishing);
         this.applicationEventPublisher = applicationEventPublisher;
         this.camundaJsonMapper = camundaJsonMapper;
         this.workerId = workerId;
-        this.properties = properties;
         this.springDataUtil = springDataUtil;
         this.connectableServices = connectableServices;
         this.connectableCockpitServices = connectableCockpitServices;
@@ -313,7 +312,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
         final var aggregateIdPropertyName = springDataUtil.getIdName(processService.getWorkflowAggregateClass());
 
         final var workflowHandler = workflowHandlers.getObject(
-                properties,
+                cockpitProperties,
                 applicationEventPublisher,
                 camundaJsonMapper,
                 processService,
@@ -355,7 +354,7 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
     protected String getWorkflowModuleUri(
             final String workflowModuleId) {
 
-        return properties.getWorkflowModuleUri(workflowModuleId);
+        return cockpitProperties.getWorkflowModuleUri(workflowModuleId);
 
     }
 

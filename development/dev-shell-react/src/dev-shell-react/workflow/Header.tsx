@@ -1,11 +1,12 @@
-import { Box, Menu, Select, Text} from 'grommet';
-import React, { useState, useEffect } from 'react';
+import { Box, Button, Select, Text } from 'grommet';
+import { Home } from 'grommet-icons';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useResponsiveScreen } from '@vanillabp/bc-shared';
 import { appNs } from '../app/DevShellApp.js';
 import i18n from '../i18n.js';
-import { Workflow } from '@vanillabp/bc-official-gui-client';
+import { Workflow, WorkflowRetrieveMode } from '@vanillabp/bc-official-gui-client';
 import { TaskToggle } from "../components/ToggleComponent.js";
 
 i18n.addResources('en', 'workflow-header', {
@@ -31,7 +32,7 @@ const Header = () => {
     const [workflowId, setWorkflowId] = useState(workflowIdParam);
     const [workflows, setWorkflows] = useState<Workflow[]>([]);
     const [searchText, setSearchText] = useState('');
-    const [taskFilter, setTaskFilter] = useState<'all' | 'open' | 'closed'>('all');
+    const [workflowFilter, setWorkflowFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
 
@@ -47,6 +48,14 @@ const Header = () => {
     });
 
     const fetchWorkflows = async () => {
+        let mode;
+        if (workflowFilter === 'active') {
+            mode = WorkflowRetrieveMode.Active;
+        } else if (workflowFilter === 'inactive') {
+            mode = WorkflowRetrieveMode.Inactive;
+        } else {
+            mode = WorkflowRetrieveMode.All;
+        }
         try {
             const response = await fetch('/official-api/v1/workflow', {
                 method: 'POST',
@@ -57,7 +66,8 @@ const Header = () => {
                     pageSize: 20,
                     pageNumber: page,
                     sort: 'createdAt',
-                    sortAscending: false
+                    sortAscending: false,
+                    mode: mode,
                 })
             });
 
@@ -80,8 +90,15 @@ const Header = () => {
     };
 
     useEffect(() => {
+        // Reset everything when filter changes
+        setWorkflows([]);
+        setPage(0);
+        setHasMore(true);
+    }, [workflowFilter]);
+
+    useEffect(() => {
         fetchWorkflows();
-    }, [page]);
+    }, [page, workflowFilter]);
 
     const onMore = () => {
         if (hasMore) {
@@ -115,6 +132,11 @@ const Header = () => {
             justify="between"
             gap="small">
             <Box direction="row" gap="small" align="center" fill>
+                <Button
+                    icon={<Home />}
+                    onClick={() => navigate('/')}
+                    tip="Home"
+                />
                 <Box width={isPhone ? '15rem' : '26rem'} fill>
                     <Select
                         size="medium"
@@ -150,9 +172,9 @@ const Header = () => {
                         )}
                     </Select>
                 </Box>
-                <TaskToggle value={taskFilter} onChange={setTaskFilter} />
+                <TaskToggle workflowValue={workflowFilter} workflowOnChange={setWorkflowFilter} workflow={ true } />
             </Box>
-
+            { /*
             <Box>
                 <Menu
                     disabled={!Boolean(workflowId)}
@@ -160,6 +182,7 @@ const Header = () => {
                     items={viewMenuItems}
                 />
             </Box>
+             */ }
         </Box>
     );
 };

@@ -12,7 +12,12 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +25,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
 public abstract class AbstractWorkflowListGuiApiController implements OfficialWorkflowlistApi {
 
@@ -45,7 +45,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final List<String> businessIds,
             final List<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending);
+            final boolean sortAscending,
+            final WorkflowlistService.RetrieveItemsMode mode);
 
     @Override
     public Mono<ResponseEntity<Workflows>> getWorkflows(
@@ -73,7 +74,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                                 entry.getT2().getBusinessIds(),
                                 mapper.toModel(entry.getT2().getSearchQueries()),
                                 entry.getT2().getSort(),
-                                entry.getT2().getSortAscending()))
+                                entry.getT2().getSortAscending(),
+                        entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): WorkflowlistService.RetrieveItemsMode.All))
                 .map(workflows -> mapper.toApi(workflows, timestamp, requestId))
                 .map(ResponseEntity::ok);
 

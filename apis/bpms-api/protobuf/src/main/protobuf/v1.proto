@@ -28,6 +28,11 @@ message Details {
   map<string, DetailsArrayValue> details = 1;
 }
 
+message GroupHierarchy {
+  string group = 1;
+  repeated string target = 2;
+}
+
 message BcEvent {
   oneof event {
     UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated = 1;
@@ -178,4 +183,5 @@ message RegisterWorkflowModuleEvent {
   optional string task_provider_api_uri_path = 6;
   optional string workflow_provider_api_uri_path = 7;
   repeated string accessible_to_groups = 8;
+  repeated GroupHierarchy group_hierarchy = 9;
 }

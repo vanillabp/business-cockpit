@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.adapter.common.wiring;
 
+import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.cockpit.adapter.common.wiring.parameters.WorkflowMethodParameterFactory;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.WorkflowModulePublishing;
 import io.vanillabp.cockpit.adapter.common.workflowmodule.events.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.springboot.adapter.Connectable;
@@ -12,8 +14,9 @@ import io.vanillabp.springboot.adapter.wiring.AbstractTaskWiring;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.context.ApplicationContext;
 
@@ -24,7 +27,13 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
 
     private final WorkflowModulePublishing workflowModulePublishing;
 
+    protected final VanillaBpCockpitProperties cockpitProperties;
+
+    private final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans;
+
     public AbstractWorkflowWiring(
+            final VanillaBpCockpitProperties cockpitProperties,
+            final Map<String, WorkflowModuleGroupHierarchy> groupHierarchyBeans,
             final ApplicationContext applicationContext,
             final SpringBeanUtil springBeanUtil,
             final M methodParameterFactory,
@@ -32,6 +41,8 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
 
         super(applicationContext, springBeanUtil, methodParameterFactory);
         this.workflowModulePublishing = workflowModulePublishing;
+        this.groupHierarchyBeans = groupHierarchyBeans;
+        this.cockpitProperties = cockpitProperties;
         
     }
     
@@ -111,6 +122,7 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
         event.setUri(getWorkflowModuleUri(workflowModuleId));
         event.setTaskProviderApiUriPath(getTaskProviderApiUriPath(workflowModuleId));
         event.setWorkflowProviderApiUriPath(getWorkflowProviderApiUriPath(workflowModuleId));
+        event.setGroupHierarchy(getGroupHierarchy(workflowModuleId));
         workflowModulePublishing.publish(event);
 
     }
@@ -142,4 +154,43 @@ public abstract class AbstractWorkflowWiring<T extends Connectable, M extends Wo
     protected abstract String getTaskProviderApiUriPath(String workflowModuleId);
 
     protected abstract String getWorkflowProviderApiUriPath(String workflowModuleId);
+
+    protected Map<String, Collection<String>> getGroupHierarchy(final String workflowModuleId) {
+
+        final var workflowModuleProperties = cockpitProperties.getWorkflowModules().get(workflowModuleId);
+        if (workflowModuleProperties == null) {
+            return null;
+        }
+
+        final var workflowModuleCockpitProperties = workflowModuleProperties.getCockpit();
+        if (workflowModuleCockpitProperties == null) {
+            return null;
+        }
+
+        final var beanName = workflowModuleCockpitProperties.getGroupHierarchyBeanName();
+        final var groupHierarchy = workflowModuleCockpitProperties.getGroupHierarchy();
+        if ((beanName != null) && (groupHierarchy != null)) {
+            throw new IllegalStateException(
+                    "It is no allowed to use both groupHierarchyBeanName and groupHierarchy in the cockpit properties of workflow module '"
+                    + workflowModuleId
+                    + "'.");
+        }
+
+        if (beanName != null) {
+            final var groupHierarchyBean = groupHierarchyBeans.get(beanName);
+            if (groupHierarchyBean == null) {
+                throw new IllegalStateException(
+                        "The bean '"
+                        + beanName
+                        + "' is not defined in the application context of workflow module '"
+                        + workflowModuleId
+                        + "'.");
+            }
+            return groupHierarchyBean.getGroupHierarchy();
+        }
+
+        return groupHierarchy;
+
+    }
+
 }
