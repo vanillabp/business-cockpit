@@ -202,15 +202,17 @@ jobs:
       - name: Wait for all @vanillabp/* npm packages to be available on registry
         run: |
           VERSION=${{ github.event.inputs.release_version }}
+          # Collect all @vanillabp/* package names whose package.json is NOT
+          # marked "private": true. Private packages (e.g. internal workspace
+          # roots) are never published and must be skipped.
           NAMES=$(find . -name node_modules -prune -o -name package.json -print | \
             while read -r pkg; do
-              name=$(jq -r '.name // ""' "$pkg" 2>/dev/null)
-              case "$name" in
-                @vanillabp/*) echo "$name" ;;
-              esac
+              jq -r 'select((.private // false) != true)
+                     | .name // ""
+                     | select(startswith("@vanillabp/"))' "$pkg" 2>/dev/null
             done | sort -u)
           if [ -z "$NAMES" ]; then
-            echo "No @vanillabp/* packages found, skipping."
+            echo "No publishable @vanillabp/* packages found, skipping."
             exit 0
           fi
           for name in $NAMES; do
