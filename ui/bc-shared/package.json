@@ -72,6 +72,7 @@
     "unpublish:snapshot": "npm view --@vanillabp:registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --@vanillabp:registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "publish:snapshot": "npm publish --tag snapshot",
     "version:snapshot": "npm version ${npm_config_newversion} --no-git-tag-version --allow-same-version",
-    "publish:release": "npm publish --access public"
+    "publish:release": "npm publish --access public",
+    "postpublish": "node -e \"if(process.env.WAIT_FOR_NPM_PUBLISH==='1'){const cp=require('child_process');const root=process.env.GITHUB_WORKSPACE||cp.execSync('git rev-parse --show-toplevel').toString().trim();cp.execSync('bash \\\"'+root+'/.github/scripts/wait-for-npm-publish.sh\\\"',{stdio:'inherit'})}\""
   }
 }

@@ -12,6 +12,12 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # Enables the `postpublish` hook in each published @vanillabp/* package.json
+      # to wait until the freshly published version is queryable on the registry.
+      # Set only here so that local `npm publish` (e.g. against Verdaccio) skips
+      # the wait and the hook is a no-op on developer machines / Windows.
+      WAIT_FOR_NPM_PUBLISH: "1"
 
     steps:
       - name: Checkout repository
@@ -126,59 +132,6 @@ jobs:
           fi
           echo "Pinning registry.npmjs.com -> $IP"
           echo "$IP registry.npmjs.com" | sudo tee -a /etc/hosts
-
-      - name: Install npm wrapper that waits after publish for registry propagation
-        run: |
-          mkdir -p "$HOME/.npm-wait"
-          cat > "$HOME/.npm-wait/npm" <<'WRAPPER'
-          #!/usr/bin/env bash
-          # Waits after `npm publish` until the new version is queryable on the
-          # registry. npm does not retry ETARGET responses, so a subsequent
-          # install/update in the same pipeline can hit a stale CDN node.
-          set -e
-
-          SELF=$(readlink -f "$0")
-          REAL_NPM=""
-          IFS=':' read -ra DIRS <<< "$PATH"
-          for dir in "${DIRS[@]}"; do
-            candidate="$dir/npm"
-            [ -x "$candidate" ] || continue
-            [ "$(readlink -f "$candidate")" = "$SELF" ] && continue
-            REAL_NPM="$candidate"
-            break
-          done
-          if [ -z "$REAL_NPM" ]; then
-            echo "npm wrapper: cannot locate the real npm binary" >&2
-            exit 127
-          fi
-
-          "$REAL_NPM" "$@"
-          RC=$?
-
-          is_publish=false
-          for arg in "$@"; do
-            [ "$arg" = "publish" ] && { is_publish=true; break; }
-          done
-
-          if [ "$is_publish" = true ] && [ $RC -eq 0 ] && [ -f package.json ]; then
-            name=$(jq -r '.name // empty' package.json 2>/dev/null || true)
-            version=$(jq -r '.version // empty' package.json 2>/dev/null || true)
-            if [ -n "$name" ] && [ -n "$version" ]; then
-              echo ">>> Waiting for ${name}@${version} to be queryable on registry..."
-              for i in $(seq 1 60); do
-                if "$REAL_NPM" view "${name}@${version}" version >/dev/null 2>&1; then
-                  echo ">>> ${name}@${version} available after attempt ${i}"
-                  break
-                fi
-                sleep 5
-              done
-            fi
-          fi
-
-          exit $RC
-          WRAPPER
-          chmod +x "$HOME/.npm-wait/npm"
-          echo "$HOME/.npm-wait" >> "$GITHUB_PATH"
 
       - name: Build & deploy to Maven Central and npm
         run: |

@@ -15,10 +15,10 @@
     "test": "ng test",
     "unpublish:snapshot": "npm run unpublish:dev-shell && npm run unpublish:module",
     "unpublish:module": "npm view --@vanillabp:registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --@vanillabp:registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
-    "publish:snapshot": "cd dist/dev-shell && npm publish --tag snapshot",
+    "publish:snapshot": "node ../../.github/scripts/publish-and-wait.js dist/dev-shell --tag snapshot",
     "unpublish:dev-shell": "cd dist/dev-shell && npm view --@vanillabp:registry=\"${NPM_REGISTRY}\" > /dev/null 2>&1 && npm unpublish --@vanillabp:registry=\"${NPM_REGISTRY}\" --force || echo \"Package not present – skipping unpublish\"",
     "version:snapshot": "cd dist/dev-shell && npm version ${npm_config_newversion} --no-git-tag-version",
-    "publish:release": "cd dist/dev-shell && npm publish --access public"
+    "publish:release": "node ../../.github/scripts/publish-and-wait.js dist/dev-shell --access public"
   },
   "dependencies": {
     "@angular/animations": "^17.2.0",
