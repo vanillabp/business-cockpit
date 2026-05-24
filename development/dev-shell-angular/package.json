@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-angular-module",
-  "version": "0.1.7",
+  "version": "0.1.8-SNAPSHOT",
   "private": true,
   "repository": {
     "type": "git",

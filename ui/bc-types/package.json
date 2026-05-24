@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-types",
-  "version": "0.1.7",
+  "version": "0.1.8-SNAPSHOT.0",
   "description": "Library providing shared types for VanillaBP UI development",
   "author": "Phactum Softwareentwicklung GmbH",
   "repository": {
@@ -43,6 +43,6 @@
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "@vanillabp/bc-official-gui-client": "0.1.7"
+    "@vanillabp/bc-official-gui-client": ">=0.1.8-SNAPSHOT <0.1.9"
   }
 }
