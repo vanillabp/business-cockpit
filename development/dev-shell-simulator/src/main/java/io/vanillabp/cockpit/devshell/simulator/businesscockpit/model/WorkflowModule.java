@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.List;
+import java.util.Map;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,5 +32,9 @@ public class WorkflowModule {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "ACCESSIBLE_TO_GROUPS", columnDefinition = "JSON")
     private List<String> accessibleToGroups = null;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "GROUP_HIERARCHY", columnDefinition = "JSON")
+    private Map<String, List<String>> groupHierarchy = null;
 
 }

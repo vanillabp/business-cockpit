@@ -7,6 +7,7 @@ import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.GroupHierarchy;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
@@ -20,6 +21,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -29,12 +31,16 @@ import org.mapstruct.Named;
 @Mapper
 public abstract class OfficialApiMapper {
 
+    private static final String GROUP_HIERARCHY_MAPPING = "groupHierarchyMapping";
+
     @Mapping(target = "id", expression = "java(id)")
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "groupHierarchy", ignore = true)
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModule toModel(RegisterWorkflowModuleEvent event, String id);
 
     @Mapping(target = "id", expression = "java(id)")
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "groupHierarchy", qualifiedByName = GROUP_HIERARCHY_MAPPING)
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.WorkflowModule toModel(io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent event, String id);
 
     @Named("group")
@@ -42,6 +48,16 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "display", expression = "java(group)")
     @Mapping(target = "details", ignore = true)
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Group toGroupModel(String group);
+
+    @Named(GROUP_HIERARCHY_MAPPING)
+    protected Map<String, List<String>> toModel(List<GroupHierarchy> groupHierarchy) {
+        if (groupHierarchy ==  null) {
+            return Map.of();
+        }
+        return groupHierarchy
+                .stream()
+                .collect(Collectors.toMap(GroupHierarchy::getGroup, GroupHierarchy::getTargets));
+    }
 
     public TaskService.RetrieveMode toModel(UserTaskRetrieveMode retrieveMode) {
         if (retrieveMode == null) {

@@ -171,3 +171,13 @@ databaseChangeLog:
               - column:
                   name: READ_AT
                   type: datetime
+  - changeSet:
+      id: add_group_hierarchy
+      author: pelikast
+      changes:
+        - addColumn:
+            tableName: SIMULATOR_WORKFLOW_MODULE
+            columns:
+              - column:
+                  name: GROUP_HIERARCHY
+                  type: json
