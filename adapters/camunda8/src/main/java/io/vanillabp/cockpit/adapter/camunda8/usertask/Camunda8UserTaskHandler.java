@@ -489,7 +489,7 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
                     setTextInEvent(
                             language,
                             locale,
-                            "title.ftl",
+                            "task-title.ftl",
                             details::getTitle,
                             event::getTitle,
                             event::setTitle,
@@ -510,18 +510,28 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
                             details.getTemplateContext(),
                             errorLoggingContext);
 
-                    event.setDetailsFulltextSearch(
-                            renderText(
-                                    e -> errorLoggingContext.apply(
-                                            "details-fulltext-search.ftl",
-                                            e),
-                                    locale,
-                                    templatesPaths,
-                                    "details-fulltext-search.ftl",
-                                    details.getTemplateContext(),
-                                    () -> taskTitle));
-
                 });
+
+        final var additionalTemplateContext = Map.<String, Object>of(
+                "taskDefinitionTitle", event.getTaskDefinitionTitle(),
+                "taskTitle", event.getTitle(),
+                "workflowTitle", event.getWorkflowTitle(),
+                "taskLanguages", event.getI18nLanguages());
+
+        event.setDetailsFulltextSearch(
+                renderText(
+                        e -> new Object[] {
+                                "task-fulltext-search.ftl",
+                                event.getTaskDefinition(),
+                                event.getWorkflowId(),
+                                e
+                        },
+                        event.getI18nLanguages().isEmpty() ? null : Locale.forLanguageTag(event.getI18nLanguages().get(0)),
+                        templatesPaths,
+                        "task-fulltext-search.ftl",
+                        details.getTemplateContext(),
+                        additionalTemplateContext,
+                        () -> taskTitle));
     }
 
     public void publishEvent(UserTaskEvent userTaskEvent){

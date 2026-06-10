@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties
 import io.vanillabp.springboot.adapter.TaskHandlerBase;
 import io.vanillabp.springboot.parameters.MethodParameter;
 import java.io.File;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +20,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
 public abstract class TemplatingHandlerBase extends TaskHandlerBase {
 
@@ -52,8 +52,36 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
             final List<String> templatePathes,
             final Object templateContext,
             final BiFunction<String, Exception, Object[]> errorLoggingContext) {
-        
-        final var detailsGiven = 
+
+        setTextInEvent(
+                language,
+                locale,
+                name,
+                detailsSupplier,
+                eventSupplier,
+                updatedEventConsumer,
+                defaultValue,
+                templatePathes,
+                templateContext,
+                Map.of(),
+                errorLoggingContext);
+
+    }
+
+    protected void setTextInEvent(
+            final String language,
+            final Locale locale,
+            final String name,
+            final Supplier<Map<String, String>> detailsSupplier,
+            final Supplier<Map<String, String>> eventSupplier,
+            final Consumer<Map<String, String>> updatedEventConsumer,
+            final String defaultValue,
+            final List<String> templatePathes,
+            final Object templateContext,
+            final Map<String, Object> additionalTemplateContext,
+            final BiFunction<String, Exception, Object[]> errorLoggingContext) {
+
+        final var detailsGiven =
                 (detailsSupplier.get() != null)
                 && detailsSupplier.get().containsKey(language);
         final var templateName = detailsGiven
@@ -67,6 +95,7 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
                 templatePathes,
                 templateName,
                 templateContext,
+                additionalTemplateContext,
                 () -> detailsGiven
                         ? detailsSupplier.get().get(language)
                         : defaultValue);
@@ -86,6 +115,26 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
             final List<String> templatePathes,
             final String templateName,
             final Object templateContext,
+            final Supplier<String> defaultValue) {
+
+        return renderText(
+                errorLoggingContext,
+                locale,
+                templatePathes,
+                templateName,
+                templateContext,
+                Map.of(),
+                defaultValue);
+
+    }
+
+    protected String renderText(
+            final Function<Exception, Object[]> errorLoggingContext,
+            final Locale locale,
+            final List<String> templatePathes,
+            final String templateName,
+            final Object templateContext,
+            final Map<String, Object> additionalTemplateContext,
             final Supplier<String> defaultValue) {
 
         if (templating.isEmpty()) {
@@ -111,9 +160,20 @@ public abstract class TemplatingHandlerBase extends TaskHandlerBase {
                 .findFirst()
                 .flatMap(template -> {
                     try {
-                        return Optional.of(FreeMarkerTemplateUtils.processTemplateIntoString(
-                                template,
-                                templateContext));
+                        final var writer = new StringWriter();
+                        // templateContext stays an Object: FreeMarker wraps it itself
+                        // using the configured ObjectWrapper (works for Map and POJO alike).
+                        final var environment = template.createProcessingEnvironment(templateContext, writer);
+                        final var objectWrapper = environment.getObjectWrapper();
+                        for (final var additionalValue : additionalTemplateContext.entrySet()) {
+                            // global variables are visible like data-model entries, but the
+                            // data-model (templateContext) takes precedence on name clashes.
+                            environment.setGlobalVariable(
+                                    additionalValue.getKey(),
+                                    objectWrapper.wrap(additionalValue.getValue()));
+                        }
+                        environment.process();
+                        return Optional.of(writer.toString());
                     } catch (Exception e) {
                         getLogger().error(
                                 "Could not render {} for user task '{}' of workflow '{}'",

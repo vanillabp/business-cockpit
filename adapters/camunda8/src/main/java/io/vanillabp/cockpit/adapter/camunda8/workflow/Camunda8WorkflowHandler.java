@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -394,13 +393,6 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
                     .forEach(language -> {
                         final var locale = Locale.forLanguageTag(language);
 
-                        final BiFunction<String, Exception, Object[]> errorLoggingContext
-                                = (name, e) -> new Object[] {
-                                name,
-                                event.getWorkflowId(),
-                                e
-                        };
-
                         setTextInEvent(
                                 language,
                                 locale,
@@ -411,20 +403,31 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
                                 bpmnProcessName,
                                 templatesPathes,
                                 details.getTemplateContext(),
-                                errorLoggingContext);
-
-                        event.setDetailsFulltextSearch(
-                                renderText(
-                                        e -> errorLoggingContext.apply(
-                                                "details-fulltext-search.ftl",
-                                                e),
-                                        locale,
-                                        templatesPathes,
-                                        "details-fulltext-search.ftl",
-                                        details.getTemplateContext(),
-                                        () -> bpmnProcessName));
+                                (name, e) -> new Object[] {
+                                        name,
+                                        event.getWorkflowId(),
+                                        e
+                                });
 
                     });
+
+            final var additionalTemplateContext = Map.of(
+                    "workflowTitle", event.getTitle(),
+                    "workflowLanguages", event.getI18nLanguages());
+
+            event.setDetailsFulltextSearch(
+                    renderText(
+                            e -> new Object[] {
+                                    "workflow-fulltext-search.ftl",
+                                    event.getWorkflowId(),
+                                    e
+                            },
+                            event.getI18nLanguages().isEmpty() ? null : Locale.forLanguageTag(event.getI18nLanguages().get(0)),
+                            templatesPathes,
+                            "workflow-fulltext-search.ftl",
+                            details.getTemplateContext(),
+                            additionalTemplateContext,
+                            () -> bpmnProcessName));
 
         }
 
