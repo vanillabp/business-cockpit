@@ -304,7 +304,7 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                         setTextInEvent(
                                 language,
                                 locale,
-                                "title.ftl",
+                                "task-title.ftl",
                                 details::getTitle,
                                 event::getTitle,
                                 event::setTitle,
@@ -325,18 +325,28 @@ public class Camunda7UserTaskHandler extends UserTaskHandlerBase {
                                 details.getTemplateContext(),
                                 errorLoggingContext);
                         
-                        event.setDetailsFulltextSearch(
-                                renderText(
-                                        e -> errorLoggingContext.apply(
-                                                "details-fulltext-search.ftl",
-                                                e),
-                                        locale,
-                                        templatesPathes,
-                                        "details-fulltext-search.ftl",
-                                        details.getTemplateContext(),
-                                        delegateTask::getName));
-                        
                     });
+
+            final var additionalTemplateContext = Map.<String, Object>of(
+                    "taskDefinitionTitle", event.getTaskDefinitionTitle(),
+                    "taskTitle", event.getTitle(),
+                    "workflowTitle", event.getWorkflowTitle(),
+                    "taskLanguages", event.getI18nLanguages());
+
+            event.setDetailsFulltextSearch(
+                    renderText(
+                            e -> new Object[] {
+                                    "task-fulltext-search.ftl",
+                                    event.getTaskDefinition(),
+                                    event.getWorkflowId(),
+                                    e
+                            },
+                            event.getI18nLanguages().isEmpty() ? null : Locale.forLanguageTag(event.getI18nLanguages().get(0)),
+                            templatesPathes,
+                            "task-fulltext-search.ftl",
+                            details.getTemplateContext(),
+                            additionalTemplateContext,
+                            delegateTask::getName));
 
         }
         

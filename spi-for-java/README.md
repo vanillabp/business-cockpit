@@ -123,7 +123,14 @@ in a user task application (like the *VanillaBP Business Cockpit*).
 To modify or enrich user task details the
 [workflow's service class](https://github.com/vanillabp/spi-for-java?#wire-up-a-process)
 has to provide a custom method for each individual
-user task. The return-value's class has to implement the interface `io.vanillabp.spi.cockpit.usertask.UserTaskDetails`:
+user task. This method is called if a user task changes caused by any action of the process engine,
+since the Business Cockpit needs to be updated in order to show current data in the list
+of user tasks (e.g. due date, assignee, etc.). Typical events are:
+- user task created
+- user task assigned
+- user task updated
+- user task completed
+- user task canceled (e.g. due to an interrupting boundary event)
 
 ```java
 @WorkflowService(...)
@@ -139,7 +146,8 @@ public class TaxiRide {
 }
 ```
 
-All non-null attributes provided by `io.vanillabp.spi.cockpit.usertask.UserTaskDetails` returned by the method will
+The return-value's class has to implement the interface `io.vanillabp.spi.cockpit.usertask.UserTaskDetails`.
+All non-null attributes provided by `io.vanillabp.spi.cockpit.usertask.UserTaskDetails` will
 override default values provided by the adapter implementation.
 
 Since the SPI works according the principles of *convention of configuration* the user task is identified by the method's name.
@@ -228,12 +236,10 @@ Supported details:
 1. `title`: The user task's title.
 2. `workflowTitle`: The user task's workflow's title.
 3. `taskDefinitionTitle`: The title of the task-definition defined for the user task.
-4. `getDetailsFulltextSearch`: A string used for fulltext search in the list of user tasks.
+4. `detailsFulltextSearch`: A string used for fulltext search in the list of user tasks.
 
 If the string given for one of the supported properties points to a template then the templated is rendered
-and the result of rendering is passed to the user task application. For any details about templates
-(template library used, folder to provide templates, etc.) checkout the specific
-[SPI adapter documentation](../adapters/README.md).
+and the result of rendering is passed to the user task application.
 
 For processing the template additional data may be passed to be used in the template. This is done by
 specifying a template context map:
@@ -251,6 +257,11 @@ specifying a template context map:
     }
 ```
 
+Additionally, if the value of those details is not set (neither to a text nor to a template name),
+then a default template is used. For any details about templates
+(template library used, folders to provide templates, etc.) checkout the specific
+[SPI adapter documentation](../adapters/README.md). 
+
 ### Wire up a workflow
 
 Wiring up a workflow means to provide details about a workflow to be shown in the list of workflows
@@ -258,8 +269,14 @@ in a user task application (like the *VanillaBP Business Cockpit*).
 
 To modify or enrich workflow details the
 [workflow's service class](https://github.com/vanillabp/spi-for-java?#wire-up-a-process)
-has to provide a custom method. The return-value's class has to implement the interface
-`io.vanillabp.spi.cockpit.workflow.WorkflowDetails`:
+has to provide a custom method. This method is called if a workflow changes caused by any action of
+the process engine,
+since the Business Cockpit needs to be updated in order to show current data in the list
+of workflows (e.g. due date, assignee, etc.). Typical events are:
+- workflow created
+- workflow updated
+- workflow ended
+- workflow canceled (e.g. due to administrative actions if supported by the BPMS)
 
 ```java
 @WorkflowService(...)
@@ -275,7 +292,9 @@ public class TaxiRide {
 }
 ```
 
-All non-null attributes provided by `io.vanillabp.spi.cockpit.workflow.WorkflowDetails` returned by the method will
+The return-value's class has to implement the interface
+`io.vanillabp.spi.cockpit.workflow.WorkflowDetails`. 
+All non-null attributes provided by `io.vanillabp.spi.cockpit.workflow.WorkflowDetails` will
 override default values provided by the adapter implementation.
 
 To retrieve context information parameters can be added which will be filled by the
@@ -333,12 +352,10 @@ Using templates is an alternative to provide context information next to custom 
 Supported details:
 
 1. `title`: The workflow's title.
-4. `getDetailsFulltextSearch`: A string used for fulltext search in the list of workflows.
+4. `detailsFulltextSearch`: A string used for fulltext search in the list of workflows.
 
 If the string given for one of the supported properties points to a template then the templated is rendered
-and the result of rendering is passed to the user task application. For any details about templates
-(template library used, folder to provide templates, etc.) checkout the specific
-[SPI adapter documentation](../adapters/README.md).
+and the result of rendering is passed to the user task application.
 
 For processing the template additional data may be passed to be used in the template. This is done by
 specifying a template context map:
@@ -354,6 +371,11 @@ specifying a template context map:
         return details;
     }
 ```
+
+Additionally, if the value of those details is not set (neither to a text nor to a template name),
+then a default template is used. For any details about templates
+(template library used, folders to provide templates, etc.) checkout the specific
+[SPI adapter documentation](../adapters/README.md).
 
 ### Trigger updates programmatically
 
