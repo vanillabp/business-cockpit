@@ -6,6 +6,7 @@ import io.camunda.client.api.JsonMapper;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitService;
 import io.vanillabp.cockpit.adapter.camunda8.service.Camunda8BusinessCockpitSupportService;
+import io.vanillabp.cockpit.adapter.camunda8.service.CockpitClientCleanupService;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskHandler;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskWiring;
@@ -356,4 +357,10 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
 
     }
 
+    @Bean
+    public CockpitClientCleanupService cockpitClientCleanupService(Camunda8DeploymentAdapter deploymentAdapter,
+                                                                   Camunda8UserTaskWiring userTaskWiring,
+                                                                   Camunda8WorkflowWiring workflowWiring) {
+        return new CockpitClientCleanupService(deploymentAdapter, userTaskWiring, workflowWiring);
+    }
 }
