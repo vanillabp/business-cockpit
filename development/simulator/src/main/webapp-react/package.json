@@ -1,11 +1,11 @@
 {
   "name": "test-module",
-  "version": "0.1.8-SNAPSHOT.0",
+  "version": "0.2.1-SNAPSHOT.0",
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.1.8-SNAPSHOT <0.1.9",
-    "@vanillabp/bc-official-gui-client": ">=0.1.8-SNAPSHOT <0.1.9",
-    "@vanillabp/bc-dev-shell-react": ">=0.1.8-SNAPSHOT <0.1.9",
+    "@vanillabp/bc-shared": ">=0.2.1-SNAPSHOT <0.2.2",
+    "@vanillabp/bc-official-gui-client": ">=0.2.1-SNAPSHOT <0.2.2",
+    "@vanillabp/bc-dev-shell-react": ">=0.2.1-SNAPSHOT <0.2.2",
     "@fontsource/roboto": "4.5.8",
     "@microsoft/fetch-event-source": "2.0.1",
     "grommet": "2.33.2",
