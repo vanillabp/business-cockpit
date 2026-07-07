@@ -50,5 +50,11 @@ public interface UserTaskDetails {
      * @return A URI path if user-task is EXTERNAL
      */
     String getUiUriPath();
-    
+
+    /**
+     * @return How notifications for this user task are to be delivered. {@code null} is interpreted
+     *         as {@link NotificationDelivery#USER_CONFIG}.
+     */
+    NotificationDelivery getNotificationDelivery();
+
 }

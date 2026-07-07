@@ -90,6 +90,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
             result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
         }
         result.setDetailsFulltextSearch( userTaskCancelledEvent.getDetailsFulltextSearch() );
+        result.setNotificationDelivery( mapNotificationDelivery( userTaskCancelledEvent.getNotificationDelivery() ) );
 
         result.setUpdated( true );
 
@@ -154,6 +155,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
             result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
         }
         result.setDetailsFulltextSearch( userTaskCompletedEvent.getDetailsFulltextSearch() );
+        result.setNotificationDelivery( mapNotificationDelivery( userTaskCompletedEvent.getNotificationDelivery() ) );
 
         result.setUpdated( true );
 
@@ -236,6 +238,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
             result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
         }
         result.setDetailsFulltextSearch( userTaskEvent.getDetailsFulltextSearch() );
+        result.setNotificationDelivery( mapNotificationDelivery( userTaskEvent.getNotificationDelivery() ) );
 
         result.setUpdated( false );
 
@@ -299,6 +302,7 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
             result.setDetails( new LinkedHashMap<String, Object>( map3 ) );
         }
         result.setDetailsFulltextSearch( userTaskCreatedEvent.getDetailsFulltextSearch() );
+        result.setNotificationDelivery( mapNotificationDelivery( userTaskCreatedEvent.getNotificationDelivery() ) );
 
         result.setUpdated( true );
 
@@ -323,6 +327,16 @@ public class UserTaskRestMapperImpl implements UserTaskRestMapper {
         }
 
         return uiUriType;
+
+    }
+
+    protected io.vanillabp.cockpit.bpms.api.v1_1.NotificationDelivery mapNotificationDelivery(
+            io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery) {
+
+        if ( notificationDelivery == null ) {
+            return null;
+        }
+        return io.vanillabp.cockpit.bpms.api.v1_1.NotificationDelivery.valueOf( notificationDelivery.name() );
 
     }
 }

@@ -85,7 +85,16 @@ message UserTaskCreatedOrUpdatedEvent {
   optional DetailsMap details = 30;
   optional string details_fulltext_search = 31;
   repeated string excluded_candidate_users = 32;
+  optional NotificationDelivery notification_delivery = 33;
 
+}
+
+// How the workflow module wants notifications for a user task to be delivered.
+// The default (0) USER_CONFIG means "deliver according to each user's configuration".
+enum NotificationDelivery {
+  USER_CONFIG = 0;
+  FORCE = 1;
+  SUPPRESS = 2;
 }
 
 message UserTaskCompletedEvent {
