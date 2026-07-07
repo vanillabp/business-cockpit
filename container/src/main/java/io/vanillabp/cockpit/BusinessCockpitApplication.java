@@ -2,6 +2,7 @@ package io.vanillabp.cockpit;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.notification.NotificationProperties;
 import java.util.Map;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,7 +17,8 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 @ComponentScan(basePackageClasses = BusinessCockpitApplication.class)
 @EnableConfigurationProperties({
     ApplicationProperties.class,
-    BpmsApiProperties.class
+    BpmsApiProperties.class,
+    NotificationProperties.class
 })
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
