@@ -306,6 +306,15 @@ components:
       enum:
       - EXTERNAL
       - WEBPACK_MF_REACT  # MF ... Module Federation
+    NotificationDelivery:
+      type: string
+      description: >-
+        How the workflow module wants notifications for this user task to be delivered.
+        An absent value is interpreted as USER_CONFIG.
+      enum:
+      - USER_CONFIG   # deliver according to each user's notification configuration (default)
+      - FORCE         # always notify, overriding the user's configuration; marked as forced
+      - SUPPRESS      # never notify from the cockpit (the workflow module notifies itself)
     UserTaskUpdatedEvent:
       type: object
       required:
@@ -436,6 +445,8 @@ components:
         detailsFulltextSearch:
           type: string
           description: List of words for fulltext searching details
+        notificationDelivery:
+          $ref: '#/components/schemas/NotificationDelivery'
     UserTaskLifecycleEvent:
       type: object
       required:

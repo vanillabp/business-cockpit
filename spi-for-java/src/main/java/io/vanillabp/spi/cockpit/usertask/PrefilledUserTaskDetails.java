@@ -45,5 +45,7 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
     void setFollowUpDate(OffsetDateTime followUpDate);
 
     void setTemplateContext(Object templateContext);
-    
+
+    void setNotificationDelivery(NotificationDelivery notificationDelivery);
+
 }

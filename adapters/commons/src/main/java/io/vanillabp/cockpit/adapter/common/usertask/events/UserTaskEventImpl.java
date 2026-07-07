@@ -65,6 +65,8 @@ public class UserTaskEventImpl implements UserTaskEvent, UserTaskDetails, Prefil
 
     private String detailsFulltextSearch;
 
+    private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
+
     private Object templateContext;
 
     private List<String> i18nLanguages;
@@ -328,6 +330,17 @@ public class UserTaskEventImpl implements UserTaskEvent, UserTaskDetails, Prefil
 
     public void setDetailsFulltextSearch(String detailsFulltextSearch) {
         this.detailsFulltextSearch = detailsFulltextSearch;
+    }
+
+    @Override
+    public io.vanillabp.spi.cockpit.usertask.NotificationDelivery getNotificationDelivery() {
+        return notificationDelivery;
+    }
+
+    @Override
+    public void setNotificationDelivery(
+            final io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery) {
+        this.notificationDelivery = notificationDelivery;
     }
 
     @Override

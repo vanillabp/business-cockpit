@@ -17,6 +17,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
@@ -40,6 +41,13 @@ public abstract class ProtobufUserTaskMapper {
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
+
+    // proto3 enums carry an extra UNRECOGNIZED constant; map it (and the default USER_CONFIG) to
+    // null, which the notification logic interprets as USER_CONFIG.
+    @ValueMapping(source = "UNRECOGNIZED", target = MappingConstants.NULL)
+    @ValueMapping(source = "USER_CONFIG", target = MappingConstants.NULL)
+    abstract io.vanillabp.spi.cockpit.usertask.NotificationDelivery mapNotificationDelivery(
+            io.vanillabp.cockpit.bpms.api.protobuf.v1.NotificationDelivery delivery);
 
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)

@@ -275,6 +275,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- shared NotificationDelivery enum (workflow-module SPI contract, reused by the entity) -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spi-for-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.vanillabp.businesscockpit</groupId>
       <artifactId>bpms-protobuf-api</artifactId>
       <version>${project.version}</version>

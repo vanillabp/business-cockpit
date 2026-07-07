@@ -87,6 +87,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private List<ReadBy> readBy;
 
     /**
+     * How the workflow module wants notifications for this user task to be delivered.
+     * {@code null} is interpreted as {@link io.vanillabp.spi.cockpit.usertask.NotificationDelivery#USER_CONFIG}.
+     * Precedence: FORCE &gt; SUPPRESS &gt; user-config.
+     */
+    private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
+
+    /**
      * Transient carrier of the kind of change a notification is about. Set by the notification
      * poller before calling {@code NotificationService#sendNotification}; never persisted.
      */
@@ -476,6 +483,15 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setReadBy(List<ReadBy> readBy) {
         this.readBy = readBy;
+    }
+
+    public io.vanillabp.spi.cockpit.usertask.NotificationDelivery getNotificationDelivery() {
+        return notificationDelivery;
+    }
+
+    public void setNotificationDelivery(
+            io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery) {
+        this.notificationDelivery = notificationDelivery;
     }
 
     public io.vanillabp.cockpit.notification.NotificationType getNotificationType() {
