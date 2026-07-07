@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.users.model;
 
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
@@ -36,6 +37,14 @@ public class User {
      * kept in {@link #recipientConfigurations}.
      */
     private String email;
+
+    /**
+     * The user's preferred locale. {@code null} means "use the application default locale"
+     * ({@code business-cockpit.default-locale}). Setting/changing it is the subject of a separate
+     * story; today all UIs are fixed to German, so this stays {@code null} for now but the
+     * notification templating already honors it.
+     */
+    private Locale locale;
 
     /** The user's notification configuration object tree (AC func 4 / tech 7). */
     private NotificationConfiguration notificationConfiguration;
@@ -77,6 +86,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Locale getLocale() {
+        return locale;
+    }
+
+    public void setLocale(Locale locale) {
+        this.locale = locale;
     }
 
     public NotificationConfiguration getNotificationConfiguration() {

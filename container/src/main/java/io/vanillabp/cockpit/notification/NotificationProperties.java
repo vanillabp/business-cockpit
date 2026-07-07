@@ -83,12 +83,26 @@ public class NotificationProperties {
          */
         private boolean enabled = false;
 
+        /**
+         * The {@code From} address of notification e-mails. Should be set for real deployments;
+         * many SMTP servers reject messages without a sender.
+         */
+        private String from;
+
         public boolean isEnabled() {
             return enabled;
         }
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public String getFrom() {
+            return from;
+        }
+
+        public void setFrom(String from) {
+            this.from = from;
         }
 
     }
