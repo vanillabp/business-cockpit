@@ -86,6 +86,20 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private List<ReadBy> readBy;
 
+    /**
+     * Transient carrier of the kind of change a notification is about. Set by the notification
+     * poller before calling {@code NotificationService#sendNotification}; never persisted.
+     */
+    @org.springframework.data.annotation.Transient
+    private io.vanillabp.cockpit.notification.NotificationType notificationType;
+
+    /**
+     * Transient carrier telling whether the workflow module forced this notification. Set by the
+     * notification poller before calling {@code NotificationService#sendNotification}; never persisted.
+     */
+    @org.springframework.data.annotation.Transient
+    private boolean forced;
+
     @Override
     protected List<String> getGroupIds() {
         return Optional
@@ -462,6 +476,22 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setReadBy(List<ReadBy> readBy) {
         this.readBy = readBy;
+    }
+
+    public io.vanillabp.cockpit.notification.NotificationType getNotificationType() {
+        return notificationType;
+    }
+
+    public void setNotificationType(io.vanillabp.cockpit.notification.NotificationType notificationType) {
+        this.notificationType = notificationType;
+    }
+
+    public boolean isForced() {
+        return forced;
+    }
+
+    public void setForced(boolean forced) {
+        this.forced = forced;
     }
 
 }

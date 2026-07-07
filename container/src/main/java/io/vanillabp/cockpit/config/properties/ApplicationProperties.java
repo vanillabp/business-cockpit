@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.config.properties;
 
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.NonNull;
@@ -26,6 +27,13 @@ public class ApplicationProperties {
     private String applicationUri;
 
     private JwtProperties jwt = new JwtProperties();
+
+    /**
+     * The application-wide default locale, used as the fallback when a user has no preferred locale
+     * (e.g. for rendering notification templates). Defaults to German, matching the currently
+     * hard-coded UI language.
+     */
+    private Locale defaultLocale = Locale.GERMAN;
 
     private Map<String, Object> additionalProperties;
 
@@ -72,9 +80,17 @@ public class ApplicationProperties {
     public JwtProperties getJwt() {
         return jwt;
     }
-    
+
     public void setJwt(JwtProperties jwt) {
         this.jwt = jwt;
+    }
+
+    public Locale getDefaultLocale() {
+        return defaultLocale;
+    }
+
+    public void setDefaultLocale(Locale defaultLocale) {
+        this.defaultLocale = defaultLocale;
     }
 
     public String getBuildTimestamp() {
