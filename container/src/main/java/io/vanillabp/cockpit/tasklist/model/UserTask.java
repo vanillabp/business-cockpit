@@ -94,6 +94,12 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
 
     /**
+     * Why the task ended ({@code null} while open). Lets the notification poller tell a completion
+     * apart from a cancellation.
+     */
+    private UserTaskEndReason endReason;
+
+    /**
      * Transient carrier of the kind of change a notification is about. Set by the notification
      * poller before calling {@code NotificationService#sendNotification}; never persisted.
      */
@@ -492,6 +498,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     public void setNotificationDelivery(
             io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery) {
         this.notificationDelivery = notificationDelivery;
+    }
+
+    public UserTaskEndReason getEndReason() {
+        return endReason;
+    }
+
+    public void setEndReason(UserTaskEndReason endReason) {
+        this.endReason = endReason;
     }
 
     public io.vanillabp.cockpit.notification.NotificationType getNotificationType() {
