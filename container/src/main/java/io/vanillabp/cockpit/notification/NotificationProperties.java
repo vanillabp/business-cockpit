@@ -19,6 +19,23 @@ public class NotificationProperties {
     private Duration interval = Duration.ofMinutes(1);
 
     /**
+     * Maximum number of delivery attempts for a notification bulk before an outbox entry is
+     * considered stale and no longer retried (default 120 = two hours at a one-minute interval).
+     * Delivery resumes if the entry's {@code attempts} counter is manually reset in MongoDB.
+     */
+    private int maxDeliveryAttempts = 120;
+
+    /**
+     * Interval at which successfully sent outbox entries are cleaned up (default hourly).
+     */
+    private Duration cleanupInterval = Duration.ofHours(1);
+
+    /**
+     * A successfully sent outbox entry is deleted once it is older than this (default 48 hours).
+     */
+    private Duration cleanupSentOlderThan = Duration.ofHours(48);
+
+    /**
      * Reference e-mail medium settings.
      */
     private Smtp smtp = new Smtp();
@@ -53,6 +70,30 @@ public class NotificationProperties {
 
     public void setInterval(Duration interval) {
         this.interval = interval;
+    }
+
+    public int getMaxDeliveryAttempts() {
+        return maxDeliveryAttempts;
+    }
+
+    public void setMaxDeliveryAttempts(int maxDeliveryAttempts) {
+        this.maxDeliveryAttempts = maxDeliveryAttempts;
+    }
+
+    public Duration getCleanupInterval() {
+        return cleanupInterval;
+    }
+
+    public void setCleanupInterval(Duration cleanupInterval) {
+        this.cleanupInterval = cleanupInterval;
+    }
+
+    public Duration getCleanupSentOlderThan() {
+        return cleanupSentOlderThan;
+    }
+
+    public void setCleanupSentOlderThan(Duration cleanupSentOlderThan) {
+        this.cleanupSentOlderThan = cleanupSentOlderThan;
     }
 
     public Smtp getSmtp() {

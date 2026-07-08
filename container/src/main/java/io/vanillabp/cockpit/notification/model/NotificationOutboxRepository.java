@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 public interface NotificationOutboxRepository extends ReactiveMongoRepository<NotificationOutboxEntry, String> {
 
     /**
-     * All pending (not yet sent) entries, oldest first. Used by the poller to drain bulks.
+     * All pending (not yet sent) entries that have not exceeded the maximum delivery attempts
+     * ("stale"), oldest first. Used by the poller to drain bulks. Resetting {@code attempts} to a
+     * value below the maximum in MongoDB makes a stale entry eligible again.
      */
-    Flux<NotificationOutboxEntry> findBySentAtIsNullOrderByCreatedAtAsc();
+    Flux<NotificationOutboxEntry> findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(int maxAttempts);
 
 }

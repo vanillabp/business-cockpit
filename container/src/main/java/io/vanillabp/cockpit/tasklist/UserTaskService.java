@@ -643,9 +643,11 @@ public class UserTaskService {
         if (userTask == null) {
             return Mono.just(Boolean.FALSE);
         }
-        
+
         userTask.setEndedAt(timestamp);
-        
+        userTask.setUpdatedAt(timestamp);
+        userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.COMPLETED);
+
         return userTasks
                 .save(userTask)
                 .map(task -> Boolean.TRUE)
@@ -667,7 +669,9 @@ public class UserTaskService {
         }
 
         userTask.setEndedAt(timestamp);
+        userTask.setUpdatedAt(timestamp);
         userTask.setComment(reason);
+        userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.CANCELLED);
 
         return userTasks
                 .save(userTask)

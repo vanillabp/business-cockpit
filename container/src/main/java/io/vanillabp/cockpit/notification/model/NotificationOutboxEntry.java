@@ -37,6 +37,13 @@ public class NotificationOutboxEntry {
     /** Whether the workflow module forced this notification (rendered as a hint). */
     private boolean forced;
 
+    /**
+     * How often delivery of this entry's bulk has been attempted. Once it reaches the configured
+     * maximum the entry is considered stale and is no longer retried; delivery resumes if the
+     * counter is manually reset to 0 in MongoDB.
+     */
+    private int attempts;
+
     private OffsetDateTime createdAt;
 
     /** {@code null} while pending; set once the containing bulk was sent successfully. */
@@ -96,6 +103,14 @@ public class NotificationOutboxEntry {
 
     public void setForced(boolean forced) {
         this.forced = forced;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(int attempts) {
+        this.attempts = attempts;
     }
 
     public OffsetDateTime getCreatedAt() {
