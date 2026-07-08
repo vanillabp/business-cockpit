@@ -14,13 +14,13 @@ import org.springframework.stereotype.Component;
  * changeset in {@code io.vanillabp.cockpit.users.model.changesets}.)
  */
 @Component("V100_Notification")
-@ChangesetConfiguration(author = "usertask-notifications")
+@ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
     private static final String INDEX_OUTBOX_UNIQUE = "_outboxUnique";
     private static final String INDEX_OUTBOX_PENDING = "_outboxPending";
 
-    @Changeset(order = 1)
+    @Changeset(order = 3000)
     public String createNotificationOutboxCollection(
             final ReactiveMongoTemplate mongo) {
 
