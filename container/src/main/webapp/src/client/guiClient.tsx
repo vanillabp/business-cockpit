@@ -12,6 +12,7 @@ import {
 import { createContext } from 'react';
 import {
   Configuration as OfficialApiConfiguration,
+  OfficialNotificationConfigApi,
   OfficialTasklistApi,
   OfficialWorkflowlistApi,
   OfficialWorkflowModulesApi,
@@ -64,6 +65,17 @@ const getWorkflowModulesGuiApi = (
   return new OfficialWorkflowModulesApi(config);
 };
 
+const getNotificationConfigGuiApi = (
+    toast: ToastFunction,
+    wakeupSseCallback?: WakeupSseCallback
+): OfficialNotificationConfigApi => {
+  const config = new OfficialApiConfiguration({
+    basePath: '/gui/api/v1',
+    fetchApi: buildFetchApi(toast, wakeupSseCallback),
+  });
+  return new OfficialNotificationConfigApi(config);
+};
+
 interface GuiSseContextInterface extends SseContextInterface { };
 
 const GuiSseContext = createContext<GuiSseContextInterface>(
@@ -106,5 +118,6 @@ export {
     getTasklistGuiApi,
     getWorkflowlistGuiApi,
     getWorkflowModulesGuiApi,
+    getNotificationConfigGuiApi,
   };
 

@@ -1,12 +1,18 @@
 import { MutableRefObject, useMemo } from "react";
 import { WakeupSseCallback } from "@vanillabp/bc-shared";
 import {
+  OfficialNotificationConfigApi,
   OfficialTasklistApi,
   OfficialWorkflowlistApi,
   OfficialWorkflowModulesApi
 } from "@vanillabp/bc-official-gui-client";
 import { useAppContext } from "../AppContext";
-import { getTasklistGuiApi, getWorkflowlistGuiApi, getWorkflowModulesGuiApi } from "../client/guiClient";
+import {
+  getNotificationConfigGuiApi,
+  getTasklistGuiApi,
+  getWorkflowlistGuiApi,
+  getWorkflowModulesGuiApi
+} from "../client/guiClient";
 
 const useWorkflowModulesApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialWorkflowModulesApi => {
 
@@ -49,9 +55,20 @@ const useSpecializedTasklistApi = (kind: string, wakeupSseCallback?: MutableRefO
 
 };
 
+const useNotificationConfigApi = (wakeupSseCallback?: MutableRefObject<WakeupSseCallback>): OfficialNotificationConfigApi => {
+
+  const { toast } = useAppContext();
+  return useMemo(
+      () => getNotificationConfigGuiApi(toast, wakeupSseCallback?.current),
+      [ toast, wakeupSseCallback ]
+  );
+
+};
+
 export {
   useWorkflowlistApi,
   useTasklistApi,
   useSpecializedTasklistApi,
   useWorkflowModulesApi,
+  useNotificationConfigApi,
 };
