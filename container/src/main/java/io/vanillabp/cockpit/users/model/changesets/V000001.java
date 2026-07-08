@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
  * notification feature but generic - other features may reuse the {@code users} collection.
  */
 @Component("V100_User")
-@ChangesetConfiguration(author = "usertask-notifications")
+@ChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    @Changeset(order = 1)
+    @Changeset(order = 4000)
     public String createUsersCollection(
             final ReactiveMongoTemplate mongo) {
 

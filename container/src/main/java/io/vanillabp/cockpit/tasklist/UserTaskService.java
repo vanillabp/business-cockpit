@@ -728,6 +728,33 @@ public class UserTaskService {
         
     }
 
+    /**
+     * The distinct workflows (module + BPMN process, with the workflow title) the given user has
+     * visible tasks for - the same visibility as the user task list. Used by the notification
+     * configuration page to offer per-workflow exceptions (AC func 4c).
+     */
+    public reactor.core.publisher.Flux<UserTask> getVisibleWorkflows(
+            final Collection<String> assignees,
+            final Collection<String> candidateUsers,
+            final Collection<String> candidateGroups,
+            final Collection<String> candidatesToBeExcluded) {
+
+        final var criteria = buildUserTasksCriteria(
+                true, false, assignees, candidateUsers, candidateGroups, candidatesToBeExcluded,
+                null, RetrieveItemsMode.All, List.of());
+
+        final var aggregation = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
+                org.springframework.data.mongodb.core.aggregation.Aggregation.match(criteria),
+                org.springframework.data.mongodb.core.aggregation.Aggregation
+                        .group("workflowModuleId", "bpmnProcessId")
+                        .first("workflowModuleId").as("workflowModuleId")
+                        .first("bpmnProcessId").as("bpmnProcessId")
+                        .first("workflowTitle").as("workflowTitle"));
+
+        return mongoTemplate.aggregate(aggregation, UserTask.COLLECTION_NAME, UserTask.class);
+
+    }
+
     public Criteria buildUserTasksCriteria(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
