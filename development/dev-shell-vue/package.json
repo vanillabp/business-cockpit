@@ -1,6 +1,6 @@
 {
   "name": "@vanillabp/bc-dev-shell-vue",
-  "version": "0.3.0-SNAPSHOT.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,8 +17,8 @@
     "postpublish": "node -e \"if(process.env.WAIT_FOR_NPM_PUBLISH==='1'){const cp=require('child_process');const root=process.env.GITHUB_WORKSPACE||cp.execSync('git rev-parse --show-toplevel').toString().trim();cp.execSync('bash \\\"'+root+'/.github/scripts/wait-for-npm-publish.sh\\\"',{stdio:'inherit'})}\""
   },
   "peerDependencies": {
-    "@vanillabp/bc-official-gui-client": ">=0.3.0-SNAPSHOT <0.3.1",
-    "@vanillabp/bc-types": ">=0.3.0-SNAPSHOT <0.3.1",
+    "@vanillabp/bc-official-gui-client": "0.3.0",
+    "@vanillabp/bc-types": "0.3.0",
     "primevue": "^4.3.0",
     "@primevue/themes": "^4.3.0",
     "vue": "^3.5.0",
