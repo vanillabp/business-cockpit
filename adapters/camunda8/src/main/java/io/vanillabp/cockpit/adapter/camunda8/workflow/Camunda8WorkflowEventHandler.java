@@ -41,6 +41,10 @@ public class Camunda8WorkflowEventHandler implements JobHandler {
         this.workflowHandlers.put(connectable, workflowHandler);
     }
 
+    public void doCleanup() {
+        this.workflowHandlers.clear();
+    }
+
     public void processCreatedEvent(Camunda8WorkflowCreatedEvent workflowCreatedEvent) {
         processEvent(
                 workflowCreatedEvent.getTenantId(),

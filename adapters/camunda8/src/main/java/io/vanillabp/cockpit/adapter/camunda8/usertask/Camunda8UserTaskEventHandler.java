@@ -42,6 +42,10 @@ public class Camunda8UserTaskEventHandler implements JobHandler {
         
     }
 
+    public void doCleanup() {
+        this.taskHandlers.clear();
+    }
+
     public void processCreatedEvent(
             final Camunda8UserTaskCreatedEvent userTaskCreatedEvent) {
         processEvent(

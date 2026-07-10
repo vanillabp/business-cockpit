@@ -123,6 +123,11 @@ public class Camunda8WorkflowWiring extends AbstractWorkflowWiring<Camunda8UserT
 
     }
 
+    public void doCleanup() {
+        workflowEventHandler.doCleanup();
+        workers.clear();
+    }
+
     public Camunda8BusinessCockpitService<?> wireService(
             final String workflowModuleId,
             final Camunda8WorkflowConnectable camunda8WorkflowConnectable) {

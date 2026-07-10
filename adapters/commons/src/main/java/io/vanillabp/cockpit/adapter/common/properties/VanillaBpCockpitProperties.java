@@ -49,7 +49,7 @@ public class VanillaBpCockpitProperties {
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
-                            + ".ui-uri-type");
+                            + ".cockpit.ui-uri-type");
         }
         return uiUriType;
 
@@ -66,7 +66,7 @@ public class VanillaBpCockpitProperties {
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
-                            + ".workflow-module-uri\n"
+                            + ".cockpit.workflow-module-uri\n"
                             + "You may wish to use a property since the endpoint might defined later: ${containerUri}/my-workflow-module");
         }
         return workflowModuleUri;
@@ -84,7 +84,7 @@ public class VanillaBpCockpitProperties {
                             + VanillaBpProperties.PREFIX
                             + ".workflow-modules."
                             + workflowModuleId
-                            + ".ui-uri-path");
+                            + ".cockpit.ui-uri-path");
         }
         return uiUriPath;
 

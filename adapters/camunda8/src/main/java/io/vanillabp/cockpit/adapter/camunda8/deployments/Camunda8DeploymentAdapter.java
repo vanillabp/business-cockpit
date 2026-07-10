@@ -703,4 +703,12 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     ){
         return element.getAttributeValue("name");
     }
+
+    /**
+     * Only necessary for Spring Boot tests / @CamundaSpringProcessTest.
+     * After one test has completed, we need to reinitialize the deployment priority list.
+     */
+    public void doCleanup() {
+        initializeCrossCuttingProperties();
+    }
 }

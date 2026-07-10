@@ -114,6 +114,11 @@ public class Camunda8UserTaskWiring extends AbstractUserTaskWiring<Camunda8UserT
 
     }
 
+    public void doCleanup() {
+        userTaskEventHandler.doCleanup();
+        workers.clear();
+    }
+
     public void wireTask(
             final String workflowModuleId,
             final Camunda8UserTaskConnectable connectable) {
