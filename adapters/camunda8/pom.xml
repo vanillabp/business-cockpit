@@ -56,9 +56,21 @@
         </dependency>
 
         <dependency>
+            <!--
+              The Spring Boot 4 flavour of the starter, and on the same 8.8 line as
+              vanillabp-camunda8-adapter. Two things were wrong before: the "-3-" artifact is built against
+              Boot 3.5 and dragged that generation into this Boot 4.1 project, and 8.9.11 disagreed with the
+              adapter's 8.8.x - Camunda only guarantees client and cluster compatibility at equal versions,
+              so a workflow module must not be forced onto a newer client by the cockpit adapter.
+
+              Beware the naming: on the 8.8 line "camunda-spring-boot-4-starter" is the Boot 4 variant and
+              "camunda-spring-boot-3-starter" the Boot 3 one, whereas from 8.9 on the unqualified
+              "camunda-spring-boot-starter" is the Boot 4 one. See the comment in
+              vanillabp-camunda8-adapter/spring-boot/pom.xml.
+            -->
             <groupId>io.camunda</groupId>
-            <artifactId>camunda-spring-boot-3-starter</artifactId>
-            <version>8.9.11</version>
+            <artifactId>camunda-spring-boot-4-starter</artifactId>
+            <version>8.8.33</version>
         </dependency>
 
         <dependency>
