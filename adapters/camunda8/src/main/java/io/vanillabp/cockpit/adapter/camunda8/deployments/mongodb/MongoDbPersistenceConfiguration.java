@@ -6,14 +6,16 @@ import io.vanillabp.springboot.utils.MongoDbSpringDataUtil;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
 
-@Configuration
-@AutoConfigureAfter(MongoRepositoriesAutoConfiguration.class)
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
+@AutoConfigureAfter(DataMongoRepositoriesAutoConfiguration.class)
 @ConditionalOnBean(MongoDbSpringDataUtil.class)
 public class MongoDbPersistenceConfiguration {
 

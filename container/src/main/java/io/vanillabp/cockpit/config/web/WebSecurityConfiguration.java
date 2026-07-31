@@ -97,23 +97,23 @@ public class WebSecurityConfiguration {
         basicEntryPoint.setRealm(properties.getTitleShort());
 
         http
-                .csrf().disable()
-                .cors().disable()
-                .anonymous().disable()
-                .authorizeExchange()
+                // Spring Security 7 removed the non-lambda DSL variants; this is a pure syntax
+                // conversion, the semantics are unchanged.
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(ServerHttpSecurity.CorsSpec::disable)
+                .anonymous(ServerHttpSecurity.AnonymousSpec::disable)
+                .authorizeExchange(exchanges -> exchanges
                         .matchers(appInfoWebExchangeMatcher, currentUserWebExchangeMatcher, assetsWebExchangeMatcher,
                                 staticWebExchangeMatcher, workflowModulesProxyWebExchangeMatcher)
                                 .permitAll()
                         .anyExchange()
-                                .authenticated()
-                        .and()
-                .httpBasic()
+                                .authenticated())
+                .httpBasic(basic -> basic
                         .securityContextRepository(jwtServerSecurityContextRepository)
                         .authenticationEntryPoint(basicEntryPoint)
                         .authenticationManager(
                                 new UserDetailsRepositoryReactiveAuthenticationManager(
-                                        localUserDetailsService(userService)))
-                .and()
+                                        localUserDetailsService(userService))))
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(jwtLogoutSuccessHandler()))

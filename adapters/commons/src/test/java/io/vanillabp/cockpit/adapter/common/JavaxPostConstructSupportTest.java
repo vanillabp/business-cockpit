@@ -18,15 +18,22 @@ import org.springframework.context.annotation.Configuration;
  * <li>{@code io.vanillabp.cockpit.adapter.common.workflowmodule.rest.WorkflowModuleRestPublishing:36}</li>
  * </ul>
  *
- * <p><b>Measured result:</b> Spring Framework 6 still honours the {@code javax} variant. Its
- * {@code CommonAnnotationBeanPostProcessor} registers {@code jakarta.annotation.PostConstruct} and, when
- * present on the classpath, additionally the legacy {@code javax.annotation.PostConstruct}. So the three
- * production methods above <em>do</em> run today - there is no latent defect.
+ * <p><b>Measured, and the prediction held.</b> Two data points:
+ * <ul>
+ * <li><b>Spring Framework 6</b> (Spring Boot 3.0 and 3.5) honoured the {@code javax} variant: its
+ * {@code CommonAnnotationBeanPostProcessor} registered {@code jakarta.annotation.PostConstruct} and,
+ * when present on the classpath, additionally the legacy {@code javax.annotation.PostConstruct}.</li>
+ * <li><b>Spring Framework 7</b> (Spring Boot 4.1) no longer does. This test failed on the Boot 4.1 bump
+ * in T15 and was updated to the new measurement - which is precisely what it exists for.</li>
+ * </ul>
  *
- * <p>That legacy fallback is exactly what may disappear in Spring Framework 7. If it does, those three
- * methods stop being called - silently, with no error at startup. This test is the tripwire: should the
- * {@code javax} assertion below start failing after the migration, T14's replacement of the annotations
- * with the {@code jakarta} variant is not cosmetic but mandatory.
+ * <p>No production impact: the three methods listed above carried a {@code jakarta} {@code @PostConstruct}
+ * all along, with the fully qualified {@code javax} one stacked redundantly on top. T14 removed the
+ * redundant line. Had they relied on the legacy fallback, they would have silently stopped running here -
+ * no error at startup, just missing initialisation.
+ *
+ * <p>Kept as a record of when the support disappeared, and as a guard should anyone add a
+ * {@code javax.annotation} lifecycle annotation again.
  */
 class JavaxPostConstructSupportTest {
 
@@ -68,7 +75,7 @@ class JavaxPostConstructSupportTest {
     }
 
     @Test
-    void bothJakartaAndLegacyJavaxPostConstructAreInvoked() {
+    void jakartaPostConstructIsInvokedAndTheLegacyJavaxOneIsNot() {
 
         JAVAX_CALLED.set(false);
         JAKARTA_CALLED.set(false);
@@ -83,11 +90,10 @@ class JavaxPostConstructSupportTest {
                     .isTrue();
 
             assertThat(JAVAX_CALLED)
-                    .as("documented current behaviour: Spring Framework 6 still honours the legacy "
-                            + "javax.annotation.PostConstruct. If this fails after the migration, the "
-                            + "three *RestPublishing initialisation methods have stopped running - "
-                            + "switch them to jakarta.annotation.PostConstruct (T14)")
-                    .isTrue();
+                    .as("Spring Framework 7 dropped the legacy javax.annotation.PostConstruct support. "
+                            + "Should this become true again, the support is back - unexpected, and worth "
+                            + "understanding before relying on it")
+                    .isFalse();
 
         }
 

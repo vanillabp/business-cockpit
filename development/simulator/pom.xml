@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>simulator</artifactId>
@@ -125,13 +125,13 @@
   <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>
+      <!--
+        Used to exclude Tomcat in favour of spring-boot-starter-undertow. Undertow support was dropped in
+        Spring Boot 4 - its last release is 4.0.0-M1 - so this simulator now runs on the default Tomcat.
+        Jetty would be the other remaining option; Tomcat was chosen as the default with one moving part
+        less. Relevant only for this development simulator, not for the cockpit itself.
+      -->
       <artifactId>spring-boot-starter-web</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-starter-tomcat</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -144,10 +144,6 @@
     <dependency>
       <groupId>org.mapstruct</groupId>
       <artifactId>mapstruct</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-undertow</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

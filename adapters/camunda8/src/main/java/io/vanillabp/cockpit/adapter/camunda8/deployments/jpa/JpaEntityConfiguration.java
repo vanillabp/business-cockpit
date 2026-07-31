@@ -4,9 +4,9 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.orm.jpa.persistenceunit.PersistenceManagedTypes;
 
 /**
@@ -19,7 +19,9 @@ import org.springframework.orm.jpa.persistenceunit.PersistenceManagedTypes;
  * Therefor JPA entities have to be added programmatically by
  * this configuration.
  */
-@Configuration
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
 @ConditionalOnClass(PersistenceManagedTypes.class)
 @AutoConfigureBefore(HibernateJpaAutoConfiguration.class)
 public class JpaEntityConfiguration {
