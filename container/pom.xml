@@ -85,6 +85,9 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.4.0</version>
+        <!-- Stays on 6.4.0 because this single plugin declaration serves two executions, one of them
+             typescript-fetch, and 7.x output does not compile under the webapp's TypeScript 4.8.4. The
+             spring execution here already sets useSpringBoot3, so it emits jakarta code either way. -->
         <executions>
           <execution>
             <id>generate-gui-api</id>

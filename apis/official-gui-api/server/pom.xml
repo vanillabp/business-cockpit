@@ -32,7 +32,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.24.0</version>
         <executions>
           <execution>
             <id>generate-api-service</id>
@@ -49,6 +49,13 @@
                 <useTags>true</useTags>
                 <interfaceOnly>true</interfaceOnly>
                 <useSpringBoot3>true</useSpringBoot3>
+                <!--
+                  openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS).
+                  The wire values come from the spec and are unaffected either way, but the constant names
+                  are part of the published Java API - renaming them would break consumers at compile
+                  time for no reason. 'legacy' restores the previous naming.
+                -->
+                <enumPropertyNaming>legacy</enumPropertyNaming>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
               </configOptions>
@@ -67,12 +74,10 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
-      <version>5.3.24</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
-      <version>5.3.24</version>
     </dependency>
     <dependency>
       <groupId>jakarta.validation</groupId>

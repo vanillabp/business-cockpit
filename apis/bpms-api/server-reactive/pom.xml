@@ -20,12 +20,16 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.24.0</version>
         <configuration>
           <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
           <generatorName>spring</generatorName>
           <generateSupportingFiles>true</generateSupportingFiles>
           <configOptions>
+            <!-- openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS). The
+                 wire values come from the spec either way, but the constant names are part of the
+                 published Java API - 'legacy' keeps them as they were. -->
+            <enumPropertyNaming>legacy</enumPropertyNaming>
               <useTags>true</useTags>
               <interfaceOnly>true</interfaceOnly>
               <useSpringBoot3>true</useSpringBoot3>
