@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.adapter.common.workflow.kafka;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.workflow.events.WorkflowCancelledEvent;

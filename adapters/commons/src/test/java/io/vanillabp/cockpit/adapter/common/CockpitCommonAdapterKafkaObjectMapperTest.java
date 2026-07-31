@@ -2,7 +2,6 @@ package io.vanillabp.cockpit.adapter.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -31,7 +30,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
      * The mapper factory method is an instance method on the configuration class, but it does not touch
      * any instance state, so it can be exercised without a Spring context.
      */
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper =
+    private final tools.jackson.databind.ObjectMapper objectMapper =
             new CockpitCommonAdapterKafkaConfiguration().businessCockpitProtobufObjectMapper();
 
     public static class Sample {
@@ -61,7 +60,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void theSerializedFormIsStable() throws JsonProcessingException {
+    void theSerializedFormIsStable() {
 
         final var json = objectMapper.writeValueAsString(sample());
 
@@ -77,7 +76,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void datesAreWrittenAsIsoStringsNotTimestamps() throws JsonProcessingException {
+    void datesAreWrittenAsIsoStringsNotTimestamps() {
 
         final var json = objectMapper.writeValueAsString(sample());
 
@@ -87,7 +86,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void timestampsAreNormalisedToUtc() throws JsonProcessingException {
+    void timestampsAreNormalisedToUtc() {
 
         // the input carries +02:00; the mapper's time zone is UTC
         final var json = objectMapper.writeValueAsString(sample());
@@ -98,7 +97,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void nullFieldsAreOmitted() throws JsonProcessingException {
+    void nullFieldsAreOmitted() {
 
         final var json = objectMapper.writeValueAsString(sample());
 
@@ -107,7 +106,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void bigDecimalScaleIsPreserved() throws JsonProcessingException {
+    void bigDecimalScaleIsPreserved() {
 
         final var json = objectMapper.writeValueAsString(sample());
 
@@ -117,7 +116,7 @@ class CockpitCommonAdapterKafkaObjectMapperTest {
     }
 
     @Test
-    void theFormatRoundTrips() throws JsonProcessingException {
+    void theFormatRoundTrips() {
 
         final var json = objectMapper.writeValueAsString(sample());
 

@@ -1,12 +1,12 @@
 package io.vanillabp.cockpit.commons.rest.adapter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import feign.Feign.Builder;
 import feign.Request;
 import feign.Retryer;
 import feign.form.FormEncoder;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
+import feign.jackson3.Jackson3Decoder;
+import feign.jackson3.Jackson3Encoder;
 import io.vanillabp.cockpit.commons.rest.adapter.oauth.OauthBearerTokenHandler;
 import io.vanillabp.cockpit.commons.rest.adapter.tls.TlsTruststoreUtil;
 import okhttp3.Authenticator;
@@ -40,7 +40,11 @@ import javax.net.ssl.X509TrustManager;
 public abstract class ClientsConfigurationBase {
 
     @Autowired
-    protected Optional<ObjectMapper> objectMapper;
+    /*
+     * Jackson 3: the Feign codecs take a JsonMapper rather than the ObjectMapper base class. Spring Boot 4
+     * auto-configures exactly that bean ("jacksonJsonMapper"), so this stays a plain injection.
+     */
+    protected Optional<JsonMapper> objectMapper;
     
     protected void configureOkHttpClient(
             final Class<?> clientClass,
@@ -119,9 +123,9 @@ public abstract class ClientsConfigurationBase {
         
         if (objectMapper.isPresent()) {
             builder.decoder(
-                    new JacksonDecoder(objectMapper.get()));
+                    new Jackson3Decoder(objectMapper.get()));
             builder.encoder(
-                    new FormEncoder(new JacksonEncoder(objectMapper.get())));
+                    new FormEncoder(new Jackson3Encoder(objectMapper.get())));
         }
 
     }

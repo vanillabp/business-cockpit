@@ -1,12 +1,13 @@
 package io.vanillabp.cockpit.adapter.common.protobuf;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.NullNode;
-import com.fasterxml.jackson.databind.node.NumericNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.BooleanNode;
+import tools.jackson.databind.node.NullNode;
+import tools.jackson.databind.node.NumericNode;
+import tools.jackson.databind.node.ObjectNode;
+// Jackson 3 renamed TextNode to StringNode
+import tools.jackson.databind.node.StringNode;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsArrayValue;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsValue;
@@ -22,9 +23,10 @@ public class DetailsConverter {
 
         final var builder = DetailsMap.newBuilder();
 
+        // Jackson 3 replaced fields() (an Iterator) by properties() (a Set)
         objectNode
-                .fields()
-                .forEachRemaining(entry -> {
+                .properties()
+                .forEach(entry -> {
                     final var detailsArrayValue = mapDetailsArrayJsonToProtobuf(entry.getValue());
                     builder.putDetails(entry.getKey(), detailsArrayValue);
                 });
@@ -70,7 +72,7 @@ public class DetailsConverter {
             return builder.build();
         }
 
-        if (node instanceof TextNode textNode) {
+        if (node instanceof StringNode textNode) {
             builder.setStringValue(textNode.textValue());
             return builder.build();
         }

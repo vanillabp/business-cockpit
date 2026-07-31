@@ -66,6 +66,16 @@
 
   <dependencies>
     <dependency>
+      <!--
+        The generated ApiClient and ApiResponseDecoder use feign.jackson.* - openapi-generator emits
+        Jackson 2 codecs. Our own code moved to feign-jackson3 in T16, so this module declares the
+        Jackson 2 variant explicitly instead of picking it up transitively. Both can coexist: different
+        packages, and ClientsConfigurationBase replaces the codecs on the Feign builder anyway.
+      -->
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-jackson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>commons</artifactId>
       <version>${project.version}</version>

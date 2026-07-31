@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.usertask.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;

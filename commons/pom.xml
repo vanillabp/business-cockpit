@@ -68,7 +68,12 @@
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
-      <artifactId>feign-jackson</artifactId>
+      <!--
+        Jackson 3 variant. Its classes are feign.jackson3.Jackson3Decoder/Jackson3Encoder, and it first
+        appeared in Feign 13.10 - hence the explicit version below, the BOM manages an older one.
+      -->
+      <artifactId>feign-jackson3</artifactId>
+      <version>13.13</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
