@@ -223,7 +223,12 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-gateway</artifactId>
+      <!--
+        Renamed in Gateway 5: the webflux server variant carries the transport in its name now, the old
+        spring-cloud-starter-gateway ends at 4.3.5. Class and package names are unchanged
+        (org.springframework.cloud.gateway.route..), so only the coordinates move.
+      -->
+      <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -285,6 +290,16 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <!--
+        For the security chain tests: AssertJ, plus spring-test for MockServerWebExchange and
+        ReflectionTestUtils. The reactive filter chains can be built and inspected without starting a
+        context, which the container's context could not do anyway - it needs MongoDB and Kafka.
+      -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

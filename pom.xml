@@ -206,7 +206,13 @@
       <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>
-        <version>2025.0.3</version>
+        <!--
+          2025.1.x is the first train built against Spring Boot 4. It pins spring-boot.version to 4.0.7,
+          this project runs 4.1.0 - the Boot BOM is imported above, so it wins for everything the two have
+          in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
+          test recipe rather than by Spring Cloud's own compatibility matrix.
+        -->
+        <version>2025.1.2</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
