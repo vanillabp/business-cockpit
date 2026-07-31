@@ -2,7 +2,10 @@ version: '3'
 
 services:
   business-cockpit-mongo:
-    image: mongo:4.4
+    # 4.4 has been out of support since February 2024 and the 5.8 driver only barely still speaks
+    # to it. 8.0 is the current LTS. The jump crosses four server majors, so the replica set
+    # initialisation and the user setup in ./mongo/ were re-verified against it.
+    image: mongo:8.0
     container_name: business-cockpit-mongo
     restart: "no"
     ports:

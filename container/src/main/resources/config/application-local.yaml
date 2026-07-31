@@ -1,7 +1,12 @@
 spring:
-  data:
-    mongodb:
-      uri: mongodb://business-cockpit:business-cockpit@localhost:27017/business-cockpit
+  # Spring Boot 4 renamed the connection settings from "spring.data.mongodb" to "spring.mongodb"; the
+  # old keys are deprecated at level "error" and are no longer bound, so the URI below would have been
+  # ignored without a word and the driver would have fallen back to an unauthenticated localhost:27017.
+  # directConnection is required because the compose Mongo is a single node replica set that advertises
+  # its member as "business-cockpit-mongo:27017" - a name that does not resolve outside the compose
+  # network. Without it the driver discovers that host and never reaches the server it just talked to.
+  mongodb:
+    uri: mongodb://business-cockpit:business-cockpit@localhost:27017/business-cockpit?directConnection=true
 
 bpms-api:
   username: abc
