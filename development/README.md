@@ -319,7 +319,7 @@ mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 After the build succeeded the service can be started:
 
 ```sh
-cd business-cockpit
+cd container
 java -Dspring.profiles.active=local -jar target/business-cockpit-*-runnable.jar
 ```
 
