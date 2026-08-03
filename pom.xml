@@ -197,6 +197,20 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <!--
+          Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
+          and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
+          which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
+          fails at runtime with NoClassDefFoundError: feign/codec/JsonDecoder as soon as a client is built.
+          The BOM keeps every feign artifact on one version.
+        -->
+        <groupId>io.github.openfeign</groupId>
+        <artifactId>feign-bom</artifactId>
+        <version>13.13</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
         <version>4.1.0</version>

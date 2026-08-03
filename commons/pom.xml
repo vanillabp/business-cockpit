@@ -69,11 +69,10 @@
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <!--
-        Jackson 3 variant. Its classes are feign.jackson3.Jackson3Decoder/Jackson3Encoder, and it first
-        appeared in Feign 13.10 - hence the explicit version below, the BOM manages an older one.
+        Jackson 3 variant, classes are feign.jackson3.Jackson3Decoder/Jackson3Encoder. The version comes
+        from the feign-bom imported in the root pom - it has to match feign-core, see the comment there.
       -->
       <artifactId>feign-jackson3</artifactId>
-      <version>13.13</version>
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
