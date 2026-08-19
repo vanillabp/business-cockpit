@@ -34,7 +34,6 @@ public class UserTaskRestPublishing extends UserTaskPublishingBase implements Us
     }
 
     @PostConstruct
-    @javax.annotation.PostConstruct
     public void validateAutowiring() {
         
         if (bpmsApi.isPresent()) {

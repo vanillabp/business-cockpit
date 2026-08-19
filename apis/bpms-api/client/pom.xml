@@ -20,7 +20,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.24.0</version>
         <configuration>
           <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
           <generatorName>java</generatorName>
@@ -29,6 +29,14 @@
           <invokerPackage>io.vanillabp.cockpit.bpms.api.v1</invokerPackage>
           <generateSupportingFiles>true</generateSupportingFiles>
           <configOptions>
+            <!-- openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS). The
+                 wire values come from the spec either way, but the constant names are part of the
+                 published Java API - 'legacy' keeps them as they were. -->
+            <enumPropertyNaming>legacy</enumPropertyNaming>
+            <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
+                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
+                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+            <containerDefaultToNull>true</containerDefaultToNull>
               <useTags>true</useTags>
               <interfaceOnly>true</interfaceOnly>
               <ensureUniqueParams>false</ensureUniqueParams>
@@ -39,7 +47,8 @@
           <addCompileSourceRoot>true</addCompileSourceRoot>
           <generateApiTests>false</generateApiTests>
           <generateModelTests>false</generateModelTests>
-          <supportingFilesToGenerate>RFC3339DateFormat.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
+          <!-- RFC3339JavaTimeModule was added by openapi-generator 7.x; ApiClient references it -->
+          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
         </configuration>
         <executions>
             <execution>

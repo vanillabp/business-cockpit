@@ -9,7 +9,9 @@
   </parent>
 
   <properties>
-    <camunda.version>7.17.0</camunda.version>
+    <!-- Community 7.24.0 is the last release of that line. The Enterprise switch this adapter needs for
+         Spring Boot 4 happens in T15, together with the Boot 4.1 bump. -->
+    <camunda.version>7.24.0</camunda.version>
   </properties>
   
   <artifactId>camunda7-spring-boot-adapter</artifactId>

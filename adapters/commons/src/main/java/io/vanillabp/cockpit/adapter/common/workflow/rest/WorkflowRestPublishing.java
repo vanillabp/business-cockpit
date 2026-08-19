@@ -28,7 +28,6 @@ public class WorkflowRestPublishing extends WorkflowPublishingBase implements Wo
     }
 
     @PostConstruct
-    @javax.annotation.PostConstruct
     public void validateAutowiring() {
         if (bpmsApi.isPresent()) {
             return;
