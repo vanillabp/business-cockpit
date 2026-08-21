@@ -89,6 +89,9 @@ public class BpmsApiController implements BpmsApi {
                     
                     task.setEndedAt(
                             completedEvent.getTimestamp());
+                    // who completed the task, as reported by the application; read by the
+                    // notification poller to skip a self-completion
+                    task.setInitiator(completedEvent.getInitiator());
                     
                     return userTaskService.completeUserTask(
                             task,
@@ -115,6 +118,7 @@ public class BpmsApiController implements BpmsApi {
                     
                     task.setEndedAt(
                             completedEvent.getTimestamp());
+                    task.setInitiator(completedEvent.getInitiator());
                     
                     return userTaskService.cancelUserTask(
                             task,

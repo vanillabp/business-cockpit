@@ -30,6 +30,15 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private OffsetDateTime createdAt;
 
+    /**
+     * When the cockpit stored the report about this workflow, measured by the cockpit's own clock -
+     * as opposed to {@link #createdAt}, which is the timestamp of the reporting workflow system.
+     * Kept in sync with the equally named property of a user task, so a delta-scan (as done by the
+     * notification poller for user tasks) can tell a newly reported workflow from an updated one
+     * without comparing its cursor to a foreign clock.
+     */
+    private OffsetDateTime reportedAt;
+
     private OffsetDateTime updatedAt;
 
     private String updatedBy;
@@ -160,6 +169,14 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public OffsetDateTime getReportedAt() {
+        return reportedAt;
+    }
+
+    public void setReportedAt(OffsetDateTime reportedAt) {
+        this.reportedAt = reportedAt;
     }
 
     public void setCreatedAt(OffsetDateTime createdAt) {

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.notification.poller;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
@@ -35,7 +36,8 @@ import reactor.core.scheduler.Schedulers;
  * A Mongo lease ({@link NotificationPollState}) makes a cycle run on only one cluster node; the
  * persisted cursor makes delta-scanning resilient across restarts; the persistent
  * {@link NotificationOutboxEntry} (with its unique index) makes enqueue idempotent and delivery
- * retried until sent. Registered only when at least one {@link NotificationService} bean exists so
+ * retried until sent - per recipient, as long as the medium reports which recipients it failed to
+ * reach ({@link NotificationDeliveryException}). Registered only when at least one {@link NotificationService} bean exists so
  * installations without notifications keep their exact runtime behavior.
  * <p>
  * Runs on a bounded-elastic scheduler; the reactive repositories and the (blocking) user directory
@@ -243,7 +245,8 @@ public class NotificationPoller {
 
     }
 
-    private void drainOutbox(
+    /** Package-private for testability, like {@link #runCycle()} and {@link #runCleanup()}. */
+    void drainOutbox(
             final OffsetDateTime now) {
 
         final var pending = outboxRepository
@@ -273,17 +276,9 @@ public class NotificationPoller {
             final Map<String, NotificationService> serviceByType,
             final OffsetDateTime now) {
 
-        // count this delivery attempt; once attempts reaches the maximum the entry becomes stale
-        // and is excluded from future scans until its counter is reset manually in MongoDB
-        entries.forEach(e -> e.setAttempts(e.getAttempts() + 1));
-        final var attemptNo = entries.stream()
-                .mapToInt(NotificationOutboxEntry::getAttempts)
-                .max()
-                .orElse(1);
-
         final var service = serviceByType.get(key.medium());
         if (service == null) {
-            recordFailure(entries, key, attemptNo, "no NotificationService for medium '" + key.medium() + "'", null);
+            recordFailure(entries, key, "no NotificationService for medium '" + key.medium() + "'", null);
             return;
         }
 
@@ -304,8 +299,27 @@ public class NotificationPoller {
         try {
             service.sendNotification(recipientIds, task);
             markSent(entries, now);
+        } catch (NotificationDeliveryException e) {
+            // the medium told us which recipients it could not reach: keep exactly those pending,
+            // so the ones already reached are not notified again on the next attempt
+            final var failed = e.getFailedRecipientUserIds();
+            if (failed.isEmpty()) {
+                recordFailure(entries, key, "delivery failed", e);
+                return;
+            }
+            final var pending = entries.stream()
+                    .filter(entry -> failed.contains(entry.getRecipientUserId()))
+                    .toList();
+            final var delivered = entries.stream()
+                    .filter(entry -> !failed.contains(entry.getRecipientUserId()))
+                    .toList();
+            if (!delivered.isEmpty()) {
+                markSent(delivered, now);
+            }
+            recordFailure(pending, key, "delivery failed for " + failed, e);
         } catch (Exception e) {
-            recordFailure(entries, key, attemptNo, "delivery failed", e);
+            // no per-recipient information: the whole bulk stays pending
+            recordFailure(entries, key, "delivery failed", e);
         }
 
     }
@@ -313,12 +327,24 @@ public class NotificationPoller {
     private void recordFailure(
             final List<NotificationOutboxEntry> entries,
             final BulkKey key,
-            final int attemptNo,
             final String reason,
             final Exception cause) {
 
-        // persist the incremented attempt counter; the bulk stays pending and is retried next cycle
-        // (bulk-level at-least-once) until it either succeeds or turns stale
+        if (entries.isEmpty()) {
+            return;
+        }
+
+        // count this delivery attempt for the entries which stay pending; once attempts reaches the
+        // maximum an entry becomes stale and is excluded from future scans until its counter is
+        // reset manually in MongoDB
+        entries.forEach(e -> e.setAttempts(e.getAttempts() + 1));
+        final var attemptNo = entries.stream()
+                .mapToInt(NotificationOutboxEntry::getAttempts)
+                .max()
+                .orElse(1);
+
+        // persist the incremented attempt counter; these entries stay pending and are retried next
+        // cycle (at-least-once per recipient) until they either succeed or turn stale
         outboxRepository.saveAll(entries).collectList().block();
 
         if (attemptNo >= maxDeliveryAttempts) {

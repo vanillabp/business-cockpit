@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.notification.email;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.notification.AbstractTemplatingNotificationService;
+import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationProperties;
 import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.notification.RecipientConfiguration;
@@ -140,19 +141,21 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
         final var context = buildContext(userTask, notificationType);
 
         final var failures = new ArrayList<String>();
+        Exception lastFailure = null;
         for (final var userId : userIds) {
             try {
                 sendToRecipient(userId, userTask, notificationType, forced, context);
             } catch (Exception e) {
                 logger.error("Could not send notification e-mail to user '{}'", userId, e);
                 failures.add(userId);
+                lastFailure = e;
             }
         }
 
         if (!failures.isEmpty()) {
-            // signal failure so the notification poller leaves the bulk pending and retries it
-            throw new IllegalStateException(
-                    "Could not deliver notification e-mail to users " + failures);
+            // name the failed recipients so the poller retries only those and does not send the
+            // e-mail again to the recipients already reached
+            throw new NotificationDeliveryException(failures, lastFailure);
         }
 
     }

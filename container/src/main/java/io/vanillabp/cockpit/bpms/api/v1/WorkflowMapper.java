@@ -33,6 +33,8 @@ public abstract class WorkflowMapper {
 
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
@@ -46,6 +48,8 @@ public abstract class WorkflowMapper {
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
