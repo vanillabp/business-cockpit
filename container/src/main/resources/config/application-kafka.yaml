@@ -1,3 +1,8 @@
+spring:
+  kafka:
+    # the single-node broker of development/docker-compose.yaml
+    bootstrap-servers: localhost:9092
+
 bpms-api:
   kafka:
     group-id-suffix: local

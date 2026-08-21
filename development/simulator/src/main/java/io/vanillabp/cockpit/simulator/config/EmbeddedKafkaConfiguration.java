@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.EmbeddedKafkaKraftBroker;
 import org.springframework.util.StringUtils;
@@ -20,23 +21,43 @@ import java.util.HashSet;
  * For external addresses you can use Spring Boot property
  * &quote;server.address&quot; to bind to at port 9093.
  * <p>
- * Hint: Embedded Kafka is only active if property
- * &quot;spring.kafka.bootstrap-servers&quot; is not set which means to use
- * external Kafka.
+ * The broker is part of the "kafka-sync" mode and started by default, so reporting by Kafka needs
+ * no Kafka installation at all. To report to a real broker instead - e.g. the single-node Kafka of
+ * {@code development/docker-compose.yaml}, which listens at the same address - switch the embedded
+ * one off:
+ * <ul>
+ *   <li>{@code -Dkafka.embedded=false} keeps the client at its default {@code localhost:9092}</li>
+ *   <li>{@code -Dspring.kafka.bootstrap-servers=<host>:<port>} points the client somewhere else and
+ *       implies switching the embedded broker off - it would be pointless (and would fail binding
+ *       the port if the external broker runs locally)</li>
+ * </ul>
  *
  * @author https://stackoverflow.com/questions/63812994/how-do-i-implement-in-memory-or-embedded-kafka-not-for-testing-purposes
  */
 @Configuration
+@Profile("kafka-sync")
 public class EmbeddedKafkaConfiguration {
 
     private static String LOCAL_BROKER_PORT = "9092";
     private static String EXTERNAL_BROKER_PORT = "9093";
 
+    /**
+     * "EXTERNAL" is the listener name KafkaClusterTestKit pre-binds for itself, so it cannot serve a
+     * fixed port (see the reasoning in {@link #broker()}). The listeners we do promise get names of
+     * our own, and "CONTROLLER" is the name a KRaft node in combined mode requires to appear in
+     * {@code listeners}.
+     */
+    private static String TESTKIT_LISTENER = "EXTERNAL";
+    private static String LOCAL_LISTENER = "LOCAL";
+    private static String REMOTE_LISTENER = "REMOTE";
+    private static String CONTROLLER_LISTENER = "CONTROLLER";
+
     @Value("${server.address:}")
     private String serverAddress;
 
     @Bean
-    @ConditionalOnExpression("'${spring.kafka.bootstrap-servers:}'.empty and ${kafka.embedded:false}")
+    // switched on unless told otherwise, either by 'kafka.embedded' or by naming an external broker
+    @ConditionalOnExpression("${kafka.embedded:true} and '${spring.kafka.bootstrap-servers:}'.empty")
     public EmbeddedKafkaBroker broker() throws Exception {
 
         String bindAddress;
@@ -81,17 +102,22 @@ public class EmbeddedKafkaConfiguration {
          * 3. The inter-broker listener has to be one that is advertised. EXTERNAL is not advertised - its
          *    port is unknown at configuration time - so inter.broker.listener.name is pointed at LOCAL.
          */
-        final var advertisedListeners = "LOCAL://localhost:"
+        final var advertisedListeners = LOCAL_LISTENER + "://localhost:"
                 + LOCAL_BROKER_PORT
-                + ",REMOTE://"
+                + "," + REMOTE_LISTENER + "://"
                 + bindAddress + ":"
                 + EXTERNAL_BROKER_PORT;
         broker.brokerProperty("listeners",
-                "EXTERNAL://localhost:0," + advertisedListeners + ",CONTROLLER://localhost:0");
+                TESTKIT_LISTENER + "://localhost:0,"
+                + advertisedListeners
+                + "," + CONTROLLER_LISTENER + "://localhost:0");
         broker.brokerProperty("advertised.listeners", advertisedListeners);
         broker.brokerProperty("listener.security.protocol.map",
-                "EXTERNAL:PLAINTEXT,LOCAL:PLAINTEXT,REMOTE:PLAINTEXT,CONTROLLER:PLAINTEXT");
-        broker.brokerProperty("inter.broker.listener.name", "LOCAL");
+                TESTKIT_LISTENER + ":PLAINTEXT,"
+                + LOCAL_LISTENER + ":PLAINTEXT,"
+                + REMOTE_LISTENER + ":PLAINTEXT,"
+                + CONTROLLER_LISTENER + ":PLAINTEXT");
+        broker.brokerProperty("inter.broker.listener.name", LOCAL_LISTENER);
 
         return broker;
 

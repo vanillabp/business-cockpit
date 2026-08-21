@@ -257,9 +257,12 @@ For local development there are two preconditions:
 1. [A MongoDB cluster](#mongodb)
 1. [A local NPM registry](#local-npm-registry)
 
-Additionally, the provided docker-compose configuration contains
-[Mailpit](#notification-e-mails-mailpit), which is not required to run the business cockpit but to
-check notification e-mails while developing it.
+Additionally, the provided docker-compose configuration contains two services which are not
+required to run the business cockpit but to develop and test particular features:
+
+1. [Mailpit](#notification-e-mails-mailpit) to check notification e-mails
+1. [A single-node Kafka](#kafka) to report BPMS events by Kafka instead of the REST API (only
+   needed for a real business service - the simulation service brings its own broker)
 
 All of them can be started by a prepared configuration using docker-compose:
 
@@ -349,6 +352,54 @@ curl -s 'http://localhost:8025/api/v1/search?query=to%3Ajohn%40doe.com' | jq '.m
 # start over
 curl -s -X DELETE http://localhost:8025/api/v1/messages
 ```
+
+### Kafka
+
+Instead of reporting BPMS events by the REST API a business service may report them by Kafka. For
+that a single-node broker (KRaft mode, so no ZooKeeper involved) is part of the provided
+`docker-compose.yaml`, listening at `localhost:9092`. Topics are created on demand, so there is
+nothing to set up.
+
+It is needed for business services which report by Kafka. The
+[simulation service](#simulation-service) does not need it: it starts an embedded broker at the same
+address, unless [switched off](#kafka).
+
+The business cockpit consumes those events using the Spring profile `kafka`, which sets the
+bootstrap servers as well as the topic names `workflows`, `user-tasks` and `modules`:
+
+```sh
+java -DworkerId=local -Dspring.profiles.active=local,kafka,mailpit -jar target/business-cockpit-*-runnable.jar
+```
+
+*Hint:* `workerId` is mandatory for consuming Kafka events
+(see https://github.com/vanillabp/spring-boot-support#worker-id).
+
+The reporting side has to use the same broker. The [simulation service](#simulation-service) brings
+its own embedded broker, which is started by default and listens at the very same address - so for
+reporting by Kafka nothing has to be started at all:
+
+```sh
+cd development/simulator
+java --add-opens=java.base/java.lang=ALL-UNNAMED \
+    -Dspring.profiles.active=kafka-sync \
+    -jar target/simulator-*-runnable.jar
+```
+
+*Hint:* Besides `localhost:9092` the embedded broker binds port 9093 (reachable by other machines,
+see `server.address`) and 9094 (its own KRaft controller, of no use to clients).
+
+Whoever wants to use the "real" broker of the docker-compose instead switches the embedded one off.
+Otherwise both would compete for port 9092 and the simulation service won't start:
+
+```sh
+java --add-opens=java.base/java.lang=ALL-UNNAMED \
+    -Dspring.profiles.active=kafka-sync \
+    -Dkafka.embedded=false \
+    -jar target/simulator-*-runnable.jar
+```
+
+Naming a broker explicitly by `-Dspring.kafka.bootstrap-servers=<host>:<port>` switches the embedded
+one off as well - useful for a broker which is not at `localhost:9092`.
 
 ## Build and Run the Business Cockpit
 
