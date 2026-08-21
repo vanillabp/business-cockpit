@@ -312,4 +312,32 @@ public class V000001 {
 
         return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_BUSINESS_ID + "' }";
     }
+
+    /**
+     * Backfills {@code reportedAt} of workflows reported before that property existed;
+     * {@code createdAt} (the reporting system's timestamp) is the best approximation available.
+     *
+     * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getReportedAt()
+     */
+    @Changeset(order = 1012)
+    public String introduceReportedAt(
+            final ReactiveMongoTemplate mongo) {
+
+        final var query = new Query(Criteria.where("reportedAt").exists(false));
+        query.fields().include("_id", "createdAt");
+        mongo
+                .find(query, DBObject.class, Workflow.COLLECTION_NAME)
+                .collectList()
+                .block()
+                .forEach(document -> mongo
+                        .updateFirst(
+                                new Query(Criteria.where("_id").is(document.get("_id"))),
+                                new Update().set("reportedAt", document.get("createdAt")),
+                                Workflow.COLLECTION_NAME)
+                        .block());
+
+        return null;
+
+    }
+
 }

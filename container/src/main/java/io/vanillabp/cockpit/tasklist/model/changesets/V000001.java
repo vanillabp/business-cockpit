@@ -8,6 +8,7 @@ import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.bson.types.BasicBSONList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -302,6 +303,56 @@ public class V000001 {
             bsonGroup.put("sort", group.getSort());
         }
         return bsonGroup;
+
+    }
+
+    /**
+     * Backfills {@code reportedAt} (and the per-candidate {@code candidateUsersSince}) of tasks
+     * reported before those properties existed. {@code createdAt} is the best approximation
+     * available - it is the reporting system's timestamp, but for existing records it is
+     * necessarily in the past, which is all the delta-scan needs.
+     */
+    @Changeset(order = 12)
+    public String introduceReportedAtAndCandidateUsersSince(
+            final ReactiveMongoTemplate mongo) {
+
+        final var query = new Query(Criteria.where("reportedAt").exists(false));
+        query.fields().include("_id", "createdAt", "candidateUsers");
+        mongo
+                .find(query, DBObject.class, UserTask.COLLECTION_NAME)
+                .collectList()
+                .block()
+                .forEach(document -> {
+                    final var createdAt = document.get("createdAt");
+                    final var update = new Update();
+                    update.set("reportedAt", createdAt);
+                    final var candidateUsers = document.get("candidateUsers");
+                    if (candidateUsers instanceof List<?> candidates) {
+                        final var candidateUsersSince = new BasicBSONList();
+                        candidates
+                                .stream()
+                                // a nested document is a Map for both BasicDBObject and
+                                // org.bson.Document, whichever the driver hands out
+                                .filter(candidate -> candidate instanceof Map)
+                                .map(candidate -> ((Map<?, ?>) candidate).get("id"))
+                                .filter(Objects::nonNull)
+                                .forEach(id -> {
+                                    final var since = new BasicDBObject();
+                                    since.put("userId", id);
+                                    since.put("timestamp", createdAt);
+                                    candidateUsersSince.add(since);
+                                });
+                        update.set("candidateUsersSince", candidateUsersSince);
+                    }
+                    mongo
+                            .updateFirst(
+                                    new Query(Criteria.where("_id").is(document.get("_id"))),
+                                    update,
+                                    UserTask.COLLECTION_NAME)
+                            .block();
+                });
+
+        return null;
 
     }
 

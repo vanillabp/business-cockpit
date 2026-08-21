@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
+import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -95,7 +96,55 @@ public class UserTaskService {
     @Autowired
     private ReactiveMongoTemplate mongoTemplate;
 
+    @Autowired
+    private ReactiveUserContext currentUserContext;
+
     private Disposable dbChangesSubscription;
+
+    /**
+     * The initiator to be recorded for a change caused by the business cockpit itself: the
+     * logged-in user, or {@link UpdateInformationAware#COCKPIT_USER} if there is none (e.g. a
+     * cockpit-side job). Kept apart from {@link UpdateInformationAware#SYSTEM_USER}, which marks
+     * changes reported by the workflow system.
+     * <p>
+     * The initiator is the only record of who caused the latest change: {@code updatedBy} is audit
+     * information overwritten by {@code UpdateInformationEventListener} on every save. The
+     * notification poller reads it to skip notifications a user triggered himself, so every
+     * cockpit-side modification has to maintain it.
+     */
+    private Mono<String> cockpitInitiator() {
+
+        return Mono
+                .defer(currentUserContext::getUserLoggedInAsMono)
+                .onErrorResume(e -> Mono.empty())
+                .defaultIfEmpty(UpdateInformationAware.COCKPIT_USER);
+
+    }
+
+    /** Saves a user task changed by a cockpit action, recording the acting user as initiator. */
+    private Mono<UserTask> saveInitiatedByCockpit(
+            final UserTask userTask) {
+
+        return cockpitInitiator()
+                .flatMap(initiator -> {
+                    userTask.setInitiator(initiator);
+                    return userTasks.save(userTask);
+                });
+
+    }
+
+    /** @see #saveInitiatedByCockpit(UserTask) */
+    private Flux<UserTask> saveAllInitiatedByCockpit(
+            final Flux<UserTask> changedUserTasks) {
+
+        return cockpitInitiator()
+                .flatMapMany(initiator -> userTasks.saveAll(
+                        changedUserTasks.map(userTask -> {
+                            userTask.setInitiator(initiator);
+                            return userTask;
+                        })));
+
+    }
 
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
@@ -155,7 +204,7 @@ public class UserTaskService {
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     userTask.setReadAt(userId);
-                    return userTasks.save(userTask);
+                    return saveInitiatedByCockpit(userTask);
                 });
 
     }
@@ -164,7 +213,7 @@ public class UserTaskService {
             final Collection<String> userTaskIds,
             final String userId) {
 
-        return userTasks.saveAll(
+        return saveAllInitiatedByCockpit(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
@@ -181,7 +230,7 @@ public class UserTaskService {
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     userTask.clearReadAt(userId);
-                    return userTasks.save(userTask);
+                    return saveInitiatedByCockpit(userTask);
                 });
 
     }
@@ -190,7 +239,7 @@ public class UserTaskService {
             final Collection<String> userTaskIds,
             final String userId) {
 
-        return userTasks.saveAll(
+        return saveAllInitiatedByCockpit(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
@@ -207,7 +256,7 @@ public class UserTaskService {
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     userTask.addCandidatePerson(person);
-                    return userTasks.save(userTask);
+                    return saveInitiatedByCockpit(userTask);
                 });
 
     }
@@ -216,7 +265,7 @@ public class UserTaskService {
             final Collection<String> userTaskIds,
             final Person person) {
 
-        return userTasks.saveAll(
+        return saveAllInitiatedByCockpit(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
@@ -233,7 +282,7 @@ public class UserTaskService {
         return getUserTask(userTaskId)
                 .flatMap(userTask -> {
                     userTask.removeCandidatePerson(personId);
-                    return userTasks.save(userTask);
+                    return saveInitiatedByCockpit(userTask);
                 });
 
     }
@@ -242,7 +291,7 @@ public class UserTaskService {
             final Collection<String> userTaskIds,
             final String personId) {
 
-        return userTasks.saveAll(
+        return saveAllInitiatedByCockpit(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
@@ -266,7 +315,7 @@ public class UserTaskService {
                         return Mono.error(new UserTaskAlreadyCompletedException(userTaskId));
                     }
                     userTask.setFollowUpDate(normalizedFollowUpDate);
-                    return userTasks.save(userTask);
+                    return saveInitiatedByCockpit(userTask);
                 });
 
     }
@@ -280,7 +329,7 @@ public class UserTaskService {
                     if ((userTask.getAssignee() == null)
                         || !userTask.getAssignee().getId().equals(person.getId())) {
                         userTask.setAssignee(person);
-                        return userTasks.save(userTask);
+                        return saveInitiatedByCockpit(userTask);
                     }
                     return Mono.just(userTask);
                 });
@@ -291,7 +340,7 @@ public class UserTaskService {
             final Collection<String> userTaskIds,
             final Person person) {
 
-        return userTasks.saveAll(
+        return saveAllInitiatedByCockpit(
                 userTasks
                         .findAllById(userTaskIds)
                         .map(userTask -> {
@@ -313,6 +362,7 @@ public class UserTaskService {
         update.unset("assignee");
         update.set("updatedAt", OffsetDateTime.now());
         update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
+        update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
 
         return mongoTemplate
                 .updateFirst(query, update, UserTask.class)
@@ -333,6 +383,7 @@ public class UserTaskService {
         update.unset("assignee");
         update.set("updatedAt", OffsetDateTime.now());
         update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
+        update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
 
         final var findQuery = new Query();
         findQuery.addCriteria(Criteria.where("id").in(userTaskIds));
@@ -696,6 +747,13 @@ public class UserTaskService {
             // for correct sorting
             userTask.setDueDate(OffsetDateTime.MAX);
         }
+
+        // the cockpit's own clock: 'createdAt' is the reporting system's timestamp and may lag
+        // behind (or run ahead of) this one, which would break delta-scanning for notifications
+        final var reportedAt = OffsetDateTime.now();
+        userTask.setReportedAt(reportedAt);
+        // the candidates a report brings along are known as of now
+        userTask.stampCandidatesSince(reportedAt);
         
         return userTasks
                 .save(userTask)

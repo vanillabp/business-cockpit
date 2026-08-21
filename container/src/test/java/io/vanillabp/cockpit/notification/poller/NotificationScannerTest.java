@@ -79,7 +79,18 @@ class NotificationScannerTest {
         task.setBpmnProcessId("proc");
         task.setCreatedAt(AFTER);
         task.setUpdatedAt(AFTER);
+        task.setReportedAt(AFTER);
         return task;
+    }
+
+    /** Personal candidates the cockpit learned about at the given point in time. */
+    private static void candidates(
+            final UserTask task,
+            final OffsetDateTime since,
+            final String... userIds) {
+        task.setCandidateUsers(new ArrayList<>(
+                java.util.Arrays.stream(userIds).map(NotificationScannerTest::person).toList()));
+        task.stampCandidatesSince(since);
     }
 
     @Test
@@ -115,7 +126,8 @@ class NotificationScannerTest {
     @Test
     void created_notOlderThanCursor_notReported() {
         final var task = openTask();
-        task.setCreatedAt(CURSOR.minusMinutes(5)); // created before the window
+        task.setCreatedAt(CURSOR.minusMinutes(5));
+        task.setReportedAt(CURSOR.minusMinutes(5)); // reported before the window
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
 
@@ -137,9 +149,9 @@ class NotificationScannerTest {
     @Test
     void candidateUser_personallyNotified_notAlsoCreated() {
         final var task = openTask();
-        task.setCandidateUsers(List.of(person("u1")));
+        candidates(task, AFTER, "u1");
         task.setCandidateGroups(List.of(group("g1")));
-        task.setUpdatedBy("someoneElse");
+        task.setInitiator("someoneElse");
         final var dir = new FakeDirectory()
                 .loggedIn("u1", List.of("USER_u1"), true) // personal candidate
                 .loggedIn("u2", List.of("g1"), true);      // visible via group
@@ -155,8 +167,8 @@ class NotificationScannerTest {
     @Test
     void candidateUser_selfCaused_excluded() {
         final var task = openTask();
-        task.setCandidateUsers(List.of(person("u1")));
-        task.setUpdatedBy("u1"); // the user caused it himself (AC func 2b)
+        candidates(task, AFTER, "u1");
+        task.setInitiator("u1"); // the user caused it himself (AC func 2b)
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
         assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
@@ -168,7 +180,7 @@ class NotificationScannerTest {
         task.setEndedAt(AFTER);
         task.setEndReason(UserTaskEndReason.COMPLETED);
         task.setAssignee(person("u1"));
-        task.setUpdatedBy("u2"); // completed by someone else
+        task.setInitiator("u2"); // completed by someone else
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
         final var planned = scanner.scan(task, CURSOR, dir);
@@ -183,7 +195,7 @@ class NotificationScannerTest {
         task.setEndedAt(AFTER);
         task.setEndReason(UserTaskEndReason.COMPLETED);
         task.setAssignee(person("u1"));
-        task.setUpdatedBy("u1"); // assignee completed their own task
+        task.setInitiator("u1"); // assignee completed their own task
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
         assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
@@ -195,7 +207,7 @@ class NotificationScannerTest {
         task.setEndedAt(AFTER);
         task.setEndReason(UserTaskEndReason.CANCELLED);
         task.setAssignee(person("u1"));
-        task.setUpdatedBy("theProcess");
+        task.setInitiator("theProcess");
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
         final var planned = scanner.scan(task, CURSOR, dir);
@@ -239,8 +251,8 @@ class NotificationScannerTest {
     @Test
     void nonLoggedInCandidate_notNotified() {
         final var task = openTask();
-        task.setCandidateUsers(List.of(person("ghost")));
-        task.setUpdatedBy("x");
+        candidates(task, AFTER, "ghost");
+        task.setInitiator("x");
         final var dir = new FakeDirectory(); // nobody logged in
 
         assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
@@ -255,6 +267,219 @@ class NotificationScannerTest {
         // u1 config only enables email globally -> only email planned
         final var planned = scanner.scan(task, CURSOR, dir);
         assertEquals(Set.of(EMAIL), planned.stream().map(PlannedNotification::medium).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    void completed_updatedByIsIgnored_onlyInitiatorDecides() {
+        final var task = openTask();
+        task.setEndedAt(AFTER);
+        task.setEndReason(UserTaskEndReason.COMPLETED);
+        task.setAssignee(person("u1"));
+        task.setInitiator("u1");         // the assignee completed their own task
+        task.setUpdatedBy("system");     // audit field written by the save callback
+        final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void completed_withoutInitiator_notifiesAssignee() {
+        final var task = openTask();
+        task.setEndedAt(AFTER);
+        task.setEndReason(UserTaskEndReason.COMPLETED);
+        task.setAssignee(person("u1"));
+        // no initiator reported: the application did not tell who completed the task
+        task.setUpdatedBy("u1");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals(NotificationType.COMPLETED, planned.get(0).notificationType());
+    }
+
+    @Test
+    void candidateUser_updatedByIsIgnored_onlyInitiatorDecides() {
+        final var task = openTask();
+        candidates(task, AFTER, "u1");
+        task.setInitiator("someoneElse");
+        task.setUpdatedBy("u1");         // audit field of a cockpit-side save
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals(NotificationType.CANDIDATE_USER, planned.get(0).notificationType());
+    }
+
+    @Test
+    void created_reportedAtDecides_notTheReportingSystemsClock() {
+        final var task = openTask();
+        // the workflow system's clock lags behind (or the event was delivered late), so 'createdAt'
+        // is older than the cursor - yet the cockpit reported the task within this window
+        task.setCreatedAt(CURSOR.minusHours(3));
+        task.setReportedAt(AFTER);
+        task.setCandidateGroups(List.of(group("g1")));
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals(NotificationType.CREATED, planned.get(0).notificationType());
+    }
+
+    @Test
+    void created_withoutReportedAt_notReported() {
+        final var task = openTask();
+        task.setReportedAt(null); // reported before the property existed and not migrated
+        task.setCandidateGroups(List.of(group("g1")));
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void candidateUser_knownBeforeTheCursor_notNotifiedAgain() {
+        final var task = openTask();
+        // the task was reported days ago and is only being changed now
+        task.setReportedAt(CURSOR.minusDays(3));
+        candidates(task, CURSOR.minusDays(3), "u1");
+        task.setInitiator("someoneElse");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void candidateUser_addedWithinTheWindow_notified() {
+        final var task = openTask();
+        task.setReportedAt(CURSOR.minusDays(3));  // task itself is old ...
+        candidates(task, AFTER, "u1");            // ... but u1 was just assigned
+        task.setInitiator("someoneElse");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals(NotificationType.CANDIDATE_USER, planned.get(0).notificationType());
+    }
+
+    @Test
+    void candidateUser_onlyTheNewCandidateIsNotified() {
+        final var task = openTask();
+        task.setReportedAt(CURSOR.minusDays(3));
+        candidates(task, CURSOR.minusDays(3), "old");
+        task.addCandidatePerson(person("fresh")); // stamped with 'now', i.e. after the cursor
+        task.setInitiator("someoneElse");
+        final var dir = new FakeDirectory()
+                .loggedIn("old", List.of("USER_old"), true)
+                .loggedIn("fresh", List.of("USER_fresh"), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals("fresh", planned.get(0).recipientUserId());
+    }
+
+    @Test
+    void candidateUser_withoutTimestamp_notNotified() {
+        final var task = openTask();
+        task.setCandidateUsers(List.of(person("u1"))); // no 'candidateUsersSince' recorded
+        task.setInitiator("someoneElse");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void excludedCandidate_notNotified() {
+        final var task = openTask();
+        candidates(task, AFTER, "u1");
+        task.setExcludedCandidateUsers(List.of(person("u1"))); // hidden from u1's task list
+        task.setInitiator("someoneElse");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void excludedUser_notNotifiedAboutACreatedTaskOfHisGroup() {
+        final var task = openTask();
+        task.setCandidateGroups(List.of(group("g1")));
+        task.setExcludedCandidateUsers(List.of(person("u2")));
+        final var dir = new FakeDirectory()
+                .loggedIn("u1", List.of("g1"), true)
+                .loggedIn("u2", List.of("g1"), true); // in the group, but excluded
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals("u1", planned.get(0).recipientUserId());
+    }
+
+    @Test
+    void takenOverTaskWithoutCandidates_notifiesItsAssigneeOnly() {
+        final var task = openTask();
+        task.setAssignee(person("u1")); // no candidates at all: only the assignee sees this task
+        final var dir = new FakeDirectory()
+                .loggedIn("u1", List.of(), true)
+                .loggedIn("u2", List.of(), true)
+                .loggedIn("u3", List.of(), true);
+
+        // not dangling (it has an assignee), so 'no target groups' must not mean 'everybody'
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals("u1", planned.get(0).recipientUserId());
+        assertEquals(NotificationType.CREATED, planned.get(0).notificationType());
+    }
+
+    @Test
+    void assignee_isNotifiedWithoutAPersonalAuthority() {
+        final var task = openTask();
+        task.setCandidateGroups(List.of(group("g1")));
+        task.setAssignee(person("u2"));
+        // a user directory reporting group memberships only, i.e. no 'USER_u2' authority
+        final var dir = new FakeDirectory().loggedIn("u2", List.of("g2"), true);
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals("u2", planned.get(0).recipientUserId());
+    }
+
+    @Test
+    void assignee_whoCausedTheChangeHimself_notNotified() {
+        final var task = openTask();
+        task.setAssignee(person("u1"));
+        task.setInitiator("u1");
+        final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void assignee_whoNeverLoggedIn_notNotified() {
+        final var task = openTask();
+        task.setAssignee(person("ghost"));
+        final var dir = new FakeDirectory(); // nobody logged in
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void excludedAssignee_notNotified() {
+        final var task = openTask();
+        task.setAssignee(person("u1"));
+        task.setExcludedCandidateUsers(List.of(person("u1")));
+        final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
+
+        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+    }
+
+    @Test
+    void assigneeOfATaskWithCandidateGroups_isNotifiedPersonally() {
+        final var task = openTask();
+        task.setCandidateGroups(List.of(group("g1")));
+        task.setAssignee(person("u2"));
+        final var dir = new FakeDirectory()
+                .loggedIn("u2", List.of("USER_u2"), true); // authority of the assignee himself
+
+        final var planned = scanner.scan(task, CURSOR, dir);
+        assertEquals(1, planned.size());
+        assertEquals("u2", planned.get(0).recipientUserId());
     }
 
 }
