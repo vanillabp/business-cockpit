@@ -136,9 +136,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
         camunda8UserTaskEvent.setProcessDefinitionKey(camunda8UserTaskLifecycleEvent.getProcessDefinitionKey());
         camunda8UserTaskEvent.setTimestamp(
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(camunda8UserTaskLifecycleEvent.getTimestamp()), ZoneOffset.UTC));
-        this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskEvent);
-
-        publishEvent(userTaskEvent);
+        if (this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskEvent)) {
+            publishEvent(userTaskEvent);
+        }
 
     }
 
@@ -190,9 +190,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
         camunda8UserTaskEvent.setProcessDefinitionKey(camunda8UserTaskCreatedEvent.getProcessDefinitionKey());
         camunda8UserTaskEvent.setTimestamp(
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(camunda8UserTaskCreatedEvent.getTimestamp()), ZoneOffset.UTC));
-        this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskCreatedEvent);
-
-        publishEvent(userTaskCreatedEvent);
+        if (this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskCreatedEvent)) {
+            publishEvent(userTaskCreatedEvent);
+        }
 
     }
 
@@ -239,10 +239,12 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
             case COMPLETED -> new UserTaskCompletedEvent(workflowModuleId, i18nLanguages);
             case CANCELED -> new UserTaskCancelledEvent(workflowModuleId, i18nLanguages);
         };
-        this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskEvent);
+        if (this.fillUserTaskEvent(camunda8UserTaskEvent, null, userTaskEvent)) {
+            publishEvent(userTaskEvent);
+        }
 
-        publishEvent(userTaskEvent);
-
+        // the job has to be completed even if the event was incomplete, otherwise the
+        // workflow would be stuck due to an unresolved task-listener job
         // if the event originated from the task-listener
         if (camunda8UserTaskEvent.getJobKey() != 0) {
             client.newCompleteCommand(camunda8UserTaskEvent.getJobKey()).send().join();
@@ -262,16 +264,26 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
 
     }
 
-    private void fillUserTaskEvent(
+    /**
+     * @return whether the event was filled completely and therefore may be published. If the
+     *         business key is missing then the event stays untouched (e.g. without an event-id)
+     *         and must not be published since mandatory attributes are null.
+     */
+    private boolean fillUserTaskEvent(
             Camunda8UserTaskEvent camunda8UserTaskEvent,
             Object aggregate,
             UserTaskEventImpl userTaskEvent) {
 
         final var businessKey = camunda8UserTaskEvent.getVariables().get(aggregateIdPropertyName);
         if (businessKey == null) {
-            logger.error("Could not find process variable '{}' in event for type '{}'! Will ignore this event.",
-                    aggregateIdPropertyName, camunda8UserTaskEvent.getTaskDefinition());
-            return;
+            logger.error("Could not find process variable '{}' in event for type '{}' "
+                    + "(process-instance-key: {}, job-key: {}, variables received: {})! Will ignore this event.",
+                aggregateIdPropertyName,
+                camunda8UserTaskEvent.getBpmnProcessId(),
+                camunda8UserTaskEvent.getProcessInstanceKey(),
+                camunda8UserTaskEvent.getJobKey(),
+                camunda8UserTaskEvent.getVariables().keySet());
+            return false;
         }
 
         prefillEvent(userTaskEvent, camunda8UserTaskEvent, businessKey);
@@ -299,6 +311,8 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
         filluserTaskDetailsByCustomDetails(
                 userTaskEvent,
                 prefilledUserTaskDetails);
+
+        return true;
     }
 
     private void prefillEvent(final UserTaskEventImpl userTaskEvent,

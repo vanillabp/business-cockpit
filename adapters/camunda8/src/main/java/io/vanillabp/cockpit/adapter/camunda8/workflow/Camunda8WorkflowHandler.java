@@ -141,9 +141,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
         camunda8WorkflowEvent.setProcessDefinitionKey(camunda8WorkflowLifeCycleEvent.getProcessDefinitionKey());
         camunda8WorkflowEvent.setTimestamp(
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(camunda8WorkflowLifeCycleEvent.getTimestamp()), ZoneOffset.UTC));
-        this.fillWorkflowEvent(camunda8WorkflowEvent, workflowEvent);
-
-        publishEvent(workflowEvent);
+        if (this.fillWorkflowEvent(camunda8WorkflowEvent, workflowEvent)) {
+            publishEvent(workflowEvent);
+        }
 
     }
 
@@ -176,10 +176,12 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
             case COMPLETED -> new WorkflowCompletedEvent(workflowModuleId, i18nLanguages);
             case CANCELED -> new WorkflowCancelledEvent(workflowModuleId, i18nLanguages);
         };
-        this.fillWorkflowEvent(camunda8WorkflowEvent, workflowEvent);
+        if (this.fillWorkflowEvent(camunda8WorkflowEvent, workflowEvent)) {
+            publishEvent(workflowEvent);
+        }
 
-        publishEvent(workflowEvent);
-
+        // the job has to be completed even if the event was incomplete, otherwise the
+        // workflow would be stuck due to an unresolved execution-listener job
         // if the event originated from execution-listener
         if (camunda8WorkflowEvent.getJobKey() != 0) {
             client.newCompleteCommand(camunda8WorkflowEvent.getJobKey()).send().join();
@@ -246,9 +248,9 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
         camunda8WorkflowEvent.setProcessDefinitionKey(camunda8WorkflowCreatedEvent.getProcessDefinitionKey());
         camunda8WorkflowEvent.setTimestamp(
                 OffsetDateTime.ofInstant(Instant.ofEpochSecond(camunda8WorkflowCreatedEvent.getTimestamp()), ZoneOffset.UTC));
-        fillWorkflowEvent(camunda8WorkflowEvent, workflowCreatedEvent);
-
-        publishEvent(workflowCreatedEvent);
+        if (fillWorkflowEvent(camunda8WorkflowEvent, workflowCreatedEvent)) {
+            publishEvent(workflowCreatedEvent);
+        }
         
     }
 
@@ -264,16 +266,26 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
 
     }
 
-    public void fillWorkflowEvent(
+    /**
+     * @return whether the event was filled completely and therefore may be published. If the
+     *         business key is missing then the event stays untouched (e.g. without an event-id)
+     *         and must not be published since mandatory attributes are null.
+     */
+    public boolean fillWorkflowEvent(
             Camunda8WorkflowEvent camunda8WorkflowEvent,
             WorkflowEventImpl workflowEvent
     ) {
 
         final var businessKey = camunda8WorkflowEvent.getVariables().get(aggregateIdPropertyName);
         if (businessKey == null) {
-            logger.error("Could not find process variable '{}' in event for type '{}'! Will ignore this event.",
-                    aggregateIdPropertyName, camunda8WorkflowEvent.getBpmnProcessId());
-            return;
+            logger.error("Could not find process variable '{}' in event for type '{}' "
+                    + "(process-instance-key: {}, job-key: {}, variables received: {})! Will ignore this event.",
+                aggregateIdPropertyName,
+                camunda8WorkflowEvent.getBpmnProcessId(),
+                camunda8WorkflowEvent.getProcessInstanceKey(),
+                camunda8WorkflowEvent.getJobKey(),
+                camunda8WorkflowEvent.getVariables().keySet());
+            return false;
         }
         prefillWorkflowDetails(
                 camunda8WorkflowEvent,
@@ -292,6 +304,8 @@ public class Camunda8WorkflowHandler extends WorkflowHandlerBase implements Aggr
                 details == null
                         ? workflowEvent
                         : details);
+
+        return true;
     }
 
     private void prefillWorkflowDetails(
