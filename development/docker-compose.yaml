@@ -30,6 +30,32 @@ services:
       # accept any sender and recipient, without authentication and without TLS
       - MP_SMTP_AUTH_ACCEPT_ANY=1
       - MP_SMTP_AUTH_ALLOW_INSECURE=1
+  # Single-node Kafka (KRaft mode, no ZooKeeper) for the business cockpit's Spring profile 'kafka'.
+  # Topics are created on demand, so there is nothing to set up.
+  #
+  # Hint: the simulation service starts an embedded broker on the same port unless
+  # 'spring.kafka.bootstrap-servers' is set - pass '-Dspring.kafka.bootstrap-servers=localhost:9092'
+  # to make it report to this broker instead of its own.
+  business-cockpit-kafka:
+    image: apache/kafka:3.9.1
+    container_name: business-cockpit-kafka
+    restart: "no"
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
   verdaccio:
     build: ./verdaccio/
     container_name: 'verdaccio'
