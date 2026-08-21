@@ -257,7 +257,11 @@ For local development there are two preconditions:
 1. [A MongoDB cluster](#mongodb)
 1. [A local NPM registry](#local-npm-registry)
 
-The MongoDB and the NPM registry can be started by a prepared configuration using docker-compose:
+Additionally, the provided docker-compose configuration contains
+[Mailpit](#notification-e-mails-mailpit), which is not required to run the business cockpit but to
+check notification e-mails while developing it.
+
+All of them can be started by a prepared configuration using docker-compose:
 
 ```sh
 cd development
@@ -304,6 +308,47 @@ To connect to the registry UI use these parameters:
 * *password:* admin
 
 *Hint:* If you do repeating builds for testing then you have to use the Maven profile `unpublish-npm` which removes previously published packages from the local registry.
+
+### Notification e-mails (Mailpit)
+
+Notification e-mails are not sent to a real mail server during development but to
+[Mailpit](https://mailpit.axllent.org/), which is part of the provided `docker-compose.yaml`. It
+accepts every message and keeps it in memory:
+
+* *SMTP:* localhost:1025
+* *Web UI:* [http://localhost:8025/](http://localhost:8025/)
+* *REST API:* [http://localhost:8025/api/v1](http://localhost:8025/api/v1)
+
+The e-mail medium of the business cockpit is switched off by default. To activate it and point it
+at Mailpit add the Spring profile `mailpit`:
+
+```sh
+java -Dspring.profiles.active=local,mailpit -jar target/business-cockpit-*-runnable.jar
+```
+
+The profile also shortens the notification interval to 10 seconds, so testing does not mean waiting
+a minute for every attempt.
+
+Notifications are switched off per user (the default is "none"). So, to receive an e-mail:
+
+1. Log in to the business cockpit. The user record, including the e-mail address reported by the
+   user directory, is stored on login - a user who never logged in is never notified.
+1. Open the notification settings of that user and switch on e-mail, either globally or for the
+   workflow you are about to test.
+1. Report a user task, e.g. by the [simulation service](#simulation-service).
+
+Check the result using the Mailpit REST API:
+
+```sh
+# subject and recipients of everything received so far
+curl -s http://localhost:8025/api/v1/messages | jq '.messages[] | {To, Subject}'
+# the newest message including its rendered text body
+curl -s http://localhost:8025/api/v1/message/latest | jq '{To, Subject, Text}'
+# only the messages addressed to one user
+curl -s 'http://localhost:8025/api/v1/search?query=to%3Ajohn%40doe.com' | jq '.messages_count'
+# start over
+curl -s -X DELETE http://localhost:8025/api/v1/messages
+```
 
 ## Build and Run the Business Cockpit
 
