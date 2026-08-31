@@ -72,7 +72,6 @@
           <version>4.1.0</version>
           <configuration>
             <classifier>runnable</classifier>
-            <executable>true</executable>
           </configuration>
         </plugin>
         <plugin>
