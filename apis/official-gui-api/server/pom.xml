@@ -56,6 +56,10 @@
                   time for no reason. 'legacy' restores the previous naming.
                 -->
                 <enumPropertyNaming>legacy</enumPropertyNaming>
+                <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
+                     leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
+                     ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+                <containerDefaultToNull>true</containerDefaultToNull>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
               </configOptions>

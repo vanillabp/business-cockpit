@@ -30,6 +30,10 @@
                  wire values come from the spec either way, but the constant names are part of the
                  published Java API - 'legacy' keeps them as they were. -->
             <enumPropertyNaming>legacy</enumPropertyNaming>
+            <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
+                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
+                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+            <containerDefaultToNull>true</containerDefaultToNull>
               <!-- without this the generator emits javax.* imports, which was the reason for the
                    Spring 5 and javax pins that used to sit in the dependencies below -->
               <useSpringBoot3>true</useSpringBoot3>
