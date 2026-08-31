@@ -18,8 +18,9 @@ public abstract class CandidatesAware {
         if (getGroupIds() != null) {
             result.addAll(getGroupIds());
         }
-        if (getUserIds() != null) {
-            getUserIds()
+        final var userIds = getUserIds();
+        if (userIds != null) {
+            userIds
                     .forEach(user -> result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + user));
         }
         if (result.isEmpty()) {

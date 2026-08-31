@@ -1,18 +1,16 @@
 package io.vanillabp.cockpit.simulator.usertask.testdata;
 
 import com.devskiller.jfairy.Fairy;
-import io.vanillabp.cockpit.bpms.api.v1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1.RegisterWorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UiUriType;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskActivatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1.UserTaskSuspendedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UiUriType;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +18,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UserTaskTestDataGenerator implements Runnable {
 
@@ -39,7 +39,7 @@ public class UserTaskTestDataGenerator implements Runnable {
     
     private UserTaskTestDataParameters parameters;
     
-    private List<UserTaskCreatedOrUpdatedEvent> created = new LinkedList<>();
+    private List<UserTaskCreatedEvent> created = new LinkedList<>();
 
     private Logger logger;
     
@@ -192,10 +192,33 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private UserTaskCreatedOrUpdatedEvent buildUpdatedEvent(
-            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+    private UserTaskUpdatedEvent buildUpdatedEvent(
+            final UserTaskCreatedEvent createdEvent) {
         
-        final var result = createdEvent;
+        final var result = new UserTaskUpdatedEvent();
+        result.setDetails(createdEvent.getDetails());
+        result.setAssignee(createdEvent.getAssignee());
+        result.setCandidateUsers(createdEvent.getCandidateUsers());
+        result.setCandidateGroups(createdEvent.getCandidateGroups());
+        result.setDueDate(createdEvent.getDueDate());
+        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+        result.setWorkflowId(createdEvent.getWorkflowId());
+        result.setBusinessId(createdEvent.getBusinessId());
+        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+        result.setUiUriPath(createdEvent.getUiUriPath());
+        result.setUiUriType(createdEvent.getUiUriType());
+        result.setComment(createdEvent.getComment());
+        result.setSource(createdEvent.getSource());
+        result.setTaskDefinition(createdEvent.getTaskDefinition());
+        result.setDetailsFulltextSearch(createdEvent.getDetailsFulltextSearch());
+        result.setWorkflowTitle(createdEvent.getWorkflowTitle());
+        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+        result.setUserTaskId(createdEvent.getUserTaskId());
+        result.setTimestamp(createdEvent.getTimestamp());
+        result.setInitiator(createdEvent.getInitiator());
+        result.setExcludedCandidateUsers(createdEvent.getExcludedCandidateUsers());
+
         result.setId(UUID.randomUUID().toString());
         result.setTimestamp(OffsetDateTime.now());
         result.setUpdated(Boolean.TRUE);
@@ -214,7 +237,7 @@ public class UserTaskTestDataGenerator implements Runnable {
     }
 
     private UserTaskCancelledEvent buildCancelledEvent(
-            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+            final UserTaskCreatedEvent createdEvent) {
         
         final var result = new UserTaskCancelledEvent();
         
@@ -228,7 +251,7 @@ public class UserTaskTestDataGenerator implements Runnable {
 
 
     private UserTaskCompletedEvent buildCompletedEvent(
-            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+            final UserTaskCreatedEvent createdEvent) {
         
         final var result = new UserTaskCompletedEvent();
         
@@ -242,7 +265,7 @@ public class UserTaskTestDataGenerator implements Runnable {
 
 
     private UserTaskActivatedEvent buildActivatedEvent(
-            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+            final UserTaskCreatedEvent createdEvent) {
         
         final var result = new UserTaskActivatedEvent();
         
@@ -256,7 +279,7 @@ public class UserTaskTestDataGenerator implements Runnable {
 
 
     private UserTaskSuspendedEvent buildSuspendedEvent(
-            final UserTaskCreatedOrUpdatedEvent createdEvent) {
+            final UserTaskCreatedEvent createdEvent) {
         
         final var result = new UserTaskSuspendedEvent();
         
@@ -268,7 +291,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private UserTaskCreatedOrUpdatedEvent buildCreatedEvent() {
+    private UserTaskCreatedEvent buildCreatedEvent() {
         
         final String assignee;
         if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
@@ -308,14 +331,14 @@ public class UserTaskTestDataGenerator implements Runnable {
                 candidateGroups);
         
     }
-    public static UserTaskCreatedOrUpdatedEvent buildCreatedEvent(
+    public static UserTaskCreatedEvent buildCreatedEvent(
             final Random random,
             final Map<String, Fairy> fairies,
             final String assignee,
             final List<String> candidateUsers,
             final List<String> candidateGroups) {
         
-        final var result = new UserTaskCreatedOrUpdatedEvent();
+        final var result = new UserTaskCreatedEvent();
         result.setUpdated(Boolean.FALSE);
         
         final var process = random.nextInt(10);
@@ -397,7 +420,7 @@ public class UserTaskTestDataGenerator implements Runnable {
         
     }
 
-    private static String collectFulltextTerms(final UserTaskCreatedOrUpdatedEvent event) {
+    private static String collectFulltextTerms(final UserTaskCreatedEvent event) {
         final var fulltextSb = new StringBuilder();
         if (event.getWorkflowTitle() != null) {
             event.getWorkflowTitle().forEach((String k, String v) -> {

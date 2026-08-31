@@ -20,14 +20,16 @@ public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
     public Person toModelPerson(
             final String personId) {
 
+        final var result = new Person();
+
         final var userFound = userDetailsProvider
                 .getUser(personId);
         if (userFound.isEmpty()) {
-            return null;
+            result.setId(personId);
+            return result;
         }
         final var user = userFound.get();
 
-        final var result = new Person();
         result.setId(user.getId());
         result.setFulltext(user.getDisplay());
         if (user.getDisplay() != null) {
