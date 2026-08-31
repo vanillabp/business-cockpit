@@ -2,16 +2,14 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
-  selector: 'lib-dev-shell',
-  standalone: true,
-  imports: [
-    RouterOutlet
-  ],
-  template: `
+    selector: 'lib-dev-shell',
+    imports: [
+        RouterOutlet
+    ],
+    template: `
     <router-outlet />
   `,
-  styles: ``
+    styles: ``
 })
 export class DevShellComponent {
-
 }
