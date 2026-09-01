@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>bpms-api</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>bpms-api-server</artifactId>
@@ -20,12 +20,23 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.24.0</version>
         <configuration>
           <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
           <generatorName>spring</generatorName>
           <generateSupportingFiles>true</generateSupportingFiles>
           <configOptions>
+            <!-- openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS). The
+                 wire values come from the spec either way, but the constant names are part of the
+                 published Java API - 'legacy' keeps them as they were. -->
+            <enumPropertyNaming>legacy</enumPropertyNaming>
+            <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
+                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
+                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+            <containerDefaultToNull>true</containerDefaultToNull>
+              <!-- without this the generator emits javax.* imports, which was the reason for the
+                   Spring 5 and javax pins that used to sit in the dependencies below -->
+              <useSpringBoot3>true</useSpringBoot3>
               <useTags>true</useTags>
               <interfaceOnly>true</interfaceOnly>
               <useSpringController>true</useSpringController>
@@ -68,28 +79,25 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
-      <version>2.7.6</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
-      <version>5.3.9</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-        <groupId>javax.validation</groupId>
-        <artifactId>validation-api</artifactId>
-        <version>2.0.1.Final</version>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>4.0.1</version>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

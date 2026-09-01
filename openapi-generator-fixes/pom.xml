@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>business-cockpit-parent</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>openapi-generator-fixes</artifactId>
@@ -51,6 +51,11 @@
     </dependency>
     <dependency>
       <groupId>io.github.openfeign</groupId>
+      <!--
+        Stays on Jackson 2: this module contains nothing but mustache templates, its dependencies exist to
+        supply the *generated* clients, and openapi-generator emits feign.jackson.* (Jackson 2) together
+        with an ObjectMapper of its own. Our hand-written code uses feign-jackson3, declared in commons.
+      -->
       <artifactId>feign-jackson</artifactId>
     </dependency>
     <dependency>

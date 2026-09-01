@@ -32,6 +32,12 @@ As a consequence workflows and user tasks from different systems will be availab
 3. [Noteworthy & Contributors](#noteworthy--contributors)
 4. [License](#license)
 
+## Spring Boot version
+
+Starting with the version documented here, the Business Cockpit requires **Spring Boot 4.1** and **Java 21**.
+There is no dual build: the Spring Boot 3 code paths are gone. Applications still on Spring Boot 3.5
+stay on 0.3.x, which remains functional but will not receive further development.
+
 ## Application
 
 ### Concepts in a glance

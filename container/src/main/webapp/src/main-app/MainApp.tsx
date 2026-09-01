@@ -8,6 +8,7 @@ import { NotFound } from '../app/NotFound';
 
 const TaskList = lazy(() => import('./tasklist/Main'));
 const WorkflowList = lazy(() => import('./workflowlist/Main'));
+const Notifications = lazy(() => import('./notifications/Main'));
 
 const MainApp = () => {
 
@@ -24,6 +25,7 @@ const MainApp = () => {
         <Routes>
           <Route path={ `${ t('url-tasklist') }/*` } element={<TaskList />} />
           <Route path={ `${ t('url-workflowlist') }/*` } element={<WorkflowList />} />
+          <Route path={ `${ t('url-notifications') }/*` } element={<Notifications />} />
           <Route index element={<Main />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

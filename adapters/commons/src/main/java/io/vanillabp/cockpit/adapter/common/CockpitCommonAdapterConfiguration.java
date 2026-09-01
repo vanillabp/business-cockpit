@@ -45,6 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -56,6 +57,9 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean;
 import org.springframework.util.StringUtils;
 
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
 @AutoConfigurationPackage(basePackageClasses = CockpitCommonAdapterConfiguration.class)
 @AutoConfigureAfter(value = {WorkflowModulePropertiesConfiguration.class, CockpitCommonAdapterKafkaConfiguration.class})
 @EnableConfigurationProperties({ VanillaBpCockpitProperties.class })

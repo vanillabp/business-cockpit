@@ -7,9 +7,9 @@ import jakarta.persistence.EntityManager;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
+import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
 
 /**
@@ -22,8 +22,10 @@ import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
  * Therefor JPA repositories have to be added programmatically by
  * this configuration.
  */
-@Configuration
-@AutoConfigureAfter({ JpaSpringDataUtilConfiguration.class, JpaRepositoriesAutoConfiguration.class })
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
+@AutoConfigureAfter({ JpaSpringDataUtilConfiguration.class, DataJpaRepositoriesAutoConfiguration.class })
 @ConditionalOnBean(name = JpaSpringDataUtilConfiguration.BEANNAME_SPRINGDATAUTIL)
 public class JpaPersistenceConfiguration {
 

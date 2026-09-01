@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>dev-shell-simulator</artifactId>
@@ -15,18 +15,6 @@
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
     <lombok.version>1.18.36</lombok.version>
   </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>3.5.6</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <build>
     <pluginManagement>
@@ -91,6 +79,14 @@
   </build>
 
   <dependencies>
+    <!--
+      Spring Boot 4 split spring-boot-autoconfigure into per-technology modules. The auto-configuration
+      classes used here now live in these artifacts rather than coming along with the starter.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-hibernate</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
@@ -127,7 +123,6 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-oauth2-client</artifactId>
-      <version>3.2.3</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

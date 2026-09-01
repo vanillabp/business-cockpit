@@ -84,10 +84,15 @@ public class BpmsApiController implements BpmsApi {
                 .flatMap(t -> {
                     final var task = t.getT1();
                     final var completedEvent = t.getT2();
-                    
+
                     task.setEndedAt(
                             completedEvent.getTimestamp());
-                    
+                    // capture who completed the task so the notification poller can tell a
+                    // completion by another user apart from a self-completion (AC func 2c).
+                    // 'initiator' and not 'updatedBy': the latter is audit information overwritten
+                    // by UpdateInformationEventListener on every save.
+                    task.setInitiator(completedEvent.getInitiator());
+
                     return userTaskService.completeUserTask(
                             task,
                             completedEvent.getTimestamp());
@@ -113,6 +118,7 @@ public class BpmsApiController implements BpmsApi {
                     
                     task.setEndedAt(
                             completedEvent.getTimestamp());
+                    task.setInitiator(completedEvent.getInitiator());
                     
                     return userTaskService.cancelUserTask(
                             task,

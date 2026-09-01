@@ -9,6 +9,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(implementationName = "UserTaskMapperV1_1Impl")
@@ -41,6 +42,9 @@ public abstract class UserTaskMapper {
 
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
+    @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
@@ -49,6 +53,9 @@ public abstract class UserTaskMapper {
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
     @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "notificationType", ignore = true)
+    @Mapping(target = "forced", ignore = true)
+    @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "followUpDate", source = "followUpDate", qualifiedByName = FOLLOW_UP_DATE_MAPPING)
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
@@ -58,6 +65,9 @@ public abstract class UserTaskMapper {
 
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
+    @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
@@ -66,6 +76,9 @@ public abstract class UserTaskMapper {
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
     @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "notificationType", ignore = true)
+    @Mapping(target = "forced", ignore = true)
+    @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "followUpDate", source = "followUpDate", qualifiedByName = FOLLOW_UP_DATE_MAPPING)
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
@@ -75,6 +88,9 @@ public abstract class UserTaskMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
+    @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
@@ -83,9 +99,18 @@ public abstract class UserTaskMapper {
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
     @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "notificationType", ignore = true)
+    @Mapping(target = "forced", ignore = true)
+    @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "followUpDate", ignore = true)
-    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
-    @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
+    // the assignee is kept if the event provides none: a task is taken over in the
+    // cockpit, so no workflow system can report that assignment
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING,
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    // candidate users are cockpit-owned too: assigning a task in the cockpit adds a personal
+    // candidate no event reports back, so an update must not replace the stored list. They are
+    // therefore taken from the create event only. Groups and exclusions stay mapped.
+    @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskUpdatedEvent event, @MappingTarget UserTask result);

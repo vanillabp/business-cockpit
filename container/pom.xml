@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>business-cockpit-parent</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>container</artifactId>
@@ -85,6 +85,9 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.4.0</version>
+        <!-- Stays on 6.4.0 because this single plugin declaration serves two executions, one of them
+             typescript-fetch, and 7.x output does not compile under the webapp's TypeScript 4.8.4. The
+             spring execution here already sets useSpringBoot3, so it emits jakarta code either way. -->
         <executions>
           <execution>
             <id>generate-gui-api</id>
@@ -186,6 +189,26 @@
   </build>
 
   <dependencies>
+    <!--
+      Spring Boot 4 split spring-boot-autoconfigure into per-technology modules. The auto-configuration
+      classes used here now live in these artifacts rather than coming along with the starter.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-kafka</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-mongodb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-webflux</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-restclient</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
@@ -200,7 +223,12 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-gateway</artifactId>
+      <!--
+        Renamed in Gateway 5: the webflux server variant carries the transport in its name now, the old
+        spring-cloud-starter-gateway ends at 4.3.5. Class and package names are unchanged
+        (org.springframework.cloud.gateway.route..), so only the coordinates move.
+      -->
+      <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -212,7 +240,29 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-validation</artifactId> 
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-mail</artifactId>
+      <!-- optional so derived applications bringing their own mail notification do not inherit it;
+           to use the reference e-mail medium a derived app adds spring-boot-starter-mail itself -->
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-freemarker</artifactId>
+    </dependency>
+    <dependency>
+      <!-- version comes from the Spring Boot BOM, which manages exactly 2.3.34; pinning it here would
+           silently downgrade the first BOM that ships a newer one -->
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>no.api.freemarker</groupId>
+      <artifactId>freemarker-java8</artifactId>
+      <version>3.0.3</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -254,6 +304,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- shared NotificationDelivery enum (workflow-module SPI contract, reused by the entity) -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spi-for-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.vanillabp.businesscockpit</groupId>
       <artifactId>bpms-protobuf-api</artifactId>
       <version>${project.version}</version>
@@ -264,9 +320,50 @@
       <artifactId>junit-jupiter</artifactId>
     </dependency>
     <dependency>
+      <!--
+        For the security chain tests: AssertJ, plus spring-test for MockServerWebExchange and
+        ReflectionTestUtils. The reactive filter chains can be built and inspected without starting a
+        context, which the container's context could not do anyway - it needs MongoDB and Kafka.
+      -->
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>adapters-commons</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.icegreen</groupId>
+      <artifactId>greenmail</artifactId>
+      <version>2.0.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

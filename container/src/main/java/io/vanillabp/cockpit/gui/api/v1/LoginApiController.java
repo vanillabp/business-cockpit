@@ -66,7 +66,9 @@ public class LoginApiController implements LoginApi {
 
                     final var channel = MessageChannels
                             .direct("SSE-" + user.getId() + "-" + id)
-                            .get();
+                            // Spring Integration dropped the get() alias; the spec is a FactoryBean and
+                            // getObject() is the remaining accessor
+                            .getObject();
                     synchronized (updateEmitters) {
                         logger.debug("Register update Channel '{}': {}", id, user.getAuthorities());
                         updateEmitters.put(id, UpdateEmitter

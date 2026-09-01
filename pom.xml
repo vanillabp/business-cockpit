@@ -9,13 +9,13 @@
 
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.3.1-SNAPSHOT</version>
+  <version>0.4.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <version.java>17</version.java>
+    <version.java>21</version.java>
     <version.org.mapstruct>1.5.5.Final</version.org.mapstruct>
     <version.protobuf>4.31.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
@@ -67,10 +67,11 @@
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>3.0.5</version>
+          <!-- must match the spring-boot-dependencies import; this project's parent is release-parent,
+               not spring-boot-starter-parent, so the version cannot be inherited -->
+          <version>4.1.0</version>
           <configuration>
             <classifier>runnable</classifier>
-            <executable>true</executable>
           </configuration>
         </plugin>
         <plugin>
@@ -195,24 +196,38 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <!--
+          Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
+          and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
+          which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
+          fails at runtime with NoClassDefFoundError: feign/codec/JsonDecoder as soon as a client is built.
+          The BOM keeps every feign artifact on one version.
+        -->
+        <groupId>io.github.openfeign</groupId>
+        <artifactId>feign-bom</artifactId>
+        <version>13.13</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
-        <version>3.0.4</version>
+        <version>4.1.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>
-        <version>2022.0.2</version>
+        <!--
+          2025.1.x is the first train built against Spring Boot 4. It pins spring-boot.version to 4.0.7,
+          this project runs 4.1.0 - the Boot BOM is imported above, so it wins for everything the two have
+          in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
+          test recipe rather than by Spring Cloud's own compatibility matrix.
+        -->
+        <version>2025.1.2</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.kafka</groupId>
-        <artifactId>spring-kafka-test</artifactId>
-        <version>3.0.4</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mapstruct</groupId>
@@ -220,14 +235,9 @@
         <version>${version.org.mapstruct}</version>
       </dependency>
       <dependency>
-        <groupId>javax.annotation</groupId>
-        <artifactId>javax.annotation-api</artifactId>
-        <version>1.3.2</version>
-      </dependency>
-      <dependency>
         <groupId>io.vanillabp</groupId>
         <artifactId>spring-boot-support</artifactId>
-        <version>1.3.1</version>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>

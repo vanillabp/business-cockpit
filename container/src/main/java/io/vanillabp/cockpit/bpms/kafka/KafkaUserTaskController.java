@@ -126,6 +126,10 @@ public class KafkaUserTaskController {
 
                     OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
                     task.setEndedAt(timestamp);
+                    // who completed the task, as reported by the application (may be null =
+                    // completed by the process); read by the notification poller
+                    task.setInitiator(
+                            completedEvent.hasInitiator() ? completedEvent.getInitiator() : null);
 
                     return userTaskService.completeUserTask(
                             task,
@@ -139,7 +143,7 @@ public class KafkaUserTaskController {
         userTaskService
                 .getUserTask(userTaskCompleted.getUserTaskId())
                 .zipWith(Mono.just(userTaskCompleted))
-                .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
+                .map(t -> protobufUserTaskMapper.toEndedTask(t.getT2(), t.getT1()))
                 .flatMap(task -> userTaskService.completeUserTask(
                             task,
                             task.getUpdatedAt()))
@@ -157,6 +161,8 @@ public class KafkaUserTaskController {
 
                     OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
                     task.setEndedAt(timestamp);
+                    task.setInitiator(
+                            completedEvent.hasInitiator() ? completedEvent.getInitiator() : null);
 
                     return userTaskService.cancelUserTask(
                             task,
@@ -171,7 +177,7 @@ public class KafkaUserTaskController {
         userTaskService
                 .getUserTask(userTaskCompleted.getUserTaskId())
                 .zipWith(Mono.just(userTaskCompleted))
-                .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
+                .map(t -> protobufUserTaskMapper.toEndedTask(t.getT2(), t.getT1()))
                 .flatMap(task -> userTaskService.cancelUserTask(
                             task,
                             task.getUpdatedAt(),

@@ -35,6 +35,7 @@ import org.camunda.bpm.spring.boot.starter.CamundaBpmAutoConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -45,6 +46,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.repository.CrudRepository;
 
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
 @AutoConfigurationPackage(basePackageClasses = Camunda7AdapterConfiguration.class)
 @AutoConfigureAfter(CockpitCommonAdapterConfiguration.class)
 @AutoConfigureBefore(

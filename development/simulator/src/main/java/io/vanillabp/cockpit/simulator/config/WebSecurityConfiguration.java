@@ -50,9 +50,10 @@ public class WebSecurityConfiguration {
             final PassiveJwtSecurityFilter jwtSecurityFilter) throws Exception {
 
         http
-                .csrf().disable()
-                .cors().disable()
-                .anonymous().disable()
+                // Spring Security 7 removed the non-lambda DSL variants; pure syntax conversion.
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
+                .anonymous(anonymous -> anonymous.disable())
                 .addFilterAfter(jwtSecurityFilter, BasicAuthenticationFilter.class);
             
         return http.build();

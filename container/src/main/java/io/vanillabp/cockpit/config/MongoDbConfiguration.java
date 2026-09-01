@@ -9,7 +9,7 @@ import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.mongo.MongoClientSettingsBuilderCustomizer;
+import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;

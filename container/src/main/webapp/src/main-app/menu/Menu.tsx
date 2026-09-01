@@ -1,7 +1,7 @@
 import { User } from '@vanillabp/bc-ui';
 import { useAppContext } from '../../AppContext';
 import { Anchor, Grid, Text } from 'grommet';
-import { Logout, Projects, Task } from 'grommet-icons';
+import { Logout, Notification, Projects, Task } from 'grommet-icons';
 import { MenuItem } from './MenuItem';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '@vanillabp/bc-shared';
@@ -12,6 +12,7 @@ i18n.addResources('en', 'menu', {
       "user-profile": "User profile",
       "tasklist": "Tasks",
       "workflowlist": "Workflows",
+      "notifications": "Notifications",
       "READONLY": "read-only",
       "person-id": "ID",
       "person-email": "Email-address",
@@ -21,6 +22,7 @@ i18n.addResources('de', 'menu', {
       "user-profile": "Benutzerprofil",
       "tasklist": "Aufgaben",
       "workflowlist": "Vorgänge",
+      "notifications": "Benachrichtigungen",
       "READONLY": "nur lesend",
       "person-id": "Benutzerkennung",
       "person-email": "E-Mail-Adresse",
@@ -63,6 +65,15 @@ const Menu = () => {
                 }}>
               <Projects />
               <Text>{t('workflowlist')}</Text>
+            </MenuItem>
+            <MenuItem
+                groups={ null }
+                onClick={() => {
+                  hideMenu();
+                  navigate(tApp('url-notifications') as string);
+                }}>
+              <Notification />
+              <Text>{t('notifications')}</Text>
             </MenuItem>
             <MenuItem
                 background="light-3"

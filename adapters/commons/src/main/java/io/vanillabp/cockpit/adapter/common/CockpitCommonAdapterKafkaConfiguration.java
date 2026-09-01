@@ -2,9 +2,11 @@ package io.vanillabp.cockpit.adapter.common;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.DateTimeFeature;
+import tools.jackson.databind.json.JsonMapper;
 import io.vanillabp.cockpit.adapter.common.properties.VanillaBpCockpitProperties;
 import io.vanillabp.cockpit.adapter.common.usertask.UserTaskPublishing;
 import io.vanillabp.cockpit.adapter.common.usertask.kafka.UserTaskKafkaPublishing;
@@ -32,8 +34,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -110,19 +112,35 @@ public class CockpitCommonAdapterKafkaConfiguration {
         return new DefaultKafkaProducerFactory<>(configs);
     }
 
+    /**
+     * Mapper for the Kafka messages exchanged between workflow modules and the cockpit.
+     * <p>
+     * Jackson 3: the ObjectMapper is immutable, so it is assembled through JsonMapper.builder() instead of
+     * being mutated after construction. The date related flags moved from SerializationFeature to
+     * DateTimeFeature, setSerializationInclusion became changeDefaultPropertyInclusion, and the
+     * JavaTimeModule registration is gone because Jackson 3 has those types built in.
+     * <p>
+     * The produced format must stay byte-identical - these messages are read by cockpits and workflow
+     * modules of other versions. CockpitCommonAdapterKafkaObjectMapperTest pins it down.
+     */
     public ObjectMapper businessCockpitProtobufObjectMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
 
-        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-        objectMapper.enable(SerializationFeature.WRITE_DATES_WITH_CONTEXT_TIME_ZONE);
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS);
+        return JsonMapper.builder()
+                // Jackson 3 already defaults WRITE_DATES_AS_TIMESTAMPS to off, Jackson 2 defaulted it to on;
+                // the explicit disable below is redundant today and kept only against a future default flip.
+                // Jackson 3 sorts properties alphabetically by default, Jackson 2 used declaration order.
+                // Key order is semantically irrelevant in JSON, but these are messages that other cockpit
+                // and workflow-module versions read, so the bytes are kept as they were.
+                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .enable(DateTimeFeature.WRITE_DATES_WITH_CONTEXT_TIME_ZONE)
+                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .disable(DateTimeFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
+                .defaultTimeZone(TimeZone.getTimeZone("UTC"))
+                .changeDefaultPropertyInclusion(
+                        inclusion -> inclusion.withValueInclusion(JsonInclude.Include.NON_NULL))
+                .build();
 
-        objectMapper.setTimeZone(TimeZone.getTimeZone("UTC"));
-        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        objectMapper.registerModule(new JavaTimeModule());
-        return objectMapper;
     }
 
 }

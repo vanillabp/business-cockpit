@@ -8,15 +8,17 @@ spring:
   web:
     resources:
       static-locations: "classpath:/static/"
+    error:
+      # Spring Boot 4 moved this out of "server.error.whitelabel"; the old key is deprecated at
+      # level "error", which means it is not bound any more - it would have been ignored silently.
+      whitelabel:
+        enabled: false
 
 server:
   compression:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
     min-response-size: 2048
-  error:
-    whitelabel:
-      enabled: false
 
 bpms-api:
   realm-name: BPMS-API

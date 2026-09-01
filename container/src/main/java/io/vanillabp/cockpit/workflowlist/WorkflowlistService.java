@@ -116,6 +116,9 @@ public class WorkflowlistService {
             return Mono.just(Boolean.FALSE);
         }
 
+        // the cockpit's own clock, see Workflow#getReportedAt
+        workflow.setReportedAt(OffsetDateTime.now());
+
         return workflowRepository
                 .save(workflow)
                 .map(item -> Boolean.TRUE)

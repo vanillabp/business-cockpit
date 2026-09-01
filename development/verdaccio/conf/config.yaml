@@ -23,6 +23,11 @@ packages:
     publish: $anonymous
     unpublish: $anonymous
 
+  '@hal/*':
+    access: $all
+    publish: $anonymous
+    unpublish: $anonymous
+
   'grommet':
     access: $all
     publish: $anonymous

@@ -1,1 +1,5 @@
-kafka.embedded: true
+kafka:
+  # The simulation service brings its own broker at localhost:9092, so reporting by Kafka works
+  # without installing one. Pass '-Dkafka.embedded=false' to report to a real broker instead, e.g.
+  # the single-node Kafka of development/docker-compose.yaml which listens at the same address.
+  embedded: true

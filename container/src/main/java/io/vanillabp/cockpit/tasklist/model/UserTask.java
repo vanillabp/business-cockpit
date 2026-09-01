@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.candidates.CandidatesAware;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public static record ReadBy(String userId, OffsetDateTime timestamp) {};
 
+    /**
+     * When the cockpit learned about a personal candidate of this user task.
+     *
+     * @see UserTask#getCandidateUsersSince()
+     */
+    public static record CandidateSince(String userId, OffsetDateTime timestamp) {};
+
     public static final String COLLECTION_NAME = "usertask";
     
     @Id
@@ -32,6 +40,16 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private String initiator;
 
     private OffsetDateTime createdAt;
+
+    /**
+     * When the cockpit stored the report about this user task, measured by the cockpit's own clock -
+     * as opposed to {@link #createdAt}, which is the timestamp of the reporting workflow system.
+     * <p>
+     * Needed to tell a newly reported task from an updated one when scanning for notifications: the
+     * scan cursor advances by the cockpit's clock, so comparing it to a foreign clock (or to the
+     * timestamp of an event delivered late) silently drops notifications.
+     */
+    private OffsetDateTime reportedAt;
 
     private OffsetDateTime updatedAt;
 
@@ -73,6 +91,18 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private List<Person> candidateUsers = null;
 
+    /**
+     * For each personal candidate, when the cockpit learned about them - on reporting the task or
+     * on assigning it in the cockpit. Maintained by {@link #addCandidatePerson(Person)} /
+     * {@link #removeCandidatePerson(String)} and by
+     * {@link #stampCandidatesSince(OffsetDateTime)} for the candidates a report brought along.
+     * <p>
+     * Needed because a candidate has to be notified when he <i>becomes</i> a candidate, not on
+     * every later change of the task. The outbox alone cannot tell those apart: its entries are
+     * cleaned up after a while, and a proposal repeated after that turns into a second message.
+     */
+    private List<CandidateSince> candidateUsersSince = null;
+
     private List<Group> candidateGroups = null;
 
     private List<Person> excludedCandidateUsers = null;
@@ -86,6 +116,33 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private String detailsFulltextSearch;
 
     private List<ReadBy> readBy;
+
+    /**
+     * How the workflow module wants notifications for this user task to be delivered.
+     * {@code null} is interpreted as {@link io.vanillabp.spi.cockpit.usertask.NotificationDelivery#USER_CONFIG}.
+     * Precedence: FORCE &gt; SUPPRESS &gt; user-config.
+     */
+    private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
+
+    /**
+     * Why the task ended ({@code null} while open). Lets the notification poller tell a completion
+     * apart from a cancellation.
+     */
+    private UserTaskEndReason endReason;
+
+    /**
+     * Transient carrier of the kind of change a notification is about. Set by the notification
+     * poller before calling {@code NotificationService#sendNotification}; never persisted.
+     */
+    @org.springframework.data.annotation.Transient
+    private io.vanillabp.cockpit.notification.NotificationType notificationType;
+
+    /**
+     * Transient carrier telling whether the workflow module forced this notification. Set by the
+     * notification poller before calling {@code NotificationService#sendNotification}; never persisted.
+     */
+    @org.springframework.data.annotation.Transient
+    private boolean forced;
 
     @Override
     protected List<String> getGroupIds() {
@@ -116,7 +173,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
             return null;
         }
         if (getAssignee() != null) {
-            result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + getAssignee());
+            result.add(JwtUserDetails.USER_AUTHORITY_PREFIX + getAssignee().getId());
         }
         return result;
 
@@ -129,11 +186,12 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
             return;
         }
         if (getCandidateUsers() == null) {
-            setCandidateUsers(List.of(person));
+            setCandidateUsers(new ArrayList<>(List.of(person)));
         } else {
             this.getCandidateUsers().removeIf(candidate -> candidate.getId().equals(person.getId()));
             this.getCandidateUsers().add(person);
         }
+        stampCandidateSince(person.getId(), OffsetDateTime.now());
 
     }
 
@@ -143,12 +201,67 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
         if (personId == null) {
             return;
         }
+        if (getCandidateUsersSince() != null) {
+            this.getCandidateUsersSince().removeIf(since -> since.userId().equals(personId));
+        }
         if ((getCandidateUsers() == null)
                 || getCandidateUsers().isEmpty()) {
             return;
         }
 
         this.getCandidateUsers().removeIf(candidate -> candidate.getId().equals(personId));
+
+    }
+
+    /**
+     * @param userId a user
+     * @return when the cockpit learned that the user is a personal candidate, or {@code null} if
+     *         the user is no candidate or it is unknown since when he is one
+     */
+    public OffsetDateTime getCandidateSince(
+            final String userId) {
+
+        if ((userId == null)
+                || (getCandidateUsersSince() == null)) {
+            return null;
+        }
+        return getCandidateUsersSince()
+                .stream()
+                .filter(since -> since.userId().equals(userId))
+                .map(CandidateSince::timestamp)
+                .findFirst()
+                .orElse(null);
+
+    }
+
+    /**
+     * Records the given timestamp for every personal candidate not stamped yet, used for the
+     * candidates a report brought along.
+     *
+     * @param timestamp when the cockpit learned about those candidates
+     */
+    public void stampCandidatesSince(
+            final OffsetDateTime timestamp) {
+
+        Optional
+                .ofNullable(getCandidateUsers())
+                .orElse(List.of())
+                .stream()
+                .map(Person::getId)
+                .filter(userId -> getCandidateSince(userId) == null)
+                .forEach(userId -> stampCandidateSince(userId, timestamp));
+
+    }
+
+    private void stampCandidateSince(
+            final String userId,
+            final OffsetDateTime timestamp) {
+
+        if (getCandidateUsersSince() == null) {
+            setCandidateUsersSince(new ArrayList<>());
+        }
+        getCandidateUsersSince().removeIf(since -> since.userId().equals(userId));
+        getCandidateUsersSince().add(new CandidateSince(userId, timestamp));
 
     }
 
@@ -175,7 +288,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
         final var newReadBy = new ReadBy(userId, OffsetDateTime.now());
         if (this.getReadBy() == null) {
-            this.setReadBy(List.of(newReadBy));
+            // a modifiable list: the next reader has to be able to add himself
+            this.setReadBy(new ArrayList<>(List.of(newReadBy)));
         } else {
             this.getReadBy().removeIf(readBy -> readBy.userId().equals(userId));
             this.getReadBy().add(newReadBy);
@@ -248,6 +362,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getReportedAt() {
+        return reportedAt;
+    }
+
+    public void setReportedAt(OffsetDateTime reportedAt) {
+        this.reportedAt = reportedAt;
     }
 
     public OffsetDateTime getUpdatedAt() {
@@ -399,6 +521,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
         return candidateUsers;
     }
 
+    public List<CandidateSince> getCandidateUsersSince() {
+        return candidateUsersSince;
+    }
+
+    public void setCandidateUsersSince(List<CandidateSince> candidateUsersSince) {
+        this.candidateUsersSince = candidateUsersSince;
+    }
+
     public void setCandidateUsers(List<Person> candidateUsers) {
         this.candidateUsers = candidateUsers;
     }
@@ -465,6 +595,39 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setReadBy(List<ReadBy> readBy) {
         this.readBy = readBy;
+    }
+
+    public io.vanillabp.spi.cockpit.usertask.NotificationDelivery getNotificationDelivery() {
+        return notificationDelivery;
+    }
+
+    public void setNotificationDelivery(
+            io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery) {
+        this.notificationDelivery = notificationDelivery;
+    }
+
+    public UserTaskEndReason getEndReason() {
+        return endReason;
+    }
+
+    public void setEndReason(UserTaskEndReason endReason) {
+        this.endReason = endReason;
+    }
+
+    public io.vanillabp.cockpit.notification.NotificationType getNotificationType() {
+        return notificationType;
+    }
+
+    public void setNotificationType(io.vanillabp.cockpit.notification.NotificationType notificationType) {
+        this.notificationType = notificationType;
+    }
+
+    public boolean isForced() {
+        return forced;
+    }
+
+    public void setForced(boolean forced) {
+        this.forced = forced;
     }
 
 }

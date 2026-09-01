@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>official-gui-api</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
   </parent>
 
   <packaging>pom</packaging>
@@ -47,6 +47,10 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.6.0</version>
+        <!-- Deliberately not bumped with the Java generators: 7.x emits instanceOf type guards that index
+             an object type ("value['x']"), which TypeScript 4.8.4 - the version this webapp uses - rejects.
+             The TypeScript generator has nothing to do with the Spring Boot version, and upgrading the
+             webapp's TypeScript is out of scope for this migration. -->
         <executions>
           <execution>
             <id>generate-client-gui-api</id>

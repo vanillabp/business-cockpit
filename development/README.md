@@ -257,7 +257,14 @@ For local development there are two preconditions:
 1. [A MongoDB cluster](#mongodb)
 1. [A local NPM registry](#local-npm-registry)
 
-The MongoDB and the NPM registry can be started by a prepared configuration using docker-compose:
+Additionally, the provided docker-compose configuration contains two services which are not
+required to run the business cockpit but to develop and test particular features:
+
+1. [Mailpit](#notification-e-mails-mailpit) to check notification e-mails
+1. [A single-node Kafka](#kafka) to report BPMS events by Kafka instead of the REST API (only
+   needed for a real business service - the simulation service brings its own broker)
+
+All of them can be started by a prepared configuration using docker-compose:
 
 ```sh
 cd development
@@ -305,6 +312,95 @@ To connect to the registry UI use these parameters:
 
 *Hint:* If you do repeating builds for testing then you have to use the Maven profile `unpublish-npm` which removes previously published packages from the local registry.
 
+### Notification e-mails (Mailpit)
+
+Notification e-mails are not sent to a real mail server during development but to
+[Mailpit](https://mailpit.axllent.org/), which is part of the provided `docker-compose.yaml`. It
+accepts every message and keeps it in memory:
+
+* *SMTP:* localhost:1025
+* *Web UI:* [http://localhost:8025/](http://localhost:8025/)
+* *REST API:* [http://localhost:8025/api/v1](http://localhost:8025/api/v1)
+
+The e-mail medium of the business cockpit is switched off by default. To activate it and point it
+at Mailpit add the Spring profile `mailpit`:
+
+```sh
+java -Dspring.profiles.active=local,mailpit -jar target/business-cockpit-*-runnable.jar
+```
+
+The profile also shortens the notification interval to 10 seconds, so testing does not mean waiting
+a minute for every attempt.
+
+Notifications are switched off per user (the default is "none"). So, to receive an e-mail:
+
+1. Log in to the business cockpit. The user record, including the e-mail address reported by the
+   user directory, is stored on login - a user who never logged in is never notified.
+1. Open the notification settings of that user and switch on e-mail, either globally or for the
+   workflow you are about to test.
+1. Report a user task, e.g. by the [simulation service](#simulation-service).
+
+Check the result using the Mailpit REST API:
+
+```sh
+# subject and recipients of everything received so far
+curl -s http://localhost:8025/api/v1/messages | jq '.messages[] | {To, Subject}'
+# the newest message including its rendered text body
+curl -s http://localhost:8025/api/v1/message/latest | jq '{To, Subject, Text}'
+# only the messages addressed to one user
+curl -s 'http://localhost:8025/api/v1/search?query=to%3Ajohn%40doe.com' | jq '.messages_count'
+# start over
+curl -s -X DELETE http://localhost:8025/api/v1/messages
+```
+
+### Kafka
+
+Instead of reporting BPMS events by the REST API a business service may report them by Kafka. For
+that a single-node broker (KRaft mode, so no ZooKeeper involved) is part of the provided
+`docker-compose.yaml`, listening at `localhost:9092`. Topics are created on demand, so there is
+nothing to set up.
+
+It is needed for business services which report by Kafka. The
+[simulation service](#simulation-service) does not need it: it starts an embedded broker at the same
+address, unless [switched off](#kafka).
+
+The business cockpit consumes those events using the Spring profile `kafka`, which sets the
+bootstrap servers as well as the topic names `workflows`, `user-tasks` and `modules`:
+
+```sh
+java -DworkerId=local -Dspring.profiles.active=local,kafka,mailpit -jar target/business-cockpit-*-runnable.jar
+```
+
+*Hint:* `workerId` is mandatory for consuming Kafka events
+(see https://github.com/vanillabp/spring-boot-support#worker-id).
+
+The reporting side has to use the same broker. The [simulation service](#simulation-service) brings
+its own embedded broker, which is started by default and listens at the very same address - so for
+reporting by Kafka nothing has to be started at all:
+
+```sh
+cd development/simulator
+java --add-opens=java.base/java.lang=ALL-UNNAMED \
+    -Dspring.profiles.active=kafka-sync \
+    -jar target/simulator-*-runnable.jar
+```
+
+*Hint:* Besides `localhost:9092` the embedded broker binds port 9093 (reachable by other machines,
+see `server.address`) and 9094 (its own KRaft controller, of no use to clients).
+
+Whoever wants to use the "real" broker of the docker-compose instead switches the embedded one off.
+Otherwise both would compete for port 9092 and the simulation service won't start:
+
+```sh
+java --add-opens=java.base/java.lang=ALL-UNNAMED \
+    -Dspring.profiles.active=kafka-sync \
+    -Dkafka.embedded=false \
+    -jar target/simulator-*-runnable.jar
+```
+
+Naming a broker explicitly by `-Dspring.kafka.bootstrap-servers=<host>:<port>` switches the embedded
+one off as well - useful for a broker which is not at `localhost:9092`.
+
 ## Build and Run the Business Cockpit
 
 The business cockpit is developed by using Java 17 and Spring Boot 3 (reactive). To build the business cockpit Maven is used:
@@ -319,7 +415,7 @@ mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 After the build succeeded the service can be started:
 
 ```sh
-cd business-cockpit
+cd container
 java -Dspring.profiles.active=local -jar target/business-cockpit-*-runnable.jar
 ```
 

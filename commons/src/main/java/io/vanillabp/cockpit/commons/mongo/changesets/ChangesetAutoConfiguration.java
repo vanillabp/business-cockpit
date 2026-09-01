@@ -20,9 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.data.mongo.MongoReactiveRepositoriesAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -35,8 +35,10 @@ import org.springframework.data.mongodb.core.query.Query;
  * @see DbChangeset
  * @see DbChangesetConfiguration
  */
-@Configuration
-@AutoConfigureBefore(MongoReactiveRepositoriesAutoConfiguration.class)
+// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
+// @AutoConfigureBefore/After honoured
+@AutoConfiguration
+@AutoConfigureBefore(DataMongoReactiveRepositoriesAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, ReactiveMongoTemplate.class })
 public class ChangesetAutoConfiguration {
 

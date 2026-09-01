@@ -491,8 +491,187 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowModules'
+  /notifications/media:
+    get:
+      tags:
+        - officialNotificationConfig
+      summary: The available notification media (from the registered NotificationService beans)
+      operationId: getNotificationMedia
+      responses:
+        200:
+          description: Available media
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMedia'
+  /notifications/config:
+    get:
+      tags:
+        - officialNotificationConfig
+      summary: The current user's notification configuration
+      operationId: getNotificationConfiguration
+      responses:
+        200:
+          description: The notification configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationConfiguration'
+    put:
+      tags:
+        - officialNotificationConfig
+      summary: Store the current user's notification configuration
+      operationId: saveNotificationConfiguration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationConfiguration'
+      responses:
+        200:
+          description: Stored
+  /notifications/recipient-config:
+    get:
+      tags:
+        - officialNotificationConfig
+      summary: The current user's per-medium recipient configuration
+      operationId: getRecipientConfiguration
+      responses:
+        200:
+          description: Recipient configuration per medium
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipientMediumConfigurations'
+  /notifications/recipient-config/{mediumType}:
+    put:
+      tags:
+        - officialNotificationConfig
+      summary: Store the current user's recipient configuration for a medium
+      operationId: saveRecipientConfiguration
+      parameters:
+        - in: path
+          name: mediumType
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties:
+                type: string
+      responses:
+        200:
+          description: Stored
+  /notifications/workflows:
+    get:
+      tags:
+        - officialNotificationConfig
+      summary: The workflows the current user has visible tasks for (same visibility as the task list)
+      operationId: getNotificationWorkflows
+      responses:
+        200:
+          description: Workflows the user has visible tasks for
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationWorkflows'
 components:
   schemas:
+    Translatable:
+      type: object
+      description: A text per language (key = language, value = text)
+      additionalProperties:
+        type: string
+    NotificationMedium:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Technical medium type, e.g. "email"
+        name:
+          $ref: '#/components/schemas/Translatable'
+    NotificationMedia:
+      type: array
+      items:
+        $ref: '#/components/schemas/NotificationMedium'
+    WorkflowNotificationConfiguration:
+      type: object
+      description: Per-workflow override of the global setting
+      properties:
+        none:
+          type: boolean
+          description: If true, this workflow is never notified (clears all media for this scope)
+        allViaMedium:
+          type: object
+          description: Per-medium override keyed by medium type
+          additionalProperties:
+            type: boolean
+    NotificationConfiguration:
+      type: object
+      description: The user's notification configuration; an absent/empty value means "none"
+      properties:
+        globalAllViaMedium:
+          type: object
+          description: Global "all via <medium>" flag keyed by medium type
+          additionalProperties:
+            type: boolean
+        perWorkflow:
+          type: object
+          description: Per-workflow overrides keyed by "<workflowModuleId>#<bpmnProcessId>"
+          additionalProperties:
+            $ref: '#/components/schemas/WorkflowNotificationConfiguration'
+    RecipientConfiguration:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Medium-interpreted identifier of the value, e.g. "emailAddress"
+        title:
+          $ref: '#/components/schemas/Translatable'
+        description:
+          $ref: '#/components/schemas/Translatable'
+        value:
+          type: string
+    RecipientMediumConfiguration:
+      type: object
+      required:
+        - medium
+      properties:
+        medium:
+          type: string
+          description: The medium type
+        name:
+          $ref: '#/components/schemas/Translatable'
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecipientConfiguration'
+    RecipientMediumConfigurations:
+      type: array
+      items:
+        $ref: '#/components/schemas/RecipientMediumConfiguration'
+    NotificationWorkflow:
+      type: object
+      properties:
+        workflowModuleId:
+          type: string
+        bpmnProcessId:
+          type: string
+        workflowTitle:
+          $ref: '#/components/schemas/Translatable'
+    NotificationWorkflows:
+      type: array
+      items:
+        $ref: '#/components/schemas/NotificationWorkflow'
     ValidationErrors:
       type: object
       additionalProperties: {}

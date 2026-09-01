@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
@@ -117,6 +118,9 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 .newProcessInstanceSearchRequest()
                 .filter(filter -> {
                     filter.processDefinitionId(bpmnProcessId);
+                    // completed and terminated instances are still kept in secondary storage and
+                    // would be reported as additional workflows sharing the same business key
+                    filter.state(ProcessInstanceState.ACTIVE);
                     filter.variables(
                             Map.of(getWorkflowAggregateIdName(), "\"" + businessKey + "\""));
                     if (tenantId != null) {
@@ -125,7 +129,11 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 })
                 .send()
                 .join()
-                .items();
+                .items()
+                .stream()
+                // call-activity children inherit the business key, only the root is a workflow
+                .filter(processInstance -> processInstance.getParentProcessInstanceKey() == null)
+                .toList();
         if (processesFound.isEmpty()) {
             if (tenantId == null) {
                 logger.warn("Could not found process instance for business key '{}', BPMN process ID '{}'!",

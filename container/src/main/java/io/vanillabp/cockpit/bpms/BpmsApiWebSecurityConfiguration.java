@@ -36,19 +36,20 @@ public class BpmsApiWebSecurityConfiguration {
                                 io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.BPMS_API_URL_PREFIX + "/**"),
                         new PathPatternParserServerWebExchangeMatcher(
                                 io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.BPMS_API_URL_PREFIX + "/**")))
-                .csrf().disable()
-                .cors().disable()
-                .authorizeExchange()
+                // Spring Security 7 removed the non-lambda DSL variants; this is a pure syntax
+                // conversion, the semantics are unchanged.
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(ServerHttpSecurity.CorsSpec::disable)
+                .authorizeExchange(exchanges -> exchanges
                         .anyExchange()
-                        .authenticated()
-                        .and()
-                .httpBasic()
+                        .authenticated())
+                .httpBasic(basic -> basic
                         .securityContextRepository(
                                 NoOpServerSecurityContextRepository.getInstance())
                         .authenticationManager(
                                 new UserDetailsRepositoryReactiveAuthenticationManager(
                                         bpmsApiUserDetailsService()))
-                        .authenticationEntryPoint(basicEntryPoint);
+                        .authenticationEntryPoint(basicEntryPoint));
         
         return http.build();
     }

@@ -1,6 +1,6 @@
 package io.vanillabp.cockpit.adapter.common.usertask.kafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.adapter.common.protobuf.DetailsConverter;
 import io.vanillabp.cockpit.adapter.common.usertask.events.UserTaskActivatedEvent;
@@ -111,6 +111,9 @@ public class UserTaskProtobufMapper {
                 .ifPresent(builder::setDetails);
         Optional.ofNullable(userTaskCreatedEvent.getDetailsFulltextSearch())
                 .ifPresent(builder::setDetailsFulltextSearch);
+        Optional.ofNullable(userTaskCreatedEvent.getNotificationDelivery())
+                .map(delivery -> io.vanillabp.cockpit.bpms.api.protobuf.v1.NotificationDelivery.valueOf(delivery.name()))
+                .ifPresent(builder::setNotificationDelivery);
     }
 
     public io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskActivatedEvent map(UserTaskActivatedEvent userTaskEvent){
