@@ -11,6 +11,15 @@ public class MongoDbProperties {
 
     private String useTimeout = "PT5S";
 
+    /**
+     * How long the MongoDB server may hold an idle change-stream poll before answering empty
+     * (maxAwaitTime). Stopping the application waits for the poll in flight, because the blocking
+     * driver cannot interrupt it, so this value is also the upper bound the shutdown waits per
+     * change-stream subscription. Raise it to reduce polling cost (for example on Azure Cosmos DB)
+     * at the price of a slower shutdown.
+     */
+    private String changeStreamMaxAwaitTime = "PT1S";
+
     private boolean useTls = false;
     
     private Mode mode = Mode.MONGODB_4_8;
@@ -23,6 +32,14 @@ public class MongoDbProperties {
 
     public void setUseTimeout(String useTimeout) {
         this.useTimeout = useTimeout;
+    }
+
+    public String getChangeStreamMaxAwaitTime() {
+        return changeStreamMaxAwaitTime;
+    }
+
+    public void setChangeStreamMaxAwaitTime(String changeStreamMaxAwaitTime) {
+        this.changeStreamMaxAwaitTime = changeStreamMaxAwaitTime;
     }
 
     public boolean isUseTls() {
