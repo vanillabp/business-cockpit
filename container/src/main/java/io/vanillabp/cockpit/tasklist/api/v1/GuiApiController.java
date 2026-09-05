@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * A tasklist API controller which gives access to the tasks
@@ -36,7 +34,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	private PersonAndGroupMapper personAndGroupMapper;
 
 	@Override
-	protected Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
+	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
 			final UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
@@ -64,7 +62,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	public Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasksUpdated(
+	public Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int size,
 			final Collection<String> knownUserTasksIds,
@@ -92,7 +90,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Flux<KwicResult> kwic(
+	protected List<KwicResult> kwic(
 			UserDetails currentUser,
 			OffsetDateTime endedSince,
 			List<SearchQuery> searchQueries,
@@ -115,7 +113,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
+	protected io.vanillabp.cockpit.tasklist.model.UserTask getUserTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId) {
 
@@ -124,7 +122,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
+	protected io.vanillabp.cockpit.tasklist.model.UserTask markAsRead(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final boolean unread) {
@@ -137,7 +135,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Flux<UserTask> markAsRead(
+	protected List<UserTask> markAsRead(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final boolean unread) {
@@ -150,7 +148,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<UserTask> claimTask(
+	protected UserTask claimTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final boolean unclaim) {
@@ -164,7 +162,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Flux<UserTask> claimTasks(
+	protected List<UserTask> claimTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final boolean unclaim) {
@@ -178,7 +176,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<UserTask> assignTask(
+	protected UserTask assignTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final String userId,
@@ -192,7 +190,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Flux<UserTask> assignTasks(
+	protected List<UserTask> assignTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final String userId,
@@ -206,7 +204,7 @@ public class GuiApiController extends AbstractUserTaskListGuiApiController {
 	}
 
 	@Override
-	protected Mono<UserTask> setFollowUpDate(
+	protected UserTask setFollowUpDate(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final OffsetDateTime followUpDate) {

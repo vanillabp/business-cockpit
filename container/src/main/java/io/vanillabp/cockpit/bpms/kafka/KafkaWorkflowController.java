@@ -11,7 +11,6 @@ import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import java.time.OffsetDateTime;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
-import reactor.core.publisher.Mono;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -85,18 +84,9 @@ public class KafkaWorkflowController {
         }
     }
 
-    private Mono<Boolean> workflowCreateMono(
-            final WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-
-        return Mono.just(workflowCreatedOrUpdatedEvent)
-                .map(workflowMapper::toNewWorkflow)
-                .flatMap(workflowlistService::createWorkflow);
-
-    }
-
     private void handleWorkflowCreatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        workflowCreateMono(workflowCreatedOrUpdatedEvent)
-                .subscribe();
+        workflowlistService.createWorkflow(
+                workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
     }
 
     private void handleWorkflowCreatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
@@ -104,12 +94,15 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowUpdatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        workflowlistService
-                .getWorkflow(workflowCreatedOrUpdatedEvent.getWorkflowId())
-                .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow))
-                .flatMap(workflowlistService::updateWorkflow)
-                .switchIfEmpty(workflowCreateMono(workflowCreatedOrUpdatedEvent))
-                .subscribe();
+        final var knownWorkflow = workflowlistService.getWorkflow(
+                workflowCreatedOrUpdatedEvent.getWorkflowId());
+        // an update for a workflow the cockpit never saw creates it, mirroring the REST API
+        if (knownWorkflow == null) {
+            handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
+            return;
+        }
+        workflowlistService.updateWorkflow(
+                workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, knownWorkflow));
     }
 
     private void handleWorkflowUpdatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
@@ -117,64 +110,48 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
-        workflowlistService
-                .getWorkflow(workflowCompletedEvent.getWorkflowId())
-                .zipWith(Mono.just(workflowCompletedEvent))
-                .flatMap(t -> {
-                    final var workflow = t.getT1();
-                    final var completedEvent = t.getT2();
+        final var workflow = workflowlistService.getWorkflow(workflowCompletedEvent.getWorkflowId());
+        if (workflow == null) {
+            return;
+        }
 
-                    OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
-                    workflow.setEndedAt(timestamp);
+        final OffsetDateTime timestamp = ProtobufHelper.map(workflowCompletedEvent.getTimestamp());
+        workflow.setEndedAt(timestamp);
 
-                    return workflowlistService.completeWorkflow(
-                            workflow,
-                            timestamp);
-                })
-                .subscribe();
+        workflowlistService.completeWorkflow(workflow, timestamp);
     }
 
     private void handleWorkflowCompletedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
 
-        workflowlistService
-                .getWorkflow(workflowCompletedEvent.getWorkflowId())
-                .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCompletedEvent, workflow))
-                .flatMap(workflow -> workflowlistService.completeWorkflow(
-                        workflow,
-                        workflow.getUpdatedAt()))
-                .subscribe();
+        final var knownWorkflow = workflowlistService.getWorkflow(workflowCompletedEvent.getWorkflowId());
+        if (knownWorkflow == null) {
+            return;
+        }
+        final var workflow = workflowMapper.toUpdatedWorkflow(workflowCompletedEvent, knownWorkflow);
+        workflowlistService.completeWorkflow(workflow, workflow.getUpdatedAt());
 
     }
 
     private void handleWorkflowCancelledEventV1(WorkflowCancelledEvent workflowCancelledEvent) {
-        workflowlistService
-                .getWorkflow(workflowCancelledEvent.getWorkflowId())
-                .zipWith(Mono.just(workflowCancelledEvent))
-                .flatMap(t -> {
-                    final var workflow = t.getT1();
-                    final var completedEvent = t.getT2();
+        final var workflow = workflowlistService.getWorkflow(workflowCancelledEvent.getWorkflowId());
+        if (workflow == null) {
+            return;
+        }
 
-                    OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
-                    workflow.setEndedAt(timestamp);
+        final OffsetDateTime timestamp = ProtobufHelper.map(workflowCancelledEvent.getTimestamp());
+        workflow.setEndedAt(timestamp);
 
-                    return workflowlistService.cancelWorkflow(
-                            workflow,
-                            timestamp,
-                            completedEvent.getComment());
-                })
-                .subscribe();
+        workflowlistService.cancelWorkflow(workflow, timestamp, workflowCancelledEvent.getComment());
     }
 
     private void handleWorkflowCancelledEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
 
-        workflowlistService
-                .getWorkflow(workflowCancelledEvent.getWorkflowId())
-                .map(workflow -> workflowMapper.toUpdatedWorkflow(workflowCancelledEvent, workflow))
-                .flatMap(workflow -> workflowlistService.cancelWorkflow(
-                        workflow,
-                        workflow.getUpdatedAt(),
-                        workflow.getComment()))
-                .subscribe();
+        final var knownWorkflow = workflowlistService.getWorkflow(workflowCancelledEvent.getWorkflowId());
+        if (knownWorkflow == null) {
+            return;
+        }
+        final var workflow = workflowMapper.toUpdatedWorkflow(workflowCancelledEvent, knownWorkflow);
+        workflowlistService.cancelWorkflow(workflow, workflow.getUpdatedAt(), workflow.getComment());
 
     }
 

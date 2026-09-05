@@ -1,12 +1,12 @@
 package io.vanillabp.cockpit.users;
 
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserDetailsProvider;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
  * Wires the chain-independent login user-upsert. Both beans are {@code @ConditionalOnMissingBean}
@@ -22,7 +22,7 @@ public class UserLoginUpsertConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public UserLoginUpsertService userLoginUpsertService(
-            final ReactiveMongoTemplate mongoTemplate) {
+            final MongoTemplate mongoTemplate) {
 
         return new UserLoginUpsertService(mongoTemplate, UPSERT_THROTTLE, Clock.systemUTC());
 
@@ -30,11 +30,11 @@ public class UserLoginUpsertConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public UserLoginUpsertWebFilter userLoginUpsertWebFilter(
-            final ReactiveUserDetailsProvider userDetailsProvider,
+    public UserLoginUpsertFilter userLoginUpsertFilter(
+            final UserDetailsProvider userDetailsProvider,
             final UserLoginUpsertService userLoginUpsertService) {
 
-        return new UserLoginUpsertWebFilter(userDetailsProvider, userLoginUpsertService);
+        return new UserLoginUpsertFilter(userDetailsProvider, userLoginUpsertService);
 
     }
 

@@ -1,41 +1,50 @@
 package io.vanillabp.cockpit.config.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
+import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
+import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
-import io.vanillabp.cockpit.commons.security.jwt.JwtServerSecurityContextRepository;
+import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpMethod;
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
-import org.springframework.mock.web.server.MockServerWebExchange;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.config.ObjectPostProcessor;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.context.support.GenericWebApplicationContext;
 
 /**
- * The two reactive security chains of the cockpit: which requests they take, in which order they are
+ * The two servlet security chains of the cockpit: which requests they take, in which order they are
  * consulted, and where the JWT filter sits inside the GUI chain.
  *
  * <p>None of this fails loudly when it breaks. A JWT filter placed after the authorization filter leaves
  * every request unauthenticated, which looks like a plain 401; a GUI chain consulted before the BPMS-API
- * chain answers adapter requests with a login redirect, which looks like a broken adapter. Spring Security 7
- * arrived with Spring Boot 4 and the DSL had to be converted to its lambda form, so the assertions below
- * exist to show that the conversion kept the semantics.
+ * chain answers adapter requests with a login redirect, which looks like a broken adapter. The chains were
+ * rewritten from WebFlux to Spring MVC, so the assertions below exist to show that the rewrite kept the
+ * semantics.
  *
  * <p>The configurations are exercised directly rather than through a Spring context: the container's context
- * needs MongoDB, Kafka and a workflow module to come up, while {@code ServerHttpSecurity.http()} produces
- * exactly the object Boot would inject.
+ * needs MongoDB, Kafka and a workflow module to come up. {@link #httpSecurity()} builds the same
+ * {@code HttpSecurity} Spring Boot would inject, including the configurers it applies by default - without
+ * them the filter list would be missing exactly the filters these assertions are about.
  */
 class WebSecurityChainTest {
 
@@ -56,6 +65,42 @@ class WebSecurityChainTest {
 
     }
 
+    /**
+     * The same set of default configurers Spring Boot's {@code HttpSecurityConfiguration} applies to the
+     * prototype it hands to a {@code SecurityFilterChain} bean method.
+     */
+    private HttpSecurity httpSecurity() {
+
+        final var objectPostProcessor = new ObjectPostProcessor<Object>() {
+            @Override
+            public <O> O postProcess(final O object) {
+                return object;
+            }
+        };
+
+        final var context = new GenericWebApplicationContext(new MockServletContext());
+        context.refresh();
+
+        final var http = new HttpSecurity(
+                objectPostProcessor,
+                new AuthenticationManagerBuilder(objectPostProcessor),
+                Map.of(
+                        ApplicationContext.class, context,
+                        PathPatternRequestMatcher.Builder.class, PathPatternRequestMatcher.withDefaults()));
+
+        return http
+                .csrf(withDefaults())
+                .exceptionHandling(withDefaults())
+                .headers(withDefaults())
+                .sessionManagement(withDefaults())
+                .securityContext(withDefaults())
+                .requestCache(withDefaults())
+                .anonymous(withDefaults())
+                .servletApi(withDefaults())
+                .logout(withDefaults());
+
+    }
+
     private WebSecurityConfiguration guiConfiguration() {
 
         final var configuration = new WebSecurityConfiguration();
@@ -64,18 +109,19 @@ class WebSecurityChainTest {
 
     }
 
-    private SecurityWebFilterChain guiChain() {
+    private SecurityFilterChain guiChain() throws Exception {
 
         final var configuration = guiConfiguration();
         final var jwtProperties = applicationProperties().getJwt();
-        final var jwtRepository = new JwtServerSecurityContextRepository(
-                jwtProperties,
-                new JwtAuthenticationTokenMapper(jwtProperties));
+        final JwtMapper<? extends JwtAuthenticationToken> jwtMapper =
+                new JwtAuthenticationTokenMapper(jwtProperties);
+        final var jwtRepository = new JwtSecurityContextRepository(jwtProperties, jwtMapper);
         return configuration.guiHttpSecurity(
-                ServerHttpSecurity.http(), jwtRepository, new SingleUserDetailsProvider());
+                httpSecurity(), jwtRepository, jwtMapper, new SingleUserDetailsProvider());
+
     }
 
-    private SecurityWebFilterChain bpmsApiChain() {
+    private SecurityFilterChain bpmsApiChain() throws Exception {
 
         final var properties = new BpmsApiProperties();
         properties.setRealmName("test");
@@ -84,41 +130,42 @@ class WebSecurityChainTest {
 
         final var configuration = new BpmsApiWebSecurityConfiguration();
         ReflectionTestUtils.setField(configuration, "properties", properties);
-        return configuration.bpmsApiHttpSecurity(ServerHttpSecurity.http());
+        return configuration.bpmsApiHttpSecurity(httpSecurity());
 
     }
 
     private List<String> filterClassNames(
-            final SecurityWebFilterChain chain) {
+            final SecurityFilterChain chain) {
 
         return chain
-                .getWebFilters()
+                .getFilters()
+                .stream()
                 .map(filter -> filter.getClass().getSimpleName())
-                .collectList()
-                .block();
+                .toList();
 
     }
 
     /**
-     * {@code addFilterAfter(.., SecurityWebFiltersOrder.HTTP_BASIC)} has to land the JWT filter behind the
+     * {@code addFilterAfter(.., BasicAuthenticationFilter.class)} has to land the JWT filter behind the
      * authentication filter - it reads the security context from the JWT cookie - and ahead of the
-     * authorization filter, which is what decides on 401. Both enum constant and filter set are Spring's,
-     * so a Spring upgrade can move the position without any compile error.
+     * authorization filter, which is what decides on 401. The filter set is Spring's, so a Spring upgrade
+     * can move the position without any compile error.
      */
     @Test
-    void theJwtFilterSitsBetweenAuthenticationAndAuthorization() {
+    void theJwtFilterSitsBetweenAuthenticationAndAuthorization() throws Exception {
 
         final var filters = filterClassNames(guiChain());
 
-        assertThat(filters).contains("JwtSecurityWebFilter", "AuthenticationWebFilter", "AuthorizationWebFilter");
-        assertThat(filters.indexOf("JwtSecurityWebFilter"))
+        assertThat(filters).contains(
+                "PassiveJwtSecurityFilter", "BasicAuthenticationFilter", "AuthorizationFilter");
+        assertThat(filters.indexOf("PassiveJwtSecurityFilter"))
                 .as("the JWT filter must run after authentication, otherwise the security context it "
                         + "restores is overwritten - filters: %s", filters)
-                .isGreaterThan(filters.indexOf("AuthenticationWebFilter"));
-        assertThat(filters.indexOf("JwtSecurityWebFilter"))
+                .isGreaterThan(filters.indexOf("BasicAuthenticationFilter"));
+        assertThat(filters.indexOf("PassiveJwtSecurityFilter"))
                 .as("the JWT filter must run before authorization, otherwise every request is anonymous "
                         + "and answered with 401 - filters: %s", filters)
-                .isLessThan(filters.indexOf("AuthorizationWebFilter"));
+                .isLessThan(filters.indexOf("AuthorizationFilter"));
 
     }
 
@@ -127,7 +174,7 @@ class WebSecurityChainTest {
      * otherwise unauthenticated requests would silently get an anonymous principal instead of a 401.
      */
     @Test
-    void theGuiChainHasNoAnonymousAuthentication() {
+    void theGuiChainHasNoAnonymousAuthentication() throws Exception {
 
         assertThat(filterClassNames(guiChain()))
                 .noneMatch(name -> name.contains("Anonymous"));
@@ -135,7 +182,7 @@ class WebSecurityChainTest {
     }
 
     @Test
-    void theBpmsApiChainOnlyTakesTheBpmsApiPaths() {
+    void theBpmsApiChainOnlyTakesTheBpmsApiPaths() throws Exception {
 
         final var chain = bpmsApiChain();
 
@@ -153,7 +200,7 @@ class WebSecurityChainTest {
      * below is about {@code @Order} rather than about matchers.
      */
     @Test
-    void theGuiChainTakesEverythingIncludingTheBpmsApiPaths() {
+    void theGuiChainTakesEverythingIncludingTheBpmsApiPaths() throws Exception {
 
         final var chain = guiChain();
 
@@ -170,10 +217,10 @@ class WebSecurityChainTest {
     void theBpmsApiChainIsConsultedBeforeTheGuiChain() throws Exception {
 
         final var bpmsApiOrder = orderOf(
-                BpmsApiWebSecurityConfiguration.class, "bpmsApiHttpSecurity", ServerHttpSecurity.class);
+                BpmsApiWebSecurityConfiguration.class, "bpmsApiHttpSecurity", HttpSecurity.class);
         final var guiOrder = orderOf(
-                WebSecurityConfiguration.class, "guiHttpSecurity", ServerHttpSecurity.class,
-                JwtServerSecurityContextRepository.class, UserDetailsProvider.class);
+                WebSecurityConfiguration.class, "guiHttpSecurity", HttpSecurity.class,
+                JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class);
 
         assertThat(bpmsApiOrder).isLessThan(guiOrder);
 
@@ -189,8 +236,8 @@ class WebSecurityChainTest {
     void theNamedExtensionPointsStillMatchTheirMethodNames() throws Exception {
 
         assertThat(WebSecurityConfiguration.class
-                .getDeclaredMethod("guiHttpSecurity", ServerHttpSecurity.class,
-                        JwtServerSecurityContextRepository.class, UserDetailsProvider.class)
+                .getDeclaredMethod("guiHttpSecurity", HttpSecurity.class,
+                        JwtSecurityContextRepository.class, JwtMapper.class, UserDetailsProvider.class)
                 .getAnnotation(org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean.class)
                 .name())
                 .containsExactly("guiHttpSecurity");
@@ -204,12 +251,10 @@ class WebSecurityChainTest {
     }
 
     private boolean matches(
-            final SecurityWebFilterChain chain,
+            final SecurityFilterChain chain,
             final String path) {
 
-        return Boolean.TRUE.equals(chain
-                .matches(MockServerWebExchange.from(MockServerHttpRequest.method(HttpMethod.GET, path)))
-                .block());
+        return chain.matches(new MockHttpServletRequest("GET", path));
 
     }
 

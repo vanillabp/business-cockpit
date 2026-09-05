@@ -139,23 +139,24 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     }
 
     /**
-     * Documents a pre-existing bug, not desired behavior: an update event for an unknown task is
-     * meant to create the task (the controller has a fallback for exactly that), but the fallback
-     * re-reads the already consumed request body and fails, surfacing as HTTP 500 without creating
-     * anything. Once fixed (the blocking rewrite will most likely fix it implicitly, since the
-     * body is no longer a one-shot publisher), this test should be updated to the intended
-     * behavior: HTTP 200 and the task exists afterwards.
+     * An update event for a task the cockpit never saw creates it, so a cockpit added to a running
+     * system does not stay blind to the tasks that existed before. While the application was
+     * reactive this fallback answered HTTP 500, because it re-read the already consumed request
+     * body; reading the body once into an object removed the problem.
      */
     @Test
-    void updateEventForUnknownTaskCurrentlyFailsInsteadOfCreatingIt() {
+    void updateEventForUnknownTaskCreatesIt() {
 
         final var userTaskId = unique("task");
         final var response = bpmsV1_1("/usertask/" + userTaskId + "/updated",
                 userTaskCreatedPayload(userTaskId, isoNow(), """
                         "assignee": "martin"
                         """));
-        assertThat(response.statusCode()).isEqualTo(500);
-        assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(404);
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        final var detailResponse = guiGet(cookie, "/usertask/" + userTaskId);
+        assertThat(detailResponse.statusCode()).isEqualTo(200);
+        assertThat(json(detailResponse).read("$.assignee.id", String.class)).isEqualTo("martin");
 
     }
 

@@ -1,12 +1,22 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import org.springframework.integration.channel.DirectChannel;
+import java.util.UUID;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/**
+ * One subscribed browser: the open server-sent-event stream plus the events collected for it since
+ * the last delivery. Events are buffered rather than sent one by one, so a burst of changes
+ * produces one update instead of hundreds.
+ */
 public class UpdateEmitter {
 
-    private final DirectChannel channel;
+    private final SseEmitter emitter;
+
+    /** Stable monitor: the event list itself is replaced on every delivery. */
+    private final Object eventsLock = new Object();
 
     private int updateInterval;
 
@@ -15,20 +25,20 @@ public class UpdateEmitter {
     private List<String> groups;
 
     private long lastCommit;
-    
+
     private List<GuiEvent> events;
 
     private UpdateEmitter(
-            final DirectChannel channel) {
+            final SseEmitter emitter) {
 
-        this.channel = channel;
+        this.emitter = emitter;
 
     }
 
-    public static UpdateEmitter withChannel(
-            final DirectChannel channel) {
+    public static UpdateEmitter withEmitter(
+            final SseEmitter emitter) {
 
-        final var result = new UpdateEmitter(channel);
+        final var result = new UpdateEmitter(emitter);
         result.events = new LinkedList<>();
         return result;
 
@@ -40,10 +50,10 @@ public class UpdateEmitter {
         return this;
     }
 
-    public DirectChannel getChannel() {
-        return channel;
+    public SseEmitter getEmitter() {
+        return emitter;
     }
-    
+
     public List<String> getGroups() {
         return groups;
     }
@@ -59,6 +69,45 @@ public class UpdateEmitter {
         return this;
     }
 
+    /**
+     * Writes one named event to the browser.
+     *
+     * @return whether the client is still there; a client which closed the stream cannot be told
+     *         anything any more and its emitter has to be dropped
+     */
+    public boolean send(
+            final String name,
+            final Object payload) {
+
+        // SseEmitter is not safe for concurrent writes, and both the collecting tick and the ping
+        // tick may want to write at the same moment
+        synchronized (this) {
+            try {
+                emitter.send(SseEmitter
+                        .event()
+                        .id(UUID.randomUUID().toString())
+                        .name(name)
+                        .data(payload));
+                return true;
+            } catch (IOException | IllegalStateException e) {
+                return false;
+            }
+        }
+
+    }
+
+    public void complete() {
+
+        synchronized (this) {
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                // the stream is gone either way
+            }
+        }
+
+    }
+
     public void collectEvent(
             final GuiEvent event) {
 
@@ -66,7 +115,7 @@ public class UpdateEmitter {
             return;
         }
 
-        synchronized (channel) {
+        synchronized (eventsLock) {
             events.add(event);
         }
 
@@ -74,7 +123,7 @@ public class UpdateEmitter {
 
     public List<GuiEvent> consumeEvents() {
 
-        synchronized (channel) {
+        synchronized (eventsLock) {
             if (events.isEmpty()) {
                 return List.of();
             }
@@ -85,8 +134,8 @@ public class UpdateEmitter {
                 lastCommit = now;
                 final List<GuiEvent> result;
                 if (events.size() > maxItemsPerUpdate) {
-                    result = events.subList(0, maxItemsPerUpdate);
-                    events = events.subList(maxItemsPerUpdate, events.size());
+                    result = List.copyOf(events.subList(0, maxItemsPerUpdate));
+                    events = new LinkedList<>(events.subList(maxItemsPerUpdate, events.size()));
                 } else {
                     result = events;
                     events = new LinkedList<>();
@@ -99,4 +148,4 @@ public class UpdateEmitter {
 
     }
 
-};
+}

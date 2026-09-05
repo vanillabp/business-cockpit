@@ -111,18 +111,21 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     }
 
     /**
-     * Documents a pre-existing bug, not desired behavior: like for user tasks, the create-on-
-     * update fallback re-reads the consumed request body and fails with HTTP 500 instead of
-     * creating the workflow. Once fixed, expect HTTP 200 and the workflow to exist afterwards.
+     * Like for user tasks, an update event for an unknown workflow creates it. While the
+     * application was reactive this fallback answered HTTP 500, because it re-read the already
+     * consumed request body.
      */
     @Test
-    void updateEventForUnknownWorkflowCurrentlyFailsInsteadOfCreatingIt() {
+    void updateEventForUnknownWorkflowCreatesIt() {
 
         final var workflowId = unique("workflow");
         final var response = bpmsV1_1("/workflow/" + workflowId + "/updated",
                 workflowPayload(workflowId, isoNow(), ""));
-        assertThat(response.statusCode()).isEqualTo(500);
-        assertThat(guiGet(cookie, "/workflow/" + workflowId).statusCode()).isEqualTo(404);
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        final var detailResponse = guiGet(cookie, "/workflow/" + workflowId);
+        assertThat(detailResponse.statusCode()).isEqualTo(200);
+        assertThat(json(detailResponse).read("$.id", String.class)).isEqualTo(workflowId);
 
     }
 

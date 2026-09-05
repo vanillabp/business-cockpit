@@ -28,9 +28,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
  * Delivery of a bulk is accounted for per recipient: a recipient already reached must not receive
@@ -53,12 +51,12 @@ class NotificationPollerDeliveryTest {
         final var userTasks = mock(UserTaskRepository.class);
         final var task = new UserTask();
         task.setId("task-1");
-        when(userTasks.findById(anyString())).thenReturn(Mono.just(task));
+        when(userTasks.findById(anyString())).thenReturn(java.util.Optional.of(task));
         when(outbox.saveAll(anyIterable()))
-                .thenAnswer(invocation -> Flux.fromIterable(invocation.getArgument(0)));
+                .thenAnswer(invocation -> java.util.List.copyOf((java.util.Collection<NotificationOutboxEntry>) invocation.getArgument(0)));
 
         poller = new NotificationPoller(
-                mock(ReactiveMongoTemplate.class),
+                mock(MongoTemplate.class),
                 mock(UserRepository.class),
                 userTasks,
                 outbox,
@@ -80,7 +78,7 @@ class NotificationPollerDeliveryTest {
 
     private void pending(final NotificationOutboxEntry... entries) {
         when(outbox.findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(120))
-                .thenReturn(Flux.just(entries));
+                .thenReturn(List.of(entries));
     }
 
     /** All entries saved by the poller, keyed by recipient. */

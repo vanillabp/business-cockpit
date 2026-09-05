@@ -69,8 +69,7 @@ public class KafkaWorkflowModuleController {
                         event.getTaskProviderApiUriPath(),
                         event.getWorkflowProviderApiUriPath(),
                         event.getAccessibleToGroupsList(),
-                        groupHierarchy)
-                .subscribe();
+                        groupHierarchy);
 
     }
 

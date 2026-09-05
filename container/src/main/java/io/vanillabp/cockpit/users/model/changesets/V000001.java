@@ -3,7 +3,7 @@ package io.vanillabp.cockpit.users.model.changesets;
 import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.User;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,11 +16,10 @@ public class V000001 {
 
     @Changeset(order = 4000)
     public String createUsersCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
-                .createCollection(User.COLLECTION_NAME)
-                .block();
+                .createCollection(User.COLLECTION_NAME);
 
         return "{ drop: '" + User.COLLECTION_NAME + "' }";
 

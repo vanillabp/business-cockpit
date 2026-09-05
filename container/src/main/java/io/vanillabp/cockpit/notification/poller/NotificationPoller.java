@@ -22,13 +22,11 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * Once-per-interval poller that determines and sends notifications (AC func 2, AC tech 4/6/8/9).
@@ -39,9 +37,6 @@ import reactor.core.scheduler.Schedulers;
  * retried until sent - per recipient, as long as the medium reports which recipients it failed to
  * reach ({@link NotificationDeliveryException}). Registered only when at least one {@link NotificationService} bean exists so
  * installations without notifications keep their exact runtime behavior.
- * <p>
- * Runs on a bounded-elastic scheduler; the reactive repositories and the (blocking) user directory
- * are accessed with {@code block()} off the Netty event loop.
  */
 public class NotificationPoller {
 
@@ -49,7 +44,7 @@ public class NotificationPoller {
 
     private static final Duration LEASE_TTL = Duration.ofMinutes(5);
 
-    private final ReactiveMongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
     private final UserRepository userRepository;
     private final UserTaskRepository userTaskRepository;
     private final NotificationOutboxRepository outboxRepository;
@@ -62,7 +57,7 @@ public class NotificationPoller {
     private final String nodeId = UUID.randomUUID().toString();
 
     public NotificationPoller(
-            final ReactiveMongoTemplate mongoTemplate,
+            final MongoTemplate mongoTemplate,
             final UserRepository userRepository,
             final UserTaskRepository userTaskRepository,
             final NotificationOutboxRepository outboxRepository,
@@ -91,11 +86,11 @@ public class NotificationPoller {
             return; // no medium configured: keep runtime behavior unchanged (AC tech 4)
         }
 
-        Mono.fromRunnable(this::runCycle)
-                .subscribeOn(Schedulers.boundedElastic())
-                .doOnError(e -> logger.warn("Notification poll cycle failed", e))
-                .onErrorResume(e -> Mono.empty())
-                .subscribe();
+        try {
+            runCycle();
+        } catch (Exception e) {
+            logger.warn("Notification poll cycle failed", e);
+        }
 
     }
 
@@ -113,11 +108,11 @@ public class NotificationPoller {
             return;
         }
 
-        Mono.fromRunnable(this::runCleanup)
-                .subscribeOn(Schedulers.boundedElastic())
-                .doOnError(e -> logger.warn("Notification outbox cleanup failed", e))
-                .onErrorResume(e -> Mono.empty())
-                .subscribe();
+        try {
+            runCleanup();
+        } catch (Exception e) {
+            logger.warn("Notification outbox cleanup failed", e);
+        }
 
     }
 
@@ -127,8 +122,8 @@ public class NotificationPoller {
         // sentAt is only set on successful delivery; a date comparison never matches pending (null)
         // entries, so this removes exactly the sent entries older than the retention threshold
         final var query = Query.query(Criteria.where("sentAt").lt(threshold));
-        final var deleted = mongoTemplate.remove(query, NotificationOutboxEntry.class).block();
-        if (deleted != null && deleted.getDeletedCount() > 0) {
+        final var deleted = mongoTemplate.remove(query, NotificationOutboxEntry.class);
+        if (deleted.getDeletedCount() > 0) {
             logger.info("Cleaned up {} sent notification outbox entries older than {}",
                     deleted.getDeletedCount(), cleanupSentOlderThan);
         }
@@ -166,10 +161,8 @@ public class NotificationPoller {
         final var changed = mongoTemplate
                 .find(Query.query(new Criteria().andOperator(
                         Criteria.where("updatedAt").gt(cursor),
-                        Criteria.where("updatedAt").lte(now))), UserTask.class)
-                .collectList()
-                .block();
-        if (changed == null || changed.isEmpty()) {
+                        Criteria.where("updatedAt").lte(now))), UserTask.class);
+        if (changed.isEmpty()) {
             return;
         }
 
@@ -184,10 +177,10 @@ public class NotificationPoller {
 
     private RecipientDirectory buildDirectory() {
 
-        final var users = userRepository.findAll().collectList().block();
-        final Map<String, User> usersById = users == null
-                ? Map.of()
-                : users.stream().collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+        final var usersById = userRepository
+                .findAll()
+                .stream()
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
         final var mediaTypes = notificationServices.stream()
                 .map(NotificationService::getType)
                 .toList();
@@ -238,10 +231,11 @@ public class NotificationPoller {
 
         // the unique index makes this idempotent: a duplicate simply means the notification was
         // already planned in an earlier (overlapping) scan
-        outboxRepository
-                .insert(entry)
-                .onErrorResume(org.springframework.dao.DuplicateKeyException.class, e -> Mono.empty())
-                .block();
+        try {
+            outboxRepository.insert(entry);
+        } catch (org.springframework.dao.DuplicateKeyException e) {
+            // already planned in an earlier (overlapping) scan
+        }
 
     }
 
@@ -250,10 +244,8 @@ public class NotificationPoller {
             final OffsetDateTime now) {
 
         final var pending = outboxRepository
-                .findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxDeliveryAttempts)
-                .collectList()
-                .block();
-        if (pending == null || pending.isEmpty()) {
+                .findBySentAtIsNullAndAttemptsLessThanOrderByCreatedAtAsc(maxDeliveryAttempts);
+        if (pending.isEmpty()) {
             return;
         }
 
@@ -282,7 +274,7 @@ public class NotificationPoller {
             return;
         }
 
-        final var task = userTaskRepository.findById(key.userTaskId()).block();
+        final var task = userTaskRepository.findById(key.userTaskId()).orElse(null);
         if (task == null) {
             // the task vanished - drop these entries so they are not retried forever
             markSent(entries, now);
@@ -345,7 +337,7 @@ public class NotificationPoller {
 
         // persist the incremented attempt counter; these entries stay pending and are retried next
         // cycle (at-least-once per recipient) until they either succeed or turn stale
-        outboxRepository.saveAll(entries).collectList().block();
+        outboxRepository.saveAll(entries);
 
         if (attemptNo >= maxDeliveryAttempts) {
             logger.error("Notification bulk {} is now stale after {} attempt(s) ({}); it will not be "
@@ -364,27 +356,28 @@ public class NotificationPoller {
             final OffsetDateTime now) {
 
         entries.forEach(e -> e.setSentAt(now));
-        outboxRepository.saveAll(entries).collectList().block();
+        outboxRepository.saveAll(entries);
 
     }
 
     private void ensureStateExists(
             final OffsetDateTime now) {
 
-        mongoTemplate
+        final var exists = mongoTemplate
                 .exists(Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
-                        NotificationPollState.class)
-                .flatMap(exists -> {
-                    if (Boolean.TRUE.equals(exists)) {
-                        return Mono.empty();
-                    }
-                    final var initial = new NotificationPollState();
-                    initial.setId(NotificationPollState.SINGLETON_ID);
-                    // no cursor yet: the first cycle sets it to "now" and skips any backlog
-                    return mongoTemplate.insert(initial)
-                            .onErrorResume(e -> Mono.empty());
-                })
-                .block();
+                        NotificationPollState.class);
+        if (exists) {
+            return;
+        }
+
+        final var initial = new NotificationPollState();
+        initial.setId(NotificationPollState.SINGLETON_ID);
+        // no cursor yet: the first cycle sets it to "now" and skips any backlog
+        try {
+            mongoTemplate.insert(initial);
+        } catch (Exception e) {
+            // another node created it in the meantime
+        }
 
     }
 
@@ -401,8 +394,7 @@ public class NotificationPoller {
                 .set("owner", nodeId);
         return mongoTemplate
                 .findAndModify(query, update,
-                        FindAndModifyOptions.options().returnNew(true), NotificationPollState.class)
-                .block();
+                        FindAndModifyOptions.options().returnNew(true), NotificationPollState.class);
 
     }
 
@@ -413,21 +405,22 @@ public class NotificationPoller {
                 .updateFirst(
                         Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
                         new Update().set("cursor", now).set("lockedUntil", now),
-                        NotificationPollState.class)
-                .block();
+                        NotificationPollState.class);
 
     }
 
     private void releaseLease(
             final OffsetDateTime now) {
 
-        mongoTemplate
-                .updateFirst(
-                        Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
-                        new Update().set("lockedUntil", now),
-                        NotificationPollState.class)
-                .onErrorResume(e -> Mono.empty())
-                .block();
+        try {
+            mongoTemplate
+                    .updateFirst(
+                            Query.query(Criteria.where("_id").is(NotificationPollState.SINGLETON_ID)),
+                            new Update().set("lockedUntil", now),
+                            NotificationPollState.class);
+        } catch (Exception e) {
+            logger.debug("Could not release the notification poll lease", e);
+        }
 
     }
 

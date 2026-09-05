@@ -10,7 +10,7 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
  * Registers the {@link NotificationPoller}. The poller only becomes active when at least one
@@ -25,7 +25,7 @@ public class NotificationPollerConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public NotificationPoller notificationPoller(
-            final ReactiveMongoTemplate mongoTemplate,
+            final MongoTemplate mongoTemplate,
             final UserRepository userRepository,
             final UserTaskRepository userTaskRepository,
             final NotificationOutboxRepository outboxRepository,

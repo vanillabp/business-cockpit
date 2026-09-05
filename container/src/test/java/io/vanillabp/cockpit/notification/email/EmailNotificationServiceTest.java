@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import reactor.core.publisher.Mono;
 
 class EmailNotificationServiceTest {
 
@@ -43,8 +42,8 @@ class EmailNotificationServiceTest {
         user.setEmail("u1@example.org");
         user.setLocale(java.util.Locale.ENGLISH); // template builds English URL paths (/task, /tasks)
         final var userRepository = mock(UserRepository.class);
-        when(userRepository.findById("u1")).thenReturn(Mono.just(user));
-        when(userRepository.save(any())).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+        when(userRepository.findById("u1")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         final var applicationProperties = new ApplicationProperties();
         applicationProperties.setApplicationUri("http://cockpit.example.org/");
