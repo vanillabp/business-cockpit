@@ -2,27 +2,28 @@ package io.vanillabp.cockpit.util.kwic;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.aggregation.StringOperators;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 @Service
 public class KwicService {
 
-    private final ReactiveMongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
 
-    public KwicService(ReactiveMongoTemplate mongoTemplate) {
+    public KwicService(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public Flux<KwicResult> getKwicAggregatedResults(
+    public List<KwicResult> getKwicAggregatedResults(
             final Class<?> searchCollectionClass,
             final CriteriaDefinition matchCriteria,
             final Collection<SearchQuery> searchQueries,
@@ -57,14 +58,11 @@ public class KwicService {
                         ),
                         searchCollectionClass,
                         KwicResult.class)
-                .sort((a, b) -> {
-                    if (a.count() < b.count()) {
-                        return -1;
-                    }
-                    if (a.count() > b.count()) {
-                        return 1;
-                    }
-                    return a.item().compareTo(b.item());
-                });
+                .getMappedResults()
+                .stream()
+                .sorted(Comparator
+                        .comparingInt(KwicResult::count)
+                        .thenComparing(KwicResult::item))
+                .toList();
     }
 }

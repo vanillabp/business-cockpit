@@ -14,8 +14,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service
 public class WorkflowModuleService {
@@ -30,31 +28,26 @@ public class WorkflowModuleService {
     public void registerProxiesForWorkflowModules() {
 
         // prefill cache
-        workflowModules
-                .findAll()
-                .doOnNext(workflowModule -> {
-                    final var groupHierarchy = Optional
-                            .ofNullable(workflowModule.getGroupHierarchy())
-                            .stream()
-                            .flatMap(List::stream)
-                            .collect(Collectors.toMap(GroupHierarchy::group, hierarchy -> (Collection<String>) hierarchy.targets()));
-                    GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
-                }).subscribe();
+        final var all = workflowModules.findAll();
 
-        workflowModules
-                .findAll()
-                .collectList()
-                .map(all -> all
-                        .stream()
-                        .collect(Collectors.toMap(
-                                WorkflowModule::getId,
-                                WorkflowModule::getUri)))
-                .doOnNext(microserviceProxyRegistry::registerMicroservices)
-                .subscribe();
+        all.forEach(workflowModule -> {
+            final var groupHierarchy = Optional
+                    .ofNullable(workflowModule.getGroupHierarchy())
+                    .stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toMap(GroupHierarchy::group, hierarchy -> (Collection<String>) hierarchy.targets()));
+            GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
+        });
+
+        microserviceProxyRegistry.registerMicroservices(all
+                .stream()
+                .collect(Collectors.toMap(
+                        WorkflowModule::getId,
+                        WorkflowModule::getUri)));
 
     }
 
-    public Mono<Boolean> registerOrUpdateWorkflowModule(
+    public boolean registerOrUpdateWorkflowModule(
             final String id,
             final String uri,
             final String taskProviderApiUriPath,
@@ -62,66 +55,104 @@ public class WorkflowModuleService {
             final List<String> accessibleToGroups,
             final Map<String, Collection<String>> groupHierarchy) {
 
-        final var updateWorkflowModule = workflowModules
-                .findById(id)
-                .switchIfEmpty(Mono.just(WorkflowModule.withId(id)))
-                .flatMap(workflowModule -> {
-                    if ((uri == null) && (workflowModule.getUri() != null)) return Mono.just(workflowModule);
-                    if ((uri != null) && (workflowModule.getUri() == null)) return Mono.just(workflowModule);
-                    if ((uri != null) && !uri.equals(workflowModule.getUri())) return Mono.just(workflowModule);
-                    if ((taskProviderApiUriPath == null) && (workflowModule.getTaskProviderApiUriPath() != null)) return Mono.just(workflowModule);
-                    if ((taskProviderApiUriPath != null) && (workflowModule.getTaskProviderApiUriPath() == null)) return Mono.just(workflowModule);
-                    if ((taskProviderApiUriPath != null) && !taskProviderApiUriPath.equals(workflowModule.getTaskProviderApiUriPath())) return Mono.just(workflowModule);
-                    if ((workflowProviderApiUriPath == null) && (workflowModule.getWorkflowProviderApiUriPath() != null)) return Mono.just(workflowModule);
-                    if ((workflowProviderApiUriPath != null) && (workflowModule.getWorkflowProviderApiUriPath() == null)) return Mono.just(workflowModule);
-                    if ((workflowProviderApiUriPath != null) && !workflowProviderApiUriPath.equals(workflowModule.getWorkflowProviderApiUriPath())) return Mono.just(workflowModule);
-                    if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return Mono.just(workflowModule);
-                    if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return  Mono.just(workflowModule);
-                    if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return Mono.just(workflowModule);
-                    if ((groupHierarchy != null) && (workflowModule.getGroupHierarchy() == null)) return Mono.just(workflowModule);
-                    if ((groupHierarchy == null) && (workflowModule.getGroupHierarchy() != null)) return Mono.just(workflowModule);
-                    if ((groupHierarchy != null) && !groupHierarchy.equals(workflowModule.getGroupHierarchy())) return Mono.just(workflowModule);
-                    return Mono.empty();
-                })
-                .doOnNext(workflowModule -> {
-                    workflowModule.setUri(uri);
-                    workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
-                    workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
-                    workflowModule.setAccessibleToGroups(accessibleToGroups);
-                    final var modelGroupHierarchy = Optional
-                            .ofNullable(groupHierarchy)
-                            .map(hierarchy -> hierarchy
-                                    .entrySet()
-                                    .stream()
-                                    .map(entry -> new GroupHierarchy(entry.getKey(), new LinkedList<>(entry.getValue())))
-                                    .toList())
-                            .orElse(null);
-                    workflowModule.setGroupHierarchy(modelGroupHierarchy);
-                    GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
-                })
-                .flatMap(workflowModules::save)
-                .doOnNext(workflowModule -> microserviceProxyRegistry.registerMicroservice(
-                        workflowModule.getId(),
-                        workflowModule.getUri()));
-
-        return updateWorkflowModule
-                .onErrorResume(OptimisticLockingFailureException.class, e -> updateWorkflowModule)
-                .map(workflowModule -> Boolean.TRUE)
-                .switchIfEmpty(Mono.just(Boolean.FALSE));
+        try {
+            return updateWorkflowModule(id, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
+                    accessibleToGroups, groupHierarchy);
+        } catch (OptimisticLockingFailureException e) {
+            // another node registered the same module concurrently: read the now current state and
+            // apply the registration once more
+            return updateWorkflowModule(id, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
+                    accessibleToGroups, groupHierarchy);
+        }
 
     }
 
-    public Mono<WorkflowModule> getWorkflowModule(
+    /**
+     * @return whether anything had to be written; a registration repeating what is already stored
+     *         leaves the document untouched
+     */
+    private boolean updateWorkflowModule(
+            final String id,
+            final String uri,
+            final String taskProviderApiUriPath,
+            final String workflowProviderApiUriPath,
+            final List<String> accessibleToGroups,
+            final Map<String, Collection<String>> groupHierarchy) {
+
+        final var workflowModule = workflowModules
+                .findById(id)
+                .orElseGet(() -> WorkflowModule.withId(id));
+
+        if (!hasChanged(workflowModule, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
+                accessibleToGroups, groupHierarchy)) {
+            return false;
+        }
+
+        workflowModule.setUri(uri);
+        workflowModule.setTaskProviderApiUriPath(taskProviderApiUriPath);
+        workflowModule.setWorkflowProviderApiUriPath(workflowProviderApiUriPath);
+        workflowModule.setAccessibleToGroups(accessibleToGroups);
+        final var modelGroupHierarchy = Optional
+                .ofNullable(groupHierarchy)
+                .map(hierarchy -> hierarchy
+                        .entrySet()
+                        .stream()
+                        .map(entry -> new GroupHierarchy(entry.getKey(), new LinkedList<>(entry.getValue())))
+                        .toList())
+                .orElse(null);
+        workflowModule.setGroupHierarchy(modelGroupHierarchy);
+        GroupHierarchyService.putGroupHierarchy(workflowModule.getId(), groupHierarchy);
+
+        final var saved = workflowModules.save(workflowModule);
+
+        microserviceProxyRegistry.registerMicroservice(
+                saved.getId(),
+                saved.getUri());
+
+        return true;
+
+    }
+
+    private boolean hasChanged(
+            final WorkflowModule workflowModule,
+            final String uri,
+            final String taskProviderApiUriPath,
+            final String workflowProviderApiUriPath,
+            final List<String> accessibleToGroups,
+            final Map<String, Collection<String>> groupHierarchy) {
+
+        if ((uri == null) && (workflowModule.getUri() != null)) return true;
+        if ((uri != null) && (workflowModule.getUri() == null)) return true;
+        if ((uri != null) && !uri.equals(workflowModule.getUri())) return true;
+        if ((taskProviderApiUriPath == null) && (workflowModule.getTaskProviderApiUriPath() != null)) return true;
+        if ((taskProviderApiUriPath != null) && (workflowModule.getTaskProviderApiUriPath() == null)) return true;
+        if ((taskProviderApiUriPath != null) && !taskProviderApiUriPath.equals(workflowModule.getTaskProviderApiUriPath())) return true;
+        if ((workflowProviderApiUriPath == null) && (workflowModule.getWorkflowProviderApiUriPath() != null)) return true;
+        if ((workflowProviderApiUriPath != null) && (workflowModule.getWorkflowProviderApiUriPath() == null)) return true;
+        if ((workflowProviderApiUriPath != null) && !workflowProviderApiUriPath.equals(workflowModule.getWorkflowProviderApiUriPath())) return true;
+        if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return true;
+        if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return true;
+        if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return true;
+        if ((groupHierarchy != null) && (workflowModule.getGroupHierarchy() == null)) return true;
+        if ((groupHierarchy == null) && (workflowModule.getGroupHierarchy() != null)) return true;
+        if ((groupHierarchy != null) && !groupHierarchy.equals(workflowModule.getGroupHierarchy())) return true;
+        return false;
+
+    }
+
+    public WorkflowModule getWorkflowModule(
             final String id) {
 
         if (id == null) {
-            return Mono.empty();
+            return null;
         }
-        return workflowModules.findById(id);
+        return workflowModules
+                .findById(id)
+                .orElse(null);
 
     }
 
-    public Flux<WorkflowModule> getWorkflowModules(List<String> userRoles) {
+    public List<WorkflowModule> getWorkflowModules(List<String> userRoles) {
 
         return workflowModules.findByAccessibleToGroups(userRoles);
 

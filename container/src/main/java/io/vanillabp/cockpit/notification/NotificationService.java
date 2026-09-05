@@ -13,9 +13,9 @@ import java.util.Map;
  * bean, or replace the reference e-mail implementation by declaring its own bean (all provided
  * implementations are {@code @ConditionalOnMissingBean}).
  * <p>
- * The method signatures are part of the public contract and must be kept as-is. Implementations
- * running on top of the reactive persistence layer are expected to bridge to reactive internals
- * off the event-loop threads (see the reference e-mail implementation).
+ * The method signatures are part of the public contract and must be kept as-is. They are blocking,
+ * like the rest of the application: an implementation may read from a database or talk to a mail
+ * server without any bridging (see the reference e-mail implementation).
  */
 public interface NotificationService {
 

@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.workflowlist.api.v1;
 
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
@@ -22,14 +22,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public abstract class AbstractWorkflowListGuiApiController implements OfficialWorkflowlistApi {
 
     @Autowired
-    protected ReactiveUserContext userContext;
+    protected UserContext userContext;
 
     @Autowired
     protected GuiApiMapper mapper;
@@ -37,7 +34,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     @Autowired
     protected io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper userTaskMapper;
 
-    protected abstract Mono<Page<Workflow>> getWorkflows(
+    protected abstract Page<Workflow> getWorkflows(
             final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
             final int pageNumber,
             final int pageSize,
@@ -49,39 +46,39 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final WorkflowlistService.RetrieveItemsMode mode);
 
     @Override
-    public Mono<ResponseEntity<Workflows>> getWorkflows(
-            final Mono<WorkflowsRequest> workflowsRequest,
+    public ResponseEntity<Workflows> getWorkflows(
+            final WorkflowsRequest workflowsRequest,
             final String requestId,
-            final OffsetDateTime initialTimestamp,
-            final ServerWebExchange exchange) {
+            final OffsetDateTime initialTimestamp) {
 
         if (workflowsRequest == null) {
-            return Mono.just(ResponseEntity.badRequest().build());
+            return ResponseEntity.badRequest().build();
         }
 
         final var timestamp = initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-        return Mono.zip(
-                        userContext.getUserLoggedInDetailsAsMono(),
-                        workflowsRequest)
-                .flatMap(entry -> getWorkflows(
-                                entry.getT1(),
-                                entry.getT2().getPageNumber(),
-                                entry.getT2().getPageSize(),
-                                timestamp,
-                                entry.getT2().getBusinessIds(),
-                                mapper.toModel(entry.getT2().getSearchQueries()),
-                                entry.getT2().getSort(),
-                                entry.getT2().getSortAscending(),
-                        entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): WorkflowlistService.RetrieveItemsMode.All))
-                .map(workflows -> mapper.toApi(workflows, timestamp, requestId))
-                .map(ResponseEntity::ok);
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var workflows = getWorkflows(
+                currentUser,
+                workflowsRequest.getPageNumber(),
+                workflowsRequest.getPageSize(),
+                timestamp,
+                workflowsRequest.getBusinessIds(),
+                mapper.toModel(workflowsRequest.getSearchQueries()),
+                workflowsRequest.getSort(),
+                workflowsRequest.getSortAscending(),
+                workflowsRequest.getMode() != null
+                        ? mapper.toModel(workflowsRequest.getMode())
+                        : WorkflowlistService.RetrieveItemsMode.All);
+
+        return ResponseEntity.ok(mapper.toApi(workflows, timestamp, requestId));
 
     }
 
-    protected abstract Mono<Page<Workflow>> getWorkflowsUpdated(
+    protected abstract Page<Workflow> getWorkflowsUpdated(
             final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
             final int size,
             final Collection<String> knownWorkflowsIds,
@@ -92,55 +89,52 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final WorkflowlistService.RetrieveItemsMode mode);
 
     @Override
-    public Mono<ResponseEntity<Workflows>> getWorkflowsUpdate(
-            final Mono<WorkflowsUpdateRequest> workflowsUpdateRequest,
+    public ResponseEntity<Workflows> getWorkflowsUpdate(
+            final WorkflowsUpdateRequest workflowsUpdateRequest,
             final String requestId,
-            final OffsetDateTime initialTimestamp,
-            final ServerWebExchange exchange) {
+            final OffsetDateTime initialTimestamp) {
 
         final var timestamp = initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-        return Mono.zip(
-                        userContext.getUserLoggedInDetailsAsMono(),
-                        workflowsUpdateRequest)
-                .flatMap(entry -> getWorkflowsUpdated(
-                                entry.getT1(),
-                                entry.getT2().getSize(),
-                                entry.getT2().getKnownWorkflowsIds(),
-                                timestamp,
-                                mapper.toModel(entry.getT2().getSearchQueries()),
-                                entry.getT2().getSort(),
-                                entry.getT2().getSortAscending(),
-                                entry.getT2().getMode() != null
-                                        ? mapper.toModel(entry.getT2().getMode())
-                                        : WorkflowlistService.RetrieveItemsMode.Active))
-                .map(ids -> mapper.toApi(ids, timestamp, requestId))
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()));
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var workflows = getWorkflowsUpdated(
+                currentUser,
+                workflowsUpdateRequest.getSize(),
+                workflowsUpdateRequest.getKnownWorkflowsIds(),
+                timestamp,
+                mapper.toModel(workflowsUpdateRequest.getSearchQueries()),
+                workflowsUpdateRequest.getSort(),
+                workflowsUpdateRequest.getSortAscending(),
+                workflowsUpdateRequest.getMode() != null
+                        ? mapper.toModel(workflowsUpdateRequest.getMode())
+                        : WorkflowlistService.RetrieveItemsMode.Active);
+
+        return ResponseEntity.ok(mapper.toApi(workflows, timestamp, requestId));
 
     }
 
-    protected abstract Mono<io.vanillabp.cockpit.workflowlist.model.Workflow> getWorkflow(
+    protected abstract io.vanillabp.cockpit.workflowlist.model.Workflow getWorkflow(
             final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
             final String workflowId);
 
     @Override
-    public Mono<ResponseEntity<io.vanillabp.cockpit.gui.api.v1.Workflow>> getWorkflow(
-            final String workflowId,
-            final ServerWebExchange exchange) {
+    public ResponseEntity<io.vanillabp.cockpit.gui.api.v1.Workflow> getWorkflow(
+            final String workflowId) {
 
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .flatMap(currentUser -> getWorkflow(currentUser, workflowId))
-                .map(mapper::toApi)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var workflow = getWorkflow(currentUser, workflowId);
+
+        return workflow == null
+                ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(mapper.toApi(workflow));
 
     }
 
-    protected abstract Flux<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
+    protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnlyRequested,
             final boolean limitListAccordingToCurrentUsersPermissions,
@@ -151,29 +145,31 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final boolean sortAscending);
 
     @Override
-    public Mono<ResponseEntity<Flux<UserTask>>> getUserTasksOfWorkflow(
+    public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(
             final String workflowId,
             final Boolean llatcup,
-            final Mono<UserTasksRequest> userTasksRequest,
-            final ServerWebExchange exchange) {
+            final UserTasksRequest userTasksRequest) {
 
-        return Mono
-                .zip(userContext.getUserLoggedInDetailsAsMono(), userTasksRequest)
-                .map(tuple -> getUserTasksOfWorkflow(
-                        workflowId,
-                        tuple.getT2().getMode() == UserTaskRetrieveMode.OPENTASKS,
-                        llatcup != null ? llatcup : true,
-                        tuple.getT1().getId(),
-                        tuple.getT1().getAuthorities(),
-                        tuple.getT2().getPageSize() == null ? 100 : tuple.getT2().getPageSize(),
-                        tuple.getT2().getSort(),
-                        tuple.getT2().getSortAscending() == null || tuple.getT2().getSortAscending())
-                    .map(t -> userTaskMapper.toApi(t, tuple.getT1().getId())))
-                .map(ResponseEntity::ok);
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var userTasks = getUserTasksOfWorkflow(
+                workflowId,
+                userTasksRequest.getMode() == UserTaskRetrieveMode.OPENTASKS,
+                llatcup != null ? llatcup : true,
+                currentUser.getId(),
+                currentUser.getAuthorities(),
+                userTasksRequest.getPageSize() == null ? 100 : userTasksRequest.getPageSize(),
+                userTasksRequest.getSort(),
+                userTasksRequest.getSortAscending() == null || userTasksRequest.getSortAscending())
+                .stream()
+                .map(userTask -> userTaskMapper.toApi(userTask, currentUser.getId()))
+                .toList();
+
+        return ResponseEntity.ok(userTasks);
 
     }
 
-    protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+    protected abstract List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
             final UserDetails currentUser,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
@@ -181,12 +177,11 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final String query);
 
     @Override
-    public Mono<ResponseEntity<KwicResults>> getKwicResults(
-            final Mono<KwicRequest> kwicRequest,
+    public ResponseEntity<KwicResults> getKwicResults(
+            final KwicRequest kwicRequest,
             final OffsetDateTime initialTimestamp,
             final String path,
-            final String query,
-            final ServerWebExchange exchange) {
+            final String query) {
 
         final var effectivePath = StringUtils.hasText(path)
                 ? path
@@ -196,22 +191,21 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-        return Mono.zip(
-                        userContext.getUserLoggedInDetailsAsMono(),
-                        kwicRequest)
-                .flatMapMany(entry -> {
-                            final var searchQueries = Optional.ofNullable(
-                                            entry.getT2().getSearchQueries())
-                                    .orElse(List.of())
-                                    .stream()
-                                    .map(mapper::toModel)
-                                    .toList();
-                            return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query);
-                        })
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var searchQueries = Optional
+                .ofNullable(kwicRequest.getSearchQueries())
+                .orElse(List.of())
+                .stream()
+                .map(mapper::toModel)
+                .toList();
+
+        final var result = kwic(currentUser, timestamp, searchQueries, effectivePath, query)
+                .stream()
                 .map(mapper::toApi)
-                .collectList()
-                .map(result -> new KwicResults().result(result))
-                .map(ResponseEntity::ok);
+                .toList();
+
+        return ResponseEntity.ok(new KwicResults().result(result));
 
     }
 

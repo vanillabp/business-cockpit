@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.workflowlist;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
@@ -15,10 +16,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -30,17 +33,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.messaging.Message;
+import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service
 public class WorkflowlistService {
@@ -76,69 +78,72 @@ public class WorkflowlistService {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Autowired
-    private ReactiveChangeStreamUtils changeStreamUtils;
+    private ChangeStreamUtils changeStreamUtils;
 
     @Autowired
     private WorkflowRepository workflowRepository;
 
     @Autowired
-    private ReactiveMongoTemplate mongoTemplate;
+    private MongoTemplate mongoTemplate;
 
     @Autowired
     private KwicService kwicService;
 
-    private Disposable dbChangesSubscription;
+    private Subscription dbChangesSubscription;
 
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
-        mongoTemplate
+        final var knownSorts = mongoTemplate
                 .indexOps(Workflow.COLLECTION_NAME)
                 .getIndexInfo()
-                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                .map(indexInfo -> indexInfo.getName().substring(INDEX_CUSTOM_SORT_PREFIX.length()))
-                .collectList()
-                .subscribe(sort -> {
-                    try {
-                        sortAndFilterIndexWriteLock.lock();
-                        sortAndFilterIndexes.addAll(sort);
-                    } finally {
-                        sortAndFilterIndexWriteLock.unlock();
-                    }
-                });
+                .stream()
+                .map(indexInfo -> indexInfo.getName())
+                .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                .map(name -> name.substring(INDEX_CUSTOM_SORT_PREFIX.length()))
+                .toList();
+
+        try {
+            sortAndFilterIndexWriteLock.lock();
+            sortAndFilterIndexes.addAll(knownSorts);
+        } finally {
+            sortAndFilterIndexWriteLock.unlock();
+        }
 
     }
 
-    public Mono<Boolean> createWorkflow(
+    public boolean createWorkflow(
             final Workflow workflow) {
 
         if (workflow == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         // the cockpit's own clock, see Workflow#getReportedAt
         workflow.setReportedAt(OffsetDateTime.now());
 
-        return workflowRepository
-                .save(workflow)
-                .map(item -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save workflow '{}'!",
-                            workflow.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });
+        try {
+            workflowRepository.save(workflow);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save workflow '{}'!",
+                    workflow.getId(),
+                    e);
+            return false;
+        }
+
     }
 
-    public Mono<Workflow> getWorkflow(
+    public Workflow getWorkflow(
             final String workflowId) {
 
         return workflowRepository
-                .findById(workflowId);
+                .findById(workflowId)
+                .orElse(null);
 
     }
 
-    public Mono<Page<Workflow>> getWorkflows(
+    public Page<Workflow> getWorkflows(
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -165,7 +170,7 @@ public class WorkflowlistService {
                 sortAscending);
     }
 
-    public Mono<Page<Workflow>> getWorkflows(
+    public Page<Workflow> getWorkflows(
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -202,26 +207,37 @@ public class WorkflowlistService {
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
-        // prepare to retrieve data on execution
+
+        // build index before retrieving data if necessary
+        if (orderBySort.toBeIndexed() != null) {
+            ensureSortAndFilterIndex(orderBySort);
+        }
+
         final var numberOfWorkflowsFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
         final var workflowsFound = mongoTemplate
                 .find(query.with(pageRequest), Workflow.class);
-        final var result = Mono
-                .zip(workflowsFound.collectList(), numberOfWorkflowsFound)
-                .map(results -> PageableExecutionUtils.getPage(
-                        results.getT1(),
-                        pageRequest,
-                        results::getT2));
 
-        // build index before retrieving data if necessary
-        if (orderBySort.toBeIndexed() == null) {
-            return result;
-        }
+        return PageableExecutionUtils.getPage(
+                workflowsFound,
+                pageRequest,
+                () -> numberOfWorkflowsFound);
+
+    }
+
+    /**
+     * Sorting and filtering by arbitrary properties needs an index per combination. They are
+     * created the first time such a combination is asked for and remembered afterwards. A failing
+     * creation is remembered as well: the query still works without the index, and retrying it on
+     * every request would only cost time.
+     */
+    private void ensureSortAndFilterIndex(
+            final WorkflowListOrder orderBySort) {
+
         try {
             sortAndFilterIndexReadLock.lock();
             if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return result;
+                return;
             }
         } finally {
             sortAndFilterIndexReadLock.unlock();
@@ -230,25 +246,21 @@ public class WorkflowlistService {
         try {
             sortAndFilterIndexWriteLock.lock();
             if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return result;
+                return;
             }
             final var newIndex = new Index();
             orderBySort
                     .toBeIndexed()
                     .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
             newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
-            return mongoTemplate
-                    .indexOps(Workflow.COLLECTION_NAME)
-                    .ensureIndex(newIndex)
-                    .flatMap(unknown -> {
-                        sortAndFilterIndexes.add(orderBySort.indexName);
-                        return result;
-                    })
-                    .onErrorResume(e -> {
-                        sortAndFilterIndexes.add(orderBySort.indexName);
-                        logger.error("Could not create Mongo-DB index for sorting and filtering of workflowlist", e);
-                        return result;
-                    });
+            try {
+                mongoTemplate
+                        .indexOps(Workflow.COLLECTION_NAME)
+                        .createIndex(newIndex);
+            } catch (Exception e) {
+                logger.error("Could not create Mongo-DB index for sorting and filtering of workflowlist", e);
+            }
+            sortAndFilterIndexes.add(orderBySort.indexName);
         } finally {
             sortAndFilterIndexWriteLock.unlock();
         }
@@ -298,7 +310,7 @@ public class WorkflowlistService {
 
     }
 
-    public Mono<Page<Workflow>> getWorkflowsUpdated(
+    public Page<Workflow> getWorkflowsUpdated(
             final boolean includeDanglingWorkflows,
             final Collection<String> accessibleToUsers,
             final Collection<String> accessibleToGroups,
@@ -335,110 +347,116 @@ public class WorkflowlistService {
         }
         final var numberOfWorkflows = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
-        final var result = mongoTemplate
-                .find(query.with(pageRequest), Workflow.class);
 
-        return result
-                .flatMapSequential(workflow -> {
-                    if (knownWorkflowIds.contains(workflow.getId())) {
-                        return Mono.just(workflow);
-                    }
-                    return workflowRepository.findById(workflow.getId());
-                })
-                .collectList()
-                .zipWith(numberOfWorkflows)
-                .map(t -> new PageImpl<>(
-                        t.getT1(),
-                        Pageable
-                                .ofSize(t.getT1().isEmpty() ? 1 : t.getT1().size())
-                                .withPage(0),
-                        t.getT2()));
+        // the query only fetches ids; workflows the client does not know yet are loaded completely
+        final var result = mongoTemplate
+                .find(query.with(pageRequest), Workflow.class)
+                .stream()
+                .map(workflow -> knownWorkflowIds.contains(workflow.getId())
+                        ? Optional.of(workflow)
+                        : workflowRepository.findById(workflow.getId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+
+        return new PageImpl<>(
+                result,
+                Pageable
+                        .ofSize(result.isEmpty() ? 1 : result.size())
+                        .withPage(0),
+                numberOfWorkflows);
 
     }
 
-    public Mono<Boolean> updateWorkflow(
+    public boolean updateWorkflow(
             final Workflow workflow) {
 
         if (workflow == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
-        return workflowRepository
-                .save(workflow)
-                .onErrorMap(e -> {
-                    logger.error("Could not save workflow '{}'!",
-                            workflow.getId(),
-                            e);
-                    return null;
-                })
-                .map(savedWorkflow -> savedWorkflow != null);
+        try {
+            workflowRepository.save(workflow);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save workflow '{}'!",
+                    workflow.getId(),
+                    e);
+            return false;
+        }
 
     }
 
-    public Mono<Boolean> cancelWorkflow(
+    public boolean cancelWorkflow(
             final Workflow workflow,
             final OffsetDateTime timestamp,
             final String reason) {
 
         if (workflow == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         workflow.setEndedAt(timestamp);
         workflow.setComment(reason);
 
-        return workflowRepository
-                .save(workflow)
-                .map(task -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save workflow '{}'!",
-                            workflow.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });
+        try {
+            workflowRepository.save(workflow);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save workflow '{}'!",
+                    workflow.getId(),
+                    e);
+            return false;
+        }
 
     }
 
 
-    public Mono<Boolean> completeWorkflow(
+    public boolean completeWorkflow(
             final Workflow workflow,
             final OffsetDateTime timestamp) {
 
         if (workflow == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         workflow.setEndedAt(timestamp);
 
-        return workflowRepository
-                .save(workflow)
-                .map(item -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save workflow '{}'!",
-                            workflow.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });
+        try {
+            workflowRepository.save(workflow);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save workflow '{}'!",
+                    workflow.getId(),
+                    e);
+            return false;
+        }
+
     }
 
     @EventListener
     public void subscribeToDbChanges(
             final ApplicationStartedEvent event) {
 
-        dbChangesSubscription = changeStreamUtils
-                .subscribe(Workflow.class)
-                .flatMapSequential(workflow -> Mono
-                        .fromCallable(() -> WorkflowChangedNotification.build(workflow))
-                        .doOnError(e -> logger
-                                .warn("Error on processing workflow change-stream "
-                                        + "event! Will resume stream.", e))
-                        .onErrorResume(Exception.class, e -> Mono.empty()))
-                .doOnNext(applicationEventPublisher::publishEvent)
-                .subscribe();
+        dbChangesSubscription = changeStreamUtils.subscribe(
+                Workflow.class,
+                this::publishWorkflowChange);
 
     }
 
-    public Flux<KwicResult> kwic(
+    private void publishWorkflowChange(
+            final Message<ChangeStreamDocument<Document>, Workflow> message) {
+
+        try {
+            applicationEventPublisher.publishEvent(
+                    WorkflowChangedNotification.build(message));
+        } catch (Exception e) {
+            logger.warn("Error on processing workflow change-stream event! Will resume stream.", e);
+        }
+
+    }
+
+    public List<KwicResult> kwic(
             final OffsetDateTime endedSince,
             final boolean includeDanglingWorkflows,
             final Collection<String> accessibleToUsers,
@@ -449,7 +467,7 @@ public class WorkflowlistService {
 
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
-            return Flux.empty();
+            return List.of();
         }
 
         final var searchCriteria = new LinkedList<Criteria>();
@@ -541,7 +559,9 @@ public class WorkflowlistService {
     @PreDestroy
     public void cleanup() {
 
-        dbChangesSubscription.dispose();
+        if (dbChangesSubscription != null) {
+            changeStreamUtils.unsubscribe(dbChangesSubscription);
+        }
 
     }
 

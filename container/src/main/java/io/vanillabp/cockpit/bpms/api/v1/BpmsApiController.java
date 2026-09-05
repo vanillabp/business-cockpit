@@ -10,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Mono;
 
 @RestController("bpmsApiControllerV1")
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
@@ -19,13 +17,13 @@ import reactor.core.publisher.Mono;
 public class BpmsApiController implements BpmsApi {
 
 	public static final String BPMS_API_URL_PREFIX = "/bpms/api/v1";
-	
+
     @Autowired
     private UserTaskMapper userTaskMapper;
 
     @Autowired
     private WorkflowMapper workflowMapper;
-    
+
     @Autowired
     private UserTaskService userTaskService;
 
@@ -35,204 +33,175 @@ public class BpmsApiController implements BpmsApi {
     @Autowired
     private WorkflowModuleService workflowModuleService;
 
-    private Mono<Boolean> userTaskCreatedMono(
-            final Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent) {
+    @Override
+    public ResponseEntity<Void> userTaskCreatedEvent(
+            final @Valid UserTaskCreatedOrUpdatedEvent userTaskCreatedEvent) {
 
-        return userTaskCreatedEvent
-                .map(userTaskMapper::toNewTask)
-                .flatMap(userTaskService::createUserTask);
+        return okOrBadRequest(
+                userTaskService.createUserTask(
+                        userTaskMapper.toNewTask(userTaskCreatedEvent)));
 
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> userTaskCreatedEvent(
-            final @Valid Mono<UserTaskCreatedOrUpdatedEvent> userTaskCreatedEvent,
-            final ServerWebExchange exchange) {
-
-        return userTaskCreatedMono(userTaskCreatedEvent)
-                .map(created -> created
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-        
-    }
-
-    @Override
-    public Mono<ResponseEntity<Void>> userTaskUpdatedEvent(
+    public ResponseEntity<Void> userTaskUpdatedEvent(
             final String userTaskId,
-            final @Valid Mono<UserTaskCreatedOrUpdatedEvent> userTaskUpdatedEvent,
-            final ServerWebExchange exchange) {
-        
-        return userTaskService
-                .getUserTask(userTaskId)
-                .zipWith(userTaskUpdatedEvent)
-                .map(t -> userTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
-                .flatMap(userTaskService::updateUserTask)
-                .switchIfEmpty(userTaskCreatedMono(userTaskUpdatedEvent))
-                .map(created -> created
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
+            final @Valid UserTaskCreatedOrUpdatedEvent userTaskUpdatedEvent) {
+
+        final var knownTask = userTaskService.getUserTask(userTaskId);
+        // reporting an update for a task the cockpit never saw creates it, so a cockpit added to a
+        // running system does not stay blind to the tasks that existed before
+        if (knownTask == null) {
+            return okOrBadRequest(
+                    userTaskService.createUserTask(
+                            userTaskMapper.toNewTask(userTaskUpdatedEvent)));
+        }
+
+        return okOrBadRequest(
+                userTaskService.updateUserTask(
+                        userTaskMapper.toUpdatedTask(userTaskUpdatedEvent, knownTask)));
 
     }
-    
+
     @Override
-    public Mono<ResponseEntity<Void>> userTaskCompletedEvent(
+    public ResponseEntity<Void> userTaskCompletedEvent(
             final String userTaskId,
-            final @Valid Mono<UserTaskCompletedEvent> userTaskCompletedEvent,
-            final ServerWebExchange exchange) {
-        
-        return userTaskService
-                .getUserTask(userTaskId)
-                .zipWith(userTaskCompletedEvent)
-                .flatMap(t -> {
-                    final var task = t.getT1();
-                    final var completedEvent = t.getT2();
-                    
-                    task.setEndedAt(
-                            completedEvent.getTimestamp());
-                    // who completed the task, as reported by the application; read by the
-                    // notification poller to skip a self-completion
-                    task.setInitiator(completedEvent.getInitiator());
-                    
-                    return userTaskService.completeUserTask(
-                            task,
-                            completedEvent.getTimestamp());
-                })
-                .map(completed -> completed
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-        
+            final @Valid UserTaskCompletedEvent userTaskCompletedEvent) {
+
+        final var task = userTaskService.getUserTask(userTaskId);
+        if (task == null) {
+            return ResponseEntity.ok().build();
+        }
+
+        task.setEndedAt(
+                userTaskCompletedEvent.getTimestamp());
+        // who completed the task, as reported by the application; read by the
+        // notification poller to skip a self-completion
+        task.setInitiator(userTaskCompletedEvent.getInitiator());
+
+        return okOrBadRequest(
+                userTaskService.completeUserTask(
+                        task,
+                        userTaskCompletedEvent.getTimestamp()));
+
     }
-    
+
     @Override
-    public Mono<ResponseEntity<Void>> userTaskCancelledEvent(
+    public ResponseEntity<Void> userTaskCancelledEvent(
             final String userTaskId,
-            final @Valid Mono<UserTaskCancelledEvent> userTaskCancelledEvent,
-            final ServerWebExchange exchange) {
+            final @Valid UserTaskCancelledEvent userTaskCancelledEvent) {
 
-        return userTaskService
-                .getUserTask(userTaskId)
-                .zipWith(userTaskCancelledEvent)
-                .flatMap(t -> {
-                    final var task = t.getT1();
-                    final var completedEvent = t.getT2();
-                    
-                    task.setEndedAt(
-                            completedEvent.getTimestamp());
-                    task.setInitiator(completedEvent.getInitiator());
-                    
-                    return userTaskService.cancelUserTask(
-                            task,
-                            completedEvent.getTimestamp(),
-                            completedEvent.getComment());
-                })
-                .map(completed -> completed
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-        
-    }
+        final var task = userTaskService.getUserTask(userTaskId);
+        if (task == null) {
+            return ResponseEntity.ok().build();
+        }
 
-    private Mono<Boolean> workflowCreatedMono(
-            final @Valid Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedEvent) {
+        task.setEndedAt(
+                userTaskCancelledEvent.getTimestamp());
+        task.setInitiator(userTaskCancelledEvent.getInitiator());
 
-        return workflowCreatedEvent
-                .map(workflowMapper::toNewWorkflow)
-                .flatMap(workflowlistService::createWorkflow);
+        return okOrBadRequest(
+                userTaskService.cancelUserTask(
+                        task,
+                        userTaskCancelledEvent.getTimestamp(),
+                        userTaskCancelledEvent.getComment()));
 
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> workflowCreatedEvent(
-            final @Valid Mono<WorkflowCreatedOrUpdatedEvent> workflowCreatedEvent,
-            final ServerWebExchange exchange) {
+    public ResponseEntity<Void> workflowCreatedEvent(
+            final @Valid WorkflowCreatedOrUpdatedEvent workflowCreatedEvent) {
 
-        return workflowCreatedMono(workflowCreatedEvent)
-                .map(created -> created
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
+        return okOrBadRequest(
+                workflowlistService.createWorkflow(
+                        workflowMapper.toNewWorkflow(workflowCreatedEvent)));
+
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> workflowCancelledEvent(String workflowId, Mono<WorkflowCancelledEvent> workflowCancelledEvent, ServerWebExchange exchange) {
-        return workflowlistService
-                .getWorkflow(workflowId)
-                .zipWith(workflowCancelledEvent)
-                .flatMap(t -> {
-                    final var workflow = t.getT1();
-                    final var completedEvent = t.getT2();
-
-                    workflow.setEndedAt(
-                            completedEvent.getTimestamp());
-
-                    return workflowlistService.cancelWorkflow(
-                            workflow,
-                            completedEvent.getTimestamp(),
-                            completedEvent.getComment());
-                })
-                .map(completed -> completed
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-    }
-
-    @Override
-    public Mono<ResponseEntity<Void>> workflowCompletedEvent(
+    public ResponseEntity<Void> workflowCancelledEvent(
             final String workflowId,
-            final Mono<WorkflowCompletedEvent> workflowCompletedEvent,
-            final ServerWebExchange exchange) {
+            final WorkflowCancelledEvent workflowCancelledEvent) {
 
-        return workflowlistService
-                .getWorkflow(workflowId)
-                .zipWith(workflowCompletedEvent)
-                .flatMap(t -> {
-                    final var task = t.getT1();
-                    final var completedEvent = t.getT2();
+        final var workflow = workflowlistService.getWorkflow(workflowId);
+        if (workflow == null) {
+            return ResponseEntity.ok().build();
+        }
 
-                    task.setEndedAt(
-                            completedEvent.getTimestamp());
+        workflow.setEndedAt(
+                workflowCancelledEvent.getTimestamp());
 
-                    return workflowlistService.completeWorkflow(
-                            task,
-                            completedEvent.getTimestamp());
-                })
-                .map(completed -> completed
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-        
+        return okOrBadRequest(
+                workflowlistService.cancelWorkflow(
+                        workflow,
+                        workflowCancelledEvent.getTimestamp(),
+                        workflowCancelledEvent.getComment()));
+
     }
 
-
     @Override
-    public Mono<ResponseEntity<Void>> workflowUpdatedEvent(
+    public ResponseEntity<Void> workflowCompletedEvent(
             final String workflowId,
-            final Mono<WorkflowCreatedOrUpdatedEvent> workflowUpdatedEvent,
-            final ServerWebExchange exchange) {
-        
-        return workflowlistService
-                .getWorkflow(workflowId)
-                .zipWith(workflowUpdatedEvent)
-                .map(t -> workflowMapper.toUpdatedWorkflow(t.getT2(), t.getT1()))
-                .flatMap(workflowlistService::updateWorkflow)
-                .switchIfEmpty(workflowCreatedMono(workflowUpdatedEvent))
-                .map(created -> created
-                        ? ResponseEntity.ok().build()
-                        : ResponseEntity.badRequest().build());
-        
+            final WorkflowCompletedEvent workflowCompletedEvent) {
+
+        final var workflow = workflowlistService.getWorkflow(workflowId);
+        if (workflow == null) {
+            return ResponseEntity.ok().build();
+        }
+
+        workflow.setEndedAt(
+                workflowCompletedEvent.getTimestamp());
+
+        return okOrBadRequest(
+                workflowlistService.completeWorkflow(
+                        workflow,
+                        workflowCompletedEvent.getTimestamp()));
+
+    }
+
+
+    @Override
+    public ResponseEntity<Void> workflowUpdatedEvent(
+            final String workflowId,
+            final WorkflowCreatedOrUpdatedEvent workflowUpdatedEvent) {
+
+        final var knownWorkflow = workflowlistService.getWorkflow(workflowId);
+        // see userTaskUpdatedEvent: an update of an unknown workflow creates it
+        if (knownWorkflow == null) {
+            return okOrBadRequest(
+                    workflowlistService.createWorkflow(
+                            workflowMapper.toNewWorkflow(workflowUpdatedEvent)));
+        }
+
+        return okOrBadRequest(
+                workflowlistService.updateWorkflow(
+                        workflowMapper.toUpdatedWorkflow(workflowUpdatedEvent, knownWorkflow)));
+
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> registerWorkflowModule(
+    public ResponseEntity<Void> registerWorkflowModule(
             final String id,
-            final Mono<RegisterWorkflowModuleEvent> registerWorkflowModuleEvent,
-            final ServerWebExchange exchange) {
+            final RegisterWorkflowModuleEvent registerWorkflowModuleEvent) {
 
-        return registerWorkflowModuleEvent
-                .flatMap(event -> workflowModuleService.registerOrUpdateWorkflowModule(
-                        id,
-                        event.getUri(),
-                        event.getTaskProviderApiUriPath(),
-                        event.getWorkflowProviderApiUriPath(),
-                        event.getAccessibleToGroups(),
-                        null))
-                .map(module -> ResponseEntity.ok().<Void>build());
+        workflowModuleService.registerOrUpdateWorkflowModule(
+                id,
+                registerWorkflowModuleEvent.getUri(),
+                registerWorkflowModuleEvent.getTaskProviderApiUriPath(),
+                registerWorkflowModuleEvent.getWorkflowProviderApiUriPath(),
+                registerWorkflowModuleEvent.getAccessibleToGroups(),
+                null);
+
+        return ResponseEntity.ok().build();
+
+    }
+
+    private static ResponseEntity<Void> okOrBadRequest(
+            final boolean succeeded) {
+
+        return succeeded
+                ? ResponseEntity.ok().build()
+                : ResponseEntity.badRequest().build();
 
     }
 

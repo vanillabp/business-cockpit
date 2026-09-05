@@ -11,27 +11,26 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import reactor.core.publisher.Mono;
 
 /**
  * Upserts the {@code users} document of an authenticated user at login time, so the notification
  * feature can restrict recipients to users who have logged in at least once (AC tech 5).
  * <p>
- * Non-blocking and failure-tolerant (a failing upsert never fails the request). The write is an
- * atomic, lock-free Mongo upsert that only touches {@code lastLoggedIn} and {@code email} (existing
- * notification configuration is preserved and the {@code @Version} optimistic lock is not involved),
- * so concurrent requests never conflict. Additionally throttled to at most once per configured
- * window per node to avoid unnecessary writes.
+ * Failure-tolerant: a failing upsert never fails the request. The write is an atomic, lock-free
+ * Mongo upsert that only touches {@code lastLoggedIn} and {@code email} (existing notification
+ * configuration is preserved and the {@code @Version} optimistic lock is not involved), so
+ * concurrent requests never conflict. Additionally throttled to at most once per configured window
+ * per node to avoid unnecessary writes.
  */
 public class UserLoginUpsertService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserLoginUpsertService.class);
 
-    private final ReactiveMongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
 
     private final Duration throttle;
 
@@ -40,7 +39,7 @@ public class UserLoginUpsertService {
     private final Map<String, Instant> lastUpsertPerUser = new ConcurrentHashMap<>();
 
     public UserLoginUpsertService(
-            final ReactiveMongoTemplate mongoTemplate,
+            final MongoTemplate mongoTemplate,
             final Duration throttle,
             final Clock clock) {
 
@@ -54,18 +53,18 @@ public class UserLoginUpsertService {
      * Creates or refreshes the {@code users} document for the given authenticated user. Preserves
      * any existing notification configuration; only refreshes {@code lastLoggedIn} and {@code email}.
      */
-    public Mono<Void> upsertOnLogin(
+    public void upsertOnLogin(
             final UserDetails userDetails) {
 
         if (userDetails == null || userDetails.getId() == null) {
-            return Mono.empty();
+            return;
         }
 
         final var userId = userDetails.getId();
         final var now = clock.instant();
         final var previous = lastUpsertPerUser.get(userId);
         if (previous != null && Duration.between(previous, now).compareTo(throttle) < 0) {
-            return Mono.empty();
+            return;
         }
         lastUpsertPerUser.put(userId, now);
 
@@ -75,13 +74,11 @@ public class UserLoginUpsertService {
         final var update = new Update()
                 .set("lastLoggedIn", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
                 .set("email", userDetails.getEmail());
-        return mongoTemplate
-                .upsert(query, update, User.class)
-                .then()
-                .onErrorResume(e -> {
-                    logger.warn("Could not upsert user '{}' on login", userId, e);
-                    return Mono.empty();
-                });
+        try {
+            mongoTemplate.upsert(query, update, User.class);
+        } catch (Exception e) {
+            logger.warn("Could not upsert user '{}' on login", userId, e);
+        }
 
     }
 

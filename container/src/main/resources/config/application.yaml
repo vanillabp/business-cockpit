@@ -3,8 +3,19 @@ logging:
     ROOT: INFO
 
 spring:
-  webflux:
+  threads:
+    virtual:
+      # the application is blocking end to end; a virtual thread per request keeps that cheap even
+      # while a request waits for MongoDB, a workflow module behind the proxy or an SSE client
+      enabled: true
+  mvc:
     static-path-pattern: "/**"
+  http:
+    clients:
+      # timeouts of the RestClient the gateway proxies workflow-module requests with. No read
+      # timeout on purpose: a proxied server-sent-event stream is idle between events, and any
+      # read timeout would tear it down mid-stream.
+      connect-timeout: 10s
   web:
     resources:
       static-locations: "classpath:/static/"

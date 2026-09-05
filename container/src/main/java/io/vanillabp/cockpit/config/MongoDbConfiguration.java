@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.ReactiveMongoDatabaseFactory;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.MongoDatabaseFactory;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.WriteResultChecking;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
@@ -66,11 +66,11 @@ public class MongoDbConfiguration {
     }
 
     @Bean
-    public ReactiveMongoTemplate reactiveMongoTemplate(
-            final ReactiveMongoDatabaseFactory mongoDbFactory,
+    public MongoTemplate mongoTemplate(
+            final MongoDatabaseFactory mongoDbFactory,
             final MongoConverter converter) {
         
-        final var template = new ReactiveMongoTemplate(mongoDbFactory, converter);
+        final var template = new MongoTemplate(mongoDbFactory, converter);
         // throw exceptions for write concerns - also required for optimistic locking
         template.setWriteResultChecking(WriteResultChecking.EXCEPTION);
         template.setWriteConcern(WriteConcern

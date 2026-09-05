@@ -1,8 +1,10 @@
 package io.vanillabp.cockpit.tasklist;
 
-import io.vanillabp.cockpit.commons.mongo.changestreams.ReactiveChangeStreamUtils;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
+import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -18,10 +20,12 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
@@ -33,17 +37,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.messaging.Message;
+import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service
 public class UserTaskService {
@@ -80,13 +83,13 @@ public class UserTaskService {
 
     @Autowired
     private Logger logger;
-    
+
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
-    
+
     @Autowired
-    private ReactiveChangeStreamUtils changeStreamUtils;
-    
+    private ChangeStreamUtils changeStreamUtils;
+
     @Autowired
     private UserTaskRepository userTasks;
 
@@ -94,12 +97,12 @@ public class UserTaskService {
     private KwicService kwicService;
 
     @Autowired
-    private ReactiveMongoTemplate mongoTemplate;
+    private MongoTemplate mongoTemplate;
 
     @Autowired
-    private ReactiveUserContext currentUserContext;
+    private UserContext currentUserContext;
 
-    private Disposable dbChangesSubscription;
+    private Subscription dbChangesSubscription;
 
     /**
      * The initiator to be recorded for a change caused by the business cockpit itself: the
@@ -112,57 +115,57 @@ public class UserTaskService {
      * notification poller reads it to skip notifications a user triggered himself, so every
      * cockpit-side modification has to maintain it.
      */
-    private Mono<String> cockpitInitiator() {
+    private String cockpitInitiator() {
 
-        return Mono
-                .defer(currentUserContext::getUserLoggedInAsMono)
-                .onErrorResume(e -> Mono.empty())
-                .defaultIfEmpty(UpdateInformationAware.COCKPIT_USER);
+        final String userLoggedIn;
+        try {
+            userLoggedIn = currentUserContext.getUserLoggedIn();
+        } catch (BcUnauthorizedException e) {
+            return UpdateInformationAware.COCKPIT_USER;
+        }
+        return userLoggedIn == null
+                ? UpdateInformationAware.COCKPIT_USER
+                : userLoggedIn;
 
     }
 
     /** Saves a user task changed by a cockpit action, recording the acting user as initiator. */
-    private Mono<UserTask> saveInitiatedByCockpit(
+    private UserTask saveInitiatedByCockpit(
             final UserTask userTask) {
 
-        return cockpitInitiator()
-                .flatMap(initiator -> {
-                    userTask.setInitiator(initiator);
-                    return userTasks.save(userTask);
-                });
+        userTask.setInitiator(cockpitInitiator());
+        return userTasks.save(userTask);
 
     }
 
     /** @see #saveInitiatedByCockpit(UserTask) */
-    private Flux<UserTask> saveAllInitiatedByCockpit(
-            final Flux<UserTask> changedUserTasks) {
+    private List<UserTask> saveAllInitiatedByCockpit(
+            final List<UserTask> changedUserTasks) {
 
-        return cockpitInitiator()
-                .flatMapMany(initiator -> userTasks.saveAll(
-                        changedUserTasks.map(userTask -> {
-                            userTask.setInitiator(initiator);
-                            return userTask;
-                        })));
+        final var initiator = cockpitInitiator();
+        changedUserTasks.forEach(userTask -> userTask.setInitiator(initiator));
+        return userTasks.saveAll(changedUserTasks);
 
     }
 
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
-        mongoTemplate
+        final var knownSorts = mongoTemplate
                 .indexOps(UserTask.COLLECTION_NAME)
                 .getIndexInfo()
-                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                .map(indexInfo -> indexInfo.getName().substring(INDEX_CUSTOM_SORT_PREFIX.length()))
-                .collectList()
-                .subscribe(sort -> {
-                    try {
-                        sortAndFilterIndexWriteLock.lock();
-                        sortAndFilterIndexes.addAll(sort);
-                    } finally {
-                        sortAndFilterIndexWriteLock.unlock();
-                    }
-                });
+                .stream()
+                .map(indexInfo -> indexInfo.getName())
+                .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                .map(name -> name.substring(INDEX_CUSTOM_SORT_PREFIX.length()))
+                .toList();
+
+        try {
+            sortAndFilterIndexWriteLock.lock();
+            sortAndFilterIndexes.addAll(knownSorts);
+        } finally {
+            sortAndFilterIndexWriteLock.unlock();
+        }
 
     }
 
@@ -170,138 +173,135 @@ public class UserTaskService {
     public void subscribeToDbChanges(
             final ApplicationStartedEvent event) {
 
-        dbChangesSubscription = changeStreamUtils
-                .subscribe(UserTask.class)
-                .flatMapSequential(userTask -> Mono
-                        .fromCallable(() -> UserTaskChangedNotification.build(userTask))
-                        .doOnError(e -> logger
-                                .warn("Error on processing user-task change-stream "
-                                        + "event! Will resume stream.", e))
-                        .onErrorResume(Exception.class, e -> Mono.empty()))
-                .doOnNext(applicationEventPublisher::publishEvent)
-                .subscribe();
+        dbChangesSubscription = changeStreamUtils.subscribe(
+                UserTask.class,
+                this::publishUserTaskChange);
+
+    }
+
+    private void publishUserTaskChange(
+            final Message<ChangeStreamDocument<Document>, UserTask> message) {
+
+        try {
+            applicationEventPublisher.publishEvent(
+                    UserTaskChangedNotification.build(message));
+        } catch (Exception e) {
+            logger.warn("Error on processing user-task change-stream event! Will resume stream.", e);
+        }
 
     }
 
     @PreDestroy
     public void cleanup() {
-        
-        dbChangesSubscription.dispose();
-        
+
+        if (dbChangesSubscription != null) {
+            changeStreamUtils.unsubscribe(dbChangesSubscription);
+        }
+
     }
-    
-    public Mono<UserTask> getUserTask(
+
+    public UserTask getUserTask(
             final String userTaskId) {
-        
-        return userTasks.findById(userTaskId);
-        
+
+        return userTasks
+                .findById(userTaskId)
+                .orElse(null);
+
     }
 
-    public Mono<UserTask> markAsRead(
+    public UserTask markAsRead(
             final String userTaskId,
             final String userId) {
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    userTask.setReadAt(userId);
-                    return saveInitiatedByCockpit(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        userTask.setReadAt(userId);
+        return saveInitiatedByCockpit(userTask);
 
     }
 
-    public Flux<UserTask> markAsRead(
+    public List<UserTask> markAsRead(
             final Collection<String> userTaskIds,
             final String userId) {
 
-        return saveAllInitiatedByCockpit(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .map(userTask -> {
-                            userTask.setReadAt(userId);
-                            return userTask;
-                        }));
+        final var found = userTasks.findAllById(userTaskIds);
+        found.forEach(userTask -> userTask.setReadAt(userId));
+        return saveAllInitiatedByCockpit(found);
 
     }
 
-    public Mono<UserTask> markAsUnread(
+    public UserTask markAsUnread(
             final String userTaskId,
             final String userId) {
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    userTask.clearReadAt(userId);
-                    return saveInitiatedByCockpit(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        userTask.clearReadAt(userId);
+        return saveInitiatedByCockpit(userTask);
 
     }
 
-    public Flux<UserTask> markAsUnread(
+    public List<UserTask> markAsUnread(
             final Collection<String> userTaskIds,
             final String userId) {
 
-        return saveAllInitiatedByCockpit(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .map(userTask -> {
-                            userTask.clearReadAt(userId);
-                            return userTask;
-                        }));
+        final var found = userTasks.findAllById(userTaskIds);
+        found.forEach(userTask -> userTask.clearReadAt(userId));
+        return saveAllInitiatedByCockpit(found);
 
     }
 
-    public Mono<UserTask> assignTask(
+    public UserTask assignTask(
             final String userTaskId,
             final Person person) {
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    userTask.addCandidatePerson(person);
-                    return saveInitiatedByCockpit(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        userTask.addCandidatePerson(person);
+        return saveInitiatedByCockpit(userTask);
 
     }
 
-    public Flux<UserTask> assignTask(
+    public List<UserTask> assignTask(
             final Collection<String> userTaskIds,
             final Person person) {
 
-        return saveAllInitiatedByCockpit(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .map(userTask -> {
-                            userTask.addCandidatePerson(person);
-                            return userTask;
-                        }));
+        final var found = userTasks.findAllById(userTaskIds);
+        found.forEach(userTask -> userTask.addCandidatePerson(person));
+        return saveAllInitiatedByCockpit(found);
 
     }
 
-    public Mono<UserTask> unassignTask(
+    public UserTask unassignTask(
             final String userTaskId,
             final String personId) {
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    userTask.removeCandidatePerson(personId);
-                    return saveInitiatedByCockpit(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        userTask.removeCandidatePerson(personId);
+        return saveInitiatedByCockpit(userTask);
 
     }
 
-    public Flux<UserTask> unassignTask(
+    public List<UserTask> unassignTask(
             final Collection<String> userTaskIds,
             final String personId) {
 
-        return saveAllInitiatedByCockpit(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .map(userTask -> {
-                            userTask.removeCandidatePerson(personId);
-                            return userTask;
-                        }));
+        final var found = userTasks.findAllById(userTaskIds);
+        found.forEach(userTask -> userTask.removeCandidatePerson(personId));
+        return saveAllInitiatedByCockpit(found);
 
     }
 
-    public Mono<UserTask> setFollowUpDate(
+    public UserTask setFollowUpDate(
             final String userTaskId,
             final OffsetDateTime followUpDate) {
 
@@ -309,48 +309,46 @@ public class UserTaskService {
                 ? null
                 : followUpDate.withSecond(0).withNano(0);
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    if (userTask.getEndedAt() != null) {
-                        return Mono.error(new UserTaskAlreadyCompletedException(userTaskId));
-                    }
-                    userTask.setFollowUpDate(normalizedFollowUpDate);
-                    return saveInitiatedByCockpit(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        if (userTask.getEndedAt() != null) {
+            throw new UserTaskAlreadyCompletedException(userTaskId);
+        }
+        userTask.setFollowUpDate(normalizedFollowUpDate);
+        return saveInitiatedByCockpit(userTask);
 
     }
 
-    public Mono<UserTask> claimTask(
+    public UserTask claimTask(
             final String userTaskId,
             final Person person) {
 
-        return getUserTask(userTaskId)
-                .flatMap(userTask -> {
-                    if ((userTask.getAssignee() == null)
-                        || !userTask.getAssignee().getId().equals(person.getId())) {
-                        userTask.setAssignee(person);
-                        return saveInitiatedByCockpit(userTask);
-                    }
-                    return Mono.just(userTask);
-                });
+        final var userTask = getUserTask(userTaskId);
+        if (userTask == null) {
+            return null;
+        }
+        if ((userTask.getAssignee() == null)
+                || !userTask.getAssignee().getId().equals(person.getId())) {
+            userTask.setAssignee(person);
+            return saveInitiatedByCockpit(userTask);
+        }
+        return userTask;
 
     }
 
-    public Flux<UserTask> claimTask(
+    public List<UserTask> claimTask(
             final Collection<String> userTaskIds,
             final Person person) {
 
-        return saveAllInitiatedByCockpit(
-                userTasks
-                        .findAllById(userTaskIds)
-                        .map(userTask -> {
-                            userTask.setAssignee(person);
-                            return userTask;
-                        }));
+        final var found = userTasks.findAllById(userTaskIds);
+        found.forEach(userTask -> userTask.setAssignee(person));
+        return saveAllInitiatedByCockpit(found);
 
     }
 
-    public Mono<UserTask> unclaimTask(
+    public UserTask unclaimTask(
             final String currentUser,
             final String userTaskId,
             final String personId) {
@@ -364,14 +362,13 @@ public class UserTaskService {
         update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
         update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
 
-        return mongoTemplate
-                .updateFirst(query, update, UserTask.class)
-                .single()
-                .flatMap(result -> userTasks.findById(userTaskId));
+        mongoTemplate.updateFirst(query, update, UserTask.class);
+
+        return getUserTask(userTaskId);
 
     }
 
-    public Flux<UserTask> unclaimTask(
+    public List<UserTask> unclaimTask(
             final String currentUser,
             final Collection<String> userTaskIds,
             final String personId) {
@@ -385,12 +382,12 @@ public class UserTaskService {
         update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
         update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
 
+        mongoTemplate.updateMulti(query, update, UserTask.class);
+
         final var findQuery = new Query();
         findQuery.addCriteria(Criteria.where("id").in(userTaskIds));
 
-        return mongoTemplate
-                .updateMulti(query, update, UserTask.class)
-                .thenMany(mongoTemplate.find(findQuery, UserTask.class));
+        return mongoTemplate.find(findQuery, UserTask.class);
 
     }
 
@@ -437,7 +434,7 @@ public class UserTaskService {
 
     }
 
-    public Mono<Page<UserTask>> getUserTasks(
+    public Page<UserTask> getUserTasks(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
@@ -470,7 +467,7 @@ public class UserTaskService {
 
     }
 
-    protected Mono<Page<UserTask>> retrieveUserTasks(
+    protected Page<UserTask> retrieveUserTasks(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
@@ -510,23 +507,39 @@ public class UserTaskService {
             searchCriteria.forEach(query::addCriteria);
         }
 
-        // prepare to retrieve data on execution
+        // build index before retrieving data if necessary
+        ensureSortAndFilterIndex(
+                orderBySort,
+                UserTask.COLLECTION_NAME,
+                "Could not create Mongo-DB index for sorting and filtering of tasklist");
+
         final var numberOfUserTasksFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
         final var userTasksFound = mongoTemplate
                 .find(query.with(pageRequest), UserTask.class);
-        final var result = Mono
-                .zip(userTasksFound.collectList(), numberOfUserTasksFound)
-                .map(results -> PageableExecutionUtils.getPage(
-                    results.getT1(),
-                    pageRequest,
-                    results::getT2));
 
-        // build index before retrieving data if necessary
+        return PageableExecutionUtils.getPage(
+                userTasksFound,
+                pageRequest,
+                () -> numberOfUserTasksFound);
+
+    }
+
+    /**
+     * Sorting and filtering by arbitrary properties needs an index per combination. They are
+     * created the first time such a combination is asked for and remembered afterwards. A failing
+     * creation is remembered as well: the query still works without the index, and retrying it on
+     * every request would only cost time.
+     */
+    private void ensureSortAndFilterIndex(
+            final UserTaskListOrder orderBySort,
+            final String collectionName,
+            final String errorMessage) {
+
         try {
             sortAndFilterIndexReadLock.lock();
             if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return result;
+                return;
             }
         } finally {
             sortAndFilterIndexReadLock.unlock();
@@ -535,32 +548,28 @@ public class UserTaskService {
         try {
             sortAndFilterIndexWriteLock.lock();
             if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return result;
+                return;
             }
             final var newIndex = new Index();
             orderBySort
                     .toBeIndexed()
                     .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
             newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
-            return mongoTemplate
-                    .indexOps(UserTask.COLLECTION_NAME)
-                    .ensureIndex(newIndex)
-                    .flatMap(unknown -> {
-                        sortAndFilterIndexes.add(orderBySort.indexName);
-                        return result;
-                    })
-                    .onErrorResume(e -> {
-                        sortAndFilterIndexes.add(orderBySort.indexName);
-                        logger.error("Could not create Mongo-DB index for sorting and filtering of tasklist", e);
-                        return result;
-                    });
+            try {
+                mongoTemplate
+                        .indexOps(collectionName)
+                        .createIndex(newIndex);
+            } catch (Exception e) {
+                logger.error(errorMessage, e);
+            }
+            sortAndFilterIndexes.add(orderBySort.indexName);
         } finally {
             sortAndFilterIndexWriteLock.unlock();
         }
 
     }
 
-    public Flux<KwicResult> kwic(
+    public List<KwicResult> kwic(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
@@ -574,7 +583,7 @@ public class UserTaskService {
 
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
-            return Flux.empty();
+            return List.of();
         }
 
         final var searchCriteria = new LinkedList<Criteria>();
@@ -593,8 +602,8 @@ public class UserTaskService {
 
         return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
     }
-    
-    public Flux<UserTask> getUserTasksOfWorkflow(
+
+    public List<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnly,
             final boolean limitListAccordingToCurrentUsersPermissions,
@@ -619,12 +628,11 @@ public class UserTaskService {
                     sortAscending,
                     List.of(Criteria.where("workflowId").is(workflowId)),
                     activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
-                ).map(Page::getContent)
-                .flatMapMany(Flux::fromIterable);
-        
+                ).getContent();
+
     }
-    
-    public Mono<Page<UserTask>> getUserTasksUpdated(
+
+    public Page<UserTask> getUserTasksUpdated(
             final boolean includeDanglingTasks,
             final boolean notInAssignees,
             final Collection<String> assignees,
@@ -666,57 +674,58 @@ public class UserTaskService {
         }
         final var numberOfUserTasks = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
-        final var result = mongoTemplate
-                .find(query.with(pageRequest), UserTask.class);
 
-        return result
-                .flatMapSequential(task -> {
-                    if (knownUserTasksIds.contains(task.getId())) {
-                        return Mono.just(task);
-                    }
-                    return userTasks.findById(task.getId());
-                })
-                .collectList()
-                .zipWith(numberOfUserTasks)
-                .map(results -> new PageImpl<>(
-                        results.getT1(),
-                        Pageable
-                                .ofSize(results.getT1().isEmpty() ? 1 : results.getT1().size())
-                                .withPage(0),
-                        results.getT2()));
-        
+        // the query only fetches ids; tasks the client does not know yet are loaded completely
+        final var result = mongoTemplate
+                .find(query.with(pageRequest), UserTask.class)
+                .stream()
+                .map(task -> knownUserTasksIds.contains(task.getId())
+                        ? Optional.of(task)
+                        : userTasks.findById(task.getId()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .toList();
+
+        return new PageImpl<>(
+                result,
+                Pageable
+                        .ofSize(result.isEmpty() ? 1 : result.size())
+                        .withPage(0),
+                numberOfUserTasks);
+
     }
-    
-    public Mono<Boolean> completeUserTask(
+
+    public boolean completeUserTask(
             final UserTask userTask,
             final OffsetDateTime timestamp) {
-        
+
         if (userTask == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         userTask.setEndedAt(timestamp);
         userTask.setUpdatedAt(timestamp);
         userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.COMPLETED);
 
-        return userTasks
-                .save(userTask)
-                .map(task -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save user task '{}'!",
-                            userTask.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });        
+        try {
+            userTasks.save(userTask);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save user task '{}'!",
+                    userTask.getId(),
+                    e);
+            return false;
+        }
+
     }
 
-    public Mono<Boolean> cancelUserTask(
+    public boolean cancelUserTask(
             final UserTask userTask,
             final OffsetDateTime timestamp,
             final String reason) {
-        
+
         if (userTask == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
 
         userTask.setEndedAt(timestamp);
@@ -724,25 +733,25 @@ public class UserTaskService {
         userTask.setComment(reason);
         userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.CANCELLED);
 
-        return userTasks
-                .save(userTask)
-                .map(task -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save user task '{}'!",
-                            userTask.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });
-        
+        try {
+            userTasks.save(userTask);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save user task '{}'!",
+                    userTask.getId(),
+                    e);
+            return false;
+        }
+
     }
 
-    public Mono<Boolean> createUserTask(
+    public boolean createUserTask(
             final UserTask userTask) {
-        
+
         if (userTask == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
-        
+
         if (userTask.getDueDate() == null) {
             // for correct sorting
             userTask.setDueDate(OffsetDateTime.MAX);
@@ -754,36 +763,36 @@ public class UserTaskService {
         userTask.setReportedAt(reportedAt);
         // the candidates a report brings along are known as of now
         userTask.stampCandidatesSince(reportedAt);
-        
-        return userTasks
-                .save(userTask)
-                .map(task -> Boolean.TRUE)
-                .onErrorResume(e -> {
-                    logger.error("Could not save user task '{}'!",
-                            userTask.getId(),
-                            e);
-                    return Mono.just(Boolean.FALSE);
-                });
-                
+
+        try {
+            userTasks.save(userTask);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save user task '{}'!",
+                    userTask.getId(),
+                    e);
+            return false;
+        }
+
     }
 
-    public Mono<Boolean> updateUserTask(
+    public boolean updateUserTask(
             final UserTask userTask) {
-        
+
         if (userTask == null) {
-            return Mono.just(Boolean.FALSE);
+            return false;
         }
-        
-        return userTasks
-                .save(userTask)
-                .onErrorMap(e -> {
-                    logger.error("Could not save user task '{}'!",
-                            userTask.getId(),
-                            e);
-                    return null;
-                })
-                .map(savedTask -> savedTask != null);
-        
+
+        try {
+            userTasks.save(userTask);
+            return true;
+        } catch (Exception e) {
+            logger.error("Could not save user task '{}'!",
+                    userTask.getId(),
+                    e);
+            return false;
+        }
+
     }
 
     /**
@@ -791,7 +800,7 @@ public class UserTaskService {
      * visible tasks for - the same visibility as the user task list. Used by the notification
      * configuration page to offer per-workflow exceptions (AC func 4c).
      */
-    public reactor.core.publisher.Flux<UserTask> getVisibleWorkflows(
+    public List<UserTask> getVisibleWorkflows(
             final Collection<String> assignees,
             final Collection<String> candidateUsers,
             final Collection<String> candidateGroups,
@@ -809,7 +818,9 @@ public class UserTaskService {
                         .first("bpmnProcessId").as("bpmnProcessId")
                         .first("workflowTitle").as("workflowTitle"));
 
-        return mongoTemplate.aggregate(aggregation, UserTask.COLLECTION_NAME, UserTask.class);
+        return mongoTemplate
+                .aggregate(aggregation, UserTask.COLLECTION_NAME, UserTask.class)
+                .getMappedResults();
 
     }
 

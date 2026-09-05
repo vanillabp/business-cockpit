@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
@@ -28,14 +28,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
 	@Autowired
-	protected ReactiveUserContext userContext;
+	protected UserContext userContext;
 
 	@Autowired
 	protected GuiApiMapper mapper;
@@ -45,8 +42,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
-	
-	protected abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasks(
+
+	protected abstract Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
 			final UserDetails currentUser,
 			final int pageNumber,
 			final int pageSize,
@@ -57,33 +54,33 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final UserTaskService.RetrieveItemsMode mode);
 
     @Override
-    public Mono<ResponseEntity<UserTasks>> getUserTasks(
-			final Mono<UserTasksRequest> userTasksRequest,
-            final OffsetDateTime initialTimestamp,
-            final ServerWebExchange exchange) {
-		
+    public ResponseEntity<UserTasks> getUserTasks(
+			final UserTasksRequest userTasksRequest,
+            final OffsetDateTime initialTimestamp) {
+
         final var timestamp = initialTimestamp != null
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-		return Mono.zip(
-						userContext.getUserLoggedInDetailsAsMono(),
-						userTasksRequest)
-				.flatMap(entry -> getUserTasks(
-						entry.getT1(),
-						entry.getT2().getPageNumber(),
-						entry.getT2().getPageSize(),
-						timestamp,
-						mapper.toModel(entry.getT2().getSearchQueries()),
-						entry.getT2().getSort(),
-						entry.getT2().getSortAscending(),
-						entry.getT2().getMode() != null ? mapper.toModel(entry.getT2().getMode()): UserTaskService.RetrieveItemsMode.All)
-				.map(userTasks -> mapper.toApi(userTasks, timestamp, entry.getT1().getId())))
-				.map(ResponseEntity::ok);
+		final var currentUser = userContext.getUserLoggedInDetails();
+
+		final var userTasks = getUserTasks(
+				currentUser,
+				userTasksRequest.getPageNumber(),
+				userTasksRequest.getPageSize(),
+				timestamp,
+				mapper.toModel(userTasksRequest.getSearchQueries()),
+				userTasksRequest.getSort(),
+				userTasksRequest.getSortAscending(),
+				userTasksRequest.getMode() != null
+						? mapper.toModel(userTasksRequest.getMode())
+						: UserTaskService.RetrieveItemsMode.All);
+
+		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
 
 	}
 
-	public abstract Mono<Page<io.vanillabp.cockpit.tasklist.model.UserTask>> getUserTasksUpdated(
+	public abstract Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final int size,
 			final Collection<String> knownUserTasksIds,
@@ -94,38 +91,33 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final UserTaskService.RetrieveItemsMode mode);
 
 	@Override
-	public Mono<ResponseEntity<UserTasks>> getUserTasksUpdate(
-			final Mono<UserTasksUpdateRequest> userTasksUpdateRequest,
-			final OffsetDateTime initialTimestamp,
-			final ServerWebExchange exchange) {
+	public ResponseEntity<UserTasks> getUserTasksUpdate(
+			final UserTasksUpdateRequest userTasksUpdateRequest,
+			final OffsetDateTime initialTimestamp) {
 
-		return userContext
-				.getUserLoggedInDetailsAsMono()
-				.flatMap(user -> userTasksUpdateRequest
-						.zipWhen(update -> Mono.just(initialTimestamp != null
-								? initialTimestamp
-								: OffsetDateTime.now()))
-						.flatMap(entry -> Mono.zip(
-								getUserTasksUpdated(
-										user,
-										entry.getT1().getSize(),
-										entry.getT1().getKnownUserTasksIds(),
-										entry.getT2(),
-										mapper.toModel(entry.getT1().getSearchQueries()),
-										entry.getT1().getSort(),
-										entry.getT1().getSortAscending(),
-										entry.getT1().getMode() != null
-												? mapper.toModel(entry.getT1().getMode())
-												: UserTaskService.RetrieveItemsMode.OpenTasks),
-								Mono.just(entry.getT2())))
-						.map(entry -> mapper.toApi(entry.getT1(), entry.getT2(), user.getId()))
-						.map(ResponseEntity::ok)
-						.switchIfEmpty(Mono.just(ResponseEntity.badRequest().build()))
-				);
+		final var timestamp = initialTimestamp != null
+				? initialTimestamp
+				: OffsetDateTime.now();
+
+		final var currentUser = userContext.getUserLoggedInDetails();
+
+		final var userTasks = getUserTasksUpdated(
+				currentUser,
+				userTasksUpdateRequest.getSize(),
+				userTasksUpdateRequest.getKnownUserTasksIds(),
+				timestamp,
+				mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
+				userTasksUpdateRequest.getSort(),
+				userTasksUpdateRequest.getSortAscending(),
+				userTasksUpdateRequest.getMode() != null
+						? mapper.toModel(userTasksUpdateRequest.getMode())
+						: UserTaskService.RetrieveItemsMode.OpenTasks);
+
+		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
 
 	}
 
-    protected abstract Flux<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+    protected abstract List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
             final UserDetails currentUser,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
@@ -133,12 +125,11 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
             final String query);
 
     @Override
-    public Mono<ResponseEntity<KwicResults>> getUserTaskKwicResults(
-            Mono<KwicRequest> kwicRequest,
-            OffsetDateTime initialTimestamp,
-            String path,
-            String query,
-            ServerWebExchange exchange) {
+    public ResponseEntity<KwicResults> getUserTaskKwicResults(
+            final KwicRequest kwicRequest,
+            final OffsetDateTime initialTimestamp,
+            final String path,
+            final String query) {
 
         final var effectivePath = StringUtils.hasText(path)
                 ? path
@@ -148,292 +139,209 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
                 ? initialTimestamp
                 : OffsetDateTime.now();
 
-        return Mono.zip(
-                           userContext.getUserLoggedInDetailsAsMono(),
-                           kwicRequest)
-                   .flatMapMany(entry -> {
-                       final var searchQueries = Optional.ofNullable(
-                                                                 entry.getT2().getSearchQueries())
-                                                         .orElse(List.of())
-                                                         .stream()
-                                                         .map(mapper::toModel)
-                                                         .toList();
-                       return kwic(entry.getT1(), timestamp, searchQueries, effectivePath, query);
-                   })
-                   .map(mapper::toApi)
-                   .collectList()
-                   .map(result -> new KwicResults().result(result))
-                   .map(ResponseEntity::ok);
+        final var currentUser = userContext.getUserLoggedInDetails();
+
+        final var searchQueries = Optional
+                .ofNullable(kwicRequest.getSearchQueries())
+                .orElse(List.of())
+                .stream()
+                .map(mapper::toModel)
+                .toList();
+
+        final var result = kwic(currentUser, timestamp, searchQueries, effectivePath, query)
+                .stream()
+                .map(mapper::toApi)
+                .toList();
+
+        return ResponseEntity.ok(new KwicResults().result(result));
+
     }
 
-    protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTask(
+    protected abstract io.vanillabp.cockpit.tasklist.model.UserTask getUserTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId);
 
-	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
+	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask markAsRead(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final boolean unread);
 
-	protected abstract Flux<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
+	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final boolean unread);
 
 	@Override
-    public Mono<ResponseEntity<UserTask>> getUserTask(
+    public ResponseEntity<UserTask> getUserTask(
             final String userTaskId,
-			final Boolean markAsRead,
-            final ServerWebExchange exchange) {
+			final Boolean markAsRead) {
 
-		final var taskAndUser = userContext
-				.getUserLoggedInDetailsAsMono()
-				.flatMap(user -> Mono.zip(
-						getUserTask(user, userTaskId),
-						Mono.just(user)));
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-        return taskAndUser
-				.flatMap(tnu -> {
-					final var readAt = tnu.getT1().getReadAt(tnu.getT2().getId());
-					final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> userTask;
-					if ((markAsRead == null)        // not required to
-							|| !markAsRead          // mark as read or
-							|| (readAt != null)) {  // already read by current user
-						userTask = Mono.just(tnu.getT1());
-					} else {                        // to be marked as read by current user
-						userTask = markAsRead(tnu.getT2(), tnu.getT1().getId(), false);
-					}
-					return Mono.zip(userTask, Mono.just(tnu.getT2()));
-				})
-				.map(tnu -> mapper.toApi(tnu.getT1(), tnu.getT2().getId())
-				)
-                .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		final var found = getUserTask(currentUser, userTaskId);
+		if (found == null) {
+			return ResponseEntity.notFound().build();
+		}
+
+		final var readAt = found.getReadAt(currentUser.getId());
+		final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
+		if ((markAsRead == null)        // not required to
+				|| !markAsRead          // mark as read or
+				|| (readAt != null)) {  // already read by current user
+			userTask = found;
+		} else {                        // to be marked as read by current user
+			userTask = markAsRead(currentUser, found.getId(), false);
+		}
+		if (userTask == null) {
+			return ResponseEntity.notFound().build();
+		}
+
+		return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
 
     }
 
 	@Override
-	public Mono<ResponseEntity<Void>> markTaskAsRead(
+	public ResponseEntity<Void> markTaskAsRead(
 			final String userTaskId,
-			final Boolean unread,
-			final ServerWebExchange exchange) {
+			final Boolean unread) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
-		if ((unread != null) && unread) {
-			result = currentUser
-					.flatMap(user -> markAsRead(user, userTaskId, true));
-		} else {
-			result = currentUser
-					.flatMap(user -> markAsRead(user, userTaskId, false));
+		final var result = markAsRead(currentUser, userTaskId, (unread != null) && unread);
 
-		}
-
-		return result
-                .map(userTask -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return result == null
+				? ResponseEntity.notFound().build()
+				: ResponseEntity.ok().build();
 
 	}
 
 	@Override
-	public Mono<ResponseEntity<Void>> markTasksAsRead(
-			final Mono<UserTaskIds> userTaskIds,
-			final Boolean unread,
-			final ServerWebExchange exchange) {
+	public ResponseEntity<Void> markTasksAsRead(
+			final UserTaskIds userTaskIds,
+			final Boolean unread) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
-		final var inputData = Mono
-				.zip(currentUser, userTaskIds);
-		if ((unread != null) && unread) {
-			result = inputData.flatMap(tuple -> markAsRead(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					true).collectList());
-		} else {
-			result = inputData.flatMap(tuple -> markAsRead(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					false).collectList());
-		}
+		markAsRead(currentUser, userTaskIds.getUserTaskIds(), (unread != null) && unread);
 
-		return result
-				.map(userTasks -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return ResponseEntity.ok().build();
 
 	}
 
-	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> claimTask(
+	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask claimTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final boolean unclaim);
 
-	protected abstract Flux<io.vanillabp.cockpit.tasklist.model.UserTask> claimTasks(
+	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> claimTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final boolean unclaim);
 
 	@Override
-	public Mono<ResponseEntity<Void>> claimTask(
+	public ResponseEntity<Void> claimTask(
 			final String userTaskId,
-			final Boolean unclaim,
-			final ServerWebExchange exchange) {
+			final Boolean unclaim) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
-		if ((unclaim != null) && unclaim) {
-			result = currentUser
-					.flatMap(user -> claimTask(user, userTaskId, true));
-		} else {
-			result = currentUser
-					.flatMap(user -> claimTask(user, userTaskId, false));
+		final var result = claimTask(currentUser, userTaskId, (unclaim != null) && unclaim);
 
-		}
-
-		return result
-				.map(userTask -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return result == null
+				? ResponseEntity.notFound().build()
+				: ResponseEntity.ok().build();
 
 	}
 
 	@Override
-	public Mono<ResponseEntity<Void>> claimTasks(
-			final Mono<UserTaskIds> userTaskIds,
-			final Boolean unclaim,
-			final ServerWebExchange exchange) {
+	public ResponseEntity<Void> claimTasks(
+			final UserTaskIds userTaskIds,
+			final Boolean unclaim) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
-		final var inputData = Mono
-				.zip(currentUser, userTaskIds);
-		if ((unclaim != null) && unclaim) {
-			result = inputData.flatMap(tuple -> claimTasks(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					true).collectList());
-		} else {
-			result = inputData.flatMap(tuple -> claimTasks(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					false).collectList());
-		}
+		claimTasks(currentUser, userTaskIds.getUserTaskIds(), (unclaim != null) && unclaim);
 
-		return result
-				.map(userTasks -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return ResponseEntity.ok().build();
 
 	}
 
-	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> assignTask(
+	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask assignTask(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final String userId,
 			final boolean unassign);
 
-	protected abstract Flux<io.vanillabp.cockpit.tasklist.model.UserTask> assignTasks(
+	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> assignTasks(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final List<String> userTaskIds,
 			final String userId,
 			final boolean unassign);
 
 	@Override
-	public Mono<ResponseEntity<Void>> assignTask(
+	public ResponseEntity<Void> assignTask(
 			final String userTaskId,
 			final Boolean unassign,
-			final String userId,
-			final ServerWebExchange exchange) {
+			final String userId) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<io.vanillabp.cockpit.tasklist.model.UserTask> result;
-		if ((unassign != null) && unassign) {
-			result = currentUser
-					.flatMap(user -> assignTask(user, userTaskId, userId, true));
-		} else {
-			result = currentUser
-					.flatMap(user -> assignTask(user, userTaskId, userId, false));
+		final var result = assignTask(currentUser, userTaskId, userId, (unassign != null) && unassign);
 
-		}
-
-		return result
-				.map(userTask -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return result == null
+				? ResponseEntity.notFound().build()
+				: ResponseEntity.ok().build();
 
 	}
 
 	@Override
-	public Mono<ResponseEntity<Void>> assignTasks(
-			final Mono<UserTaskIds> body,
+	public ResponseEntity<Void> assignTasks(
+			final UserTaskIds body,
 			final Boolean unassign,
-			final String userId,
-			final ServerWebExchange exchange) {
+			final String userId) {
 
-		final var currentUser = userContext
-				.getUserLoggedInDetailsAsMono();
+		final var currentUser = userContext.getUserLoggedInDetails();
 
-		final Mono<List<io.vanillabp.cockpit.tasklist.model.UserTask>> result;
-		final var inputData = Mono
-				.zip(currentUser, body);
-		if ((unassign != null) && unassign) {
-			result = inputData.flatMap(tuple -> assignTasks(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					userId,
-					true).collectList());
-		} else {
-			result = inputData.flatMap(tuple -> assignTasks(
-					tuple.getT1(),
-					tuple.getT2().getUserTaskIds(),
-					userId,
-					false).collectList());
-		}
+		assignTasks(currentUser, body.getUserTaskIds(), userId, (unassign != null) && unassign);
 
-		return result
-				.map(userTasks -> ResponseEntity.ok().<Void>build())
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		return ResponseEntity.ok().build();
 
 	}
 
-	protected abstract Mono<io.vanillabp.cockpit.tasklist.model.UserTask> setFollowUpDate(
+	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask setFollowUpDate(
 			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
 			final String userTaskId,
 			final OffsetDateTime followUpDate);
 
 	@Override
-	public Mono<ResponseEntity<UserTask>> setFollowUpDate(
+	public ResponseEntity<UserTask> setFollowUpDate(
 			final String userTaskId,
-			final Mono<FollowUpDateRequest> followUpDateRequest,
-			final ServerWebExchange exchange) {
+			final FollowUpDateRequest followUpDateRequest) {
 
-		final var requestOrEmpty = followUpDateRequest
-				.defaultIfEmpty(new FollowUpDateRequest());
+		final var request = followUpDateRequest != null
+				? followUpDateRequest
+				: new FollowUpDateRequest();
 
-		return userContext
-				.getUserLoggedInDetailsAsMono()
-				.flatMap(user -> requestOrEmpty
-						.flatMap(request -> setFollowUpDate(user, userTaskId, request.getTimestamp()))
-						.map(task -> mapper.toApi(task, user.getId())))
-				.map(ResponseEntity::ok)
-				.onErrorResume(UserTaskAlreadyCompletedException.class,
-						e -> Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build()))
-				.switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+		final var currentUser = userContext.getUserLoggedInDetails();
+
+		final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
+		try {
+			userTask = setFollowUpDate(currentUser, userTaskId, request.getTimestamp());
+		} catch (UserTaskAlreadyCompletedException e) {
+			return ResponseEntity.status(HttpStatus.CONFLICT).build();
+		}
+		if (userTask == null) {
+			return ResponseEntity.notFound().build();
+		}
+
+		return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
 
 	}
 
 	@Override
-	public Mono<ResponseEntity<UserSearchResult>> findUsers(
+	public ResponseEntity<UserSearchResult> findUsers(
 			final String query,
-			final Integer limit,
-			final ServerWebExchange exchange) {
+			final Integer limit) {
 
 		final var trimmedQuery = StringUtils.trimAllWhitespace(query);
 		final Collection<UserDetails> users;
@@ -452,7 +360,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 				.map(personAndGroupMapper::toApiPerson)
 				.forEach(result::addUsersItem);
 
-		return Mono.just(ResponseEntity.ok(result));
+		return ResponseEntity.ok(result);
 
 	}
 

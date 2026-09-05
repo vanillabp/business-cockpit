@@ -1,45 +1,57 @@
 package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
-import com.mongodb.reactivestreams.client.MongoClient;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import com.mongodb.client.MongoClient;
+import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import java.time.OffsetDateTime;
-import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.mapping.event.ReactiveBeforeConvertCallback;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.event.BeforeConvertCallback;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
-@ConditionalOnClass({ MongoClient.class, ReactiveMongoTemplate.class })
-public class UpdateInformationEventListener implements ReactiveBeforeConvertCallback<Object> {
+@ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
+public class UpdateInformationEventListener implements BeforeConvertCallback<Object> {
 
     @Autowired
-    private ReactiveUserContext currentUser;
+    private UserContext currentUser;
 
     @Override
-    public Publisher<Object> onBeforeConvert(
+    public Object onBeforeConvert(
             final Object entityObj,
             final String collection) {
 
         if (entityObj instanceof UpdateInformationAware entity) {
 
-            return currentUser
-                    .getUserLoggedInAsMono()
-                    .switchIfEmpty(Mono.just(UpdateInformationAware.SYSTEM_USER))
-                    .map(currentUser -> {
-                        entity.setUpdatedAt(OffsetDateTime.now());
-                        entity.setUpdatedBy(currentUser);
-                        return (Object) entity;
-                    });
+            entity.setUpdatedAt(OffsetDateTime.now());
+            entity.setUpdatedBy(userLoggedInOrSystem());
 
         }
 
-        return Mono.just(entityObj);
+        return entityObj;
+
+    }
+
+    /**
+     * Writes happening outside a request - change-stream reactions, schedulers, Kafka consumers -
+     * have no authenticated user, and neither has an anonymous request. Both are recorded as the
+     * system user rather than as no user at all.
+     */
+    private String userLoggedInOrSystem() {
+
+        final String userLoggedIn;
+        try {
+            userLoggedIn = currentUser.getUserLoggedIn();
+        } catch (BcUnauthorizedException e) {
+            return UpdateInformationAware.SYSTEM_USER;
+        }
+        return userLoggedIn == null
+                ? UpdateInformationAware.SYSTEM_USER
+                : userLoggedIn;
 
     }
 

@@ -110,7 +110,6 @@
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
                 <useBeanValidation>false</useBeanValidation>
-                <reactive>true</reactive>
                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
@@ -203,7 +202,7 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-webflux</artifactId>
+      <artifactId>spring-boot-webmvc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -211,24 +210,20 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-integration</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <!--
-        Renamed in Gateway 5: the webflux server variant carries the transport in its name now, the old
-        spring-cloud-starter-gateway ends at 4.3.5. Class and package names are unchanged
-        (org.springframework.cloud.gateway.route..), so only the coordinates move.
+        The servlet variant of the gateway. It routes through RouterFunction beans and exchanges the
+        request with a blocking RestClient, which is what the workflow-module proxy needs now that the
+        container runs on Spring MVC. The starter brings spring-boot-starter-web along.
       -->
-      <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
+      <artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -266,7 +261,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>bpms-api-server-reactive</artifactId>
+      <artifactId>bpms-api-server</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -300,7 +295,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>official-gui-api-server-reactive</artifactId>
+      <artifactId>official-gui-api-server</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -321,8 +316,8 @@
     </dependency>
     <dependency>
       <!--
-        For the security chain tests: AssertJ, plus spring-test for MockServerWebExchange and
-        ReflectionTestUtils. The reactive filter chains can be built and inspected without starting a
+        For the security chain tests: AssertJ, plus spring-test for MockHttpServletRequest and
+        ReflectionTestUtils. The servlet filter chains can be built and inspected without starting a
         context, which the container's context could not do anyway - it needs MongoDB and Kafka.
       -->
       <groupId>org.springframework.boot</groupId>
@@ -335,11 +330,6 @@
       application component-scans, so having it on the test classpath makes the booted context
       demand adapter beans the cockpit container never provides.
     -->
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-test</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>

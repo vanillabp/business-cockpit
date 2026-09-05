@@ -403,7 +403,7 @@ one off as well - useful for a broker which is not at `localhost:9092`.
 
 ## Build and Run the Business Cockpit
 
-The business cockpit is developed by using Java 17 and Spring Boot 3 (reactive). To build the business cockpit Maven is used:
+The business cockpit is developed by using Java 21 and Spring Boot 4 (Spring MVC on virtual threads). To build the business cockpit Maven is used:
 
 ```sh
 cd vanillabp-business-cockpit
