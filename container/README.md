@@ -39,10 +39,14 @@ Two things follow for a custom application beyond changing the dependency:
   reference answer; copy them and change what your access rules require. Without them the user
   interface loads and its lists stay empty.
 * It brings its own `application.yaml`. The defaults of this module are the ones a standalone
-  deployment wants, not the ones your deployment wants. Two of them are worth copying rather than
-  rediscovering: `bpms-api.realm-name` together with the credentials the adapters authenticate with,
-  without which the application does not start, and `spring.threads.virtual.enabled`, without which
-  every open server-sent-event stream and every proxied request occupies a platform thread.
+  deployment wants, not the ones your deployment wants. Which values yours still owes, the
+  application tells you while it starts: a value it cannot run without ends the start, and that one
+  message lists every missing property name with an example of what to write there. Everything else
+  is a warning saying which feature stays switched off until it is configured, the BPMS API for
+  instance. So the shortest way to a complete configuration is to start the application and follow
+  what it prints. Only one default goes unreported, because the application runs either way:
+  `spring.threads.virtual.enabled`, without which every open server-sent-event stream and every
+  proxied request occupies a platform thread.
 
 ## Ways to use it
 
@@ -89,10 +93,9 @@ Two things follow for a custom application beyond changing the dependency:
 1. **Provide custom Spring Boot configuration**:<br>...by creating `application.yaml`:
    ```yaml
    spring:
-     data: 
-       mongodb:
-         # Add next line with adopted values in case of using a MongoDB not created by 'docker-compose.yaml'
-         uri: mongodb://XXXXXXX:27017/XXXXXXX
+     mongodb:
+       # Add next line with adopted values in case of using a MongoDB not created by 'docker-compose.yaml'
+       uri: mongodb://XXXXXXX:27017/XXXXXXX
    business-cockpit:
      title-short: MyBC
      title-long: My Business Cockpit
