@@ -355,4 +355,39 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the assignee of tasks reported without one: until the REST ingress mappers learned that
+     * an absent user id means no person, they stored an assignee whose id was null. Such a task
+     * looks unassigned in the GUI but cannot be claimed - comparing the stored assignee to the
+     * claiming user reads the null id and the request ends in HTTP 500.
+     * <p>
+     * Whether nobody is responsible for a task is stored as {@code dangling} to be queryable, so
+     * the tasks losing their phantom assignee have to be re-evaluated the way changeset 6 did.
+     */
+    @Changeset(order = 13)
+    public String removeAssigneesHavingNoUserId(
+            final MongoTemplate mongo) {
+
+        mongo
+                .updateMulti(
+                        Query.query(Criteria
+                                .where("assignee").ne(null)
+                                .and("assignee.id").is(null)),
+                        new Update().unset("assignee"),
+                        UserTask.class);
+
+        mongo
+                .updateMulti(
+                        Query.query(
+                                new Criteria().norOperator(
+                                        Criteria.where("assignee").exists(true),
+                                        Criteria.where("candidateUsers.0").exists(true),
+                                        Criteria.where("candidateGroups.0").exists(true))),
+                        Update.update("dangling", Boolean.TRUE),
+                        UserTask.class);
+
+        return null;
+
+    }
+
 }
