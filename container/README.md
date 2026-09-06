@@ -38,6 +38,8 @@ Two things follow for a custom application beyond changing the dependency:
   tasks, workflows and modules a user gets to see. The five controllers of this module are the
   reference answer; copy them and change what your access rules require. Without them the user
   interface loads and its lists stay empty.
+  [Who sees which workflow](#who-sees-which-workflow) describes the answer the workflowlist
+  controller of this module gives.
 * It brings its own `application.yaml`. The defaults of this module are the ones a standalone
   deployment wants, not the ones your deployment wants. Two of them are worth copying rather than
   rediscovering: `bpms-api.realm-name` together with the credentials the adapters authenticate with,
@@ -199,6 +201,32 @@ On accessing workflow modules as part of usertask forms via the Business Cockpit
 (see [architecture](../README.md#application)) the JWT is also passed to the respective
 workflow module handing over the current user's security-context. Doing so, each workflow module
 may introduce individual business roles mappings.
+
+### Who sees which workflow
+
+The workflowlist controller of this module limits the workflow list to the workflows a user is
+addressed by. A workflow shows up for a user named in its `accessibleToUsers` and for a member of a
+group named in its `accessibleToGroups`. A workflow which names neither is open to everybody. The
+groups counted are the authorities of the request, which the JWT filter has already widened by
+whatever the registered workflow modules grant through their group hierarchy, so the workflow list
+follows the same group resolution as the task list.
+
+Opening a workflow by its id is answered by the same rule. A workflow the user may not see is
+reported as unknown, the same answer as for an id that was never reported. Asking for the user tasks
+of such a workflow yields nothing, since they would otherwise tell the user what the detail view
+withholds.
+
+Up to version 0.4.0 the reference application passed no filter at all and every logged-in user saw
+every workflow. If your application relies on that, override `getWorkflows`, `getWorkflowsUpdated`,
+`getWorkflow` and `kwic` in your own controller and pass `null` for both the users and the groups.
+This concerns the reference application only, since the filter lives in the concrete controller and
+the library has always left the decision to it.
+
+Which user tasks of a workflow the status-site gets is a separate question, answered per request
+through the query parameter `llatcup`. Sent as `true` the site gets the tasks the current user could
+work on, sent as `false` it gets every user task of the workflow. Both remain available, because a
+status-site showing what a workflow is up to needs other tasks than one showing what the reader has
+to do. Neither mode reaches a workflow the user may not open.
 
 ### Using an OIDC provider for authentication
 

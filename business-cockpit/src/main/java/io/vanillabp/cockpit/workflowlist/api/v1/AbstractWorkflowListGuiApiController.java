@@ -23,6 +23,44 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
+/**
+ * Turns the workflowlist requests of the GUI API into calls of {@link WorkflowlistService} and maps
+ * the result back, but leaves open which workflows the current user gets to see. That decision
+ * belongs to the application built on this library, because only it knows what its workflows are
+ * about: a cockpit for a support team may want every workflow in one list, another one may show
+ * nobody anything the reporting workflow module did not explicitly address to them.
+ *
+ * <p>The subclass answers by passing a filter to the service. Every retrieval method takes an
+ * {@code accessibleToUsers} and an {@code accessibleToGroups} collection, and a workflow is included
+ * once it names one of the given users or one of the given groups. Passing {@code null} for both
+ * drops the restriction and lists every workflow. The {@code includeDanglingWorkflows} flag decides
+ * what happens to a workflow which names neither users nor groups: passing {@code true} treats it as
+ * open to everyone, {@code false} hides it from everyone.
+ *
+ * <p>The reference application filters by the current user and the authorities of the request, which
+ * are the user's groups after the group hierarchies of all registered workflow modules have been
+ * applied:
+ *
+ * <pre>
+ * &#64;Override
+ * protected Page&lt;Workflow&gt; getWorkflows(
+ *         final UserDetails currentUser, ...) {
+ *
+ *     return workflowlistService.getWorkflows(
+ *             pageNumber, pageSize, initialTimestamp,
+ *             true,
+ *             List.of(currentUser.getId()),
+ *             currentUser.getAuthorities(),
+ *             businessIds, searchQueries, sort, sortAscending, mode);
+ *
+ * }
+ * </pre>
+ *
+ * <p>A list filter alone does not protect a workflow. {@link #getWorkflow(UserDetails, String)}
+ * fetches one by its id, and the user tasks of a workflow are fetched by that id as well, so a
+ * subclass which hides workflows from the list wants both of them to answer nothing for the same
+ * workflows. Otherwise the detail view hands out what the list withheld.
+ */
 public abstract class AbstractWorkflowListGuiApiController implements OfficialWorkflowlistApi {
 
     @Autowired
@@ -116,6 +154,10 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
+    /**
+     * @return the workflow, or {@code null} if it does not exist or the current user may not see it
+     *         - both are answered as HTTP 404, so the detail view does not tell one from the other
+     */
     protected abstract io.vanillabp.cockpit.workflowlist.model.Workflow getWorkflow(
             final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
             final String workflowId);
@@ -134,6 +176,15 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
+    /**
+     * The user tasks belonging to one workflow, used by the status-site of a workflow. Which of them
+     * are wanted depends on what the site shows, which is why the caller decides per request:
+     *
+     * @param limitListAccordingToCurrentUsersPermissions {@code true} lists only the tasks the
+     *        current user could work on, the way the task list does; {@code false} lists every user
+     *        task of the workflow, for a site showing what the workflow is up to rather than what
+     *        the reader has to do
+     */
     protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnlyRequested,
