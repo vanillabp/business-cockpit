@@ -210,15 +210,13 @@ class GuiApiTest extends ItestBase {
     }
 
     /**
-     * Documents a pre-existing bug, not desired behavior: a task reported over the BPMS API
-     * without an assignee is stored with an assignee object carrying a null id (the v1.1 mapper
-     * maps the absent assignee through the person mapper instead of leaving it null). The GUI
-     * hides that phantom assignee, but claiming such a task runs into a NullPointerException,
-     * surfacing as HTTP 500. Once the mapping is fixed, this test should start failing and be
-     * updated to the intended behavior: a successful claim.
+     * A task reported without an assignee stays unassigned, so the first user claiming it becomes
+     * the assignee. Until the ingress mappers learned that an absent user id means no person, such
+     * a task carried an assignee whose id was null: the GUI hid it, but the claim compared that
+     * null id to the claiming user and answered HTTP 500.
      */
     @Test
-    void claimingATaskReportedWithoutAssigneeCurrentlyFails() {
+    void claimingATaskReportedWithoutAssigneeAssignsTheClaimer() {
 
         final var userTaskId = unique("task");
         final var created = bpmsV1_1("/usertask/created", """
@@ -237,9 +235,13 @@ class GuiApiTest extends ItestBase {
                 }
                 """.formatted(unique("event"), userTaskId, isoNow(), moduleId, GROUP_OF_MARTIN, token));
         assertThat(created.statusCode()).isEqualTo(200);
+        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
+                .read("$.assignee", Object.class)).isNull();
 
         assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim", null)
-                .statusCode()).isEqualTo(500);
+                .statusCode()).isEqualTo(200);
+        assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
+                .read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
 
     }
 
