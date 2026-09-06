@@ -4,6 +4,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# same group as the publish workflow: builds of this repository run one at a
+# time, queued and never cancelled
+concurrency:
+  group: business-cockpit-build
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest

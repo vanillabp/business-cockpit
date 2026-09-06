@@ -5,6 +5,12 @@ on:
       - 'renovate/**'
       - 'release/**'
       - 'feature/wip-**'
+# snapshot artifacts share their coordinates across branches, so two runs
+# publishing at the same time overwrite each other. One build at a time,
+# queued and never cancelled; the group is shared with the pull-request build.
+concurrency:
+  group: business-cockpit-build
+  cancel-in-progress: false
 permissions:
   contents: read
   pages: write
