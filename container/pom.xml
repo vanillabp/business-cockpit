@@ -329,12 +329,12 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>adapters-commons</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
+    <!--
+      adapters-commons is deliberately NOT a test dependency (it was, unused, until the integration
+      tests arrived): its configuration classes live inside the io.vanillabp.cockpit package the
+      application component-scans, so having it on the test classpath makes the booted context
+      demand adapter beans the cockpit container never provides.
+    -->
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
@@ -364,6 +364,27 @@
       <groupId>com.icegreen</groupId>
       <artifactId>greenmail</artifactId>
       <version>2.0.1</version>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      Black-box integration tests (io.vanillabp.cockpit.itest) boot the full application against real
+      infrastructure: MongoDB as a single-node replica set (change streams and the changeset migration
+      need one) and an Apache Kafka broker. Versions come from the testcontainers-bom imported by the
+      Spring Boot BOM.
+    -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mongodb</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
