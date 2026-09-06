@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.sun.net.httpserver.HttpServer;
-import io.vanillabp.cockpit.BusinessCockpitApplication;
+import io.vanillabp.cockpit.BusinessCockpitStandaloneApplication;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -108,7 +108,7 @@ class ProxyAfterRestartTest {
     private static ConfigurableApplicationContext startApplication(
             final String workerId) {
 
-        return new SpringApplicationBuilder(BusinessCockpitApplication.class)
+        return new SpringApplicationBuilder(BusinessCockpitStandaloneApplication.class)
                 .run(
                         "--server.port=0",
                         "--spring.main.banner-mode=off",
