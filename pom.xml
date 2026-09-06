@@ -25,6 +25,20 @@
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <version.jupiter>5.10.1</version.jupiter>
+    <jacoco.version>0.8.15</jacoco.version>
+    <!-- where the build breaks, in PERCENT of covered instructions per measurement,
+         enforced by test-coverage-report/coverage-gate. Both numbers are what the suites
+         actually reached on 2026-09-06, rounded down: 57.25 % for the container and 3.43 %
+         for the adapters. They are raised as tests arrive and never lowered to make a build
+         green, because a threshold lowered once stops saying anything about the code. The
+         adapters keep their measured 3 instead of rounding down to a zero that could not
+         catch any regression at all; the honest number is the low one, not a disabled gate. -->
+    <coverage.threshold.application-spring-boot>55</coverage.threshold.application-spring-boot>
+    <coverage.threshold.adapters-spring-boot>3</coverage.threshold.adapters-spring-boot>
+    <!-- the rule every VanillaBP repository is read against. The gate prints each
+         measurement against it on every run but never fails on it, because it marks where
+         somebody has to look and not the number a build has to hit today. -->
+    <coverage.rule>90</coverage.rule>
   </properties>
 
   <modules>
@@ -36,6 +50,8 @@
     <module>development</module>
     <module>spi-for-java</module>
     <module>adapters</module>
+    <!-- last: it aggregates and judges what all modules above produced -->
+    <module>test-coverage-report</module>
   </modules>
 
   <build>
@@ -56,6 +72,12 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
+          <configuration>
+            <!-- late binding: 'jacoco.agent' is filled per module by jacoco-maven-plugin below in
+                 this file, so a module which switches JaCoCo off gets an empty value instead of a
+                 dangling reference -->
+            <argLine>@{jacoco.agent}</argLine>
+          </configuration>
           <dependencies>
             <dependency>
               <groupId>org.junit.jupiter</groupId>
@@ -191,6 +213,33 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <!-- declared here and not in pluginManagement, because the modules of
+             test-coverage-report have to inherit it to build their aggregated reports -->
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <configuration>
+          <sessionId>anonymous-session-id</sessionId>
+          <excludes>
+            <!-- the GUI API is generated into the container's own target/classes from
+                 src/main/resources/api/gui/v1.yaml. What its coverage says is something about the
+                 generator, not about this repository. -->
+            <exclude>io/vanillabp/cockpit/gui/api/v1/**</exclude>
+          </excludes>
+          <!-- hands the javaagent parameter to Surefire's '@{jacoco.agent}' -->
+          <propertyName>jacoco.agent</propertyName>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <dependencyManagement>

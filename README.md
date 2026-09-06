@@ -26,6 +26,7 @@ As a consequence workflows and user tasks from different systems will be availab
    2. [Customized business cockpit applications](#customized-business-cockpit-applications)
    3. [Functionality provided by the business cockpit](#functionality-provided-by-the-business-cockpit)
    4. [Technologies](#technologies)
+2. [Test coverage](#test-coverage)
 3. [Documentation](#documentation)
    1. [By use-case](#by-use-case)
    2. [By module](#by-module)
@@ -42,6 +43,26 @@ The backend runs on Spring MVC with virtual threads, not on WebFlux. An applicat
 Business Cockpit therefore writes overrides such as `guiHttpSecurity` against `HttpSecurity` and plain
 return types, where they used to be written against `ServerHttpSecurity` and `Mono`/`Flux`. See
 [container/README.md](container/README.md#spring-boot).
+
+## Test coverage
+
+Coverage is measured twice, because this repository builds two things which end up in different
+applications. The container and what it carries with it run in a business cockpit application. The
+BPMS adapters run inside a workflow module, next to the business code. Neither half's tests execute
+the other half's code, so a single number spanning both would hide whichever half is weaker.
+
+|                            | Spring Boot |
+|----------------------------|-------------|
+| Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report) |
+| BPMS adapters              | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fadapters-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/adapters-spring-boot-report) |
+
+The platform is part of each name because a Quarkus variant of both is planned. It will add a column
+to this table instead of replacing what is measured today.
+
+Each badge reads the report it links to, so the number shown here and the number in the report
+cannot drift apart. Both reports are published on every build of the default branch. How they are
+produced and what breaks a build is described with the
+[test-coverage-report module](#by-module).
 
 ## Application
 
@@ -187,6 +208,16 @@ in logical order:
    1. **dev-shell-angular**:<br>A NPM library for easy developing user task forms and workflow status-sites using *Angular*.
    1. **simulator**:<br>A standalone microservice used for business cockpit development, which mimics a workflow module.
    1. **docker-compose.yaml**:<br>Preconfigured docker containers for business cockpit development.
+1. **[test-coverage-report](./test-coverage-report)**:<br>The two aggregated coverage reports and the
+   gate which judges them. A build writes them to `test-coverage-report/application/spring-boot/report`
+   and `test-coverage-report/adapters/spring-boot/report`, and the default branch publishes them as the
+   pages the [coverage badges](#test-coverage) read. The thresholds are properties of the root
+   `pom.xml`, given in percent of covered instructions, which is the same number the badges show. A
+   build breaks when a report falls below its threshold. It also breaks when a module produces
+   coverage data no aggregated report reads, because everything covered by that module alone would
+   otherwise count as missed without anybody being able to fix it by writing a test. Between the
+   threshold and the rule of 90 the build passes, and the gate prints on every run how far each
+   report still is from the rule.
 
 ## Noteworthy & Contributors
 

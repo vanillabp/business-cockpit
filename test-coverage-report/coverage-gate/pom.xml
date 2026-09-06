@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>test-coverage-report</artifactId>
+    <version>0.4.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>coverage-gate</artifactId>
+  <name>Test coverage report - gate</name>
+  <description>Breaks the build when a measurement's aggregated coverage drops below the threshold, or when a module produces coverage data no aggregated report reads. Declared as the LAST module of the reactor, because it judges what the other modules produced.</description>
+
+  <properties>
+    <!-- the gate contributes no coverage itself, so it needs no entry in any report;
+         the empty agent keeps Surefire's inherited '@{jacoco.agent}' resolvable -->
+    <jacoco.skip>true</jacoco.skip>
+    <jacoco.agent/>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <!-- newer than the 2.5 pinned by release-parent, which has no 'skipIfEmpty' yet -->
+        <version>3.4.2</version>
+        <configuration>
+          <!-- this module has test sources only, so there is nothing to package -->
+          <skipIfEmpty>true</skipIfEmpty>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <coverage.repository.root>${project.basedir}/../..</coverage.repository.root>
+            <coverage.threshold.application-spring-boot>${coverage.threshold.application-spring-boot}</coverage.threshold.application-spring-boot>
+            <coverage.threshold.adapters-spring-boot>${coverage.threshold.adapters-spring-boot}</coverage.threshold.adapters-spring-boot>
+            <coverage.rule>${coverage.rule}</coverage.rule>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>business-cockpit-parent</artifactId>
+    <version>0.4.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>test-coverage-report</artifactId>
+  <packaging>pom</packaging>
+  <name>Test coverage report</name>
+  <description>Aggregator of the test coverage reports. Coverage is measured separately for the business cockpit container and for the BPMS adapters, because the two are deployed into different applications and never test each other's code.</description>
+
+  <modules>
+    <module>application/spring-boot</module>
+    <module>adapters/spring-boot</module>
+    <!-- last: it judges what the two modules above produced -->
+    <module>coverage-gate</module>
+  </modules>
+
+  <properties>
+    <!-- nothing to publish here: the reports go to Github pages, and the modules below hold no
+         code at all. The release build activates source, javadoc, gpg and central-publishing
+         through the profiles of io.vanillabp:release-parent, all of which would otherwise try to
+         sign and upload empty artifacts. -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <maven.install.skip>true</maven.install.skip>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+    <maven.source.skip>true</maven.source.skip>
+    <gpg.skip>true</gpg.skip>
+    <skip.central.release>true</skip.central.release>
+  </properties>
+</project>
