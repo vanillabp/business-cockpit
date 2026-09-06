@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,10 +134,41 @@ public class WorkflowModuleService {
         if ((accessibleToGroups == null) && (workflowModule.getAccessibleToGroups() != null)) return true;
         if ((accessibleToGroups != null) && (workflowModule.getAccessibleToGroups() == null)) return true;
         if ((accessibleToGroups != null) && !accessibleToGroups.equals(workflowModule.getAccessibleToGroups())) return true;
-        if ((groupHierarchy != null) && (workflowModule.getGroupHierarchy() == null)) return true;
-        if ((groupHierarchy == null) && (workflowModule.getGroupHierarchy() != null)) return true;
-        if ((groupHierarchy != null) && !groupHierarchy.equals(workflowModule.getGroupHierarchy())) return true;
+        if (!Objects.equals(
+                asComparableHierarchy(groupHierarchy),
+                asComparableHierarchy(workflowModule.getGroupHierarchy()))) return true;
         return false;
+
+    }
+
+    /**
+     * A registration brings the hierarchy as a map, the document keeps it as a list of entries, so
+     * both have to be brought into one shape before they can be compared. Otherwise every
+     * re-registration of a module having a hierarchy would look like a change and rewrite the
+     * document.
+     */
+    private static Map<String, List<String>> asComparableHierarchy(
+            final Map<String, Collection<String>> groupHierarchy) {
+
+        if (groupHierarchy == null) {
+            return null;
+        }
+        return groupHierarchy
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
+
+    }
+
+    private static Map<String, List<String>> asComparableHierarchy(
+            final List<GroupHierarchy> groupHierarchy) {
+
+        if (groupHierarchy == null) {
+            return null;
+        }
+        return groupHierarchy
+                .stream()
+                .collect(Collectors.toMap(GroupHierarchy::group, entry -> List.copyOf(entry.targets())));
 
     }
 

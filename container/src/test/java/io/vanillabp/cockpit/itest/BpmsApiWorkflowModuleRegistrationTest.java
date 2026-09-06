@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test;
 /**
  * The registration endpoint of the BPMS API is an upsert: a workflow module calls it on every
  * start, so the second call for the same id has to update what the first one stored. This test
- * covers that update half - a module that moved to another host, and a module that changed the
- * paths of its provider APIs - while {@link ProxyGatewayTest} covers the first registration.
+ * covers that update half, from a module which moved to another host to one which repeats what it
+ * already registered, while {@link ProxyGatewayTest} covers the first registration.
  *
  * <p>Two stub servers stand in for the module before and after the move, each one answering with
  * its own name so the tests can tell which of them the gateway actually reached.
@@ -91,6 +91,17 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
             final String taskProviderApiUriPath,
             final String workflowProviderApiUriPath) {
 
+        register(workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath, "");
+
+    }
+
+    private void register(
+            final String workflowModuleId,
+            final String uri,
+            final String taskProviderApiUriPath,
+            final String workflowProviderApiUriPath,
+            final String furtherMembers) {
+
         final var response = bpmsV1_1(
                 "/workflow-module/" + workflowModuleId,
                 """
@@ -98,11 +109,34 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
                   "id": "%s",
                   "uri": "%s",
                   "taskProviderApiUriPath": "%s",
-                  "workflowProviderApiUriPath": "%s"
+                  "workflowProviderApiUriPath": "%s"%s
                 }
                 """.formatted(
-                        workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath));
+                        workflowModuleId, uri, taskProviderApiUriPath, workflowProviderApiUriPath,
+                        furtherMembers));
         assertThat(response.statusCode()).isEqualTo(200);
+
+    }
+
+    /**
+     * Builds the {@code groupHierarchy} member of a registration: two entries, one of them with two
+     * targets, so neither the number of entries nor the shape of a single one is trivial.
+     *
+     * <p>Callers pass groups nobody else uses, because the cockpit merges the hierarchies of all
+     * registered modules into one and a test must not widen the group resolution of another.
+     */
+    private static String groupHierarchyOf(
+            final String group,
+            final String intermediateGroup,
+            final String targetGroup) {
+
+        return """
+                ,
+                  "groupHierarchy": [
+                    { "group": "%s", "targets": [ "%s", "%s" ] },
+                    { "group": "%s", "targets": [ "%s" ] }
+                  ]""".formatted(
+                          group, intermediateGroup, targetGroup, intermediateGroup, targetGroup);
 
     }
 
@@ -214,6 +248,48 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
         // an unchanged registration - what a restarted module sends - must not write anything
         register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
         assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterChangedPaths);
+
+    }
+
+    /**
+     * A registration hands the group hierarchy over as a map of groups, the document keeps it as a
+     * list of entries. Comparing those two shapes directly always reports a difference, so every
+     * restart of a module having a hierarchy used to rewrite the document for nothing.
+     */
+    @Test
+    void reRegistrationOfAnUnchangedGroupHierarchyIsNotStoredAgain() {
+
+        final var moduleId = unique("hierarchy-keeping-module");
+        final var hierarchy = groupHierarchyOf(
+                unique("accounting"), unique("dispatchers"), unique("night-shift"));
+        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
+        final var versionAfterFirstRegistration = storedVersionOf(moduleId);
+
+        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1", hierarchy);
+
+        assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterFirstRegistration);
+
+    }
+
+    /**
+     * The other half of the same rule: a module which really changed its hierarchy has to be
+     * written, because the stored hierarchy is what the cockpit resolves groups against after a
+     * restart.
+     */
+    @Test
+    void reRegistrationWithAChangedGroupHierarchyIsStored() {
+
+        final var moduleId = unique("hierarchy-changing-module");
+        final var group = unique("accounting");
+        final var dispatchers = unique("dispatchers");
+        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
+                groupHierarchyOf(group, dispatchers, unique("night-shift")));
+        final var versionAfterFirstRegistration = storedVersionOf(moduleId);
+
+        register(moduleId, uriOf(serverA), "/task-provider/v1", "/workflow-provider/v1",
+                groupHierarchyOf(group, dispatchers, unique("early-shift")));
+
+        assertThat(storedVersionOf(moduleId)).isGreaterThan(versionAfterFirstRegistration);
 
     }
 

@@ -1,17 +1,15 @@
 package io.vanillabp.cockpit.workflowmodules;
 
 import io.vanillabp.cockpit.commons.security.usercontext.GroupHierarchyResolver;
-import io.vanillabp.cockpit.commons.security.usercontext.WorkflowModuleGroupHierarchy;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.springframework.stereotype.Service;
 
 @Service
-public class GroupHierarchyService implements WorkflowModuleGroupHierarchy {
+public class GroupHierarchyService {
 
     private static final Map<String, Map<String, Collection<String>>> cachedGroupHierarchies = new HashMap<>();
 
@@ -51,30 +49,6 @@ public class GroupHierarchyService implements WorkflowModuleGroupHierarchy {
             return GroupHierarchyResolver.resolveGroups(
                     cachedGroupHierarchies.values(),
                     assignedGroups);
-
-        } finally {
-            readLock.unlock();
-        }
-
-    }
-
-    /**
-     * @return Merged hierarchy for general purpose usage
-     */
-    @Override
-    public Map<String, Collection<String>> getGroupHierarchy() {
-
-        try {
-            readLock.lock();
-
-            final Map<String, Collection<String>> merged = new HashMap<>();
-            cachedGroupHierarchies
-                    .values()
-                    .forEach(hierarchy -> {
-                        hierarchy.forEach((role, targets) ->
-                                merged.computeIfAbsent(role, k -> new HashSet<>()).addAll(targets));
-                    });
-            return merged;
 
         } finally {
             readLock.unlock();
