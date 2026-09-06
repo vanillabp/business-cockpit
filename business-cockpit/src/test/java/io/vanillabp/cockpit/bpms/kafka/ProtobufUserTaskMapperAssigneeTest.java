@@ -100,6 +100,13 @@ class ProtobufUserTaskMapperAssigneeTest {
     }
 
     @Test
+    void toNewTask_withoutAssignee_leavesItUnassigned() {
+        // protobuf tells an omitted assignee from an empty one, so this path never built the
+        // person carrying a null id which the REST ingress produced
+        assertNull(mapper.toNewTask(event().build()).getAssignee());
+    }
+
+    @Test
     void toUpdatedTask_withoutAssignee_keepsTheTakeover() {
         final var result = mapper.toUpdatedTask(event().build(), takenOverTask());
 
