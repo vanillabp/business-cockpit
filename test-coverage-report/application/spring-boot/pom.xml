@@ -12,9 +12,14 @@
   <artifactId>application-spring-boot-report</artifactId>
   <packaging>pom</packaging>
   <name>Test coverage report - Business Cockpit container (Spring Boot)</name>
-  <description>Coverage of everything deployed into a business cockpit application: the container itself and what it carries with it.</description>
+  <description>Coverage of everything deployed into a business cockpit application: the cockpit library, the runnable container and what the two carry with them.</description>
 
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>business-cockpit</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>container</artifactId>

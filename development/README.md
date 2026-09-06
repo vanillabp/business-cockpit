@@ -416,8 +416,13 @@ After the build succeeded the service can be started:
 
 ```sh
 cd container
-java -Dspring.profiles.active=local -jar target/business-cockpit-*-runnable.jar
+java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 ```
+
+The runnable jar is built from `container`, the business cockpit as an application. The module next
+to it, `business-cockpit`, is the same functionality as a library, and it is what a custom cockpit
+application depends on. It produces no runnable jar. Backend changes usually land in
+`business-cockpit`; the user interface always does.
 
 To connect to the business cockpit UI use these parameters:
 

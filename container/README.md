@@ -4,18 +4,51 @@
 
 # The Microservice
 
-This module is about the runtime of the Business Cockpit, either the backend as well as
-the main frontend application.
+This module is the runtime of the Business Cockpit: the application you start, built from the
+library `business-cockpit` next to it, which holds the backend and the main frontend application.
 
 The backend is a Spring Boot application. The given frontend is a React application,
 but it can also be replaced by other frameworks easily. The bundled web-application
 is hosted by the Spring Boot web-server, so no additional Node-js services is needed.
 
+## Library and application
+
+The Business Cockpit is two Maven modules, and which one you want depends on what you are building.
+
+`business-cockpit` is the library. It holds the services, the persistence, the GUI API, the security
+extension points, the BPMS ingestion and the React single-page application. It cannot be started: it
+has no main class and the executable jar is not built from it. Every custom Business Cockpit
+application depends on this one.
+
+`container` is the runnable reference application. It adds to the library what makes it start: the
+main class `BusinessCockpitStandaloneApplication`, the `application*.yaml` defaults below `config/`
+including the profile `local` with its demo users, and the concrete GUI API controllers. It is
+published so that the Business Cockpit can be run as-is, and it is the worked example of everything a
+custom application has to write for itself.
+
+The split exists because the previous single jar was both at once. Somebody adding `container` as a
+dependency inherited a second application's main class and configuration files along with the
+functionality they were after.
+
+Two things follow for a custom application beyond changing the dependency:
+
+* It provides the concrete GUI API controllers itself. The library ships the abstract super classes
+  `AbstractUserTaskListGuiApiController`, `AbstractWorkflowListGuiApiController` and
+  `AbstractWorkflowModulesGuiApiController`, which decide the shape of a response but leave open which
+  tasks, workflows and modules a user gets to see. The five controllers of this module are the
+  reference answer; copy them and change what your access rules require. Without them the user
+  interface loads and its lists stay empty.
+* It brings its own `application.yaml`. The defaults of this module are the ones a standalone
+  deployment wants, not the ones your deployment wants. Two of them are worth copying rather than
+  rediscovering: `bpms-api.realm-name` together with the credentials the adapters authenticate with,
+  without which the application does not start, and `spring.threads.virtual.enabled`, without which
+  every open server-sent-event stream and every proxied request occupies a platform thread.
+
 ## Ways to use it
 
 1. **As-is**:<br>One can run the VanillaBP Business Cockpit by using the container-JAR
    which includes the *React* based UI. [More...](#as-is)
-2. **Custom UI**:<br>The container-JAR is used as a *Maven*-dependency
+2. **Custom UI**:<br>The `business-cockpit`-JAR is used as a *Maven*-dependency
    to inherit standard backend functionality for a custom *Spring Boot*
    application. [More...](#custom-ui)
     1. The provided React-webapp can be used as a template for an individual webapp.
@@ -93,17 +126,25 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
        ```xml
        <dependency>
           <groupId>io.vanillabp.businesscockpit</groupId>
-          <artifactId>container</artifactId>
+          <artifactId>business-cockpit</artifactId>
        </dependency>
        ```
     1. Change `DemoApplication` like this:
        ```java
+       @SpringBootApplication
        public class DemoApplication extends io.vanillabp.cockpit.BusinessCockpitApplication {
        ```
+       `BusinessCockpitApplication` carries the component scan, the configuration properties and the
+       Spring features the cockpit needs; `@SpringBootApplication` and the `main` method are yours.
+       [BusinessCockpitStandaloneApplication](./src/main/java/io/vanillabp/cockpit/BusinessCockpitStandaloneApplication.java)
+       of this module does exactly that and nothing else.
+    1. Add the concrete GUI API controllers, e.g. by copying
+       [the five of this module](./src/main/java/io/vanillabp/cockpit) and narrowing what they return
+       to what your users may see.
     1. Add VanillaBP Business Cockpit webapp:
        ```shell
        cd demo/src/main
-       cp my-git-folder/business-cockpit/container/src/main/webapp .
+       cp my-git-folder/business-cockpit/business-cockpit/src/main/webapp .
        ```
     1. t.b.d.
 

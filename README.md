@@ -47,7 +47,8 @@ return types, where they used to be written against `ServerHttpSecurity` and `Mo
 ## Test coverage
 
 Coverage is measured twice, because this repository builds two things which end up in different
-applications. The container and what it carries with it run in a business cockpit application. The
+applications. The cockpit library, the container and what they carry with them run in a business
+cockpit application. The
 BPMS adapters run inside a workflow module, next to the business code. Neither half's tests execute
 the other half's code, so a single number spanning both would hide whichever half is weaker.
 
@@ -106,7 +107,7 @@ for business processes having no own web-application.
 The *VanillaBP Business Cockpit* can be executed out-of-the-box showing a vanilla flavored design.
 Typically, one wants to use own icons, colors and fonts according to the cooperate identity.
 To achieve this one can build an individual Spring Boot application using the *VanillaBP Business Cockpit*
-container module as a Maven-dependency. Doing so ensures the backend functionality is inherited.
+`business-cockpit` module as a Maven-dependency. Doing so ensures the backend functionality is inherited.
 
 For the custom UI the original frontend (web-application) can be copied as a template or replaced by your
 own implementation. The *VanillaBP Business Cockpit* UI is implemented by using React. Several NPM libraries are provided to implement
@@ -191,13 +192,17 @@ in logical order:
    1. **[commons](./adapters/commons)**:<br>Functionality common to more than one specific BPS adapter.
    1. **[camunda7](./adapters/camunda7)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 7](http://www.camunda.org).
    1. **[camunda8](./adapters/camunda8)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 8](http://www.camunda.io).
-1. **container**:<br>The business cockpit microservice. Use this as a Maven-dependency for a custom business cockpit.
-   The included React application can be used out-of-the-box or as a template.
+1. **business-cockpit**:<br>The business cockpit as a library: services, persistence, GUI API,
+   security extension points, BPMS ingestion and the React application. Use this as a Maven-dependency
+   for a custom business cockpit. It does not start on its own.
+1. **[container](./container)**:<br>The runnable business cockpit microservice, built from the library
+   plus a main class, the concrete GUI API controllers and the configuration defaults of a standalone
+   deployment. Run it out-of-the-box, or read it as the template for a custom business cockpit.
 1. **ui**:<br>NPM libraries for custom UIs.
    1. **bc-shared**:<br>Components and Typescript types used by the business cockpit UI and also by workflow module
       UI components (user task form, workflow status-site).
    1. **bc-ui**:<br>Components and Typescript types for building individual business cockpit UIs.
-1. **common**:<br>Spring Boot based functionality used by `container` but may also be used by
+1. **common**:<br>Spring Boot based functionality used by `business-cockpit` but may also be used by
    workflow modules or other individual services.
 1. **apis**:<br>Ready-to-use clients and servers for various APIs in the context of the *VanillaBP Business Cockpit*.
    1. **bpms-api**:<br>API for reporting workflow and user task lifecycle events via REST or Kafka.

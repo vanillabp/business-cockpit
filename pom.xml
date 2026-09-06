@@ -46,6 +46,7 @@
     <module>openapi-generator-fixes</module>
     <module>apis</module>
     <module>ui</module>
+    <module>business-cockpit</module>
     <module>container</module>
     <module>development</module>
     <module>spi-for-java</module>
@@ -223,7 +224,7 @@
         <configuration>
           <sessionId>anonymous-session-id</sessionId>
           <excludes>
-            <!-- the GUI API is generated into the container's own target/classes from
+            <!-- the GUI API is generated into the business-cockpit module's own target/classes from
                  src/main/resources/api/gui/v1.yaml. What its coverage says is something about the
                  generator, not about this repository. -->
             <exclude>io/vanillabp/cockpit/gui/api/v1/**</exclude>
