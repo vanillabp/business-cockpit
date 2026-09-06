@@ -189,9 +189,11 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 client);
         final var cockpitService = cockpitServices.get(processService.getWorkflowAggregateClass());
         if (cockpitService != null) {
-            final var tenantId = properties.getTenantId(processService.getWorkflowModuleId());
+            final var workflowModuleId = processService.getWorkflowModuleId();
             cockpitService.setBpmnProcessId(processService.getPrimaryBpmnProcessId());
-            cockpitService.setTenantId(tenantId);
+            cockpitService.setTenantId(properties.getTenantId(workflowModuleId));
+            cockpitService.setWorkflowVisibilityTimeout(
+                    properties.getWorkflowVisibilityTimeout(workflowModuleId));
         }
         return result;
 

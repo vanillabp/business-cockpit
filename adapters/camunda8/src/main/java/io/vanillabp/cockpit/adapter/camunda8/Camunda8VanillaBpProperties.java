@@ -45,6 +45,17 @@ public class Camunda8VanillaBpProperties {
 
     }
 
+    public Duration getWorkflowVisibilityTimeout(
+            final String workflowModuleId) {
+
+        return workflowModules
+                .getOrDefault(workflowModuleId, defaultProperties)
+                .getAdapters()
+                .getOrDefault(Camunda8AdapterConfiguration.ADAPTER_ID, defaultAdapterProperties)
+                .getWorkflowVisibilityTimeout();
+
+    }
+
     public WorkerProperties getWorkerProperties(
             final String workflowModuleId,
             final String bpmnProcessId,
@@ -94,6 +105,23 @@ public class Camunda8VanillaBpProperties {
         private boolean useTenants = true;
 
         private String tenantId;
+
+        /**
+         * How long a workflow may stay invisible to a search before the adapter gives up on it.
+         * Camunda 8 answers searches from its secondary storage, which learns about a workflow only
+         * once the exporter has written it there, so a workflow started moments ago is regularly not
+         * found yet. The same name and the same ten seconds are what VanillaBP's Camunda 8 adapter
+         * allows its cluster. Zero switches the waiting off.
+         */
+        private Duration workflowVisibilityTimeout = Duration.ofSeconds(10);
+
+        public Duration getWorkflowVisibilityTimeout() {
+            return workflowVisibilityTimeout;
+        }
+
+        public void setWorkflowVisibilityTimeout(Duration workflowVisibilityTimeout) {
+            this.workflowVisibilityTimeout = workflowVisibilityTimeout;
+        }
 
         public boolean isUseTenants() {
             return useTenants;

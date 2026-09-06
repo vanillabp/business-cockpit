@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8AggregateChangedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
@@ -18,6 +19,24 @@ public class Camunda8BusinessCockpitSupportService {
     public Camunda8BusinessCockpitSupportService(Camunda8WorkflowEventHandler workflowEventHandler, Camunda8UserTaskEventHandler userTaskEventHandler) {
         this.workflowEventHandler = workflowEventHandler;
         this.userTaskEventHandler = userTaskEventHandler;
+    }
+
+    /**
+     * Asks Camunda 8 which workflows a changed aggregate belongs to, once the transaction which
+     * changed it is through. Deliberately without a transaction of its own: the lookup may have to
+     * wait for the cluster to export a workflow started moments ago, and a transaction held open for
+     * that long would be paid for by the application's database. The workflow events this produces
+     * bring their own transaction, one per event, through the listener below.
+     */
+    @TransactionalEventListener(
+            value = Camunda8AggregateChangedEvent.class,
+            phase = TransactionPhase.AFTER_COMMIT,
+            fallbackExecution = true)
+    public void processAggregateChangedEvent(
+            final Camunda8AggregateChangedEvent event) {
+
+        event.findWorkflowsAndNotifyTheCockpit();
+
     }
 
     @TransactionalEventListener(
