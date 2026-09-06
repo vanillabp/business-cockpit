@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.command.ProblemException;
 import io.camunda.client.api.search.enums.ProcessInstanceState;
 import io.camunda.client.api.search.response.ProcessInstance;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
@@ -14,6 +15,7 @@ import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitSe
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
+import java.net.HttpURLConnection;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -38,6 +40,12 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
      * instead of a flood.
      */
     private static final Duration TIME_BETWEEN_TWO_ATTEMPTS = Duration.ofMillis(250);
+
+    /**
+     * What Camunda 8 answers when asked for a user task its secondary storage has no record of,
+     * be it one which never existed or one the exporter has not written yet.
+     */
+    private static final int THE_CLUSTER_DOES_NOT_KNOW_THIS_USER_TASK = HttpURLConnection.HTTP_NOT_FOUND;
 
     private final CrudRepository<WA, Object> workflowAggregateRepository;
 
@@ -413,18 +421,23 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
      * Unlike {@code aggregateChanged} this call answers the caller, so it cannot be deferred past
      * the caller's transaction and no waiting would help: whoever asks needs the user task now. The
      * request reads the secondary storage like the searches above, so a user task created moments
-     * ago may not be there yet.
+     * ago may not be there yet, which is answered as an unknown task rather than as an error.
      */
     @Override
     public Optional<UserTask> getUserTask(
             final WA workflowAggregate,
             final String userTaskId) {
 
-        final var userTask = client
-                .newUserTaskGetRequest(Long.parseLong(userTaskId))
-                .execute();
-        if (userTask == null) {
-            return Optional.empty();
+        final io.camunda.client.api.search.response.UserTask userTask;
+        try {
+            userTask = client
+                    .newUserTaskGetRequest(Long.parseLong(userTaskId))
+                    .execute();
+        } catch (ProblemException e) {
+            if (e.code() == THE_CLUSTER_DOES_NOT_KNOW_THIS_USER_TASK) {
+                return Optional.empty();
+            }
+            throw e;
         }
 
         final var event = new Camunda8UserTaskEvent();
