@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>test-coverage-report</artifactId>
+    <version>0.4.1-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>adapters-spring-boot-report</artifactId>
+  <packaging>pom</packaging>
+  <name>Test coverage report - BPMS adapters (Spring Boot)</name>
+  <description>Coverage of everything deployed into a workflow module: the BPMS adapters and what they carry with them.</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>adapters-commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>camunda7-spring-boot-adapter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>camunda8-spring-boot-adapter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- commons and spi-for-java appear in this report and in the one of the container, because
+         both halves ship them: commons.rest.adapter runs only in a workflow module, commons.mongo
+         only in the container, and neither half's tests reach the other's classes. Once the
+         adapters move into a repository of their own this POM moves with them, commons and
+         spi-for-java become artifacts pulled from a registry, and both entries leave this list. -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>spi-for-java</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <!-- 'report-aggregate' sums up the '*.exec' files of the modules listed in <dependencies> into one report -->
+              <goal>report-aggregate</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <outputDirectory>${project.basedir}/report</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
