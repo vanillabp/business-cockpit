@@ -4,7 +4,7 @@ import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
 import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
 
@@ -22,32 +22,29 @@ public class V000001 {
 
     @Changeset(order = 3000)
     public String createNotificationOutboxCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
-                .createCollection(NotificationOutboxEntry.COLLECTION_NAME)
-                .block();
+                .createCollection(NotificationOutboxEntry.COLLECTION_NAME);
 
         // idempotency: at most one notification per (user task, type, recipient, medium)
         mongo
                 .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("userTaskId", Direction.ASC)
                         .on("notificationType", Direction.ASC)
                         .on("recipientUserId", Direction.ASC)
                         .on("medium", Direction.ASC)
                         .named(INDEX_OUTBOX_UNIQUE)
-                        .unique())
-                .block();
+                        .unique());
 
         // accelerates draining of pending entries
         mongo
                 .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("sentAt", Direction.ASC)
                         .on("createdAt", Direction.ASC)
-                        .named(INDEX_OUTBOX_PENDING))
-                .block();
+                        .named(INDEX_OUTBOX_PENDING));
 
         return "{ drop: '" + NotificationOutboxEntry.COLLECTION_NAME + "' }";
 

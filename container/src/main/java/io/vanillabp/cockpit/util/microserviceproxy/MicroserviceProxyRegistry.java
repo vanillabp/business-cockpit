@@ -3,155 +3,128 @@ package io.vanillabp.cockpit.util.microserviceproxy;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cloud.gateway.event.RefreshRoutesEvent;
-import org.springframework.cloud.gateway.route.Route;
-import org.springframework.cloud.gateway.route.RouteLocator;
-import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Flux;
+import org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions;
+import org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions;
+import org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions;
+import org.springframework.web.servlet.function.HandlerFunction;
+import org.springframework.web.servlet.function.RequestPredicates;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.RouterFunctions;
+import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.servlet.function.ServerResponse;
 
-public class MicroserviceProxyRegistry implements RouteLocator {
+/**
+ * Serves every workflow module registered at the cockpit under {@code /wm/<module-id>/**} by
+ * proxying the request to the module's own URI. The single-page application therefore loads module
+ * assets and calls module APIs through the cockpit's origin.
+ * <p>
+ * Modules register at runtime, so the set of routes changes while the application is running. The
+ * servlet gateway collects its {@code RouterFunction} beans once during startup and never asks the
+ * application context again, so this registry is one stable bean that delegates to a router
+ * function it swaps out on every registration. {@code RouterFunctionMapping} calls
+ * {@link #route(ServerRequest)} for each request without caching the outcome, which is what makes
+ * the swap take effect immediately.
+ */
+public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse> {
 
     private static final Logger logger = LoggerFactory.getLogger(
             MicroserviceProxyRegistry.class);
-    
+
     public static final String WORKFLOW_MODULES_PATH_PREFIX = "/wm/";
-    
-    private final Lock readLock;
-    
-    private final Lock writeLock;
-    
+
+    /** Matches nothing. An empty gateway route builder would throw, so this is the initial state. */
+    private static final RouterFunction<ServerResponse> NO_ROUTES = request -> Optional.empty();
+
     private final Map<String, String> routes = new HashMap<>();
 
-    private final RouteLocatorBuilder routeLocatorBuilder;
+    private final AtomicReference<RouterFunction<ServerResponse>> currentRoutes =
+            new AtomicReference<>(NO_ROUTES);
 
-    private final ApplicationEventPublisher applicationEventPublisher;
-    
-    public MicroserviceProxyRegistry(
-            final RouteLocatorBuilder routeLocatorBuilder,
-            final ApplicationEventPublisher applicationEventPublisher) {
+    @Override
+    public Optional<HandlerFunction<ServerResponse>> route(
+            final ServerRequest request) {
 
-        this.routeLocatorBuilder = routeLocatorBuilder;
-        this.applicationEventPublisher = applicationEventPublisher;
+        return currentRoutes.get().route(request);
 
-        final var readWriteLock = new ReentrantReadWriteLock();
-        readLock = readWriteLock.readLock();
-        writeLock = readWriteLock.writeLock();
-        
     }
 
-    public Flux<Route> getRoutes() {
+    @Override
+    public void accept(
+            final RouterFunctions.Visitor visitor) {
 
-        final var routesBuilder = routeLocatorBuilder.routes();
-        
-        try {
-            
-            readLock.lock();
+        currentRoutes.get().accept(visitor);
 
-            return Flux.fromStream(
-                        routes.entrySet()
-                                .stream()
-                                .peek(entry -> logger.info(
-                                        "Register microservice proxy for workflow module: {}",
-                                        entry.getKey()))
-                                .map(entry -> routesBuilder.route(
-                                        entry.getKey(),
-                                        predicateSpec -> {
-                                            final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX + entry.getKey() + "/";
-                                            final var uri = URI.create(entry.getValue());
-                                            final var targetUri = UriComponentsBuilder.fromUri(uri).replacePath("").toUriString();
-                                            final var targetPath = uri.getPath() == null
-                                                    ? "/"
-                                                    : uri.getPath().endsWith("/")
-                                                    ? uri.getPath()
-                                                    : uri.getPath() + "/";
-                                            return predicateSpec
-                                                    .path(proxyPath + "**")
-                                                    .filters(f -> f.rewritePath(proxyPath, targetPath))
-                                                    .uri(targetUri);
-                                        }))
-                    )
-                    .collectList()
-                    .flatMapMany(builders -> routesBuilder.build().getRoutes());
-            
-        } finally {
-            readLock.unlock();
-        }
-        
     }
 
-    public void registerMicroservice(
+    public synchronized void registerMicroservice(
             final String id,
             final String uri) {
-        
-        try {
-            
-            readLock.lock();
-            final var currentUri = routes.get(id);
-            if ((currentUri != null)
-                    && currentUri.equals(uri)) {
-                return;
-            }
-            
-        } finally {
-            readLock.unlock();
-        }
-        
-        try {
-            
-            writeLock.lock();
-            final var currentUri = routes.get(id);
-            if ((currentUri != null)
-                    && currentUri.equals(uri)) {
-                return;
-            }
-            
-            routes.put(id, uri);
-            
-        } finally {
-            writeLock.unlock();
+
+        final var previousUri = routes.put(id, uri);
+        if (uri.equals(previousUri)) {
+            return;
         }
 
-        applicationEventPublisher.publishEvent(
-                new RefreshRoutesEvent(this));
+        rebuildRoutes();
 
     }
 
-    public void registerMicroservices(
+    public synchronized void registerMicroservices(
             final Map<String, String> microserviceUris) {
 
-        int numberOfPreviousKnownMicroservices = 0;
-        int numberOfAfterwardsKnownMicroservices = 0;
-        try {
-            
-            writeLock.lock();
-            
-            numberOfPreviousKnownMicroservices = routes.size();
-            
-            microserviceUris
-                    .entrySet()
-                    .stream()
-                    .filter(entry -> !routes.containsKey(entry.getKey()))
-                    .forEach(entry -> routes.put(entry.getKey(), entry.getValue()));
-            
-            numberOfAfterwardsKnownMicroservices = routes.size();
-            
-        } finally {
-            writeLock.unlock();
+        final var numberOfPreviousKnownMicroservices = routes.size();
+
+        microserviceUris.forEach(routes::putIfAbsent);
+
+        if (routes.size() != numberOfPreviousKnownMicroservices) {
+            rebuildRoutes();
         }
 
-        if (numberOfPreviousKnownMicroservices != numberOfAfterwardsKnownMicroservices) {
-            
-            applicationEventPublisher.publishEvent(
-                    new RefreshRoutesEvent(this));
+    }
 
-        }
-        
+    private void rebuildRoutes() {
+
+        currentRoutes.set(routes
+                .entrySet()
+                .stream()
+                .peek(entry -> logger.info(
+                        "Register microservice proxy for workflow module: {}",
+                        entry.getKey()))
+                .map(entry -> buildRoute(entry.getKey(), entry.getValue()))
+                .reduce(RouterFunction::and)
+                .orElse(NO_ROUTES));
+
+    }
+
+    private RouterFunction<ServerResponse> buildRoute(
+            final String id,
+            final String uriAsString) {
+
+        final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX + id + "/";
+        final var uri = URI.create(uriAsString);
+        // the target URI contributes scheme, host and port only, so whatever path it carries has to
+        // become part of the rewritten path
+        final var targetPath = (uri.getPath() == null) || uri.getPath().isEmpty()
+                ? "/"
+                : uri.getPath().endsWith("/")
+                ? uri.getPath()
+                : uri.getPath() + "/";
+
+        return GatewayRouterFunctions
+                .route(id)
+                .route(RequestPredicates.path(proxyPath + "**"), HandlerFunctions.http())
+                .before(BeforeFilterFunctions.rewritePath(
+                        "^" + Pattern.quote(proxyPath),
+                        Matcher.quoteReplacement(targetPath)))
+                .before(BeforeFilterFunctions.uri(uri))
+                .build();
+
     }
 
 }

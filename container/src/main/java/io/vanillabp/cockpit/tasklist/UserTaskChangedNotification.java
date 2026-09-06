@@ -5,9 +5,7 @@ import io.vanillabp.cockpit.commons.mongo.changestreams.OperationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.util.events.NotificationEvent;
 import java.util.Collection;
-import java.util.List;
 import org.bson.Document;
-import org.springframework.data.mongodb.core.ChangeStreamEvent;
 import org.springframework.data.mongodb.core.messaging.Message;
 
 public class UserTaskChangedNotification extends NotificationEvent {
@@ -58,33 +56,6 @@ public class UserTaskChangedNotification extends NotificationEvent {
         
     }
     
-    public static UserTaskChangedNotification build(
-            final ChangeStreamEvent<UserTask> event) {
-        
-        final OperationType type;
-        // Since CosmosDB for MongoDB does not support OperationType yet it is
-        // necessary to derive the OperationType from the document's content.
-        // see https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
-        if (event.getRaw().getOperationTypeString() == null) {
-            if (event.getBody().getCreatedAt().equals(event.getBody().getUpdatedAt())) {
-                type = OperationType.INSERT;
-            } else {
-                type = OperationType.UPDATE;
-            }
-        }
-        // Original MongoDB:
-        else {
-            type = OperationType.byMongoType(
-                    event.getRaw().getOperationTypeString());
-        }
-
-        return new UserTaskChangedNotification(
-                Type.valueOf(type.name()),
-                event.getRaw().getDocumentKey().get(
-                        event.getRaw().getDocumentKey().getFirstKey()).asString().getValue(),
-                event.getBody() == null ? List.of() : event.getBody().getTargetGroups());
-        
-    }
     
     public String getUserTaskId() {
         return userTaskId;

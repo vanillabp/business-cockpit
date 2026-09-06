@@ -38,6 +38,11 @@ Starting with the version documented here, the Business Cockpit requires **Sprin
 There is no dual build: the Spring Boot 3 code paths are gone. Applications still on Spring Boot 3.5
 stay on 0.3.x, which remains functional but will not receive further development.
 
+The backend runs on Spring MVC with virtual threads, not on WebFlux. An application deriving from the
+Business Cockpit therefore writes overrides such as `guiHttpSecurity` against `HttpSecurity` and plain
+return types, where they used to be written against `ServerHttpSecurity` and `Mono`/`Flux`. See
+[container/README.md](container/README.md#spring-boot).
+
 ## Application
 
 ### Concepts in a glance

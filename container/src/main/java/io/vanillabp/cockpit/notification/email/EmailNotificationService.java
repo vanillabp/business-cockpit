@@ -26,11 +26,6 @@ import org.springframework.util.StringUtils;
  * e-mails via the Spring Boot mail sender (AC tech 1.vi / 2). Registered by
  * {@link EmailNotificationConfiguration} when {@code business-cockpit.notification.smtp.enabled=true},
  * overridable by a derived cockpit application via {@code @ConditionalOnMissingBean}.
- * <p>
- * Threading: the {@link NotificationService} contract is synchronous, whereas persistence is
- * reactive - the repository calls are bridged with {@code block()}. Callers must therefore invoke
- * these methods off the Netty event-loop threads (the poller uses a bounded-elastic scheduler; the
- * reactive controllers wrap the calls in {@code Mono.fromCallable(...).subscribeOn(boundedElastic())}).
  */
 public class EmailNotificationService extends AbstractTemplatingNotificationService {
 
@@ -81,7 +76,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
     public List<RecipientConfiguration> getRecipientConfiguration(
             final String userId) {
 
-        final var user = userRepository.findById(userId).block();
+        final var user = userRepository.findById(userId).orElse(null);
 
         String value = null;
         if (user != null
@@ -111,7 +106,6 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
         final var user = userRepository
                 .findById(userId)
-                .blockOptional()
                 .orElseGet(() -> {
                     final var created = new User();
                     created.setId(userId);
@@ -127,7 +121,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
                 TYPE,
                 configurationValues == null ? new HashMap<>() : new HashMap<>(configurationValues));
 
-        userRepository.save(user).block();
+        userRepository.save(user);
 
     }
 
@@ -167,7 +161,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
             final boolean forced,
             final Map<String, Object> context) throws Exception {
 
-        final var user = userRepository.findById(userId).block();
+        final var user = userRepository.findById(userId).orElse(null);
         final var address = resolveAddress(user);
         if (!StringUtils.hasText(address)) {
             logger.info("Skipping notification e-mail: user '{}' has no e-mail address configured", userId);

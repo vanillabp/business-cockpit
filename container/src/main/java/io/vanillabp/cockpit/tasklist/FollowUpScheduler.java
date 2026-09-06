@@ -6,12 +6,11 @@ import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 /**
  * Emits UserTask FOLLOWUP events for tasks whose follow-up date has
@@ -30,7 +29,7 @@ public class FollowUpScheduler {
     private Logger logger;
 
     @Autowired
-    private ReactiveMongoTemplate mongoTemplate;
+    private MongoTemplate mongoTemplate;
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -53,31 +52,28 @@ public class FollowUpScheduler {
                 Criteria.where("followUpDate").gt(since),
                 Criteria.where("followUpDate").lte(now)));
 
-        mongoTemplate
-                .find(query, UserTask.class)
-                .doOnNext(task -> {
-                    logger.debug(
-                            "Follow-up elapsed for user-task '{}' (followUpDate={}, targetGroups={})",
-                            task.getId(), task.getFollowUpDate(), task.getTargetGroups());
-                    applicationEventPublisher.publishEvent(
-                            new UserTaskChangedNotification(
-                                    NotificationEvent.Type.FOLLOWUP,
-                                    task.getId(),
-                                    task.getTargetGroups()));
-                })
-                .count()
-                .doOnNext(count -> {
-                    if (count > 0) {
-                        logger.info(
-                                "Emitted {} user-task FOLLOWUP event(s) for elapsed follow-up dates (window {} → {})",
-                                count, since, now);
-                    }
-                })
-                .doOnError(e -> logger.warn(
-                        "Could not emit follow-up update events for window {} → {}",
-                        since, now, e))
-                .onErrorResume(e -> Mono.empty())
-                .subscribe();
+        try {
+            final var elapsed = mongoTemplate.find(query, UserTask.class);
+            elapsed.forEach(task -> {
+                logger.debug(
+                        "Follow-up elapsed for user-task '{}' (followUpDate={}, targetGroups={})",
+                        task.getId(), task.getFollowUpDate(), task.getTargetGroups());
+                applicationEventPublisher.publishEvent(
+                        new UserTaskChangedNotification(
+                                NotificationEvent.Type.FOLLOWUP,
+                                task.getId(),
+                                task.getTargetGroups()));
+            });
+            if (!elapsed.isEmpty()) {
+                logger.info(
+                        "Emitted {} user-task FOLLOWUP event(s) for elapsed follow-up dates (window {} \u2192 {})",
+                        elapsed.size(), since, now);
+            }
+        } catch (Exception e) {
+            logger.warn(
+                    "Could not emit follow-up update events for window {} \u2192 {}",
+                    since, now, e);
+        }
 
     }
 

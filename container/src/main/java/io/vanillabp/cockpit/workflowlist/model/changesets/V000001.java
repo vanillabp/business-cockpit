@@ -13,7 +13,7 @@ import org.bson.types.BasicBSONList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -37,28 +37,25 @@ public class V000001 {
 
     @Changeset(order = 1000)
     public List<String> createWorkflowCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
-                .createCollection(Workflow.COLLECTION_NAME)
-                .block();
+                .createCollection(Workflow.COLLECTION_NAME);
 
         // necessary to accelerate initialization of
         // microservice proxies on startup
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("workflowModule", Sort.Direction.ASC)
                         .on("workflowModuleUri", Sort.Direction.ASC)
-                        .named(INDEX_WORKFLOWMODULE_URI))
-                .block();
+                        .named(INDEX_WORKFLOWMODULE_URI));
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("createdAt", Sort.Direction.ASC)
-                        .named(INDEX_DEFAULT_SORT))
-                .block();
+                        .named(INDEX_DEFAULT_SORT));
 
         return List.of(
                 "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_DEFAULT_SORT + "' }",
@@ -69,14 +66,13 @@ public class V000001 {
 
     @Changeset(order = 1002)
     public String createWorkflowEndedAtIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("endedAt", Sort.Direction.ASC)
-                        .named(INDEX_ENDED_AT))
-                .block();
+                        .named(INDEX_ENDED_AT));
 
         return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_ENDED_AT + "' }";
 
@@ -84,19 +80,18 @@ public class V000001 {
     
     @Changeset(order = 1003, author = "stephanpelikan")
     public String fixDefaultUserTaskIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
         
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .dropIndex(INDEX_DEFAULT_SORT)
-                .then(
+                .dropIndex(INDEX_DEFAULT_SORT);
+
                         mongo
                         .indexOps(Workflow.COLLECTION_NAME)
-                        .ensureIndex(new Index()
+                        .createIndex(new Index()
                                 .on("createdAt", Direction.ASC)
                                 .on("_id", Direction.ASC)
-                                .named(INDEX_DEFAULT_SORT)))
-                .block();
+                                .named(INDEX_DEFAULT_SORT));
         
         return null;
         
@@ -104,14 +99,13 @@ public class V000001 {
 
     @Changeset(order = 1004, author = "stephanpelikan")
     public String createDetailsFulltextSearchIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("detailsFulltextSearch", Direction.ASC)
-                        .named(INDEX_FULLTEXT))
-                .block();
+                        .named(INDEX_FULLTEXT));
 
         return null;
 
@@ -119,22 +113,20 @@ public class V000001 {
 
     @Changeset(order = 1005, author = "stephanpelikan")
     public String renameWorkflowModuleIntoWorkflowModuleId(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         // necessary to accelerate initialization of
         // microservice proxies on startup
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .dropIndex(INDEX_WORKFLOWMODULE_URI)
-                .block();
+                .dropIndex(INDEX_WORKFLOWMODULE_URI);
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("workflowModuleId", Direction.ASC)
                         .on("workflowModuleUri", Direction.ASC)
-                        .named(INDEX_WORKFLOWMODULE_URI))
-                .block();
+                        .named(INDEX_WORKFLOWMODULE_URI));
 
         return null;
 
@@ -142,12 +134,11 @@ public class V000001 {
 
     @Changeset(order = 1006)
     public String moveWorkflowModuleUriIntoSeparateCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .dropIndex(INDEX_WORKFLOWMODULE_URI)
-                .block();
+                .dropIndex(INDEX_WORKFLOWMODULE_URI);
 
         return null;
 
@@ -155,12 +146,11 @@ public class V000001 {
 
     @Changeset(order = 1007)
     public String dropDefaultSortIndex( // will be created on demand
-                                        final ReactiveMongoTemplate mongo) {
+                                        final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .dropIndex(INDEX_DEFAULT_SORT)
-                .block();
+                .dropIndex(INDEX_DEFAULT_SORT);
 
         return null;
 
@@ -168,14 +158,12 @@ public class V000001 {
 
     @Changeset(order = 1008)
     public String introducePersonAndGroupForWorkflows(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         final var query = new Query();
         query.fields().include("_id", "version", "initiator", "accessibleToUsers", "accessibleToGroups");
         mongo
                 .find(query, DBObject.class, Workflow.COLLECTION_NAME)
-                .collectList()
-                .block()
                 .forEach(document -> {
                     final var newDocument = new Update();
                     newDocument.set("version", document.get("version")); // at least one field has to be updated, otherwise all document's fields are deleted
@@ -213,7 +201,7 @@ public class V000001 {
                         newDocument.set("accessibleToGroups", newAccessibleToGroups);
                     }
                     final var updateQuery = new Query(Criteria.where("_id").is(document.get("_id")));
-                    mongo.updateFirst(updateQuery, newDocument, Workflow.COLLECTION_NAME).block();
+                    mongo.updateFirst(updateQuery, newDocument, Workflow.COLLECTION_NAME);
                 });
 
         return null;
@@ -266,15 +254,16 @@ public class V000001 {
 
     @Changeset(order = 1009, author = "stephanpelikan")
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
-             final ReactiveMongoTemplate mongo) {
+             final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
                 .getIndexInfo()
-                .filter(indexInfo -> indexInfo.getName().startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                .flatMap(indexInfo -> mongo.indexOps(Workflow.COLLECTION_NAME).dropIndex(indexInfo.getName()))
-                .collectList()
-                .block();
+                .stream()
+                .map(indexInfo -> indexInfo.getName())
+                .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
+                .toList()
+                .forEach(name -> mongo.indexOps(Workflow.COLLECTION_NAME).dropIndex(name));
 
         return null;
 
@@ -282,7 +271,7 @@ public class V000001 {
 
     @Changeset(order = 1010, author = "stephanpelikan")
     public String dropRedundantColumnWorkflowId(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         final var unsetUpdate = new Update();
         unsetUpdate.unset("workflowId");
@@ -290,8 +279,7 @@ public class V000001 {
                 .updateMulti(
                         new Query(),
                         unsetUpdate,
-                        Workflow.class)
-                .block();
+                        Workflow.class);
 
         return null;
 
@@ -299,16 +287,15 @@ public class V000001 {
 
     @Changeset(order = 1011, author = "martingreilinger")
     public String addBusinessIdIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(Workflow.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("businessId", Sort.Direction.ASC)
                         .on("createdAt", Sort.Direction.ASC)
                         .on("_id", Sort.Direction.ASC)
-                        .named(INDEX_BUSINESS_ID))
-                .block();
+                        .named(INDEX_BUSINESS_ID));
 
         return "{ dropIndexes: '" + Workflow.COLLECTION_NAME + "', index: '" + INDEX_BUSINESS_ID + "' }";
     }
@@ -321,20 +308,17 @@ public class V000001 {
      */
     @Changeset(order = 1012)
     public String introduceReportedAt(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         final var query = new Query(Criteria.where("reportedAt").exists(false));
         query.fields().include("_id", "createdAt");
         mongo
                 .find(query, DBObject.class, Workflow.COLLECTION_NAME)
-                .collectList()
-                .block()
                 .forEach(document -> mongo
                         .updateFirst(
                                 new Query(Criteria.where("_id").is(document.get("_id"))),
                                 new Update().set("reportedAt", document.get("createdAt")),
-                                Workflow.COLLECTION_NAME)
-                        .block());
+                                Workflow.COLLECTION_NAME));
 
         return null;
 

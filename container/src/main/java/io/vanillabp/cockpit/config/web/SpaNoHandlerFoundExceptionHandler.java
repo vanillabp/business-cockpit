@@ -1,96 +1,49 @@
 package io.vanillabp.cockpit.config.web;
 
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.web.WebProperties;
-import org.springframework.boot.webflux.autoconfigure.error.AbstractErrorWebExceptionHandler;
-import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.boot.webflux.error.ErrorAttributes;
-import org.springframework.boot.webflux.error.ErrorWebExceptionHandler;
-import org.springframework.context.ApplicationContext;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerCodecConfigurer;
-import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.server.RequestPredicates;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
-import reactor.core.publisher.Mono;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * @see https://www.baeldung.com/spring-webflux-errors#global
+ * Makes deep links into the single-page application work. The browser asks the server for a path
+ * like {@code /tasklist/4711} which no controller and no static resource answers. Instead of an
+ * error the application shell is returned, and the router inside the browser takes it from there.
+ * <p>
+ * Ordered ahead of {@code RestfulExceptionHandler}, whose catch-all would otherwise turn every
+ * unknown path into an HTTP 500.
  */
-@Component
-@Order(-2)
-public class SpaNoHandlerFoundExceptionHandler
-        extends AbstractErrorWebExceptionHandler
-        implements ErrorWebExceptionHandler {
+@ControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
+public class SpaNoHandlerFoundExceptionHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(SpaNoHandlerFoundExceptionHandler.class);
     @Value("${application.spa-default-file:classpath:/static/index.html}")
     private String defaultFile;
-    
+
     @Autowired
     private ResourceLoader resourceLoader;
-    
-    public SpaNoHandlerFoundExceptionHandler(
-            final ErrorAttributes g,
-            final ApplicationContext applicationContext,
-            final ServerCodecConfigurer serverCodecConfigurer) {
-        
-        super(g, new WebProperties.Resources(), applicationContext);
-        super.setMessageWriters(serverCodecConfigurer.getWriters());
-        super.setMessageReaders(serverCodecConfigurer.getReaders());
-        
-    }
-    
-    @Override
-    protected RouterFunction<ServerResponse> getRoutingFunction(
-            final ErrorAttributes errorAttributes) {
-        
-        return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
-        
-    }
 
-    private Mono<ServerResponse> renderErrorResponse(
-            final ServerRequest request) {
+    @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class })
+    public ResponseEntity<Resource> handleNotFound() {
 
-        final var errorPropertiesMap = getErrorAttributes(
-                request, ErrorAttributeOptions.defaults());
-        final var responseStatus = (Integer) errorPropertiesMap.get("status");
-        
-        if (responseStatus == HttpStatus.NOT_FOUND.value()) {
-            return handleNotFound();
-        }
-
-        final var error = getError(request);
-        log.warn("Error during HTTP request handling", error);
-
-        return ServerResponse
-                .status(responseStatus != null ? responseStatus : HttpStatus.BAD_REQUEST.value())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorPropertiesMap));
-        
-    }
-    
-    private Mono<ServerResponse> handleNotFound() {
-        
-        final var resource = resourceLoader.getResource(defaultFile);
-        
-        return ServerResponse
-                .status(HttpStatus.OK)
+        // the shell itself is the answer, not an error, and it must not be cached - it carries the
+        // hashed asset names of the deployed build
+        return ResponseEntity
+                .ok()
+                .contentType(MediaType.TEXT_HTML)
                 .cacheControl(CacheControl.maxAge(0, TimeUnit.SECONDS))
-                .bodyValue(resource);
-        
+                .body(resourceLoader.getResource(defaultFile));
+
     }
-    
+
 }

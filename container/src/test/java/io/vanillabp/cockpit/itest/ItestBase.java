@@ -35,8 +35,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
 /**
  * Base for black-box integration tests: boots the complete application on a random port and talks
  * to it exclusively over HTTP, the way real clients do. Nothing in here (nor in the tests built on
- * it) touches WebFlux types, so the suite keeps working unchanged once the application is migrated
- * to a blocking web stack.
+ * it) touches types of the web stack, which is what let the suite survive the move from WebFlux to
+ * Spring MVC unchanged.
  *
  * <p>Infrastructure is shared across all test classes: one MongoDB replica set container (change
  * streams and the changeset migration require a replica set), one Apache Kafka container and one

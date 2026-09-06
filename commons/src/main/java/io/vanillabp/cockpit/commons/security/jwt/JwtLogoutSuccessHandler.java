@@ -1,14 +1,20 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.server.WebFilterExchange;
-import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
-import reactor.core.publisher.Mono;
+import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
-public class JwtLogoutSuccessHandler extends RedirectServerLogoutSuccessHandler {
+/**
+ * Logging out has to drop the JWT cookie as well, otherwise the next request would authenticate
+ * again by the still valid token.
+ */
+public class JwtLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
 
-    private JwtProperties properties;
-    
+    private final JwtProperties properties;
+
     public JwtLogoutSuccessHandler(
             final JwtProperties properties) {
 
@@ -17,14 +23,15 @@ public class JwtLogoutSuccessHandler extends RedirectServerLogoutSuccessHandler 
     }
 
     @Override
-    public Mono<Void> onLogoutSuccess(
-            final WebFilterExchange exchange,
-            final Authentication authentication) {
-        
-        JwtSecurityWebFilter.clearCookie(properties, exchange.getExchange());
+    public void onLogoutSuccess(
+            final HttpServletRequest request,
+            final HttpServletResponse response,
+            final Authentication authentication) throws IOException, ServletException {
 
-        return super.onLogoutSuccess(exchange, authentication);
-        
+        JwtSecurityContextRepository.clearCookie(properties, response);
+
+        super.onLogoutSuccess(request, response, authentication);
+
     }
-    
+
 }

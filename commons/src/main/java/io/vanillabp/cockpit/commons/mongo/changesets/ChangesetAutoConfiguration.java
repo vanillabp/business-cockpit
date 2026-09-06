@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.commons.mongo.changesets;
 
 import com.mongodb.WriteConcern;
-import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.client.MongoClient;
 import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
 import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 import jakarta.annotation.PostConstruct;
@@ -18,28 +18,28 @@ import java.util.stream.Collectors;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.data.mongodb.autoconfigure.DataMongoReactiveRepositoriesAutoConfiguration;
+import org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration;
 import org.springframework.context.ApplicationContext;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Query;
 
 /**
  * This is a MongoDb initializer. It works based on annotated Spring beans.
- * 
+ *
  * @see DbChangeset
  * @see DbChangesetConfiguration
  */
 // registered through the .imports file, so it has to be an @AutoConfiguration - only then are
 // @AutoConfigureBefore/After honoured
 @AutoConfiguration
-@AutoConfigureBefore(DataMongoReactiveRepositoriesAutoConfiguration.class)
-@ConditionalOnClass({ MongoClient.class, ReactiveMongoTemplate.class })
+@AutoConfigureBefore(DataMongoRepositoriesAutoConfiguration.class)
+@ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
 public class ChangesetAutoConfiguration {
 
     private static Logger logger = LoggerFactory.getLogger(ChangesetAutoConfiguration.class);
@@ -47,26 +47,26 @@ public class ChangesetAutoConfiguration {
     private static String SYSTEMPROPERTY_ROLLBACKALL = "initializer.rollback.all";
 
     private static String SYSTEMPROPERTY_ROLLBACK_UNKNOWN = "initializer.rollback.unknown";
-    
+
     static class DbChangesetMethod {
 
         Object bean;
-        
+
         Method reflectionMethod;
-        
+
     }
 
     private ApplicationContext applicationContext;
 
-    private ReactiveMongoTemplate mongoTemplate;
-    
+    private MongoTemplate mongoTemplate;
+
     private MongoDbProperties properties;
-    
+
     public ChangesetAutoConfiguration(
-            final ApplicationContext applicationContext, 
-            final ReactiveMongoTemplate mongoTemplate,
+            final ApplicationContext applicationContext,
+            final MongoTemplate mongoTemplate,
             final MongoDbProperties properties) {
-        
+
         this.applicationContext = applicationContext;
         this.mongoTemplate = mongoTemplate;
         this.properties = properties;
@@ -75,82 +75,79 @@ public class ChangesetAutoConfiguration {
 
     @PostConstruct
     public void init() {
-    
+
         logger.info("About to apply MongoDb changesets...");
-        
+
         mongoTemplate.setWriteConcern(WriteConcern.JOURNALED);
 
         initChangesetsCollection();
-        
+
         final var changesets = buildMapSortedByChangesetOrder();
-        
+
         collectChangesetsByAnnotationsOnBeans(changesets);
-        
+
         rollbackAllIfNecessary();
-        
+
         final var unknownChangesets = removeAlreadyAppliedChangesets(changesets);
-        
+
         applyNewChangesets(changesets);
-        
+
         rollbackUnknownChangesets(unknownChangesets);
-        
+
         synchronizeDbChangesToDisk();
 
         logger.info("Applying MongoDb changesets completed.");
-        
+
     }
 
     private void initChangesetsCollection() {
-        
+
         if (mongoTemplate
                 .getCollectionNames()
-                .toStream()
-                .anyMatch(name -> name.equals(ChangesetInformation.COLLECTION_NAME))) {
+                .contains(ChangesetInformation.COLLECTION_NAME)) {
             return;
         }
-        
+
         mongoTemplate
-                .createCollection(ChangesetInformation.COLLECTION_NAME)
-                .block();
+                .createCollection(ChangesetInformation.COLLECTION_NAME);
 
         // Azure Cosmos wants indexes for all fields ordered by
         if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
-            
+
             mongoTemplate
                     .indexOps(ChangesetInformation.COLLECTION_NAME)
-                    .ensureIndex(new Index()
+                    .createIndex(new Index()
                             .on("order", Direction.ASC)
-                            .named(ChangesetInformation.COLLECTION_NAME + "_order"))
-                    .block();
-            
+                            .named(ChangesetInformation.COLLECTION_NAME + "_order"));
+
         }
-        
+
     }
-    
+
     private void rollbackAllIfNecessary() {
-        
+
         final String rollbackSysProp = System.getProperty(
                 SYSTEMPROPERTY_ROLLBACKALL,
                 Boolean.FALSE.toString());
         if (! rollbackSysProp.equals(Boolean.TRUE.toString())) {
             return;
         }
-        
+
         knownChangesets()
                 .forEach(changeset -> rollbackChangeset(changeset,
                         "Rolling back changeset '{}' due to system property " + SYSTEMPROPERTY_ROLLBACKALL));
-        
+
         logger.info("Will exit due to system property {}", SYSTEMPROPERTY_ROLLBACKALL);
         System.exit(1);
-        
+
     }
-    
+
     private void synchronizeDbChangesToDisk() {
-        
+
         //client.fsync(false);
-        
+
     }
-    
+
     private void rollbackUnknownChangesets(
             final List<ChangesetInformation> unknownChangesets) {
 
@@ -161,17 +158,17 @@ public class ChangesetAutoConfiguration {
         if (!rollbackSysProp.equals(Boolean.TRUE.toString())) {
             return;
         }
-        
+
         unknownChangesets
                 .forEach(changeset -> rollbackChangeset(changeset,
                         "Rolling back unknown changeset '{}' of previous software version"));
-        
+
     }
 
     private void rollbackChangeset(
             final ChangesetInformation changeset,
             final String info) {
-        
+
         try {
             logger.info(info, changeset.getId());
 
@@ -179,25 +176,23 @@ public class ChangesetAutoConfiguration {
                     .stream()
                     .map(Document::parse)
                     .forEach(script -> mongoTemplate
-                            .execute(db -> db.runCommand(script))
-                            .blockFirst());
+                            .execute(db -> db.runCommand(script)));
 
             mongoTemplate
-                    .remove(changeset)
-                    .block();
+                    .remove(changeset);
         } catch (Exception e) {
             logger.info(info + " failed!", changeset.getId(), e);
         }
-        
+
     }
 
     private void applyNewChangesets(
             final Map<ChangesetInformation, DbChangesetMethod> changeSets) {
-        
+
         changeSets
                 .entrySet()
                 .forEach(changeset -> applyNewChangeset(changeset.getKey(), changeset.getValue()));
-        
+
     }
 
     @SuppressWarnings("unchecked")
@@ -206,15 +201,14 @@ public class ChangesetAutoConfiguration {
             final DbChangesetMethod method) {
 
         logger.info("Applying new changeset '{}'", changeset.getId());
-        
+
         // save to force optimistic locking exception if another cluster-node
         // initializes at the same time and fast a little bit faster
         final ChangesetInformation persistedChangeset = mongoTemplate
-                .save(changeset)
-                .block();
+                .save(changeset);
 
         persistedChangeset.setTimestamp(OffsetDateTime.now());
-        
+
         try {
             final var reflectionMethod = method.reflectionMethod;
             final Object rollbackScript;
@@ -236,40 +230,38 @@ public class ChangesetAutoConfiguration {
             persistedChangeset.setRollbackScripts(rollbackScripts);
         } catch (Exception e) {
             mongoTemplate
-                    .remove(persistedChangeset)
-                    .block();
-            
+                    .remove(persistedChangeset);
+
             throw new RuntimeException("Could not apply changeset '"
                     + changeset.getId()
                     + "'", e);
         }
-        
+
         mongoTemplate
-                .save(persistedChangeset)
-                .block();
+                .save(persistedChangeset);
 
     }
 
     private void collectChangesetsByAnnotationsOnBeans(
             final Map<ChangesetInformation, DbChangesetMethod> changeSetMethods) {
-        
+
         final var changesetBeans = applicationContext
                 .getBeansWithAnnotation(ChangesetConfiguration.class);
         changesetBeans
                 .entrySet()
                 .forEach(beanEntry -> this.collectionChangesetsByMethodsOfAnnotatedBeans(
                         changeSetMethods, beanEntry.getValue()));
-        
+
     }
-    
+
     private void collectionChangesetsByMethodsOfAnnotatedBeans(
             final Map<ChangesetInformation, DbChangesetMethod> changeSetMethods,
             final Object bean) {
-        
+
         final var config = bean
                 .getClass()
                 .getAnnotation(ChangesetConfiguration.class);
-        
+
         Arrays
                 .stream(bean.getClass().getMethods())
                 .forEach(beanMethod -> collectionChangesetsByAnnotatedBeanMethods(
@@ -277,7 +269,7 @@ public class ChangesetAutoConfiguration {
                         config.author(),
                         bean,
                         beanMethod));
-        
+
     }
 
     private void collectionChangesetsByAnnotatedBeanMethods(
@@ -285,12 +277,12 @@ public class ChangesetAutoConfiguration {
             final String defaultAuthor,
             final Object bean,
             final Method beanMethod) {
-        
+
         final var changesetAnnotation = beanMethod.getAnnotation(Changeset.class);
         if (changesetAnnotation == null) {
             return;
         }
-        
+
         final String author;
         if (changesetAnnotation.author().equals("")) {
             author = defaultAuthor;
@@ -302,11 +294,11 @@ public class ChangesetAutoConfiguration {
         final String changesetId = bean.getClass().getName() + "#" + beanMethod.getName();
         information.setId(changesetId);
         information.setOrder(changesetAnnotation.order());
-        
+
         final var method = new DbChangesetMethod();
         method.bean = bean;
         method.reflectionMethod = beanMethod;
-        
+
         final Class<?> returnType = method.reflectionMethod.getReturnType();
         final boolean isString = returnType.equals(String.class);
         final boolean isCollection = Collection.class.isAssignableFrom(returnType);
@@ -317,7 +309,7 @@ public class ChangesetAutoConfiguration {
                     + "' has to be either String, String[] or Collection<String>, but is '"
                     + returnType);
         }
-                
+
         final var duplicates = changeSetMethods.keySet()
                 .stream()
                 .filter((key) -> key.getOrder() == information.getOrder())
@@ -334,47 +326,45 @@ public class ChangesetAutoConfiguration {
         }
 
         changeSetMethods.put(information, method);
-        
+
     }
 
     private List<ChangesetInformation> knownChangesets() {
 
         final var query = new Query();
         query.with(Sort.by(Sort.Direction.DESC, "order"));
-        
+
         return mongoTemplate
-                .find(query, ChangesetInformation.class)
-                .toStream()
-                .collect(Collectors.toList());
-        
+                .find(query, ChangesetInformation.class);
+
     }
-    
+
     private List<ChangesetInformation> removeAlreadyAppliedChangesets(
             final Map<ChangesetInformation, DbChangesetMethod> changeSetMethods) {
 
-        
+
         final var unkownChangesets = new LinkedList<ChangesetInformation>();
-        
+
         knownChangesets()
                 .forEach(alreadyAppliedChangeset -> {
                         if (changeSetMethods.remove(alreadyAppliedChangeset) == null) {
                             unkownChangesets.add(alreadyAppliedChangeset);
                         }
                 });
-        
+
         return unkownChangesets;
-        
+
     }
-        
+
     private Map<ChangesetInformation, DbChangesetMethod> buildMapSortedByChangesetOrder() {
-        
+
         return new TreeMap<>(
                 new Comparator<ChangesetInformation>() {
             @Override
             public int compare(
                     final ChangesetInformation o1,
                     final ChangesetInformation o2) {
-                
+
                 if (o1.equals(o2)) {
                     return 0;
                 }
@@ -385,10 +375,10 @@ public class ChangesetAutoConfiguration {
                     return 0;
                 }
                 return o1.getId().compareTo(o2.getId());
-                
+
             }
         });
-        
+
     }
-    
+
 }

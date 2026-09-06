@@ -2,14 +2,12 @@ package io.vanillabp.cockpit.workflowmodules.model;
 
 import java.util.List;
 
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 
-import reactor.core.publisher.Flux;
-
 @Repository
-public interface WorkflowModuleRepository extends ReactiveMongoRepository<WorkflowModule, String> {
+public interface WorkflowModuleRepository extends MongoRepository<WorkflowModule, String> {
 
 	@Query("""
 			{ '$or': [ \
@@ -17,5 +15,5 @@ public interface WorkflowModuleRepository extends ReactiveMongoRepository<Workfl
 			  { 'accessibleToGroups': { $exists: false } }, \
 			  { 'accessibleToGroups': { $size: 0 } } \
 			] }""")
-	Flux<WorkflowModule> findByAccessibleToGroups(List<String> groups);
+	List<WorkflowModule> findByAccessibleToGroups(List<String> groups);
 }

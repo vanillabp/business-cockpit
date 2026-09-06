@@ -12,7 +12,6 @@ import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import java.time.OffsetDateTime;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
-import reactor.core.publisher.Mono;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
@@ -87,15 +86,9 @@ public class KafkaUserTaskController {
 
     }
 
-    private Mono<Boolean> userTaskCreatedMonoV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        return Mono.just(userTaskCreatedOrUpdated)
-                .map(protobufUserTaskMapper::toNewTask)
-                .flatMap(userTaskService::createUserTask);
-    }
-
     private void handleUserTaskCreatedV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        userTaskCreatedMonoV1(userTaskCreatedOrUpdated)
-                .subscribe();
+        userTaskService.createUserTask(
+                protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated));
     }
 
     private void handleUserTaskCreatedV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
@@ -103,13 +96,14 @@ public class KafkaUserTaskController {
     }
 
     private void handleUserTaskUpdateEventV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        userTaskService
-                .getUserTask(userTaskCreatedOrUpdated.getUserTaskId())
-                .zipWith(Mono.just(userTaskCreatedOrUpdated))
-                .map(t -> protobufUserTaskMapper.toUpdatedTask(t.getT2(), t.getT1()))
-                .flatMap(userTaskService::updateUserTask)
-                .switchIfEmpty(userTaskCreatedMonoV1(userTaskCreatedOrUpdated))
-                .subscribe();
+        final var knownTask = userTaskService.getUserTask(userTaskCreatedOrUpdated.getUserTaskId());
+        // an update for a task the cockpit never saw creates it, mirroring the REST API
+        if (knownTask == null) {
+            handleUserTaskCreatedV1(userTaskCreatedOrUpdated);
+            return;
+        }
+        userTaskService.updateUserTask(
+                protobufUserTaskMapper.toUpdatedTask(userTaskCreatedOrUpdated, knownTask));
     }
 
     private void handleUserTaskUpdateEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
@@ -117,72 +111,54 @@ public class KafkaUserTaskController {
     }
 
     private void handleUserTaskCompletedEventV1(UserTaskCompletedEvent userTaskCompleted) {
-        userTaskService
-                .getUserTask(userTaskCompleted.getUserTaskId())
-                .zipWith(Mono.just(userTaskCompleted))
-                .flatMap(t -> {
-                    final var task = t.getT1();
-                    final var completedEvent = t.getT2();
+        final var task = userTaskService.getUserTask(userTaskCompleted.getUserTaskId());
+        if (task == null) {
+            return;
+        }
 
-                    OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
-                    task.setEndedAt(timestamp);
-                    // who completed the task, as reported by the application (may be null =
-                    // completed by the process); read by the notification poller
-                    task.setInitiator(
-                            completedEvent.hasInitiator() ? completedEvent.getInitiator() : null);
+        final OffsetDateTime timestamp = ProtobufHelper.map(userTaskCompleted.getTimestamp());
+        task.setEndedAt(timestamp);
+        // who completed the task, as reported by the application (may be null =
+        // completed by the process); read by the notification poller
+        task.setInitiator(
+                userTaskCompleted.hasInitiator() ? userTaskCompleted.getInitiator() : null);
 
-                    return userTaskService.completeUserTask(
-                            task,
-                            timestamp);
-                })
-                .subscribe();
+        userTaskService.completeUserTask(task, timestamp);
     }
 
     private void handleUserTaskCompletedEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
 
-        userTaskService
-                .getUserTask(userTaskCompleted.getUserTaskId())
-                .zipWith(Mono.just(userTaskCompleted))
-                .map(t -> protobufUserTaskMapper.toEndedTask(t.getT2(), t.getT1()))
-                .flatMap(task -> userTaskService.completeUserTask(
-                            task,
-                            task.getUpdatedAt()))
-                .subscribe();
+        final var knownTask = userTaskService.getUserTask(userTaskCompleted.getUserTaskId());
+        if (knownTask == null) {
+            return;
+        }
+        final var task = protobufUserTaskMapper.toEndedTask(userTaskCompleted, knownTask);
+        userTaskService.completeUserTask(task, task.getUpdatedAt());
 
     }
 
     private void handleUserTaskCancelledEventV1(UserTaskCancelledEvent userTaskCancelledEvent) {
-        userTaskService
-                .getUserTask(userTaskCancelledEvent.getUserTaskId())
-                .zipWith(Mono.just(userTaskCancelledEvent))
-                .flatMap(t -> {
-                    final var task = t.getT1();
-                    final var completedEvent = t.getT2();
+        final var task = userTaskService.getUserTask(userTaskCancelledEvent.getUserTaskId());
+        if (task == null) {
+            return;
+        }
 
-                    OffsetDateTime timestamp = ProtobufHelper.map(completedEvent.getTimestamp());
-                    task.setEndedAt(timestamp);
-                    task.setInitiator(
-                            completedEvent.hasInitiator() ? completedEvent.getInitiator() : null);
+        final OffsetDateTime timestamp = ProtobufHelper.map(userTaskCancelledEvent.getTimestamp());
+        task.setEndedAt(timestamp);
+        task.setInitiator(
+                userTaskCancelledEvent.hasInitiator() ? userTaskCancelledEvent.getInitiator() : null);
 
-                    return userTaskService.cancelUserTask(
-                            task,
-                            timestamp,
-                            completedEvent.getComment());
-                })
-                .subscribe();
+        userTaskService.cancelUserTask(task, timestamp, userTaskCancelledEvent.getComment());
     }
 
-    private void handleUserTaskCancelledEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
+    private void handleUserTaskCancelledEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCancelled) {
 
-        userTaskService
-                .getUserTask(userTaskCompleted.getUserTaskId())
-                .zipWith(Mono.just(userTaskCompleted))
-                .map(t -> protobufUserTaskMapper.toEndedTask(t.getT2(), t.getT1()))
-                .flatMap(task -> userTaskService.cancelUserTask(
-                            task,
-                            task.getUpdatedAt(),
-                            task.getComment()))
-                .subscribe();
+        final var knownTask = userTaskService.getUserTask(userTaskCancelled.getUserTaskId());
+        if (knownTask == null) {
+            return;
+        }
+        final var task = protobufUserTaskMapper.toEndedTask(userTaskCancelled, knownTask);
+        userTaskService.cancelUserTask(task, task.getUpdatedAt(), task.getComment());
 
     }
 

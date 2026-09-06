@@ -111,9 +111,22 @@ is hosted by the Spring Boot web-server, so no additional Node-js services is ne
 
 ### Spring Boot
 
-The Business Cockpit backend application is written in reactive, non-blocking style since some
-parts of Spring Boot are solely provided in that style and not in the classic, blocking style anymore.
-Independently, any business service may use classic, blocking style.
+The Business Cockpit backend application is written in classic, blocking style on top of Spring MVC.
+Every request runs on a virtual thread (`spring.threads.virtual.enabled`).
+
+It used to be reactive. Reactive code never blocks a thread, and the price for that is a programming
+model in which a database read is a `Mono` and a stack trace hardly tells you where you are. Virtual
+threads make the trade pointless: a thread waiting for MongoDB or for a workflow module behind the
+proxy costs almost nothing, so the code can be plain Java again without giving up concurrency.
+
+Two parts of the application looked like arguments for staying reactive, and neither turned out to
+be one. Server-sent events are `SseEmitter` instances which the scheduled collector writes to. The
+workflow-module proxy is `spring-cloud-gateway-server-webmvc`, which copies the exchange chunk by
+chunk with a blocking `RestClient` instead of buffering it. Both cost one virtual thread per
+subscriber and per proxied request.
+
+Workflow modules are separate applications and pick their own web stack, so none of this applies to
+them.
 
 ### Database
 
@@ -154,35 +167,38 @@ This can be changed by providing an individual bean named `guiHttpSecurity`:
 ```java
     @Bean
     @Order(Ordered.LOWEST_PRECEDENCE)
-    public SecurityWebFilterChain guiHttpSecurity(
-            final JwtServerSecurityContextRepository securityContextRepository,
-            final ServerHttpSecurity http) {
+    public SecurityFilterChain guiHttpSecurity(
+            final JwtSecurityContextRepository securityContextRepository,
+            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
+            final HttpSecurity http) throws Exception {
+
+        // reads the JWT cookie on every following request; do not turn this into a bean, or
+        // Spring Boot registers it a second time outside the security filter chain
+        final var jwtSecurityFilter = new PassiveJwtSecurityFilter(
+                applicationProperties.getJwt(), jwtMapper);
 
         http
                 /* add here any security chain config like CORS, CRSF, etc. */
-                .anonymous(ServerHttpSecurity.AnonymousSpec::disable)
-                .authorizeExchange(authorizeExchangeSpec -> {
-                    // allow access to "unprotected" URLs 
-                    authorizeExchangeSpec
-                            .matchers(io.vanillabp.cockpit.config.web.WebSecurityConfiguration.appInfoWebExchangeMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.currentUserWebExchangeMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.assetsWebExchangeMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.staticWebExchangeMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.workflowModulesProxyWebExchangeMatcher)
+                .anonymous(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(requests -> {
+                    // allow access to "unprotected" URLs
+                    requests
+                            .requestMatchers(io.vanillabp.cockpit.config.web.WebSecurityConfiguration.appInfoRequestMatcher,
+                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.currentUserRequestMatcher,
+                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.assetsRequestMatcher,
+                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.staticRequestMatcher,
+                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.workflowModulesProxyRequestMatcher)
                             .permitAll()
-                            .anyExchange()
+                            .anyRequest()
                             .authenticated();
                 })
-                .requestCache(spec -> spec.requestCache(new CookieServerRequestCache()))
-                .oauth2Login(oAuth2LoginSpec -> {
-                    oAuth2LoginSpec
-                            .securityContextRepository(securityContextRepository);
-                })
+                .oauth2Login(login -> login
+                        .securityContextRepository(securityContextRepository))
                 .logout(logout -> { /* add here any logout functionality specific to your environment */ })
                 // add the JWT security filter for future requests
-                .addFilterAfter(jwtSecurityFilter(securityContextRepository), SecurityWebFiltersOrder.REACTOR_CONTEXT);
-            
+                .addFilterAfter(jwtSecurityFilter, BasicAuthenticationFilter.class);
+
         return http.build();
-            
+
     }
 ```

@@ -20,11 +20,9 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 class UserLoginUpsertServiceTest {
 
@@ -52,7 +50,7 @@ class UserLoginUpsertServiceTest {
         }
     }
 
-    private ReactiveMongoTemplate mongoTemplate;
+    private MongoTemplate mongoTemplate;
     private MutableClock clock;
     private UserLoginUpsertService service;
 
@@ -82,60 +80,59 @@ class UserLoginUpsertServiceTest {
 
     @BeforeEach
     void setUp() {
-        mongoTemplate = mock(ReactiveMongoTemplate.class);
+        mongoTemplate = mock(MongoTemplate.class);
         clock = new MutableClock();
         service = new UserLoginUpsertService(mongoTemplate, Duration.ofMinutes(5), clock);
         when(mongoTemplate.upsert(any(Query.class), any(Update.class), eq(User.class)))
-                .thenReturn(Mono.just(mock(UpdateResult.class)));
+                .thenReturn(mock(UpdateResult.class));
     }
 
     @Test
     void firstLogin_upsertsOnce() {
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "u1@example.org")))
-                .verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "u1@example.org"));
 
         verify(mongoTemplate, times(1)).upsert(any(Query.class), any(Update.class), eq(User.class));
     }
 
     @Test
     void secondLoginWithinThrottleWindow_doesNotWriteAgain() {
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
         clock.advance(Duration.ofMinutes(2));
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
 
         verify(mongoTemplate, times(1)).upsert(any(Query.class), any(Update.class), eq(User.class));
     }
 
     @Test
     void loginAfterThrottleWindow_writesAgain() {
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
         clock.advance(Duration.ofMinutes(6));
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
 
         verify(mongoTemplate, times(2)).upsert(any(Query.class), any(Update.class), eq(User.class));
     }
 
     @Test
     void throttleIsPerUser() {
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
-        StepVerifier.create(service.upsertOnLogin(userDetails("u2", "d@e.f"))).verifyComplete();
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
+        service.upsertOnLogin(userDetails("u2", "d@e.f"));
 
         verify(mongoTemplate, times(2)).upsert(any(Query.class), any(Update.class), eq(User.class));
     }
 
     @Test
     void upsertFailure_doesNotFailRequest() {
-        Mockito.doReturn(Mono.error(new RuntimeException("mongo down")))
+        Mockito.doThrow(new RuntimeException("mongo down"))
                 .when(mongoTemplate).upsert(any(Query.class), any(Update.class), eq(User.class));
 
-        // must complete (error swallowed) so the request is never broken
-        StepVerifier.create(service.upsertOnLogin(userDetails("u1", "a@b.c"))).verifyComplete();
+        // must not throw (error swallowed) so the request is never broken
+        service.upsertOnLogin(userDetails("u1", "a@b.c"));
     }
 
     @Test
     void nullDetailsOrId_isNoOp() {
-        StepVerifier.create(service.upsertOnLogin(null)).verifyComplete();
-        StepVerifier.create(service.upsertOnLogin(userDetails(null, "a@b.c"))).verifyComplete();
+        service.upsertOnLogin(null);
+        service.upsertOnLogin(userDetails(null, "a@b.c"));
         verify(mongoTemplate, never()).upsert(any(Query.class), any(Update.class), eq(User.class));
     }
 

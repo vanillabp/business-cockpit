@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.notification.api.v1;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.gui.api.v1.NotificationConfiguration;
 import io.vanillabp.cockpit.gui.api.v1.NotificationMedium;
 import io.vanillabp.cockpit.gui.api.v1.NotificationWorkflow;
@@ -19,23 +18,16 @@ import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * GUI API for the notification configuration page (AC func 1/4/6, AC tech 3/10). All operations act
  * on the currently authenticated user; the user id is never taken from the client.
- * <p>
- * The blocking {@link NotificationService} methods (recipient configuration) are executed on a
- * bounded-elastic scheduler so the Netty event loop is not blocked.
  */
 @RestController
 @RequestMapping(path = "/gui/api/v1")
 public class NotificationConfigGuiApiController implements OfficialNotificationConfigApi {
 
-    private final ReactiveUserContext userContext;
+    private final UserContext userContext;
 
     private final UserRepository userRepository;
 
@@ -44,7 +36,7 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
     private final UserTaskService userTaskService;
 
     public NotificationConfigGuiApiController(
-            final ReactiveUserContext userContext,
+            final UserContext userContext,
             final UserRepository userRepository,
             final List<NotificationService> notificationServices,
             final UserTaskService userTaskService) {
@@ -57,115 +49,94 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<NotificationMedium>>> getNotificationMedia(
-            final ServerWebExchange exchange) {
+    public ResponseEntity<List<NotificationMedium>> getNotificationMedia() {
 
-        final Flux<NotificationMedium> media = Flux
-                .fromIterable(notificationServices)
+        return ResponseEntity.ok(notificationServices
+                .stream()
                 .map(service -> new NotificationMedium()
                         .type(service.getType())
-                        .name(service.getName()));
-        return Mono.just(ResponseEntity.ok(media));
+                        .name(service.getName()))
+                .toList());
 
     }
 
     @Override
-    public Mono<ResponseEntity<NotificationConfiguration>> getNotificationConfiguration(
-            final ServerWebExchange exchange) {
+    public ResponseEntity<NotificationConfiguration> getNotificationConfiguration() {
 
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .map(UserDetails::getId)
-                .flatMap(userRepository::findById)
-                .map(user -> ResponseEntity.ok(toApiConfig(user.getNotificationConfiguration())))
-                .switchIfEmpty(Mono.fromSupplier(() -> ResponseEntity.ok(toApiConfig(null))));
+        final var userId = userContext.getUserLoggedInDetails().getId();
 
-    }
-
-    @Override
-    public Mono<ResponseEntity<Void>> saveNotificationConfiguration(
-            final Mono<NotificationConfiguration> notificationConfiguration,
-            final ServerWebExchange exchange) {
-
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .map(UserDetails::getId)
-                .zipWith(notificationConfiguration)
-                .flatMap(t -> {
-                    final var userId = t.getT1();
-                    final var config = toDomainConfig(t.getT2());
-                    return userRepository
-                            .findById(userId)
-                            .switchIfEmpty(Mono.fromSupplier(() -> {
-                                final var created = new User();
-                                created.setId(userId);
-                                return created;
-                            }))
-                            .flatMap(user -> {
-                                user.setNotificationConfiguration(config);
-                                return userRepository.save(user);
-                            });
-                })
-                .thenReturn(ResponseEntity.ok().<Void>build());
+        return ResponseEntity.ok(userRepository
+                .findById(userId)
+                .map(user -> toApiConfig(user.getNotificationConfiguration()))
+                .orElseGet(() -> toApiConfig(null)));
 
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<RecipientMediumConfiguration>>> getRecipientConfiguration(
-            final ServerWebExchange exchange) {
+    public ResponseEntity<Void> saveNotificationConfiguration(
+            final NotificationConfiguration notificationConfiguration) {
 
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .map(UserDetails::getId)
-                .map(userId -> {
-                    final Flux<RecipientMediumConfiguration> body = Flux
-                            .fromIterable(notificationServices)
-                            .flatMap(service -> Mono
-                                    .fromCallable(() -> toApiRecipientMediumConfig(service, userId))
-                                    .subscribeOn(Schedulers.boundedElastic()));
-                    return ResponseEntity.ok(body);
+        final var userId = userContext.getUserLoggedInDetails().getId();
+        final var config = toDomainConfig(notificationConfiguration);
+
+        final var user = userRepository
+                .findById(userId)
+                .orElseGet(() -> {
+                    final var created = new User();
+                    created.setId(userId);
+                    return created;
                 });
+        user.setNotificationConfiguration(config);
+        userRepository.save(user);
+
+        return ResponseEntity.ok().build();
 
     }
 
     @Override
-    public Mono<ResponseEntity<Void>> saveRecipientConfiguration(
+    public ResponseEntity<List<RecipientMediumConfiguration>> getRecipientConfiguration() {
+
+        final var userId = userContext.getUserLoggedInDetails().getId();
+
+        return ResponseEntity.ok(notificationServices
+                .stream()
+                .map(service -> toApiRecipientMediumConfig(service, userId))
+                .toList());
+
+    }
+
+    @Override
+    public ResponseEntity<Void> saveRecipientConfiguration(
             final String mediumType,
-            final Mono<Map<String, String>> requestBody,
-            final ServerWebExchange exchange) {
+            final Map<String, String> requestBody) {
 
         final var service = serviceByType(mediumType);
         if (service == null) {
-            return Mono.just(ResponseEntity.notFound().build());
+            return ResponseEntity.notFound().build();
         }
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .map(UserDetails::getId)
-                .zipWith(requestBody)
-                .flatMap(t -> Mono
-                        .fromRunnable(() -> service.saveRecipientConfiguration(t.getT1(), t.getT2()))
-                        .subscribeOn(Schedulers.boundedElastic()))
-                .thenReturn(ResponseEntity.ok().<Void>build());
+
+        final var userId = userContext.getUserLoggedInDetails().getId();
+        service.saveRecipientConfiguration(userId, requestBody);
+
+        return ResponseEntity.ok().build();
 
     }
 
     @Override
-    public Mono<ResponseEntity<Flux<NotificationWorkflow>>> getNotificationWorkflows(
-            final ServerWebExchange exchange) {
+    public ResponseEntity<List<NotificationWorkflow>> getNotificationWorkflows() {
 
-        return userContext
-                .getUserLoggedInDetailsAsMono()
-                .map(currentUser -> {
-                    final var userId = currentUser.getId();
-                    final Flux<NotificationWorkflow> body = userTaskService
-                            .getVisibleWorkflows(
-                                    List.of(userId),
-                                    List.of(userId),
-                                    currentUser.getAuthorities(),
-                                    List.of(userId))
-                            .map(this::toApiWorkflow);
-                    return ResponseEntity.ok(body);
-                });
+        final var currentUser = userContext.getUserLoggedInDetails();
+        final var userId = currentUser.getId();
+
+        return ResponseEntity.ok(userTaskService
+                .getVisibleWorkflows(
+                        List.of(userId),
+                        List.of(userId),
+                        currentUser.getAuthorities(),
+                        List.of(userId))
+                .stream()
+                .map(this::toApiWorkflow)
+                .toList());
 
     }
 

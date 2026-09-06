@@ -104,7 +104,8 @@ public class ChangeStreamUtils {
                                 : FullDocument.DEFAULT)
                 .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
                 .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new)))
-                .maxAwaitTime(Duration.ofSeconds(15))
+                // also the upper bound the shutdown waits per subscription, see MongoDbProperties
+                .maxAwaitTime(Duration.parse(properties.getChangeStreamMaxAwaitTime()))
                 .collection(collectionName)
                 .build();
         

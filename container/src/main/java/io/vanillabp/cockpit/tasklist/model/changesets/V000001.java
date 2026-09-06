@@ -13,7 +13,7 @@ import java.util.Objects;
 import org.bson.types.BasicBSONList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -34,29 +34,26 @@ public class V000001 {
 
     @Changeset(order = 1)
     public List<String> createUsertaskCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
-                .createCollection(UserTask.COLLECTION_NAME)
-                .block();
+                .createCollection(UserTask.COLLECTION_NAME);
 
         // necessary to accelerate initialization of
         // microservice proxies on startup
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("workflowModule", Direction.ASC)
                         .on("workflowModuleUri", Direction.ASC)
-                        .named(INDEX_WORKFLOWMODULE_URI))
-                .block();
+                        .named(INDEX_WORKFLOWMODULE_URI));
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("dueDate", Direction.ASC)
                         .on("createdAt", Direction.ASC)
-                        .named(INDEX_DEFAULT_SORT))
-                .block();
+                        .named(INDEX_DEFAULT_SORT));
 
         return List.of(
                 "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_DEFAULT_SORT + "' }",
@@ -67,14 +64,13 @@ public class V000001 {
 
     @Changeset(order = 2)
     public String createUsertaskEndedAtIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("endedAt", Direction.ASC)
-                        .named(INDEX_ENDED_AT))
-                .block();
+                        .named(INDEX_ENDED_AT));
 
         return "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_ENDED_AT + "' }";
 
@@ -82,20 +78,19 @@ public class V000001 {
 
     @Changeset(order = 3)
     public String changeDefaultUserTaskIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .dropIndex(INDEX_DEFAULT_SORT)
-                .then(
+                .dropIndex(INDEX_DEFAULT_SORT);
+
                         mongo
                                 .indexOps(UserTask.COLLECTION_NAME)
-                                .ensureIndex(new Index()
+                                .createIndex(new Index()
                                         .on("dueDate", Direction.ASC)
                                         .on("createdAt", Direction.ASC)
                                         .on("id", Direction.ASC)
-                                        .named(INDEX_DEFAULT_SORT)))
-                .block();
+                                        .named(INDEX_DEFAULT_SORT));
 
         return null;
 
@@ -103,20 +98,19 @@ public class V000001 {
 
     @Changeset(order = 4)
     public String fixDefaultUserTaskIndex(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .dropIndex(INDEX_DEFAULT_SORT)
-                .then(
+                .dropIndex(INDEX_DEFAULT_SORT);
+
                         mongo
                                 .indexOps(UserTask.COLLECTION_NAME)
-                                .ensureIndex(new Index()
+                                .createIndex(new Index()
                                         .on("dueDate", Direction.ASC)
                                         .on("createdAt", Direction.ASC)
                                         .on("_id", Direction.ASC)
-                                        .named(INDEX_DEFAULT_SORT)))
-                .block();
+                                        .named(INDEX_DEFAULT_SORT));
 
         return null;
 
@@ -124,20 +118,18 @@ public class V000001 {
 
     @Changeset(order = 5)
     public String clearAndIndexReadBy(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .update(UserTask.class)
                 .apply(Update.update("readBy", null))
-                .all()
-                .block();
+                .all();
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("readBy.userId", Direction.ASC)
-                        .named(INDEX_READ_BY))
-                .block();
+                        .named(INDEX_READ_BY));
 
         return "{ dropIndexes: '" + UserTask.COLLECTION_NAME + "', index: '" + INDEX_READ_BY + "' }";
 
@@ -145,7 +137,7 @@ public class V000001 {
 
     @Changeset(order = 6)
     public String setDanglingFieldAccordingToAssigneeAndCandidates(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .updateMulti(
@@ -155,8 +147,7 @@ public class V000001 {
                                         Criteria.where("candidateUsers.0").exists(true),
                                         Criteria.where("candidateGroups.0").exists(true))),
                         Update.update("dangling", Boolean.TRUE),
-                        UserTask.class)
-                .block();
+                        UserTask.class);
 
         return null;
 
@@ -164,22 +155,20 @@ public class V000001 {
 
     @Changeset(order = 7)
     public String renameWorkflowModuleIntoWorkflowModuleId(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         // necessary to accelerate initialization of
         // microservice proxies on startup
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .dropIndex(INDEX_WORKFLOWMODULE_URI)
-                .block();
+                .dropIndex(INDEX_WORKFLOWMODULE_URI);
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .ensureIndex(new Index()
+                .createIndex(new Index()
                         .on("workflowModuleId", Direction.ASC)
                         .on("workflowModuleUri", Direction.ASC)
-                        .named(INDEX_WORKFLOWMODULE_URI))
-                .block();
+                        .named(INDEX_WORKFLOWMODULE_URI));
 
         return null;
 
@@ -187,12 +176,11 @@ public class V000001 {
 
     @Changeset(order = 8)
     public String moveWorkflowModuleUriIntoSeparateCollection(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .dropIndex(INDEX_WORKFLOWMODULE_URI)
-                .block();
+                .dropIndex(INDEX_WORKFLOWMODULE_URI);
 
         return null;
 
@@ -200,12 +188,11 @@ public class V000001 {
 
     @Changeset(order = 9)
     public String dropDefaultSortIndex( // will be created on demand
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
-                .dropIndex(INDEX_DEFAULT_SORT)
-                .block();
+                .dropIndex(INDEX_DEFAULT_SORT);
 
         return null;
 
@@ -213,14 +200,12 @@ public class V000001 {
 
     @Changeset(order = 10)
     public String introducePersonAndGroupForUserTasks(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         final var query = new Query();
         query.fields().include("_id", "version", "assignee", "candidateUsers", "candidateGroups");
         mongo
                 .find(query, DBObject.class, UserTask.COLLECTION_NAME)
-                .collectList()
-                .block()
                 .forEach(document -> {
                     final var newDocument = new Update();
                     newDocument.set("version", document.get("version")); // at least one field has to be updated, otherwise all document's fields are deleted
@@ -255,7 +240,7 @@ public class V000001 {
                         newDocument.set("candidateGroups", newCandidateGroups);
                     }
                     final var updateQuery = new Query(Criteria.where("_id").is(document.get("_id")));
-                    mongo.updateFirst(updateQuery, newDocument, UserTask.COLLECTION_NAME).block();
+                    mongo.updateFirst(updateQuery, newDocument, UserTask.COLLECTION_NAME);
                 });
 
         return null;
@@ -314,14 +299,12 @@ public class V000001 {
      */
     @Changeset(order = 12)
     public String introduceReportedAtAndCandidateUsersSince(
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         final var query = new Query(Criteria.where("reportedAt").exists(false));
         query.fields().include("_id", "createdAt", "candidateUsers");
         mongo
                 .find(query, DBObject.class, UserTask.COLLECTION_NAME)
-                .collectList()
-                .block()
                 .forEach(document -> {
                     final var createdAt = document.get("createdAt");
                     final var update = new Update();
@@ -348,8 +331,7 @@ public class V000001 {
                             .updateFirst(
                                     new Query(Criteria.where("_id").is(document.get("_id"))),
                                     update,
-                                    UserTask.COLLECTION_NAME)
-                            .block();
+                                    UserTask.COLLECTION_NAME);
                 });
 
         return null;
@@ -358,15 +340,16 @@ public class V000001 {
 
     @Changeset(order = 11)
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
-            final ReactiveMongoTemplate mongo) {
+            final MongoTemplate mongo) {
 
         mongo
                 .indexOps(UserTask.COLLECTION_NAME)
                 .getIndexInfo()
-                .filter(indexInfo -> indexInfo.getName().startsWith(UserTaskService.INDEX_CUSTOM_SORT_PREFIX))
-                .flatMap(indexInfo -> mongo.indexOps(UserTask.COLLECTION_NAME).dropIndex(indexInfo.getName()))
-                .collectList()
-                .block();
+                .stream()
+                .map(indexInfo -> indexInfo.getName())
+                .filter(name -> name.startsWith(UserTaskService.INDEX_CUSTOM_SORT_PREFIX))
+                .toList()
+                .forEach(name -> mongo.indexOps(UserTask.COLLECTION_NAME).dropIndex(name));
 
         return null;
 

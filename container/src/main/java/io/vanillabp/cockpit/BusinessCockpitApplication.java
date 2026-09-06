@@ -10,8 +10,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 @SpringBootApplication
 @ComponentScan(basePackageClasses = BusinessCockpitApplication.class)
@@ -20,8 +20,8 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
     BpmsApiProperties.class,
     NotificationProperties.class
 })
-@EnableWebFluxSecurity
-@EnableReactiveMethodSecurity
+@EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true)
 @EnableAsync
 @EnableScheduling
 public class BusinessCockpitApplication {

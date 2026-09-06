@@ -14,8 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @RestController("workflowListGuiApiController")
 @RequestMapping(path = "/gui/api/v1")
@@ -28,7 +26,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     private UserTaskService userTaskService;
 
     @Override
-    protected Mono<Page<Workflow>> getWorkflows(
+    protected Page<Workflow> getWorkflows(
             final UserDetails currentUser,
             final int pageNumber,
             final int pageSize,
@@ -56,7 +54,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     }
 
     @Override
-    protected Mono<Page<Workflow>> getWorkflowsUpdated(
+    protected Page<Workflow> getWorkflowsUpdated(
             final UserDetails currentUser,
             final int size,
             final Collection<String> knownWorkflowsIds,
@@ -82,7 +80,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     }
 
     @Override
-    protected Mono<Workflow> getWorkflow(
+    protected Workflow getWorkflow(
             final UserDetails currentUser,
             final String workflowId) {
 
@@ -92,7 +90,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     }
 
     @Override
-    protected Flux<UserTask> getUserTasksOfWorkflow(
+    protected List<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnlyRequested,
             final boolean limitListAccordingToCurrentUsersPermissions,
@@ -116,7 +114,7 @@ public class GuiApiController extends AbstractWorkflowListGuiApiController {
     }
 
     @Override
-    protected Flux<KwicResult> kwic(
+    protected List<KwicResult> kwic(
             final UserDetails currentUser,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,

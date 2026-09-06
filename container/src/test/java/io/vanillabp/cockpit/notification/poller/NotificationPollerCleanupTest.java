@@ -18,19 +18,18 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
-import reactor.core.publisher.Mono;
 
 class NotificationPollerCleanupTest {
 
     @Test
     void runCleanup_removesSentEntriesOlderThanRetention() {
-        final var mongoTemplate = mock(ReactiveMongoTemplate.class);
+        final var mongoTemplate = mock(MongoTemplate.class);
         final var deleteResult = mock(DeleteResult.class);
         when(deleteResult.getDeletedCount()).thenReturn(3L);
         when(mongoTemplate.remove(any(Query.class), eq(NotificationOutboxEntry.class)))
-                .thenReturn(Mono.just(deleteResult));
+                .thenReturn(deleteResult);
 
         final var poller = new NotificationPoller(
                 mongoTemplate,

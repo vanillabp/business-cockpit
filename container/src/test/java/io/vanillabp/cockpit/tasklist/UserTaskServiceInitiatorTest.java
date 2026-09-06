@@ -7,15 +7,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.commons.security.usercontext.reactive.ReactiveUserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import io.vanillabp.cockpit.users.model.Person;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
 /**
  * A cockpit-side change has to record who caused it in {@code initiator}: it is the only field
@@ -26,21 +26,21 @@ class UserTaskServiceInitiatorTest {
 
     private UserTaskService service;
     private UserTaskRepository userTasks;
-    private ReactiveUserContext currentUserContext;
+    private UserContext currentUserContext;
 
     @BeforeEach
     void setUp() throws Exception {
         service = new UserTaskService();
         userTasks = mock(UserTaskRepository.class);
-        currentUserContext = mock(ReactiveUserContext.class);
+        currentUserContext = mock(UserContext.class);
         inject("userTasks", userTasks);
         inject("currentUserContext", currentUserContext);
 
         final var task = new UserTask();
         task.setId("task-1");
-        when(userTasks.findById("task-1")).thenReturn(Mono.just(task));
+        when(userTasks.findById("task-1")).thenReturn(Optional.of(task));
         when(userTasks.save(any(UserTask.class)))
-                .thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     private void inject(final String field, final Object value) throws Exception {
@@ -57,37 +57,37 @@ class UserTaskServiceInitiatorTest {
 
     @Test
     void assignTask_recordsTheActingUserAsInitiator() {
-        when(currentUserContext.getUserLoggedInAsMono()).thenReturn(Mono.just("actingUser"));
+        when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
 
-        final var result = service.assignTask("task-1", person("targetUser")).block();
+        final var result = service.assignTask("task-1", person("targetUser"));
 
         assertEquals("actingUser", result.getInitiator());
     }
 
     @Test
     void claimTask_recordsTheActingUserAsInitiator() {
-        when(currentUserContext.getUserLoggedInAsMono()).thenReturn(Mono.just("actingUser"));
+        when(currentUserContext.getUserLoggedIn()).thenReturn("actingUser");
 
-        final var result = service.claimTask("task-1", person("actingUser")).block();
+        final var result = service.claimTask("task-1", person("actingUser"));
 
         assertEquals("actingUser", result.getInitiator());
     }
 
     @Test
     void withoutLoggedInUser_theCockpitItselfIsTheInitiator() {
-        when(currentUserContext.getUserLoggedInAsMono()).thenReturn(Mono.empty());
+        when(currentUserContext.getUserLoggedIn()).thenReturn(null);
 
-        final var result = service.assignTask("task-1", person("targetUser")).block();
+        final var result = service.assignTask("task-1", person("targetUser"));
 
         assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
     }
 
     @Test
     void unauthorizedContext_doesNotFailTheAction() {
-        when(currentUserContext.getUserLoggedInAsMono())
-                .thenReturn(Mono.error(new io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException("no context")));
+        when(currentUserContext.getUserLoggedIn())
+                .thenThrow(new io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException("no context"));
 
-        final var result = service.setFollowUpDate("task-1", null).block();
+        final var result = service.setFollowUpDate("task-1", null);
 
         assertEquals(UpdateInformationAware.COCKPIT_USER, result.getInitiator());
     }
@@ -97,7 +97,7 @@ class UserTaskServiceInitiatorTest {
         final var task = new UserTask();
         task.setId("task-2");
 
-        service.createUserTask(task).block();
+        service.createUserTask(task);
 
         // 'createdAt' stays the reporting system's timestamp, 'reportedAt' is the cockpit's own
         assertNotNull(task.getReportedAt());
@@ -109,7 +109,7 @@ class UserTaskServiceInitiatorTest {
         task.setId("task-2");
         task.setCandidateUsers(new ArrayList<>(List.of(person("u1"), person("u2"))));
 
-        service.createUserTask(task).block();
+        service.createUserTask(task);
 
         assertEquals(task.getReportedAt(), task.getCandidateSince("u1"));
         assertEquals(task.getReportedAt(), task.getCandidateSince("u2"));
