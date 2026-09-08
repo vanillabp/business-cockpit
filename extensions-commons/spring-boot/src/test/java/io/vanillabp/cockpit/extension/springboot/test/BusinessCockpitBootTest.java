@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.extension.springboot.broken.BrokenApplication;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -54,11 +55,14 @@ public class BusinessCockpitBootTest {
             .properties(properties)
             .run()
             .close());
-    Throwable cause = failure;
-    while (cause.getCause() != null) {
-      cause = cause.getCause();
+    // every message of the chain: what an extension refuses is refused by VanillaBP's own scan
+    // now, which names the annotation, the class and the method in front of what the extension
+    // said - so the two halves of the answer stand in two exceptions
+    final var messages = new StringBuilder();
+    for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+      messages.append(cause.getMessage()).append('\n');
     }
-    return String.valueOf(cause.getMessage());
+    return messages.toString();
 
   }
 
@@ -92,6 +96,30 @@ public class BusinessCockpitBootTest {
     assertTrue(message.contains(ProxiedVersionedProviderService.class.getName()), message);
     assertTrue(message.contains("approve"), message);
     assertTrue(message.contains("version"), message);
+
+  }
+
+  @Test
+  @DisplayName("A details provider which is not public is named while booting")
+  public void aDetailsProviderNobodySeesIsReported(
+      final CapturedOutput output) {
+
+    try (var ignored = new SpringApplicationBuilder(TestApplication.class)
+        .web(WebApplicationType.NONE)
+        .properties(
+            "spring.datasource.url=jdbc:h2:mem:cockpit-nobody-sees;DB_CLOSE_DELAY=-1",
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
+        .run()) {
+
+      final var reported = output.getAll();
+
+      assertTrue(reported.contains("which VanillaBP does not see"), reported);
+      assertTrue(reported.contains(TestWorkflowService.class.getName()), reported);
+      assertTrue(reported.contains("@UserTaskDetailsProvider"), reported);
+      assertTrue(reported.contains("unseenByTheScan"), reported);
+      assertTrue(reported.contains("Make the method public"), reported);
+
+    }
 
   }
 

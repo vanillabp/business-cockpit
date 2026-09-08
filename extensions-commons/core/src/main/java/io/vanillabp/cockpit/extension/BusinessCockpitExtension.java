@@ -6,7 +6,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +34,7 @@ import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import io.vanillabp.cockpit.extension.templating.EventTitles;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
+import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerCall;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
@@ -46,7 +46,6 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
-import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * The Business Cockpit extension, without a single line knowing a BPMS or a platform.
@@ -79,7 +78,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   private final BusinessCockpitOutbox outbox;
 
-  private final TransactionRunner transactionRunner;
+  private final TransactionRunnerResolver transactionRunners;
 
   private final String source;
 
@@ -100,7 +99,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param handlers VanillaBP's invocation of the application's details providers
    * @param templating The renderer of the titles, {@link Templating#none()} without templates
    * @param outbox Which store an entry is written to
-   * @param transactionRunner Opens a transaction where the caller brought none
+   * @param transactionRunners Which transaction an entry of a workflow aggregate is written in
    */
   public BusinessCockpitExtension(
       final BusinessCockpitConfiguration configuration,
@@ -110,14 +109,14 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final ExtensionHandlers handlers,
       final Templating templating,
       final BusinessCockpitOutbox outbox,
-      final TransactionRunner transactionRunner) {
+      final TransactionRunnerResolver transactionRunners) {
 
     this.configuration = configuration;
     this.transport = transport;
     this.handlers = handlers;
     this.templating = templating;
     this.outbox = outbox;
-    this.transactionRunner = transactionRunner;
+    this.transactionRunners = transactionRunners;
     this.source = sourceOfThisInstance();
     this.bridges = bridgesByAdapterId(bridges);
     this.workflowModuleDetailsProviders = detailsProvidersByWorkflowModule(
@@ -168,115 +167,106 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Refuses what an application wrote into the reserved <code>version</code> attribute of
-   * <code>&#64;UserTaskDetailsProvider</code>, naming the method it stands on.
-   * <p>
-   * The check runs here rather than while VanillaBP scans the annotations, because the callback
-   * reading the lookup keys of an annotation is not told which method carries it, and a message
-   * about an attribute which does not name the method leaves the developer searching.
-   *
-   * @param workflowServiceClasses The classes of the application which may carry the annotation
-   * @throws IllegalStateException If one of them names a version - see decision 7 in the
-   *           repository's DECISIONS.md
-   */
-  public void validateDetailsProviders(
-      final Collection<Class<?>> workflowServiceClasses) {
-
-    workflowServiceClasses.forEach(BusinessCockpitHandlers::rejectReservedVersionAttribute);
-
-  }
-
-  /**
-   * Resolves the outbox store of every workflow aggregate of the application, ending the boot
-   * where one cannot be attributed.
+   * Resolves where an entry of this application is written and in which transaction, ending the
+   * boot where either cannot be answered for one of its workflow aggregates.
    * <p>
    * This runs once the application is up rather than while the extension's bean is created:
    * asking for the store of an aggregate reaches into the application's persistence, and
    * VanillaBP's own startup validation waits for the same reason.
+   * <p>
+   * Which BPMN processes a workflow module holds and which aggregate each of them works on is
+   * VanillaBP's answer, not a second scan of the application's beans - it read the
+   * <code>&#64;WorkflowService</code> annotations while it built the process services, through
+   * whatever proxies the platform put around them.
    *
-   * @param workflowServiceClasses The classes of the application carrying
-   *          <code>&#64;WorkflowService</code>
-   * @throws IllegalStateException If a store is missing or cannot be attributed to an
-   *           aggregate, or if two workflow services claim one BPMN process for two aggregates
-   *           - see decision 13 in the repository's DECISIONS.md
+   * @throws IllegalStateException If a store is missing or cannot be attributed to an aggregate,
+   *           or if no transaction can be opened for one - see decision 13 in the repository's
+   *           DECISIONS.md
    */
-  public void validateOutboxAttribution(
-      final Collection<Class<?>> workflowServiceClasses) {
+  public void validateWhereEntriesAreWritten() {
 
-    outbox.validateAtStartup(workflowAggregatesByBpmnProcessId(workflowServiceClasses));
+    final var workflowAggregates = workflowAggregatesByBpmnProcessId();
+    outbox.validateAtStartup(workflowAggregates);
+    workflowAggregates
+        .values()
+        .stream()
+        .distinct()
+        .forEach(this::requireTransactionFor);
 
   }
 
   /**
-   * The workflow aggregate every BPMN process of the application is served through.
+   * The workflow aggregate every BPMN process of the reporting workflow modules is served
+   * through, asked of VanillaBP.
    * <p>
    * A workflow service declares both: the aggregate it is written for, and the processes it
    * serves - its primary one and whatever it names as secondary, which is the process called by
-   * a call activity and the process which was renamed. That is what turns an event naming a
-   * BPMN process into the class whose transaction the entry has to ride.
-   * <p>
-   * Two workflow services may declare the same process, one per generation of the model. They
-   * are written for the same aggregate then; two aggregates on one process would make the store
-   * of an event depend on which class was scanned first, so it ends the boot.
+   * a call activity and the process which was renamed. VanillaBP registered every one of those
+   * pairs while it built the process services, so an event naming a BPMN process becomes the
+   * class whose transaction the entry has to ride without anybody reading the annotations a
+   * second time.
    *
-   * @param workflowServiceClasses The classes carrying <code>&#64;WorkflowService</code>
    * @return The aggregate of every BPMN process
    */
-  private static Map<String, Class<?>> workflowAggregatesByBpmnProcessId(
-      final Collection<Class<?>> workflowServiceClasses) {
+  private Map<String, Class<?>> workflowAggregatesByBpmnProcessId() {
 
     final var aggregates = new LinkedHashMap<String, Class<?>>();
-    final var declaredBy = new LinkedHashMap<String, Class<?>>();
-    for (final var workflowServiceClass : workflowServiceClasses) {
-      final var annotation = workflowServiceClass.getAnnotation(WorkflowService.class);
-      if (annotation == null) {
-        continue;
-      }
-      for (final var bpmnProcessId : bpmnProcessIdsOf(annotation, workflowServiceClass)) {
-        final var previous = aggregates
-            .put(bpmnProcessId, annotation.workflowAggregateClass());
-        final var previouslyDeclaredBy = declaredBy.put(bpmnProcessId, workflowServiceClass);
-        if ((previous != null) && !previous.equals(annotation.workflowAggregateClass())) {
-          throw new IllegalStateException(
-              """
-                  The workflow services %s and %s both serve the BPMN process '%s' but are written \
-                  for different workflow aggregates (%s and %s). The Business Cockpit writes the \
-                  report of an event into the outbox store of the aggregate the workflow belongs \
-                  to, and which of the two that is cannot be answered. Let one aggregate serve the \
-                  process."""
-                  .formatted(
-                      previouslyDeclaredBy.getName(), workflowServiceClass.getName(),
-                      bpmnProcessId, previous.getName(),
-                      annotation.workflowAggregateClass().getName()));
-        }
-      }
-    }
+    configuration
+        .getWorkflowModuleIds()
+        .forEach(
+            workflowModuleId -> handlers
+                .bpmnProcessesOf(workflowModuleId)
+                .forEach(
+                    bpmnProcessId -> handlers
+                        .workflowAggregateOf(workflowModuleId, bpmnProcessId)
+                        .ifPresent(
+                            workflowAggregateClass -> aggregates
+                                .put(bpmnProcessId, workflowAggregateClass))));
     return aggregates;
 
   }
 
   /**
-   * @param annotation What the workflow service declared
-   * @param workflowServiceClass The service, whose simple name is the BPMN process id by
-   *          convention where the annotation names none
-   * @return Every BPMN process the service serves
+   * The transaction an entry about this workflow aggregate is written in.
+   * <p>
+   * It is the one the aggregate's own writes go through, which may well be a runner the
+   * APPLICATION contributed. Opening one of the extension's own would commit the report
+   * separately from the change it reports, and would lose what the platform's runner knows
+   * about the transaction it opened: its rollback-only verdict, its pre-commit callbacks and
+   * its recognition of an optimistic-locking failure.
+   *
+   * @param workflowAggregateClass The aggregate, or <code>null</code> for an entry belonging to
+   *          none
+   * @return The runner
+   * @throws IllegalStateException If this application can open no transaction at all
    */
-  private static Collection<String> bpmnProcessIdsOf(
-      final WorkflowService annotation,
-      final Class<?> workflowServiceClass) {
+  private TransactionRunner requireTransactionFor(
+      final Class<?> workflowAggregateClass) {
 
-    final var bpmnProcessIds = new LinkedHashSet<String>();
-    bpmnProcessIds
-        .add(
-            annotation.bpmnProcess().bpmnProcessId().isEmpty()
-                ? workflowServiceClass.getSimpleName()
-                : annotation.bpmnProcess().bpmnProcessId());
-    for (final var secondary : annotation.secondaryBpmnProcesses()) {
-      if (!secondary.bpmnProcessId().isEmpty()) {
-        bpmnProcessIds.add(secondary.bpmnProcessId());
-      }
+    // an entry which belongs to no workflow aggregate - the registration of a workflow module,
+    // and an event about a BPMN process no workflow service of this application declares - is
+    // written through the runner serving every aggregate nobody claimed, which is what asking
+    // for the root of the type hierarchy answers
+    final var runner = transactionRunners
+        .resolveFor(
+            workflowAggregateClass == null
+                ? Object.class
+                : workflowAggregateClass);
+    if (runner != null) {
+      return runner;
     }
-    return bpmnProcessIds;
+    throw new IllegalStateException(
+        """
+            The Business Cockpit extension cannot open a transaction for %s: it reports every \
+            event after the transaction which caused it was committed, and an event a remote \
+            engine reported arrives on a worker thread which brings no transaction of its own. \
+            To get one either
+            %s"""
+            .formatted(
+                workflowAggregateClass == null
+                    ? "the registration of a workflow module"
+                    : "workflow aggregate '%s'".formatted(workflowAggregateClass.getName()),
+                transactionRunners.remediesDescription()));
 
   }
 
@@ -497,7 +487,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         .stream()
         .filter(configuration::reportsToTheCockpit)
         .forEach(
-            workflowModuleId -> transactionRunner
+            workflowModuleId -> requireTransactionFor(null)
                 .requireNew(() -> outbox
                     .ofWorkflowModuleRegistration(
                         workflowModuleId,
@@ -793,9 +783,16 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
               workflowModuleId);
       return false;
     }
-    final var store = workflowAggregateClass == null
+    // what the caller knows, else what VanillaBP registered for that BPMN process - the class
+    // decides both the store and the transaction, and asking one source for it keeps the two
+    // from ever answering differently
+    final var aggregateClass = workflowAggregateClass == null
+        ? handlers.workflowAggregateOf(workflowModuleId, bpmnProcessId).orElse(null)
+        : workflowAggregateClass;
+    final var store = aggregateClass == null
         ? outbox.ofEventObservedByABpms(workflowModuleId, bpmnProcessId)
-        : outbox.ofWorkflowAggregate(workflowAggregateClass);
+        : outbox.ofWorkflowAggregate(aggregateClass);
+    final var transactionRunner = requireTransactionFor(aggregateClass);
     return transaction == EventTransaction.NEW
         ? transactionRunner.requireNew(() -> store.schedule(call))
         : transactionRunner.inCurrent(() -> store.schedule(call));

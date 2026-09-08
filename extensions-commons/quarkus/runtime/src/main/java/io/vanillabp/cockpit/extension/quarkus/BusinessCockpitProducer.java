@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import io.quarkus.arc.Arc;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -21,6 +20,7 @@ import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
+import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
@@ -29,7 +29,6 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
-import io.vanillabp.spi.service.WorkflowService;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -38,7 +37,6 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.Interceptor;
-import jakarta.transaction.TransactionSynchronizationRegistry;
 
 /**
  * Registers the Business Cockpit extension on Quarkus - the twin of the Spring Boot module's
@@ -63,6 +61,15 @@ public class BusinessCockpitProducer {
    * by a test of the deployment module, which does see both numbers.
    */
   public static final int REGISTRATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 800;
+
+  /**
+   * When the stores and transactions of the application's workflow aggregates are resolved.
+   * <p>
+   * Later than VanillaBP's deployment runner, which registers the workflow service of every
+   * process service it builds, and earlier than the registration of the workflow modules, which
+   * writes the first entries.
+   */
+  public static final int VALIDATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 750;
 
   /**
    * What the application wrote about the Business Cockpit, read off this platform's mapping and
@@ -98,7 +105,7 @@ public class BusinessCockpitProducer {
    * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param outboxes The outbox stores of the application
    * @param outboxAwares The stores an application named for single workflow aggregates
-   * @param transactionRegistry What tells whether a transaction is running
+   * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
    * @return The extension
    */
   @Produces
@@ -114,18 +121,15 @@ public class BusinessCockpitProducer {
       final PhaseTwoOutboxResolver outboxResolver,
       @Any final Instance<PhaseTwoOutbox> outboxes,
       @Any final Instance<PhaseTwoOutboxAware<?>> outboxAwares,
-      final TransactionSynchronizationRegistry transactionRegistry) {
+      final TransactionRunnerResolver transactionRunners) {
 
     final var configuration = BusinessCockpitConfiguration
         .readAndValidate(properties, settings, Templating.engineAvailable());
-    final var extension = new BusinessCockpitExtension(
+    return new BusinessCockpitExtension(
         configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
                 .templatingOf(configuration), theOutbox(
-                    outboxResolver, outboxes, outboxAwares), new QuarkusTransactionRunner(
-                        transactionRegistry));
-    extension.validateDetailsProviders(workflowServiceClasses());
-    return extension;
+                    outboxResolver, outboxes, outboxAwares), transactionRunners);
 
   }
 
@@ -160,9 +164,7 @@ public class BusinessCockpitProducer {
 
   /**
    * Announces the extension to VanillaBP once the application is up: its three outbox
-   * operations and the two contracts of its details providers. The store of every workflow
-   * aggregate is resolved in the same pass, which is what makes a store nobody can attribute
-   * end the boot rather than the first report.
+   * operations and the two contracts of its details providers.
    *
    * @param event The startup
    * @param extension The extension
@@ -175,7 +177,26 @@ public class BusinessCockpitProducer {
 
     extension.registerOperations(registry);
     extension.registerHandlerContracts();
-    extension.validateOutboxAttribution(workflowServiceClasses());
+
+  }
+
+  /**
+   * Resolves the outbox store and the transaction of every workflow aggregate, which is what
+   * makes a store nobody can attribute end the boot rather than the first report.
+   * <p>
+   * It runs after the deployment pipeline because that is when VanillaBP has registered the
+   * workflow services of every process service, and the aggregate a BPMN process works on is
+   * what it is asked for.
+   *
+   * @param event The startup
+   * @param extension The extension
+   */
+  void validateWhereEntriesAreWritten(
+      @Observes
+      @Priority(VALIDATION_STARTUP_PRIORITY) final StartupEvent event,
+      final BusinessCockpitExtension extension) {
+
+    extension.validateWhereEntriesAreWritten();
 
   }
 
@@ -269,25 +290,5 @@ public class BusinessCockpitProducer {
 
   }
 
-  /**
-   * The classes of the application which may carry the extension's annotations.
-   * <p>
-   * Every bean is asked for its class rather than for an instance: nothing is created here, and
-   * a class carrying a reserved attribute is refused before the application serves anything.
-   *
-   * @return The workflow services
-   */
-  private static Collection<Class<?>> workflowServiceClasses() {
-
-    return Arc
-        .container()
-        .beanManager()
-        .getBeans(Object.class, Any.Literal.INSTANCE)
-        .stream()
-        .map(bean -> (Class<?>) bean.getBeanClass())
-        .filter(beanClass -> beanClass.isAnnotationPresent(WorkflowService.class))
-        .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
-
-  }
 
 }

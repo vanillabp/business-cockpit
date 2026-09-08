@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher;
@@ -408,14 +409,17 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
+    // the refusal is the platform's own: the entry is written through the runner the workflow
+    // aggregate's writes go through, and that runner demands the transaction rather than
+    // opening one behind the caller's back
     final var failure = assertThrows(
-        IllegalStateException.class,
+        IllegalTransactionStateException.class,
         () -> publisher
             .publishUserTaskEvent(
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-14",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    assertTrue(failure.getMessage().contains("no transaction is running"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("mandatory"), failure.getMessage());
 
   }
 

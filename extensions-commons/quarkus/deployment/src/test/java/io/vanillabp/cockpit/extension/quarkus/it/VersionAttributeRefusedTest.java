@@ -36,20 +36,28 @@ public class VersionAttributeRefusedTest {
       .overrideRuntimeConfigKey(
           "vanillabp.cockpit.rest.base-url", "http://localhost:1")
       .assertException(failure -> {
-        final var message = rootCauseMessage(failure);
+        final var message = everyMessageOf(failure);
         assertTrue(message.contains(VersionedProviderService.class.getName()), message);
         assertTrue(message.contains("approve"), message);
         assertTrue(message.contains("taskDefinition"), message);
       });
 
-  private static String rootCauseMessage(
+  /**
+   * Every message of the chain: what an extension refuses is refused by VanillaBP's own scan,
+   * which names the annotation, the class and the method in front of what the extension said -
+   * so the two halves of the answer stand in two exceptions.
+   *
+   * @param failure What the boot failed with
+   * @return The messages, one per line
+   */
+  private static String everyMessageOf(
       final Throwable failure) {
 
-    var cause = failure;
-    while (cause.getCause() != null) {
-      cause = cause.getCause();
+    final var messages = new StringBuilder();
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      messages.append(cause.getMessage()).append('\n');
     }
-    return String.valueOf(cause.getMessage());
+    return messages.toString();
 
   }
 

@@ -83,6 +83,18 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The workflow modules which report to the cockpit at all - the ones the application wrote a
+   * cockpit section for.
+   *
+   * @return Their ids
+   */
+  public Collection<String> getWorkflowModuleIds() {
+
+    return workflowModules.keySet();
+
+  }
+
+  /**
    * @return Whether user tasks are reported at all, which an application switches off with
    *         <code>vanillabp.cockpit.user-tasks-enabled</code>
    */

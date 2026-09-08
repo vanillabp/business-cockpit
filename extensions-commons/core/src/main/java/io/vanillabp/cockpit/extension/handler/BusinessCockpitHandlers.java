@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.handler;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,6 +52,7 @@ public final class BusinessCockpitHandlers {
             CoreHandlerParameter.MULTI_INSTANCE)
         .parameterBinder(BusinessCockpitHandlers::bindPrefilledUserTaskDetails)
         .parameterBinder(BusinessCockpitHandlers::bindDetailsEvent)
+        .validatingAnnotation(BusinessCockpitHandlers::rejectReservedVersionAttribute)
         .deliversReturnValue()
         .build();
 
@@ -103,43 +105,31 @@ public final class BusinessCockpitHandlers {
    * refused - version 1 documented the attribute and never read it, and applications wrote it
    * believing it worked.
    * <p>
-   * The methods of a class are walked here rather than the attribute being read while VanillaBP
-   * scans the annotations, because the callback which reads the lookup keys of an annotation is
-   * not told which method carries it, and a message which cannot name the method leaves the
-   * developer searching for it.
+   * VanillaBP runs this while it scans the annotation, holding the method which carries it, and
+   * puts the annotation, the class, the method and this extension in front of what is said
+   * here.
    *
-   * @param workflowServiceClass A class of the application which may carry the annotation
-   * @throws IllegalStateException If one of its methods names a version - the message names the
-   *           method and what to write instead
+   * @param annotation One occurrence of <code>&#64;UserTaskDetailsProvider</code>
+   * @param method The method carrying it, which VanillaBP names in its refusal
+   * @throws IllegalStateException If it names a version - the message says what to write instead
    */
-  public static void rejectReservedVersionAttribute(
-      final Class<?> workflowServiceClass) {
+  private static void rejectReservedVersionAttribute(
+      final Annotation annotation,
+      final Method method) {
 
-    var declaringClass = workflowServiceClass;
-    while ((declaringClass != null) && !declaringClass.equals(Object.class)) {
-      for (final var method : declaringClass.getDeclaredMethods()) {
-        for (final var provider : method.getAnnotationsByType(UserTaskDetailsProvider.class)) {
-          final var version = provider.version();
-          if ((version.length == 0) || Arrays
-              .stream(version)
-              .allMatch(UserTaskDetailsProvider.ALL::equals)) {
-            continue;
-          }
-          throw new IllegalStateException(
-              """
-                  The @UserTaskDetailsProvider method '%s#%s' names version '%s'. The attribute is \
-                  reserved and has to stay unset: the Business Cockpit reacts to events which do \
-                  not say which version of the process they came from, so a version cannot decide \
-                  which method runs. Remove the attribute from that method and match by 'id' or \
-                  'taskDefinition' instead."""
-                  .formatted(
-                      declaringClass.getName(),
-                      method.getName(),
-                      String.join(", ", version)));
-        }
-      }
-      declaringClass = declaringClass.getSuperclass();
+    final var version = ((UserTaskDetailsProvider) annotation).version();
+    if ((version.length == 0) || Arrays
+        .stream(version)
+        .allMatch(UserTaskDetailsProvider.ALL::equals)) {
+      return;
     }
+    throw new IllegalStateException(
+        """
+            it names version '%s'. The attribute is reserved and has to stay unset: the Business \
+            Cockpit reacts to events which do not say which version of the process they came \
+            from, so a version cannot decide which method runs. Remove the attribute and match \
+            by 'id' or 'taskDefinition' instead."""
+            .formatted(String.join(", ", version)));
 
   }
 

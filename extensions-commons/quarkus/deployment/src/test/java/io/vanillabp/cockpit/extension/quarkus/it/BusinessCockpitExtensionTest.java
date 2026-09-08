@@ -202,6 +202,9 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
+    // the refusal is the platform's own: the entry is written through the runner the workflow
+    // aggregate's writes go through, and that runner demands the transaction rather than
+    // opening one behind the caller's back
     final var failure = assertThrows(
         IllegalStateException.class,
         () -> publisher
@@ -213,7 +216,9 @@ public class BusinessCockpitExtensionTest {
                 UserTaskEventKind.CREATED, "bpms-event-3", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 
-    assertTrue(failure.getMessage().contains("no transaction is running"), failure.getMessage());
+    assertTrue(
+        failure.getMessage().contains("no transaction is active on the current thread"),
+        failure.getMessage());
 
   }
 

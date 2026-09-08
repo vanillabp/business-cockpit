@@ -36,4 +36,23 @@ public class RegistrationStartupPriorityTest {
 
   }
 
+  @Test
+  @DisplayName("The stores and transactions are resolved after the deployment and before the first entry")
+  public void theValidationRunsBetweenTheDeploymentAndTheRegistration() {
+
+    assertTrue(
+        BusinessCockpitProducer.VALIDATION_STARTUP_PRIORITY > VanillaBpDeploymentRunner.STARTUP_PRIORITY,
+        "the extension resolves the stores at priority %d, VanillaBP deploys the workflow modules at %d - and only then does it know which aggregate a BPMN process works on"
+            .formatted(
+                BusinessCockpitProducer.VALIDATION_STARTUP_PRIORITY,
+                VanillaBpDeploymentRunner.STARTUP_PRIORITY));
+    assertTrue(
+        BusinessCockpitProducer.VALIDATION_STARTUP_PRIORITY < BusinessCockpitProducer.REGISTRATION_STARTUP_PRIORITY,
+        "the extension resolves the stores at priority %d and writes its first entry at %d"
+            .formatted(
+                BusinessCockpitProducer.VALIDATION_STARTUP_PRIORITY,
+                BusinessCockpitProducer.REGISTRATION_STARTUP_PRIORITY));
+
+  }
+
 }

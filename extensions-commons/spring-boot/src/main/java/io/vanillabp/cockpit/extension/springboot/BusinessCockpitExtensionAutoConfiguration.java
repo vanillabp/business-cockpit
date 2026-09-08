@@ -13,11 +13,8 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ResolvableType;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.util.ClassUtils;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
@@ -30,6 +27,7 @@ import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
+import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
@@ -38,7 +36,6 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
-import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * Registers the Business Cockpit extension on Spring Boot.
@@ -89,9 +86,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @param outboxResolvers VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param outboxes The outbox stores of the application
    * @param outboxAwares The stores an application named for single workflow aggregates
-   * @param transactionManagers The transaction managers of the application
-   * @param applicationContext Where the application's workflow services are looked up, to check
-   *          what they wrote into the annotations of the extension
+   * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
+   * @param applicationContext Where a bean holding a list of BPMS halves is looked up
    * @return The extension
    */
   @Bean
@@ -104,7 +100,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
       final ObjectProvider<PhaseTwoOutbox> outboxes,
       final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares,
-      final ObjectProvider<PlatformTransactionManager> transactionManagers,
+      final TransactionRunnerResolver transactionRunners,
       final ApplicationContext applicationContext) {
 
     final var configuration = BusinessCockpitConfiguration
@@ -114,9 +110,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
             bridges,
             applicationContext), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
                 .templatingOf(configuration), theOutbox(
-                    outboxResolvers, outboxes, outboxAwares), new SpringTransactionRunner(
-                        theTransactionManager(transactionManagers)));
-    extension.validateDetailsProviders(workflowServiceClasses(applicationContext));
+                    outboxResolvers, outboxes, outboxAwares), transactionRunners);
     return extension;
 
   }
@@ -139,25 +133,24 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * Resolves the outbox store of every workflow aggregate once the application's singletons
-   * exist, which is what makes a store nobody can attribute end the boot rather than the first
-   * report.
+   * Resolves the outbox store and the transaction of every workflow aggregate once the
+   * application's singletons exist, which is what makes a store nobody can attribute end the
+   * boot rather than the first report.
    * <p>
    * It waits like VanillaBP's own startup validation does: asking for the store of an aggregate
    * reaches into the application's persistence, and doing that while beans are still being
-   * created would materialize repositories half way through the boot.
+   * created would materialize repositories half way through the boot. By then VanillaBP has
+   * registered the workflow services of every process service too, which is what the extension
+   * asks for the aggregate of a BPMN process.
    *
    * @param extension The extension
-   * @param applicationContext Where the application's workflow services are looked up
    * @return The startup validation
    */
   @Bean
   public SmartInitializingSingleton businessCockpitOutboxStartupValidation(
-      final BusinessCockpitExtension extension,
-      final ApplicationContext applicationContext) {
+      final BusinessCockpitExtension extension) {
 
-    return () -> extension
-        .validateOutboxAttribution(workflowServiceClasses(applicationContext));
+    return extension::validateWhereEntriesAreWritten;
 
   }
 
@@ -268,97 +261,6 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
             outboxes.stream(),
             outboxAwares.stream().map(PhaseTwoOutboxAware::getPhaseTwoOutbox))
         .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
-
-  }
-
-  /**
-   * The classes of the application which may carry the extension's annotations.
-   * <p>
-   * The class is read off the bean DEFINITION rather than off the bean's type: a service
-   * Spring wrapped in a JDK proxy - which is what an interface plus <code>@Transactional</code>
-   * produces - has the interface as its type, and the interface carries neither the annotations
-   * of the implementation's methods nor the aggregate the service is written for. Where the
-   * definition names no class (a bean built by a factory method), the type is used and
-   * unwrapped from a CGLIB subclass.
-   *
-   * @param applicationContext Where the beans are registered
-   * @return The workflow services, each as the class the application wrote
-   */
-  private static Collection<Class<?>> workflowServiceClasses(
-      final ApplicationContext applicationContext) {
-
-    final Collection<Class<?>> classes = new LinkedHashSet<>();
-    for (final var beanName : applicationContext
-        .getBeanNamesForAnnotation(WorkflowService.class)) {
-      final var written = writtenClassOf(applicationContext, beanName);
-      if (written != null) {
-        classes.add(written);
-      }
-    }
-    return classes;
-
-  }
-
-  /**
-   * @param applicationContext Where the beans are registered
-   * @param beanName The bean
-   * @return The class the application wrote, or <code>null</code> where neither the definition
-   *         nor the type says which one it is
-   */
-  private static Class<?> writtenClassOf(
-      final ApplicationContext applicationContext,
-      final String beanName) {
-
-    if (applicationContext instanceof final ConfigurableApplicationContext configurable) {
-      final var beanFactory = configurable.getBeanFactory();
-      if (beanFactory.containsBeanDefinition(beanName)) {
-        final var definition = beanFactory.getMergedBeanDefinition(beanName);
-        // a bean built by a factory method has the class of its @Configuration there, which
-        // says nothing about the bean itself - the type is the only answer for those
-        final var className = definition.getFactoryMethodName() == null
-            ? definition.getBeanClassName()
-            : null;
-        if (className != null) {
-          try {
-            return ClassUtils.forName(className, configurable.getClassLoader());
-          } catch (final ClassNotFoundException e) {
-            // the definition names a class this application cannot load: whatever that bean
-            // is, it is not a workflow service of this deployment
-            return null;
-          }
-        }
-      }
-    }
-    final var type = applicationContext.getType(beanName);
-    return type == null
-        ? null
-        : ClassUtils.getUserClass(type);
-
-  }
-
-  private static PlatformTransactionManager theTransactionManager(
-      final ObjectProvider<PlatformTransactionManager> transactionManagers) {
-
-    final var unique = transactionManagers.getIfUnique();
-    if (unique != null) {
-      return unique;
-    }
-    final var found = transactionManagers
-        .stream()
-        .map(manager -> manager.getClass().getName())
-        .toList();
-    throw new IllegalStateException(
-        found.isEmpty()
-            ? """
-                The Business Cockpit extension needs a transaction manager: the outbox entry of an \
-                event reported by a remote engine is written on a worker thread which brings no \
-                transaction of its own. Add the persistence your workflow aggregates live in \
-                (spring-boot-starter-data-jpa, or a MongoTransactionManager for MongoDB)."""
-            : """
-                The Business Cockpit extension found %d transaction managers in this application \
-                (%s) and cannot tell which one covers the workflow aggregates. Mark the one to use \
-                as primary."""
-                .formatted(found.size(), String.join(", ", found)));
 
   }
 

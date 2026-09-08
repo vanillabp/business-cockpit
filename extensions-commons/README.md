@@ -93,12 +93,14 @@ Both are published contracts. A change to them is a change three repositories ha
 
 A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written
 into is VanillaBP's own answer on both platforms: the store the workflow aggregate's transaction
-reaches. A report of `BusinessCockpitService` names that aggregate's class outright. An event a BPMS
-observed names a workflow module, a BPMN process and a serialized id instead, and the class is
-looked up - `@WorkflowService` says which aggregate it is written for and which BPMN processes it
-serves, so an application whose aggregates live in two persistences has each of its reports written
-into the store of its own workflow. Decisions 12 and 13 of the [decision log](../DECISIONS.md) say
-why.
+reaches, and the transaction is that aggregate's too - `PhaseTwoOutboxResolver` and
+`TransactionRunnerResolver` answer both per aggregate class. A report of `BusinessCockpitService`
+names that class outright. An event a BPMS observed names a workflow module, a BPMN process and a
+serialized id instead, and the class is looked up: `ExtensionHandlers#workflowAggregateOf` answers
+what VanillaBP read off `@WorkflowService` while it built the process services. So an application
+whose aggregates live in two persistences has each of its reports written into the store of its own
+workflow, in the transaction that workflow is written in. Decisions 12, 13 and 15 of the
+[decision log](../DECISIONS.md) say why.
 
 `EventTransaction.CURRENT` joins the transaction running on the calling thread, which on Quarkus is
 a JTA transaction. Joining one means every resource it reaches has to be enlistable, so an
@@ -277,6 +279,12 @@ details providers, VanillaBP's BPMS double, a BPMS half played by the test, and 
 server. An event is reported, the transaction commits, and the test reads what arrived. That
 duplication between the two platforms is deliberate - the neutral core being right says nothing
 about a platform's glue ever calling it.
+
+What VanillaBP refuses about this extension's own annotations is asserted on both platforms too: a
+`@UserTaskDetailsProvider` naming the reserved `version` attribute keeps the application from
+starting, and one which is not public is named in the startup report of the handler methods nobody
+sees. Both are the platform's doing now, and only a booted application shows whether the platform's
+glue registers the contract carrying them.
 
 The configuration is asserted twice for the same reason, and there it is the binding rather than the
 glue: each platform boots an application whose configuration carries every shape version 1 had - a
