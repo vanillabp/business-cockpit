@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.extension.test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -297,6 +298,57 @@ public class BusinessCockpitConfigurationTest {
     assertEquals("en", module.bpmnDescriptionLanguage("Delivery"));
     assertEquals("Delivery", module.templatePathOfWorkflow("Delivery"));
     assertEquals("decide", module.templatePathOfUserTask("TaxiRide", "decide"));
+
+  }
+
+  @Test
+  @DisplayName("A workflow may say what its module left out, as in version 1")
+  public void aWorkflowMaySayWhatItsModuleLeftOut() {
+
+    final var everyWorkflowSaysIt = ConfigurationFixture
+        .aConfiguredApplication()
+        .withoutWorkflowModule("i18n-languages")
+        .withoutWorkflowModule("bpmn-description-language")
+        .withWorkflow("TaxiRide", "i18n-languages", "fr")
+        .withWorkflow("TaxiRide", "bpmn-description-language", "fr");
+
+    final var configuration = read(everyWorkflowSaysIt, false);
+    final var module = configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE);
+    assertEquals(List.of("fr"), module.i18nLanguages("TaxiRide"));
+    assertDoesNotThrow(
+        () -> configuration
+            .validateWhatTheWorkflowsHaveToSay(
+                ConfigurationFixture.WORKFLOW_MODULE, List.of("TaxiRide")));
+
+    // the module holds a second process, and that one says nothing
+    final var deployed = assertThrows(
+        IllegalStateException.class,
+        () -> configuration
+            .validateWhatTheWorkflowsHaveToSay(
+                ConfigurationFixture.WORKFLOW_MODULE, List.of("TaxiRide", "Delivery")))
+        .getMessage();
+    assertTrue(
+        deployed
+            .contains(
+                "vanillabp.workflow-modules.test-module.workflows.Delivery.cockpit.i18n-languages"),
+        deployed);
+
+    // a workflow which says one of the two leaves the other one to the module
+    final var oneWorkflowIsSilent = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .withoutWorkflowModule("i18n-languages")
+            .withWorkflow("TaxiRide", "bpmn-description-language", "fr"),
+        false);
+    assertTrue(
+        oneWorkflowIsSilent
+            .contains("vanillabp.workflow-modules.test-module.cockpit.i18n-languages"),
+        oneWorkflowIsSilent);
+    assertTrue(
+        oneWorkflowIsSilent
+            .contains(
+                "vanillabp.workflow-modules.test-module.workflows.<process>.cockpit.i18n-languages"),
+        oneWorkflowIsSilent);
 
   }
 

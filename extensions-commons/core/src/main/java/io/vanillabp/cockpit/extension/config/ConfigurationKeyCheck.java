@@ -113,7 +113,7 @@ public final class ConfigurationKeyCheck {
   private static String defectOf(
       final String propertyName) {
 
-    final var name = withoutAnIndex(propertyName);
+    final var name = withoutAnIndex(withoutAProfile(propertyName));
     if (name.startsWith(ConfigurationKeys.GLOBAL_PREFIX
         + ".")) {
       final var key = name.substring(ConfigurationKeys.GLOBAL_PREFIX.length() + 1);
@@ -233,6 +233,28 @@ public final class ConfigurationKeyCheck {
       previous = current;
     }
     return previous[other.length()];
+
+  }
+
+  /**
+   * A key which holds for one profile is the same key: <code>%prod.vanillabp.cockpit.rest.log</code>
+   * is as gone as <code>vanillabp.cockpit.rest.log</code>, and a developer who misspelled it in a
+   * profile wants to hear about it there too. SmallRye usually hands the name over without the
+   * prefix, and where it does not, this is what takes it off.
+   *
+   * @param propertyName A property name as a platform spells it
+   * @return The name without the profile it holds for
+   */
+  private static String withoutAProfile(
+      final String propertyName) {
+
+    if (!propertyName.startsWith("%")) {
+      return propertyName;
+    }
+    final var name = propertyName.indexOf('.');
+    return name < 0
+        ? propertyName
+        : propertyName.substring(name + 1);
 
   }
 

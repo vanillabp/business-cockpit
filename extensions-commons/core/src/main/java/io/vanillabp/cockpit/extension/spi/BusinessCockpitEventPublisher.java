@@ -63,4 +63,33 @@ public interface BusinessCockpitEventPublisher {
       OffsetDateTime timestamp,
       EventTransaction transaction);
 
+
+  /**
+   * Whether user tasks are reported at all, which an application switches off with
+   * <code>vanillabp.cockpit.user-tasks-enabled</code>.
+   * <p>
+   * A BPMS half asks this to say why nothing was written: a report which was refused because one
+   * of the same task is still waiting looks exactly like a report nobody wanted, and a developer
+   * reading the log deserves to be told which of the two it was.
+   *
+   * @return Whether a reported user task reaches the cockpit
+   */
+  default boolean reportsUserTasks() {
+
+    return true;
+
+  }
+
+  /**
+   * Whether workflows are reported at all, which an application switches off with
+   * <code>vanillabp.cockpit.workflow-list-enabled</code>.
+   *
+   * @return Whether a reported workflow reaches the cockpit
+   */
+  default boolean reportsWorkflows() {
+
+    return true;
+
+  }
+
 }

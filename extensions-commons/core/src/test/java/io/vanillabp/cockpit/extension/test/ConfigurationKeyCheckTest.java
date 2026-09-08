@@ -110,6 +110,20 @@ public class ConfigurationKeyCheckTest {
   }
 
   @Test
+  @DisplayName("A key which holds for one profile is the same key")
+  public void aProfiledKeyIsTheSameKey() {
+
+    final var refusal = refusalOf("%prod.vanillabp.cockpit.rest.base-rul");
+
+    assertTrue(refusal.contains("rest.base-url"), refusal);
+
+    assertDoesNotThrow(
+        () -> ConfigurationKeyCheck
+            .refuseKeysNobodyReads(List.of("%dev.vanillabp.cockpit.rest.base-url")));
+
+  }
+
+  @Test
   @DisplayName("Every key of a boot is reported at once, not the first one only")
   public void everyKeyIsReportedAtOnce() {
 

@@ -91,8 +91,15 @@ public final class ConfigurationKeys {
   public static final String BPMN_DESCRIPTION_LANGUAGE = "bpmn-description-language";
 
   /**
-   * The group hierarchy: one entry per group, its value being the groups it stands for, e.g.
-   * <code>group-hierarchy.TEAM_LEAD: [TEAM_MEMBER, ASSISTANT]</code>.
+   * The group hierarchy: one entry per group, its value being the groups it stands for, written
+   * as version 1 wrote it.
+   *
+   * <pre>
+   * group-hierarchy:
+   *   TEAM_LEAD:
+   *     - TEAM_MEMBER
+   *     - ASSISTANT
+   * </pre>
    */
   public static final String GROUP_HIERARCHY = "group-hierarchy";
 
@@ -251,6 +258,26 @@ public final class ConfigurationKeys {
         ? "vanillabp.workflow-modules.%s.%s".formatted(workflowModuleId, COCKPIT_SECTION)
         : "vanillabp.workflow-modules.%s.%s.%s"
             .formatted(workflowModuleId, COCKPIT_SECTION, key);
+
+  }
+
+  /**
+   * The full property key of a setting of one workflow of a workflow module.
+   *
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The workflow
+   * @param key One of {@link #KEYS_OF_A_WORKFLOW}
+   * @return e.g.
+   *         <code>vanillabp.workflow-modules.taxi-ride.workflows.TaxiRide.cockpit.template-path</code>
+   */
+  public static String workflowKey(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String key) {
+
+    return "vanillabp.workflow-modules.%s.%s.%s.%s.%s"
+        .formatted(
+            workflowModuleId, WORKFLOWS_SECTION, bpmnProcessId, COCKPIT_SECTION, key);
 
   }
 

@@ -45,8 +45,10 @@ class BusinessCockpitExtensionProcessor {
    * Quarkus refuses such a key by itself while the application starts, because no configuration
    * mapping declares it - and it can only say that much. This runs while the application is
    * built, over what the configuration files say, and answers the question a developer actually
-   * has: which key was meant. A key which reaches the application at run time only - an
-   * environment variable of the container - is left to Quarkus and its own message.
+   * has: which key was meant. What it sees is the configuration of the build: an environment
+   * variable of the container, and a workflow module's own defaults file, are read when the
+   * application starts and are therefore left to Quarkus and its own message, which names the key
+   * without guessing what it should have been.
    *
    * @param validation Where a defect of the application is collected, so that the build ends
    *          with it rather than with a stack trace of this step

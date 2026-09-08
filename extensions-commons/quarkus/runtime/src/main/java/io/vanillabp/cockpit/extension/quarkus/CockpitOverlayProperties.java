@@ -545,7 +545,14 @@ public interface CockpitOverlayProperties {
     Map<String, UserTaskOverlay> userTasks();
 
     /**
-     * @return What this workflow said, as the neutral core reads it
+     * The workflows of a workflow module are the platform's as well, and a workflow which says
+     * nothing about the cockpit is no workflow of the cockpit: this mapping gets an entry for
+     * every workflow the application configured, whatever it configured there. A module whose
+     * workflows only carry adapter keys would otherwise look like a module which takes part in
+     * the cockpit, and the boot would end asking it for a workflow module URI.
+     *
+     * @return What this workflow said, as the neutral core reads it, or <code>null</code> where
+     *         it said nothing
      */
     default CockpitSettings.Workflow toSettings() {
 
@@ -553,10 +560,16 @@ public interface CockpitOverlayProperties {
       userTasks()
           .forEach((
               taskDefinition,
-              userTask) -> ofTheUserTasks
-                  .put(
-                      taskDefinition, new CockpitSettings.UserTask(
-                          userTask.cockpit().templatePath().orElse(null))));
+              userTask) -> userTask
+                  .cockpit()
+                  .templatePath()
+                  .ifPresent(
+                      templatePath -> ofTheUserTasks
+                          .put(taskDefinition, new CockpitSettings.UserTask(templatePath))));
+      if (cockpit().i18nLanguages().isEmpty() && cockpit().bpmnDescriptionLanguage().isEmpty() && cockpit()
+          .templatePath().isEmpty() && ofTheUserTasks.isEmpty()) {
+        return null;
+      }
       return new CockpitSettings.Workflow(
           cockpit().i18nLanguages().orElse(null), cockpit().bpmnDescriptionLanguage().orElse(null), cockpit()
               .templatePath().orElse(null), ofTheUserTasks);

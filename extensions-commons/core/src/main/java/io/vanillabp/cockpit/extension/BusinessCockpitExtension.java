@@ -290,6 +290,20 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   @Override
+  public boolean reportsUserTasks() {
+
+    return configuration.isUserTasksEnabled();
+
+  }
+
+  @Override
+  public boolean reportsWorkflows() {
+
+    return configuration.isWorkflowListEnabled();
+
+  }
+
+  @Override
   public boolean publishUserTaskEvent(
       final UserTaskReference userTask,
       final UserTaskEventKind kind,
@@ -462,8 +476,22 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <p>
    * A module which configured nothing about the cockpit is left out, the way it is left out of
    * everything else the extension does.
+   * <p>
+   * What a module left to its workflows is checked first, because only now is it known which
+   * workflows the module actually holds. Nothing is registered where one of them lacks what the
+   * module did not say, so an application hears about it here rather than at the first event of
+   * that one process.
    */
   public void registerStartedWorkflowModules() {
+
+    startedWorkflowModules
+        .stream()
+        .filter(configuration::reportsToTheCockpit)
+        .forEach(
+            workflowModuleId -> configuration
+                .validateWhatTheWorkflowsHaveToSay(
+                    workflowModuleId,
+                    bpmnProcessesPerWorkflowModule.getOrDefault(workflowModuleId, Set.of())));
 
     startedWorkflowModules
         .stream()

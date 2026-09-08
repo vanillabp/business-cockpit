@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -393,15 +394,17 @@ public final class BusinessCockpitConfiguration {
                       ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), host));
       return null;
     }
+    final var noPortNumber = "'%s' is '%s', which is no port number: a port is between 1 and 65535."
+        .formatted(ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), port);
     final int number;
     try {
       number = Integer.parseInt(port.trim());
     } catch (final NumberFormatException e) {
-      defects
-          .add(
-              "'%s' is '%s', which is no port number."
-                  .formatted(
-                      ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), port));
+      defects.add(noPortNumber);
+      return null;
+    }
+    if ((number < 1) || (number > 65535)) {
+      defects.add(noPortNumber);
       return null;
     }
     return new RestTransportConfiguration.Proxy(
@@ -710,19 +713,34 @@ public final class BusinessCockpitConfiguration {
     final var uiUriPath = required(
         workflowModuleId, settings.uiUriPath(), ConfigurationKeys.UI_URI_PATH, defects,
         "It is the path below the module's URI the forms are served from.");
-    final var i18nLanguages = requiredList(
-        workflowModuleId, settings.i18nLanguages(), ConfigurationKeys.I18N_LANGUAGES, defects,
-        "Write the languages titles are reported in, e.g. [en, de].");
-    final var bpmnDescriptionLanguage = templating
+    final var workflows = readWorkflows(workflowModule.workflows());
+    final var moduleSaysTheLanguages = (settings.i18nLanguages() != null) && !settings
+        .i18nLanguages()
+        .isEmpty();
+    if (!moduleSaysTheLanguages) {
+      refuseWhereAWorkflowIsSilent(
+          workflowModuleId, ConfigurationKeys.I18N_LANGUAGES, workflows, defects,
+          workflow -> workflow.i18nLanguages() != null,
+          "Write the languages titles are reported in, e.g. [en, de].");
+    }
+    final var i18nLanguages = moduleSaysTheLanguages ? settings.i18nLanguages() : null;
+
+    final var moduleSaysTheBpmnLanguage = (settings.bpmnDescriptionLanguage() != null) && !settings
+        .bpmnDescriptionLanguage()
+        .isBlank();
+    if (!templating && !moduleSaysTheBpmnLanguage) {
+      refuseWhereAWorkflowIsSilent(
+          workflowModuleId, ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE, workflows, defects,
+          workflow -> workflow.bpmnDescriptionLanguage() != null,
+          """
+              Without templates the cockpit reports the names written in the BPMN files, and it has \
+              to know which language they are in. Configure '%s' instead to render titles from \
+              templates."""
+              .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)));
+    }
+    final var bpmnDescriptionLanguage = moduleSaysTheBpmnLanguage
         ? settings.bpmnDescriptionLanguage()
-        : required(
-            workflowModuleId, settings.bpmnDescriptionLanguage(),
-            ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE, defects,
-            """
-                Without templates the cockpit reports the names written in the BPMN files, and it \
-                has to know which language they are in. Configure '%s' instead to render titles \
-                from templates."""
-                .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)));
+        : null;
 
     final var uiUriTypeValue = required(
         workflowModuleId, settings.uiUriType(), ConfigurationKeys.UI_URI_TYPE, defects,
@@ -752,7 +770,115 @@ public final class BusinessCockpitConfiguration {
         workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages, bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
             .isBlank()
                 ? workflowModuleId
-                : templatePath, readWorkflows(workflowModule.workflows()));
+                : templatePath, workflows);
+
+  }
+
+  /**
+   * A key of a workflow module which the module itself does not write, and which its workflows
+   * may write instead.
+   * <p>
+   * Version 1 asked for the language of a module's BPMN names and for the languages it reports in
+   * when the first event of a workflow arrived, so a module whose workflows all said it for
+   * themselves never had to. That rule is kept, and the boot only ends here where no workflow says
+   * it either. Whether the workflows which say it are ALL the workflows of the module is a
+   * question only the deployment answers, and it is answered by
+   * {@link #validateWhatTheWorkflowsHaveToSay} once VanillaBP has wired them.
+   *
+   * @param saysIt Whether one workflow's settings carry the key
+   * @param why What the message tells somebody who has to add the key
+   */
+  private static void refuseWhereAWorkflowIsSilent(
+      final String workflowModuleId,
+      final String key,
+      final Map<String, WorkflowConfiguration> workflows,
+      final List<String> defects,
+      final Predicate<WorkflowConfiguration> saysIt,
+      final String why) {
+
+    if (!workflows.isEmpty() && workflows.values().stream().allMatch(saysIt)) {
+      return;
+    }
+    defects
+        .add(
+            """
+                '%s' is missing. %s It may stand below a single workflow instead, at '%s', as long as \
+                every workflow of the module says it."""
+                .formatted(
+                    ConfigurationKeys.workflowModuleKey(workflowModuleId, key), why,
+                    ConfigurationKeys.workflowKey(workflowModuleId, "<process>", key)));
+
+  }
+
+  /**
+   * Ends the boot where a workflow module left a key to its workflows and one of the workflows
+   * VanillaBP deployed does not say it.
+   * <p>
+   * Which BPMN processes a workflow module holds is nothing the configuration knows: it is what
+   * the deployment found, so this runs when the modules are registered rather than when the
+   * configuration is read. A workflow which reports in no language and a workflow whose BPMN
+   * names are in an unknown language are what this spares the application, and they would
+   * otherwise surface at the first event of exactly that process.
+   *
+   * @param workflowModuleId The module which was deployed
+   * @param bpmnProcessIds The BPMN processes VanillaBP wired for it
+   * @throws IllegalStateException If one of them lacks what the module left out
+   */
+  public void validateWhatTheWorkflowsHaveToSay(
+      final String workflowModuleId,
+      final Collection<String> bpmnProcessIds) {
+
+    final var module = workflowModules.get(workflowModuleId);
+    if (module == null) {
+      return;
+    }
+    final var defects = new LinkedList<String>();
+    bpmnProcessIds
+        .forEach(bpmnProcessId -> {
+          if (module.i18nLanguages(bpmnProcessId).isEmpty()) {
+            defects
+                .add(
+                    """
+                        '%s' is missing, and workflow '%s' does not say it either. Write the languages \
+                        titles are reported in, e.g. [en, de]."""
+                        .formatted(
+                            ConfigurationKeys
+                                .workflowKey(
+                                    workflowModuleId, bpmnProcessId,
+                                    ConfigurationKeys.I18N_LANGUAGES),
+                            bpmnProcessId));
+          }
+          if (module.bpmnDescriptionLanguage(bpmnProcessId) == null) {
+            defects
+                .add(
+                    """
+                        '%s' is missing, and workflow '%s' does not say it either. Without templates \
+                        the cockpit reports the names written in the BPMN files, and it has to know \
+                        which language they are in."""
+                        .formatted(
+                            ConfigurationKeys
+                                .workflowKey(
+                                    workflowModuleId, bpmnProcessId,
+                                    ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE),
+                            bpmnProcessId));
+          }
+        });
+    if (defects.isEmpty()) {
+      return;
+    }
+    throw new IllegalStateException(
+        """
+            Workflow module '%s' left a setting of the Business Cockpit to its workflows, and one of \
+            them does not carry it:
+            %s"""
+            .formatted(
+                workflowModuleId,
+                defects.stream().map("  - "::concat).reduce((
+                    a,
+                    b) -> a
+                        + "\n"
+                        + b)
+                    .get()));
 
   }
 
@@ -814,22 +940,5 @@ public final class BusinessCockpitConfiguration {
 
   }
 
-  private static List<String> requiredList(
-      final String workflowModuleId,
-      final List<String> value,
-      final String key,
-      final List<String> defects,
-      final String why) {
-
-    if ((value != null) && !value.isEmpty()) {
-      return value;
-    }
-    defects
-        .add(
-            "'%s' is missing. %s".formatted(
-                ConfigurationKeys.workflowModuleKey(workflowModuleId, key), why));
-    return List.of();
-
-  }
 
 }
