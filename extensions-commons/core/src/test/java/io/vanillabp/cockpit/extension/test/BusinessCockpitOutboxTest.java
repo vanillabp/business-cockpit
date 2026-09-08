@@ -21,9 +21,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Which store an entry goes into, and what an application is told while it boots.
  * <p>
  * The attribution itself belongs to the platform and is asserted there. What is asserted here
- * is what the extension makes of the answer: the store is resolved for every aggregate while
- * the application starts, the one store they share carries what names no aggregate, and each
- * gap ends the boot with a message naming the way out.
+ * is what the extension makes of the answer: the store of every aggregate is resolved while the
+ * application starts, an event naming a BPMN process reaches the store of the aggregate that
+ * process is served through, and each gap ends the boot with a message naming the way out.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitOutboxTest {
@@ -68,31 +68,53 @@ public class BusinessCockpitOutboxTest {
         Map.<Class<?>, PhaseTwoOutbox>of(
             OrderAggregate.class, RELATIONAL, ShipmentAggregate.class, RELATIONAL),
         List.of(RELATIONAL));
-    outbox.validateAtStartup(List.of(OrderAggregate.class, ShipmentAggregate.class));
+    outbox
+        .validateAtStartup(
+            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
 
     assertSame(RELATIONAL, outbox.ofWorkflowAggregate(OrderAggregate.class));
-    assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "TestProcess"));
-    assertSame(RELATIONAL, outbox.ofWorkflowModuleRegistration("test-module"));
+    assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "Order"));
+    assertSame(
+        RELATIONAL, outbox.ofWorkflowModuleRegistration("test-module", List.of("Order")));
 
   }
 
   @Test
-  @DisplayName("Aggregates living in different stores end the boot, naming both")
-  public void aggregatesInDifferentStoresEndTheBoot() {
+  @DisplayName("Aggregates in two stores are served each from its own")
+  public void eachAggregateIsServedFromItsOwnStore() {
 
     final var outbox = outboxOf(
         Map.<Class<?>, PhaseTwoOutbox>of(
             OrderAggregate.class, RELATIONAL, ShipmentAggregate.class, DOCUMENTS),
         List.of(RELATIONAL, DOCUMENTS));
+    outbox
+        .validateAtStartup(
+            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
 
-    final var failure = assertThrows(
-        IllegalStateException.class,
-        () -> outbox.validateAtStartup(List.of(OrderAggregate.class, ShipmentAggregate.class)));
+    assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "Order"));
+    assertSame(DOCUMENTS, outbox.ofEventObservedByABpms("test-module", "Shipment"));
 
-    assertTrue(failure.getMessage().contains(OrderAggregate.class.getName()), failure.getMessage());
-    assertTrue(
-        failure.getMessage().contains(ShipmentAggregate.class.getName()), failure.getMessage());
-    assertTrue(failure.getMessage().contains("one persistence"), failure.getMessage());
+  }
+
+  @Test
+  @DisplayName("The registration of a module goes into the store of the module's first aggregate")
+  public void theRegistrationFollowsTheModulesOwnAggregates() {
+
+    final var outbox = outboxOf(
+        Map.<Class<?>, PhaseTwoOutbox>of(
+            OrderAggregate.class, RELATIONAL, ShipmentAggregate.class, DOCUMENTS),
+        List.of(RELATIONAL, DOCUMENTS));
+    outbox
+        .validateAtStartup(
+            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
+
+    assertSame(
+        DOCUMENTS,
+        outbox.ofWorkflowModuleRegistration("shipping", List.of("Shipment")));
+    // by class name, so that a restart writes the registration into the same store again
+    assertSame(
+        RELATIONAL,
+        outbox.ofWorkflowModuleRegistration("both", List.of("Shipment", "Order")));
 
   }
 
@@ -104,7 +126,7 @@ public class BusinessCockpitOutboxTest {
 
     final var failure = assertThrows(
         IllegalStateException.class,
-        () -> outbox.validateAtStartup(List.of(OrderAggregate.class)));
+        () -> outbox.validateAtStartup(Map.of("Order", OrderAggregate.class)));
 
     assertTrue(failure.getMessage().contains(REMEDIES), failure.getMessage());
     assertTrue(
@@ -118,26 +140,34 @@ public class BusinessCockpitOutboxTest {
   public void withoutAnyAggregateTheSingleStoreCarries() {
 
     final var outbox = outboxOf(Map.of(), List.of(RELATIONAL));
-    outbox.validateAtStartup(List.of());
+    outbox.validateAtStartup(Map.of());
 
     assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "TestProcess"));
-    assertSame(RELATIONAL, outbox.ofWorkflowModuleRegistration("test-module"));
+    assertSame(
+        RELATIONAL, outbox.ofWorkflowModuleRegistration("test-module", List.of("TestProcess")));
 
   }
 
   @Test
-  @DisplayName("Without an aggregate and with several stores the message names the module")
-  public void withoutAnyAggregateSeveralStoresAreAmbiguous() {
+  @DisplayName("An unknown BPMN process with several stores is told which processes are known")
+  public void anUnknownProcessWithSeveralStoresIsAmbiguous() {
 
-    final var outbox = outboxOf(Map.of(), List.of(RELATIONAL, DOCUMENTS));
-    outbox.validateAtStartup(List.of());
+    final var outbox = outboxOf(
+        Map.<Class<?>, PhaseTwoOutbox>of(
+            OrderAggregate.class, RELATIONAL, ShipmentAggregate.class, DOCUMENTS),
+        List.of(RELATIONAL, DOCUMENTS));
+    outbox
+        .validateAtStartup(
+            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
 
     final var failure = assertThrows(
         IllegalStateException.class,
-        () -> outbox.ofEventObservedByABpms("test-module", "TestProcess"));
+        () -> outbox.ofEventObservedByABpms("test-module", "Unwired"));
 
     assertTrue(failure.getMessage().contains("test-module"), failure.getMessage());
-    assertTrue(failure.getMessage().contains("TestProcess"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("Unwired"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("Order"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("@WorkflowService"), failure.getMessage());
 
   }
 
@@ -149,7 +179,7 @@ public class BusinessCockpitOutboxTest {
 
     final var failure = assertThrows(
         IllegalStateException.class,
-        () -> outbox.ofWorkflowModuleRegistration("test-module"));
+        () -> outbox.ofWorkflowModuleRegistration("test-module", List.of()));
 
     assertTrue(failure.getMessage().contains("test-module"), failure.getMessage());
     assertTrue(failure.getMessage().contains(REMEDIES), failure.getMessage());

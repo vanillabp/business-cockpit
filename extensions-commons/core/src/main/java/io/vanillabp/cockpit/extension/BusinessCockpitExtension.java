@@ -86,6 +86,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
 
   /**
+   * The BPMN processes each workflow module deployed, in the order VanillaBP wired them. It is
+   * what makes the registration of a module land in a store of one of the module's own
+   * aggregates rather than in a store of some other module's.
+   */
+  private final Map<String, Set<String>> bpmnProcessesPerWorkflowModule = new ConcurrentHashMap<>();
+
+  /**
    * @param configuration What the application configured, already validated
    * @param transport Where the events go
    * @param bridges The BPMS halves, one per configured adapter id
@@ -189,36 +196,87 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    *
    * @param workflowServiceClasses The classes of the application carrying
    *          <code>&#64;WorkflowService</code>
-   * @throws IllegalStateException If a store is missing, cannot be attributed to an aggregate,
-   *           or the aggregates do not share one - see decision 12 in the repository's
-   *           DECISIONS.md
+   * @throws IllegalStateException If a store is missing or cannot be attributed to an
+   *           aggregate, or if two workflow services claim one BPMN process for two aggregates
+   *           - see decision 13 in the repository's DECISIONS.md
    */
   public void validateOutboxAttribution(
       final Collection<Class<?>> workflowServiceClasses) {
 
-    outbox.validateAtStartup(workflowAggregateClassesOf(workflowServiceClasses));
+    outbox.validateAtStartup(workflowAggregatesByBpmnProcessId(workflowServiceClasses));
 
   }
 
   /**
-   * The workflow aggregates the application's services are written for, each named once. A
-   * class serving several BPMN processes names its aggregate in each of them, and several
-   * services may share one aggregate.
+   * The workflow aggregate every BPMN process of the application is served through.
+   * <p>
+   * A workflow service declares both: the aggregate it is written for, and the processes it
+   * serves - its primary one and whatever it names as secondary, which is the process called by
+   * a call activity and the process which was renamed. That is what turns an event naming a
+   * BPMN process into the class whose transaction the entry has to ride.
+   * <p>
+   * Two workflow services may declare the same process, one per generation of the model. They
+   * are written for the same aggregate then; two aggregates on one process would make the store
+   * of an event depend on which class was scanned first, so it ends the boot.
    *
    * @param workflowServiceClasses The classes carrying <code>&#64;WorkflowService</code>
-   * @return Their aggregates
+   * @return The aggregate of every BPMN process
    */
-  private static Collection<Class<?>> workflowAggregateClassesOf(
+  private static Map<String, Class<?>> workflowAggregatesByBpmnProcessId(
       final Collection<Class<?>> workflowServiceClasses) {
 
-    final Collection<Class<?>> aggregates = new LinkedHashSet<>();
+    final var aggregates = new LinkedHashMap<String, Class<?>>();
+    final var declaredBy = new LinkedHashMap<String, Class<?>>();
     for (final var workflowServiceClass : workflowServiceClasses) {
       final var annotation = workflowServiceClass.getAnnotation(WorkflowService.class);
-      if (annotation != null) {
-        aggregates.add(annotation.workflowAggregateClass());
+      if (annotation == null) {
+        continue;
+      }
+      for (final var bpmnProcessId : bpmnProcessIdsOf(annotation, workflowServiceClass)) {
+        final var previous = aggregates
+            .put(bpmnProcessId, annotation.workflowAggregateClass());
+        final var previouslyDeclaredBy = declaredBy.put(bpmnProcessId, workflowServiceClass);
+        if ((previous != null) && !previous.equals(annotation.workflowAggregateClass())) {
+          throw new IllegalStateException(
+              """
+                  The workflow services %s and %s both serve the BPMN process '%s' but are written \
+                  for different workflow aggregates (%s and %s). The Business Cockpit writes the \
+                  report of an event into the outbox store of the aggregate the workflow belongs \
+                  to, and which of the two that is cannot be answered. Let one aggregate serve the \
+                  process."""
+                  .formatted(
+                      previouslyDeclaredBy.getName(), workflowServiceClass.getName(),
+                      bpmnProcessId, previous.getName(),
+                      annotation.workflowAggregateClass().getName()));
+        }
       }
     }
     return aggregates;
+
+  }
+
+  /**
+   * @param annotation What the workflow service declared
+   * @param workflowServiceClass The service, whose simple name is the BPMN process id by
+   *          convention where the annotation names none
+   * @return Every BPMN process the service serves
+   */
+  private static Collection<String> bpmnProcessIdsOf(
+      final WorkflowService annotation,
+      final Class<?> workflowServiceClass) {
+
+    final var bpmnProcessIds = new LinkedHashSet<String>();
+    bpmnProcessIds
+        .add(
+            annotation.bpmnProcess().bpmnProcessId().isEmpty()
+                ? workflowServiceClass.getSimpleName()
+                : annotation.bpmnProcess().bpmnProcessId());
+    for (final var secondary : annotation.secondaryBpmnProcesses()) {
+      if (!secondary.bpmnProcessId().isEmpty()) {
+        bpmnProcessIds.add(secondary.bpmnProcessId());
+      }
+    }
+    return bpmnProcessIds;
 
   }
 
@@ -362,6 +420,27 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
+   * Notes which workflow module a BPMN process was deployed by, which VanillaBP says once per
+   * file while it wires them.
+   * <p>
+   * The registration of a workflow module belongs to no workflow aggregate, and it is written
+   * into the store of one of the module's own aggregates - so the module has to be known to
+   * hold them.
+   *
+   * @param workflowModuleId The module
+   * @param bpmnProcessId One of its BPMN processes
+   */
+  public void workflowWired(
+      final String workflowModuleId,
+      final String bpmnProcessId) {
+
+    bpmnProcessesPerWorkflowModule
+        .computeIfAbsent(workflowModuleId, ignored -> ConcurrentHashMap.newKeySet())
+        .add(bpmnProcessId);
+
+  }
+
+  /**
    * Schedules the registration of every workflow module which started.
    * <p>
    * This happens when the application is up rather than while its workflow modules are being
@@ -383,7 +462,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         .forEach(
             workflowModuleId -> transactionRunner
                 .requireNew(() -> outbox
-                    .ofWorkflowModuleRegistration(workflowModuleId)
+                    .ofWorkflowModuleRegistration(
+                        workflowModuleId,
+                        bpmnProcessesPerWorkflowModule
+                            .getOrDefault(workflowModuleId, Set.of()))
                     .schedule(
                         PhaseTwoCall
                             .of(

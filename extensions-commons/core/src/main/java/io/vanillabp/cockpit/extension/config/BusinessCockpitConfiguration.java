@@ -1,12 +1,18 @@
 package io.vanillabp.cockpit.extension.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +170,7 @@ public final class BusinessCockpitConfiguration {
     final var defects = new LinkedList<String>();
     final var global = properties.extensionProperties(null, ConfigurationKeys.EXTENSION_ID);
 
-    final var rest = readRest(global);
+    final var rest = readRest(global, defects);
     final var kafka = readKafka(global, defects);
     validateTransportChoice(rest, kafka, defects);
 
@@ -251,14 +257,248 @@ public final class BusinessCockpitConfiguration {
   }
 
   private static RestTransportConfiguration readRest(
-      final Map<String, String> global) {
+      final Map<String, String> global,
+      final List<String> defects) {
 
     final var baseUrl = global.get(ConfigurationKeys.REST_BASE_URL);
     if ((baseUrl == null) || baseUrl.isBlank()) {
       return null;
     }
+    final var connectTimeout = duration(global, ConfigurationKeys.REST_CONNECT_TIMEOUT, defects);
+    final var readTimeout = duration(global, ConfigurationKeys.REST_READ_TIMEOUT, defects);
+    final var proxy = readProxy(global, defects);
+    final var verifySsl = flag(global, ConfigurationKeys.REST_VERIFY_SSL, true, defects);
+    final var truststore = readTruststore(global, defects);
+    final var oauth = readOauth(global, defects);
     return new RestTransportConfiguration(
-        baseUrl, global.get(ConfigurationKeys.REST_USERNAME), global.get(ConfigurationKeys.REST_PASSWORD));
+        baseUrl, global.get(ConfigurationKeys.REST_USERNAME), global
+            .get(ConfigurationKeys.REST_PASSWORD), connectTimeout, readTimeout, proxy, verifySsl, truststore, global
+                .get(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD), oauth);
+
+  }
+
+  /**
+   * The proxy the cockpit server is reached through, where one was configured.
+   * <p>
+   * The host is what switches the proxy on, the way the base URL switches the REST transport
+   * on: a port without a host configures nothing and is more likely a leftover than a wish, so
+   * it is reported rather than ignored.
+   */
+  private static RestTransportConfiguration.Proxy readProxy(
+      final Map<String, String> global,
+      final List<String> defects) {
+
+    final var host = global.get(ConfigurationKeys.REST_PROXY_HOST);
+    final var port = global.get(ConfigurationKeys.REST_PROXY_PORT);
+    if ((host == null) || host.isBlank()) {
+      if ((port != null) && !port.isBlank()) {
+        defects
+            .add(
+                """
+                    '%s' is set to '%s' but '%s' is missing, so no proxy is used at all. Name the \
+                    proxy's host as well, or remove the port."""
+                    .formatted(
+                        ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), port,
+                        ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_HOST)));
+      }
+      return null;
+    }
+    if ((port == null) || port.isBlank()) {
+      defects
+          .add(
+              """
+                  '%s' is missing. The proxy at '%s' is reached on a port, and there is no port a \
+                  proxy has by convention."""
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), host));
+      return null;
+    }
+    final int number;
+    try {
+      number = Integer.parseInt(port.trim());
+    } catch (final NumberFormatException e) {
+      defects
+          .add(
+              "'%s' is '%s', which is no port number."
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), port));
+      return null;
+    }
+    return new RestTransportConfiguration.Proxy(
+        host, number, global.get(ConfigurationKeys.REST_PROXY_USERNAME), global
+            .get(ConfigurationKeys.REST_PROXY_PASSWORD));
+
+  }
+
+  /**
+   * The file holding the certificates the cockpit server's is checked against.
+   * <p>
+   * The file is opened while the application starts rather than at the first report: a
+   * truststore which cannot be read is a deployment which was assembled wrongly, and finding
+   * that out when the first user task is reported means finding it out in production.
+   */
+  private static String readTruststore(
+      final Map<String, String> global,
+      final List<String> defects) {
+
+    final var filename = global.get(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME);
+    if ((filename == null) || filename.isBlank()) {
+      if ((global.get(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD) != null)) {
+        defects
+            .add(
+                """
+                    '%s' is set but '%s' is missing, so nothing is loaded with that password. Name \
+                    the truststore as well, or remove the password."""
+                    .formatted(
+                        ConfigurationKeys
+                            .globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD),
+                        ConfigurationKeys
+                            .globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME)));
+      }
+      return null;
+    }
+    if (!Files.isReadable(Path.of(filename))) {
+      defects
+          .add(
+              """
+                  '%s' names '%s', which this application cannot read. Write the path the truststore \
+                  has in the running container, not the one it has in your project."""
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME),
+                      filename));
+      return null;
+    }
+    return filename;
+
+  }
+
+  /**
+   * The client-credentials flow, where one was configured. The address of the authorization
+   * server switches it on, and the two halves of the client's identity are needed with it.
+   */
+  private static RestTransportConfiguration.OAuth readOauth(
+      final Map<String, String> global,
+      final List<String> defects) {
+
+    final var tokenUrl = global.get(ConfigurationKeys.REST_OAUTH_BASE_URL);
+    final var clientId = global.get(ConfigurationKeys.REST_OAUTH_CLIENT_ID);
+    final var clientSecret = global.get(ConfigurationKeys.REST_OAUTH_CLIENT_SECRET);
+    if ((tokenUrl == null) || tokenUrl.isBlank()) {
+      if (((clientId != null) && !clientId.isBlank()) || ((clientSecret != null) && !clientSecret.isBlank())) {
+        defects
+            .add(
+                """
+                    A client of the Business Cockpit's authorization server is configured but '%s' is \
+                    missing, so no token is ever fetched. Name the address tokens are issued under."""
+                    .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_BASE_URL)));
+      }
+      return null;
+    }
+    final var missing = new ArrayList<String>();
+    if ((clientId == null) || clientId.isBlank()) {
+      missing.add(ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_CLIENT_ID));
+    }
+    if ((clientSecret == null) || clientSecret.isBlank()) {
+      missing.add(ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_CLIENT_SECRET));
+    }
+    if (!missing.isEmpty()) {
+      defects
+          .add(
+              """
+                  The client-credentials flow to '%s' is configured without %s. There is no user in \
+                  this flow: the workflow module is the client, and it identifies itself with both \
+                  halves."""
+                  .formatted(tokenUrl, String.join(" and without ", missing)));
+      return null;
+    }
+    if ((global.get(ConfigurationKeys.REST_USERNAME) != null)) {
+      defects
+          .add(
+              """
+                  '%s' and '%s' are both configured, so it is undecided whether the cockpit server is \
+                  called with a basic authentication or with a bearer token. Remove one of them."""
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_USERNAME),
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_BASE_URL)));
+    }
+    return new RestTransportConfiguration.OAuth(
+        tokenUrl, clientId, clientSecret, flag(global, ConfigurationKeys.REST_OAUTH_BASIC, false, defects));
+
+  }
+
+  /**
+   * A span of time as both platforms let one be written: ISO-8601 (<code>PT1.5S</code>) and the
+   * shorter spelling a developer expects from Spring Boot and from Quarkus
+   * (<code>1500ms</code>, <code>10s</code>).
+   */
+  private static Duration duration(
+      final Map<String, String> settings,
+      final String key,
+      final List<String> defects) {
+
+    final var value = settings.get(key);
+    if ((value == null) || value.isBlank()) {
+      return null;
+    }
+    try {
+      return parseDuration(value.trim());
+    } catch (final RuntimeException e) {
+      defects
+          .add(
+              """
+                  '%s' is '%s', which is no span of time. Write it as ISO-8601 ('PT10S') or with a \
+                  unit ('10s', '1500ms', '2m')."""
+                  .formatted(ConfigurationKeys.globalKey(key), value));
+      return null;
+    }
+
+  }
+
+  private static Duration parseDuration(
+      final String value) {
+
+    final var lower = value.toLowerCase(Locale.ROOT);
+    if (lower.startsWith("p")) {
+      return Duration.parse(lower);
+    }
+    for (final var unit : new String[]{
+        "ms", "s", "m", "h"
+    }) {
+      if (lower.endsWith(unit)) {
+        final var amount = Long.parseLong(lower.substring(0, lower.length() - unit.length()).trim());
+        return switch (unit) {
+          case "ms" -> Duration.ofMillis(amount);
+          case "s" -> Duration.ofSeconds(amount);
+          case "m" -> Duration.ofMinutes(amount);
+          default -> Duration.ofHours(amount);
+        };
+      }
+    }
+    throw new DateTimeParseException("no unit and no ISO-8601 spelling", value, 0);
+
+  }
+
+  private static boolean flag(
+      final Map<String, String> settings,
+      final String key,
+      final boolean whenNothingIsConfigured,
+      final List<String> defects) {
+
+    final var value = settings.get(key);
+    if ((value == null) || value.isBlank()) {
+      return whenNothingIsConfigured;
+    }
+    if ("true".equalsIgnoreCase(value.trim())) {
+      return true;
+    }
+    if ("false".equalsIgnoreCase(value.trim())) {
+      return false;
+    }
+    defects
+        .add(
+            "'%s' is '%s'. Write 'true' or 'false'."
+                .formatted(ConfigurationKeys.globalKey(key), value));
+    return whenNothingIsConfigured;
 
   }
 
@@ -411,7 +651,142 @@ public final class BusinessCockpitConfiguration {
     return new WorkflowModuleConfiguration(
         workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages == null ? List.of() : List.copyOf(
             splitList(i18nLanguages)), bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
-                .isBlank() ? workflowModuleId : templatePath);
+                .isBlank() ? workflowModuleId : templatePath, readWorkflows(workflowModuleId, settings, defects));
+
+  }
+
+  /**
+   * What single workflows of a module, and single user tasks of those workflows, said about the
+   * cockpit.
+   * <p>
+   * Only three of the module's keys mean anything one workflow at a time - the language its
+   * titles are written in, the languages they are reported in, and the directory its templates
+   * live in - and only the last of them means anything for a single user task. A key which
+   * stands below <code>workflows</code> and is none of those is reported: it looks like a
+   * setting and is read by nobody, which is the kind of configuration a developer stares at for
+   * an afternoon.
+   * <p>
+   * The key is read from its END rather than by counting dots, because a BPMN process id and a
+   * task definition may contain dots themselves and both platforms hand the section over as one
+   * flat map.
+   */
+  private static Map<String, WorkflowConfiguration> readWorkflows(
+      final String workflowModuleId,
+      final Map<String, String> settings,
+      final List<String> defects) {
+
+    final var ofTheWorkflows = new LinkedHashMap<String, Map<String, String>>();
+    final var ofTheUserTasks = new LinkedHashMap<String, Map<String, Map<String, String>>>();
+    settings
+        .forEach((
+            key,
+            value) -> {
+          if (!key.startsWith(ConfigurationKeys.WORKFLOWS_PREFIX)) {
+            return;
+          }
+          final var belowTheWorkflows = key
+              .substring(ConfigurationKeys.WORKFLOWS_PREFIX.length());
+          final var userTasks = belowTheWorkflows
+              .lastIndexOf(ConfigurationKeys.USER_TASKS_INFIX);
+          if (userTasks < 0) {
+            final var setting = endingIn(
+                belowTheWorkflows, ConfigurationKeys.KEYS_OF_A_WORKFLOW);
+            if (setting == null) {
+              defects
+                  .add(
+                      """
+                          '%s' is no setting a single workflow has. A workflow may differ from its \
+                          workflow module in %s; everything else the Business Cockpit reads is \
+                          configured for the whole module."""
+                          .formatted(
+                              ConfigurationKeys.workflowModuleKey(workflowModuleId, key),
+                              String.join(", ", ConfigurationKeys.KEYS_OF_A_WORKFLOW)));
+              return;
+            }
+            ofTheWorkflows
+                .computeIfAbsent(
+                    withoutTheSetting(belowTheWorkflows, setting),
+                    ignored -> new LinkedHashMap<>())
+                .put(setting, value);
+            return;
+          }
+          final var belowTheUserTasks = belowTheWorkflows
+              .substring(userTasks + ConfigurationKeys.USER_TASKS_INFIX.length());
+          final var setting = endingIn(belowTheUserTasks, ConfigurationKeys.KEYS_OF_A_USER_TASK);
+          if (setting == null) {
+            defects
+                .add(
+                    """
+                        '%s' is no setting a single user task has. A user task may differ from its \
+                        workflow in %s and in nothing else."""
+                        .formatted(
+                            ConfigurationKeys.workflowModuleKey(workflowModuleId, key),
+                            String.join(", ", ConfigurationKeys.KEYS_OF_A_USER_TASK)));
+            return;
+          }
+          ofTheUserTasks
+              .computeIfAbsent(
+                  belowTheWorkflows.substring(0, userTasks), ignored -> new LinkedHashMap<>())
+              .computeIfAbsent(
+                  withoutTheSetting(belowTheUserTasks, setting),
+                  ignored -> new LinkedHashMap<>())
+              .put(setting, value);
+        });
+
+    final var workflows = new LinkedHashMap<String, WorkflowConfiguration>();
+    Stream
+        .concat(ofTheWorkflows.keySet().stream(), ofTheUserTasks.keySet().stream())
+        .distinct()
+        .forEach(bpmnProcessId -> {
+          final var ofTheWorkflow = ofTheWorkflows.getOrDefault(bpmnProcessId, Map.of());
+          final var templatePathPerUserTask = new LinkedHashMap<String, String>();
+          ofTheUserTasks
+              .getOrDefault(bpmnProcessId, Map.of())
+              .forEach((
+                  taskDefinition,
+                  ofTheTask) -> templatePathPerUserTask
+                      .put(taskDefinition, ofTheTask.get(ConfigurationKeys.TEMPLATE_PATH)));
+          final var i18nLanguages = ofTheWorkflow.get(ConfigurationKeys.I18N_LANGUAGES);
+          workflows
+              .put(
+                  bpmnProcessId,
+                  new WorkflowConfiguration(
+                      bpmnProcessId, i18nLanguages == null ? null : splitList(i18nLanguages), ofTheWorkflow
+                          .get(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), ofTheWorkflow
+                              .get(ConfigurationKeys.TEMPLATE_PATH), templatePathPerUserTask));
+        });
+    return workflows;
+
+  }
+
+  /**
+   * @param key What stands below a workflow or below a user task
+   * @param settings The keys that level owns
+   * @return The one it ends in, or <code>null</code> where it ends in none of them
+   */
+  private static String endingIn(
+      final String key,
+      final List<String> settings) {
+
+    return settings
+        .stream()
+        .filter(setting -> key.endsWith("."
+            + setting))
+        .findFirst()
+        .orElse(null);
+
+  }
+
+  /**
+   * @param key What stands below a workflow or below a user task
+   * @param setting The setting it ends in
+   * @return What is left, which is the BPMN process id respectively the task definition
+   */
+  private static String withoutTheSetting(
+      final String key,
+      final String setting) {
+
+    return key.substring(0, key.length() - setting.length() - 1);
 
   }
 

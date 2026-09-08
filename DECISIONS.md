@@ -176,7 +176,7 @@ there.
 An entry naming an adapter id no BPMS half serves stays repeatable, because the jar carrying that
 half may be missing from one deployment and back in the next.
 
-### 12. The store of an entry is VanillaBP's answer, asked while the application boots
+### 12. The store of an entry is VanillaBP's answer, asked while the application boots - the shared-store rule superseded by decision 13
 
 The extension never attributes a store itself. It asks the platform's `PhaseTwoOutboxResolver` -
 a bean on Spring Boot and, since the Quarkus integration offers it as one, on Quarkus as well - so
@@ -198,3 +198,33 @@ aggregate class is written into - an event a BPMS observed names a workflow modu
 and a serialized id, and nothing in either SPI turns that into a class. An application whose
 aggregates live in different stores has no such store and is told while it boots; letting it start
 and fail at the first user task would be the same defect one report later.
+
+Superseded by decision 13: "nothing turns that into a class" was wrong. The workflow service
+serving the BPMN process names the aggregate it is written for, so an application whose aggregates
+live in two stores is served rather than refused.
+
+### 13. The BPMN process an event names is what its outbox store is looked up by
+
+An event a BPMS observed carries a workflow module, a BPMN process and a serialized id, and the
+store it belongs in is the one holding the workflow aggregate. The class is not carried, and it does
+not have to be: `@WorkflowService` declares both halves - the aggregate the service is written for
+and the BPMN processes it serves, the primary one and whatever it names as secondary. Reading the
+annotations of the application while it boots turns every one of its BPMN processes into the
+aggregate class, and that class into VanillaBP's answer about the store.
+
+Two workflow services may declare the same process, one per generation of the model, and they are
+written for the same aggregate then. Two aggregates on one process would make the store of a report
+depend on which class was scanned first, so that ends the boot.
+
+The registration of a workflow module belongs to no aggregate at all and is written in a
+transaction of its own, so any store carries it correctly. Which one has to be the same after a
+restart, because two entries of the same registration in two stores would be sent twice: it is the
+store of the module's first aggregate by class name, and the module's aggregates are known because
+VanillaBP says which module deployed which BPMN process while it wires them.
+
+What is left of decision 12 is its point: the extension never attributes a store itself, it asks the
+platform's resolver. What changes is that an application with two persistences no longer has to
+choose between the Business Cockpit and its own architecture. A report whose BPMN process belongs to
+no workflow service is still refused, with the declared processes named, because nobody can say
+where it goes. An application holding a single store is spared even that: with one store there is
+nothing to decide.

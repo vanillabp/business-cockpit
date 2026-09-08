@@ -18,6 +18,14 @@ public enum EventTransaction {
    * A thread which carries no transaction is a defect and is answered with a message saying so,
    * rather than with an entry committed on its own: an entry written outside the transaction
    * would report an event whether or not what caused it survived.
+   * <p>
+   * On Quarkus this joins a JTA transaction, and joining one means every resource it reaches
+   * has to be enlistable. An engine running on a data source of its own therefore needs EVERY
+   * data source of the application declared as XA
+   * (<code>quarkus.datasource.&lt;name&gt;.jdbc.transactions=xa</code>), the one the outbox
+   * store writes into included. Without that the entry fails with "Failed to enlist" the moment
+   * a BPMS half reports with this value, and the report is lost together with the engine's own
+   * transaction.
    */
   CURRENT,
 

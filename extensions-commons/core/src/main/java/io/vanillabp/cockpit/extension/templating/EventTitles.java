@@ -46,7 +46,8 @@ public final class EventTitles {
       final String bpmnTaskName,
       final String bpmnProcessName) {
 
-    final var languages = languagesOf(event.getI18nLanguages(), module);
+    final var languages = languagesOf(
+        event.getI18nLanguages(), module, event.getBpmnProcessId());
     event.setI18nLanguages(languages);
     final var lookupPaths = lookupPaths(
         module, event.getBpmnProcessId(), event.getTaskDefinition());
@@ -64,7 +65,7 @@ public final class EventTitles {
           Templating.TASK_DEFINITION_TITLE, lookupPaths, templating,
           event.getTemplateContext());
     }
-    final var bpmnLanguage = module.bpmnDescriptionLanguage();
+    final var bpmnLanguage = module.bpmnDescriptionLanguage(event.getBpmnProcessId());
     fallBackToTheBpmnName(
         event.getWorkflowTitle(), event::setWorkflowTitle, bpmnLanguage, bpmnProcessName);
     fallBackToTheBpmnName(event.getTitle(), event::setTitle, bpmnLanguage, bpmnTaskName);
@@ -102,7 +103,8 @@ public final class EventTitles {
       final Templating templating,
       final String bpmnProcessName) {
 
-    final var languages = languagesOf(event.getI18nLanguages(), module);
+    final var languages = languagesOf(
+        event.getI18nLanguages(), module, event.getBpmnProcessId());
     event.setI18nLanguages(languages);
     final var lookupPaths = lookupPaths(module, event.getBpmnProcessId(), null);
 
@@ -112,7 +114,8 @@ public final class EventTitles {
           Templating.WORKFLOW_TITLE, lookupPaths, templating, event.getTemplateContext());
     }
     fallBackToTheBpmnName(
-        event.getTitle(), event::setTitle, module.bpmnDescriptionLanguage(), bpmnProcessName);
+        event.getTitle(), event::setTitle,
+        module.bpmnDescriptionLanguage(event.getBpmnProcessId()), bpmnProcessName);
 
     if (event.getDetailsFulltextSearch() == null) {
       templating
@@ -127,9 +130,10 @@ public final class EventTitles {
 
   /**
    * The directories a template is looked for in, most specific first: everything below the
-   * module's own path, narrowed by the BPMN process and then by the task definition. A module
-   * which configured no path contributes its id, which is what makes a module's templates land
-   * in a directory of the module's name without anybody configuring it.
+   * module's own path, narrowed by the BPMN process and then by the task definition. Each of
+   * the three levels contributes the segment it configured, and its own id where it configured
+   * none - which is what makes a module's templates land in a directory of the module's name
+   * without anybody configuring it.
    *
    * @param module The workflow module's settings
    * @param bpmnProcessId The BPMN process, may be <code>null</code>
@@ -145,9 +149,9 @@ public final class EventTitles {
     segments.add(module.templatePath());
     final var paths = new LinkedList<String>();
     if ((bpmnProcessId != null) && !bpmnProcessId.isBlank()) {
-      segments.add(bpmnProcessId);
+      segments.add(module.templatePathOfWorkflow(bpmnProcessId));
       if ((taskDefinition != null) && !taskDefinition.isBlank()) {
-        segments.add(taskDefinition);
+        segments.add(module.templatePathOfUserTask(bpmnProcessId, taskDefinition));
         paths.add(String.join("/", segments));
         segments.removeLast();
       }
@@ -220,12 +224,13 @@ public final class EventTitles {
 
   private static List<String> languagesOf(
       final List<String> ofEvent,
-      final WorkflowModuleConfiguration module) {
+      final WorkflowModuleConfiguration module,
+      final String bpmnProcessId) {
 
     if ((ofEvent != null) && !ofEvent.isEmpty()) {
       return ofEvent;
     }
-    return module.i18nLanguages();
+    return module.i18nLanguages(bpmnProcessId);
 
   }
 

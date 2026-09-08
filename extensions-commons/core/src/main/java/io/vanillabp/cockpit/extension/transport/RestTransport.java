@@ -25,6 +25,10 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * The client is the one generated from the cockpit's own OpenAPI document, so the payloads
  * cannot drift from what the server accepts.
  * <p>
+ * What stands between the workflow module and the server - a proxy, a certificate its own
+ * authority signed, an authorization server issuing the token - is configured too, and where
+ * nothing of that is configured the client keeps the stack it was generated with.
+ * <p>
  * What the server answers decides what happens to the outbox entry. A status which says "not
  * now" - the server is unavailable, or asks to slow down - gives the entry back with the time
  * the server named. A status which says "not like this" - anything else the client is blamed
@@ -66,9 +70,16 @@ public class RestTransport implements BusinessCockpitTransport {
             baseUrl.endsWith("/")
                 ? baseUrl.substring(0, baseUrl.length() - 1) + API_PATH
                 : baseUrl + API_PATH);
-    if (configuration.authenticates()) {
-      client
-          .getFeignBuilder()
+    final var feign = client.getFeignBuilder();
+    feign.options(RestClientSetup.timeoutsOf(configuration));
+    final var ownClient = RestClientSetup.clientOf(configuration);
+    if (ownClient != null) {
+      feign.client(ownClient);
+    }
+    if (configuration.oauth() != null) {
+      feign.requestInterceptor(new OAuthTokens(configuration));
+    } else if (configuration.authenticates()) {
+      feign
           .requestInterceptor(
               new BasicAuthRequestInterceptor(
                   configuration.username(), configuration.password()));

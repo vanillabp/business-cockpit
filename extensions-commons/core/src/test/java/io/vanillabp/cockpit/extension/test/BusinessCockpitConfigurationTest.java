@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
@@ -266,6 +267,184 @@ public class BusinessCockpitConfigurationTest {
                     .workflowModule(ConfigurationFixture.WORKFLOW_MODULE)
                     .groupHierarchy()
                     .get("TEAM_LEAD")));
+
+  }
+
+  @Test
+  @DisplayName("A single workflow says what it differs from its module in")
+  public void aWorkflowOverridesItsModule() {
+
+    final var configuration = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .withWorkflow("TaxiRide", "i18n-languages", "fr")
+            .withWorkflow("TaxiRide", "bpmn-description-language", "fr")
+            .withWorkflow("TaxiRide", "template-path", "taxi")
+            .withUserTask("TaxiRide", "approve", "template-path", "approval"),
+        false);
+
+    final var module = configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE);
+    assertEquals(List.of("fr"), module.i18nLanguages("TaxiRide"));
+    assertEquals("fr", module.bpmnDescriptionLanguage("TaxiRide"));
+    assertEquals("taxi", module.templatePathOfWorkflow("TaxiRide"));
+    assertEquals("approval", module.templatePathOfUserTask("TaxiRide", "approve"));
+
+    // every other workflow, and every other task of this one, keeps what the module says
+    assertEquals(List.of("en", "de"), module.i18nLanguages("Delivery"));
+    assertEquals("en", module.bpmnDescriptionLanguage("Delivery"));
+    assertEquals("Delivery", module.templatePathOfWorkflow("Delivery"));
+    assertEquals("decide", module.templatePathOfUserTask("TaxiRide", "decide"));
+
+  }
+
+  @Test
+  @DisplayName("A key which is no setting of a single workflow says where it belongs")
+  public void aKeyWhichIsNoWorkflowSettingIsReported() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .withWorkflow("TaxiRide", "ui-uri-path", "/taxi.js"),
+        false);
+
+    assertTrue(
+        defects
+            .contains(
+                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TaxiRide.ui-uri-path"),
+        defects);
+    assertTrue(defects.contains("bpmn-description-language"), defects);
+
+  }
+
+  @Test
+  @DisplayName("A key which is no setting of a single user task names the one which is")
+  public void aKeyWhichIsNoUserTaskSettingIsReported() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .withUserTask("TaxiRide", "approve", "i18n-languages", "fr"),
+        false);
+
+    assertTrue(
+        defects
+            .contains(
+                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TaxiRide.user-tasks.approve.i18n-languages"),
+        defects);
+    assertTrue(defects.contains("template-path"), defects);
+
+  }
+
+  @Test
+  @DisplayName("The REST client's timeouts, proxy, truststore and OAuth flow are read")
+  public void theRestClientIsConfigured() {
+
+    final var configuration = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.connect-timeout", "1500ms")
+            .with("rest.read-timeout", "PT20S")
+            .with("rest.proxy.host", "proxy.internal")
+            .with("rest.proxy.port", "3128")
+            .with("rest.proxy.username", "walter")
+            .with("rest.proxy.password", "secret")
+            .with("rest.verify-ssl", "false")
+            .without("rest.username")
+            .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
+            .with("rest.authentication.oauth.client-id", "taxi-ride")
+            .with("rest.authentication.oauth.client-secret", "s3cret")
+            .with("rest.authentication.oauth.basic", "true"),
+        false);
+
+    final var rest = configuration.getRest();
+    assertEquals(Duration.ofMillis(1500), rest.connectTimeout());
+    assertEquals(Duration.ofSeconds(20), rest.readTimeout());
+    assertEquals("proxy.internal", rest.proxy().host());
+    assertEquals(3128, rest.proxy().port());
+    assertTrue(rest.proxy().authenticates());
+    assertFalse(rest.verifySsl());
+    assertEquals("taxi-ride", rest.oauth().clientId());
+    assertTrue(rest.oauth().clientInAuthorizationHeader());
+    assertTrue(rest.needsAClientOfItsOwn());
+
+  }
+
+  @Test
+  @DisplayName("A timeout which is no span of time is refused with both spellings")
+  public void aBrokenTimeoutNamesBothSpellings() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture.aConfiguredApplication().with("rest.read-timeout", "soon"), false);
+
+    assertTrue(defects.contains("rest.read-timeout"), defects);
+    assertTrue(defects.contains("PT10S"), defects);
+    assertTrue(defects.contains("1500ms"), defects);
+
+  }
+
+  @Test
+  @DisplayName("A proxy without a port, and a port without a proxy, are both reported")
+  public void anIncompleteProxyIsReported() {
+
+    assertTrue(
+        defectsOf(
+            ConfigurationFixture
+                .aConfiguredApplication()
+                .with("rest.proxy.host", "proxy.internal"),
+            false).contains("rest.proxy.port"),
+        "a proxy without a port");
+    assertTrue(
+        defectsOf(
+            ConfigurationFixture.aConfiguredApplication().with("rest.proxy.port", "3128"),
+            false).contains("rest.proxy.host"),
+        "a port without a proxy");
+
+  }
+
+  @Test
+  @DisplayName("A truststore which cannot be read ends the boot rather than the first report")
+  public void anUnreadableTruststoreIsReported() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.ssl-truststore-filename", "/nowhere/cockpit.p12")
+            .with("rest.ssl-truststore-password", "changeit"),
+        false);
+
+    assertTrue(defects.contains("/nowhere/cockpit.p12"), defects);
+    assertTrue(defects.contains("running container"), defects);
+
+  }
+
+  @Test
+  @DisplayName("A client-credentials flow missing a half, and one next to a user name, are refused")
+  public void anIncompleteOauthFlowIsReported() {
+
+    final var halfConfigured = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
+            .with("rest.authentication.oauth.client-id", "taxi-ride"),
+        false);
+    assertTrue(halfConfigured.contains("rest.authentication.oauth.client-secret"), halfConfigured);
+
+    final var withoutTheServer = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.authentication.oauth.client-id", "taxi-ride"),
+        false);
+    assertTrue(withoutTheServer.contains("rest.authentication.oauth.base-url"), withoutTheServer);
+
+    final var twoWays = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.username", "cockpit")
+            .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
+            .with("rest.authentication.oauth.client-id", "taxi-ride")
+            .with("rest.authentication.oauth.client-secret", "s3cret"),
+        false);
+    assertTrue(twoWays.contains("bearer token"), twoWays);
 
   }
 

@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.extension.test;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 import io.vanillabp.integration.adapter.migration.config.WorkflowModuleAdapterProperties;
 
@@ -82,6 +83,40 @@ public final class ConfigurationFixture {
     return this;
 
   }
+
+  /**
+   * @param bpmnProcessId The workflow this setting belongs to
+   * @param key The key below the extension's section
+   * @param value What it is set to
+   * @return The fixture
+   */
+  public ConfigurationFixture withWorkflow(
+      final String bpmnProcessId,
+      final String key,
+      final String value) {
+
+    return withWorkflowModule(ConfigurationKeys.ofWorkflow(bpmnProcessId, key), value);
+
+  }
+
+  /**
+   * @param bpmnProcessId The workflow the user task belongs to
+   * @param taskDefinition The user task
+   * @param key The key below the extension's section
+   * @param value What it is set to
+   * @return The fixture
+   */
+  public ConfigurationFixture withUserTask(
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String key,
+      final String value) {
+
+    return withWorkflowModule(
+        ConfigurationKeys.ofUserTask(bpmnProcessId, taskDefinition, key), value);
+
+  }
+
 
   /**
    * @return The properties as the core resolved them

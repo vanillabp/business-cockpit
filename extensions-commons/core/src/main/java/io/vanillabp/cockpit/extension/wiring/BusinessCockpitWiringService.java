@@ -57,6 +57,15 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
 
   }
 
+  /**
+   * Notes which workflow module the BPMN process belongs to.
+   * <p>
+   * Nothing is added to the model: what a model needs is added by the BPMS half, which is the
+   * only one knowing what a listener looks like in that engine. What this callback does carry,
+   * and nothing else does, is which module deployed which process - and the registration of a
+   * workflow module is written into the outbox store of one of that module's own workflow
+   * aggregates.
+   */
   @Override
   public void wireBpmn(
       final String workflowModuleId,
@@ -65,8 +74,7 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
       final Object model,
       final Object context) {
 
-    // nothing: what a model needs is added by the BPMS half, which is the only one knowing
-    // what a listener looks like in that engine
+    extension.workflowWired(workflowModuleId, bpmnProcessId);
 
   }
 

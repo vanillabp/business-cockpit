@@ -76,9 +76,19 @@ public class RestTransportTest {
               exchange.close();
             });
     server.start();
-    transport = new RestTransport(
-        new RestTransportConfiguration(
-            "http://localhost:%d".formatted(server.getAddress().getPort()), null, null));
+    transport = new RestTransport(aCockpitServerAt(server.getAddress().getPort()));
+
+  }
+
+  /**
+   * @param port Where the test's own server listens
+   * @return The plainest configuration there is: an address and nothing else
+   */
+  static RestTransportConfiguration aCockpitServerAt(
+      final int port) {
+
+    return new RestTransportConfiguration(
+        "http://localhost:%d".formatted(port), null, null, null, null, null, true, null, null, null);
 
   }
 

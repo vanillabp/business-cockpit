@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import freemarker.cache.ClassTemplateLoader;
 import io.vanillabp.cockpit.extension.config.UiUriType;
+import io.vanillabp.cockpit.extension.config.WorkflowConfiguration;
 import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
@@ -40,7 +41,19 @@ public class EventTitlesTest {
   }
 
   private static final WorkflowModuleConfiguration MODULE = new WorkflowModuleConfiguration(
-      "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module");
+      "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+          .of());
+
+  /**
+   * The same module, with one workflow and one of its user tasks saying something of their own -
+   * a language, and the directory their templates live in.
+   */
+  private static final WorkflowModuleConfiguration MODULE_WITH_A_SPECIAL_WORKFLOW = new WorkflowModuleConfiguration(
+      "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+          .of(
+              "TestProcess",
+              new WorkflowConfiguration(
+                  "TestProcess", List.of("fr"), "fr", "orders", Map.of("approve", "approval"))));
 
   private static Templating templating() {
 
@@ -158,6 +171,40 @@ public class EventTitlesTest {
         List.of("test-module/TestProcess/approve", "test-module/TestProcess", "test-module"),
         paths);
     assertTrue(EventTitles.lookupPaths(MODULE, null, null).equals(List.of("test-module")));
+
+  }
+
+  @Test
+  @DisplayName("A workflow and a user task contribute the segments they configured")
+  public void aWorkflowAndAUserTaskNameTheirOwnDirectories() {
+
+    assertEquals(
+        List.of("test-module/orders/approval", "test-module/orders", "test-module"),
+        EventTitles.lookupPaths(MODULE_WITH_A_SPECIAL_WORKFLOW, "TestProcess", "approve"));
+    // a task which configured nothing keeps its task definition, and so does another workflow
+    assertEquals(
+        List.of("test-module/orders/decide", "test-module/orders", "test-module"),
+        EventTitles.lookupPaths(MODULE_WITH_A_SPECIAL_WORKFLOW, "TestProcess", "decide"));
+    assertEquals(
+        List.of("test-module/Delivery", "test-module"),
+        EventTitles.lookupPaths(MODULE_WITH_A_SPECIAL_WORKFLOW, "Delivery", null));
+
+  }
+
+  @Test
+  @DisplayName("A workflow's own languages are the ones its titles are reported in")
+  public void aWorkflowsOwnLanguagesAreUsed() {
+
+    final var event = userTaskEvent();
+
+    EventTitles
+        .fill(
+            event, MODULE_WITH_A_SPECIAL_WORKFLOW, Templating.none(), "Approuver",
+            "Traitement des commandes");
+
+    assertEquals(List.of("fr"), event.getI18nLanguages());
+    assertEquals("Traitement des commandes", event.getWorkflowTitle().get("fr"));
+    assertEquals("Approuver", event.getTitle().get("fr"));
 
   }
 

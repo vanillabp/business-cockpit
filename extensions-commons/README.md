@@ -92,12 +92,20 @@ new one for a remote engine's worker thread.
 Both are published contracts. A change to them is a change three repositories have to follow.
 
 A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written
-into is VanillaBP's own answer on both platforms: for a report of `BusinessCockpitService` the store
-the workflow aggregate's transaction reaches, and for an event a BPMS observed - which names
-identifiers and no aggregate class - the store every aggregate of the application shares. While the
-application boots, the store of every aggregate is resolved once; an application whose aggregates
-live in different stores is told there and not at the first report. Decision 12 of the
-[decision log](../DECISIONS.md) says why.
+into is VanillaBP's own answer on both platforms: the store the workflow aggregate's transaction
+reaches. A report of `BusinessCockpitService` names that aggregate's class outright. An event a BPMS
+observed names a workflow module, a BPMN process and a serialized id instead, and the class is
+looked up - `@WorkflowService` says which aggregate it is written for and which BPMN processes it
+serves, so an application whose aggregates live in two persistences has each of its reports written
+into the store of its own workflow. Decisions 12 and 13 of the [decision log](../DECISIONS.md) say
+why.
+
+`EventTransaction.CURRENT` joins the transaction running on the calling thread, which on Quarkus is
+a JTA transaction. Joining one means every resource it reaches has to be enlistable, so an
+application whose engine runs on a data source of its own needs EVERY data source declared as XA
+(`quarkus.datasource.<name>.jdbc.transactions=xa`), the one the outbox store writes into included.
+Without that the entry fails with "Failed to enlist" the moment a BPMS half reports with that value,
+and the report is lost together with the engine's own transaction.
 
 ## Configuration
 
@@ -127,6 +135,14 @@ Global keys:
 |-----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
 | `rest.base-url`                                                                   | The cockpit server's address, and with it the choice of the REST transport                 |
 | `rest.username`, `rest.password`                                                  | The basic authentication the server expects, where it expects one                          |
+| `rest.connect-timeout`, `rest.read-timeout`                                       | How long connecting and answering may take, e.g. `1500ms` or `PT20S`                       |
+| `rest.proxy.host`, `rest.proxy.port`                                              | The HTTP proxy the cockpit server is reached through                                       |
+| `rest.proxy.username`, `rest.proxy.password`                                      | The user that proxy expects, where it expects one                                          |
+| `rest.verify-ssl`                                                                 | `false` switches the certificate check off altogether                                      |
+| `rest.ssl-truststore-filename`, `rest.ssl-truststore-password`                    | The PKCS12 file the server's certificate is checked against                                |
+| `rest.authentication.oauth.base-url`                                              | Where tokens are issued, and with it the choice of the client-credentials flow             |
+| `rest.authentication.oauth.client-id`, `…client-secret`                           | The client the token is asked for                                                          |
+| `rest.authentication.oauth.basic`                                                 | `true` sends the client in an `Authorization` header instead of in the token request       |
 | `kafka.bootstrap-servers`                                                         | The brokers, and with them the choice of the Kafka transport                               |
 | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module` | One topic per kind of event                                                                |
 | `kafka.properties.*`                                                              | Anything else the Kafka producer is to be given, e.g. `kafka.properties.security.protocol` |
@@ -144,6 +160,40 @@ Per workflow module:
 | `group-hierarchy.<group>`   | Which groups a group stands for, comma separated                |
 | `template-path`             | The segment this module contributes to the template lookup path |
 
+Three of these mean something for a single workflow as well, and one of them for a single user task.
+Those two levels stand inside the module's own section, below `workflows`, and the most specific
+value wins per key:
+
+```yaml
+vanillabp:
+  workflow-modules:
+    taxi-ride:
+      extensions:
+        business-cockpit:
+          i18n-languages: en,de
+          workflows:
+            TaxiRide:
+              i18n-languages: fr
+              bpmn-description-language: fr
+              template-path: rides
+              user-tasks:
+                approve:
+                  template-path: approval
+```
+
+|                          Key                          |                            What it is                             |
+|-------------------------------------------------------|-------------------------------------------------------------------|
+| `workflows.<process>.i18n-languages`                  | The languages this workflow's titles are reported in              |
+| `workflows.<process>.bpmn-description-language`       | The language this workflow's BPMN names are written in            |
+| `workflows.<process>.template-path`                   | The segment this workflow contributes to the template lookup path |
+| `workflows.<process>.user-tasks.<task>.template-path` | The segment this user task contributes                            |
+
+Version 1 wrote these below `vanillabp.workflow-modules.<id>.workflows.<process>.cockpit`. They live
+inside the extension's own section now, because that section is the one the VanillaBP core reserves
+for an extension and hands over as written. Outside it they would not work on Quarkus at all: its
+configuration mapping refuses a key below `vanillabp` which it does not declare, and what an
+extension writes below a workflow is nothing the core could declare for it.
+
 Exactly one transport is configured. Neither of them, or both, ends the boot with a message naming
 the keys of both. So does a workflow module which configured some of its settings and not the rest,
 and so does a `ui-uri-type` naming something which does not exist - every gap the application has is
@@ -156,20 +206,24 @@ Version 1 of the Business Cockpit configured the same things below `vanillabp.co
 column is relative to `vanillabp.extensions.business-cockpit` for a global key and to
 `vanillabp.workflow-modules.<id>.extensions.business-cockpit` for one of a workflow module.
 
-|                                                                             Version 1, below `vanillabp.cockpit`                                                                             |                                     Version 2                                      |
-|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| `rest.base-url`                                                                                                                                                                              | `rest.base-url`                                                                    |
-| `rest.authentication.username`                                                                                                                                                               | `rest.username`                                                                    |
-| `rest.authentication.password`                                                                                                                                                               | `rest.password`                                                                    |
-| `rest.authentication.basic`                                                                                                                                                                  | gone: a configured user name is what switches basic authentication on              |
-| `rest.authentication.oauth.*`                                                                                                                                                                | not carried over, the REST transport authenticates with a user name and a password |
-| `rest.connect-timeout`, `rest.read-timeout`, `rest.log`, `rest.verify-ssl`, `rest.ssl-truststore-filename`, `rest.ssl-truststore-password`, `rest.additional-get-parameters`, `rest.proxy.*` | not carried over, the client is built with the defaults of Feign                   |
-| `rest.retry.*`                                                                                                                                                                               | gone: a failed report stays in the outbox and is repeated from there               |
-| `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`                                                                                                            | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`  |
-| `kafka.group-id-suffix`                                                                                                                                                                      | gone: it named a consumer group, and the extension only sends                      |
-| `template-loader-path`                                                                                                                                                                       | `template-loader-path`                                                             |
-| `user-tasks-enabled`, `workflow-list-enabled`                                                                                                                                                | gone: a workflow module which reports nothing leaves the extension unconfigured    |
-| `jwt.*`                                                                                                                                                                                      | not part of the extension, it configured the workflow module's own security        |
+|                        Version 1, below `vanillabp.cockpit`                        |                                                                        Version 2                                                                        |
+|------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `rest.base-url`                                                                    | `rest.base-url`                                                                                                                                         |
+| `rest.authentication.username`                                                     | `rest.username`                                                                                                                                         |
+| `rest.authentication.password`                                                     | `rest.password`                                                                                                                                         |
+| `rest.authentication.basic`                                                        | gone: a configured user name is what switches basic authentication on                                                                                   |
+| `rest.authentication.oauth.base-url`, `…client-id`, `…client-secret`, `…basic`     | the same keys                                                                                                                                           |
+| `rest.connect-timeout`, `rest.read-timeout`                                        | the same keys, written as a span of time (`1500ms`, `PT20S`) instead of a number of milliseconds                                                        |
+| `rest.proxy.host`, `rest.proxy.port`, `rest.proxy.username`, `rest.proxy.password` | the same keys                                                                                                                                           |
+| `rest.verify-ssl`, `rest.ssl-truststore-filename`, `rest.ssl-truststore-password`  | the same keys                                                                                                                                           |
+| `rest.log`                                                                         | gone: the client logs through SLF4J, so the logging configuration switches it on - set the logger `io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi` to DEBUG |
+| `rest.additional-get-parameters.*`                                                 | gone: it appended query parameters to GET requests, and every report is a POST                                                                          |
+| `rest.retry.*`                                                                     | gone: a failed report stays in the outbox and is repeated from there                                                                                    |
+| `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`  | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`                                                                       |
+| `kafka.group-id-suffix`                                                            | gone: it made a consumer group unique, and the extension only produces                                                                                  |
+| `template-loader-path`                                                             | `template-loader-path`                                                                                                                                  |
+| `user-tasks-enabled`, `workflow-list-enabled`                                      | gone: a workflow module which reports nothing leaves the extension unconfigured                                                                         |
+| `jwt.*`                                                                            | not part of the extension, it configured the workflow module's own security                                                                             |
 
 Two more keys the version 1 extension read did not stand below `vanillabp.cockpit` at all: it took
 the broker and the producer settings from the ones the application had configured for Spring Kafka.
@@ -191,11 +245,12 @@ The extension builds its own producer now, so it reads them itself.
 | `group-hierarchy`                                          | `group-hierarchy.<group>`, one entry per group                                                                                    |
 | `group-hierarchy-bean-name`                                | gone: the hierarchy is configuration, and which groups may see the module is answered by the `WorkflowModuleDetailsProvider` bean |
 
-Version 1 also read `…cockpit.bpmn-description-language`, `…cockpit.i18n-languages` and
-`…cockpit.template-path` below a single workflow (`…workflows.<bpmnProcessId>`) and a single user
-task (`…user-tasks.<taskDefinition>`). Version 2 configures those per workflow module; a process or
-a task needing texts of its own puts its templates into the directory named after it, which is what
-the lookup path finds first.
+| Version 1, below `vanillabp.workflow-modules.<id>.workflows.<process>` |  Version 2, below the workflow module's own section   |
+|------------------------------------------------------------------------|-------------------------------------------------------|
+| `cockpit.bpmn-description-language`                                    | `workflows.<process>.bpmn-description-language`       |
+| `cockpit.i18n-languages`                                               | `workflows.<process>.i18n-languages`                  |
+| `cockpit.template-path`                                                | `workflows.<process>.template-path`                   |
+| `user-tasks.<task>.cockpit.template-path`                              | `workflows.<process>.user-tasks.<task>.template-path` |
 
 The Kafka connection is configured by the extension itself now, rather than taken from the
 application's Spring Kafka settings. Which listener types a BPMS puts into your BPMN files, and
@@ -209,7 +264,8 @@ rendered from templates. The path is a directory of the file system, written pla
 the spellings version 1 accepted. The templates are: `workflow-title.ftl`, `task-title.ftl`, `task-definition-title.ftl`,
 `task-fulltext-search.ftl` and `workflow-fulltext-search.ftl`. Each is looked for in the module's
 directory, narrowed by the BPMN process and then by the task definition, and the most specific one
-which exists wins.
+which exists wins. Each of the three levels is named after its own id unless `template-path` says
+otherwise, which is how two processes share one directory of templates.
 
 The data model is what a details provider passed to `setTemplateContext`, which may be a map, a
 POJO or a record. Without a template directory the names written in the BPMN files are reported
