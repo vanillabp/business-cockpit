@@ -8,6 +8,7 @@ import io.camunda.zeebe.model.bpmn.impl.BpmnParser;
 import io.camunda.zeebe.model.bpmn.instance.BaseElement;
 import io.camunda.zeebe.model.bpmn.instance.ExtensionElements;
 import io.camunda.zeebe.model.bpmn.instance.Process;
+import io.camunda.zeebe.model.bpmn.instance.StartEvent;
 import io.camunda.zeebe.model.bpmn.instance.UserTask;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListener;
 import io.camunda.zeebe.model.bpmn.instance.zeebe.ZeebeExecutionListenerEventType;
@@ -428,28 +429,54 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
     }
 
     /**
-     * Order of listeners:
+     * Adds the Business Cockpit "details provider" execution listeners to the BPMN model:
      *
      * <ul>
-     *     <li>any custom "start"</li>
-     *     <li>Business Cockpit "start": Business Cockpit should reflect all modifications done by previous listeners</li>
-     *     <li>any custom listener</li>
-     *     <li>Business Cockpit "end": Business Cockpit should reflect all modifications done by previous listeners</li>
-     *     <li>Business Cockpit "canceled": Business Cockpit should reflect all modifications done by previous listeners</li>
+     *     <li>an "end" listener on each top-level start event of the process: a process-level
+     *     "start" listener does not yet know the process variables provided on start, so the
+     *     completion of the start event is used instead to report the initial workflow details.
+     *     Start events of embedded sub-processes, event sub-processes etc. are intentionally
+     *     ignored ({@link BaseElement#getChildElementsByType(Class)} only returns direct children
+     *     of the process)</li>
+     *     <li>an "end" listener on the process element to reflect modifications on process completion</li>
      * </ul>
      *
-     * @param element
+     * In each case the Business Cockpit listener is inserted after any already present execution
+     * listeners, so it reflects all modifications done by previous listeners.
+     *
+     * @param element the process to enrich
      */
     private void addExecutionListenersToBpmnModel(
             final Process element) {
 
         final var bpmnProcessId = element.getId();
 
+        // report initial workflow details once the process' start event completed, as only then
+        // the process variables provided on start are known
+        element
+                .getChildElementsByType(StartEvent.class)
+                .forEach(startEvent -> addDetailsProviderExecutionListener(startEvent, bpmnProcessId));
+
+        // report workflow details on process completion
+        addDetailsProviderExecutionListener(element, bpmnProcessId);
+
+    }
+
+    /**
+     * Adds a Business Cockpit "details provider" execution listener of event type "end" to the given
+     * element. The listener is inserted after any already present execution listeners so it reflects
+     * all modifications done by previous listeners.
+     *
+     * @param element        the BPMN element the listener is added to
+     * @param bpmnProcessId  the id of the process the details provider job type is derived from
+     */
+    private void addDetailsProviderExecutionListener(
+            final BaseElement element,
+            final String bpmnProcessId) {
+
         final ZeebeExecutionListeners executionListeners;
-        final boolean isNew;
         if (element.getSingleExtensionElement(ZeebeExecutionListeners.class) != null) {
             executionListeners = element.getSingleExtensionElement(ZeebeExecutionListeners.class);
-            isNew = false;
         } else {
             final ExtensionElements extensionElements;
             if (element.getExtensionElements() == null) {
@@ -459,22 +486,6 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
                 extensionElements = element.getExtensionElements();
             }
             executionListeners = extensionElements.addExtensionElement(ZeebeExecutionListeners.class);
-            isNew = true;
-        }
-
-        final var startListener = element.getModelInstance().newInstance(ZeebeExecutionListener.class);
-        startListener.setEventType(ZeebeExecutionListenerEventType.start);
-        startListener.setType(JOBTYPE_DETAILSPROVIDER + bpmnProcessId);
-        startListener.setRetries("0");
-
-        if (isNew) {
-            executionListeners.insertElementAfter(startListener, null); // insert as first listener
-        } else {
-            final var previousListeners = new LinkedList<>(executionListeners.getExecutionListeners()
-                    .stream()
-                    .filter(listener -> listener.getEventType().equals(ZeebeExecutionListenerEventType.start))
-                    .toList());
-            executionListeners.insertElementAfter(startListener, previousListeners.isEmpty() ? null : previousListeners.getLast());
         }
 
         final var endListener = element.getModelInstance().newInstance(ZeebeExecutionListener.class);
@@ -482,13 +493,8 @@ public class Camunda8DeploymentAdapter extends ModuleAwareBpmnDeployment {
         endListener.setType(JOBTYPE_DETAILSPROVIDER + bpmnProcessId);
         endListener.setRetries("0");
 
-        if (isNew) {
-            executionListeners.insertElementAfter(endListener, startListener);
-        } else {
-            final var previousListener = new LinkedList<>(executionListeners.getExecutionListeners())
-                    .getLast();
-            executionListeners.insertElementAfter(endListener, previousListener);
-        }
+        final var existingListeners = new LinkedList<>(executionListeners.getExecutionListeners());
+        executionListeners.insertElementAfter(endListener, existingListeners.isEmpty() ? null : existingListeners.getLast());
 
     }
 
