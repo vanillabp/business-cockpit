@@ -143,13 +143,12 @@ public class KafkaTransport implements BusinessCockpitTransport {
   }
 
   /**
-   * What a failed send means for the outbox entry.
+   * What a failed send means for the outbox entry - see decision 11 in the repository's
+   * DECISIONS.md.
    * <p>
-   * The Kafka client says it itself: what it marks as retriable is a broker which is busy, gone
-   * for a moment or leading another partition now, and repeating such a send is the whole point
-   * of the outbox. Everything else is the record itself - a topic which does not exist, a
-   * message larger than the broker accepts, a client which may not write there - and the same
-   * bytes would be refused again.
+   * The client's own verdict is taken: it knows which of its failures pass, and repeating a
+   * send it marks as retriable is the whole point of the outbox. Anything else is about the
+   * record rather than about the moment, so the same bytes would be refused again.
    *
    * @param topic Where the record was to go
    * @param cause What the send failed with

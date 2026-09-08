@@ -6,6 +6,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,6 +46,7 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
+import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * The Business Cockpit extension, without a single line knowing a BPMS or a platform.
@@ -174,6 +176,49 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final Collection<Class<?>> workflowServiceClasses) {
 
     workflowServiceClasses.forEach(BusinessCockpitHandlers::rejectReservedVersionAttribute);
+
+  }
+
+  /**
+   * Resolves the outbox store of every workflow aggregate of the application, ending the boot
+   * where one cannot be attributed.
+   * <p>
+   * This runs once the application is up rather than while the extension's bean is created:
+   * asking for the store of an aggregate reaches into the application's persistence, and
+   * VanillaBP's own startup validation waits for the same reason.
+   *
+   * @param workflowServiceClasses The classes of the application carrying
+   *          <code>&#64;WorkflowService</code>
+   * @throws IllegalStateException If a store is missing, cannot be attributed to an aggregate,
+   *           or the aggregates do not share one - see decision 12 in the repository's
+   *           DECISIONS.md
+   */
+  public void validateOutboxAttribution(
+      final Collection<Class<?>> workflowServiceClasses) {
+
+    outbox.validateAtStartup(workflowAggregateClassesOf(workflowServiceClasses));
+
+  }
+
+  /**
+   * The workflow aggregates the application's services are written for, each named once. A
+   * class serving several BPMN processes names its aggregate in each of them, and several
+   * services may share one aggregate.
+   *
+   * @param workflowServiceClasses The classes carrying <code>&#64;WorkflowService</code>
+   * @return Their aggregates
+   */
+  private static Collection<Class<?>> workflowAggregateClassesOf(
+      final Collection<Class<?>> workflowServiceClasses) {
+
+    final Collection<Class<?>> aggregates = new LinkedHashSet<>();
+    for (final var workflowServiceClass : workflowServiceClasses) {
+      final var annotation = workflowServiceClass.getAnnotation(WorkflowService.class);
+      if (annotation != null) {
+        aggregates.add(annotation.workflowAggregateClass());
+      }
+    }
+    return aggregates;
 
   }
 
@@ -387,7 +432,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param adapterId The adapter id an event came from
    * @return The bridge
    * @throws IllegalStateException If no BPMS half is registered for that adapter - the message
-   *           names the ones which are and the three artifacts which provide one
+   *           names the adapters the application configured, the halves which are registered
+   *           and the three artifacts which provide one
    */
   public BusinessCockpitBpmsBridge bridgeOf(
       final String adapterId) {
@@ -398,15 +444,17 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     }
     throw new IllegalStateException(
         """
-            The Business Cockpit extension has no BPMS half for the adapter '%s'. Registered are: \
-            %s. Add the artifact belonging to that adapter's BPMS to your workflow module - \
+            The Business Cockpit extension has no BPMS half for the adapter '%s'. Configured \
+            adapters are: %s, and a BPMS half is registered for: %s. Add the artifact belonging \
+            to that adapter's BPMS to your workflow module - \
             'io.vanillabp.businesscockpit:businesscockpit-camunda7-adapter', \
             'io.vanillabp.businesscockpit:businesscockpit-camunda8-adapter' or \
             'io.vanillabp.businesscockpit:businesscockpit-process-engine-api-adapter', each in the \
             variant of your platform."""
             .formatted(
                 adapterId,
-                bridges.isEmpty() ? "none" : String.join(", ", bridges.keySet())));
+                listed(configuration.getConfiguredAdapterIds()),
+                listed(bridges.keySet())));
 
   }
 
@@ -428,7 +476,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final var prefill = bridgeOf(call.adapterId()).prefilledUserTaskDetails(userTask);
       if (prefill.isEmpty()) {
         reportDropped(
-            carriesDetails(kind),
             "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')".formatted(
                 userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(),
                 userTask.bpmnProcessId(), userTask.workflowAggregateId()),
@@ -469,7 +516,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final var prefill = bridgeOf(call.adapterId()).prefilledWorkflowDetails(workflow);
       if (prefill.isEmpty()) {
         reportDropped(
-            carriesDetails(kind),
             "workflow '%s' of '%s/%s' (aggregate '%s')".formatted(
                 workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(),
                 workflow.workflowAggregateId()),
@@ -647,21 +693,29 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering empty, and
    * the outbox brings the entry back.
    * <p>
-   * A report which carried no details is a lifecycle event the cockpit can live without, so
-   * that one is only noted.
+   * Only a report which was to carry details reaches this method: the other kinds carry
+   * nothing to look up, so nothing about them can be missing.
    */
   private static void reportDropped(
-      final boolean carriedDetails,
       final String what,
       final String kind,
       final String adapterId) {
 
-    final var message = "Not reporting {} as {} to the Business Cockpit: the BPMS '{}' does not know it any more";
-    if (carriedDetails) {
-      logger.warn(message, what, kind, adapterId);
-    } else {
-      logger.info(message, what, kind, adapterId);
-    }
+    logger
+        .warn(
+            "Not reporting {} as {} to the Business Cockpit: the BPMS '{}' does not know it any more",
+            what,
+            kind,
+            adapterId);
+
+  }
+
+  private static String listed(
+      final Collection<String> names) {
+
+    return names.isEmpty()
+        ? "none"
+        : String.join(", ", names);
 
   }
 

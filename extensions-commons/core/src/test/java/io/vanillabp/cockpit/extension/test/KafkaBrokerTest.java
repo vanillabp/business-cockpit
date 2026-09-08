@@ -35,11 +35,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * producer this extension configures connects and serializes at all, and that a message this
  * extension sent is a message somebody else can read. That is worth one test and not more.
  * <p>
- * The container is started by Testcontainers, so the test needs a Docker daemon.
+ * The container is started by Testcontainers, so the test needs a Docker daemon and is skipped
+ * where there is none: a build machine without Docker is a machine which cannot run this, not a
+ * defect of the extension.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 public class KafkaBrokerTest {
 
   private static final String USER_TASK_TOPIC = "user-task";

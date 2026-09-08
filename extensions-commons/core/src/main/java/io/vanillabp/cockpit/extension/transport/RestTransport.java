@@ -171,7 +171,8 @@ public class RestTransport implements BusinessCockpitTransport {
   }
 
   /**
-   * What a status the server answered with means for the entry.
+   * What a status the server answered with means for the entry - see decision 11 in the
+   * repository's DECISIONS.md.
    *
    * @param what The report being sent
    * @param failure What the client threw

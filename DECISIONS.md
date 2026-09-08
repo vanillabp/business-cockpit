@@ -127,7 +127,7 @@ one schema per kind and the generator produced four classes for them. Folding th
 into one would mean converting between generated classes, and converting a timestamp is exactly the
 kind of thing which goes wrong without anybody noticing.
 
-### 10. The outbox store is the one the workflow aggregate's transaction reaches
+### 10. The outbox store is the one the workflow aggregate's transaction reaches - the Quarkus half superseded by decision 12
 
 An entry is written into the store VanillaBP attributes to the workflow aggregate the report is
 about, which is what the platform does for its own operations. Wherever the extension knows the
@@ -152,6 +152,11 @@ does not compile against (decision 2). A Quarkus application running two stores 
 the store of an aggregate itself, with a `PhaseTwoOutboxAware` bean, and the message asks for that
 bean where it is missing.
 
+Superseded by decision 12: the Quarkus half of this was a second attribution next to the platform's
+own, and it got the same application wrong that the platform gets right. The Quarkus integration now
+offers its resolver as a bean too, so both platforms are served by the one answer, and the moment it
+is asked moved from the first report to the boot.
+
 ### 11. A failed report says whether repeating it can help
 
 The outbox repeats what a dispatch threw, which is right for a cockpit server that was restarting
@@ -170,3 +175,26 @@ there.
 
 An entry naming an adapter id no BPMS half serves stays repeatable, because the jar carrying that
 half may be missing from one deployment and back in the next.
+
+### 12. The store of an entry is VanillaBP's answer, asked while the application boots
+
+The extension never attributes a store itself. It asks the platform's `PhaseTwoOutboxResolver` -
+a bean on Spring Boot and, since the Quarkus integration offers it as one, on Quarkus as well - so
+an entry of the extension is written where an entry of the core is written: into the store the
+transaction of the workflow aggregate reaches.
+
+The extension's own resolution was a copy which could not be complete. Which of the platform's two
+default stores serves which persistence, and whether a default is switched on and usable at all, is
+knowledge of the platform integration, and an extension does not compile against one (decision 2).
+The copy therefore refused an application with two stores where the platform serves it, and returned
+the store of the other technology where the platform refuses - an entry written next to the
+aggregate instead of into its transaction, which is the one thing this outbox must not do.
+
+Every workflow aggregate of the application is resolved once while it boots, the way VanillaBP
+validates the outbox of its own process services. That settles two things. A store which cannot be
+attributed ends the boot with the platform's own message rather than surfacing inside the
+transaction of the first report. And the store all aggregates share is what an entry naming no
+aggregate class is written into - an event a BPMS observed names a workflow module, a BPMN process
+and a serialized id, and nothing in either SPI turns that into a class. An application whose
+aggregates live in different stores has no such store and is told while it boots; letting it start
+and fail at the first user task would be the same defect one report later.

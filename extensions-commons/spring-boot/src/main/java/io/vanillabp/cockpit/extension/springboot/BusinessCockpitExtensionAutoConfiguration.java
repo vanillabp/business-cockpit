@@ -8,9 +8,11 @@ import java.util.stream.Stream;
 
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ResolvableType;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -117,6 +119,29 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
+   * Resolves the outbox store of every workflow aggregate once the application's singletons
+   * exist, which is what makes a store nobody can attribute end the boot rather than the first
+   * report.
+   * <p>
+   * It waits like VanillaBP's own startup validation does: asking for the store of an aggregate
+   * reaches into the application's persistence, and doing that while beans are still being
+   * created would materialize repositories half way through the boot.
+   *
+   * @param extension The extension
+   * @param applicationContext Where the application's workflow services are looked up
+   * @return The startup validation
+   */
+  @Bean
+  public SmartInitializingSingleton businessCockpitOutboxStartupValidation(
+      final BusinessCockpitExtension extension,
+      final ApplicationContext applicationContext) {
+
+    return () -> extension
+        .validateOutboxAttribution(workflowServiceClasses(applicationContext));
+
+  }
+
+  /**
    * @param extension The extension
    * @return The factory building the <code>BusinessCockpitService</code> of each workflow
    *         aggregate. The declared generic names the service interface, which is how
@@ -181,11 +206,13 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * Where the extension writes its entries - see decision 10 in the repository's DECISIONS.md.
+   * Where the extension writes its entries - see decision 12 in the repository's DECISIONS.md.
    * <p>
    * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
    * the extension lands where an entry of the core lands: in the store the aggregate's
-   * transaction reaches.
+   * transaction reaches. What to do about a missing store is the resolver's answer too - the
+   * remedies depend on what this platform can provide, and repeating them here would be a
+   * second list to keep in step.
    */
   private static BusinessCockpitOutbox theOutbox(
       final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
@@ -203,12 +230,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
               .formatted(PhaseTwoOutboxResolver.class.getName()));
     }
     return new BusinessCockpitOutbox(
-        resolver::resolveFor, () -> storesOf(outboxes, outboxAwares), """
-            - add spring-boot-starter-data-jpa and configure a data source, whereupon VanillaBP \
-            provides the store,
-            - add spring-boot-starter-data-mongodb and configure the MongoDB connection, or
-            - define a bean implementing io.vanillabp.integration.spi.PhaseTwoOutbox storing \
-            entries wherever your workflow aggregates live.""");
+        resolver::resolveFor, () -> storesOf(outboxes, outboxAwares), resolver.remediesDescription());
 
   }
 
@@ -231,10 +253,16 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
 
   /**
    * The classes of the application which may carry the extension's annotations.
+   * <p>
+   * The class is read off the bean DEFINITION rather than off the bean's type: a service
+   * Spring wrapped in a JDK proxy - which is what an interface plus <code>@Transactional</code>
+   * produces - has the interface as its type, and the interface carries neither the annotations
+   * of the implementation's methods nor the aggregate the service is written for. Where the
+   * definition names no class (a bean built by a factory method), the type is used and
+   * unwrapped from a CGLIB subclass.
    *
    * @param applicationContext Where the beans are registered
-   * @return The workflow services, each as the class the application wrote rather than as the
-   *         proxy Spring may have wrapped it in - a proxy carries no method annotations
+   * @return The workflow services, each as the class the application wrote
    */
   private static Collection<Class<?>> workflowServiceClasses(
       final ApplicationContext applicationContext) {
@@ -242,12 +270,49 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
     final Collection<Class<?>> classes = new LinkedHashSet<>();
     for (final var beanName : applicationContext
         .getBeanNamesForAnnotation(WorkflowService.class)) {
-      final var type = applicationContext.getType(beanName);
-      if (type != null) {
-        classes.add(ClassUtils.getUserClass(type));
+      final var written = writtenClassOf(applicationContext, beanName);
+      if (written != null) {
+        classes.add(written);
       }
     }
     return classes;
+
+  }
+
+  /**
+   * @param applicationContext Where the beans are registered
+   * @param beanName The bean
+   * @return The class the application wrote, or <code>null</code> where neither the definition
+   *         nor the type says which one it is
+   */
+  private static Class<?> writtenClassOf(
+      final ApplicationContext applicationContext,
+      final String beanName) {
+
+    if (applicationContext instanceof final ConfigurableApplicationContext configurable) {
+      final var beanFactory = configurable.getBeanFactory();
+      if (beanFactory.containsBeanDefinition(beanName)) {
+        final var definition = beanFactory.getMergedBeanDefinition(beanName);
+        // a bean built by a factory method has the class of its @Configuration there, which
+        // says nothing about the bean itself - the type is the only answer for those
+        final var className = definition.getFactoryMethodName() == null
+            ? definition.getBeanClassName()
+            : null;
+        if (className != null) {
+          try {
+            return ClassUtils.forName(className, configurable.getClassLoader());
+          } catch (final ClassNotFoundException e) {
+            // the definition names a class this application cannot load: whatever that bean
+            // is, it is not a workflow service of this deployment
+            return null;
+          }
+        }
+      }
+    }
+    final var type = applicationContext.getType(beanName);
+    return type == null
+        ? null
+        : ClassUtils.getUserClass(type);
 
   }
 

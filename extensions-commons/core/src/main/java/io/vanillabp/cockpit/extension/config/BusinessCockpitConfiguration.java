@@ -35,16 +35,34 @@ public final class BusinessCockpitConfiguration {
 
   private final Map<String, WorkflowModuleConfiguration> workflowModules;
 
+  private final Collection<String> configuredAdapterIds;
+
   private BusinessCockpitConfiguration(
       final RestTransportConfiguration rest,
       final KafkaTransportConfiguration kafka,
       final String templateLoaderPath,
-      final Map<String, WorkflowModuleConfiguration> workflowModules) {
+      final Map<String, WorkflowModuleConfiguration> workflowModules,
+      final Collection<String> configuredAdapterIds) {
 
     this.rest = rest;
     this.kafka = kafka;
     this.templateLoaderPath = templateLoaderPath;
     this.workflowModules = Map.copyOf(workflowModules);
+    this.configuredAdapterIds = List.copyOf(configuredAdapterIds);
+
+  }
+
+  /**
+   * The adapters the application configured, which is what a report can come from. Kept
+   * because a dispatch naming an adapter no BPMS half serves is told which adapters exist at
+   * all - a half missing from the classpath and an adapter id misspelled in the configuration
+   * look the same otherwise.
+   *
+   * @return The configured adapter ids
+   */
+  public Collection<String> getConfiguredAdapterIds() {
+
+    return configuredAdapterIds;
 
   }
 
@@ -207,7 +225,8 @@ public final class BusinessCockpitConfiguration {
                   .get()));
     }
 
-    return new BusinessCockpitConfiguration(rest, kafka, templateLoaderPath, modules);
+    return new BusinessCockpitConfiguration(
+        rest, kafka, templateLoaderPath, modules, properties.adapterTypes().keySet());
 
   }
 

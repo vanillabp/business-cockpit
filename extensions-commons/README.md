@@ -92,10 +92,12 @@ new one for a remote engine's worker thread.
 Both are published contracts. A change to them is a change three repositories have to follow.
 
 A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written
-into is decided by the extension: for a report of `BusinessCockpitService` by the workflow aggregate
-it is about, and for an event a BPMS observed - which names identifiers and no aggregate class - by
-the application having one store. Decision 10 of the [decision log](../DECISIONS.md) says what an
-application with several of them is told.
+into is VanillaBP's own answer on both platforms: for a report of `BusinessCockpitService` the store
+the workflow aggregate's transaction reaches, and for an event a BPMS observed - which names
+identifiers and no aggregate class - the store every aggregate of the application shares. While the
+application boots, the store of every aggregate is resolved once; an application whose aggregates
+live in different stores is told there and not at the first report. Decision 12 of the
+[decision log](../DECISIONS.md) says why.
 
 ## Configuration
 
@@ -165,11 +167,18 @@ column is relative to `vanillabp.extensions.business-cockpit` for a global key a
 | `rest.retry.*`                                                                                                                                                                               | gone: a failed report stays in the outbox and is repeated from there               |
 | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`                                                                                                            | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`  |
 | `kafka.group-id-suffix`                                                                                                                                                                      | gone: it named a consumer group, and the extension only sends                      |
-| `spring.kafka.bootstrap-servers` (of the application)                                                                                                                                        | `kafka.bootstrap-servers`                                                          |
-| `spring.kafka.producer.*` (of the application)                                                                                                                                               | `kafka.properties.*`                                                               |
 | `template-loader-path`                                                                                                                                                                       | `template-loader-path`                                                             |
 | `user-tasks-enabled`, `workflow-list-enabled`                                                                                                                                                | gone: a workflow module which reports nothing leaves the extension unconfigured    |
 | `jwt.*`                                                                                                                                                                                      | not part of the extension, it configured the workflow module's own security        |
+
+Two more keys the version 1 extension read did not stand below `vanillabp.cockpit` at all: it took
+the broker and the producer settings from the ones the application had configured for Spring Kafka.
+The extension builds its own producer now, so it reads them itself.
+
+|  Version 1, of the application   |         Version 2         |
+|----------------------------------|---------------------------|
+| `spring.kafka.bootstrap-servers` | `kafka.bootstrap-servers` |
+| `spring.kafka.producer.*`        | `kafka.properties.*`      |
 
 | Version 1, below `vanillabp.workflow-modules.<id>.cockpit` |                                                             Version 2                                                             |
 |------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|

@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.extension.springboot.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,7 +12,9 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
+import io.vanillabp.cockpit.extension.springboot.bridges.BridgesOfASecondBpms;
 import io.vanillabp.cockpit.extension.springboot.broken.BrokenApplication;
+import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -32,6 +35,15 @@ public class BusinessCockpitBootTest {
       final String databaseName,
       final Class<?>... sources) {
 
+    return failureOfBooting(databaseName, new String[0], sources);
+
+  }
+
+  private static String failureOfBooting(
+      final String databaseName,
+      final String[] properties,
+      final Class<?>... sources) {
+
     final var failure = assertThrows(
         Exception.class,
         () -> new SpringApplicationBuilder(sources)
@@ -39,6 +51,7 @@ public class BusinessCockpitBootTest {
             .properties(
                 "spring.datasource.url=jdbc:h2:mem:%s;DB_CLOSE_DELAY=-1".formatted(databaseName),
                 "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            .properties(properties)
             .run()
             .close());
     Throwable cause = failure;
@@ -64,6 +77,25 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
+  @DisplayName("A details provider is found behind a JDK proxy, too")
+  public void aProxiedServiceIsScannedAsWell() {
+
+    final var message = failureOfBooting(
+        "cockpit-broken-proxied",
+        new String[]{
+            // the everyday way into a JDK proxy: an interface plus @Transactional. What the
+            // bean's TYPE is then says nothing about the class the application wrote
+            "spring.aop.proxy-target-class=false"
+        },
+        BrokenApplication.class, ProxiedVersionedProviderService.class);
+
+    assertTrue(message.contains(ProxiedVersionedProviderService.class.getName()), message);
+    assertTrue(message.contains("approve"), message);
+    assertTrue(message.contains("version"), message);
+
+  }
+
+  @Test
   @DisplayName("Two details providers claiming one user task are refused")
   public void twoProvidersOfOneUserTaskAreRefused() {
 
@@ -72,6 +104,33 @@ public class BusinessCockpitBootTest {
 
     assertTrue(message.contains("approve"), message);
     assertTrue(message.contains(TwiceServingProviderService.class.getSimpleName()), message);
+
+  }
+
+  @Test
+  @DisplayName("A BPMS half registered as one list of bridges serves its adapter")
+  public void bridgesRegisteredAsAListAreCollected() {
+
+    try (var application = new SpringApplicationBuilder(
+        TestApplication.class, BridgesOfASecondBpms.class)
+        .web(WebApplicationType.NONE)
+        .properties(
+            "spring.datasource.url=jdbc:h2:mem:cockpit-bridge-list;DB_CLOSE_DELAY=-1",
+            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+        .run()) {
+
+      final var extension = application.getBean(BusinessCockpitExtension.class);
+
+      assertEquals(
+          BridgesOfASecondBpms.ADAPTER_ID,
+          extension.bridgeOf(BridgesOfASecondBpms.ADAPTER_ID).adapterId(),
+          "the bridge of the list serves its adapter");
+      assertEquals(
+          RecordingBpmsBridge.ADAPTER_ID,
+          extension.bridgeOf(RecordingBpmsBridge.ADAPTER_ID).adapterId(),
+          "and the bridge registered as a bean of its own still does");
+
+    }
 
   }
 

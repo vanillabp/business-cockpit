@@ -19,7 +19,7 @@ import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
-import io.vanillabp.integration.adapter.migration.processservice.AwareSelection;
+import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
@@ -58,9 +58,10 @@ public class BusinessCockpitProducer {
    * <code>VanillaBpDeploymentRunner.OUTBOX_DISPATCHER_STARTUP_PRIORITY</code> - priority
    * <code>APPLICATION + 700</code> - because an entry written before that would find no table.
    * The number is written out rather than read from the integration: an extension does not
-   * compile against a platform integration, so the two are kept in step by this comment.
+   * compile against a platform integration, so the two are kept in step by this comment - and
+   * by a test of the deployment module, which does see both numbers.
    */
-  static final int REGISTRATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 800;
+  public static final int REGISTRATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 800;
 
   /**
    * The extension itself, built from what the application configured.
@@ -75,6 +76,7 @@ public class BusinessCockpitProducer {
    *          decided by the configuration and therefore not by a producer method
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
+   * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param outboxes The outbox stores of the application
    * @param outboxAwares The stores an application named for single workflow aggregates
    * @param transactionRegistry What tells whether a transaction is running
@@ -89,6 +91,7 @@ public class BusinessCockpitProducer {
       @Any final Instance<List<BusinessCockpitBpmsBridge>> bridgeLists,
       @Any final Instance<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
+      final PhaseTwoOutboxResolver outboxResolver,
       @Any final Instance<PhaseTwoOutbox> outboxes,
       @Any final Instance<PhaseTwoOutboxAware<?>> outboxAwares,
       final TransactionSynchronizationRegistry transactionRegistry) {
@@ -98,8 +101,9 @@ public class BusinessCockpitProducer {
     final var extension = new BusinessCockpitExtension(
         configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
-                .templatingOf(configuration), theOutbox(outboxes,
-                    outboxAwares), new QuarkusTransactionRunner(transactionRegistry));
+                .templatingOf(configuration), theOutbox(
+                    outboxResolver, outboxes, outboxAwares), new QuarkusTransactionRunner(
+                        transactionRegistry));
     extension.validateDetailsProviders(workflowServiceClasses());
     return extension;
 
@@ -136,7 +140,9 @@ public class BusinessCockpitProducer {
 
   /**
    * Announces the extension to VanillaBP once the application is up: its three outbox
-   * operations and the two contracts of its details providers.
+   * operations and the two contracts of its details providers. The store of every workflow
+   * aggregate is resolved in the same pass, which is what makes a store nobody can attribute
+   * end the boot rather than the first report.
    *
    * @param event The startup
    * @param extension The extension
@@ -149,6 +155,7 @@ public class BusinessCockpitProducer {
 
     extension.registerOperations(registry);
     extension.registerHandlerContracts();
+    extension.validateOutboxAttribution(workflowServiceClasses());
 
   }
 
@@ -206,69 +213,21 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Where the extension writes its entries - see decision 10 in the repository's DECISIONS.md.
+   * Where the extension writes its entries - see decision 12 in the repository's DECISIONS.md.
    * <p>
-   * A store an application named for a workflow aggregate is used for that aggregate, the way
-   * VanillaBP itself uses it. What VanillaBP does beyond that - attributing one of its two
-   * default stores to the persistence which manages an aggregate - an extension cannot do,
-   * because the classes saying which store serves which technology live in the platform
-   * integration and an extension does not compile against it. An application running two stores
-   * therefore says which one serves an aggregate, with a bean implementing
-   * {@link PhaseTwoOutboxAware}, and is told so where it does not.
+   * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
+   * the extension lands where an entry of the core lands: in the store the aggregate's
+   * transaction reaches. Which of the platform's default stores serves which persistence, and
+   * whether it is usable at all, is knowledge of the Quarkus integration, and an extension
+   * asking the resolver gets that answer without compiling against it (decision 2).
    */
   private static BusinessCockpitOutbox theOutbox(
+      final PhaseTwoOutboxResolver outboxResolver,
       final Instance<PhaseTwoOutbox> outboxes,
       final Instance<PhaseTwoOutboxAware<?>> outboxAwares) {
 
     return new BusinessCockpitOutbox(
-        workflowAggregateClass -> storeOf(outboxes, outboxAwares, workflowAggregateClass), () -> storesOf(outboxes,
-            outboxAwares), """
-                - add the 'quarkus-agroal' extension and configure a JDBC datasource, whereupon \
-                VanillaBP provides the store,
-                - add the 'quarkus-mongodb-client' extension and configure the MongoDB connection \
-                including 'quarkus.mongodb.database', or
-                - define a bean implementing io.vanillabp.integration.spi.PhaseTwoOutbox storing \
-                entries wherever your workflow aggregates live.""");
-
-  }
-
-  /**
-   * The store holding the entries of one workflow aggregate: the most specific
-   * {@link PhaseTwoOutboxAware} bean covering its class, or the single store of the
-   * application.
-   *
-   * @return The store, or <code>null</code> where the application has none
-   */
-  private static PhaseTwoOutbox storeOf(
-      final Instance<PhaseTwoOutbox> outboxes,
-      final Instance<PhaseTwoOutboxAware<?>> outboxAwares,
-      final Class<?> workflowAggregateClass) {
-
-    final var named = AwareSelection
-        .mostSpecific(
-            outboxAwares.stream().<PhaseTwoOutboxAware<?>>map(aware -> aware).toList(),
-            PhaseTwoOutboxAware::getAggregateClass,
-            workflowAggregateClass);
-    if (named.isPresent()) {
-      return named.get().getPhaseTwoOutbox();
-    }
-    final var found = storesOf(outboxes, outboxAwares);
-    if (found.size() == 1) {
-      return found.iterator().next();
-    }
-    if (found.isEmpty()) {
-      return null;
-    }
-    throw new IllegalStateException(
-        """
-            The Business Cockpit extension cannot tell which of the outbox stores %s holds the \
-            entries of the workflow aggregate '%s'. An entry has to be written in the very \
-            transaction which persists that aggregate, so name the store: provide a bean \
-            implementing io.vanillabp.integration.spi.PhaseTwoOutboxAware for this aggregate, \
-            returning the store matching its persistence."""
-            .formatted(
-                found.stream().map(outbox -> outbox.getClass().getName()).toList(),
-                workflowAggregateClass.getName()));
+        outboxResolver::resolveFor, () -> storesOf(outboxes, outboxAwares), outboxResolver.remediesDescription());
 
   }
 
