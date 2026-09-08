@@ -50,7 +50,7 @@ public class BusinessCockpitBootTest {
             .web(WebApplicationType.NONE)
             .properties(
                 "spring.datasource.url=jdbc:h2:mem:%s;DB_CLOSE_DELAY=-1".formatted(databaseName),
-                "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+                "vanillabp.cockpit.rest.base-url=http://localhost:1")
             .properties(properties)
             .run()
             .close());
@@ -116,7 +116,7 @@ public class BusinessCockpitBootTest {
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:cockpit-bridge-list;DB_CLOSE_DELAY=-1",
-            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
       final var extension = application.getBean(BusinessCockpitExtension.class);
@@ -142,7 +142,7 @@ public class BusinessCockpitBootTest {
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:cockpit-without-a-server;DB_CLOSE_DELAY=-1",
-            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
       assertNotNull(

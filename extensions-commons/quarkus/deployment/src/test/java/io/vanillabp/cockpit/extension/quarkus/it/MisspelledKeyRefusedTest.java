@@ -11,20 +11,22 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The same two stores as {@link StoreAttributionTest} and no bean naming one of them for the
- * aggregate. The application persists its aggregate itself, so nothing can read a technology
- * off it, and VanillaBP refuses to guess - the extension ends the boot with that refusal
- * instead of with a verdict of its own, and the message is the platform's, naming the bean the
- * application has to add.
+ * A key which looks like a setting of the Business Cockpit and is read by nobody does not reach a
+ * running application on this platform.
+ * <p>
+ * Quarkus refuses a key below <code>vanillabp</code> which no mapping declares, which is the
+ * asymmetry between the two platforms the VanillaBP platform integration decided on. What the
+ * extension adds to it is the answer to the question the developer has: the message names the key
+ * which was meant.
  */
 @ExtendWith(SuppressOutputExtension.class)
-public class UnattributableStoresRefusedTest {
+public class MisspelledKeyRefusedTest {
 
   @RegisterExtension
   static final QuarkusExtensionTest extensionTest = new QuarkusExtensionTest()
       .withApplicationRoot(
           jar -> jar
-              .addAsResource("business-cockpit.yaml", "application.yaml")
+              .addAsResource("misspelled-key.yaml", "application.yaml")
               .addAsResource("test-module/processes/dummy/TestProcess.bpmn")
               .addAsResource(
                   "workflow-module-descriptor/workflow-module", "META-INF/workflow-module")
@@ -33,30 +35,29 @@ public class UnattributableStoresRefusedTest {
               .addClass(TestWorkflowService.class)
               .addClass(TestBpmsBridge.class)
               .addClass(TestWorkflowAwareness.class)
-              .addClass(TestWorkflowModuleDetails.class)
-              .addClass(RecordingOutbox.class))
-      .overrideRuntimeConfigKey(
-          "vanillabp.cockpit.rest.base-url", "http://localhost:1")
+              .addClass(TestWorkflowModuleDetails.class))
       .assertException(failure -> {
-        final var message = rootCauseMessage(failure);
-        assertTrue(message.contains(TestAggregate.class.getName()), message);
+        final var message = messages(failure);
         assertTrue(
-            message.contains("io.vanillabp.integration.spi.PhaseTwoOutboxAware"), message);
+            message.contains("vanillabp.workflow-modules.test-module.cockpit.ui-uri-pth"), message);
+        assertTrue(
+            message.contains("vanillabp.workflow-modules.test-module.cockpit.ui-uri-path"),
+            message);
       });
 
-  private static String rootCauseMessage(
+  private static String messages(
       final Throwable failure) {
 
-    var cause = failure;
-    while (cause.getCause() != null) {
-      cause = cause.getCause();
+    final var messages = new StringBuilder();
+    for (var cause = failure; cause != null; cause = cause.getCause()) {
+      messages.append(cause.getMessage()).append('\n');
     }
-    return String.valueOf(cause.getMessage());
+    return messages.toString();
 
   }
 
   @Test
-  @DisplayName("Two stores nobody attributed keep the application from starting")
+  @DisplayName("A misspelled key keeps the application from starting and names the one meant")
   public void theApplicationDoesNotStart() {
 
     // the assertion is the one the extension above makes: this application never runs

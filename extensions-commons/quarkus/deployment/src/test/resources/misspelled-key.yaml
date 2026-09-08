@@ -2,15 +2,17 @@ quarkus:
   datasource:
     db-kind: h2
     jdbc:
-      url: jdbc:h2:mem:business-cockpit-extension;DB_CLOSE_DELAY=-1
+      url: jdbc:h2:mem:business-cockpit-misspelled;DB_CLOSE_DELAY=-1
 vanillabp:
   adapters:
     test:
       type: dummy
-      test: 1
   outbox:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
+  cockpit:
+    rest:
+      base-url: http://localhost:1
   workflow-modules:
     test-module:
       adapters:
@@ -19,6 +21,6 @@ vanillabp:
       cockpit:
         workflow-module-uri: http://localhost:8081/test-module
         ui-uri-type: WEBPACK_MF_REACT
-        ui-uri-path: /remoteEntry.js
+        ui-uri-pth: /remoteEntry.js
         i18n-languages: en
         bpmn-description-language: en

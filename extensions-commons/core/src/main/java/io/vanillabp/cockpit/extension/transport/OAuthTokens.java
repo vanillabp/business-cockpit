@@ -48,8 +48,6 @@ public class OAuthTokens implements RequestInterceptor {
 
   private static final ObjectMapper JSON = new ObjectMapper();
 
-  private final RestTransportConfiguration configuration;
-
   private final RestTransportConfiguration.OAuth oauth;
 
   private volatile String token;
@@ -57,13 +55,13 @@ public class OAuthTokens implements RequestInterceptor {
   private volatile Instant replaceAfter = Instant.MIN;
 
   /**
-   * @param configuration What the application configured about the connection, of which the
-   *          proxy, the truststore and the timeouts apply to the token request too
+   * @param configuration What the application configured about the cockpit server, of which the
+   *          client-credentials flow - and with it the connection to the authorization server -
+   *          is one section
    */
   public OAuthTokens(
       final RestTransportConfiguration configuration) {
 
-    this.configuration = configuration;
     this.oauth = configuration.oauth();
 
   }
@@ -113,8 +111,7 @@ public class OAuthTokens implements RequestInterceptor {
         connection
             .setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
         connection.setRequestProperty("Accept", "application/json");
-        final var proxyAuthorization = RestClientSetup
-            .proxyAuthorizationOf(configuration.proxy());
+        final var proxyAuthorization = RestClientSetup.proxyAuthorizationOf(oauth.proxy());
         if (proxyAuthorization != null) {
           connection.setRequestProperty("Proxy-Authorization", proxyAuthorization);
         }
@@ -165,22 +162,22 @@ public class OAuthTokens implements RequestInterceptor {
   private HttpURLConnection open() throws IOException {
 
     final var url = URI.create(oauth.tokenUrl()).toURL();
-    final var proxy = configuration.proxy();
+    final var proxy = oauth.proxy();
     final var connection = (HttpURLConnection) (proxy == null
         ? url.openConnection()
         : url
             .openConnection(
                 new Proxy(
                     Proxy.Type.HTTP, new InetSocketAddress(proxy.host(), proxy.port()))));
-    final var timeouts = RestClientSetup.timeoutsOf(configuration);
+    final var timeouts = RestClientSetup.timeoutsOf(oauth);
     connection.setConnectTimeout(timeouts.connectTimeoutMillis());
     connection.setReadTimeout(timeouts.readTimeoutMillis());
     if (connection instanceof final HttpsURLConnection https) {
-      final var context = RestClientSetup.sslContextOf(configuration);
+      final var context = RestClientSetup.sslContextOf(oauth);
       if (context != null) {
         https.setSSLSocketFactory(context.getSocketFactory());
       }
-      final var hostnames = RestClientSetup.hostnameVerifierOf(configuration);
+      final var hostnames = RestClientSetup.hostnameVerifierOf(oauth);
       if (hostnames != null) {
         https.setHostnameVerifier(hostnames);
       }

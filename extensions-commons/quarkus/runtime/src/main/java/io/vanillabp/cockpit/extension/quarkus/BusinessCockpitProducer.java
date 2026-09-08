@@ -13,6 +13,7 @@ import io.quarkus.runtime.StartupEvent;
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
+import io.vanillabp.cockpit.extension.config.CockpitSettings;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
@@ -64,12 +65,30 @@ public class BusinessCockpitProducer {
   public static final int REGISTRATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 800;
 
   /**
+   * What the application wrote about the Business Cockpit, read off this platform's mapping and
+   * handed on as the neutral object the core and every BPMS half read.
+   *
+   * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
+   * @return The settings
+   */
+  @Produces
+  @Singleton
+  @Unremovable
+  public CockpitSettings businessCockpitSettings(
+      final CockpitOverlayProperties overlay) {
+
+    return overlay.toSettings();
+
+  }
+
+  /**
    * The extension itself, built from what the application configured.
    * <p>
    * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
    * BPMS half injects: one bean, so that there is nothing to tell apart.
    *
    * @param properties VanillaBP's resolved configuration
+   * @param settings What the application wrote below the cockpit's own sections
    * @param bridges The BPMS halves the application brought
    * @param bridgeLists The BPMS halves an extension produced as one list, which is how a BPMS
    *          half builds a bridge per configured adapter id on Quarkus: how many there are is
@@ -87,6 +106,7 @@ public class BusinessCockpitProducer {
   @Unremovable
   public BusinessCockpitExtension businessCockpitExtension(
       final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
       @Any final Instance<BusinessCockpitBpmsBridge> bridges,
       @Any final Instance<List<BusinessCockpitBpmsBridge>> bridgeLists,
       @Any final Instance<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
@@ -97,7 +117,7 @@ public class BusinessCockpitProducer {
       final TransactionSynchronizationRegistry transactionRegistry) {
 
     final var configuration = BusinessCockpitConfiguration
-        .readAndValidate(properties, Templating.engineAvailable());
+        .readAndValidate(properties, settings, Templating.engineAvailable());
     final var extension = new BusinessCockpitExtension(
         configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly

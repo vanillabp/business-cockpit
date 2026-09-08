@@ -228,3 +228,76 @@ choose between the Business Cockpit and its own architecture. A report whose BPM
 no workflow service is still refused, with the declared processes named, because nobody can say
 where it goes. An application holding a single store is spared even that: with one store there is
 nothing to decide.
+
+### 14. The configuration keeps the version 1 keys
+
+An application upgrades to version 2 by changing a dependency. The Business Cockpit having become
+an extension of the VanillaBP platform is an implementation of this repository, and there is no
+reason an application should have to rewrite its configuration to learn about it. So the keys are
+the ones version 1 read, in the places it read them: `vanillabp.cockpit` for what holds for the
+whole application, `vanillabp.workflow-modules.<id>.cockpit` for one workflow module, and
+`vanillabp.workflow-modules.<id>.workflows.<process>.cockpit` and its `user-tasks.<task>.cockpit`
+for the two levels below it. Lists are lists again and the group hierarchy is a map of lists again,
+because that is how an application already wrote them.
+
+Neither platform reads anything below `vanillabp.cockpit` by itself, so the extension binds that
+tree: a `@ConfigurationProperties("vanillabp")` overlay on Spring Boot and a second
+`@ConfigMapping(prefix = "vanillabp")` on Quarkus, which is the pattern the platform documents for
+an adapter contributing keys of its own. Both hand one neutral object to the core, which parses and
+validates it, so a port which is no number and a timeout which is no span of time are answered by
+the same message on either platform. On Quarkus the mapping is also what lets the application boot: a key
+below `vanillabp` which no mapping declares ends the startup there, which is why every key the
+cockpit reads is declared, including the one key its Process-Engine-API half reads.
+
+That strictness is what a misspelled key runs into, and what a key of version 1 which is gone runs
+into as well. On Quarkus the build ends naming the key and either the one it was nearest to or what
+became of it; on Spring Boot such a key is ignored, which is the platform integration's own decision
+about the two frameworks and not this repository's.
+
+These keys do not come back, one reason each:
+
+- `rest.log`: the client logs through SLF4J, so the logging configuration switches it on. Set the
+  logger `io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi` to `DEBUG`.
+- `rest.additional-get-parameters.<name>`: it appended query parameters to GET requests, and every
+  report is a POST.
+- `rest.retry.enabled`, `.max-attempts`, `.period`, `.max-period`: a failed report waits in the
+  outbox and is repeated from there, which `vanillabp.outbox.*` configures.
+- `kafka.group-id-suffix`: it made a consumer group unique, and the extension only produces.
+- `jwt.hmacSHA256-base64` and `jwt.cookie.*`: version 1 bound them and read them nowhere, and the
+  cockpit server configures its own tokens.
+- `group-hierarchy-bean-name`: the hierarchy is configuration, and which groups may see a workflow
+  module is answered by the `WorkflowModuleDetailsProvider` bean.
+- `workerId`: it named the instance a report came from, and the extension takes the host name for
+  that and asks for nothing.
+- `spring.application.name`: only the Camunda 8 exporter path read it, and that path is gone.
+- `spring.kafka.consumer.*` and `camunda.zeebe.kafka-exporter.topic-name`: version 1 also consumed
+  a topic a Camunda 8 exporter wrote, and version 2 learns the same from the listeners it puts into
+  the models.
+- The Camunda 8 keys below `vanillabp.workflow-modules.<id>.adapters.camunda8`: a worker of the
+  cockpit is a worker on the same cluster and is opened the way the Camunda 8 adapter opens its
+  own, so the adapter's keys are read rather than copied. `workflow-visibility-timeout` is gone
+  with the waiting it configured: a report of something the cluster has not exported yet goes back
+  into the outbox, and `vanillabp.outbox.block-after-attempts` says how long it keeps coming back.
+- `io.vanillabp.businesscockpit.tasklistener.prefixes`,
+  `io.vanillabp.businesscockpit.executionlistener.prefixes` and `io.vanillabp.deployment.priority`:
+  entries of an in-memory map of version 1's deployment, never keys of a configuration file. A job
+  type of this extension is recognized by its own prefix.
+
+One behaviour of version 1 comes back with its keys, and it is worth naming: the token client of
+the client-credentials flow configures its own connection. It inherits nothing from `rest.*`, so an
+authorization server behind another proxy, with another certificate or a slower answer stays
+reachable, and what the flow does not say for itself is the default rather than what the cockpit
+server's client uses.
+
+Two keys move into the cockpit's own tree rather than being read out of Spring's:
+`kafka.bootstrap-servers` and `kafka.properties.*` are what version 1 took from
+`spring.kafka.bootstrap-servers` and `spring.kafka.producer.*`, and the extension builds its own
+producer now, on both platforms. One key is new with the Process-Engine-API integration:
+`process-engine-api.remembered-user-tasks` sizes what that half remembers between a delivery and
+its dispatch.
+
+What was mandatory per workflow module stays mandatory per workflow module, and there is no global
+default for it. Version 1 had none either, and a `ui-uri-path` written once for every module would
+promise something the cockpit cannot keep: the modules answer at different addresses. Every setting
+is read and validated while the application starts, rather than when the first event arrives, so
+the log of the first boot is what a developer works from.

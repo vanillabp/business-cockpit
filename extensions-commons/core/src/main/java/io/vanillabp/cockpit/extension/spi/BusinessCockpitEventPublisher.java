@@ -35,7 +35,7 @@ public interface BusinessCockpitEventPublisher {
    *          thread and says so where none is
    * @return Whether an entry was written. <code>false</code> means an entry of the same
    *         idempotency key is still waiting for its dispatch and this one is a repetition of
-   *         it
+   *         it, or that the application reports no user tasks at all
    */
   boolean publishUserTaskEvent(
       UserTaskReference userTask,
@@ -53,7 +53,8 @@ public interface BusinessCockpitEventPublisher {
    * @param bpmsEventId The BPMS' own identifier of this event
    * @param timestamp When the BPMS says it happened
    * @param transaction Which transaction the entry is written in
-   * @return Whether an entry was written
+   * @return Whether an entry was written. <code>false</code> also means that the application
+   *         reports no workflows at all
    */
   boolean publishWorkflowEvent(
       WorkflowReference workflow,

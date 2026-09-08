@@ -11,6 +11,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ import org.springframework.util.ClassUtils;
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
+import io.vanillabp.cockpit.extension.config.CockpitSettings;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
@@ -52,9 +54,25 @@ import io.vanillabp.spi.service.WorkflowService;
 @ConditionalOnBean({
     MigrationAdapterProperties.class, ExtensionHandlers.class
 })
+@EnableConfigurationProperties(CockpitOverlayProperties.class)
 public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean {
 
   private BusinessCockpitExtension extension;
+
+  /**
+   * What the application wrote about the Business Cockpit, read off this platform's binding and
+   * handed on as the neutral object the core and every BPMS half read.
+   *
+   * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
+   * @return The settings
+   */
+  @Bean
+  public CockpitSettings businessCockpitSettings(
+      final CockpitOverlayProperties overlay) {
+
+    return overlay.toSettings();
+
+  }
 
   /**
    * The extension itself, built from what the application configured.
@@ -62,8 +80,9 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
    * BPMS half injects: one bean, so that there is nothing to tell apart.
    *
-   * @param properties VanillaBP's resolved configuration, which owns the two locations an
-   *          extension is configured in
+   * @param properties VanillaBP's resolved configuration, which knows the application's
+   *          workflow modules and adapters
+   * @param settings What the application wrote below the cockpit's own sections
    * @param bridges The BPMS halves the application brought
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
@@ -78,6 +97,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   @Bean
   public BusinessCockpitExtension businessCockpitExtension(
       final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
       final ObjectProvider<BusinessCockpitBpmsBridge> bridges,
       final ObjectProvider<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
@@ -88,7 +108,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final ApplicationContext applicationContext) {
 
     final var configuration = BusinessCockpitConfiguration
-        .readAndValidate(properties, Templating.engineAvailable());
+        .readAndValidate(properties, settings, Templating.engineAvailable());
     extension = new BusinessCockpitExtension(
         configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
             bridges,

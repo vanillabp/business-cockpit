@@ -50,7 +50,7 @@ public class BusinessCockpitExtensionTest {
       final DynamicPropertyRegistry registry) {
 
     registry
-        .add("vanillabp.extensions.business-cockpit.rest.base-url", CockpitServer::baseUrl);
+        .add("vanillabp.cockpit.rest.base-url", CockpitServer::baseUrl);
 
   }
 

@@ -29,7 +29,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TestProcess.bpmn-description-language=fr", "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TestProcess.i18n-languages=fr"
+        "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.bpmn-description-language=fr", "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.i18n-languages=fr"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -40,7 +40,7 @@ public class PerWorkflowConfigurationTest {
       final DynamicPropertyRegistry registry) {
 
     registry
-        .add("vanillabp.extensions.business-cockpit.rest.base-url", CockpitServer::baseUrl);
+        .add("vanillabp.cockpit.rest.base-url", CockpitServer::baseUrl);
 
   }
 

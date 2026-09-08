@@ -57,7 +57,7 @@ public class BusinessCockpitExtensionTest {
               // the two copies agree on what arrived.
               .addClass(CockpitServer.class))
       .overrideRuntimeConfigKey(
-          "vanillabp.extensions.business-cockpit.rest.base-url", CockpitServer.baseUrl());
+          "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl());
 
   @Inject
   TestWorkflowService workflowService;

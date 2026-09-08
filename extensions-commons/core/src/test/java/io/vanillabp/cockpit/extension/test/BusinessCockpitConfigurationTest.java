@@ -24,6 +24,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Every defect is reported while the application starts, all of them in one message, and every
  * line names the property key which fixes it - a developer reaching a working setup from the
  * log rather than from the documentation is what these assertions are about.
+ * <p>
+ * The keys are the ones version 1 of the Business Cockpit read, so the tests are written in the
+ * spelling an application which upgrades already has.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitConfigurationTest {
@@ -32,7 +35,8 @@ public class BusinessCockpitConfigurationTest {
       final ConfigurationFixture fixture,
       final boolean templatingAvailable) {
 
-    return BusinessCockpitConfiguration.readAndValidate(fixture.build(), templatingAvailable);
+    return BusinessCockpitConfiguration
+        .readAndValidate(fixture.properties(), fixture.settings(), templatingAvailable);
 
   }
 
@@ -61,6 +65,31 @@ public class BusinessCockpitConfigurationTest {
     assertEquals(List.of("en", "de"), module.i18nLanguages());
     assertEquals("en", module.bpmnDescriptionLanguage());
     assertEquals(ConfigurationFixture.WORKFLOW_MODULE, module.templatePath());
+
+  }
+
+  @Test
+  @DisplayName("Both halves of the cockpit are reported to unless a switch says otherwise")
+  public void theTwoSwitchesAreRead() {
+
+    final var byDefault = read(ConfigurationFixture.aConfiguredApplication(), false);
+    assertTrue(byDefault.isUserTasksEnabled());
+    assertTrue(byDefault.isWorkflowListEnabled());
+
+    final var switchedOff = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("user-tasks-enabled", "false")
+            .with("workflow-list-enabled", "false"),
+        false);
+    assertFalse(switchedOff.isUserTasksEnabled());
+    assertFalse(switchedOff.isWorkflowListEnabled());
+
+    final var defects = defectsOf(
+        ConfigurationFixture.aConfiguredApplication().with("user-tasks-enabled", "sometimes"),
+        false);
+    assertTrue(defects.contains("vanillabp.cockpit.user-tasks-enabled"), defects);
+    assertTrue(defects.contains("'true' or 'false'"), defects);
 
   }
 
@@ -95,14 +124,9 @@ public class BusinessCockpitConfigurationTest {
     final var defects = defectsOf(
         ConfigurationFixture.aConfiguredApplication().without("rest.base-url"), false);
 
-    assertTrue(
-        defects.contains("vanillabp.extensions.business-cockpit.rest.base-url"), defects);
-    assertTrue(
-        defects.contains("vanillabp.extensions.business-cockpit.kafka.bootstrap-servers"),
-        defects);
-    assertTrue(
-        defects.contains("vanillabp.extensions.business-cockpit.kafka.topics.user-task"),
-        defects);
+    assertTrue(defects.contains("vanillabp.cockpit.rest.base-url"), defects);
+    assertTrue(defects.contains("vanillabp.cockpit.kafka.bootstrap-servers"), defects);
+    assertTrue(defects.contains("vanillabp.cockpit.kafka.topics.user-task"), defects);
 
   }
 
@@ -191,9 +215,7 @@ public class BusinessCockpitConfigurationTest {
     assertTrue(defects.contains("ui-uri-path"), defects);
     assertTrue(defects.contains("i18n-languages"), defects);
     assertTrue(defects.contains("bpmn-description-language"), defects);
-    assertTrue(
-        defects.contains("vanillabp.workflow-modules.test-module.extensions.business-cockpit"),
-        defects);
+    assertTrue(defects.contains("vanillabp.workflow-modules.test-module.cockpit"), defects);
 
   }
 
@@ -212,8 +234,7 @@ public class BusinessCockpitConfigurationTest {
     assertTrue(
         failure
             .getMessage()
-            .contains(
-                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflow-module-uri"),
+            .contains("vanillabp.workflow-modules.test-module.cockpit.workflow-module-uri"),
         failure.getMessage());
 
   }
@@ -232,25 +253,7 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
-  @DisplayName("A workflow module's value wins over the extension's global one, per key")
-  public void theWorkflowModulesValueWins() {
-
-    final var configuration = read(
-        ConfigurationFixture
-            .aConfiguredApplication()
-            .with("ui-uri-path", "/global.js")
-            .with("template-path", "shared")
-            .withWorkflowModule("ui-uri-path", "/module.js"),
-        false);
-
-    final var module = configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE);
-    assertEquals("/module.js", module.uiUriPath());
-    assertEquals("shared", module.templatePath());
-
-  }
-
-  @Test
-  @DisplayName("The group hierarchy is read as one entry per group")
+  @DisplayName("The group hierarchy is read as one list per group")
   public void groupHierarchyIsRead() {
 
     final var configuration = read(
@@ -298,40 +301,18 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
-  @DisplayName("A key which is no setting of a single workflow says where it belongs")
-  public void aKeyWhichIsNoWorkflowSettingIsReported() {
+  @DisplayName("A user task said something although its workflow said nothing")
+  public void aUserTaskWithoutAWorkflowSection() {
 
-    final var defects = defectsOf(
+    final var configuration = read(
         ConfigurationFixture
             .aConfiguredApplication()
-            .withWorkflow("TaxiRide", "ui-uri-path", "/taxi.js"),
+            .withUserTask("TaxiRide", "approve", "template-path", "approval"),
         false);
 
-    assertTrue(
-        defects
-            .contains(
-                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TaxiRide.ui-uri-path"),
-        defects);
-    assertTrue(defects.contains("bpmn-description-language"), defects);
-
-  }
-
-  @Test
-  @DisplayName("A key which is no setting of a single user task names the one which is")
-  public void aKeyWhichIsNoUserTaskSettingIsReported() {
-
-    final var defects = defectsOf(
-        ConfigurationFixture
-            .aConfiguredApplication()
-            .withUserTask("TaxiRide", "approve", "i18n-languages", "fr"),
-        false);
-
-    assertTrue(
-        defects
-            .contains(
-                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TaxiRide.user-tasks.approve.i18n-languages"),
-        defects);
-    assertTrue(defects.contains("template-path"), defects);
+    final var module = configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE);
+    assertEquals("approval", module.templatePathOfUserTask("TaxiRide", "approve"));
+    assertEquals("TaxiRide", module.templatePathOfWorkflow("TaxiRide"));
 
   }
 
@@ -349,7 +330,6 @@ public class BusinessCockpitConfigurationTest {
             .with("rest.proxy.username", "walter")
             .with("rest.proxy.password", "secret")
             .with("rest.verify-ssl", "false")
-            .without("rest.username")
             .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
             .with("rest.authentication.oauth.client-id", "taxi-ride")
             .with("rest.authentication.oauth.client-secret", "s3cret")
@@ -370,8 +350,54 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
-  @DisplayName("A timeout which is no span of time is refused with both spellings")
-  public void aBrokenTimeoutNamesBothSpellings() {
+  @DisplayName("The timeouts are what version 1 waited, written in any of its spellings")
+  public void timeoutsKeepTheirVersionOneDefaults() {
+
+    final var byDefault = read(ConfigurationFixture.aConfiguredApplication(), false).getRest();
+    assertEquals(Duration.ofMillis(1500), byDefault.connectTimeout());
+    assertEquals(Duration.ofMillis(10000), byDefault.readTimeout());
+
+    final var asVersionOneWroteIt = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.connect-timeout", "2000")
+            .with("rest.read-timeout", "20000"),
+        false).getRest();
+    assertEquals(Duration.ofSeconds(2), asVersionOneWroteIt.connectTimeout());
+    assertEquals(Duration.ofSeconds(20), asVersionOneWroteIt.readTimeout());
+
+  }
+
+  @Test
+  @DisplayName("The token client is configured for itself, not from the cockpit server's client")
+  public void theTokenClientHasItsOwnConnection() {
+
+    final var oauth = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.connect-timeout", "5s")
+            .with("rest.proxy.host", "cockpit-proxy.internal")
+            .with("rest.proxy.port", "3128")
+            .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
+            .with("rest.authentication.oauth.client-id", "taxi-ride")
+            .with("rest.authentication.oauth.client-secret", "s3cret")
+            .with("rest.authentication.oauth.connect-timeout", "500ms")
+            .with("rest.authentication.oauth.verify-ssl", "false")
+            .with("rest.authentication.oauth.proxy.host", "token-proxy.internal")
+            .with("rest.authentication.oauth.proxy.port", "8080"),
+        false).getRest().oauth();
+
+    assertEquals(Duration.ofMillis(500), oauth.connectTimeout());
+    assertEquals(Duration.ofMillis(10000), oauth.readTimeout());
+    assertEquals("token-proxy.internal", oauth.proxy().host());
+    assertEquals(8080, oauth.proxy().port());
+    assertFalse(oauth.verifySsl());
+
+  }
+
+  @Test
+  @DisplayName("A timeout which is no span of time is refused with every spelling it has")
+  public void aBrokenTimeoutNamesEverySpelling() {
 
     final var defects = defectsOf(
         ConfigurationFixture.aConfiguredApplication().with("rest.read-timeout", "soon"), false);
@@ -379,6 +405,44 @@ public class BusinessCockpitConfigurationTest {
     assertTrue(defects.contains("rest.read-timeout"), defects);
     assertTrue(defects.contains("PT10S"), defects);
     assertTrue(defects.contains("1500ms"), defects);
+    assertTrue(defects.contains("1500"), defects);
+
+  }
+
+  @Test
+  @DisplayName("A basic authentication is sent where version 1's switch says so")
+  public void basicAuthenticationIsSwitchedOn() {
+
+    final var rest = read(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.authentication.basic", "true")
+            .with("rest.authentication.username", "cockpit")
+            .with("rest.authentication.password", "s3cret"),
+        false).getRest();
+
+    assertTrue(rest.authenticates());
+    assertEquals("cockpit", rest.username());
+
+  }
+
+  @Test
+  @DisplayName("A user name without the switch, and the switch without a user name, are reported")
+  public void anIncompleteBasicAuthenticationIsReported() {
+
+    final var withoutTheSwitch = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("rest.authentication.username", "cockpit"),
+        false);
+    assertTrue(withoutTheSwitch.contains("vanillabp.cockpit.rest.authentication.basic"),
+        withoutTheSwitch);
+
+    final var withoutAUser = defectsOf(
+        ConfigurationFixture.aConfiguredApplication().with("rest.authentication.basic", "true"),
+        false);
+    assertTrue(withoutAUser.contains("vanillabp.cockpit.rest.authentication.username"),
+        withoutAUser);
 
   }
 
@@ -439,7 +503,8 @@ public class BusinessCockpitConfigurationTest {
     final var twoWays = defectsOf(
         ConfigurationFixture
             .aConfiguredApplication()
-            .with("rest.username", "cockpit")
+            .with("rest.authentication.basic", "true")
+            .with("rest.authentication.username", "cockpit")
             .with("rest.authentication.oauth.base-url", "http://localhost:9000/token")
             .with("rest.authentication.oauth.client-id", "taxi-ride")
             .with("rest.authentication.oauth.client-secret", "s3cret"),

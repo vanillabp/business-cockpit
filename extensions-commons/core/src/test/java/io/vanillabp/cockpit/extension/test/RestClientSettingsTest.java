@@ -182,7 +182,7 @@ public class RestClientSettingsTest {
     final var configuration = configuration(
         at(""), null, null, null, null, null,
         new RestTransportConfiguration.OAuth(
-            at("/token"), "taxi-ride", "s3cret", false));
+            at("/token"), "taxi-ride", "s3cret", false, null, null, null, true, null, null));
     final var transport = new RestTransport(configuration);
 
     transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED));
@@ -212,7 +212,7 @@ public class RestClientSettingsTest {
         configuration(
             at(""), null, null, null, null, null,
             new RestTransportConfiguration.OAuth(
-                at("/token"), "taxi-ride", "s3cret", true)));
+                at("/token"), "taxi-ride", "s3cret", true, null, null, null, true, null, null)));
 
     final var tokenRequest = received.getFirst();
     assertEquals("Basic dGF4aS1yaWRlOnMzY3JldA==", tokenRequest.authorization());
@@ -228,7 +228,7 @@ public class RestClientSettingsTest {
         configuration(
             at(""), null, null, null, null, null,
             new RestTransportConfiguration.OAuth(
-                at("/token-without-an-expiry"), "taxi-ride", "s3cret", false)));
+                at("/token-without-an-expiry"), "taxi-ride", "s3cret", false, null, null, null, true, null, null)));
 
     assertEquals(
         "Bearer token-1",
@@ -245,7 +245,7 @@ public class RestClientSettingsTest {
             configuration(
                 at(""), null, null, null, null, null,
                 new RestTransportConfiguration.OAuth(
-                    at("/token-without-a-token"), "taxi-ride", "s3cret", false))));
+                    at("/token-without-a-token"), "taxi-ride", "s3cret", false, null, null, null, true, null, null))));
     assertTrue(withoutAToken.getMessage().contains("access_token"), withoutAToken.getMessage());
 
   }
@@ -260,7 +260,7 @@ public class RestClientSettingsTest {
             configuration(
                 at(""), null, null, null, null, null,
                 new RestTransportConfiguration.OAuth(
-                    at("/nowhere"), "taxi-ride", "s3cret", false))));
+                    at("/nowhere"), "taxi-ride", "s3cret", false, null, null, null, true, null, null))));
 
     assertFalse(
         PhaseTwoPermanentFailure.isPermanent(failure),

@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
-import java.time.Duration;
 import java.util.Base64;
 
 import javax.net.ssl.HostnameVerifier;
@@ -21,6 +20,7 @@ import javax.net.ssl.X509TrustManager;
 import feign.Client;
 import feign.DefaultClient;
 import feign.Request;
+import io.vanillabp.cockpit.extension.config.RestConnection;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 
 /**
@@ -39,20 +39,21 @@ public final class RestClientSetup {
   }
 
   /**
-   * How long the client waits, with the client's own defaults for whatever was not configured.
+   * How long the client waits. A configuration read from an application always carries both
+   * spans, version 1's where nothing was written; a configuration built in a test may leave one
+   * out, and the same default fills it in.
    *
-   * @param configuration What the application configured
+   * @param configuration What the application configured about this connection
    * @return The timeouts
    */
   public static Request.Options timeoutsOf(
-      final RestTransportConfiguration configuration) {
+      final RestConnection configuration) {
 
-    final var defaults = new Request.Options();
     return new Request.Options(
         configuration.connectTimeout() == null
-            ? Duration.ofMillis(defaults.connectTimeoutMillis())
+            ? RestConnection.DEFAULT_CONNECT_TIMEOUT
             : configuration.connectTimeout(), configuration.readTimeout() == null
-                ? Duration.ofMillis(defaults.readTimeoutMillis())
+                ? RestConnection.DEFAULT_READ_TIMEOUT
                 : configuration.readTimeout(), true);
 
   }
@@ -69,7 +70,7 @@ public final class RestClientSetup {
    * @return The client, or <code>null</code> where the generated one is kept
    */
   public static Client clientOf(
-      final RestTransportConfiguration configuration) {
+      final RestConnection configuration) {
 
     if (!configuration.needsAClientOfItsOwn()) {
       return null;
@@ -97,7 +98,7 @@ public final class RestClientSetup {
    *         the check is left on
    */
   public static SSLContext sslContextOf(
-      final RestTransportConfiguration configuration) {
+      final RestConnection configuration) {
 
     if (configuration.verifySsl() && !configuration.hasOwnTruststore()) {
       return null;
@@ -124,7 +125,7 @@ public final class RestClientSetup {
    *         <code>null</code> where the JVM's own check is left on
    */
   public static HostnameVerifier hostnameVerifierOf(
-      final RestTransportConfiguration configuration) {
+      final RestConnection configuration) {
 
     return configuration.verifySsl()
         ? null
@@ -169,7 +170,7 @@ public final class RestClientSetup {
   }
 
   private static SSLSocketFactory socketFactoryOf(
-      final RestTransportConfiguration configuration) {
+      final RestConnection configuration) {
 
     final var context = sslContextOf(configuration);
     return context == null ? null : context.getSocketFactory();
@@ -177,7 +178,7 @@ public final class RestClientSetup {
   }
 
   private static TrustManager[] trustManagersOf(
-      final RestTransportConfiguration configuration) throws Exception {
+      final RestConnection configuration) throws Exception {
 
     if (!configuration.verifySsl()) {
       return new TrustManager[]{

@@ -41,7 +41,7 @@ public class StoreAttributionTest {
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:%s;DB_CLOSE_DELAY=-1".formatted(databaseName),
-            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run();
 
   }

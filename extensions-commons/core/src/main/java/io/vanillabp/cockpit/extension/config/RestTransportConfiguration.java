@@ -16,9 +16,9 @@ import java.time.Duration;
  * @param username The user of the basic authentication, or <code>null</code> where the server
  *          expects none
  * @param password The password belonging to the user
- * @param connectTimeout How long establishing the connection may take, or <code>null</code> for
- *          the client's own default
- * @param readTimeout How long the server may take to answer, or <code>null</code>
+ * @param connectTimeout How long establishing the connection may take, which is what version 1
+ *          waited where an application configured nothing
+ * @param readTimeout How long the server may take to answer
  * @param proxy The HTTP proxy the server is reached through, or <code>null</code>
  * @param verifySsl Whether the certificate the server presents is checked at all
  * @param sslTruststoreFilename The PKCS12 file holding the certificates the server's is checked
@@ -37,7 +37,7 @@ public record RestTransportConfiguration(
                                          boolean verifySsl,
                                          String sslTruststoreFilename,
                                          String sslTruststorePassword,
-                                         OAuth oauth) {
+                                         OAuth oauth) implements RestConnection {
 
   /**
    * The HTTP proxy every request to the cockpit server passes.
@@ -75,12 +75,25 @@ public record RestTransportConfiguration(
    * @param clientInAuthorizationHeader Whether the client identifies itself in an
    *          <code>Authorization</code> header rather than in the form of the token request -
    *          which of the two an authorization server accepts is its own decision
+   * @param connectTimeout How long establishing the connection to the authorization server may
+   *          take, which is this server's own setting and not the cockpit server's
+   * @param readTimeout How long the authorization server may take to answer
+   * @param proxy The HTTP proxy it is reached through, or <code>null</code>
+   * @param verifySsl Whether its certificate is checked at all
+   * @param sslTruststoreFilename The PKCS12 file its certificate is checked against
+   * @param sslTruststorePassword The password of that file
    */
   public record OAuth(
                       String tokenUrl,
                       String clientId,
                       String clientSecret,
-                      boolean clientInAuthorizationHeader) {
+                      boolean clientInAuthorizationHeader,
+                      Duration connectTimeout,
+                      Duration readTimeout,
+                      Proxy proxy,
+                      boolean verifySsl,
+                      String sslTruststoreFilename,
+                      String sslTruststorePassword) implements RestConnection {
   }
 
   /**
@@ -89,26 +102,6 @@ public record RestTransportConfiguration(
   public boolean authenticates() {
 
     return (username != null) && !username.isBlank();
-
-  }
-
-  /**
-   * @return Whether the client trusts a set of certificates of this deployment rather than the
-   *         ones the JVM was installed with
-   */
-  public boolean hasOwnTruststore() {
-
-    return (sslTruststoreFilename != null) && !sslTruststoreFilename.isBlank();
-
-  }
-
-  /**
-   * @return Whether the connection needs anything the client's defaults do not give it, which
-   *         is what decides whether the generated client keeps its own HTTP stack
-   */
-  public boolean needsAClientOfItsOwn() {
-
-    return (proxy != null) || !verifySsl || hasOwnTruststore();
 
   }
 

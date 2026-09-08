@@ -1,10 +1,14 @@
 package io.vanillabp.cockpit.extension.quarkus.deployment;
 
+import org.eclipse.microprofile.config.ConfigProvider;
+
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.AdditionalIndexedClassesBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeyCheck;
 import io.vanillabp.cockpit.extension.quarkus.BusinessCockpitProducer;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 
@@ -31,6 +35,32 @@ class BusinessCockpitExtensionProcessor {
         .addBeanClass(BusinessCockpitProducer.class)
         .setUnremovable()
         .build();
+
+  }
+
+  /**
+   * Ends the build where a key of one of the cockpit's sections is one nobody reads, naming the
+   * key it was nearest to.
+   * <p>
+   * Quarkus refuses such a key by itself while the application starts, because no configuration
+   * mapping declares it - and it can only say that much. This runs while the application is
+   * built, over what the configuration files say, and answers the question a developer actually
+   * has: which key was meant. A key which reaches the application at run time only - an
+   * environment variable of the container - is left to Quarkus and its own message.
+   *
+   * @param validation Where a defect of the application is collected, so that the build ends
+   *          with it rather than with a stack trace of this step
+   */
+  @BuildStep
+  void refuseAKeyNobodyReads(
+      final BuildProducer<ValidationErrorBuildItem> validation) {
+
+    try {
+      ConfigurationKeyCheck
+          .refuseKeysNobodyReads(ConfigProvider.getConfig().getPropertyNames());
+    } catch (final IllegalStateException e) {
+      validation.produce(new ValidationErrorBuildItem(e));
+    }
 
   }
 

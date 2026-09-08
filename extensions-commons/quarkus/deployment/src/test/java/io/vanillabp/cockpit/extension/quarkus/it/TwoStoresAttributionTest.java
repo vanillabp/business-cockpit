@@ -54,7 +54,7 @@ public class TwoStoresAttributionTest {
               .addClass(SecondRecordingOutbox.class)
               .addClass(SecondAggregateOutboxAware.class))
       .overrideRuntimeConfigKey(
-          "vanillabp.extensions.business-cockpit.rest.base-url", "http://localhost:1");
+          "vanillabp.cockpit.rest.base-url", "http://localhost:1");
 
   @Inject
   RecordingOutbox storeOfTheFirstAggregate;

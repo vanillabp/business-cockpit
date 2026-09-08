@@ -37,7 +37,7 @@ public class CockpitDownAtBootTest {
               .addClass(TestWorkflowAwareness.class)
               .addClass(TestWorkflowModuleDetails.class))
       .overrideRuntimeConfigKey(
-          "vanillabp.extensions.business-cockpit.rest.base-url", "http://localhost:1");
+          "vanillabp.cockpit.rest.base-url", "http://localhost:1");
 
   @Inject
   BusinessCockpitEventPublisher publisher;

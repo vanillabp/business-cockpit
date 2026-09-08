@@ -48,7 +48,7 @@ public class StoreAttributionTest {
               .addClass(RecordingOutbox.class)
               .addClass(TestAggregateOutboxAware.class))
       .overrideRuntimeConfigKey(
-          "vanillabp.extensions.business-cockpit.rest.base-url", "http://localhost:1");
+          "vanillabp.cockpit.rest.base-url", "http://localhost:1");
 
   @Inject
   RecordingOutbox namedStore;

@@ -45,12 +45,12 @@ public class PerWorkflowConfigurationTest {
               .addClass(TestWorkflowModuleDetails.class)
               .addClass(CockpitServer.class))
       .overrideRuntimeConfigKey(
-          "vanillabp.extensions.business-cockpit.rest.base-url", CockpitServer.baseUrl())
+          "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl())
       .overrideRuntimeConfigKey(
-          "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TestProcess.bpmn-description-language",
+          "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.bpmn-description-language",
           "fr")
       .overrideRuntimeConfigKey(
-          "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflows.TestProcess.i18n-languages",
+          "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.i18n-languages",
           "fr");
 
   @Inject

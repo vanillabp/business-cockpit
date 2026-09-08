@@ -12,23 +12,21 @@ vanillabp:
   outbox:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
-  extensions:
-    business-cockpit:
-      rest:
-        base-url: replaced-by-the-test
+  cockpit:
+    rest:
+      base-url: replaced-by-the-test
   workflow-modules:
     test-module:
       adapters:
         test:
           resources-location: classpath*:test-module/processes/dummy
-      extensions:
-        business-cockpit:
-          workflow-module-uri: http://localhost:8081/test-module
-          ui-uri-type: WEBPACK_MF_REACT
-          ui-uri-path: /remoteEntry.js
-          i18n-languages: en
-          bpmn-description-language: en
-          group-hierarchy:
-            TEAM_LEAD: TEAM_MEMBER
+      cockpit:
+        workflow-module-uri: http://localhost:8081/test-module
+        ui-uri-type: WEBPACK_MF_REACT
+        ui-uri-path: /remoteEntry.js
+        i18n-languages: en
+        bpmn-description-language: en
+        group-hierarchy:
+          TEAM_LEAD: TEAM_MEMBER
 test-module:
   nothing: there

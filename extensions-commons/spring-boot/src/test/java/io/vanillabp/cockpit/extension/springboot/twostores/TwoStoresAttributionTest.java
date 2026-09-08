@@ -63,7 +63,7 @@ public class TwoStoresAttributionTest {
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:cockpit-two-stores;DB_CLOSE_DELAY=-1",
-            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
       final var publisher = application.getBean(BusinessCockpitEventPublisher.class);
@@ -105,7 +105,7 @@ public class TwoStoresAttributionTest {
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:cockpit-two-stores-registration;DB_CLOSE_DELAY=-1",
-            "vanillabp.extensions.business-cockpit.rest.base-url=http://localhost:1")
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
       final var registrations = List

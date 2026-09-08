@@ -3,22 +3,18 @@ package io.vanillabp.cockpit.extension.config;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
-import io.vanillabp.integration.adapter.migration.config.WorkflowModuleAdapterProperties;
 
 /**
  * Everything the Business Cockpit extension was configured with, read once at startup and
@@ -27,11 +23,20 @@ import io.vanillabp.integration.adapter.migration.config.WorkflowModuleAdapterPr
  * The application is told about every gap it has in one boot: a transport which was not
  * chosen, a workflow module missing a setting, a value naming something which does not exist.
  * Each line names the property key to add, so the log is the documentation.
+ * <p>
+ * What is read is the tree {@link CockpitSettings} carries, which both platforms bind with
+ * their own means and hand over as one object. Every value in it is the text the application
+ * wrote, so a number which is none, a span of time which is none and a boolean which is none
+ * are answered here - once, and with the same words on both platforms.
  */
 public final class BusinessCockpitConfiguration {
 
   private static final Logger logger = LoggerFactory
       .getLogger(BusinessCockpitConfiguration.class);
+
+  private final boolean userTasksEnabled;
+
+  private final boolean workflowListEnabled;
 
   private final RestTransportConfiguration rest;
 
@@ -44,12 +49,16 @@ public final class BusinessCockpitConfiguration {
   private final Collection<String> configuredAdapterIds;
 
   private BusinessCockpitConfiguration(
+      final boolean userTasksEnabled,
+      final boolean workflowListEnabled,
       final RestTransportConfiguration rest,
       final KafkaTransportConfiguration kafka,
       final String templateLoaderPath,
       final Map<String, WorkflowModuleConfiguration> workflowModules,
       final Collection<String> configuredAdapterIds) {
 
+    this.userTasksEnabled = userTasksEnabled;
+    this.workflowListEnabled = workflowListEnabled;
     this.rest = rest;
     this.kafka = kafka;
     this.templateLoaderPath = templateLoaderPath;
@@ -69,6 +78,26 @@ public final class BusinessCockpitConfiguration {
   public Collection<String> getConfiguredAdapterIds() {
 
     return configuredAdapterIds;
+
+  }
+
+  /**
+   * @return Whether user tasks are reported at all, which an application switches off with
+   *         <code>vanillabp.cockpit.user-tasks-enabled</code>
+   */
+  public boolean isUserTasksEnabled() {
+
+    return userTasksEnabled;
+
+  }
+
+  /**
+   * @return Whether workflows are reported at all, which an application switches off with
+   *         <code>vanillabp.cockpit.workflow-list-enabled</code>
+   */
+  public boolean isWorkflowListEnabled() {
+
+    return workflowListEnabled;
 
   }
 
@@ -155,8 +184,10 @@ public final class BusinessCockpitConfiguration {
   /**
    * Reads and validates the whole configuration.
    *
-   * @param properties The core's resolved properties, which own the two locations an extension
-   *          is configured in
+   * @param properties The core's resolved properties, which know the workflow modules of the
+   *          application and the adapters it configured
+   * @param settings What the application wrote below <code>vanillabp.cockpit</code> and below
+   *          the <code>cockpit</code> sections of its workflow modules
    * @param templatingAvailable Whether a template engine is on the classpath at all - without
    *          one a template path is pointless and the BPMN language becomes mandatory
    * @return The configuration
@@ -165,16 +196,21 @@ public final class BusinessCockpitConfiguration {
    */
   public static BusinessCockpitConfiguration readAndValidate(
       final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
       final boolean templatingAvailable) {
 
     final var defects = new LinkedList<String>();
-    final var global = properties.extensionProperties(null, ConfigurationKeys.EXTENSION_ID);
 
-    final var rest = readRest(global, defects);
-    final var kafka = readKafka(global, defects);
+    final var rest = readRest(settings.rest(), defects);
+    final var kafka = readKafka(settings.kafka(), defects);
     validateTransportChoice(rest, kafka, defects);
 
-    final var templateLoaderPath = global.get(ConfigurationKeys.TEMPLATE_LOADER_PATH);
+    final var userTasksEnabled = flag(
+        settings.userTasksEnabled(), ConfigurationKeys.USER_TASKS_ENABLED, true, defects);
+    final var workflowListEnabled = flag(
+        settings.workflowListEnabled(), ConfigurationKeys.WORKFLOW_LIST_ENABLED, true, defects);
+
+    final var templateLoaderPath = settings.templateLoaderPath();
     final var templating = templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank();
     if (!templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank()) {
       defects.add(
@@ -191,10 +227,10 @@ public final class BusinessCockpitConfiguration {
     final var modules = new LinkedHashMap<String, WorkflowModuleConfiguration>();
     properties
         .getWorkflowModules()
-        .forEach((
-            workflowModuleId,
-            workflowModule) -> {
-          if (saysNothingAboutTheCockpit(workflowModule)) {
+        .keySet()
+        .forEach(workflowModuleId -> {
+          final var workflowModule = settings.workflowModule(workflowModuleId);
+          if ((workflowModule == null) || workflowModule.saysNothing()) {
             logger
                 .info(
                     """
@@ -209,12 +245,7 @@ public final class BusinessCockpitConfiguration {
           modules
               .put(
                   workflowModuleId,
-                  readWorkflowModule(
-                      workflowModuleId,
-                      properties
-                          .extensionProperties(workflowModuleId, ConfigurationKeys.EXTENSION_ID),
-                      templating,
-                      defects));
+                  readWorkflowModule(workflowModuleId, workflowModule, templating, defects));
         });
 
     if (!defects.isEmpty()) {
@@ -231,65 +262,114 @@ public final class BusinessCockpitConfiguration {
                   .get()));
     }
 
+    if (!userTasksEnabled) {
+      logger
+          .info(
+              "The Business Cockpit reports no user task: '{}' is false",
+              ConfigurationKeys.globalKey(ConfigurationKeys.USER_TASKS_ENABLED));
+    }
+    if (!workflowListEnabled) {
+      logger
+          .info(
+              "The Business Cockpit reports no workflow: '{}' is false",
+              ConfigurationKeys.globalKey(ConfigurationKeys.WORKFLOW_LIST_ENABLED));
+    }
+
     return new BusinessCockpitConfiguration(
-        rest, kafka, templateLoaderPath, modules, properties.adapterTypes().keySet());
-
-  }
-
-  /**
-   * Whether a workflow module wrote nothing at all below its own
-   * <code>extensions.business-cockpit</code> section.
-   * <p>
-   * Only what the module itself says counts here, not what the application configured globally:
-   * a module which reports to the cockpit says where it answers, and that address exists per
-   * module and nowhere else. A module which says nothing is an application which uses the
-   * cockpit for some of its modules and not for others, which is a choice rather than a defect.
-   *
-   * @param workflowModule The module's settings
-   * @return Whether it opted out
-   */
-  private static boolean saysNothingAboutTheCockpit(
-      final WorkflowModuleAdapterProperties workflowModule) {
-
-    final var settings = workflowModule.getExtensions().get(ConfigurationKeys.EXTENSION_ID);
-    return (settings == null) || settings.isEmpty();
+        userTasksEnabled, workflowListEnabled, rest, kafka, templateLoaderPath, modules, properties
+            .adapterTypes()
+            .keySet());
 
   }
 
   private static RestTransportConfiguration readRest(
-      final Map<String, String> global,
+      final CockpitSettings.Rest rest,
       final List<String> defects) {
 
-    final var baseUrl = global.get(ConfigurationKeys.REST_BASE_URL);
+    if (rest == null) {
+      return null;
+    }
+    final var baseUrl = rest.baseUrl();
     if ((baseUrl == null) || baseUrl.isBlank()) {
       return null;
     }
-    final var connectTimeout = duration(global, ConfigurationKeys.REST_CONNECT_TIMEOUT, defects);
-    final var readTimeout = duration(global, ConfigurationKeys.REST_READ_TIMEOUT, defects);
-    final var proxy = readProxy(global, defects);
-    final var verifySsl = flag(global, ConfigurationKeys.REST_VERIFY_SSL, true, defects);
-    final var truststore = readTruststore(global, defects);
-    final var oauth = readOauth(global, defects);
+    final var authentication = rest.authentication() == null
+        ? new CockpitSettings.Authentication(null, null, null, null)
+        : rest.authentication();
+    final var basic = readBasicAuthentication(authentication, defects);
+    final var oauth = readOauth(authentication, basic, defects);
     return new RestTransportConfiguration(
-        baseUrl, global.get(ConfigurationKeys.REST_USERNAME), global
-            .get(ConfigurationKeys.REST_PASSWORD), connectTimeout, readTimeout, proxy, verifySsl, truststore, global
-                .get(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD), oauth);
+        baseUrl, basic ? authentication.username() : null, basic ? authentication.password() : null, duration(
+            rest.connectTimeout(), ConfigurationKeys.REST_CONNECT_TIMEOUT, RestConnection.DEFAULT_CONNECT_TIMEOUT,
+            defects), duration(
+                rest.readTimeout(), ConfigurationKeys.REST_READ_TIMEOUT, RestConnection.DEFAULT_READ_TIMEOUT,
+                defects), readProxy(rest.proxy(), ConfigurationKeys.REST_PREFIX, defects), flag(rest.verifySsl(),
+                    ConfigurationKeys.REST_VERIFY_SSL, true, defects), readTruststore(
+                        rest.sslTruststoreFilename(), rest.sslTruststorePassword(),
+                        ConfigurationKeys.REST_PREFIX, defects), rest.sslTruststorePassword(), oauth);
 
   }
 
   /**
-   * The proxy the cockpit server is reached through, where one was configured.
+   * Whether requests carry a basic authentication, which is what version 1's switch said and
+   * says here.
+   * <p>
+   * A user name next to a switch which is off, and a switch which is on next to no user name,
+   * are both reported: each of them is a deployment which believes it authenticates and does
+   * not, and finding that out means reading the cockpit server's log rather than one's own.
+   */
+  private static boolean readBasicAuthentication(
+      final CockpitSettings.Authentication authentication,
+      final List<String> defects) {
+
+    final var basic = flag(
+        authentication.basic(), ConfigurationKeys.REST_BASIC, false, defects);
+    final var username = authentication.username();
+    final var hasUsername = (username != null) && !username.isBlank();
+    if (basic && !hasUsername) {
+      defects
+          .add(
+              """
+                  '%s' is true but '%s' is missing, so nothing is sent to identify this workflow \
+                  module. Name the user the cockpit server expects, or switch the basic \
+                  authentication off."""
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASIC),
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_USERNAME)));
+      return false;
+    }
+    if (!basic && hasUsername) {
+      defects
+          .add(
+              """
+                  '%s' is set to '%s' but '%s' is not true, so no authentication is sent at all. \
+                  Switch the basic authentication on, or remove the user."""
+                  .formatted(
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_USERNAME), username,
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASIC)));
+      return false;
+    }
+    return basic;
+
+  }
+
+  /**
+   * The proxy a server is reached through, where one was configured.
    * <p>
    * The host is what switches the proxy on, the way the base URL switches the REST transport
    * on: a port without a host configures nothing and is more likely a leftover than a wish, so
    * it is reported rather than ignored.
+   *
+   * @param proxy What was written below the connection's <code>proxy</code>
+   * @param prefix Which connection this is, which is what a message names
    */
   private static RestTransportConfiguration.Proxy readProxy(
-      final Map<String, String> global,
+      final CockpitSettings.Proxy proxy,
+      final String prefix,
       final List<String> defects) {
 
-    final var host = global.get(ConfigurationKeys.REST_PROXY_HOST);
-    final var port = global.get(ConfigurationKeys.REST_PROXY_PORT);
+    final var host = proxy == null ? null : proxy.host();
+    final var port = proxy == null ? null : proxy.port();
     if ((host == null) || host.isBlank()) {
       if ((port != null) && !port.isBlank()) {
         defects
@@ -298,8 +378,8 @@ public final class BusinessCockpitConfiguration {
                     '%s' is set to '%s' but '%s' is missing, so no proxy is used at all. Name the \
                     proxy's host as well, or remove the port."""
                     .formatted(
-                        ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), port,
-                        ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_HOST)));
+                        ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), port,
+                        ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_HOST)));
       }
       return null;
     }
@@ -310,7 +390,7 @@ public final class BusinessCockpitConfiguration {
                   '%s' is missing. The proxy at '%s' is reached on a port, and there is no port a \
                   proxy has by convention."""
                   .formatted(
-                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), host));
+                      ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), host));
       return null;
     }
     final int number;
@@ -321,39 +401,37 @@ public final class BusinessCockpitConfiguration {
           .add(
               "'%s' is '%s', which is no port number."
                   .formatted(
-                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_PROXY_PORT), port));
+                      ConfigurationKeys.globalKey(prefix + ConfigurationKeys.PROXY_PORT), port));
       return null;
     }
     return new RestTransportConfiguration.Proxy(
-        host, number, global.get(ConfigurationKeys.REST_PROXY_USERNAME), global
-            .get(ConfigurationKeys.REST_PROXY_PASSWORD));
+        host, number, proxy.username(), proxy.password());
 
   }
 
   /**
-   * The file holding the certificates the cockpit server's is checked against.
+   * The file holding the certificates a server's is checked against.
    * <p>
    * The file is opened while the application starts rather than at the first report: a
    * truststore which cannot be read is a deployment which was assembled wrongly, and finding
    * that out when the first user task is reported means finding it out in production.
    */
   private static String readTruststore(
-      final Map<String, String> global,
+      final String filename,
+      final String password,
+      final String prefix,
       final List<String> defects) {
 
-    final var filename = global.get(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME);
     if ((filename == null) || filename.isBlank()) {
-      if ((global.get(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD) != null)) {
+      if ((password != null) && !password.isBlank()) {
         defects
             .add(
                 """
                     '%s' is set but '%s' is missing, so nothing is loaded with that password. Name \
                     the truststore as well, or remove the password."""
                     .formatted(
-                        ConfigurationKeys
-                            .globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_PASSWORD),
-                        ConfigurationKeys
-                            .globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME)));
+                        ConfigurationKeys.globalKey(prefix + ConfigurationKeys.SSL_TRUSTSTORE_PASSWORD),
+                        ConfigurationKeys.globalKey(prefix + ConfigurationKeys.SSL_TRUSTSTORE_FILENAME)));
       }
       return null;
     }
@@ -364,7 +442,7 @@ public final class BusinessCockpitConfiguration {
                   '%s' names '%s', which this application cannot read. Write the path the truststore \
                   has in the running container, not the one it has in your project."""
                   .formatted(
-                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_SSL_TRUSTSTORE_FILENAME),
+                      ConfigurationKeys.globalKey(prefix + ConfigurationKeys.SSL_TRUSTSTORE_FILENAME),
                       filename));
       return null;
     }
@@ -375,14 +453,23 @@ public final class BusinessCockpitConfiguration {
   /**
    * The client-credentials flow, where one was configured. The address of the authorization
    * server switches it on, and the two halves of the client's identity are needed with it.
+   * <p>
+   * What the flow says about its own connection is its own: version 1 configured the token
+   * client separately from the cockpit server's, and an authorization server behind another
+   * proxy stays reachable because of it.
    */
   private static RestTransportConfiguration.OAuth readOauth(
-      final Map<String, String> global,
+      final CockpitSettings.Authentication authentication,
+      final boolean basic,
       final List<String> defects) {
 
-    final var tokenUrl = global.get(ConfigurationKeys.REST_OAUTH_BASE_URL);
-    final var clientId = global.get(ConfigurationKeys.REST_OAUTH_CLIENT_ID);
-    final var clientSecret = global.get(ConfigurationKeys.REST_OAUTH_CLIENT_SECRET);
+    final var oauth = authentication.oauth();
+    if (oauth == null) {
+      return null;
+    }
+    final var tokenUrl = oauth.baseUrl();
+    final var clientId = oauth.clientId();
+    final var clientSecret = oauth.clientSecret();
     if ((tokenUrl == null) || tokenUrl.isBlank()) {
       if (((clientId != null) && !clientId.isBlank()) || ((clientSecret != null) && !clientSecret.isBlank())) {
         defects
@@ -411,45 +498,68 @@ public final class BusinessCockpitConfiguration {
                   .formatted(tokenUrl, String.join(" and without ", missing)));
       return null;
     }
-    if ((global.get(ConfigurationKeys.REST_USERNAME) != null)) {
+    if (basic) {
       defects
           .add(
               """
                   '%s' and '%s' are both configured, so it is undecided whether the cockpit server is \
                   called with a basic authentication or with a bearer token. Remove one of them."""
                   .formatted(
-                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_USERNAME),
+                      ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASIC),
                       ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_BASE_URL)));
     }
     return new RestTransportConfiguration.OAuth(
-        tokenUrl, clientId, clientSecret, flag(global, ConfigurationKeys.REST_OAUTH_BASIC, false, defects));
+        tokenUrl, clientId, clientSecret, flag(oauth.basic(), ConfigurationKeys.REST_OAUTH_BASIC, false,
+            defects), duration(
+                oauth.connectTimeout(), ConfigurationKeys.REST_OAUTH_PREFIX + ConfigurationKeys.CONNECT_TIMEOUT,
+                RestConnection.DEFAULT_CONNECT_TIMEOUT, defects), duration(
+                    oauth.readTimeout(), ConfigurationKeys.REST_OAUTH_PREFIX + ConfigurationKeys.READ_TIMEOUT,
+                    RestConnection.DEFAULT_READ_TIMEOUT,
+                    defects), readProxy(oauth.proxy(), ConfigurationKeys.REST_OAUTH_PREFIX, defects), flag(
+                        oauth.verifySsl(), ConfigurationKeys.REST_OAUTH_PREFIX + ConfigurationKeys.VERIFY_SSL, true,
+                        defects), readTruststore(
+                            oauth.sslTruststoreFilename(), oauth.sslTruststorePassword(),
+                            ConfigurationKeys.REST_OAUTH_PREFIX, defects), oauth.sslTruststorePassword());
 
   }
 
   /**
-   * A span of time as both platforms let one be written: ISO-8601 (<code>PT1.5S</code>) and the
-   * shorter spelling a developer expects from Spring Boot and from Quarkus
-   * (<code>1500ms</code>, <code>10s</code>).
+   * A span of time as both platforms let one be written: the number of milliseconds version 1
+   * expected (<code>1500</code>), ISO-8601 (<code>PT1.5S</code>) and the shorter spelling a
+   * developer expects from Spring Boot and from Quarkus (<code>1500ms</code>, <code>10s</code>).
+   *
+   * @param whenNothingIsConfigured What version 1 waited, which an application saying nothing
+   *          keeps
    */
   private static Duration duration(
-      final Map<String, String> settings,
+      final String value,
       final String key,
+      final Duration whenNothingIsConfigured,
       final List<String> defects) {
 
-    final var value = settings.get(key);
     if ((value == null) || value.isBlank()) {
-      return null;
+      return whenNothingIsConfigured;
     }
     try {
-      return parseDuration(value.trim());
+      final var span = parseDuration(value.trim());
+      if (span.isNegative() || span.isZero()) {
+        defects
+            .add(
+                """
+                    '%s' is '%s'. A client which waits no time at all reaches nothing, so write a span \
+                    of time greater than zero or remove the key."""
+                    .formatted(ConfigurationKeys.globalKey(key), value));
+        return whenNothingIsConfigured;
+      }
+      return span;
     } catch (final RuntimeException e) {
       defects
           .add(
               """
-                  '%s' is '%s', which is no span of time. Write it as ISO-8601 ('PT10S') or with a \
-                  unit ('10s', '1500ms', '2m')."""
+                  '%s' is '%s', which is no span of time. Write it as a number of milliseconds \
+                  ('1500'), as ISO-8601 ('PT10S') or with a unit ('10s', '1500ms', '2m')."""
                   .formatted(ConfigurationKeys.globalKey(key), value));
-      return null;
+      return whenNothingIsConfigured;
     }
 
   }
@@ -474,17 +584,16 @@ public final class BusinessCockpitConfiguration {
         };
       }
     }
-    throw new DateTimeParseException("no unit and no ISO-8601 spelling", value, 0);
+    return Duration.ofMillis(Long.parseLong(lower));
 
   }
 
   private static boolean flag(
-      final Map<String, String> settings,
+      final String value,
       final String key,
       final boolean whenNothingIsConfigured,
       final List<String> defects) {
 
-    final var value = settings.get(key);
     if ((value == null) || value.isBlank()) {
       return whenNothingIsConfigured;
     }
@@ -503,20 +612,26 @@ public final class BusinessCockpitConfiguration {
   }
 
   private static KafkaTransportConfiguration readKafka(
-      final Map<String, String> global,
+      final CockpitSettings.Kafka kafka,
       final List<String> defects) {
 
-    final var bootstrapServers = global.get(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS);
+    if (kafka == null) {
+      return null;
+    }
+    final var bootstrapServers = kafka.bootstrapServers();
     if ((bootstrapServers == null) || bootstrapServers.isBlank()) {
       return null;
     }
+    final var topics = kafka.topics() == null
+        ? new CockpitSettings.Topics(null, null, null)
+        : kafka.topics();
     final var missingTopics = new ArrayList<String>();
     final var userTask = requiredTopic(
-        global, ConfigurationKeys.KAFKA_TOPIC_USER_TASK, missingTopics);
+        topics.userTask(), ConfigurationKeys.KAFKA_TOPIC_USER_TASK, missingTopics);
     final var workflow = requiredTopic(
-        global, ConfigurationKeys.KAFKA_TOPIC_WORKFLOW, missingTopics);
+        topics.workflow(), ConfigurationKeys.KAFKA_TOPIC_WORKFLOW, missingTopics);
     final var workflowModule = requiredTopic(
-        global, ConfigurationKeys.KAFKA_TOPIC_WORKFLOW_MODULE, missingTopics);
+        topics.workflowModule(), ConfigurationKeys.KAFKA_TOPIC_WORKFLOW_MODULE, missingTopics);
     if (!missingTopics.isEmpty()) {
       defects.add(
           """
@@ -526,27 +641,16 @@ public final class BusinessCockpitConfiguration {
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS),
                   String.join(", ", missingTopics)));
     }
-    final var producerProperties = new LinkedHashMap<String, String>();
-    global
-        .forEach((
-            key,
-            value) -> {
-          if (key.startsWith(ConfigurationKeys.KAFKA_PROPERTIES_PREFIX)) {
-            producerProperties
-                .put(key.substring(ConfigurationKeys.KAFKA_PROPERTIES_PREFIX.length()), value);
-          }
-        });
     return new KafkaTransportConfiguration(
-        bootstrapServers, userTask, workflow, workflowModule, producerProperties);
+        bootstrapServers, userTask, workflow, workflowModule, kafka.properties());
 
   }
 
   private static String requiredTopic(
-      final Map<String, String> global,
+      final String value,
       final String key,
       final List<String> missing) {
 
-    final var value = global.get(key);
     if ((value == null) || value.isBlank()) {
       missing.add(ConfigurationKeys.globalKey(key));
       return null;
@@ -591,23 +695,29 @@ public final class BusinessCockpitConfiguration {
 
   private static WorkflowModuleConfiguration readWorkflowModule(
       final String workflowModuleId,
-      final Map<String, String> settings,
+      final CockpitSettings.WorkflowModule workflowModule,
       final boolean templating,
       final List<String> defects) {
 
+    final var settings = workflowModule.cockpit() == null
+        ? new CockpitSettings.Cockpit(null, null, null, null, null, null, Map.of())
+        : workflowModule.cockpit();
+
     final var workflowModuleUri = required(
-        workflowModuleId, settings, ConfigurationKeys.WORKFLOW_MODULE_URI, defects,
+        workflowModuleId, settings.workflowModuleUri(), ConfigurationKeys.WORKFLOW_MODULE_URI,
+        defects,
         "It is the address the cockpit server calls back for user-task forms and workflow pages.");
     final var uiUriPath = required(
-        workflowModuleId, settings, ConfigurationKeys.UI_URI_PATH, defects,
+        workflowModuleId, settings.uiUriPath(), ConfigurationKeys.UI_URI_PATH, defects,
         "It is the path below the module's URI the forms are served from.");
-    final var i18nLanguages = required(
-        workflowModuleId, settings, ConfigurationKeys.I18N_LANGUAGES, defects,
-        "Write the languages titles are reported in, comma separated, e.g. 'en,de'.");
+    final var i18nLanguages = requiredList(
+        workflowModuleId, settings.i18nLanguages(), ConfigurationKeys.I18N_LANGUAGES, defects,
+        "Write the languages titles are reported in, e.g. [en, de].");
     final var bpmnDescriptionLanguage = templating
-        ? settings.get(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE)
+        ? settings.bpmnDescriptionLanguage()
         : required(
-            workflowModuleId, settings, ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE, defects,
+            workflowModuleId, settings.bpmnDescriptionLanguage(),
+            ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE, defects,
             """
                 Without templates the cockpit reports the names written in the BPMN files, and it \
                 has to know which language they are in. Configure '%s' instead to render titles \
@@ -615,7 +725,7 @@ public final class BusinessCockpitConfiguration {
                 .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)));
 
     final var uiUriTypeValue = required(
-        workflowModuleId, settings, ConfigurationKeys.UI_URI_TYPE, defects,
+        workflowModuleId, settings.uiUriType(), ConfigurationKeys.UI_URI_TYPE, defects,
         "Valid values are: %s.".formatted(String.join(", ", UiUriType.names())));
     UiUriType uiUriType = null;
     if (uiUriTypeValue != null) {
@@ -634,24 +744,15 @@ public final class BusinessCockpitConfiguration {
     }
 
     final var groupHierarchy = new LinkedHashMap<String, Collection<String>>();
-    settings
-        .forEach((
-            key,
-            value) -> {
-          if (key.startsWith(ConfigurationKeys.GROUP_HIERARCHY_PREFIX)) {
-            groupHierarchy
-                .put(
-                    key.substring(ConfigurationKeys.GROUP_HIERARCHY_PREFIX.length()),
-                    splitList(value));
-          }
-        });
+    settings.groupHierarchy().forEach(groupHierarchy::put);
 
-    final var templatePath = settings.get(ConfigurationKeys.TEMPLATE_PATH);
+    final var templatePath = settings.templatePath();
 
     return new WorkflowModuleConfiguration(
-        workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages == null ? List.of() : List.copyOf(
-            splitList(i18nLanguages)), bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
-                .isBlank() ? workflowModuleId : templatePath, readWorkflows(workflowModuleId, settings, defects));
+        workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages, bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
+            .isBlank()
+                ? workflowModuleId
+                : templatePath, readWorkflows(workflowModule.workflows()));
 
   }
 
@@ -661,143 +762,47 @@ public final class BusinessCockpitConfiguration {
    * <p>
    * Only three of the module's keys mean anything one workflow at a time - the language its
    * titles are written in, the languages they are reported in, and the directory its templates
-   * live in - and only the last of them means anything for a single user task. A key which
-   * stands below <code>workflows</code> and is none of those is reported: it looks like a
-   * setting and is read by nobody, which is the kind of configuration a developer stares at for
-   * an afternoon.
-   * <p>
-   * The key is read from its END rather than by counting dots, because a BPMN process id and a
-   * task definition may contain dots themselves and both platforms hand the section over as one
-   * flat map.
+   * live in - and only the last of them means anything for a single user task. Which keys those
+   * are is declared by the binding of each platform, so a key which is none of them is refused
+   * by Quarkus while it starts and ignored by Spring Boot, the way every other key unknown to
+   * the <code>vanillabp</code> tree is.
    */
   private static Map<String, WorkflowConfiguration> readWorkflows(
-      final String workflowModuleId,
-      final Map<String, String> settings,
-      final List<String> defects) {
+      final Map<String, CockpitSettings.Workflow> workflows) {
 
-    final var ofTheWorkflows = new LinkedHashMap<String, Map<String, String>>();
-    final var ofTheUserTasks = new LinkedHashMap<String, Map<String, Map<String, String>>>();
-    settings
+    final var configurations = new LinkedHashMap<String, WorkflowConfiguration>();
+    workflows
         .forEach((
-            key,
-            value) -> {
-          if (!key.startsWith(ConfigurationKeys.WORKFLOWS_PREFIX)) {
-            return;
-          }
-          final var belowTheWorkflows = key
-              .substring(ConfigurationKeys.WORKFLOWS_PREFIX.length());
-          final var userTasks = belowTheWorkflows
-              .lastIndexOf(ConfigurationKeys.USER_TASKS_INFIX);
-          if (userTasks < 0) {
-            final var setting = endingIn(
-                belowTheWorkflows, ConfigurationKeys.KEYS_OF_A_WORKFLOW);
-            if (setting == null) {
-              defects
-                  .add(
-                      """
-                          '%s' is no setting a single workflow has. A workflow may differ from its \
-                          workflow module in %s; everything else the Business Cockpit reads is \
-                          configured for the whole module."""
-                          .formatted(
-                              ConfigurationKeys.workflowModuleKey(workflowModuleId, key),
-                              String.join(", ", ConfigurationKeys.KEYS_OF_A_WORKFLOW)));
-              return;
-            }
-            ofTheWorkflows
-                .computeIfAbsent(
-                    withoutTheSetting(belowTheWorkflows, setting),
-                    ignored -> new LinkedHashMap<>())
-                .put(setting, value);
-            return;
-          }
-          final var belowTheUserTasks = belowTheWorkflows
-              .substring(userTasks + ConfigurationKeys.USER_TASKS_INFIX.length());
-          final var setting = endingIn(belowTheUserTasks, ConfigurationKeys.KEYS_OF_A_USER_TASK);
-          if (setting == null) {
-            defects
-                .add(
-                    """
-                        '%s' is no setting a single user task has. A user task may differ from its \
-                        workflow in %s and in nothing else."""
-                        .formatted(
-                            ConfigurationKeys.workflowModuleKey(workflowModuleId, key),
-                            String.join(", ", ConfigurationKeys.KEYS_OF_A_USER_TASK)));
-            return;
-          }
-          ofTheUserTasks
-              .computeIfAbsent(
-                  belowTheWorkflows.substring(0, userTasks), ignored -> new LinkedHashMap<>())
-              .computeIfAbsent(
-                  withoutTheSetting(belowTheUserTasks, setting),
-                  ignored -> new LinkedHashMap<>())
-              .put(setting, value);
-        });
-
-    final var workflows = new LinkedHashMap<String, WorkflowConfiguration>();
-    Stream
-        .concat(ofTheWorkflows.keySet().stream(), ofTheUserTasks.keySet().stream())
-        .distinct()
-        .forEach(bpmnProcessId -> {
-          final var ofTheWorkflow = ofTheWorkflows.getOrDefault(bpmnProcessId, Map.of());
+            bpmnProcessId,
+            workflow) -> {
           final var templatePathPerUserTask = new LinkedHashMap<String, String>();
-          ofTheUserTasks
-              .getOrDefault(bpmnProcessId, Map.of())
+          workflow
+              .userTasks()
               .forEach((
                   taskDefinition,
-                  ofTheTask) -> templatePathPerUserTask
-                      .put(taskDefinition, ofTheTask.get(ConfigurationKeys.TEMPLATE_PATH)));
-          final var i18nLanguages = ofTheWorkflow.get(ConfigurationKeys.I18N_LANGUAGES);
-          workflows
+                  userTask) -> {
+                if (userTask.templatePath() != null) {
+                  templatePathPerUserTask.put(taskDefinition, userTask.templatePath());
+                }
+              });
+          configurations
               .put(
                   bpmnProcessId,
                   new WorkflowConfiguration(
-                      bpmnProcessId, i18nLanguages == null ? null : splitList(i18nLanguages), ofTheWorkflow
-                          .get(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), ofTheWorkflow
-                              .get(ConfigurationKeys.TEMPLATE_PATH), templatePathPerUserTask));
+                      bpmnProcessId, workflow.i18nLanguages(), workflow.bpmnDescriptionLanguage(), workflow
+                          .templatePath(), templatePathPerUserTask));
         });
-    return workflows;
-
-  }
-
-  /**
-   * @param key What stands below a workflow or below a user task
-   * @param settings The keys that level owns
-   * @return The one it ends in, or <code>null</code> where it ends in none of them
-   */
-  private static String endingIn(
-      final String key,
-      final List<String> settings) {
-
-    return settings
-        .stream()
-        .filter(setting -> key.endsWith("."
-            + setting))
-        .findFirst()
-        .orElse(null);
-
-  }
-
-  /**
-   * @param key What stands below a workflow or below a user task
-   * @param setting The setting it ends in
-   * @return What is left, which is the BPMN process id respectively the task definition
-   */
-  private static String withoutTheSetting(
-      final String key,
-      final String setting) {
-
-    return key.substring(0, key.length() - setting.length() - 1);
+    return configurations;
 
   }
 
   private static String required(
       final String workflowModuleId,
-      final Map<String, String> settings,
+      final String value,
       final String key,
       final List<String> defects,
       final String why) {
 
-    final var value = settings.get(key);
     if ((value != null) && !value.isBlank()) {
       return value;
     }
@@ -809,23 +814,21 @@ public final class BusinessCockpitConfiguration {
 
   }
 
-  /**
-   * Reads a comma separated value the way both platforms write a list into one property.
-   *
-   * @param value The configured value
-   * @return The entries, trimmed and without the empty ones
-   */
-  public static List<String> splitList(
-      final String value) {
+  private static List<String> requiredList(
+      final String workflowModuleId,
+      final List<String> value,
+      final String key,
+      final List<String> defects,
+      final String why) {
 
-    if ((value == null) || value.isBlank()) {
-      return List.of();
+    if ((value != null) && !value.isEmpty()) {
+      return value;
     }
-    return Arrays
-        .stream(value.split(","))
-        .map(String::trim)
-        .filter(entry -> !entry.isEmpty())
-        .toList();
+    defects
+        .add(
+            "'%s' is missing. %s".formatted(
+                ConfigurationKeys.workflowModuleKey(workflowModuleId, key), why));
+    return List.of();
 
   }
 

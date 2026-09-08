@@ -316,7 +316,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param workflowAggregateClass The aggregate's class, or <code>null</code> where the caller
    *          does not know it
    * @return Whether an entry was written, <code>false</code> where one of the same key is still
-   *         waiting to be dispatched
+   *         waiting to be dispatched or where the application reports no user tasks at all
    */
   public boolean publishUserTaskEvent(
       final UserTaskReference userTask,
@@ -325,6 +325,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final OffsetDateTime timestamp,
       final EventTransaction transaction,
       final Class<?> workflowAggregateClass) {
+
+    if (!configuration.isUserTasksEnabled()) {
+      return false;
+    }
 
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
@@ -373,7 +377,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param transaction Whether the entry rides the caller's transaction or gets one of its own
    * @param workflowAggregateClass The aggregate's class, or <code>null</code> where the caller
    *          does not know it
-   * @return Whether an entry was written
+   * @return Whether an entry was written, <code>false</code> where the application reports no
+   *         workflows at all
    */
   public boolean publishWorkflowEvent(
       final WorkflowReference workflow,
@@ -382,6 +387,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final OffsetDateTime timestamp,
       final EventTransaction transaction,
       final Class<?> workflowAggregateClass) {
+
+    if (!configuration.isWorkflowListEnabled()) {
+      return false;
+    }
 
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
