@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.extension.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,6 +24,8 @@ import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.RestTransport;
+import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
+import io.vanillabp.integration.spi.PhaseTwoRetryLater;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -49,6 +53,8 @@ public class RestTransportTest {
 
   private int status = 200;
 
+  private String retryAfter;
+
   @BeforeEach
   public void startTheCockpitServer() throws IOException {
 
@@ -63,6 +69,9 @@ public class RestTransportTest {
                   .add(
                       new Request(
                           exchange.getRequestMethod(), exchange.getRequestURI().getPath(), body));
+              if (retryAfter != null) {
+                exchange.getResponseHeaders().add("Retry-After", retryAfter);
+              }
               exchange.sendResponseHeaders(status, -1);
               exchange.close();
             });
@@ -167,14 +176,58 @@ public class RestTransportTest {
   }
 
   @Test
-  @DisplayName("A refusing cockpit server makes the transport throw, so the entry is retried")
-  public void aRefusingServerThrows() {
+  @DisplayName("A cockpit server which is not taking reports has the entry given back to it")
+  public void anUnavailableServerHasTheReportRepeated() {
 
     status = 503;
+    retryAfter = "7";
 
-    assertThrows(
+    final var failure = assertThrows(
         RuntimeException.class,
         () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertFalse(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "an unavailable server ended the report instead of having it repeated");
+    final var waiting = PhaseTwoRetryLater.retryAfter(failure);
+    assertNotNull(waiting, "the server named a moment to come back and nobody read it");
+    assertTrue(
+        (waiting.getSeconds() > 0) && (waiting.getSeconds() <= 7),
+        "the report waits %s, which is not the seven seconds the server asked for"
+            .formatted(waiting));
+
+  }
+
+  @Test
+  @DisplayName("A cockpit server which refuses the report itself ends the entry")
+  public void aRefusedReportIsGivenUp() {
+
+    status = 400;
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertTrue(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a report the server refuses would have been repeated forever");
+    assertTrue(failure.getMessage().contains("REST API at"), failure.getMessage());
+
+  }
+
+  @Test
+  @DisplayName("A cockpit server which failed on its own side has the entry repeated")
+  public void aServerFailureHasTheReportRepeated() {
+
+    status = 500;
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertFalse(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a server which failed on its own side ended the report");
 
   }
 

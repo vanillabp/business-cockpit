@@ -14,6 +14,10 @@ public enum EventTransaction {
    * Schedule in the transaction which is already running on this thread. This is what an
    * embedded engine needs: Camunda 7 invokes its task listeners inside the engine's own
    * transaction, so the entry belongs in that one and in no other.
+   * <p>
+   * A thread which carries no transaction is a defect and is answered with a message saying so,
+   * rather than with an entry committed on its own: an entry written outside the transaction
+   * would report an event whether or not what caused it survived.
    */
   CURRENT,
 

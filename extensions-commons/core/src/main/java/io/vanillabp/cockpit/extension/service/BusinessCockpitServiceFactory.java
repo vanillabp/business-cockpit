@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
+import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
@@ -62,7 +63,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 workflow -> extension
                     .publishWorkflowEvent(
                         workflow, WorkflowEventKind.UPDATED, null, OffsetDateTime.now(),
-                        EventTransaction.CURRENT));
+                        EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
 
       }
 
@@ -81,7 +82,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 userTask -> extension
                     .publishUserTaskEvent(
                         userTask, UserTaskEventKind.UPDATED, null, OffsetDateTime.now(),
-                        EventTransaction.CURRENT));
+                        EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
 
       }
 
@@ -102,7 +103,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
 
       }
 
-      private io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge bridgeOf(
+      private BusinessCockpitBpmsBridge bridgeOf(
           final Object workflowAggregate) {
 
         return extension

@@ -77,19 +77,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- the Kafka transport is exercised against a broker in a container, so the client
-        which is optional in the core is a test dependency here -->
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>bpms-protobuf-api</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.freemarker</groupId>
       <artifactId>freemarker</artifactId>
       <scope>test</scope>

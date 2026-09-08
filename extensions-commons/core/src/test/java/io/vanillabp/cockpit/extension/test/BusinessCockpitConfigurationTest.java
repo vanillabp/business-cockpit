@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -179,10 +180,12 @@ public class BusinessCockpitConfigurationTest {
   public void missingWorkflowModuleSettingsAreNamedAtOnce() {
 
     final var defects = defectsOf(
-        ConfigurationFixture.anApplication().with("rest.base-url", "http://localhost:8080"),
+        ConfigurationFixture
+            .anApplication()
+            .with("rest.base-url", "http://localhost:8080")
+            .withWorkflowModule("workflow-module-uri", "http://localhost:8081"),
         false);
 
-    assertTrue(defects.contains("workflow-module-uri"), defects);
     assertTrue(defects.contains("ui-uri-type"), defects);
     assertTrue(defects.contains("ui-uri-path"), defects);
     assertTrue(defects.contains("i18n-languages"), defects);
@@ -190,6 +193,27 @@ public class BusinessCockpitConfigurationTest {
     assertTrue(
         defects.contains("vanillabp.workflow-modules.test-module.extensions.business-cockpit"),
         defects);
+
+  }
+
+  @Test
+  @DisplayName("A workflow module which says nothing about the cockpit reports nothing")
+  public void aSilentWorkflowModuleTakesNoPart() {
+
+    final var configuration = read(
+        ConfigurationFixture.anApplication().with("rest.base-url", "http://localhost:8080"),
+        false);
+
+    assertFalse(configuration.reportsToTheCockpit(ConfigurationFixture.WORKFLOW_MODULE));
+    final var failure = assertThrows(
+        IllegalStateException.class,
+        () -> configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE));
+    assertTrue(
+        failure
+            .getMessage()
+            .contains(
+                "vanillabp.workflow-modules.test-module.extensions.business-cockpit.workflow-module-uri"),
+        failure.getMessage());
 
   }
 

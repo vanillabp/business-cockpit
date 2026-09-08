@@ -11,11 +11,13 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import freemarker.cache.ClassTemplateLoader;
 import freemarker.cache.TemplateLookupStrategy;
 import freemarker.ext.beans.BeansWrapper;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateNotFoundException;
+import freemarker.template.Version;
 
 /**
  * {@link Templating} on Freemarker, configured the way the Business Cockpit needs it.
@@ -30,29 +32,71 @@ public class FreemarkerTemplating implements Templating {
 
   private static final Logger logger = LoggerFactory.getLogger(FreemarkerTemplating.class);
 
-  private static final freemarker.template.Version FREEMARKER_VERSION = Configuration.VERSION_2_3_34;
+  private static final Version FREEMARKER_VERSION = Configuration.VERSION_2_3_34;
+
+  /** What a template loader path starts with to be read from the classpath. */
+  static final String CLASSPATH_PREFIX = "classpath:";
+
+  /**
+   * What version 1 wrote for a classpath location which is to be searched in the jars of the
+   * workflow modules as well. Freemarker asks the class loader per template, which searches
+   * every jar anyway, so both spellings load the same templates.
+   */
+  static final String EVERY_CLASSPATH_PREFIX = "classpath*:";
+
+  /** What a template loader path starts with to be read from the file system. */
+  static final String FILE_PREFIX = "file:";
 
   private final Configuration configuration;
 
   /**
-   * @param templateLoaderPath The directory templates are loaded from
-   * @throws IllegalStateException If the directory cannot be read - which is a configuration
+   * @param templateLoaderPath Where templates are loaded from: a directory of the file system,
+   *          written plainly or with <code>file:</code> in front of it, or a directory of the
+   *          classpath, written with <code>classpath:</code> or <code>classpath*:</code> in
+   *          front of it - the spellings version 1 accepted
+   * @throws IllegalStateException If the location cannot be read - which is a configuration
    *           defect and is reported at startup, not at the first event
    */
   public FreemarkerTemplating(
       final String templateLoaderPath) {
 
     this(newConfiguration());
+    if (templateLoaderPath.startsWith(CLASSPATH_PREFIX) || templateLoaderPath
+        .startsWith(EVERY_CLASSPATH_PREFIX)) {
+      configuration
+          .setTemplateLoader(
+              new ClassTemplateLoader(
+                  FreemarkerTemplating.class.getClassLoader(), classpathBase(templateLoaderPath)));
+      return;
+    }
+    final var directory = templateLoaderPath.startsWith(FILE_PREFIX)
+        ? templateLoaderPath.substring(FILE_PREFIX.length())
+        : templateLoaderPath;
     try {
-      configuration.setDirectoryForTemplateLoading(new File(templateLoaderPath));
+      configuration.setDirectoryForTemplateLoading(new File(directory));
     } catch (final IOException e) {
       throw new IllegalStateException(
           """
               The directory '%s' configured as the Business Cockpit's template loader path cannot \
-              be read. Point the property at a directory holding the templates, or remove it and \
-              let the cockpit report the names written in the BPMN."""
-              .formatted(templateLoaderPath), e);
+              be read. Point the property at a directory holding the templates - a directory of \
+              the file system, or one of the classpath written as 'classpath:my-templates' -, or \
+              remove it and let the cockpit report the names written in the BPMN."""
+              .formatted(directory), e);
     }
+
+  }
+
+  /**
+   * @param templateLoaderPath A classpath location as it was configured
+   * @return The directory below which the class loader looks, without the prefix and without
+   *         the leading and trailing slashes Freemarker adds itself
+   */
+  private static String classpathBase(
+      final String templateLoaderPath) {
+
+    final var base = templateLoaderPath
+        .substring(templateLoaderPath.indexOf(':') + 1);
+    return base.replaceAll("^/+", "").replaceAll("/+$", "");
 
   }
 
@@ -100,7 +144,7 @@ public class FreemarkerTemplating implements Templating {
     try {
       final var java8Wrapper = Class
           .forName("no.api.freemarker.java8.Java8ObjectWrapper")
-          .getConstructor(freemarker.template.Version.class)
+          .getConstructor(Version.class)
           .newInstance(FREEMARKER_VERSION);
       final var wrapper = (BeansWrapper) java8Wrapper;
       wrapper.setExposureLevel(BeansWrapper.EXPOSE_SAFE);
@@ -149,9 +193,13 @@ public class FreemarkerTemplating implements Templating {
       final Locale locale) {
 
     for (final var lookupPath : lookupPaths) {
+      // a Freemarker template name is a path of its own, always separated by '/' - what a
+      // file system calls a separator has nothing to do with it
       final var candidate = lookupPath.isEmpty()
           ? templateName
-          : lookupPath + File.separator + templateName;
+          : lookupPath
+              + "/"
+              + templateName;
       try {
         return configuration.getTemplate(candidate, locale);
       } catch (final TemplateNotFoundException e) {

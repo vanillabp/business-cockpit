@@ -7,6 +7,11 @@ import java.util.Optional;
  * The BPMS half of the Business Cockpit extension: one implementation per configured adapter
  * id, answering the questions the platform-neutral half cannot answer itself.
  * <p>
+ * A BPMS half registers one bean per bridge, or one bean holding a
+ * <code>List&lt;BusinessCockpitBpmsBridge&gt;</code> where it builds a bridge per configured
+ * adapter id and cannot say at build time how many that is. Both shapes are collected, on
+ * Spring Boot and on Quarkus.
+ * <p>
  * The neutral half owns the event model, the details providers, the templating and the
  * transports; it knows no engine. This interface is everything it asks an engine for, and it
  * is deliberately small: five questions, all of them about one workflow or one user task named
@@ -19,11 +24,22 @@ import java.util.Optional;
  * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>, inside whatever transaction
  * the application was in. None of them may assume an engine transaction is open.
  * <p>
- * <b>What a failure means.</b> An exception thrown here aborts the dispatch of the outbox
- * entry, which the outbox then retries with a backoff. Throw where the BPMS could not be
- * reached; answer with an empty result where the BPMS is reachable and simply does not know
- * the task or workflow any more, because a task somebody completed a second ago is a normal
- * answer and not a failure to repeat.
+ * <b>What a failure means.</b> The two <code>prefilled…</code> methods have four answers, and
+ * picking the right one decides whether a report is made, made later, or not made at all.
+ * <ol>
+ * <li>The values, where the BPMS knows the task or the workflow.</li>
+ * <li>An exception, where the BPMS could not be reached. The dispatch of the entry is aborted
+ * and the outbox repeats it with a backoff.</li>
+ * <li><code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>, where the BPMS is reachable
+ * and does not know it <em>yet</em> - a read model which has not caught up with the event it
+ * just sent. The entry comes back after the window the exception names, and the number of
+ * attempts an outbox store allows bounds the waiting. A remote engine which answers a report of
+ * a freshly created task with 404 belongs here and not below.</li>
+ * <li>An empty result, where the BPMS is reachable and does not know it any more. Nothing is
+ * reported, which is right for a task somebody completed a second ago and wrong for one the
+ * BPMS has merely not made searchable yet: a report dropped here is dropped for good and is
+ * said out loud in the log.</li>
+ * </ol>
  *
  * @see BusinessCockpitEventPublisher for the other direction, which the BPMS half calls
  */
@@ -47,9 +63,9 @@ public interface BusinessCockpitBpmsBridge {
    * What the BPMS knows about the given user task right now.
    *
    * @param userTask The task to read
-   * @return The values read, or empty where the BPMS no longer knows the task. An empty answer
-   *         ends the dispatch quietly: the cockpit was told about the task's end already, or
-   *         is about to be
+   * @return The values read, or empty where the BPMS does not know the task any more - which
+   *         ends the report for good. Where the BPMS may know it in a moment, throw
+   *         <code>PhaseTwoRetryLater</code> instead
    */
   Optional<UserTaskDetailsPrefill> prefilledUserTaskDetails(
       UserTaskReference userTask);
@@ -58,7 +74,9 @@ public interface BusinessCockpitBpmsBridge {
    * What the BPMS knows about the given workflow right now.
    *
    * @param workflow The workflow to read
-   * @return The values read, or empty where the BPMS no longer knows the workflow
+   * @return The values read, or empty where the BPMS does not know the workflow any more -
+   *         which ends the report for good. Where the BPMS may know it in a moment, throw
+   *         <code>PhaseTwoRetryLater</code> instead
    */
   Optional<WorkflowDetailsPrefill> prefilledWorkflowDetails(
       WorkflowReference workflow);

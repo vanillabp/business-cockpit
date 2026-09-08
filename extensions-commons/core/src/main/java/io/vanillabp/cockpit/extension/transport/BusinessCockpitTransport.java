@@ -10,8 +10,15 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * <p>
  * Every method is called while an outbox entry is dispatched, so a failure is reported by
  * throwing: the entry stays and is retried with a backoff, and no event is lost because a
- * cockpit server was restarting. A transport which knows when it is worth trying again says so
- * with <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>.
+ * cockpit server was restarting.
+ * <p>
+ * Two failures are worth telling apart from that. A server which says how long it will be
+ * unavailable is answered with <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>,
+ * which gives the entry back instead of holding the dispatching thread. A server which refuses
+ * the report itself - a payload it does not accept, a credential it does not know - ends the
+ * entry with <code>io.vanillabp.integration.spi.PhaseTwoPermanentFailure</code>, because
+ * sending the same bytes again would be refused again. Everything else is repeated, which is
+ * the safe side of the classification.
  */
 public interface BusinessCockpitTransport {
 

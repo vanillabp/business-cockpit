@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.extension;
 
+import java.util.TimeZone;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -114,7 +116,7 @@ public final class BusinessCockpitAssembly {
         .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
-        .defaultTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+        .defaultTimeZone(TimeZone.getTimeZone("UTC"))
         // for values as well as for what a map or a list holds: a detail nobody set is
         // absent rather than null, which is how the cockpit reads it either way and what
         // keeps a message from carrying what it does not say

@@ -9,19 +9,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
-import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 import io.vanillabp.cockpit.extension.handler.BusinessCockpitHandlers;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
+import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
@@ -37,7 +38,7 @@ import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerCall;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.integration.spi.PhaseTwoCall;
-import io.vanillabp.integration.spi.PhaseTwoOutbox;
+import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.spi.TransactionRunner;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
@@ -74,14 +75,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   private final Templating templating;
 
-  private final PhaseTwoOutbox outbox;
+  private final BusinessCockpitOutbox outbox;
 
   private final TransactionRunner transactionRunner;
 
   private final String source;
 
-  private final java.util.Set<String> startedWorkflowModules = java.util.concurrent.ConcurrentHashMap
-      .newKeySet();
+  private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
 
   /**
    * @param configuration What the application configured, already validated
@@ -90,7 +90,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the application's details providers
    * @param templating The renderer of the titles, {@link Templating#none()} without templates
-   * @param outbox The store the entries are written to
+   * @param outbox Which store an entry is written to
    * @param transactionRunner Opens a transaction where the caller brought none
    */
   public BusinessCockpitExtension(
@@ -100,7 +100,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final Collection<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
       final Templating templating,
-      final PhaseTwoOutbox outbox,
+      final BusinessCockpitOutbox outbox,
       final TransactionRunner transactionRunner) {
 
     this.configuration = configuration;
@@ -110,9 +110,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     this.outbox = outbox;
     this.transactionRunner = transactionRunner;
     this.source = sourceOfThisInstance();
-    this.bridges = bridges
-        .stream()
-        .collect(Collectors.toMap(BusinessCockpitBpmsBridge::adapterId, bridge -> bridge));
+    this.bridges = bridgesByAdapterId(bridges);
     this.workflowModuleDetailsProviders = detailsProvidersByWorkflowModule(
         workflowModuleDetailsProviders);
 
@@ -161,11 +159,21 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * @return What the application configured
+   * Refuses what an application wrote into the reserved <code>version</code> attribute of
+   * <code>&#64;UserTaskDetailsProvider</code>, naming the method it stands on.
+   * <p>
+   * The check runs here rather than while VanillaBP scans the annotations, because the callback
+   * reading the lookup keys of an annotation is not told which method carries it, and a message
+   * about an attribute which does not name the method leaves the developer searching.
+   *
+   * @param workflowServiceClasses The classes of the application which may carry the annotation
+   * @throws IllegalStateException If one of them names a version - see decision 7 in the
+   *           repository's DECISIONS.md
    */
-  public BusinessCockpitConfiguration getConfiguration() {
+  public void validateDetailsProviders(
+      final Collection<Class<?>> workflowServiceClasses) {
 
-    return configuration;
+    workflowServiceClasses.forEach(BusinessCockpitHandlers::rejectReservedVersionAttribute);
 
   }
 
@@ -186,6 +194,35 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final OffsetDateTime timestamp,
       final EventTransaction transaction) {
 
+    return publishUserTaskEvent(userTask, kind, bpmsEventId, timestamp, transaction, null);
+
+  }
+
+  /**
+   * Reports a user task, knowing which workflow aggregate class it belongs to.
+   * <p>
+   * That is what a report through <code>BusinessCockpitService</code> knows and what a BPMS
+   * half does not: the class decides which of the application's outbox stores holds the entry,
+   * and the store has to be the one the aggregate's own transaction reaches.
+   *
+   * @param userTask The task
+   * @param kind What happened to it
+   * @param bpmsEventId The BPMS' own id of the event, or <code>null</code> for one of ours
+   * @param timestamp When it happened
+   * @param transaction Whether the entry rides the caller's transaction or gets one of its own
+   * @param workflowAggregateClass The aggregate's class, or <code>null</code> where the caller
+   *          does not know it
+   * @return Whether an entry was written, <code>false</code> where one of the same key is still
+   *         waiting to be dispatched
+   */
+  public boolean publishUserTaskEvent(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final EventTransaction transaction,
+      final Class<?> workflowAggregateClass) {
+
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
     put(args, BusinessCockpitOperations.ARG_USER_TASK_ID, userTask.userTaskId());
@@ -203,7 +240,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             userTask.workflowAggregateId(),
             userTask.adapterId(),
             args);
-    return schedule(call, transaction);
+    return schedule(
+        call, transaction, workflowAggregateClass, userTask.workflowModuleId(), userTask
+            .bpmnProcessId());
 
   }
 
@@ -214,6 +253,32 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final String bpmsEventId,
       final OffsetDateTime timestamp,
       final EventTransaction transaction) {
+
+    return publishWorkflowEvent(workflow, kind, bpmsEventId, timestamp, transaction, null);
+
+  }
+
+  /**
+   * Reports a workflow, knowing which workflow aggregate class it belongs to - the counterpart
+   * of {@link #publishUserTaskEvent(UserTaskReference, UserTaskEventKind, String,
+   * OffsetDateTime, EventTransaction, Class)} for a workflow.
+   *
+   * @param workflow The workflow
+   * @param kind What happened to it
+   * @param bpmsEventId The BPMS' own id of the event, or <code>null</code> for one of ours
+   * @param timestamp When it happened
+   * @param transaction Whether the entry rides the caller's transaction or gets one of its own
+   * @param workflowAggregateClass The aggregate's class, or <code>null</code> where the caller
+   *          does not know it
+   * @return Whether an entry was written
+   */
+  public boolean publishWorkflowEvent(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String bpmsEventId,
+      final OffsetDateTime timestamp,
+      final EventTransaction transaction,
+      final Class<?> workflowAggregateClass) {
 
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
@@ -229,7 +294,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             workflow.workflowAggregateId(),
             workflow.adapterId(),
             args);
-    return schedule(call, transaction);
+    return schedule(
+        call, transaction, workflowAggregateClass, workflow.workflowModuleId(), workflow
+            .bpmnProcessId());
 
   }
 
@@ -259,18 +326,24 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Nothing is sent here. An entry is written per module, and what reaches the cockpit server
    * reaches it afterwards, so a cockpit server which is down does not stop the application from
    * booting: the outbox keeps trying until the server answers.
+   * <p>
+   * A module which configured nothing about the cockpit is left out, the way it is left out of
+   * everything else the extension does.
    */
   public void registerStartedWorkflowModules() {
 
     startedWorkflowModules
+        .stream()
+        .filter(configuration::reportsToTheCockpit)
         .forEach(
             workflowModuleId -> transactionRunner
                 .requireNew(() -> outbox
+                    .ofWorkflowModuleRegistration(workflowModuleId)
                     .schedule(
                         PhaseTwoCall
                             .of(
                                 BusinessCockpitOperations.registerWorkflowModule(),
-                                configuration.workflowModule(workflowModuleId).workflowModuleId(),
+                                workflowModuleId,
                                 BusinessCockpitOperations.EVERY_BPMN_PROCESS,
                                 null,
                                 null,
@@ -354,10 +427,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (carriesDetails(kind)) {
       final var prefill = bridgeOf(call.adapterId()).prefilledUserTaskDetails(userTask);
       if (prefill.isEmpty()) {
-        logger
-            .debug(
-                "Not reporting user task '{}' as {}: the BPMS '{}' does not know it any more",
-                userTask.userTaskId(), kind, call.adapterId());
+        reportDropped(
+            carriesDetails(kind),
+            "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')".formatted(
+                userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(),
+                userTask.bpmnProcessId(), userTask.workflowAggregateId()),
+            kind.name(),
+            call.adapterId());
         return;
       }
       applyPrefill(event, prefill.get());
@@ -392,10 +468,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (carriesDetails(kind)) {
       final var prefill = bridgeOf(call.adapterId()).prefilledWorkflowDetails(workflow);
       if (prefill.isEmpty()) {
-        logger
-            .debug(
-                "Not reporting workflow '{}' as {}: the BPMS '{}' does not know it any more",
-                workflow.workflowId(), kind, call.adapterId());
+        reportDropped(
+            carriesDetails(kind),
+            "workflow '%s' of '%s/%s' (aggregate '%s')".formatted(
+                workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(),
+                workflow.workflowAggregateId()),
+            kind.name(),
+            call.adapterId());
         return;
       }
       event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
@@ -489,8 +568,19 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             BusinessCockpitHandlers
                 .lookupKeysOf(userTask.taskDefinition(), userTask.bpmnTaskId()))
         .workflowAggregateId(userTask.workflowAggregateId())
-        .payload(event)
-        .variables(prefill.variables());
+        .payload(event);
+    // a variable the engine holds as null is left out rather than handed on: VanillaBP copies
+    // the variables of an invocation into an immutable map, which has no room for a null, and a
+    // '@TaskParam' of a variable nobody set receives null either way
+    prefill
+        .variables()
+        .forEach((
+            name,
+            value) -> {
+          if (value != null) {
+            call.variable(name, value);
+          }
+        });
     prefill.multiInstances().forEach(call::multiInstance);
     if (!savingTheWorkflowAggregate) {
       call.withoutSavingTheWorkflowAggregate();
@@ -516,13 +606,62 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Writes one entry, into the store the workflow aggregate's transaction reaches and into the
+   * transaction the caller asked for.
+   * <p>
+   * {@link EventTransaction#CURRENT} runs through the transaction runner rather than writing
+   * straight away, so that a BPMS half which promised a running transaction and brought none is
+   * told instead of having its entry committed on its own.
+   */
   private boolean schedule(
       final PhaseTwoCall call,
-      final EventTransaction transaction) {
+      final EventTransaction transaction,
+      final Class<?> workflowAggregateClass,
+      final String workflowModuleId,
+      final String bpmnProcessId) {
 
+    if (!configuration.reportsToTheCockpit(workflowModuleId)) {
+      logger
+          .debug(
+              "Not reporting anything of workflow module '{}': it configured none of the Business Cockpit's settings",
+              workflowModuleId);
+      return false;
+    }
+    final var store = workflowAggregateClass == null
+        ? outbox.ofEventObservedByABpms(workflowModuleId, bpmnProcessId)
+        : outbox.ofWorkflowAggregate(workflowAggregateClass);
     return transaction == EventTransaction.NEW
-        ? transactionRunner.requireNew(() -> outbox.schedule(call))
-        : outbox.schedule(call);
+        ? transactionRunner.requireNew(() -> store.schedule(call))
+        : transactionRunner.inCurrent(() -> store.schedule(call));
+
+  }
+
+  /**
+   * Says that a report was dropped because the BPMS no longer knows what it is about.
+   * <p>
+   * Dropping a report which was to carry details loses what the cockpit would have shown, so it
+   * is said out loud with everything needed to find the case again. A BPMS whose read model is
+   * merely lagging behind must not end here at all: a bridge which may know the task in a
+   * moment throws
+   * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering empty, and
+   * the outbox brings the entry back.
+   * <p>
+   * A report which carried no details is a lifecycle event the cockpit can live without, so
+   * that one is only noted.
+   */
+  private static void reportDropped(
+      final boolean carriedDetails,
+      final String what,
+      final String kind,
+      final String adapterId) {
+
+    final var message = "Not reporting {} as {} to the Business Cockpit: the BPMS '{}' does not know it any more";
+    if (carriedDetails) {
+      logger.warn(message, what, kind, adapterId);
+    } else {
+      logger.info(message, what, kind, adapterId);
+    }
 
   }
 
@@ -567,6 +706,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Reads back the time an entry was written with.
+   * <p>
+   * A value which cannot be read ends the dispatch for good rather than being replaced by the
+   * current time: the timestamp is what the cockpit orders the case's history by, and an entry
+   * carrying a broken one would be repeated forever or, worse, be shown at the wrong moment.
+   * Only this extension writes the value, so an unreadable one is a defect and not something a
+   * retry heals.
+   */
   private static OffsetDateTime parseTimestamp(
       final String timestamp) {
 
@@ -576,10 +724,44 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     try {
       return OffsetDateTime.parse(timestamp);
     } catch (final DateTimeParseException e) {
-      logger.warn("Could not read the timestamp '{}' of an event, using the current time",
-          timestamp);
-      return OffsetDateTime.now();
+      throw new PhaseTwoPermanentFailure(
+          """
+              The outbox entry of a Business Cockpit report carries '%s' as its '%s', which is no \
+              ISO-8601 timestamp. The entry cannot be dispatched and repeating it will not change \
+              that; remove it from the outbox store."""
+              .formatted(timestamp, BusinessCockpitOperations.ARG_TIMESTAMP), e);
     }
+
+  }
+
+  /**
+   * The BPMS halves by the adapter id each of them serves.
+   *
+   * @param bridges What the application brought
+   * @return The halves, one per adapter id
+   * @throws IllegalStateException If two of them claim the same adapter id, which would make
+   *           the answer to "who holds this task" depend on the order the beans were found in
+   */
+  private static Map<String, BusinessCockpitBpmsBridge> bridgesByAdapterId(
+      final Collection<BusinessCockpitBpmsBridge> bridges) {
+
+    final var byAdapterId = new LinkedHashMap<String, BusinessCockpitBpmsBridge>();
+    for (final var bridge : bridges) {
+      final var previous = byAdapterId.put(bridge.adapterId(), bridge);
+      if (previous != null) {
+        throw new IllegalStateException(
+            """
+                Two beans implementing BusinessCockpitBpmsBridge serve the adapter '%s': %s and \
+                %s. The Business Cockpit asks exactly one of them what a BPMS knows about a task \
+                or a workflow, so let each configured adapter have one - a bridge of a second \
+                BPMS answers for the adapter id that BPMS is configured under."""
+                .formatted(
+                    bridge.adapterId(),
+                    previous.getClass().getName(),
+                    bridge.getClass().getName()));
+      }
+    }
+    return byAdapterId;
 
   }
 
@@ -616,16 +798,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     } catch (final UnknownHostException e) {
       return "unknown-host";
     }
-
-  }
-
-  /**
-   * @return The settings of the given workflow module
-   */
-  public WorkflowModuleConfiguration workflowModule(
-      final String workflowModuleId) {
-
-    return configuration.workflowModule(workflowModuleId);
 
   }
 

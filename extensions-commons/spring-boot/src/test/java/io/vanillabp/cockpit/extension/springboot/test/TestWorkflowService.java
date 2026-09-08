@@ -99,6 +99,22 @@ public class TestWorkflowService {
   }
 
   /**
+   * Matched by the BPMN element id, which is the other of the two ways an annotation names what
+   * a method serves.
+   *
+   * @param prefilled What the BPMS reported
+   * @return The enriched details
+   */
+  @UserTaskDetailsProvider(id = "Activity_decide")
+  public UserTaskDetails decideAboutTheOrder(
+      final PrefilledUserTaskDetails prefilled) {
+
+    prefilled.setDetails(Map.of("matchedBy", "the BPMN element id"));
+    return prefilled;
+
+  }
+
+  /**
    * The one provider a BPMN process may have for its workflow.
    *
    * @param aggregate The workflow aggregate

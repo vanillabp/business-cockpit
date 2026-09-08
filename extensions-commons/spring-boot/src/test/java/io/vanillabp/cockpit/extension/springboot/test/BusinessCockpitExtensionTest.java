@@ -386,6 +386,40 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("A provider matched by the BPMN element id runs for that element")
+  public void aProviderMatchedByElementIdRuns() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "decide"), UserTaskEventKind.CREATED, "bpms-event-13",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var request = CockpitServer.awaitRequest("/usertask/created");
+    assertTrue(request.body().contains("the BPMN element id"), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A report which was to ride the caller's transaction says so where there is none")
+  public void aReportWithoutATransactionIsRefused() {
+
+    final var aggregate = aStartedWorkflow();
+
+    final var failure = assertThrows(
+        IllegalStateException.class,
+        () -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-14",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    assertTrue(failure.getMessage().contains("no transaction is running"), failure.getMessage());
+
+  }
+
+  @Test
   @DisplayName("An event of an unconfigured BPMS names the adapters which are configured")
   public void anUnknownAdapterIsNamed() {
 

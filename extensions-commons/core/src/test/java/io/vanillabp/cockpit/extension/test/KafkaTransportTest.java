@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.producer.MockProducer;
+import org.apache.kafka.common.errors.RecordTooLargeException;
+import org.apache.kafka.common.errors.TimeoutException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +25,7 @@ import io.vanillabp.cockpit.extension.config.KafkaTransportConfiguration;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.KafkaTransport;
+import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -161,14 +164,35 @@ public class KafkaTransportTest {
   }
 
   @Test
-  @DisplayName("A broker which refuses the record makes the transport throw, so the entry is retried")
-  public void aRefusedRecordThrows() {
+  @DisplayName("A broker which is busy makes the transport throw, so the entry is retried")
+  public void aRefusedRecordIsRetried() {
 
-    producer.sendException = new IllegalStateException("broker unreachable");
+    producer.sendException = new TimeoutException("the broker did not answer in time");
 
-    assertThrows(
+    final var failure = assertThrows(
         RuntimeException.class,
         () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertFalse(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a busy broker ended the report instead of having it repeated");
+    assertTrue(failure.getMessage().contains("broker:9092"), failure.getMessage());
+
+  }
+
+  @Test
+  @DisplayName("A record the broker will never accept ends the report instead of being repeated")
+  public void aRecordNobodyWillAcceptIsGivenUp() {
+
+    producer.sendException = new RecordTooLargeException("the record is larger than allowed");
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED)));
+
+    assertTrue(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a record which cannot be accepted would have been repeated forever");
 
   }
 

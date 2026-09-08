@@ -73,10 +73,6 @@ public final class BusinessCockpitHandlers {
 
   /**
    * Which BPMN elements one occurrence of <code>&#64;UserTaskDetailsProvider</code> serves.
-   * <p>
-   * This runs once per annotated method while the application starts, which is why the
-   * <code>version</code> attribute is checked here: it is the earliest point at which the
-   * extension sees what an application wrote.
    *
    * @param annotation The occurrence
    * @return The element id and the task definition it names, empty for "the method's own name"
@@ -85,7 +81,6 @@ public final class BusinessCockpitHandlers {
       final Annotation annotation) {
 
     final var provider = (UserTaskDetailsProvider) annotation;
-    rejectVersionAttribute(provider);
     final var keys = new LinkedList<String>();
     if (!UserTaskDetailsProvider.USE_METHOD_NAME.equals(provider.id())) {
       keys.add(provider.id());
@@ -98,8 +93,8 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * The <code>version</code> attribute is reserved and has to stay unset - see decision 7 in
-   * the repository's DECISIONS.md.
+   * The <code>version</code> attribute of <code>&#64;UserTaskDetailsProvider</code> is reserved
+   * and has to stay unset - see decision 7 in the repository's DECISIONS.md.
    * <p>
    * Version-aware matching means picking a different method per deployed version of a process,
    * and the events this extension reacts to carry no process version: a task listener says
@@ -107,24 +102,44 @@ public final class BusinessCockpitHandlers {
    * distinguish two methods, and a value which is silently ignored is worse than one which is
    * refused - version 1 documented the attribute and never read it, and applications wrote it
    * believing it worked.
+   * <p>
+   * The methods of a class are walked here rather than the attribute being read while VanillaBP
+   * scans the annotations, because the callback which reads the lookup keys of an annotation is
+   * not told which method carries it, and a message which cannot name the method leaves the
+   * developer searching for it.
    *
-   * @param provider The occurrence to check
+   * @param workflowServiceClass A class of the application which may carry the annotation
+   * @throws IllegalStateException If one of its methods names a version - the message names the
+   *           method and what to write instead
    */
-  private static void rejectVersionAttribute(
-      final UserTaskDetailsProvider provider) {
+  public static void rejectReservedVersionAttribute(
+      final Class<?> workflowServiceClass) {
 
-    final var version = provider.version();
-    if ((version == null) || (version.length == 0) || Arrays.stream(version)
-        .allMatch(UserTaskDetailsProvider.ALL::equals)) {
-      return;
+    var declaringClass = workflowServiceClass;
+    while ((declaringClass != null) && !declaringClass.equals(Object.class)) {
+      for (final var method : declaringClass.getDeclaredMethods()) {
+        for (final var provider : method.getAnnotationsByType(UserTaskDetailsProvider.class)) {
+          final var version = provider.version();
+          if ((version.length == 0) || Arrays
+              .stream(version)
+              .allMatch(UserTaskDetailsProvider.ALL::equals)) {
+            continue;
+          }
+          throw new IllegalStateException(
+              """
+                  The @UserTaskDetailsProvider method '%s#%s' names version '%s'. The attribute is \
+                  reserved and has to stay unset: the Business Cockpit reacts to events which do \
+                  not say which version of the process they came from, so a version cannot decide \
+                  which method runs. Remove the attribute from that method and match by 'id' or \
+                  'taskDefinition' instead."""
+                  .formatted(
+                      declaringClass.getName(),
+                      method.getName(),
+                      String.join(", ", version)));
+        }
+      }
+      declaringClass = declaringClass.getSuperclass();
     }
-    throw new IllegalStateException(
-        """
-            A @UserTaskDetailsProvider names version '%s'. The attribute is reserved and has to \
-            stay unset: the Business Cockpit reacts to events which do not say which version of \
-            the process they came from, so a version cannot decide which method runs. Remove the \
-            attribute and match by 'id' or 'taskDefinition' instead."""
-            .formatted(String.join(", ", version)));
 
   }
 

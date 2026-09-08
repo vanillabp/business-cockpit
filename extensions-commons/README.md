@@ -53,7 +53,9 @@ and
    the workflow now, the application's `@UserTaskDetailsProvider` or `@WorkflowDetailsProvider`
    method is invoked to enrich it, the titles are rendered, and the result goes to the configured
    transport.
-5. A transport which fails throws, the entry stays, and the outbox tries again with a backoff.
+5. A transport which fails throws, the entry stays, and the outbox tries again with a backoff -
+   unless the cockpit server refused the report itself, which ends the entry rather than repeating
+   it forever.
 
 Reading at dispatch time rather than carrying the data through the outbox is what keeps an entry
 inside the 2048 characters an outbox store holds, and it is what makes several pending reports about
@@ -73,8 +75,14 @@ Two interfaces in `io.vanillabp.cockpit.extension.spi`, and nothing else.
 configured adapter id, because during a migration each id holds workflows of its own. It answers
 five questions: what the BPMS knows about a user task, what it knows about a workflow, which
 workflows of a workflow aggregate it holds, which user tasks of one it holds, and whether one named
-task belongs to that aggregate. An engine which cannot answer something leaves the value empty; an
-engine which cannot be reached throws, and the outbox tries again.
+task belongs to that aggregate.
+
+Which answer a BPMS half gives decides whether a report happens at all. An engine which cannot be
+reached throws, and the outbox tries again. An engine whose read model has not caught up with the
+event it just sent throws `PhaseTwoRetryLater`, and the entry comes back after the window it names.
+An empty answer means the engine does not know the task or the workflow any more, and the report is
+dropped for good - which is right for a task somebody completed a second ago and wrong for one a
+remote engine has merely not made searchable yet.
 
 `BusinessCockpitEventPublisher` is the other direction, produced as a bean by the platform module. A
 BPMS half calls it when its engine reported something, saying which transaction the entry belongs in
@@ -82,6 +90,12 @@ BPMS half calls it when its engine reported something, saying which transaction 
 new one for a remote engine's worker thread.
 
 Both are published contracts. A change to them is a change three repositories have to follow.
+
+A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written
+into is decided by the extension: for a report of `BusinessCockpitService` by the workflow aggregate
+it is about, and for an event a BPMS observed - which names identifiers and no aggregate class - by
+the application having one store. Decision 10 of the [decision log](../DECISIONS.md) says what an
+application with several of them is told.
 
 ## Configuration
 
@@ -129,27 +143,50 @@ Per workflow module:
 | `template-path`             | The segment this module contributes to the template lookup path |
 
 Exactly one transport is configured. Neither of them, or both, ends the boot with a message naming
-the keys of both. So does a workflow module missing a setting, and so does a `ui-uri-type` naming
-something which does not exist - every gap the application has is reported in one boot, each line
-naming the key which fixes it.
+the keys of both. So does a workflow module which configured some of its settings and not the rest,
+and so does a `ui-uri-type` naming something which does not exist - every gap the application has is
+reported in one boot, each line naming the key which fixes it. A workflow module which configures
+nothing at all reports nothing to the cockpit, which the log says while the application starts,
+naming the key which would let it report.
 
 Version 1 of the Business Cockpit configured the same things below `vanillabp.cockpit` and
-`vanillabp.workflow-modules.<id>.cockpit`. The keys map like this:
+`vanillabp.workflow-modules.<id>.cockpit`. Every key it read maps like this, and the version 2
+column is relative to `vanillabp.extensions.business-cockpit` for a global key and to
+`vanillabp.workflow-modules.<id>.extensions.business-cockpit` for one of a workflow module.
 
-|                              Version 1                              |                                     Version 2                                     |
-|---------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| `vanillabp.cockpit.rest.base-url`                                   | `vanillabp.extensions.business-cockpit.rest.base-url`                             |
-| `vanillabp.cockpit.kafka.topics.user-task`                          | `vanillabp.extensions.business-cockpit.kafka.topics.user-task`                    |
-| `vanillabp.cockpit.kafka.topics.workflow`                           | `vanillabp.extensions.business-cockpit.kafka.topics.workflow`                     |
-| `vanillabp.cockpit.kafka.topics.workflow-module`                    | `vanillabp.extensions.business-cockpit.kafka.topics.workflow-module`              |
-| `vanillabp.cockpit.template-loader-path`                            | `vanillabp.extensions.business-cockpit.template-loader-path`                      |
-| `vanillabp.workflow-modules.<id>.cockpit.workflow-module-uri`       | `vanillabp.workflow-modules.<id>.extensions.business-cockpit.workflow-module-uri` |
-| `vanillabp.workflow-modules.<id>.cockpit.ui-uri-type`               | `…extensions.business-cockpit.ui-uri-type`                                        |
-| `vanillabp.workflow-modules.<id>.cockpit.ui-uri-path`               | `…extensions.business-cockpit.ui-uri-path`                                        |
-| `vanillabp.workflow-modules.<id>.cockpit.i18n-languages`            | `…extensions.business-cockpit.i18n-languages`                                     |
-| `vanillabp.workflow-modules.<id>.cockpit.bpmn-description-language` | `…extensions.business-cockpit.bpmn-description-language`                          |
-| `vanillabp.workflow-modules.<id>.cockpit.group-hierarchy`           | `…extensions.business-cockpit.group-hierarchy.<group>`                            |
-| `vanillabp.workflow-modules.<id>.cockpit.template-path`             | `…extensions.business-cockpit.template-path`                                      |
+|                                                                             Version 1, below `vanillabp.cockpit`                                                                             |                                     Version 2                                      |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| `rest.base-url`                                                                                                                                                                              | `rest.base-url`                                                                    |
+| `rest.authentication.username`                                                                                                                                                               | `rest.username`                                                                    |
+| `rest.authentication.password`                                                                                                                                                               | `rest.password`                                                                    |
+| `rest.authentication.basic`                                                                                                                                                                  | gone: a configured user name is what switches basic authentication on              |
+| `rest.authentication.oauth.*`                                                                                                                                                                | not carried over, the REST transport authenticates with a user name and a password |
+| `rest.connect-timeout`, `rest.read-timeout`, `rest.log`, `rest.verify-ssl`, `rest.ssl-truststore-filename`, `rest.ssl-truststore-password`, `rest.additional-get-parameters`, `rest.proxy.*` | not carried over, the client is built with the defaults of Feign                   |
+| `rest.retry.*`                                                                                                                                                                               | gone: a failed report stays in the outbox and is repeated from there               |
+| `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`                                                                                                            | `kafka.topics.user-task`, `kafka.topics.workflow`, `kafka.topics.workflow-module`  |
+| `kafka.group-id-suffix`                                                                                                                                                                      | gone: it named a consumer group, and the extension only sends                      |
+| `spring.kafka.bootstrap-servers` (of the application)                                                                                                                                        | `kafka.bootstrap-servers`                                                          |
+| `spring.kafka.producer.*` (of the application)                                                                                                                                               | `kafka.properties.*`                                                               |
+| `template-loader-path`                                                                                                                                                                       | `template-loader-path`                                                             |
+| `user-tasks-enabled`, `workflow-list-enabled`                                                                                                                                                | gone: a workflow module which reports nothing leaves the extension unconfigured    |
+| `jwt.*`                                                                                                                                                                                      | not part of the extension, it configured the workflow module's own security        |
+
+| Version 1, below `vanillabp.workflow-modules.<id>.cockpit` |                                                             Version 2                                                             |
+|------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `workflow-module-uri`                                      | `workflow-module-uri`                                                                                                             |
+| `ui-uri-type`                                              | `ui-uri-type`                                                                                                                     |
+| `ui-uri-path`                                              | `ui-uri-path`                                                                                                                     |
+| `i18n-languages`                                           | `i18n-languages`                                                                                                                  |
+| `bpmn-description-language`                                | `bpmn-description-language`                                                                                                       |
+| `template-path`                                            | `template-path`                                                                                                                   |
+| `group-hierarchy`                                          | `group-hierarchy.<group>`, one entry per group                                                                                    |
+| `group-hierarchy-bean-name`                                | gone: the hierarchy is configuration, and which groups may see the module is answered by the `WorkflowModuleDetailsProvider` bean |
+
+Version 1 also read `…cockpit.bpmn-description-language`, `…cockpit.i18n-languages` and
+`…cockpit.template-path` below a single workflow (`…workflows.<bpmnProcessId>`) and a single user
+task (`…user-tasks.<taskDefinition>`). Version 2 configures those per workflow module; a process or
+a task needing texts of its own puts its templates into the directory named after it, which is what
+the lookup path finds first.
 
 The Kafka connection is configured by the extension itself now, rather than taken from the
 application's Spring Kafka settings. Which listener types a BPMS puts into your BPMN files, and
@@ -158,7 +195,9 @@ what an upgrade does to a deployed process, is documented in the repository of t
 ## Templates
 
 With `template-loader-path` set and Freemarker on the classpath, the texts the cockpit shows are
-rendered from templates: `workflow-title.ftl`, `task-title.ftl`, `task-definition-title.ftl`,
+rendered from templates. The path is a directory of the file system, written plainly or with
+`file:` in front of it, or a directory of the classpath, written `classpath:cockpit-templates` -
+the spellings version 1 accepted. The templates are: `workflow-title.ftl`, `task-title.ftl`, `task-definition-title.ftl`,
 `task-fulltext-search.ftl` and `workflow-fulltext-search.ftl`. Each is looked for in the module's
 directory, narrowed by the BPMN process and then by the task definition, and the most specific one
 which exists wins.
@@ -186,8 +225,9 @@ about a platform's glue ever calling it.
 
 Coverage is measured separately per platform for the same reason, and the two numbers are published
 next to the repository's other two. The Kafka transport is asserted against the Kafka client's own
-test double rather than a broker in a container: what is worth reading there is the message, and a
-broker would only carry the same bytes back.
+test double, which is where the content of a message belongs, plus one report through a broker in a
+container - what only a broker shows is that the producer this extension configures connects at all
+and that what it sends is readable by somebody else. That one test needs a Docker daemon.
 
 ```bash
 mvn -pl extensions-commons/core,extensions-commons/spring-boot -am install

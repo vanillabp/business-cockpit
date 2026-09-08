@@ -47,6 +47,14 @@ public class SpringTransactionRunner implements TransactionRunner {
   public <T> T inCurrent(
       final Supplier<T> work) {
 
+    if (!isTransactionActive()) {
+      throw new IllegalStateException(
+          """
+              The Business Cockpit extension was asked to write its outbox entry into the caller's \
+              transaction but no transaction is running on this thread. A BPMS half asks for that \
+              only where its engine invokes it inside the engine's own transaction; a remote \
+              engine has to ask for a new one instead.""");
+    }
     return run(work, TransactionDefinition.PROPAGATION_MANDATORY);
 
   }

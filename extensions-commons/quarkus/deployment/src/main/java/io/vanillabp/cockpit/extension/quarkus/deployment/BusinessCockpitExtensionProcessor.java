@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.quarkus.deployment;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
+import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.AdditionalIndexedClassesBuildItem;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
@@ -22,7 +23,7 @@ class BusinessCockpitExtensionProcessor {
    */
   @BuildStep
   AdditionalBeanBuildItem registerProducer(
-      final io.quarkus.deployment.annotations.BuildProducer<FeatureBuildItem> featureProducer) {
+      final BuildProducer<FeatureBuildItem> featureProducer) {
 
     featureProducer.produce(new FeatureBuildItem(FEATURE));
     return AdditionalBeanBuildItem

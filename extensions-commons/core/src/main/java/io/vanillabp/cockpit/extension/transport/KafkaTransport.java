@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -16,6 +17,7 @@ import io.vanillabp.cockpit.extension.config.KafkaTransportConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
+import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 
 /**
  * Reports events to the cockpit server over Kafka, as protobuf.
@@ -128,11 +130,44 @@ public class KafkaTransport implements BusinessCockpitTransport {
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
-          "Interrupted while sending a Business Cockpit event to the topic '%s'".formatted(topic), e);
+          "Interrupted while sending a Business Cockpit event to the topic '%s' of %s"
+              .formatted(topic, describe()), e);
     } catch (final ExecutionException e) {
-      throw new IllegalStateException(
-          "Could not send a Business Cockpit event to the topic '%s'".formatted(topic), e.getCause());
+      throw failureOf(topic, e.getCause());
+    } catch (final RuntimeException e) {
+      // what the client refuses before it ever reaches a broker - a record it cannot serialize,
+      // one larger than the configured maximum - arrives here instead of in the future
+      throw failureOf(topic, e);
     }
+
+  }
+
+  /**
+   * What a failed send means for the outbox entry.
+   * <p>
+   * The Kafka client says it itself: what it marks as retriable is a broker which is busy, gone
+   * for a moment or leading another partition now, and repeating such a send is the whole point
+   * of the outbox. Everything else is the record itself - a topic which does not exist, a
+   * message larger than the broker accepts, a client which may not write there - and the same
+   * bytes would be refused again.
+   *
+   * @param topic Where the record was to go
+   * @param cause What the send failed with
+   * @return The exception ending this dispatch
+   */
+  private RuntimeException failureOf(
+      final String topic,
+      final Throwable cause) {
+
+    final var message = "Could not send a Business Cockpit event to the topic '%s' of %s"
+        .formatted(topic, describe());
+    return cause instanceof RetriableException
+        ? new IllegalStateException(message, cause)
+        : new PhaseTwoPermanentFailure(
+            """
+                %s. The broker will refuse the same record again, so the report is given up. \
+                Check that the topic exists and that this application may write to it."""
+                .formatted(message), cause);
 
   }
 

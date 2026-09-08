@@ -97,7 +97,7 @@ worked. A value is therefore refused while the application starts, with a messag
 attribute and the two attributes to match by instead. Nothing about the annotation changes for an
 application which left it alone.
 
-### 8. The extension owns one outbox store, chosen at startup
+### 8. The extension owns one outbox store, chosen at startup - superseded by decision 10
 
 The extension writes its entries into the application's single `PhaseTwoOutbox`. An application
 which runs several of them is told so while it starts, with the stores named, rather than having
@@ -109,6 +109,13 @@ resolvable for an event a BPMS observed: what arrives there is a workflow module
 and a serialized id, and no class. One store for the whole extension is the shape which is the same
 in both directions.
 
+Superseded by decision 10: one store for the whole extension was one store too few. An application
+whose stores all come from `PhaseTwoOutboxAware` beans has no plain store bean at all and was told
+to add a data source it already had; an application with two persistences did not boot although
+the platform attributes a store to every aggregate of it; and where one of two stores was marked
+as primary, entries were written into a store the aggregate's transaction never reaches, which is
+the one thing an outbox must not do.
+
 ### 9. One event class per side, with the kind as a field
 
 Version 1 had a class per kind of event, twelve of them, because its publishing dispatched on the
@@ -119,3 +126,47 @@ The mappers are the place where the four kinds still look alike, because the coc
 one schema per kind and the generator produced four classes for them. Folding those four mappings
 into one would mean converting between generated classes, and converting a timestamp is exactly the
 kind of thing which goes wrong without anybody noticing.
+
+### 10. The outbox store is the one the workflow aggregate's transaction reaches
+
+An entry is written into the store VanillaBP attributes to the workflow aggregate the report is
+about, which is what the platform does for its own operations. Wherever the extension knows the
+aggregate's class - every report made through `BusinessCockpitService` - it asks for that store and
+writes there, so an application with a store per persistence, or a store of its own for one
+aggregate, is served the way it expects.
+
+An event a BPMS observed knows no class. It names a workflow module, a BPMN process and a
+serialized id, and nothing in either SPI turns that into the class the aggregate has. Such an entry
+therefore goes into the application's single store, and an application running several is told that
+the report cannot be attributed rather than having a store picked for it. The registration of a
+workflow module belongs to no aggregate at all and is written in a transaction of its own, so any
+store carries it correctly; the first by class name is taken, so a restart writes it into the same
+one.
+
+On Spring Boot the attribution is VanillaBP's own `PhaseTwoOutboxResolver` bean, taken as the
+interface the platform-neutral core knows. On Quarkus no such bean exists, so the extension does
+what it can reach: the store an application named for the aggregate, else the single store. What
+the platform does beyond that - attributing one of its two default stores to the persistence
+managing an aggregate - needs classes which live in the Quarkus integration, which an extension
+does not compile against (decision 2). A Quarkus application running two stores therefore names
+the store of an aggregate itself, with a `PhaseTwoOutboxAware` bean, and the message asks for that
+bean where it is missing.
+
+### 11. A failed report says whether repeating it can help
+
+The outbox repeats what a dispatch threw, which is right for a cockpit server that was restarting
+and wrong for a report the server will refuse every time: an entry retried forever occupies the
+store and hides the defect. The transports therefore classify what they get back.
+
+Over REST a status the server blames the client for - anything from 400 upwards below 500, except
+the two which mean "later" - ends the entry permanently. 503 and 429 mean "not now" and give the
+entry back with the time the server named in `Retry-After`, so the dispatching thread is free while
+the entry waits. Everything else is repeated with the store's own backoff.
+
+Over Kafka the client's own classification is used. What it marks retriable is a broker which is
+busy, gone for a moment or leading another partition now. Everything else is the record itself: a
+topic which does not exist, a message larger than the broker takes, a client which may not write
+there.
+
+An entry naming an adapter id no BPMS half serves stays repeatable, because the jar carrying that
+half may be missing from one deployment and back in the next.

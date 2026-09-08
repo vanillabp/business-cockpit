@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.extension.spi;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +33,10 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * @param followUpDate When somebody wants to be reminded of the task
  * @param variables The process variables a <code>&#64;TaskParam</code> parameter of a details
  *          provider is bound from. A BPMS which does not deliver variables with its user-task
- *          events passes an empty map, and such a parameter then receives <code>null</code>
+ *          events passes an empty map, and such a parameter then receives <code>null</code>. A
+ *          variable which the engine holds as <code>null</code> is passed as such and reaches
+ *          the parameter as <code>null</code>: an engine which lets a variable be set to
+ *          nothing must not be forced to leave it out
  * @param multiInstances The multi-instance context of the task, keyed by BPMN element id and
  *          outermost first, empty where the BPMS reports none
  */
@@ -54,7 +59,11 @@ public record UserTaskDetailsPrefill(
   public UserTaskDetailsPrefill {
     candidateUsers = candidateUsers == null ? List.of() : List.copyOf(candidateUsers);
     candidateGroups = candidateGroups == null ? List.of() : List.copyOf(candidateGroups);
-    variables = variables == null ? Map.of() : Map.copyOf(variables);
+    // not Map.copyOf: a process variable an engine holds as null is a value like any other,
+    // and a copy which refuses it would make every BPMS half filter its own variables first
+    variables = variables == null
+        ? Map.of()
+        : Collections.unmodifiableMap(new LinkedHashMap<>(variables));
     multiInstances = multiInstances == null ? Map.of() : Map.copyOf(multiInstances);
   }
 

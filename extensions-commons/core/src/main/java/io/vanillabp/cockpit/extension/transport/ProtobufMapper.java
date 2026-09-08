@@ -14,6 +14,8 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
+import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
+import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 
 /**
  * Turns an event into the protobuf message the Kafka transport sends, wrapped in the
@@ -126,7 +128,7 @@ public final class ProtobufMapper {
     builder.setApiVersion(API_VERSION);
     builder.setUserTaskId(event.getUserTaskId());
     builder.setTimestamp(timestampOf(event.getTimestamp()));
-    builder.setUpdated(event.getEventKind() != io.vanillabp.cockpit.extension.spi.UserTaskEventKind.CREATED);
+    builder.setUpdated(event.getEventKind() != UserTaskEventKind.CREATED);
     Optional.ofNullable(event.getBpmnProcessId()).ifPresent(builder::setBpmnProcessId);
     Optional.ofNullable(event.getTaskDefinition()).ifPresent(builder::setTaskDefinition);
     Optional.ofNullable(event.getTitle()).ifPresent(builder::putAllTitle);
@@ -181,7 +183,7 @@ public final class ProtobufMapper {
     builder.setApiVersion(API_VERSION);
     builder.setWorkflowId(event.getWorkflowId());
     builder.setTimestamp(timestampOf(event.getTimestamp()));
-    builder.setUpdated(event.getEventKind() != io.vanillabp.cockpit.extension.spi.WorkflowEventKind.CREATED);
+    builder.setUpdated(event.getEventKind() != WorkflowEventKind.CREATED);
     Optional.ofNullable(event.getBpmnProcessId()).ifPresent(builder::setBpmnProcessId);
     Optional.ofNullable(event.getWorkflowModuleId()).ifPresent(builder::setWorkflowModuleId);
     Optional.ofNullable(event.getUiUriPath()).ifPresent(builder::setUiUriPath);

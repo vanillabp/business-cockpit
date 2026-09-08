@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.extension.quarkus.it;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
@@ -192,6 +193,27 @@ public class BusinessCockpitExtensionTest {
             .stream()
             .noneMatch(request -> request.path().contains("usertask")),
         "reading a user task reported something to the cockpit");
+
+  }
+
+  @Test
+  @DisplayName("A report which was to ride the caller's transaction says so where there is none")
+  public void aReportWithoutATransactionIsRefused() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    final var failure = assertThrows(
+        IllegalStateException.class,
+        () -> publisher
+            .publishUserTaskEvent(
+                TestBpmsBridge
+                    .userTask(
+                        WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId().toString(),
+                        TestBpmsBridge.USER_TASK_ID),
+                UserTaskEventKind.CREATED, "bpms-event-3", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    assertTrue(failure.getMessage().contains("no transaction is running"), failure.getMessage());
 
   }
 

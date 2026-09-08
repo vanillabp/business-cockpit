@@ -8,7 +8,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.adapter.migration.config.WorkflowModuleAdapterProperties;
 
 /**
  * Everything the Business Cockpit extension was configured with, read once at startup and
@@ -19,6 +23,9 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * Each line names the property key to add, so the log is the documentation.
  */
 public final class BusinessCockpitConfiguration {
+
+  private static final Logger logger = LoggerFactory
+      .getLogger(BusinessCockpitConfiguration.class);
 
   private final RestTransportConfiguration rest;
 
@@ -83,9 +90,8 @@ public final class BusinessCockpitConfiguration {
    *
    * @param workflowModuleId The module
    * @return Its settings
-   * @throws IllegalStateException If the module was never configured, which cannot happen
-   *           after {@link #readAndValidate} accepted the configuration and therefore names
-   *           the module rather than guessing
+   * @throws IllegalStateException If the module says nothing about the cockpit and therefore
+   *           takes no part in it - the message names the module and the key which lets it in
    */
   public WorkflowModuleConfiguration workflowModule(
       final String workflowModuleId) {
@@ -94,23 +100,31 @@ public final class BusinessCockpitConfiguration {
     if (configuration == null) {
       throw new IllegalStateException(
           """
-              The Business Cockpit extension has no settings for workflow module '%s'! Configured \
-              are: %s. Add the keys below '%s'."""
+              The Business Cockpit extension has no settings for workflow module '%s', so the \
+              module reports nothing to the cockpit. Reporting are: %s. To let this module report \
+              as well, configure it below '%s', starting with '%s'."""
               .formatted(
                   workflowModuleId,
                   workflowModules.isEmpty() ? "none" : String.join(", ", workflowModules.keySet()),
-                  ConfigurationKeys.workflowModuleKey(workflowModuleId, "")));
+                  ConfigurationKeys.workflowModuleKey(workflowModuleId, ""),
+                  ConfigurationKeys
+                      .workflowModuleKey(
+                          workflowModuleId, ConfigurationKeys.WORKFLOW_MODULE_URI)));
     }
     return configuration;
 
   }
 
   /**
-   * @return The ids of every configured workflow module
+   * Whether a workflow module takes part in the Business Cockpit at all.
+   *
+   * @param workflowModuleId The module
+   * @return Whether it configured the extension
    */
-  public Collection<String> workflowModuleIds() {
+  public boolean reportsToTheCockpit(
+      final String workflowModuleId) {
 
-    return workflowModules.keySet();
+    return workflowModules.containsKey(workflowModuleId);
 
   }
 
@@ -153,16 +167,31 @@ public final class BusinessCockpitConfiguration {
     final var modules = new LinkedHashMap<String, WorkflowModuleConfiguration>();
     properties
         .getWorkflowModules()
-        .keySet()
-        .forEach(workflowModuleId -> modules
-            .put(
-                workflowModuleId,
-                readWorkflowModule(
+        .forEach((
+            workflowModuleId,
+            workflowModule) -> {
+          if (saysNothingAboutTheCockpit(workflowModule)) {
+            logger
+                .info(
+                    """
+                        Workflow module '{}' reports nothing to the Business Cockpit: it configures \
+                        none of the extension's settings. Set '{}' to let it report as well.""",
                     workflowModuleId,
-                    properties
-                        .extensionProperties(workflowModuleId, ConfigurationKeys.EXTENSION_ID),
-                    templating,
-                    defects)));
+                    ConfigurationKeys
+                        .workflowModuleKey(
+                            workflowModuleId, ConfigurationKeys.WORKFLOW_MODULE_URI));
+            return;
+          }
+          modules
+              .put(
+                  workflowModuleId,
+                  readWorkflowModule(
+                      workflowModuleId,
+                      properties
+                          .extensionProperties(workflowModuleId, ConfigurationKeys.EXTENSION_ID),
+                      templating,
+                      defects));
+        });
 
     if (!defects.isEmpty()) {
       throw new IllegalStateException(
@@ -179,6 +208,26 @@ public final class BusinessCockpitConfiguration {
     }
 
     return new BusinessCockpitConfiguration(rest, kafka, templateLoaderPath, modules);
+
+  }
+
+  /**
+   * Whether a workflow module wrote nothing at all below its own
+   * <code>extensions.business-cockpit</code> section.
+   * <p>
+   * Only what the module itself says counts here, not what the application configured globally:
+   * a module which reports to the cockpit says where it answers, and that address exists per
+   * module and nowhere else. A module which says nothing is an application which uses the
+   * cockpit for some of its modules and not for others, which is a choice rather than a defect.
+   *
+   * @param workflowModule The module's settings
+   * @return Whether it opted out
+   */
+  private static boolean saysNothingAboutTheCockpit(
+      final WorkflowModuleAdapterProperties workflowModule) {
+
+    final var settings = workflowModule.getExtensions().get(ConfigurationKeys.EXTENSION_ID);
+    return (settings == null) || settings.isEmpty();
 
   }
 

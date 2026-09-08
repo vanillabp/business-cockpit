@@ -38,6 +38,10 @@
   <properties>
     <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
     <version.quarkus>3.39.1</version.quarkus>
+    <!-- named here because nothing manages it: Spring Boot's bill of materials stops at
+      Testcontainers 1.x and the Kafka broker of the tests needs the module which reads an
+      apache/kafka image -->
+    <version.testcontainers>1.20.4</version.testcontainers>
   </properties>
 
   <dependencyManagement>
@@ -49,6 +53,13 @@
         <groupId>io.vanillabp</groupId>
         <artifactId>vanillabp-bom</artifactId>
         <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${version.testcontainers}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

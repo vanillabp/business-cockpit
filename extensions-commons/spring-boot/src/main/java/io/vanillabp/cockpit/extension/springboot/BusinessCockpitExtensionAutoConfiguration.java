@@ -1,26 +1,40 @@
 package io.vanillabp.cockpit.extension.springboot;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
+
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.ResolvableType;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.util.ClassUtils;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
+import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
+import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
+import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.integration.spi.PhaseTwoOutbox;
+import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
+import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * Registers the Business Cockpit extension on Spring Boot.
@@ -51,8 +65,12 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @param bridges The BPMS halves the application brought
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
+   * @param outboxResolvers VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param outboxes The outbox stores of the application
+   * @param outboxAwares The stores an application named for single workflow aggregates
    * @param transactionManagers The transaction managers of the application
+   * @param applicationContext Where the application's workflow services are looked up, to check
+   *          what they wrote into the annotations of the extension
    * @return The extension
    */
   @Bean
@@ -61,16 +79,22 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final ObjectProvider<BusinessCockpitBpmsBridge> bridges,
       final ObjectProvider<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
+      final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
       final ObjectProvider<PhaseTwoOutbox> outboxes,
-      final ObjectProvider<PlatformTransactionManager> transactionManagers) {
+      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares,
+      final ObjectProvider<PlatformTransactionManager> transactionManagers,
+      final ApplicationContext applicationContext) {
 
     final var configuration = BusinessCockpitConfiguration
         .readAndValidate(properties, Templating.engineAvailable());
     extension = new BusinessCockpitExtension(
-        configuration, BusinessCockpitAssembly.transportOf(configuration), bridges.stream()
-            .toList(), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
+        configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
+            bridges,
+            applicationContext), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
                 .templatingOf(configuration), theOutbox(
-                    outboxes), new SpringTransactionRunner(theTransactionManager(transactionManagers)));
+                    outboxResolvers, outboxes, outboxAwares), new SpringTransactionRunner(
+                        theTransactionManager(transactionManagers)));
+    extension.validateDetailsProviders(workflowServiceClasses(applicationContext));
     return extension;
 
   }
@@ -99,7 +123,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    *         VanillaBP learns what to inject
    */
   @Bean
-  public io.vanillabp.integration.extension.spi.service.AggregateServiceFactory<BusinessCockpitService> businessCockpitServiceFactory(
+  public AggregateServiceFactory<BusinessCockpitService> businessCockpitServiceFactory(
       final BusinessCockpitExtension extension) {
 
     return new BusinessCockpitServiceFactory(extension);
@@ -128,30 +152,102 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * The one store the extension writes into - see decision 8 in the repository's DECISIONS.md.
+   * Every BPMS half of this application, however it was produced.
+   * <p>
+   * A BPMS half serving several configured adapter ids of its BPMS cannot always say at build
+   * time how many bridges that is, so it may produce them as one list bean instead of one bean
+   * each - the shape its Quarkus half has to use and which is therefore accepted here as well.
+   *
+   * @param bridges The bridges produced one by one
+   * @param applicationContext Where a bean holding a list of them is looked up
+   * @return All of them
    */
-  private static PhaseTwoOutbox theOutbox(
-      final ObjectProvider<PhaseTwoOutbox> outboxes) {
+  private static Collection<BusinessCockpitBpmsBridge> theBridges(
+      final ObjectProvider<BusinessCockpitBpmsBridge> bridges,
+      final ApplicationContext applicationContext) {
 
-    final var unique = outboxes.getIfUnique();
-    if (unique != null) {
-      return unique;
+    final var found = new LinkedHashSet<BusinessCockpitBpmsBridge>(bridges.stream().toList());
+    for (final var beanName : applicationContext
+        .getBeanNamesForType(
+            ResolvableType.forClassWithGenerics(List.class, BusinessCockpitBpmsBridge.class))) {
+      ((List<?>) applicationContext.getBean(beanName))
+          .stream()
+          .filter(Objects::nonNull)
+          .map(BusinessCockpitBpmsBridge.class::cast)
+          .forEach(found::add);
     }
-    final var found = outboxes.stream().map(outbox -> outbox.getClass().getName()).toList();
-    throw new IllegalStateException(
-        found.isEmpty()
-            ? """
-                The Business Cockpit extension needs an outbox store: it reports every event after \
-                the transaction which caused it was committed, which is what keeps an event from \
-                being reported for something that was rolled back. Add a relational data source \
-                (spring-boot-starter-data-jpa) or a MongoDB connection to your workflow module, \
-                whereupon VanillaBP provides the store."""
-            : """
-                The Business Cockpit extension found %d outbox stores in this application (%s) \
-                and cannot tell which of them its events belong in. Leave one of them, or give the \
-                extension one by defining a single bean of type \
-                io.vanillabp.integration.spi.PhaseTwoOutbox marked as primary."""
-                .formatted(found.size(), String.join(", ", found)));
+    return found;
+
+  }
+
+  /**
+   * Where the extension writes its entries - see decision 10 in the repository's DECISIONS.md.
+   * <p>
+   * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
+   * the extension lands where an entry of the core lands: in the store the aggregate's
+   * transaction reaches.
+   */
+  private static BusinessCockpitOutbox theOutbox(
+      final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
+      final ObjectProvider<PhaseTwoOutbox> outboxes,
+      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares) {
+
+    final var resolver = outboxResolvers.getIfAvailable();
+    if (resolver == null) {
+      throw new IllegalStateException(
+          """
+              The Business Cockpit extension found no bean of type %s, which VanillaBP's Spring \
+              Boot integration provides and which says which outbox store holds the entries of a \
+              workflow aggregate. Check that the application runs a version of \
+              io.vanillabp:vanillabp-spring-boot-integration which matches the extension."""
+              .formatted(PhaseTwoOutboxResolver.class.getName()));
+    }
+    return new BusinessCockpitOutbox(
+        resolver::resolveFor, () -> storesOf(outboxes, outboxAwares), """
+            - add spring-boot-starter-data-jpa and configure a data source, whereupon VanillaBP \
+            provides the store,
+            - add spring-boot-starter-data-mongodb and configure the MongoDB connection, or
+            - define a bean implementing io.vanillabp.integration.spi.PhaseTwoOutbox storing \
+            entries wherever your workflow aggregates live.""");
+
+  }
+
+  /**
+   * Every store the application holds, the ones named for a single workflow aggregate included:
+   * an application whose stores are all provided that way has no plain store bean at all, and
+   * telling it to add a data source would be wrong.
+   */
+  private static Collection<PhaseTwoOutbox> storesOf(
+      final ObjectProvider<PhaseTwoOutbox> outboxes,
+      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares) {
+
+    return Stream
+        .concat(
+            outboxes.stream(),
+            outboxAwares.stream().map(PhaseTwoOutboxAware::getPhaseTwoOutbox))
+        .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+
+  }
+
+  /**
+   * The classes of the application which may carry the extension's annotations.
+   *
+   * @param applicationContext Where the beans are registered
+   * @return The workflow services, each as the class the application wrote rather than as the
+   *         proxy Spring may have wrapped it in - a proxy carries no method annotations
+   */
+  private static Collection<Class<?>> workflowServiceClasses(
+      final ApplicationContext applicationContext) {
+
+    final Collection<Class<?>> classes = new LinkedHashSet<>();
+    for (final var beanName : applicationContext
+        .getBeanNamesForAnnotation(WorkflowService.class)) {
+      final var type = applicationContext.getType(beanName);
+      if (type != null) {
+        classes.add(ClassUtils.getUserClass(type));
+      }
+    }
+    return classes;
 
   }
 

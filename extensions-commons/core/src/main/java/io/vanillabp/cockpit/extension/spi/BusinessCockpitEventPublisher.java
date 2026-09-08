@@ -30,7 +30,9 @@ public interface BusinessCockpitEventPublisher {
    *          anything the BPMS repeats unchanged when it repeats the notification. It becomes
    *          the event id the cockpit sees. Where the BPMS has none, pass the task id
    * @param timestamp When the BPMS says it happened; the current time where it does not say
-   * @param transaction Which transaction the entry is written in
+   * @param transaction Which transaction the entry is written in.
+   *          {@link EventTransaction#CURRENT} requires a transaction to be running on this
+   *          thread and says so where none is
    * @return Whether an entry was written. <code>false</code> means an entry of the same
    *         idempotency key is still waiting for its dispatch and this one is a repetition of
    *         it
