@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>extensions-commons-quarkus-parent</artifactId>
+    <version>0.4.1-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>extensions-commons-quarkus-deployment</artifactId>
+  <name>Business Cockpit extension - Commons - Quarkus - Deployment</name>
+  <description>The deployment half of the Quarkus extension: the build steps making the runtime's producer a bean, plus the tests running the extension inside a Quarkus application.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>extensions-commons-quarkus</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc-deployment</artifactId>
+    </dependency>
+    <dependency>
+      <!-- the deployment half of every extension the runtime uses has to be named here, or
+        Quarkus refuses the descriptor: the runtime opens transactions of its own -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-narayana-jta-deployment</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-config-yaml</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-agroal</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-h2</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vanillabp</groupId>
+      <artifactId>vanillabp-quarkus-integration-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vanillabp</groupId>
+      <artifactId>bpms-double-quarkus</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- named explicitly: Quarkus resolves an extension's deployment half from the runtime
+        jar's descriptor only for extensions on the application's own classpath, and a
+        test-scoped one is not -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>bpms-double-quarkus-deployment</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>bpms-protobuf-api</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <configuration>
+              <release>${version.java}</release>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>io.quarkus</groupId>
+                  <artifactId>quarkus-extension-processor</artifactId>
+                  <version>${version.quarkus}</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <quarkus.log.level>INFO</quarkus.log.level>
+            <maven.home>${maven.home}</maven.home>
+            <maven.repo>${settings.localRepository}</maven.repo>
+            <!-- handed to forked Quarkus applications so that they report their coverage -->
+            <jacoco.agent>${jacoco.agent}</jacoco.agent>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

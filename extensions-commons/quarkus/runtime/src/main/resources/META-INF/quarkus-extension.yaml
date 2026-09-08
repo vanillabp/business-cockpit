@@ -1,0 +1,4 @@
+name: vanillabp-business-cockpit-extension
+artifact: "${project.groupId}:${project.artifactId}:${project.version}"
+dependencies:
+  - vanillabp

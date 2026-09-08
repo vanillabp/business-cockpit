@@ -50,21 +50,19 @@ public @interface UserTaskDetailsProvider {
     String taskDefinition() default USE_METHOD_NAME;
     
     /**
-     * Can be used to define certain versions or ranges of versions of a process for
-     * which the annotated method should be used for.
+     * Reserved, and expected to stay unset.
      * <p>
-     * Format:
-     * <ul>
-     * <li><i>*</i>: all versions
-     * <li><i>1</i>: only version &quot;1&quot;
-     * <li><i>1-3</i>: only versions &quot;1&quot;, &quot;2&quot; and &quot;3&quot;
-     * <li><i>&gt;3</i>: only versions less than &quot;3&quot;
-     * <li><i>&lt;3</i>: only versions higher than &quot;3&quot;</li>
-     * </ul>
-     * 
-     * @throws RuntimeException If a process' version does not match any method
-     *                          annotated.
-     * @return The version of the process this method belongs to.
+     * The idea is to let one method serve certain versions or ranges of versions of a
+     * process. Version 1 of the Business Cockpit documented the attribute and never read
+     * it; version 2 refuses a value instead, at startup, naming the method - a value which
+     * is silently ignored is worse than one which is refused, and applications wrote this
+     * one believing it worked.
+     * <p>
+     * What it would take is a version on the events the cockpit reacts to. A task listener
+     * says which task fired, not which version of the model it came from, so there is
+     * nothing to decide by. Match by {@link #id()} or {@link #taskDefinition()} instead.
+     *
+     * @return Nothing to set: {@link #ALL}, the default
      */
     String[] version() default ALL;
     

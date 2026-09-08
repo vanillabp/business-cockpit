@@ -46,6 +46,8 @@
             <coverage.repository.root>${project.basedir}/../..</coverage.repository.root>
             <coverage.threshold.application-spring-boot>${coverage.threshold.application-spring-boot}</coverage.threshold.application-spring-boot>
             <coverage.threshold.adapters-spring-boot>${coverage.threshold.adapters-spring-boot}</coverage.threshold.adapters-spring-boot>
+            <coverage.threshold.extensions-commons-spring-boot>${coverage.threshold.extensions-commons-spring-boot}</coverage.threshold.extensions-commons-spring-boot>
+            <coverage.threshold.extensions-commons-quarkus>${coverage.threshold.extensions-commons-quarkus}</coverage.threshold.extensions-commons-quarkus>
             <coverage.rule>${coverage.rule}</coverage.rule>
           </systemPropertyVariables>
         </configuration>
