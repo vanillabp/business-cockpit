@@ -79,15 +79,47 @@
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-jackson</artifactId>
     </dependency>
+    <!--
+      Everything the generated sources import, named one by one. The module used to reach all of it
+      through the cockpit's 'commons' artifact, which carries Spring Boot, Spring Data MongoDB and
+      Spring Security along with it. Nothing generated here touches any of that - the feign generator
+      with interfaceOnly emits feign, Jackson and jakarta.annotation and nothing else - and a client
+      which drags a web framework into every consumer cannot be used from a platform-neutral module.
+      See decision 1 in the repository's DECISIONS.md.
+    -->
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>commons</artifactId>
-      <version>${project.version}</version>
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-      <optional>true</optional>
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-okhttp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.openfeign</groupId>
+      <artifactId>feign-slf4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.github.openfeign.form</groupId>
+      <artifactId>feign-form</artifactId>
+      <version>3.8.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+      <version>0.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
     </dependency>
   </dependencies>
 
