@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "25.0.9",
-    "@types/web": "0.0.319",
+    "@types/web": "0.0.356",
     "cross-env": "10.1.0",
     "tsup": "8.5.1",
     "typescript": "5.9.3",
