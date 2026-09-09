@@ -20,6 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
@@ -69,6 +70,9 @@ public class BusinessCockpitExtensionTest {
 
   @Autowired
   private RecordingBpmsBridge bridge;
+
+  @Autowired
+  private BusinessCockpitExtension extension;
 
   @BeforeEach
   public void forgetWhatArrivedBefore() {
@@ -409,17 +413,46 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // the refusal is the platform's own: the entry is written through the runner the workflow
-    // aggregate's writes go through, and that runner demands the transaction rather than
-    // opening one behind the caller's back
+    // the runner the workflow aggregate's writes go through demands the transaction rather
+    // than opening one behind the caller's back, and the extension says what that means for a
+    // BPMS half in front of the platform's own wording
     final var failure = assertThrows(
-        IllegalTransactionStateException.class,
+        IllegalStateException.class,
         () -> publisher
             .publishUserTaskEvent(
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-14",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    assertTrue(failure.getMessage().contains("mandatory"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("EventTransaction.CURRENT"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("EventTransaction.NEW"), failure.getMessage());
+    assertTrue(
+        failure.getMessage().contains(RecordingBpmsBridge.ADAPTER_ID), failure.getMessage());
+    assertTrue(
+        failure.getCause() instanceof IllegalTransactionStateException,
+        String.valueOf(failure.getCause()));
+
+  }
+
+  @Test
+  @DisplayName("A report naming an aggregate other than the one VanillaBP serves the process with is refused")
+  public void aReportForTheWrongAggregateIsRefused() {
+
+    final var aggregate = aStartedWorkflow();
+
+    // the class decides the outbox store and the transaction, so a report which names another
+    // one would be committed next to the workflow instead of with it
+    final var failure = assertThrows(
+        IllegalStateException.class,
+        () -> extension
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-15",
+                OffsetDateTime.now(), EventTransaction.NEW, OwnUserTaskDetails.class));
+
+    assertTrue(failure.getMessage().contains(BPMN_PROCESS), failure.getMessage());
+    assertTrue(
+        failure.getMessage().contains(TestAggregate.class.getName()), failure.getMessage());
+    assertTrue(
+        failure.getMessage().contains(OwnUserTaskDetails.class.getName()), failure.getMessage());
 
   }
 

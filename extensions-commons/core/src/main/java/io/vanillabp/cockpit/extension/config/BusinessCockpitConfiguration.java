@@ -6,10 +6,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
@@ -289,9 +291,34 @@ public final class BusinessCockpitConfiguration {
     }
 
     return new BusinessCockpitConfiguration(
-        userTasksEnabled, workflowListEnabled, rest, kafka, templateLoaderPath, modules, properties
-            .adapterTypes()
-            .keySet());
+        userTasksEnabled, workflowListEnabled, rest, kafka, templateLoaderPath, modules, configuredAdapterIdsOf(
+            properties));
+
+  }
+
+  /**
+   * Every adapter id this application configured, asked per BPMS type.
+   * <p>
+   * Reading the keys of the configured sections is not that answer: an id named in
+   * <code>prioritized-adapters</code> needs no section of its own, and an application which
+   * configured nothing at all has the id its single adapter dependency derives. Both are what
+   * {@code MigrationAdapterProperties#adapterIdsOfType} adds, and both are ids a BPMS half
+   * builds a bridge for - so a message naming "the configured adapters" has to name them too,
+   * or it sends a developer looking for a configuration mistake which is not there.
+   *
+   * @param properties VanillaBP's resolved configuration
+   * @return The adapter ids, sorted
+   */
+  private static Collection<String> configuredAdapterIdsOf(
+      final MigrationAdapterProperties properties) {
+
+    // which TYPES an application uses is what the sections and the order between them say; the
+    // ids of each of them are the core's answer
+    final var types = new LinkedHashSet<>(properties.adapterTypes().values());
+    types.addAll(properties.getPrioritizedAdapters());
+    final var adapterIds = new TreeSet<String>();
+    types.forEach(type -> adapterIds.addAll(properties.adapterIdsOfType(type)));
+    return List.copyOf(adapterIds);
 
   }
 

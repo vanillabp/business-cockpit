@@ -25,12 +25,29 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
  * core lands - see decision 13 in the repository's DECISIONS.md.
  * <p>
  * An event a BPMS observed names a workflow module, a BPMN process and a serialized id and no
- * class at all. The class is looked up rather than demanded: a workflow service says which
- * aggregate it is written for and which BPMN processes it serves, so
- * {@link #validateAtStartup(Map)} turns the annotations of the application into the store of
- * every one of its processes while it boots.
+ * class at all. The class is looked up rather than demanded: VanillaBP read the
+ * <code>&#64;WorkflowService</code> annotations while it built the process services, so
+ * {@link #validateAtStartup(Map)} turns its answers into the store of every process of the
+ * application while it boots.
+ * <p>
+ * The lookup is keyed by the workflow module AND the BPMN process. Two modules of one
+ * application may serve a process of the same name - a module is exactly the boundary which
+ * makes that legal - and their aggregates may live in different persistences, so a key which
+ * left the module out would write the reports of one module into the other's store.
  */
 public class BusinessCockpitOutbox {
+
+  /**
+   * One BPMN process of one workflow module - the pair an event a BPMS observed names, and the
+   * pair a store is looked up by.
+   *
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The BPMN process, as the application wrote it
+   */
+  public record WorkflowProcess(
+                                String workflowModuleId,
+                                String bpmnProcessId) {
+  }
 
   private final Function<Class<?>, PhaseTwoOutbox> perWorkflowAggregate;
 
@@ -42,7 +59,7 @@ public class BusinessCockpitOutbox {
    * The workflow aggregate every BPMN process of the application belongs to, taken from the
    * <code>&#64;WorkflowService</code> annotations while the application boots.
    */
-  private volatile Map<String, Class<?>> workflowAggregateByBpmnProcessId = Map.of();
+  private volatile Map<WorkflowProcess, Class<?>> workflowAggregateByBpmnProcess = Map.of();
 
   /**
    * The store every workflow aggregate of this application writes into, where they all write
@@ -81,21 +98,21 @@ public class BusinessCockpitOutbox {
    * names identifiers and no class - reaches the store of its own aggregate rather than a store
    * the application happens to share.
    *
-   * @param workflowAggregateByBpmnProcessId The workflow aggregate of every BPMN process the
-   *          application serves
+   * @param workflowAggregateByBpmnProcess The workflow aggregate of every BPMN process of every
+   *          workflow module the application serves
    * @throws IllegalStateException If a store is missing or cannot be attributed - the message
    *           names what to do
    */
   public void validateAtStartup(
-      final Map<String, Class<?>> workflowAggregateByBpmnProcessId) {
+      final Map<WorkflowProcess, Class<?>> workflowAggregateByBpmnProcess) {
 
     final var storesInUse = new LinkedHashSet<PhaseTwoOutbox>();
-    workflowAggregateByBpmnProcessId
+    workflowAggregateByBpmnProcess
         .values()
         .forEach(
             workflowAggregateClass -> storesInUse
                 .add(ofWorkflowAggregate(workflowAggregateClass)));
-    this.workflowAggregateByBpmnProcessId = Map.copyOf(workflowAggregateByBpmnProcessId);
+    this.workflowAggregateByBpmnProcess = Map.copyOf(workflowAggregateByBpmnProcess);
     this.storeOfEveryWorkflowAggregate = storesInUse.size() == 1
         ? storesInUse.iterator().next()
         : null;
@@ -138,7 +155,8 @@ public class BusinessCockpitOutbox {
       final String workflowModuleId,
       final String bpmnProcessId) {
 
-    final var workflowAggregateClass = workflowAggregateByBpmnProcessId.get(bpmnProcessId);
+    final var workflowAggregateClass = workflowAggregateByBpmnProcess
+        .get(new WorkflowProcess(workflowModuleId, bpmnProcessId));
     if (workflowAggregateClass != null) {
       return ofWorkflowAggregate(workflowAggregateClass);
     }
@@ -162,7 +180,7 @@ public class BusinessCockpitOutbox {
             "%s"))', or name the process as one of its 'secondaryBpmnProcesses'."""
             .formatted(
                 names(found), bpmnProcessId, workflowModuleId,
-                listed(workflowAggregateByBpmnProcessId.keySet()), bpmnProcessId));
+                listed(processesOf(workflowModuleId)), bpmnProcessId));
 
   }
 
@@ -186,7 +204,8 @@ public class BusinessCockpitOutbox {
 
     final var firstAggregateOfTheModule = bpmnProcessIdsOfTheModule
         .stream()
-        .map(workflowAggregateByBpmnProcessId::get)
+        .map(bpmnProcessId -> workflowAggregateByBpmnProcess
+            .get(new WorkflowProcess(workflowModuleId, bpmnProcessId)))
         .filter(Objects::nonNull)
         .distinct()
         .sorted(Comparator.comparing(Class::getName))
@@ -205,6 +224,23 @@ public class BusinessCockpitOutbox {
               .formatted(workflowModuleId, noStoreAtAll()));
     }
     return found.getFirst();
+
+  }
+
+  /**
+   * @param workflowModuleId The workflow module
+   * @return The BPMN processes a workflow service of the application declares for it, which is
+   *         what a message about a process nobody declared has to name
+   */
+  private Collection<String> processesOf(
+      final String workflowModuleId) {
+
+    return workflowAggregateByBpmnProcess
+        .keySet()
+        .stream()
+        .filter(process -> process.workflowModuleId().equals(workflowModuleId))
+        .map(WorkflowProcess::bpmnProcessId)
+        .toList();
 
   }
 

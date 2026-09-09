@@ -52,6 +52,14 @@ public class BusinessCockpitOutboxTest {
 
   private static final PhaseTwoOutbox DOCUMENTS = new Store();
 
+  private static BusinessCockpitOutbox.WorkflowProcess process(
+      final String workflowModuleId,
+      final String bpmnProcessId) {
+
+    return new BusinessCockpitOutbox.WorkflowProcess(workflowModuleId, bpmnProcessId);
+
+  }
+
   private static BusinessCockpitOutbox outboxOf(
       final Map<Class<?>, PhaseTwoOutbox> attribution,
       final Collection<PhaseTwoOutbox> stores) {
@@ -70,7 +78,10 @@ public class BusinessCockpitOutboxTest {
         List.of(RELATIONAL));
     outbox
         .validateAtStartup(
-            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
+            Map
+                .of(
+                    process("test-module", "Order"), OrderAggregate.class,
+                    process("test-module", "Shipment"), ShipmentAggregate.class));
 
     assertSame(RELATIONAL, outbox.ofWorkflowAggregate(OrderAggregate.class));
     assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "Order"));
@@ -89,10 +100,39 @@ public class BusinessCockpitOutboxTest {
         List.of(RELATIONAL, DOCUMENTS));
     outbox
         .validateAtStartup(
-            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
+            Map
+                .of(
+                    process("test-module", "Order"), OrderAggregate.class,
+                    process("test-module", "Shipment"), ShipmentAggregate.class));
 
     assertSame(RELATIONAL, outbox.ofEventObservedByABpms("test-module", "Order"));
     assertSame(DOCUMENTS, outbox.ofEventObservedByABpms("test-module", "Shipment"));
+
+  }
+
+  @Test
+  @DisplayName("Two workflow modules serving a process of the same name keep their own stores")
+  public void aProcessNameIsOnlyUniqueWithinItsWorkflowModule() {
+
+    // a workflow module is the boundary which makes two processes of one name legal, and their
+    // aggregates may well live in different persistences
+    final var outbox = outboxOf(
+        Map.<Class<?>, PhaseTwoOutbox>of(
+            OrderAggregate.class, RELATIONAL, ShipmentAggregate.class, DOCUMENTS),
+        List.of(RELATIONAL, DOCUMENTS));
+    outbox
+        .validateAtStartup(
+            Map
+                .of(
+                    process("ordering", "Handling"), OrderAggregate.class,
+                    process("shipping", "Handling"), ShipmentAggregate.class));
+
+    assertSame(RELATIONAL, outbox.ofEventObservedByABpms("ordering", "Handling"));
+    assertSame(DOCUMENTS, outbox.ofEventObservedByABpms("shipping", "Handling"));
+    assertSame(
+        RELATIONAL, outbox.ofWorkflowModuleRegistration("ordering", List.of("Handling")));
+    assertSame(
+        DOCUMENTS, outbox.ofWorkflowModuleRegistration("shipping", List.of("Handling")));
 
   }
 
@@ -106,15 +146,18 @@ public class BusinessCockpitOutboxTest {
         List.of(RELATIONAL, DOCUMENTS));
     outbox
         .validateAtStartup(
-            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
+            Map
+                .of(
+                    process("test-module", "Order"), OrderAggregate.class,
+                    process("test-module", "Shipment"), ShipmentAggregate.class));
 
     assertSame(
         DOCUMENTS,
-        outbox.ofWorkflowModuleRegistration("shipping", List.of("Shipment")));
+        outbox.ofWorkflowModuleRegistration("test-module", List.of("Shipment")));
     // by class name, so that a restart writes the registration into the same store again
     assertSame(
         RELATIONAL,
-        outbox.ofWorkflowModuleRegistration("both", List.of("Shipment", "Order")));
+        outbox.ofWorkflowModuleRegistration("test-module", List.of("Shipment", "Order")));
 
   }
 
@@ -126,7 +169,8 @@ public class BusinessCockpitOutboxTest {
 
     final var failure = assertThrows(
         IllegalStateException.class,
-        () -> outbox.validateAtStartup(Map.of("Order", OrderAggregate.class)));
+        () -> outbox
+            .validateAtStartup(Map.of(process("test-module", "Order"), OrderAggregate.class)));
 
     assertTrue(failure.getMessage().contains(REMEDIES), failure.getMessage());
     assertTrue(
@@ -158,7 +202,10 @@ public class BusinessCockpitOutboxTest {
         List.of(RELATIONAL, DOCUMENTS));
     outbox
         .validateAtStartup(
-            Map.of("Order", OrderAggregate.class, "Shipment", ShipmentAggregate.class));
+            Map
+                .of(
+                    process("test-module", "Order"), OrderAggregate.class,
+                    process("test-module", "Shipment"), ShipmentAggregate.class));
 
     final var failure = assertThrows(
         IllegalStateException.class,

@@ -99,8 +99,9 @@ names that class outright. An event a BPMS observed names a workflow module, a B
 serialized id instead, and the class is looked up: `ExtensionHandlers#workflowAggregateOf` answers
 what VanillaBP read off `@WorkflowService` while it built the process services. So an application
 whose aggregates live in two persistences has each of its reports written into the store of its own
-workflow, in the transaction that workflow is written in. Decisions 12, 13 and 15 of the
-[decision log](../DECISIONS.md) say why.
+workflow, in the transaction that workflow is written in. The pair is what the store is looked up
+by, because two workflow modules may serve a process of the same name. Decisions 12, 13, 15 and 16
+of the [decision log](../DECISIONS.md) say why.
 
 `EventTransaction.CURRENT` joins the transaction running on the calling thread, which on Quarkus is
 a JTA transaction. Joining one means every resource it reaches has to be enlistable, so an

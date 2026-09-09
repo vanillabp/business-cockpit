@@ -22,18 +22,17 @@ consumer cannot be used from a module which has to stay free of both platforms, 
 the point of `extensions-commons`. The two existing consumers declare `commons` themselves already,
 so nothing they use disappeared.
 
-### 2. The neutral half of the extension compiles against no platform integration - the price it named superseded by decision 15
+### 2. The neutral half of the extension compiles against no platform integration - the price it names superseded by decision 15
 
 `extensions-commons/core` sees the two VanillaBP SPI artifacts, the platform-neutral
 `migration-adapter`, and the cockpit's own API artifacts. It does not see
 `vanillabp-spring-boot-integration` or `vanillabp-quarkus-integration`, and it does not see Spring
 or CDI.
 
-This entry named a price for that: each platform module carrying a `TransactionRunner` of its own,
-doing what the platform's own runner does. That price was not the rule's to pay, and decision 15
-says what the copies cost instead. The rule itself stands, and so does what it buys: a feature
-cannot quietly exist on one platform only. VanillaBP asks the same of every extension, and its own
-sample extension is built that way, so this is the shape a reviewer of either repository expects.
+What that costs is visible: each platform module carries a `TransactionRunner` of its own, doing
+what the platform's own runner does. What it buys is that a feature cannot quietly exist on one
+platform only. VanillaBP asks the same of every extension, and its own sample extension is built
+that way, so this is the shape a reviewer of either repository expects.
 
 ### 3. An outbox entry carries identifiers, and the event is built when it is dispatched
 
@@ -87,7 +86,7 @@ Quarkus the outbox store creates its table in a startup observer of its own, whi
 deployment pipeline; an entry written any earlier would find no table. Both platforms do it at the
 same point, so that the two halves stay comparable.
 
-### 7. The `version` attribute of `@UserTaskDetailsProvider` is reserved and refused
+### 7. The `version` attribute of `@UserTaskDetailsProvider` is reserved and refused - who refuses it superseded by decision 16
 
 Version-aware matching means picking a different method per deployed version of a process, and the
 events this extension reacts to carry no process version: a task listener says which task fired,
@@ -97,14 +96,6 @@ Version 1 documented the attribute and never read it, and applications wrote it 
 worked. A value is therefore refused while the application starts, with a message naming the
 attribute and the two attributes to match by instead. Nothing about the annotation changes for an
 application which left it alone.
-
-Who refuses it is VanillaBP, while it scans the annotation: a handler contract carries the check
-(`validatingAnnotation`), which is run once per occurrence with the method at hand, and the refusal
-names the annotation, the class, the method and this extension in front of what the check said. The
-extension used to walk the classes of the application itself, only because the callback reading the
-lookup keys was not told the method - and that walk read a different set of methods than the scan
-does. A provider which is not public is no longer refused here at all: it is not wired either way,
-and the platform's startup report about the handler methods nobody sees names it.
 
 ### 8. The extension owns one outbox store, chosen at startup - superseded by decision 10
 
@@ -212,25 +203,18 @@ Superseded by decision 13: "nothing turns that into a class" was wrong. The work
 serving the BPMN process names the aggregate it is written for, so an application whose aggregates
 live in two stores is served rather than refused.
 
-### 13. The BPMN process an event names is what its outbox store is looked up by
+### 13. The BPMN process an event names is what its outbox store is looked up by - how it is looked up superseded by decision 16
 
 An event a BPMS observed carries a workflow module, a BPMN process and a serialized id, and the
 store it belongs in is the one holding the workflow aggregate. The class is not carried, and it does
 not have to be: `@WorkflowService` declares both halves - the aggregate the service is written for
-and the BPMN processes it serves, the primary one and whatever it names as secondary.
-
-VanillaBP read those annotations while it built the process services and answers them:
-`ExtensionHandlers#bpmnProcessesOf` names the processes of a workflow module and
-`#workflowAggregateOf` the aggregate one of them works on. The extension asks rather than reading
-the annotations a second time, because the second reading was never the same reading: it went
-through whatever proxy a platform put around the bean, and a workflow service behind a JDK proxy
-carries the annotations of an interface.
+and the BPMN processes it serves, the primary one and whatever it names as secondary. Reading the
+annotations of the application while it boots turns every one of its BPMN processes into the
+aggregate class, and that class into VanillaBP's answer about the store.
 
 Two workflow services may declare the same process, one per generation of the model, and they are
-written for the same aggregate then. Where they name two aggregates, the store follows the
-aggregate the process is actually served through - VanillaBP keeps the class it found first and
-warns about the other, and a report landing in a different store than the workflow it reports would
-be the worse of the two answers.
+written for the same aggregate then. Two aggregates on one process would make the store of a report
+depend on which class was scanned first, so that ends the boot.
 
 The registration of a workflow module belongs to no aggregate at all and is written in a
 transaction of its own, so any store carries it correctly. Which one has to be the same after a
@@ -338,3 +322,34 @@ transaction than the aggregate wherever an application had a runner of its own, 
 dropped `beforeCommit`, the rollback-only verdict and the recognition of an optimistic-locking
 failure along the way. A caller which promised a running transaction and brought none now reads the
 platform's refusal instead of one of ours, which is the same message a workflow task produces.
+
+### 16. What the application declared is VanillaBP's answer, per workflow module and BPMN process
+
+Decisions 7 and 13 both rest on the `@WorkflowService` annotations of the application: which
+aggregate a BPMN process works on, and what a method wrote into the reserved `version` attribute.
+The extension read those annotations itself, per platform, unwrapping whatever proxy Spring or ArC
+had put around the bean - a second reading which never saw the same methods as VanillaBP's own.
+
+It asks instead. `ExtensionHandlers#bpmnProcessesOf` names the BPMN processes a workflow module
+holds, `#workflowAggregateOf` the aggregate one of them works on, and
+`HandlerContract.Builder#validatingAnnotation` runs the `version` check while the scan holds the
+method, so the refusal names the annotation, the class, the method and this extension.
+
+Three things follow.
+
+The store of an event is looked up by the workflow module AND the BPMN process, which decision 13
+keyed by the process alone. Two modules of one application may serve a process of the same name -
+a module is the boundary which makes that legal - and their aggregates may live in different
+persistences, so the old key wrote the reports of one module into the other's store.
+
+A provider which is not public is no longer refused here. It is not wired either way, and
+VanillaBP's startup report about the handler methods nobody sees names it, which is the answer that
+defect deserves.
+
+And the refusal of decision 13 moves to where the extension can still make it. Two workflow
+services declaring one BPMN process of one workflow module for different aggregates are decided by
+VanillaBP now, which serves the process with the class it found first and warns about the other;
+an extension is told about that class alone. What this extension refuses is the case it does see: a
+report which NAMES an aggregate class other than the one VanillaBP serves the process with. That is
+the harm decision 13 was written against - an entry committed next to the workflow instead of with
+it - and it is refused with both classes named.
