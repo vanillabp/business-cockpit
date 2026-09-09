@@ -3,6 +3,9 @@ name: Release 🚀
 on:
   workflow_dispatch:
     inputs:
+      base_branch:
+        description: 'Base to branch off of (default: origin/main)'
+        default: 'origin/main'
       release_version:
         description: 'Version to release (e.g. 1.2.3)'
         required: true
@@ -73,7 +76,7 @@ jobs:
 
       - name: Create release branch
         run: |
-          git checkout -b release/${{ github.event.inputs.release_version }} origin/main
+          git checkout -b release/${{ github.event.inputs.release_version }} ${{ github.event.inputs.base_branch }}
 
       - name: Set Maven release version
         run: |
