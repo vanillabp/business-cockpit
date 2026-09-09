@@ -168,8 +168,10 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 .toList();
 
         final var userTasksFound = new HashSet<io.camunda.client.api.search.response.UserTask>();
+        String afterCursor = null;
         boolean nextPage = true;
         while (nextPage) {
+            var after = afterCursor;
             final var result = client
                     .newUserTaskSearchRequest()
                     .filter(filter -> {
@@ -182,15 +184,24 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                             filter.tenantId(tenantId);
                         }
                     })
-                    .page(request -> request.limit(100))
+                    .page(request -> {
+                        request.limit(100);
+                        if (after != null) {
+                            request.after(after);
+                        }
+                    })
                     .execute();
             result
                     .items()
                     .stream()
                     .filter(userTask -> userTaskIdsConverted.contains(userTask.getUserTaskKey()))
                     .forEach(userTasksFound::add);
-            if ((userTasksFound.size() == userTaskIds.length)
-                    || !result.page().hasMoreTotalItems()) {
+            afterCursor = result.page().endCursor();
+            if (
+                    userTasksFound.size() == userTaskIds.length // All user tasks found
+                    || result.items().isEmpty()                 // No more items
+                    || afterCursor == null                      // No more pages
+            ) {
                 nextPage = false;
             }
         }
