@@ -50,6 +50,26 @@
                   </releases>
                 </repository>
                 <repository>
+                    <id>vanillabp-adapter-platform-integration</id>
+                    <url>https://maven.pkg.github.com/vanillabp/adapter-platform-integration</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                  </releases>
+                </repository>
+                <repository>
+                    <id>vanillabp-spi-for-java</id>
+                    <url>https://maven.pkg.github.com/vanillabp/spi-for-java</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                  </releases>
+                </repository>
+                <repository>
                     <id>zeebe-kafka-exporter-serde</id>
                     <url>https://maven.pkg.github.com/phactum/zeebe-kafka-exporter-serde</url>
                     <snapshots>
@@ -81,6 +101,16 @@
         </server>
         <server>
             <id>vanillabp-camunda8-adapter</id>
+            <username>${env.USER_NAME}</username>
+            <password>${env.USER_TOKEN}</password>
+        </server>
+        <server>
+            <id>vanillabp-adapter-platform-integration</id>
+            <username>${env.USER_NAME}</username>
+            <password>${env.USER_TOKEN}</password>
+        </server>
+        <server>
+            <id>vanillabp-spi-for-java</id>
             <username>${env.USER_NAME}</username>
             <password>${env.USER_TOKEN}</password>
         </server>

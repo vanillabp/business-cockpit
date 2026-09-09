@@ -1,0 +1,5 @@
+vanillabp:
+  workflow-modules:
+    test-module:
+      cockpit:
+        ui-uri-pth: /remoteEntry.js

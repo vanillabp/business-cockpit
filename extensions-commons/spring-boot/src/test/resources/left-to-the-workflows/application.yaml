@@ -1,0 +1,12 @@
+vanillabp:
+  workflow-modules:
+    test-module:
+      cockpit:
+        i18n-languages: []
+        bpmn-description-language: ""
+      workflows:
+        TestProcess:
+          cockpit:
+            i18n-languages:
+              - fr
+            bpmn-description-language: fr

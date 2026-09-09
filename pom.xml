@@ -35,6 +35,8 @@
          catch any regression at all; the honest number is the low one, not a disabled gate. -->
     <coverage.threshold.application-spring-boot>55</coverage.threshold.application-spring-boot>
     <coverage.threshold.adapters-spring-boot>3</coverage.threshold.adapters-spring-boot>
+    <coverage.threshold.extensions-commons-spring-boot>85</coverage.threshold.extensions-commons-spring-boot>
+    <coverage.threshold.extensions-commons-quarkus>85</coverage.threshold.extensions-commons-quarkus>
     <!-- the rule every VanillaBP repository is read against. The gate prints each
          measurement against it on every run but never fails on it, because it marks where
          somebody has to look and not the number a build has to hit today. -->
@@ -50,6 +52,7 @@
     <module>container</module>
     <module>development</module>
     <module>spi-for-java</module>
+    <module>extensions-commons</module>
     <module>adapters</module>
     <!-- last: it aggregates and judges what all modules above produced -->
     <module>test-coverage-report</module>

@@ -1,0 +1,45 @@
+vanillabp:
+  cockpit:
+    user-tasks-enabled: false
+    workflow-list-enabled: false
+    process-engine-api:
+      remembered-user-tasks: 25
+    kafka:
+      properties:
+        security.protocol: SSL
+        client.id: taxi-ride
+    rest:
+      base-url: http://localhost:1
+      connect-timeout: 2000
+      read-timeout: 20s
+      authentication:
+        oauth:
+          base-url: http://localhost:1/token
+          client-id: taxi-ride
+          client-secret: s3cret
+          read-timeout: PT30S
+          verify-ssl: false
+          proxy:
+            host: token-proxy.internal
+            port: 8080
+  workflow-modules:
+    test-module:
+      cockpit:
+        i18n-languages:
+          - en
+          - de
+        group-hierarchy:
+          TEAM_LEAD:
+            - TEAM_MEMBER
+            - ASSISTANT
+      workflows:
+        TestProcess:
+          cockpit:
+            i18n-languages:
+              - fr
+            bpmn-description-language: fr
+            template-path: rides
+          user-tasks:
+            approve:
+              cockpit:
+                template-path: approval

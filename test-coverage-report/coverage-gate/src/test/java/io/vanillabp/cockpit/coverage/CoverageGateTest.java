@@ -43,7 +43,9 @@ public class CoverageGateTest {
   private static final List<Path> AGGREGATE_POMS = List
       .of(
           ROOT.resolve("test-coverage-report/application/spring-boot/pom.xml"),
-          ROOT.resolve("test-coverage-report/adapters/spring-boot/pom.xml"));
+          ROOT.resolve("test-coverage-report/adapters/spring-boot/pom.xml"),
+          ROOT.resolve("test-coverage-report/extensions-commons/spring-boot/pom.xml"),
+          ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"));
 
   /**
    * Modules whose execution data belongs to no coverage report. Each entry is a
@@ -87,6 +89,28 @@ public class CoverageGateTest {
         "BPMS adapters (Spring Boot)",
         "adapters/spring-boot",
         "coverage.threshold.adapters-spring-boot");
+
+  }
+
+  @Test
+  @DisplayName("The Business Cockpit extension's Spring Boot report is above the coverage threshold")
+  public void theExtensionSpringBootReportIsAboveTheThreshold() {
+
+    assertAboveThreshold(
+        "Business Cockpit extension (Spring Boot)",
+        "extensions-commons/spring-boot",
+        "coverage.threshold.extensions-commons-spring-boot");
+
+  }
+
+  @Test
+  @DisplayName("The Business Cockpit extension's Quarkus report is above the coverage threshold")
+  public void theExtensionQuarkusReportIsAboveTheThreshold() {
+
+    assertAboveThreshold(
+        "Business Cockpit extension (Quarkus)",
+        "extensions-commons/quarkus",
+        "coverage.threshold.extensions-commons-quarkus");
 
   }
 
