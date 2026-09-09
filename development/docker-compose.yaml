@@ -40,7 +40,7 @@ services:
   # 'spring.kafka.bootstrap-servers' is set - pass '-Dspring.kafka.bootstrap-servers=localhost:9092'
   # to make it report to this broker instead of its own.
   business-cockpit-kafka:
-    image: apache/kafka:3.9.1
+    image: apache/kafka:3.9.2
     container_name: business-cockpit-kafka
     restart: "no"
     ports:
