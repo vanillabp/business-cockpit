@@ -30,6 +30,20 @@ Whatever those three need from here is an interface in `io.vanillabp.cockpit.ext
 change there is a change to a published contract, so it is made deliberately and documented in the
 module's README.
 
+## Two names for the same thing
+
+The wiki calls this an adapter. This repository, and the three adapter repositories, call it an extension. Both are right, and which
+word fits depends on where you stand.
+
+Somebody using the Business Cockpit adds one dependency and sees their user tasks in the cockpit.
+From there this is a cockpit adapter, sitting next to the BPMS adapter which runs their workflows.
+The VanillaBP core sees something else: a bean which joins its deployment pipeline through
+`vanillabp-extension-spi`, and a bean like that is what the core calls an extension.
+
+So the end-user documentation says adapter and never extension. The documentation in this repository
+says extension where the core's own term is meant, and adapter where it is about what a user adds to
+their application. Say which of the two you mean, rather than assuming the reader knows.
+
 ## The decision log is binding
 
 [`DECISIONS.md`](./DECISIONS.md) holds the decisions several places in this repository rely on. It

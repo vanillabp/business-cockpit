@@ -11,6 +11,10 @@ does and reports it somewhere. This one reports user tasks and workflows to a Bu
 server. It knows no BPMS: the three halves which do live in their own repositories and consume this
 one as a published artifact.
 
+Extension is the core's word for it. A user adds a dependency and calls the result a cockpit
+adapter, which is why the wiki uses that word and this file uses both,
+[as `AGENTS.md` explains](../AGENTS.md#two-names-for-the-same-thing).
+
 **Contents:**
 
 1. [What is here](#what-is-here)
