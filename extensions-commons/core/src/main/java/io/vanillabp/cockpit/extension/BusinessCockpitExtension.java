@@ -827,39 +827,24 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * The workflow aggregate an entry belongs to: what the caller knows, else what VanillaBP
-   * registered for that BPMN process of that workflow module.
+   * The workflow aggregate an entry belongs to: what VanillaBP serves that BPMN process of that
+   * workflow module with, else what the caller knows.
    * <p>
-   * The class decides both the store and the transaction, so a caller naming one which is not
-   * the one VanillaBP serves the process with is refused rather than served: the entry would be
-   * committed next to the workflow instead of with it, and an application whose aggregates live
-   * in two persistences would not even see it fail.
+   * The class decides both the store and the transaction, and VanillaBP's is the class whose own
+   * writes reach that store, so a caller naming another one is served with VanillaBP's answer
+   * rather than refused. Where two workflow services declare one BPMN process for different
+   * aggregates, VanillaBP serves the process with the class it found first and warns about the
+   * other; an extension which refused there would end a boot the platform lets run, and would say
+   * a second time what has been said once already.
    */
   private Class<?> aggregateOf(
       final String workflowModuleId,
       final String bpmnProcessId,
       final Class<?> workflowAggregateClass) {
 
-    final var registered = handlers
+    return handlers
         .workflowAggregateOf(workflowModuleId, bpmnProcessId)
-        .orElse(null);
-    if ((workflowAggregateClass == null) || (registered == null) || registered
-        .equals(workflowAggregateClass)) {
-      return workflowAggregateClass == null
-          ? registered
-          : workflowAggregateClass;
-    }
-    throw new IllegalStateException(
-        """
-            The Business Cockpit extension was asked to report something of BPMN process '%s' of \
-            workflow module '%s' for the workflow aggregate '%s', while VanillaBP serves that \
-            process with '%s'. The report is written into the outbox store of its aggregate and in \
-            that aggregate's transaction, so the two have to be the same class - report it for the \
-            aggregate the workflow belongs to (see decision 16 in the repository's \
-            DECISIONS.md)."""
-            .formatted(
-                bpmnProcessId, workflowModuleId, workflowAggregateClass.getName(), registered
-                    .getName()));
+        .orElse(workflowAggregateClass);
 
   }
 

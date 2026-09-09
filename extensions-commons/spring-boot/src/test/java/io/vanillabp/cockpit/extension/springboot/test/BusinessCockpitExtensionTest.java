@@ -434,25 +434,21 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
-  @DisplayName("A report naming an aggregate other than the one VanillaBP serves the process with is refused")
-  public void aReportForTheWrongAggregateIsRefused() {
+  @DisplayName("A report naming another aggregate is written for the one VanillaBP serves the process with")
+  public void aReportForAnotherAggregateIsServedWithVanillaBpsClass() {
 
     final var aggregate = aStartedWorkflow();
 
-    // the class decides the outbox store and the transaction, so a report which names another
-    // one would be committed next to the workflow instead of with it
-    final var failure = assertThrows(
-        IllegalStateException.class,
-        () -> extension
-            .publishUserTaskEvent(
-                userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-15",
-                OffsetDateTime.now(), EventTransaction.NEW, OwnUserTaskDetails.class));
+    // which class serves a BPMN process is VanillaBP's answer, and it stays the answer where a
+    // caller names another one: the entry belongs into the store and the transaction of the
+    // class the workflow's own writes go through
+    extension
+        .publishUserTaskEvent(
+            userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-15",
+            OffsetDateTime.now(), EventTransaction.NEW, OwnUserTaskDetails.class);
 
-    assertTrue(failure.getMessage().contains(BPMN_PROCESS), failure.getMessage());
-    assertTrue(
-        failure.getMessage().contains(TestAggregate.class.getName()), failure.getMessage());
-    assertTrue(
-        failure.getMessage().contains(OwnUserTaskDetails.class.getName()), failure.getMessage());
+    final var request = CockpitServer.awaitRequest("/usertask/created");
+    assertTrue(request.body().contains("\"id\":\"bpms-event-15\""), request.body());
 
   }
 

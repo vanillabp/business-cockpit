@@ -29,7 +29,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.bpmn-description-language=fr", "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.i18n-languages=fr"
+        "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.bpmn-description-language=fr", "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.i18n-languages=fr",
+        // an outbox store of its own: a context of another configuration stays cached and
+        // running between the test classes, and it would dispatch an entry of this one with
+        // the languages it was configured with rather than the ones written above
+        "spring.datasource.url=jdbc:h2:mem:cockpit-per-workflow;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

@@ -346,10 +346,14 @@ A provider which is not public is no longer refused here. It is not wired either
 VanillaBP's startup report about the handler methods nobody sees names it, which is the answer that
 defect deserves.
 
-And the refusal of decision 13 moves to where the extension can still make it. Two workflow
-services declaring one BPMN process of one workflow module for different aggregates are decided by
-VanillaBP now, which serves the process with the class it found first and warns about the other;
-an extension is told about that class alone. What this extension refuses is the case it does see: a
-report which NAMES an aggregate class other than the one VanillaBP serves the process with. That is
-the harm decision 13 was written against - an entry committed next to the workflow instead of with
-it - and it is refused with both classes named.
+And the refusal of decision 13 does not come back. Two workflow services declaring one BPMN process
+of one workflow module for different aggregates are VanillaBP's case to decide: it serves the
+process with the class it found first and warns about the other, and an extension is told about
+that class alone. So that class is what the entry is written for, and a report naming another one
+is served with it rather than refused. Nothing is logged about it either, because the boot said
+what there was to say about the other class long before the first report was written.
+
+The same rule holds everywhere else in this extension: it validates the way the core and the
+adapters do. What they let pass with a warning it lets pass with a warning of the same kind, and
+what ends the boot there ends the boot here. Seeing a defect from another angle does not make an
+extension stricter, and being optional does not make it more lenient.
