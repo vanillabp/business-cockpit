@@ -4,10 +4,12 @@ on:
   pull_request:
   workflow_dispatch:
 
-# same group as the publish workflow: builds of this repository run one at a
-# time, queued and never cancelled
+# a group of its own, apart from the publish workflow: this build runs 'install'
+# and uploads nothing, so it cannot overwrite an artifact a publish run wrote and
+# has no reason to wait behind one. Pull-request builds still run one at a time
+# among themselves, queued and never cancelled.
 concurrency:
-  group: business-cockpit-build
+  group: business-cockpit-pr-build
   cancel-in-progress: false
 
 jobs:
@@ -33,10 +35,16 @@ jobs:
         # are written, and it puts the reactor's artifacts into the local repository, which the
         # Spring Boot tests of the container read from. Adding 'verify' after it would run the
         # whole lifecycle twice.
+        #
+        # '-Pjava-install' leaves the npm modules out of the reactor. That is where most of the
+        # build time goes, and while the backend is being refactored nothing outside this
+        # repository reads the frontend packages. Remove the profile again as soon as the
+        # frontend is worked on.
         run: |
           mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Dnpm.registry=https://npm.pkg.github.com/ \
           -Dskip.npm.publish-snapshot=true \
+          -Pjava-install \
           install
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}

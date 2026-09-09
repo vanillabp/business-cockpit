@@ -6,8 +6,9 @@ on:
       - 'release/**'
       - 'feature/wip-**'
 # snapshot artifacts share their coordinates across branches, so two runs
-# publishing at the same time overwrite each other. One build at a time,
-# queued and never cancelled; the group is shared with the pull-request build.
+# publishing at the same time overwrite each other. One publish at a time,
+# queued and never cancelled. The pull-request build sits in a group of its own
+# because it publishes nothing.
 concurrency:
   group: business-cockpit-build
   cancel-in-progress: false
@@ -48,11 +49,16 @@ jobs:
           echo "Next NPM prerelease version: $ID"
 
       - name: Publish package
+        # '-Pjava-install' leaves the npm modules out of the reactor, so this run builds and
+        # publishes the Java artifacts only. That is where the build time is won back, and while
+        # the backend is being refactored no repository outside this one reads the frontend
+        # packages; the ones published so far stay where they are. Remove the profile again as
+        # soon as the frontend is worked on.
         run: |
           mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
           -Dnpm.registry=https://npm.pkg.github.com/ \
-          deploy -P build-runnable-jars
+          deploy -P build-runnable-jars,java-install
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
