@@ -14,13 +14,20 @@ one as a published artifact.
 **Contents:**
 
 1. [What is here](#what-is-here)
-2. [How an event travels](#how-an-event-travels)
-3. [What a BPMS half implements](#what-a-bpms-half-implements)
-4. [Configuration](#configuration)
-5. [Templates](#templates)
-6. [How it is tested](#how-it-is-tested)
-7. [Noteworthy & Contributors](#noteworthy--contributors)
-8. [License](#license)
+2. [What a BPMS half implements](#what-a-bpms-half-implements)
+3. [How the two platforms carry the cockpit's keys](#how-the-two-platforms-carry-the-cockpits-keys)
+4. [How it is tested](#how-it-is-tested)
+5. [Noteworthy & Contributors](#noteworthy--contributors)
+6. [License](#license)
+
+What an application configures, what a details provider may set, how templates are looked up and
+what changed against version 1 are in the
+[wiki](https://github.com/vanillabp/business-cockpit/wiki), under
+[Configuration](https://github.com/vanillabp/business-cockpit/wiki/Configuration),
+[Reporting workflows and user tasks](https://github.com/vanillabp/business-cockpit/wiki/Reporting-workflows-and-user-tasks),
+[Templates](https://github.com/vanillabp/business-cockpit/wiki/Templates) and
+[Migrating from version 1](https://github.com/vanillabp/business-cockpit/wiki/Migrating-from-version-1).
+This file is about the module.
 
 ## What is here
 
@@ -42,30 +49,15 @@ The three BPMS halves live in
 and
 [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
 
-## How an event travels
-
-1. A BPMS half observes something in its engine and calls `BusinessCockpitEventPublisher`.
-2. One outbox entry is written, in the transaction the BPMS is in or in one of its own, carrying
-   identifiers and nothing else.
-3. The transaction commits. Nothing has been sent yet, and nothing will be sent if it does not
-   commit.
-4. VanillaBP's outbox dispatches the entry. The BPMS half is asked what it knows about the task or
-   the workflow now, the application's `@UserTaskDetailsProvider` or `@WorkflowDetailsProvider`
-   method is invoked to enrich it, the titles are rendered, and the result goes to the configured
-   transport.
-5. A transport which fails throws, the entry stays, and the outbox tries again with a backoff -
-   unless the cockpit server refused the report itself, which ends the entry rather than repeating
-   it forever.
-
-Reading at dispatch time rather than carrying the data through the outbox is what keeps an entry
-inside the 2048 characters an outbox store holds, and it is what makes several pending reports about
-one task collapse into one. Both consequences are written down as decision 3 of the
-[decision log](../DECISIONS.md).
-
-`BusinessCockpitService`, which a workflow service injects to report a change of its own, takes the
-same way: it asks the election which BPMS holds the workflow, asks that BPMS half which workflows
-and tasks belong to the aggregate, and writes an entry per answer. Only `getUserTask` is
-synchronous, and it reports nothing.
+The path an event takes is drawn in the wiki under
+[Architecture](https://github.com/vanillabp/business-cockpit/wiki/Architecture#the-path-a-report-takes).
+Two things about it are decisions of this module rather than facts a user needs. An outbox entry
+carries identifiers and nothing else, and the event is rebuilt when the entry is dispatched, which
+is what keeps an entry inside the 2048 characters an outbox store holds and what makes several
+pending reports about one task collapse into one. And a transport which fails throws, so the entry
+stays and the outbox repeats it, unless the cockpit server refused the report itself, which ends the
+entry rather than repeating it forever. Decisions 3 and 11 of the [decision log](../DECISIONS.md)
+say why.
 
 ## What a BPMS half implements
 
@@ -110,92 +102,7 @@ application whose engine runs on a data source of its own needs EVERY data sourc
 Without that the entry fails with "Failed to enlist" the moment a BPMS half reports with that value,
 and the report is lost together with the engine's own transaction.
 
-## Configuration
-
-The keys are the ones version 1 of the Business Cockpit read, in the places it read them. An
-application upgrades by changing a dependency, and what the cockpit has become inside is nothing it
-has to know about.
-
-```yaml
-vanillabp:
-  cockpit:
-    user-tasks-enabled: true              # false stops user tasks from being reported
-    workflow-list-enabled: true           # false stops workflows from being reported
-    template-loader-path: classpath:cockpit-templates
-    rest:
-      base-url: http://localhost:8080     # the cockpit server, and with it the REST transport
-      connect-timeout: 1500               # milliseconds, or written with a unit: 1500ms, PT1.5S
-      read-timeout: 10000
-      verify-ssl: true
-      ssl-truststore-filename:
-      ssl-truststore-password:
-      proxy:
-        host:
-        port:
-        username:
-        password:
-      authentication:
-        basic: false                      # true sends a basic authentication
-        username:
-        password:
-        oauth:
-          base-url:                       # the token endpoint, and with it the flow
-          client-id:
-          client-secret:
-          basic: false                    # true sends the client in an Authorization header
-          # and its own connection: connect-timeout, read-timeout, verify-ssl,
-          # ssl-truststore-filename, ssl-truststore-password, proxy.*
-    kafka:
-      bootstrap-servers:                  # the brokers, and with them the Kafka transport
-      topics:
-        user-task:
-        workflow:
-        workflow-module:
-      properties:                         # anything else the producer is given
-        security.protocol: SSL
-    process-engine-api:
-      remembered-user-tasks: 1000         # read by the cockpit's Process-Engine-API half
-  workflow-modules:
-    taxi-ride:
-      cockpit:
-        workflow-module-uri: http://localhost:8081/taxi-ride
-        ui-uri-type: WEBPACK_MF_REACT
-        ui-uri-path: /remoteEntry.js
-        i18n-languages:
-          - de
-          - en
-        bpmn-description-language: en
-        template-path: rides
-        group-hierarchy:
-          TEAM_LEAD:
-            - TEAM_MEMBER
-            - ASSISTANT
-      workflows:
-        TaxiRide:
-          cockpit:                        # what this workflow differs from its module in
-            i18n-languages:
-              - fr
-            bpmn-description-language: fr
-            template-path: taxi
-          user-tasks:
-            approve:
-              cockpit:
-                template-path: approval
-```
-
-Exactly one transport is configured. Neither of them, or both, ends the boot with a message naming
-the keys of both. So does a workflow module which configured some of its settings and not the rest,
-and so does a `ui-uri-type` naming something which does not exist: every gap the application has is
-reported in one boot, each line naming the key which fixes it. A workflow module which configures
-nothing at all reports nothing to the cockpit, which the log says while the application starts,
-naming the key which would let it report.
-
-The most specific value wins per key: a user task beats its workflow, and a workflow beats its
-workflow module. What holds for the whole application is written once at the top and exists nowhere
-else, so `ui-uri-path` has no global default. Version 1 had none either, and the modules answer at
-different addresses.
-
-### How the two platforms carry these keys
+## How the two platforms carry the cockpit's keys
 
 Neither platform reads anything below `vanillabp.cockpit` by itself, so the extension binds that
 tree with the means each of them has: a `@ConfigurationProperties("vanillabp")` overlay on Spring
@@ -213,61 +120,6 @@ frameworks.
 A workflow module's own defaults file, `<module>.yaml` on the classpath root or below a directory of
 the module's name, carries these keys as well, below everything the application itself writes. That
 is how a module ships a template path it alone knows about.
-
-### What changed against version 1
-
-Every key not named here is the key it was. These are gone, one reason each:
-
-|                            Version 1 key                             |                                                            Why it is gone                                                            |
-|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `rest.log`                                                           | the client logs through SLF4J, so set the logger `io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi` to `DEBUG`                             |
-| `rest.additional-get-parameters.<name>`                              | it appended query parameters to GET requests, and every report is a POST                                                             |
-| `rest.retry.*`                                                       | a failed report waits in the outbox and is repeated from there, which `vanillabp.outbox.*` configures                                |
-| `kafka.group-id-suffix`                                              | it made a consumer group unique, and the extension only produces                                                                     |
-| `jwt.hmacSHA256-base64`, `jwt.cookie.*`                              | version 1 bound them and read them nowhere, and the cockpit server configures its own tokens                                         |
-| `group-hierarchy-bean-name`                                          | the hierarchy is configuration, and which groups may see a module is answered by the `WorkflowModuleDetailsProvider` bean            |
-| `workerId`                                                           | it named the instance a report came from, and the extension takes the host name for that                                             |
-| `spring.application.name`                                            | only the Camunda 8 exporter path read it, and that path is gone                                                                      |
-| `spring.kafka.consumer.*`, `camunda.zeebe.kafka-exporter.topic-name` | version 1 also consumed a topic a Camunda 8 exporter wrote, and version 2 learns the same from the listeners it puts into the models |
-| `vanillabp.workflow-modules.<id>.adapters.camunda8.*`                | a worker of the cockpit is a worker on the same cluster, so the Camunda 8 adapter's own keys are read rather than copied             |
-
-Three keys are not version 1's. `kafka.bootstrap-servers` and `kafka.properties.*` are what version
-1 took from `spring.kafka.bootstrap-servers` and `spring.kafka.producer.*`: the extension builds its
-own producer now, and does so on both platforms. `process-engine-api.remembered-user-tasks` is new
-with the Process-Engine-API integration and sizes what that half remembers between a delivery and
-its dispatch.
-
-Two things behave differently while everything is spelled the same. The timeouts accept the number
-of milliseconds version 1 expected and the spelling both platforms use (`1500ms`, `PT1.5S`), and
-they keep version 1's defaults of 1.5 and 10 seconds. And every setting is read and validated while
-the application starts rather than when the first event arrives, so the log of the first boot is
-what a developer works from. What went and why is written down in decision 14 of the
-[decision log](../DECISIONS.md).
-
-The token client of the client-credentials flow configures its own connection, as in version 1: it
-inherits nothing from `rest.*`, so an authorization server behind another proxy or with another
-certificate stays reachable. What it does not say for itself is the default rather than what the
-cockpit server's client uses.
-
-## Templates
-
-With `template-loader-path` set and Freemarker on the classpath, the texts the cockpit shows are
-rendered from templates. The path is a directory of the file system, written plainly or with
-`file:` in front of it, or a directory of the classpath, written `classpath:cockpit-templates` -
-the spellings version 1 accepted. The templates are: `workflow-title.ftl`, `task-title.ftl`, `task-definition-title.ftl`,
-`task-fulltext-search.ftl` and `workflow-fulltext-search.ftl`. Each is looked for in the module's
-directory, narrowed by the BPMN process and then by the task definition, and the most specific one
-which exists wins. Each of the three levels is named after its own id unless `template-path` says
-otherwise, which is how two processes share one directory of templates.
-
-The data model is what a details provider passed to `setTemplateContext`, which may be a map, a
-POJO or a record. Without a template directory the names written in the BPMN files are reported
-instead, in the one language `bpmn-description-language` declares them to be in - which is why that
-key is mandatory without templates and optional with them.
-
-A value a details provider already wrote is treated as the name of a template, and stays the literal
-text where no template of that name exists. That is how a workflow module gives one task a fixed
-title without shipping a template for it.
 
 ## How it is tested
 

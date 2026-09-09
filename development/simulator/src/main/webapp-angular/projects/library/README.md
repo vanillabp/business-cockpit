@@ -1,25 +1,12 @@
-# Library
+# library
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.2.0.
+The Angular library of the simulator's Angular user interface: the components the federated module
+exposes, kept apart from the application shell around them the way a workflow module keeps them.
 
-## Code scaffolding
+```sh
+ng build library     # into dist/
+ng test library      # unit tests through Karma
+```
 
-Run `ng generate component component-name --project library` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project library`.
-
-> Note: Don't forget to add `--project library` or else it will be added to the default project in your `angular.json` file.
-
-## Build
-
-Run `ng build library` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Publishing
-
-After building your library with `ng build library`, go to the dist folder `cd dist/library` and run `npm publish`.
-
-## Running unit tests
-
-Run `ng test library` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+It is built by the Maven module above it rather than with the Angular CLI directly, and it is not
+published anywhere: it exists to exercise [dev-shell-angular](../../../../../../dev-shell-angular).

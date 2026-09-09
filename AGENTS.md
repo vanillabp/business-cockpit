@@ -6,6 +6,12 @@ platform-neutral half of the Business Cockpit extension for VanillaBP Version 2.
 Read [`README.md`](./README.md) first. It says what each module is, how coverage is measured and
 what breaks a build.
 
+Documentation is split by who reads it. The README files of this repository and its modules are for
+somebody working on the code: what a module is, how it is built, what a change to it costs. The
+[wiki](https://github.com/vanillabp/business-cockpit/wiki) is for somebody using the cockpit:
+running it, configuring it, deriving an application from it, connecting a workflow module. Put a new
+paragraph on the side its reader is on, and link across rather than writing it twice.
+
 ## Two integrations live here at the same time
 
 `adapters/*` is the Version 1 integration. It is built on `io.vanillabp:spring-boot-support` and it
