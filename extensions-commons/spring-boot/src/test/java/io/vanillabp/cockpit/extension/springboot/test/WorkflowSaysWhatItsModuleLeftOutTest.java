@@ -25,7 +25,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        "spring.config.additional-location=classpath:/left-to-the-workflows/"
+        "spring.config.additional-location=classpath:/left-to-the-workflows/",
+        // an outbox store of its own: this context outlives its test in Spring's cache and
+        // keeps polling, and on a store it shares it would dispatch what another test class
+        // wrote, reporting it with the configuration read here
+        "spring.datasource.url=jdbc:h2:mem:cockpit-left-to-the-workflows;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

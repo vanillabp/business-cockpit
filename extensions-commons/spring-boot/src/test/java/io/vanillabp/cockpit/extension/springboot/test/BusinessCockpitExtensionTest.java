@@ -38,7 +38,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * the outbox's own thread, the application's details provider runs, and a cockpit server of the
  * test reads what arrives.
  */
-@SpringBootTest(classes = TestApplication.class)
+@SpringBootTest(classes = TestApplication.class,
+    properties = {
+        // an outbox store of its own: each test class of this module boots a context of its
+        // own properties, Spring keeps all of them cached and polling, and on a store they
+        // share the poller of a foreign context takes away the entry this test waits for
+        "spring.datasource.url=jdbc:h2:mem:cockpit-reported-events;DB_CLOSE_DELAY=-1"
+    })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
 public class BusinessCockpitExtensionTest {

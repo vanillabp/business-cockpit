@@ -39,7 +39,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        "spring.config.additional-location=classpath:/matrix/"
+        "spring.config.additional-location=classpath:/matrix/",
+        // an outbox store of its own: the contexts of the other test classes stay cached
+        // with their pollers running, so a shared store lets one of them dispatch an entry
+        // written here, with the configuration it was booted with instead of this one
+        "spring.datasource.url=jdbc:h2:mem:cockpit-configuration-matrix;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
