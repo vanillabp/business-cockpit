@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       base_branch:
-        description: 'Base to branch off of (default: origin/main)'
-        default: 'origin/main'
+        description: 'Base to branch off of (default: main)'
+        default: 'main'
       release_version:
         description: 'Version to release (e.g. 1.2.3)'
         required: true
@@ -76,7 +76,7 @@ jobs:
 
       - name: Create release branch
         run: |
-          git checkout -b release/${{ github.event.inputs.release_version }} ${{ github.event.inputs.base_branch }}
+          git checkout -b release/${{ github.event.inputs.release_version }} origin/${{ github.event.inputs.base_branch }}
 
       - name: Set Maven release version
         run: |
@@ -284,5 +284,5 @@ jobs:
           gh pr create \
             --title "Merge release/${{ github.event.inputs.release_version }} into main" \
             --body "Automated PR to merge release branch." \
-            --base main \
+            --base ${{ github.event.inputs.base_branch }} \
             --head release/${{ github.event.inputs.release_version }}
