@@ -1,9 +1,11 @@
 package io.vanillabp.cockpit.adapter.camunda8.usertask;
 
+import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.ActivatedJob;
 import io.camunda.client.api.search.enums.JobKind;
 import io.camunda.client.api.worker.JobClient;
 import io.camunda.client.api.worker.JobHandler;
+import io.camunda.client.event.CamundaClientCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.deployments.Camunda8DeploymentAdapter;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskCreatedEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
@@ -22,17 +24,39 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Transactional
 public class Camunda8UserTaskEventHandler implements JobHandler {
 
     private static final Logger logger = LoggerFactory
             .getLogger(Camunda8UserTaskEventHandler.class);
-    
+
+    private CamundaClient client;
+
     private final Map<Camunda8UserTaskConnectable, Camunda8UserTaskHandler> taskHandlers = new HashMap<>();
 
     private final Set<String> knownTenantIds = new HashSet<>();
+
+    @EventListener
+    public void camundaClientCreated(
+            final CamundaClientCreatedEvent event) {
+
+        this.client = event.getClient();
+
+    }
+
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @TransactionalEventListener(fallbackExecution = true, phase = TransactionPhase.AFTER_COMMIT)
+    public void doCompleteCommandAfterTransaction(
+            final Camunda8UserTaskHandler.CompleteJobAfterTransactionEvent event) {
+
+        client.newCompleteCommand(event.getJobKey()).send().join();
+
+    }
 
     public void addTaskHandler(
             final Camunda8UserTaskConnectable connectable,

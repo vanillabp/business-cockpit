@@ -222,6 +222,20 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
 
     }
 
+    public static class CompleteJobAfterTransactionEvent {
+
+        private final long jobKey;
+
+        private CompleteJobAfterTransactionEvent(long jobKey) {
+            this.jobKey = jobKey;
+        }
+
+        public long getJobKey() {
+            return jobKey;
+        }
+
+    };
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Retryable(
             retryFor = { Exception.class },
@@ -245,7 +259,9 @@ public class Camunda8UserTaskHandler extends UserTaskHandlerBase implements Aggr
 
         // if the event originated from the task-listener
         if (camunda8UserTaskEvent.getJobKey() != 0) {
-            client.newCompleteCommand(camunda8UserTaskEvent.getJobKey()).send().join();
+            // see Camunda8UserTaskEventHandler#doCompleteCommandAfterTransaction
+            applicationEventPublisher.publishEvent(
+                    new CompleteJobAfterTransactionEvent(camunda8UserTaskEvent.getJobKey()));
         }
 
     }

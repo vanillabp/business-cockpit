@@ -128,10 +128,10 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 .items();
         if (processesFound.isEmpty()) {
             if (tenantId == null) {
-                logger.warn("Could not found process instance for business key '{}', BPMN process ID '{}'!",
+                logger.warn("Could not find process instance for business key '{}', BPMN process ID '{}'!",
                         businessKey, bpmnProcessId);
             } else {
-                logger.warn("Could not found process instance for business key '{}', BPMN process ID '{}', tenant '{}'!",
+                logger.warn("Could not find process instance for business key '{}', BPMN process ID '{}', tenant '{}'!",
                         businessKey, bpmnProcessId, tenantId);
             }
             return;
