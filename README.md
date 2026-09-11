@@ -42,15 +42,14 @@ wiki, under [Releases](https://github.com/vanillabp/business-cockpit/wiki/Releas
 
 Coverage is measured once per deployable and per platform, because none of them executes another's
 code and a single number spanning them would hide whichever is weakest. The cockpit library, the
-container and what they carry with them run in a business cockpit application. The version 1 BPMS
-adapters run inside a workflow module, next to the business code. The version 2 extension runs
-there too, on Spring Boot and on Quarkus, and each platform's tests reach only that platform's
-glue - the difference between its two numbers is what names the features one of them never runs.
+container and what they carry with them run in a business cockpit application. The extension runs
+inside a workflow module, next to the business code, on Spring Boot and on Quarkus, and each
+platform's tests reach only that platform's glue - the difference between its two numbers is what
+names the features one of them never runs.
 
 |                            | Spring Boot | Quarkus |
 |----------------------------|-------------|---------|
 | Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report) | |
-| BPMS adapters (version 1)  | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fadapters-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/adapters-spring-boot-report) | |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
@@ -80,12 +79,6 @@ In the order they build on each other:
    [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
-1. **[adapters](./adapters)**:<br>The Version 1 integration, built on `io.vanillabp:spring-boot-support`.
-   It is maintained for the 0.8.x line and ends with 0.9.0, and its README files are where the
-   version 1 documentation stays.
-   1. **[commons](./adapters/commons)**:<br>What more than one version 1 adapter needs.
-   1. **[camunda7](./adapters/camunda7)**:<br>For workflow modules on [Camunda 7](http://www.camunda.org).
-   1. **[camunda8](./adapters/camunda8)**:<br>For workflow modules on [Camunda 8](http://www.camunda.io).
 1. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
    API, security extension points, ingestion of what workflow modules report, and the React
    application. It builds no runnable jar.

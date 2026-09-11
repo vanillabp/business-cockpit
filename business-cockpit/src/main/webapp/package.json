@@ -1,10 +1,10 @@
 {
   "name": "vanillabp-business-cockpit",
-  "version": "0.4.1-SNAPSHOT.0",
+  "version": "0.9.0-SNAPSHOT.0",
   "private": true,
   "dependencies": {
-    "@vanillabp/bc-shared": ">=0.4.1-SNAPSHOT <0.4.2",
-    "@vanillabp/bc-ui": ">=0.4.1-SNAPSHOT <0.4.2",
+    "@vanillabp/bc-shared": ">=0.9.0-SNAPSHOT <0.9.1",
+    "@vanillabp/bc-ui": ">=0.9.0-SNAPSHOT <0.9.1",
     "@fontsource/roboto": "4.5.8",
     "grommet": "2.33.2",
     "grommet-icons": "4.12.1",
@@ -34,7 +34,7 @@
     "@types/styled-components": "5.1.24",
     "compress-create-react-app": "1.2.1",
     "cross-env": "7.0.3",
-    "http-proxy-middleware": "2.0.6",
+    "http-proxy-middleware": "2.0.10",
     "react-scripts": "5.0.1",
     "source-map-explorer": "2.5.2",
     "typescript": "4.8.4",

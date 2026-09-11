@@ -5,9 +5,9 @@ deployable and per platform, because none of them executes another's code, and t
 [root README](../README.md#test-coverage) is where the numbers and their badges are.
 
 Each directory here aggregates one of them: `application/spring-boot` for the cockpit itself,
-`adapters/spring-boot` for the version 1 integration, `extensions-commons/spring-boot` and
-`extensions-commons/quarkus` for the two halves of the version 2 one. A build writes each report to
-`report` below its directory, and the default branch publishes them as pages.
+`extensions-commons/spring-boot` and `extensions-commons/quarkus` for the two halves of the
+extension. A build writes each report to `report` below its directory, and the default branch
+publishes them as pages.
 
 `coverage-gate` is what breaks a build. It breaks on a report below its threshold, and it breaks on
 a module producing coverage data no aggregated report reads, because everything covered by that

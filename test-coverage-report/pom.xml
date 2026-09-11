@@ -5,17 +5,16 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>business-cockpit-parent</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>test-coverage-report</artifactId>
   <packaging>pom</packaging>
   <name>Test coverage report</name>
-  <description>Aggregator of the test coverage reports. Coverage is measured separately per deployable and per platform: the business cockpit container, the version 1 BPMS adapters, and the two platform halves of the version 2 Business Cockpit extension. None of them executes another's code, so a single number spanning them would hide whichever is weakest.</description>
+  <description>Aggregator of the test coverage reports. Coverage is measured separately per deployable and per platform: the business cockpit container and the two platform halves of the Business Cockpit extension. None of them executes another's code, so a single number spanning them would hide whichever is weakest.</description>
 
   <modules>
     <module>application/spring-boot</module>
-    <module>adapters/spring-boot</module>
     <module>extensions-commons/spring-boot</module>
     <module>extensions-commons/quarkus</module>
     <!-- last: it judges what the two modules above produced -->

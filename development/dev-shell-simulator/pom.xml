@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>development</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>dev-shell-simulator</artifactId>
@@ -13,7 +13,7 @@
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
-    <lombok.version>1.18.36</lombok.version>
+    <lombok.version>1.18.48</lombok.version>
   </properties>
 
   <build>

@@ -22,9 +22,8 @@ import org.slf4j.LoggerFactory;
  * Templates are looked up on the classpath under the directory resolved from
  * {@code business-cockpit.notification.<type>.templates} (default
  * {@code templates/notification/<type>/}). The rendering approach mirrors
- * {@code io.vanillabp.cockpit.adapter.common.wiring.TemplatingHandlerBase#renderText} (which lives
- * in the {@code adapters/commons} module the {@code container} does not depend on, hence it is
- * replicated here): a Freemarker {@link Configuration} with a {@link Java8ObjectWrapper} exposed at
+ * the way the version 1 adapters rendered text. That code has left this repository, so the
+ * approach is written out here: a Freemarker {@link Configuration} with a {@link Java8ObjectWrapper} exposed at
  * {@code EXPOSE_SAFE} (required so Java record component accessors become template properties).
  */
 public abstract class AbstractTemplatingNotificationService implements NotificationService {

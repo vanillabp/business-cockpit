@@ -43,7 +43,6 @@ public class CoverageGateTest {
   private static final List<Path> AGGREGATE_POMS = List
       .of(
           ROOT.resolve("test-coverage-report/application/spring-boot/pom.xml"),
-          ROOT.resolve("test-coverage-report/adapters/spring-boot/pom.xml"),
           ROOT.resolve("test-coverage-report/extensions-commons/spring-boot/pom.xml"),
           ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"));
 
@@ -78,17 +77,6 @@ public class CoverageGateTest {
         "Business Cockpit container (Spring Boot)",
         "application/spring-boot",
         "coverage.threshold.application-spring-boot");
-
-  }
-
-  @Test
-  @DisplayName("The BPMS adapters report is above the coverage threshold")
-  public void theBpmsAdaptersReportIsAboveTheThreshold() {
-
-    assertAboveThreshold(
-        "BPMS adapters (Spring Boot)",
-        "adapters/spring-boot",
-        "coverage.threshold.adapters-spring-boot");
 
   }
 

@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>business-cockpit-parent</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>business-cockpit</artifactId>
@@ -256,11 +256,6 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
-    <!--
-      adapters-commons is deliberately NOT a test dependency: its configuration classes live inside
-      the io.vanillabp.cockpit package the application component-scans, so having it on the test
-      classpath makes a booted context demand adapter beans the cockpit never provides.
-    -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>

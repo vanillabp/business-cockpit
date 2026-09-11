@@ -12,10 +12,11 @@ somebody working on the code: what a module is, how it is built, what a change t
 running it, configuring it, deriving an application from it, connecting a workflow module. Put a new
 paragraph on the side its reader is on, and link across rather than writing it twice.
 
-## Two integrations live here at the same time
+## One integration lives here
 
-`adapters/*` is the Version 1 integration. It is built on `io.vanillabp:spring-boot-support` and it
-stays untouched while the 0.8.x line is maintained. Nothing new belongs there.
+The Version 1 integration under `adapters/*` was built on `io.vanillabp:spring-boot-support`. It is
+no longer part of this repository. Read it at the `0.4.0` tag if you need it, and use the 0.8.x
+line for a workflow module which still runs on VanillaBP Version 1.
 
 `extensions-commons` is the Version 2 integration, or rather its platform-neutral half. It joins the
 deployment pipeline of the VanillaBP core through `io.vanillabp:vanillabp-extension-spi` and knows
