@@ -89,8 +89,10 @@ An adapter will scan your business code for methods annotated by
 `io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider` and will call the respective method on processing
 the lifecycle events mentioned. The business code should only use this SPI as a dependency (Maven or Gradle)
 and the runtime container hosting the business code (e.g. Spring Boot container) should use the
-specific adapter as a dependency (e.g. [Camunda 7](../adapters/camunda7/README.md) or
-[Camunda 8](../adapters/camunda8/README.md)). **Please consult the adapter's documentation for features and
+specific adapter as a dependency (e.g.
+[Camunda 7](https://github.com/vanillabp/businesscockpit-camunda7-adapter) or
+[Camunda 8](https://github.com/vanillabp/businesscockpit-camunda8-adapter)).
+**Please consult the adapter's documentation for features and
 configuration specific to the targeting user task application and the underlying BPMS!**
 
 For the business workflow module:
@@ -260,7 +262,7 @@ specifying a template context map:
 Additionally, if the value of those details is not set (neither to a text nor to a template name),
 then a default template is used. For any details about templates
 (template library used, folders to provide templates, etc.) checkout the specific
-[SPI adapter documentation](../adapters/README.md). 
+SPI adapter documentation of your BPMS, linked from [Using an adapter](#using-an-adapter).
 
 ### Wire up a workflow
 
@@ -375,7 +377,7 @@ specifying a template context map:
 Additionally, if the value of those details is not set (neither to a text nor to a template name),
 then a default template is used. For any details about templates
 (template library used, folders to provide templates, etc.) checkout the specific
-[SPI adapter documentation](../adapters/README.md).
+SPI adapter documentation of your BPMS, linked from [Using an adapter](#using-an-adapter).
 
 ### Trigger updates programmatically
 

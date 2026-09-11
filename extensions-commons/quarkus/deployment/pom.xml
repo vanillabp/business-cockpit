@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.vanillabp.businesscockpit</groupId>
     <artifactId>extensions-commons-quarkus-parent</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>extensions-commons-quarkus-deployment</artifactId>

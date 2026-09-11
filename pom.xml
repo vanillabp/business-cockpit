@@ -9,7 +9,7 @@
 
   <groupId>io.vanillabp.businesscockpit</groupId>
   <artifactId>business-cockpit-parent</artifactId>
-  <version>0.4.1-SNAPSHOT</version>
+  <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
 
@@ -27,14 +27,11 @@
     <version.jupiter>5.10.1</version.jupiter>
     <jacoco.version>0.8.15</jacoco.version>
     <!-- where the build breaks, in PERCENT of covered instructions per measurement,
-         enforced by test-coverage-report/coverage-gate. Both numbers are what the suites
-         actually reached on 2026-09-06, rounded down: 57.25 % for the container and 3.43 %
-         for the adapters. They are raised as tests arrive and never lowered to make a build
-         green, because a threshold lowered once stops saying anything about the code. The
-         adapters keep their measured 3 instead of rounding down to a zero that could not
-         catch any regression at all; the honest number is the low one, not a disabled gate. -->
+         enforced by test-coverage-report/coverage-gate. The container number is what its
+         suite actually reached on 2026-09-06, 57.25 %, rounded down. A threshold is raised
+         as tests arrive and never lowered to make a build green, because a threshold
+         lowered once stops saying anything about the code. -->
     <coverage.threshold.application-spring-boot>55</coverage.threshold.application-spring-boot>
-    <coverage.threshold.adapters-spring-boot>3</coverage.threshold.adapters-spring-boot>
     <coverage.threshold.extensions-commons-spring-boot>85</coverage.threshold.extensions-commons-spring-boot>
     <coverage.threshold.extensions-commons-quarkus>85</coverage.threshold.extensions-commons-quarkus>
     <!-- the rule every VanillaBP repository is read against. The gate prints each
@@ -53,7 +50,6 @@
     <module>development</module>
     <module>spi-for-java</module>
     <module>extensions-commons</module>
-    <module>adapters</module>
     <!-- last: it aggregates and judges what all modules above produced -->
     <module>test-coverage-report</module>
   </modules>
@@ -286,11 +282,6 @@
         <groupId>org.mapstruct</groupId>
         <artifactId>mapstruct</artifactId>
         <version>${version.org.mapstruct}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.vanillabp</groupId>
-        <artifactId>spring-boot-support</artifactId>
-        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
