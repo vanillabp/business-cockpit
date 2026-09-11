@@ -70,7 +70,7 @@
             -->
             <groupId>io.camunda</groupId>
             <artifactId>camunda-spring-boot-4-starter</artifactId>
-            <version>8.8.33</version>
+            <version>8.8.37</version>
         </dependency>
 
         <dependency>
