@@ -37,7 +37,7 @@
 
   <properties>
     <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
-    <version.quarkus>3.39.1</version.quarkus>
+    <version.quarkus>3.39.2</version.quarkus>
     <!-- pinned against the Spring Boot bill of materials, which manages Testcontainers 2.x:
       the tests here are written against the 1.x API (org.testcontainers.junit.jupiter and the
       org.testcontainers.kafka module, which is the one reading an apache/kafka image) -->
