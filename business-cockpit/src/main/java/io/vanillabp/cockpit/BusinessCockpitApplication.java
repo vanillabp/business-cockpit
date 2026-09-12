@@ -3,6 +3,7 @@ package io.vanillabp.cockpit;
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.notification.NotificationProperties;
+import io.vanillabp.cockpit.tasklist.OpenedTasksProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -33,7 +34,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableConfigurationProperties({
     ApplicationProperties.class,
     BpmsApiProperties.class,
-    NotificationProperties.class
+    NotificationProperties.class,
+    OpenedTasksProperties.class
 })
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)

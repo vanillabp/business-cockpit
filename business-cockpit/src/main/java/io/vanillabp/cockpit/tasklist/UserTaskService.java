@@ -94,6 +94,9 @@ public class UserTaskService {
     private UserTaskRepository userTasks;
 
     @Autowired
+    private OpenedUserTasks openedUserTasks;
+
+    @Autowired
     private KwicService kwicService;
 
     @Autowired
@@ -183,6 +186,17 @@ public class UserTaskService {
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
 
         try {
+            // a task which is gone takes the notes about who opened it with it, whoever removed it
+            if (message.getBody() == null) {
+                openedUserTasks.forgetTask(
+                        message
+                                .getRaw()
+                                .getDocumentKey()
+                                .get(message.getRaw().getDocumentKey().getFirstKey())
+                                .asString()
+                                .getValue());
+                return;
+            }
             applicationEventPublisher.publishEvent(
                     UserTaskChangedNotification.build(message));
         } catch (Exception e) {
@@ -224,13 +238,46 @@ public class UserTaskService {
             final UserTaskVisibility visibility,
             final String userTaskId) {
 
-        return mongoTemplate.findOne(
+        return getUserTask(visibility, userTaskId, false);
+
+    }
+
+    /**
+     * The same task, told whether this is the whole task shown to a person rather than one row of a
+     * list or the task an action was asked for. A full view is noted as an opening, which is what
+     * keeps the task reachable for that person later on. Everything else notes nothing, so nobody
+     * ends up in that collection by scrolling through a list.
+     */
+    public UserTask getUserTask(
+            final UserTaskVisibility visibility,
+            final String userTaskId,
+            final boolean fullView) {
+
+        final var userTask = mongoTemplate.findOne(
                 new Query(buildUserTasksCriteria(
                         visibility,
                         null,
                         RetrieveItemsMode.All,
                         List.of(Criteria.where("id").is(userTaskId)))),
                 UserTask.class);
+
+        if (fullView
+                && (userTask != null)) {
+            openedUserTasks.rememberOpening(userTask, currentUserId());
+        }
+
+        return userTask;
+
+    }
+
+    /** The user this request belongs to, or {@code null} for a job of the cockpit itself. */
+    private String currentUserId() {
+
+        try {
+            return currentUserContext.getUserLoggedIn();
+        } catch (BcUnauthorizedException e) {
+            return null;
+        }
 
     }
 
@@ -865,6 +912,7 @@ public class UserTaskService {
         final var candidateUsers = visibility.candidateUsers();
         final var candidateGroups = visibility.candidateGroups();
         final var candidatesToBeExcluded = visibility.excludedCandidates();
+        final var openedBy = visibility.openedBy();
 
         final var subCriterias = new LinkedList<Criteria>();
 
@@ -895,6 +943,14 @@ public class UserTaskService {
                 && !candidateGroups.isEmpty()) {
             final var candidateGroupsMatches = Criteria.where("candidateGroups.id").in(candidateGroups);
             userOrRestrictions.add(candidateGroupsMatches);
+        }
+        if ((openedBy != null)
+                && !openedBy.isEmpty()) {
+            // what those users opened before, which no field of the task itself would tell
+            final var alreadyOpened = openedUserTasks.tasksOpenedBy(openedBy);
+            if (!alreadyOpened.isEmpty()) {
+                userOrRestrictions.add(Criteria.where("id").in(alreadyOpened));
+            }
         }
 
         if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
