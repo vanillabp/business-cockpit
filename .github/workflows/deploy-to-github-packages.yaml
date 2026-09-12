@@ -68,9 +68,8 @@ jobs:
         # a build of any other branch would let them show a number nobody released
         if: github.ref_name == github.event.repository.default_branch
         run: |
-          mkdir -p coverage/application-spring-boot-report coverage/adapters-spring-boot-report coverage/extensions-commons-spring-boot-report coverage/extensions-commons-quarkus-report
+          mkdir -p coverage/application-spring-boot-report coverage/extensions-commons-spring-boot-report coverage/extensions-commons-quarkus-report
           cp -R test-coverage-report/application/spring-boot/report/. coverage/application-spring-boot-report/
-          cp -R test-coverage-report/adapters/spring-boot/report/. coverage/adapters-spring-boot-report/
           cp -R test-coverage-report/extensions-commons/spring-boot/report/. coverage/extensions-commons-spring-boot-report/
           cp -R test-coverage-report/extensions-commons/quarkus/report/. coverage/extensions-commons-quarkus-report/
       - name: Upload the coverage reports as a GitHub Pages artifact

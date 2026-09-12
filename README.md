@@ -48,15 +48,14 @@ return types, where they used to be written against `ServerHttpSecurity` and `Mo
 
 Coverage is measured once per deployable and per platform, because none of them executes another's
 code and a single number spanning them would hide whichever is weakest. The cockpit library, the
-container and what they carry with them run in a business cockpit application. The version 1 BPMS
-adapters run inside a workflow module, next to the business code. The version 2 extension runs
-there too, on Spring Boot and on Quarkus, and each platform's tests reach only that platform's
-glue - the difference between its two numbers is what names the features one of them never runs.
+container and what they carry with them run in a business cockpit application. The extension runs
+inside a workflow module, next to the business code, on Spring Boot and on Quarkus, and each
+platform's tests reach only that platform's glue - the difference between its two numbers is what
+names the features one of them never runs.
 
 |                            | Spring Boot | Quarkus |
 |----------------------------|-------------|---------|
 | Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report) | |
-| BPMS adapters (version 1)  | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fadapters-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/adapters-spring-boot-report) | |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
@@ -174,7 +173,8 @@ To learn about technologies used by the *VanillaBP Business Cockpit* checkout th
 * Running the *VanillaBP Business Cockpit*: [container/README.md](./container/README.md)
 * Building a customized business cockpit: [container/README.md](./container/README.md)
 * Use out-of-the-box adapters for filling the business cockpit with data of your business processes:
-  [spi-for-java/README.md](./spi-for-java) and [adapters/README.md](./adapters/README.md)
+  [spi-for-java/README.md](./spi-for-java) and the adapter repository of your BPMS, listed with
+  [extensions-commons](#by-module)
 * Build user task forms** to be shown in the business cockpit: []
 * Build workflow status sites** to be shown in the business cockpit: []
 * Integrate business service not using out-of-the-box adapters: [development/simulator/README.md](./development/simulator/README.md)
@@ -195,12 +195,6 @@ in logical order:
    [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
-1. **[adapters](./adapters)**:<br>The Version 1 integration, built on `io.vanillabp:spring-boot-support`.
-   It is maintained for the 0.8.x line and ends with 0.9.0; a workflow module on VanillaBP Version 2
-   uses `extensions-commons` together with the repository of its BPMS instead.
-   1. **[commons](./adapters/commons)**:<br>Functionality common to more than one specific BPS adapter.
-   1. **[camunda7](./adapters/camunda7)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 7](http://www.camunda.org).
-   1. **[camunda8](./adapters/camunda8)**:<br>Adapter to be used in workflow modules leveraging the BPS [Camunda 8](http://www.camunda.io).
 1. **business-cockpit**:<br>The business cockpit as a library: services, persistence, GUI API,
    security extension points, BPMS ingestion and the React application. Use this as a Maven-dependency
    for a custom business cockpit. It does not start on its own.

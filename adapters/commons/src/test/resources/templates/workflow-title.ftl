@@ -1,1 +1,0 @@
-Kundenauftrag<#if order??><#if order.erpOperationId??> (Vorgang ${order.erpOperationId})<#elseif order.erpOfferId??> (Angebot ${order.erpOfferId})</#if></#if>

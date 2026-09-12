@@ -39,7 +39,8 @@ explained only once.
 
 In this context a business application is assumed as a service which is about
 business workflows. Typically, those applications do not include the UI and
-functionality of the user task application, but [they feed it](../adapters).
+functionality of the user task application, but they feed it through the adapter of their BPMS,
+listed in the [main README](../README.md#by-module).
 
 For tiny applications meant to be used in a non-enterprise context it might make sense to merge
 the user task application and the business application but this is currently not supported by
