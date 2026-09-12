@@ -20,8 +20,8 @@
     "publish:release": "node ../../.github/scripts/publish-and-wait.js dist/dev-shell --access public"
   },
   "devDependencies": {
-    "@angular/build": "21.1.1",
-    "@angular/cli": "21.1.1",
+    "@angular/build": "21.2.23",
+    "@angular/cli": "21.2.23",
     "@angular/common": "21.1.1",
     "@angular/compiler": "21.1.1",
     "@angular/compiler-cli": "21.1.1",
