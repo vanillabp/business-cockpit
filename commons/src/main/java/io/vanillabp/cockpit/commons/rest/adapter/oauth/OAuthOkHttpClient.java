@@ -63,6 +63,9 @@ public class OAuthOkHttpClient extends OkHttpClient implements HttpClient {
                                     ? responseBody.contentType().toString()
                                     : null,
                             response.code(),
+                            // 1.0.2 of the client asks for the response headers as well, and okhttp
+                            // hands them over in exactly the shape the factory wants
+                            response.headers().toMultimap(),
                             responseClass);
         } catch (IOException e) {
             throw new OAuthSystemException(e);
