@@ -172,6 +172,12 @@ public class WorkflowModuleService {
 
     }
 
+    /**
+     * One workflow module by its id, with nobody asked whether the caller may see it. Used where
+     * the cockpit needs the registration itself, for instance to route a proxied request.
+     * Everything answering a person goes through the overload taking a
+     * {@link WorkflowModuleVisibility}.
+     */
     public WorkflowModule getWorkflowModule(
             final String id) {
 
@@ -184,9 +190,35 @@ public class WorkflowModuleService {
 
     }
 
-    public List<WorkflowModule> getWorkflowModules(List<String> userRoles) {
+    /**
+     * The module of that id which the given visibility lets through, or {@code null} when there is
+     * none. The visibility goes into the query the same way it goes into the query behind the list,
+     * so the two cannot drift apart.
+     */
+    public WorkflowModule getWorkflowModule(
+            final WorkflowModuleVisibility visibility,
+            final String id) {
 
-        return workflowModules.findByAccessibleToGroups(userRoles);
+        if (id == null) {
+            return null;
+        }
+        if (visibility.accessibleToGroups() == null) {
+            return getWorkflowModule(id);
+        }
+        return workflowModules
+                .findByIdAndAccessibleToGroups(id, List.copyOf(visibility.accessibleToGroups()))
+                .orElse(null);
+
+    }
+
+    public List<WorkflowModule> getWorkflowModules(
+            final WorkflowModuleVisibility visibility) {
+
+        if (visibility.accessibleToGroups() == null) {
+            return workflowModules.findAll();
+        }
+        return workflowModules.findByAccessibleToGroups(
+                List.copyOf(visibility.accessibleToGroups()));
 
     }
 

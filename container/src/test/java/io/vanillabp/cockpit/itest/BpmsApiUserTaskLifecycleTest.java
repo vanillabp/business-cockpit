@@ -130,7 +130,9 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
                 """.formatted(unique("event"), userTaskId, isoNow(), moduleId, newDueDate, token));
         assertThat(updated.statusCode()).isEqualTo(200);
 
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        // the update handed the task over to petra, and a task page follows the list it hangs
+        // below, so martin's cookie no longer opens it and petra's does
+        final var task = json(guiGet(loginToGui(USER_PETRA), "/usertask/" + userTaskId));
         assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
         assertThat(task.read("$.assignee.id", String.class)).isEqualTo("petra");
         assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())

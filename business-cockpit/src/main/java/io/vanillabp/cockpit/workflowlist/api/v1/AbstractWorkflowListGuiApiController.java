@@ -11,7 +11,9 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.time.OffsetDateTime;
@@ -25,41 +27,29 @@ import org.springframework.util.StringUtils;
 
 /**
  * Turns the workflowlist requests of the GUI API into calls of {@link WorkflowlistService} and maps
- * the result back, but leaves open which workflows the current user gets to see. That decision
- * belongs to the application built on this library, because only it knows what its workflows are
- * about: a cockpit for a support team may want every workflow in one list, another one may show
- * nobody anything the reporting workflow module did not explicitly address to them.
+ * the result back. One question stays open, and the application built on this library answers it:
+ * which workflows this view lets the person making the request reach. Only that application knows
+ * what its workflows are about. A cockpit for a support team may
+ * want every workflow in one list, another one may show nobody anything the reporting workflow
+ * module did not address to them.
  *
- * <p>The subclass answers by passing a filter to the service. Every retrieval method takes an
- * {@code accessibleToUsers} and an {@code accessibleToGroups} collection, and a workflow is included
- * once it names one of the given users or one of the given groups. Passing {@code null} for both
- * drops the restriction and lists every workflow. The {@code includeDanglingWorkflows} flag decides
- * what happens to a workflow which names neither users nor groups: passing {@code true} treats it as
- * open to everyone, {@code false} hides it from everyone.
+ * <p>A subclass answers it in {@link #workflowsVisibleTo(UserDetails)} and is then done. The list,
+ * the fulltext suggestions, opening one workflow and asking for its user tasks are answered from
+ * that one {@link WorkflowVisibility}, so a workflow kept out of the list cannot be opened by
+ * guessing its id, and its tasks do not tell anybody about it either. Both answer as if the id had
+ * never been reported.
  *
- * <p>The reference application filters by the current user and the authorities of the request, which
- * are the user's groups after the group hierarchies of all registered workflow modules have been
- * applied:
+ * <p>The reference application lets a user see the workflows addressed to them:
  *
  * <pre>
  * &#64;Override
- * protected Page&lt;Workflow&gt; getWorkflows(
- *         final UserDetails currentUser, ...) {
+ * protected WorkflowVisibility workflowsVisibleTo(
+ *         final UserDetails currentUser) {
  *
- *     return workflowlistService.getWorkflows(
- *             pageNumber, pageSize, initialTimestamp,
- *             true,
- *             List.of(currentUser.getId()),
- *             currentUser.getAuthorities(),
- *             businessIds, searchQueries, sort, sortAscending, mode);
+ *     return WorkflowVisibility.workflowsAddressedTo(currentUser);
  *
  * }
  * </pre>
- *
- * <p>A list filter alone does not protect a workflow. {@link #getWorkflow(UserDetails, String)}
- * fetches one by its id, and the user tasks of a workflow are fetched by that id as well, so a
- * subclass which hides workflows from the list wants both of them to answer nothing for the same
- * workflows. Otherwise the detail view hands out what the list withheld.
  */
 public abstract class AbstractWorkflowListGuiApiController implements OfficialWorkflowlistApi {
 
@@ -72,8 +62,22 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     @Autowired
     protected io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper userTaskMapper;
 
-    protected abstract Page<Workflow> getWorkflows(
-            final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+    @Autowired
+    protected WorkflowlistService workflowlistService;
+
+    @Autowired
+    protected UserTaskService userTaskService;
+
+    /**
+     * The workflows this view lets the given user reach, which is the only thing a subclass has to
+     * decide. It is asked once per request and used for the list as well as for everything naming a
+     * single workflow.
+     */
+    protected abstract WorkflowVisibility workflowsVisibleTo(
+            final UserDetails currentUser);
+
+    protected Page<Workflow> getWorkflows(
+            final WorkflowVisibility visibility,
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -81,7 +85,20 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode);
+            final WorkflowlistService.RetrieveItemsMode mode) {
+
+        return workflowlistService.getWorkflows(
+                pageNumber,
+                pageSize,
+                initialTimestamp,
+                visibility,
+                businessIds,
+                searchQueries,
+                sort,
+                sortAscending,
+                mode);
+
+    }
 
     @Override
     public ResponseEntity<Workflows> getWorkflows(
@@ -100,7 +117,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         final var currentUser = userContext.getUserLoggedInDetails();
 
         final var workflows = getWorkflows(
-                currentUser,
+                workflowsVisibleTo(currentUser),
                 workflowsRequest.getPageNumber(),
                 workflowsRequest.getPageSize(),
                 timestamp,
@@ -116,15 +133,27 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
-    protected abstract Page<Workflow> getWorkflowsUpdated(
-            final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+    protected Page<Workflow> getWorkflowsUpdated(
+            final WorkflowVisibility visibility,
             final int size,
             final Collection<String> knownWorkflowsIds,
             final OffsetDateTime initialTimestamp,
             final List<SearchQuery> searchQueries,
             final String sort,
             final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode);
+            final WorkflowlistService.RetrieveItemsMode mode) {
+
+        return workflowlistService.getWorkflowsUpdated(
+                visibility,
+                size,
+                knownWorkflowsIds,
+                initialTimestamp,
+                searchQueries,
+                sort,
+                sortAscending,
+                mode);
+
+    }
 
     @Override
     public ResponseEntity<Workflows> getWorkflowsUpdate(
@@ -139,7 +168,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         final var currentUser = userContext.getUserLoggedInDetails();
 
         final var workflows = getWorkflowsUpdated(
-                currentUser,
+                workflowsVisibleTo(currentUser),
                 workflowsUpdateRequest.getSize(),
                 workflowsUpdateRequest.getKnownWorkflowsIds(),
                 timestamp,
@@ -154,21 +183,14 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
-    /**
-     * @return the workflow, or {@code null} if it does not exist or the current user may not see it
-     *         - both are answered as HTTP 404, so the detail view does not tell one from the other
-     */
-    protected abstract io.vanillabp.cockpit.workflowlist.model.Workflow getWorkflow(
-            final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-            final String workflowId);
-
     @Override
     public ResponseEntity<io.vanillabp.cockpit.gui.api.v1.Workflow> getWorkflow(
             final String workflowId) {
 
         final var currentUser = userContext.getUserLoggedInDetails();
 
-        final var workflow = getWorkflow(currentUser, workflowId);
+        final var workflow = workflowlistService.getWorkflow(
+                workflowsVisibleTo(currentUser), workflowId);
 
         return workflow == null
                 ? ResponseEntity.notFound().build()
@@ -185,15 +207,33 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
      *        task of the workflow, for a site showing what the workflow is up to rather than what
      *        the reader has to do
      */
-    protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
+    protected List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
+            final WorkflowVisibility visibility,
             final String workflowId,
             final boolean activeOnlyRequested,
             final boolean limitListAccordingToCurrentUsersPermissions,
-            final String currentUser,
-            final Collection<String> currentUserGroups,
+            final UserDetails currentUser,
             final int pageSize,
             final String sort,
-            final boolean sortAscending);
+            final boolean sortAscending) {
+
+        // the tasks belong to the detail view of the workflow, so a workflow the user may not see
+        // has none to show, whichever of the two modes the caller asks for
+        if (workflowlistService.getWorkflow(visibility, workflowId) == null) {
+            return List.of();
+        }
+
+        return userTaskService.getUserTasksOfWorkflow(
+                workflowId,
+                activeOnlyRequested,
+                limitListAccordingToCurrentUsersPermissions,
+                currentUser.getId(),
+                currentUser.getAuthorities(),
+                pageSize,
+                sort,
+                sortAscending);
+
+    }
 
     @Override
     public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(
@@ -204,11 +244,11 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         final var currentUser = userContext.getUserLoggedInDetails();
 
         final var userTasks = getUserTasksOfWorkflow(
+                workflowsVisibleTo(currentUser),
                 workflowId,
                 userTasksRequest.getMode() == UserTaskRetrieveMode.OPENTASKS,
                 llatcup != null ? llatcup : true,
-                currentUser.getId(),
-                currentUser.getAuthorities(),
+                currentUser,
                 userTasksRequest.getPageSize() == null ? 100 : userTasksRequest.getPageSize(),
                 userTasksRequest.getSort(),
                 userTasksRequest.getSortAscending() == null || userTasksRequest.getSortAscending())
@@ -220,12 +260,16 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
     }
 
-    protected abstract List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
-            final UserDetails currentUser,
+    protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+            final WorkflowVisibility visibility,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query);
+            final String query) {
+
+        return workflowlistService.kwic(endedSince, visibility, searchQueries, path, query);
+
+    }
 
     @Override
     public ResponseEntity<KwicResults> getKwicResults(
@@ -251,7 +295,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 .map(mapper::toModel)
                 .toList();
 
-        final var result = kwic(currentUser, timestamp, searchQueries, effectivePath, query)
+        final var result = kwic(
+                workflowsVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
                 .stream()
                 .map(mapper::toApi)
                 .toList();

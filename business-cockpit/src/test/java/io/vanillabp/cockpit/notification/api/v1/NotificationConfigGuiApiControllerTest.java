@@ -16,6 +16,7 @@ import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.RecipientConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
@@ -175,7 +176,7 @@ class NotificationConfigGuiApiControllerTest {
         task.setWorkflowModuleId("wfmA");
         task.setBpmnProcessId("procX");
         task.setWorkflowTitle(Map.of("en", "Invoice"));
-        when(userTaskService.getVisibleWorkflows(any(), any(), any(), any()))
+        when(userTaskService.getVisibleWorkflows(any()))
                 .thenReturn(List.of(task));
 
         clientWith(List.of(emailMedium())).perform(get("/gui/api/v1/notifications/workflows"))
@@ -187,13 +188,16 @@ class NotificationConfigGuiApiControllerTest {
 
     @Test
     void workflows_passesCurrentUserVisibility() throws Exception {
-        when(userTaskService.getVisibleWorkflows(any(), any(), any(), any())).thenReturn(List.of());
+        when(userTaskService.getVisibleWorkflows(any())).thenReturn(List.of());
 
         clientWith(List.of(emailMedium())).perform(get("/gui/api/v1/notifications/workflows"))
                 .andExpect(status().isOk());
 
-        // assignees = candidateUsers = candidatesToBeExcluded = [u1], candidateGroups = authorities
-        verify(userTaskService).getVisibleWorkflows(List.of("u1"), List.of("u1"), List.of("g1"), List.of("u1"));
+        // the page offers an exception per workflow the user has tasks of, so it asks with the
+        // visibility of the main task list
+        verify(userTaskService).getVisibleWorkflows(
+                new UserTaskVisibility(
+                        true, false, List.of("u1"), List.of("u1"), List.of("g1"), List.of("u1")));
     }
 
 }
