@@ -4,45 +4,39 @@
 
 # VanillaBP Business Cockpit
 
-The *VanillaBP Business Cockpit* is an application for business people to work with business processes. It is about:
+The *VanillaBP Business Cockpit* is the application business people work in: it lists the user tasks
+they may work on and the business cases those belong to, whichever system runs them, and it renders
+each system's own forms inside its own pages. Like [VanillaBP](https://www.vanillabp.io) itself it is
+[BPMS](https://en.wikipedia.org/wiki/Business_process_management#Definitions)-agnostic, so workflows
+from different systems end up in one unifying user interface.
 
-1. *Workflows* (= Processes currently executed):
-   1. Search for workflows by business data.
-   1. View active and retired workflows.
-   1. Show business aspects and provide actions.
-1. *User tasks* (= items of work of a workflow to be done by humans):
-   1. Search for user tasks by business data.
-   1. List active and retired user tasks.
-   1. Fulfill user tasks.
-
-Like [VanillaBP](https://www.vanillabp.io) itself was designed to be [BPMS](https://en.wikipedia.org/wiki/Business_process_management#Definitions)-agnostic, also the *VanillaBP Business Cockpit* is able
-to act as a UI for any [BPMS](https://en.wikipedia.org/wiki/Business_process_management#Definitions).
-As a consequence workflows and user tasks from different systems will be available in one unifying user interface.
+**This file is for somebody working on this repository.** What the cockpit does, how it is run, how
+an application is derived from it and how a workflow module is connected to it is in the
+[wiki](https://github.com/vanillabp/business-cockpit/wiki).
 
 **Contents:**
 
-1. [Application](#application)
-   1. [Concepts in a glance](#architecture-in-a-glance)
-   2. [Customized business cockpit applications](#customized-business-cockpit-applications)
-   3. [Functionality provided by the business cockpit](#functionality-provided-by-the-business-cockpit)
-   4. [Technologies](#technologies)
-2. [Test coverage](#test-coverage)
-3. [Documentation](#documentation)
-   1. [By use-case](#by-use-case)
-   2. [By module](#by-module)
-3. [Noteworthy & Contributors](#noteworthy--contributors)
-4. [License](#license)
+1. [Building it](#building-it)
+1. [Test coverage](#test-coverage)
+1. [The modules](#the-modules)
+1. [Noteworthy & Contributors](#noteworthy--contributors)
+1. [License](#license)
 
-## Spring Boot version
+## Building it
 
-Starting with the version documented here, the Business Cockpit requires **Spring Boot 4.1** and **Java 21**.
-There is no dual build: the Spring Boot 3 code paths are gone. Applications still on Spring Boot 3.5
-stay on 0.3.x, which remains functional but will not receive further development.
+Java 21, Maven, and a local NPM registry, because the build publishes the user interface packages
+before it consumes them. [development/README.md](./development/README.md) sets that up and is the
+place to start; it also holds the MongoDB, the Kafka broker and the mail catcher the tests and a
+local run want.
 
-The backend runs on Spring MVC with virtual threads, not on WebFlux. An application deriving from the
-Business Cockpit therefore writes overrides such as `guiHttpSecurity` against `HttpSecurity` and plain
-return types, where they used to be written against `ServerHttpSecurity` and `Mono`/`Flux`. See
-[container/README.md](container/README.md#spring-boot).
+```sh
+mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
+```
+
+The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no
+dual build: the Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
+the 0.3.x line. The consequences for somebody deriving an application from the cockpit are in the
+wiki, under [Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases).
 
 ## Test coverage
 
@@ -61,171 +55,47 @@ names the features one of them never runs.
 Each badge reads the report it links to, so the number shown here and the number in the report
 cannot drift apart. Both reports are published on every build of the default branch. How they are
 produced and what breaks a build is described with the
-[test-coverage-report module](#by-module).
+[test-coverage-report module](#the-modules).
+## The modules
 
-## Application
+In the order they build on each other:
 
-### Concepts in a glance
-
-In companies that use business process management, agents need a single place to organize their tasks originated in
-different workflows or even different workflow systems. Otherwise, employees would have to regularly check each individual application for new
-tasks or use email notifications to alert them about new tasks, which then flood the inbox. To avoid this, the
-*VanillaBP Business Cockpit* acts as *the* unifying frontend application for all workflows.
-
-The *VanillaBP Business Cockpit* runtime is a microservice. That means it is only about providing cockpit functionality.
-The workflows have to be executed by other (micro-)services (business services). Each workflow specific content
-is hosted by those business services running the workflow. So, everything needed to fulfill a workflow is bundled in
-a so-called "Workflow Module" within the business service. Each workflow module has its own version lifecycle
-(workflow as BPMN, code to run the BPMN, UI for user-tasks, backend code to show/complete user-tasks).
-
-However, the business cockpit UI will provide all parts (UI provided by the business cockpit, UI provided by the
-workflow modules like user task forms or status-sites of workflows)
-as one seamless web-application to the user. This is achieved by using
-"Module Federation", a mechanism to load parts of the UI (user task forms, etc.) dynamically (not packed into the main
-web-application at compile-time).
-
-To avoid cross-site-scripting, the business cockpit backend acts as a proxy to business services. This spans
-one consistent umbrella of security across the entire application. Every "Workflow Module" has to register to the
-business cockpit on startup to initialize the respective proxy.
-
-To provide lists of user tasks and workflows any business
-workflow lifecycle event or user task lifecycle event (created, completed, cancelled) has to be reported by the
-"Workflow module" to the business cockpit. Reporting can be done via REST or asynchronously via Kafka and is
-already implemented by ready-to-use adapters (Maven modules) for [VanillaBP](https://www.vanillabp.io) based workflows.
-
-The *VanillaBP Business Cockpit* approach described above also implies that not every business workflow service
-needs its own standalone web-application.
-Individual web-applications are only necessary if the workflow application has excessive UI functionality
-beyond user tasks or status-sites of workflows. Additionally, the business cockpit is a perfect place to add
-cross-cutting functionality (e.g. registration of absences or vacation replacements) as well as start-forms
-for business processes having no own web-application.
-
-### Customized business cockpit applications
-
-The *VanillaBP Business Cockpit* can be executed out-of-the-box showing a vanilla flavored design.
-Typically, one wants to use own icons, colors and fonts according to the cooperate identity.
-To achieve this one can build an individual Spring Boot application using the *VanillaBP Business Cockpit*
-`business-cockpit` module as a Maven-dependency. Doing so ensures the backend functionality is inherited.
-
-For the custom UI the original frontend (web-application) can be copied as a template or replaced by your
-own implementation. The *VanillaBP Business Cockpit* UI is implemented by using React. Several NPM libraries are provided to implement
-a custom business cockpit UI next to user task forms provided by business services. However, one may also use other frameworks (Vue, Angular).
-The [UI components provided by the *VanillaBP Business Cockpit*](#functionality-provided-by-the-business-cockpit) can be integrated as web-components.
-
-### Functionality provided by the business cockpit
-
-Each UI-feature provided is based on UI components next to their backend-counterparts:
-
-* **List(s) of user tasks**:<br>There is a default-list showing all user tasks assigned to the user logged in, assigned
-  to the user's groups, claimed by the user or any dangling user task (no information about assignment given). Based
-  on that, one can easily provide prefiltered lists according to any business requirement. The individual content
-  to list for each user task (e.g. columns showing business data) is reported by the business service spawning the user task.
-  Additionally, the rendering of columns can be customized (e.g. render icons instead of values, etc.).
-* **A mechanism to show user task forms**:<br>Once the user wants to work on or complete a user task
-  (by selecting an item in the
-  list of user tasks), the form's UI is loaded from the business service through the registered proxy by using *Module Federation*.
-  Saving or completing the form is not part of the business cockpit but implemented by the business
-  service (providing its own API). If the form can be completed the respective business service will report
-  that change of status to the business cockpit which in turn results in an update of the list of user tasks.
-* **List(s) of workflows**:<br>There is a default-list showing all workflows accessible to the current user, accessible
-  to the user's groups or any dangling workflow (no information about access). Analogous to lists of user tasks, one
-  can easily provide prefiltered lists according to any business requirement. The individual content to list for
-  each workflow (e.g. columns showing business data) is reported by the business service running the workflow.
-  Additionally, the rendering of columns can be customized (e.g. render icons instead of values, etc.).
-* **A mechanism to show status-sites of workflows**:<br>Once the user wants to review the status of a workflow
-  (select an item in the list of workflows), the workflow's status-site UI is loaded from the business service
-  through the registered proxy by using *Module Federation*. Any data shown or action provided (e.g. cancel the
-  workflow) is not part of the business cockpit but implemented by the business service (providing its own API).
-  If such an action affects the status of the workflow (e.g. cancel the workflow) the respective business service
-  will report that change to the business cockpit which in turn results in an update of the list of workflows.
-* **A mechanism to show individual workflow UI-components**:<br>The given mechanism to show user task forms or
-  status-sites of workflows can also be used to add individual UI-components of the business service
-  to the business cockpit UI.
-  You may define regions in your UI (header, menu, etc.) in which those individual components are shown. This is a
-  possibility to provide additional sites like workflow start forms or sites providing functionality common to all
-  running workflows (e.g. suspend/active all workflows).
-
-Additionally, there are features targeting the entire application:
-
-* **Security**:<br>It is based on `Spring Security` and therefore includes
-  a lot of identity providers (Active Directory, Keycloak, etc.). The business cockpit adds
-  an unifying umbrella of security across all components involved to show users tasks and workflows.
-  The current user logged into the business cockpit is also passed to workflow services through the
-  proxy so the UI of user tasks and workflow status-sites can be adapted according to the user's roles.
-* **Usertask and workflow lifecycle events**:<br>Those events are reported by individual workflow
-  modules, as workflows or user tasks are created, updated, completed or cancelled. Reporting can
-  be done via REST or asynchronously via Kafka which is implemented by ready-to-use adapters
-  (Maven modules) for [VanillaBP](https://www.vanillabp.io) based workflows. The events reported are processed by the
-  business cockpit to update
-  the underlying database as well as notifying UI components for life-updates resulting
-  in a state-of-the-art UX.
-
-### Technologies
-
-To learn about technologies used by the *VanillaBP Business Cockpit* checkout the
-[respective section](./container#technologies) of the *container module*
-(see [Documentation by module](#by-module)).
-
-## Documentation
-
-### By use-case
-
-* Running the *VanillaBP Business Cockpit*: [container/README.md](./container/README.md)
-* Building a customized business cockpit: [container/README.md](./container/README.md)
-* Use out-of-the-box adapters for filling the business cockpit with data of your business processes:
-  [spi-for-java/README.md](./spi-for-java) and the adapter repository of your BPMS, listed with
-  [extensions-commons](#by-module)
-* Build user task forms** to be shown in the business cockpit: []
-* Build workflow status sites** to be shown in the business cockpit: []
-* Integrate business service not using out-of-the-box adapters: [development/simulator/README.md](./development/simulator/README.md)
-* Contributing to the *VanillaBP Business Cockpit*: [development/README.md](./development/README.md)
-
-### By module
-
-in logical order:
-
-1. **[spi-for-java](./spi-for-java)**:<br>The *service provider interface* for workflow modules to be used in
-   [VanillaBP workflow services](https://github.com/vanillabp/spi-for-java#wire-up-a-process)
-   for customizing data reported as part of workflow or user task lifecycle events (e.g. adding business data).
-1. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the Business Cockpit's
-   integration into VanillaBP Version 2, built as an extension of VanillaBP's deployment pipeline, on
-   Spring Boot and on Quarkus. The three halves which know a BPMS live in their own repositories and
-   consume this one as a published artifact:
+1. **[commons](./commons)**:<br>Spring Boot functionality used by the cockpit, and usable next to it:
+   the JWT handling, the Kafka settings and the small utilities several modules share.
+1. **[openapi-generator-fixes](./openapi-generator-fixes)**:<br>Patches applied while the API clients
+   and servers below `apis` are generated.
+1. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
+   `bpms-api` for what workflow modules report, `official-gui-api` for what the user interface reads,
+   `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
+1. **[ui](./ui)**:<br>The NPM packages: `bc-types` for the TypeScript types, `bc-shared` for what a
+   workflow module's user interface and the cockpit both use, `bc-ui` for what a cockpit user
+   interface is built from.
+1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
+   code is written with to report business data about its user tasks and workflows.
+1. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
+   into VanillaBP Version 2, on Spring Boot and on Quarkus. The three halves which know a BPMS live in
+   their own repositories and consume this one as a published artifact:
    [businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
    [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
-1. **business-cockpit**:<br>The business cockpit as a library: services, persistence, GUI API,
-   security extension points, BPMS ingestion and the React application. Use this as a Maven-dependency
-   for a custom business cockpit. It does not start on its own.
-1. **[container](./container)**:<br>The runnable business cockpit microservice, built from the library
-   plus a main class, the concrete GUI API controllers and the configuration defaults of a standalone
-   deployment. Run it out-of-the-box, or read it as the template for a custom business cockpit.
-1. **ui**:<br>NPM libraries for custom UIs.
-   1. **bc-shared**:<br>Components and Typescript types used by the business cockpit UI and also by workflow module
-      UI components (user task form, workflow status-site).
-   1. **bc-ui**:<br>Components and Typescript types for building individual business cockpit UIs.
-1. **common**:<br>Spring Boot based functionality used by `business-cockpit` but may also be used by
-   workflow modules or other individual services.
-1. **apis**:<br>Ready-to-use clients and servers for various APIs in the context of the *VanillaBP Business Cockpit*.
-   1. **bpms-api**:<br>API for reporting workflow and user task lifecycle events via REST or Kafka.
-   1. **official-gui-api**:<br>REST-API expected by business cockpit UI components to retrieve data from.
-   1. **workflow-provider-api**:<br>REST-APIs workflow modules may implement to customize business cockpit behavior.
-1. **development**:<br>Functionality to support developing workflow modules or the *VanillaBP Business Cockpit* itself.
-   1. **dev-shell-react**:<br>A NPM library for easy developing user task forms and workflow status-sites using *React*.
-   1. **dev-shell-angular**:<br>A NPM library for easy developing user task forms and workflow status-sites using *Angular*.
-   1. **simulator**:<br>A standalone microservice used for business cockpit development, which mimics a workflow module.
-   1. **docker-compose.yaml**:<br>Preconfigured docker containers for business cockpit development.
-1. **[test-coverage-report](./test-coverage-report)**:<br>The four aggregated coverage reports and the
-   gate which judges them. A build writes each of them to `report` below its own directory under
-   `test-coverage-report`, and the default branch publishes them as the
-   pages the [coverage badges](#test-coverage) read. The thresholds are properties of the root
-   `pom.xml`, given in percent of covered instructions, which is the same number the badges show. A
-   build breaks when a report falls below its threshold. It also breaks when a module produces
-   coverage data no aggregated report reads, because everything covered by that module alone would
-   otherwise count as missed without anybody being able to fix it by writing a test. Between the
-   threshold and the rule of 90 the build passes, and the gate prints on every run how far each
-   report still is from the rule.
+1. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
+   API, security extension points, ingestion of what workflow modules report, and the React
+   application. It builds no runnable jar.
+1. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
+   class, the concrete GUI API controllers and the defaults of a standalone deployment.
+1. **[development](./development)**:<br>The local development environment, and the tools which support
+   developing a workflow module: the dev shells for React and Angular, the dev shell simulator and the
+   simulator.
+1. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
+   gate which judges them. A build writes each report to `report` below its own directory here, and
+   the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The
+   thresholds are properties of the root `pom.xml`, in percent of covered instructions, which is the
+   number the badges show. A build breaks when a report falls below its threshold. It also breaks
+   when a module produces coverage data no aggregated report reads, because everything covered by
+   that module alone would otherwise count as missed with nobody able to fix it by writing a test.
+   Between the threshold and the rule of 90 the build passes, and the gate prints on every run how
+   far each report still is from that rule.
 
 ## Noteworthy & Contributors
 

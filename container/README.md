@@ -1,276 +1,81 @@
-[![Apache License V.2](https://img.shields.io/badge/license-Apache%20V.2-blue.svg)](./LICENSE)
+[![Apache License V.2](https://img.shields.io/badge/license-Apache%20V.2-blue.svg)](../LICENSE)
 
 ![VanillaBP](../readme/vanillabp-headline.png)
 
-# The Microservice
+# The microservice
 
-This module is the runtime of the Business Cockpit: the application you start, built from the
-library `business-cockpit` next to it, which holds the backend and the main frontend application.
+The runnable Business Cockpit: the module which builds the executable jar, from the library
+`business-cockpit` next to it plus what makes it start.
 
-The backend is a Spring Boot application. The given frontend is a React application,
-but it can also be replaced by other frameworks easily. The bundled web-application
-is hosted by the Spring Boot web-server, so no additional Node-js services is needed.
+Running it, configuring it, securing it and deriving an application from it are described in the
+[wiki](https://github.com/vanillabp/business-cockpit/wiki), under
+[Running the Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit),
+[Security](https://github.com/vanillabp/business-cockpit/wiki/Security) and
+[Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
+This file is about the module.
 
-## Library and application
+**Contents:**
 
-The Business Cockpit is two Maven modules, and which one you want depends on what you are building.
+1. [What is here](#what-is-here)
+1. [Why the library and the application are two modules](#why-the-library-and-the-application-are-two-modules)
+1. [Running it from a build](#running-it-from-a-build)
+1. [Why it is not reactive](#why-it-is-not-reactive)
 
-`business-cockpit` is the library. It holds the services, the persistence, the GUI API, the security
-extension points, the BPMS ingestion and the React single-page application. It cannot be started: it
-has no main class and the executable jar is not built from it. Every custom Business Cockpit
-application depends on this one.
+## What is here
 
-`container` is the runnable reference application. It adds to the library what makes it start: the
-main class `BusinessCockpitStandaloneApplication`, the `application*.yaml` defaults below `config/`
-including the profile `local` with its demo users, and the concrete GUI API controllers. It is
-published so that the Business Cockpit can be run as-is, and it is the worked example of everything a
-custom application has to write for itself.
+Four things, and each of them is the reference answer to something a custom cockpit has to write for
+itself:
 
-The split exists because the previous single jar was both at once. Somebody adding `container` as a
-dependency inherited a second application's main class and configuration files along with the
-functionality they were after.
+* `BusinessCockpitStandaloneApplication`, which extends `BusinessCockpitApplication` and adds a
+  `main` method and nothing else.
+* The `application*.yaml` files below `config/`, the defaults of a standalone deployment, including
+  the profile `local` with its demo users and its MongoDB URI.
+* The five concrete GUI API controllers below `io/vanillabp/cockpit`, which implement the three
+  abstract controllers of the library and decide which tasks, workflows and modules a user gets.
+  The rule they apply is described in the wiki under
+  [Who sees which workflow](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-workflow).
+* The local user directory below `users/local`, which answers who a user is without an identity
+  provider.
 
-Two things follow for a custom application beyond changing the dependency:
+## Why the library and the application are two modules
 
-* It provides the concrete GUI API controllers itself. The library ships the abstract super classes
-  `AbstractUserTaskListGuiApiController`, `AbstractWorkflowListGuiApiController` and
-  `AbstractWorkflowModulesGuiApiController`, which decide the shape of a response but leave open which
-  tasks, workflows and modules a user gets to see. The five controllers of this module are the
-  reference answer; copy them and change what your access rules require. Without them the user
-  interface loads and its lists stay empty.
-  [Who sees which workflow](#who-sees-which-workflow) describes the answer the workflowlist
-  controller of this module gives.
-* It brings its own `application.yaml`. The defaults of this module are the ones a standalone
-  deployment wants, not the ones your deployment wants. Which values yours still owes, the
-  application tells you while it starts: a value it cannot run without ends the start, and that one
-  message lists every missing property name with an example of what to write there. Everything else
-  is a warning saying which feature stays switched off until it is configured, the BPMS API for
-  instance. So the shortest way to a complete configuration is to start the application and follow
-  what it prints. Only one default goes unreported, because the application runs either way:
-  `spring.threads.virtual.enabled`, without which every open server-sent-event stream and every
-  proxied request occupies a platform thread.
+`business-cockpit` holds the functionality and builds no runnable jar. `container` holds what makes
+it start and is published so that the cockpit can be run as it is.
 
-## Ways to use it
+They used to be one, and that one jar was both at once: somebody adding it as a dependency to get
+the functionality inherited a second application's main class and its configuration files along with
+it. The split is what keeps a custom cockpit from doing that.
 
-1. **As-is**:<br>One can run the VanillaBP Business Cockpit by using the container-JAR
-   which includes the *React* based UI. [More...](#as-is)
-2. **Custom UI**:<br>The `business-cockpit`-JAR is used as a *Maven*-dependency
-   to inherit standard backend functionality for a custom *Spring Boot*
-   application. [More...](#custom-ui)
-    1. The provided React-webapp can be used as a template for an individual webapp.
-    2. As an alternative, also an Angular based webapp can be used. The Business Cockpit UI components
-       can be used as web-components.
+Anything added here which a custom cockpit would also need belongs in the library instead. The test
+for it is whether an application depending only on `business-cockpit` would miss it.
 
-### As-is
+## Running it from a build
 
-1. **MongoDB**:
-    1. Setup a MongoDB having a `ReplicaSet` configured. A `ReplicaSet` is needed
-       to enable MongoDB's change-stream used to retrieve DB updates which are the origin of
-       automatic UI updates.
-    1. For local testing and development the given [docker-compose.yaml](../development/docker-compose.yaml)
-       can be used:
-       ```sh
-       cd development
-       docker-compose up -d business-cockpit-mongo-setup
-       ```
-       Add `127.0.0.1 business-cockpit-mongo`
-       to your local hosts file to make MongoDB accessible
-       (Unix: `/etc/hosts`, Window: `c:\Windows\System32\Drivers\etc\hosts`). <br> <br>
+```sh
+java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
+```
 
-       *Hint*: If you encounter the error `/usr/bin/env: 'bash\r': No such file or directory` in Docker, it might be due to incorrect line endings in the script file. To resolve this: <br>
+It wants the MongoDB of the compose file in [development](../development), and
+[development/README.md](../development/README.md) is what starts that. The user interface is at
+[http://localhost:8080/](http://localhost:8080/), with `test` and `test` as the login.
 
-       Remove and then clone the repository again but with the following Git configuration:
-          ```powershell
-          git clone [url] --config core.autocrlf=input
-          ```
-       Alternatively you can try disabling automatic line ending conversion with Git by running:
-          ```powershell
-          git config --global core.autocrlf false
-          ```
-1. **Download simulator-JAR**:<br>...required for local setups from [Maven Central](https://central.sonatype.com/artifact/io.vanillabp.businesscockpit/simulator) or the latest
-   [snapshot](https://github.com/vanillabp/business-cockpit/packages/1856658) and name it `simulator.jar`.
-1. **Run the Simulator**:<br>...using this command: `java -Dspring.profiles.active=rest-sync --add-opens=java.base/java.lang=ALL-UNNAMED -jar simulator.jar`
-1. **Download container-JAR**:<br>...from [Maven Central](https://central.sonatype.com/artifact/io.vanillabp.businesscockpit/container) or the latest
-   [snapshot](https://github.com/vanillabp/business-cockpit/packages/1956012) and name it `bc.jar`.
-1. **Provide custom Spring Boot configuration**:<br>...by creating `application.yaml`:
-   ```yaml
-   spring:
-     mongodb:
-       # Add next line with adopted values in case of using a MongoDB not created by 'docker-compose.yaml'
-       uri: mongodb://XXXXXXX:27017/XXXXXXX
-   business-cockpit:
-     title-short: MyBC
-     title-long: My Business Cockpit
-     application-version: "1.0"
-   ```
-1. **Run VanillaBP Business Cockpit**:<br>...using this command `java -Dspring.profiles.active=local -jar bc.jar`
-1. **Open Browser to test the Business Cockpit**:<br>Using the URL `http://localhost:8080/` will
-   prompt you for basic authentication. Confirm using username `test` and password `test`.
-   Afterwards the VanillaBP Business Cockpit is loaded showing empty lists.
-1. **Provide workflow and usertask data**:<br>To show workflows and usertask one has to connect
-   a workflow module. See the respective docs how this is done.
+Backend changes usually belong in `business-cockpit`; the user interface always does. Only the four
+things listed above are changed here.
 
-### Custom UI
+## Why it is not reactive
 
-1. **MongoDB**:
-    1. Setup a MongoDB having a `ReplicaSet` configured. A `ReplicaSet` is needed
-       to enable MongoDB's change-stream used to retrieve DB updates which are the origin of
-       automatic UI updates.
-    1. For local testing and development the given [docker-compose.yaml](../development/docker-compose.yaml)
-       can be used:
-       ```sh
-       cd development
-       docker-compose up -d business-cockpit-mongo-setup
-       ```
-       Add `127.0.0.1 business-cockpit-mongo`
-       to your local hosts file to make MongoDB accessible
-       (Unix: `/etc/hosts`, Window: `c:\Windows\System32\Drivers\etc\hosts`).
-1. **Create a blank Spring Boot application**:<br>For example by using [Spring initializr](https://start.spring.io/#!type=maven-project&language=java&platformVersion=3.3.3&packaging=jar&jvmVersion=17&groupId=com.example&artifactId=demo&name=demo&description=Demo%20project%20for%20Spring%20Boot&packageName=com.example.demo&dependencies=).
-1. **Add VanillaBP Business Cockpit functionality**:<br>
-    1. Add *Maven*-dependency:
-       ```xml
-       <dependency>
-          <groupId>io.vanillabp.businesscockpit</groupId>
-          <artifactId>business-cockpit</artifactId>
-       </dependency>
-       ```
-    1. Change `DemoApplication` like this:
-       ```java
-       @SpringBootApplication
-       public class DemoApplication extends io.vanillabp.cockpit.BusinessCockpitApplication {
-       ```
-       `BusinessCockpitApplication` carries the component scan, the configuration properties and the
-       Spring features the cockpit needs; `@SpringBootApplication` and the `main` method are yours.
-       [BusinessCockpitStandaloneApplication](./src/main/java/io/vanillabp/cockpit/BusinessCockpitStandaloneApplication.java)
-       of this module does exactly that and nothing else.
-    1. Add the concrete GUI API controllers, e.g. by copying
-       [the five of this module](./src/main/java/io/vanillabp/cockpit) and narrowing what they return
-       to what your users may see.
-    1. Add VanillaBP Business Cockpit webapp:
-       ```shell
-       cd demo/src/main
-       cp my-git-folder/business-cockpit/business-cockpit/src/main/webapp .
-       ```
-    1. t.b.d.
+The backend is written in blocking style on Spring MVC, and every request runs on a virtual thread.
 
-## Architecture
+It used to be reactive. Reactive code never blocks a thread, and the price is a programming model in
+which a database read is a `Mono` and a stack trace hardly says where you are. Virtual threads make
+that trade pointless: a thread waiting for MongoDB or for a workflow module behind the proxy costs
+almost nothing, so the code can be plain Java without giving up concurrency.
 
-### Spring Boot
-
-The Business Cockpit backend application is written in classic, blocking style on top of Spring MVC.
-Every request runs on a virtual thread (`spring.threads.virtual.enabled`).
-
-It used to be reactive. Reactive code never blocks a thread, and the price for that is a programming
-model in which a database read is a `Mono` and a stack trace hardly tells you where you are. Virtual
-threads make the trade pointless: a thread waiting for MongoDB or for a workflow module behind the
-proxy costs almost nothing, so the code can be plain Java again without giving up concurrency.
-
-Two parts of the application looked like arguments for staying reactive, and neither turned out to
-be one. Server-sent events are `SseEmitter` instances which the scheduled collector writes to. The
-workflow-module proxy is `spring-cloud-gateway-server-webmvc`, which copies the exchange chunk by
-chunk with a blocking `RestClient` instead of buffering it. Both cost one virtual thread per
-subscriber and per proxied request.
+Two parts looked like arguments for staying reactive, and neither turned out to be one.
+Server-sent events are `SseEmitter` instances the scheduled collector writes to. The workflow module
+proxy is `spring-cloud-gateway-server-webmvc`, which copies the exchange chunk by chunk with a
+blocking `RestClient` rather than buffering it. Both cost one virtual thread per subscriber and per
+proxied request.
 
 Workflow modules are separate applications and pick their own web stack, so none of this applies to
 them.
-
-### Database
-
-Any data reported to the Business Cockpit (workflow modules, workflows, usertasks) are stored in
-a NoSQL-database. The reason for using NoSQL is that [workflow modules](../README.md#architecture-in-a-glance)
-may report individual business data which has to be rendered as part of the usertask list or
-the workflow list. Additionally, the lists may be filtered and sorted by this business data
-using indexes on data not know a priori. This scenario is what NoSQL-database are made for.
-
-The Business Cockpit uses the [MongoDB](https://www.mongodb.com/docs/manual/administration/install-community/) (>= 4.4.) as a datastore. Additionally, any compatible
-database can be used. Currently, [Azure Cosmos DB for MongoDB](https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/introduction) works as well. Other candidates
-are [Oracle Database API for MongoDB](https://docs.oracle.com/en/database/oracle/mongodb-api/) and [FerretDB](https://www.ferretdb.com/).
-
-## Security
-
-The Business Cockpit is a distributed application: the Business Cockpit itself and the
-workflow modules providing usertask forms and status-sites of workflows. Each component needs to be
-aware of the current user as well as the user's roles.
-
-To achieve this, after successful login a JWT based authentication is used. The token is passed to
-the browser as a session-cookie to ensure users are not forced to login several times on hitting link
-from different origins (browser, mail, bookmark, etc.). The token consists primarily of the user-id
-but no business roles to keep the token short. On validation of the token the user's business roles
-will be added to the Spring security-context on-the-fly. Additionally, one may use role-mappings to
-separate your software's business roles from those provided by the identity provider
-(e.g. Keycloak, Active Directory).
-
-On accessing workflow modules as part of usertask forms via the Business Cockpit as a proxy
-(see [architecture](../README.md#application)) the JWT is also passed to the respective
-workflow module handing over the current user's security-context. Doing so, each workflow module
-may introduce individual business roles mappings.
-
-### Who sees which workflow
-
-The workflowlist controller of this module limits the workflow list to the workflows a user is
-addressed by. A workflow shows up for a user named in its `accessibleToUsers` and for a member of a
-group named in its `accessibleToGroups`. A workflow which names neither is open to everybody. The
-groups counted are the authorities of the request, which the JWT filter has already widened by
-whatever the registered workflow modules grant through their group hierarchy, so the workflow list
-follows the same group resolution as the task list.
-
-Opening a workflow by its id is answered by the same rule. A workflow the user may not see is
-reported as unknown, the same answer as for an id that was never reported. Asking for the user tasks
-of such a workflow yields nothing, since they would otherwise tell the user what the detail view
-withholds.
-
-Up to version 0.4.0 the reference application passed no filter at all and every logged-in user saw
-every workflow. If your application relies on that, override `getWorkflows`, `getWorkflowsUpdated`,
-`getWorkflow` and `kwic` in your own controller and pass `null` for both the users and the groups.
-This concerns the reference application only, since the filter lives in the concrete controller and
-the library has always left the decision to it.
-
-Which user tasks of a workflow the status-site gets is a separate question, answered per request
-through the query parameter `llatcup`. Sent as `true` the site gets the tasks the current user could
-work on, sent as `false` it gets every user task of the workflow. Both remain available, because a
-status-site showing what a workflow is up to needs other tasks than one showing what the reader has
-to do. Neither mode reaches a workflow the user may not open.
-
-### Using an OIDC provider for authentication
-
-For demo purposes the VanillaBP Business Cockpit is protected using BASIC authentication.
-This can be changed by providing an individual bean named `guiHttpSecurity`:
-
-```java
-    @Bean
-    @Order(Ordered.LOWEST_PRECEDENCE)
-    public SecurityFilterChain guiHttpSecurity(
-            final JwtSecurityContextRepository securityContextRepository,
-            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,
-            final HttpSecurity http) throws Exception {
-
-        // reads the JWT cookie on every following request; do not turn this into a bean, or
-        // Spring Boot registers it a second time outside the security filter chain
-        final var jwtSecurityFilter = new PassiveJwtSecurityFilter(
-                applicationProperties.getJwt(), jwtMapper);
-
-        http
-                /* add here any security chain config like CORS, CRSF, etc. */
-                .anonymous(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(requests -> {
-                    // allow access to "unprotected" URLs
-                    requests
-                            .requestMatchers(io.vanillabp.cockpit.config.web.WebSecurityConfiguration.appInfoRequestMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.currentUserRequestMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.assetsRequestMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.staticRequestMatcher,
-                                    io.vanillabp.cockpit.config.web.WebSecurityConfiguration.workflowModulesProxyRequestMatcher)
-                            .permitAll()
-                            .anyRequest()
-                            .authenticated();
-                })
-                .oauth2Login(login -> login
-                        .securityContextRepository(securityContextRepository))
-                .logout(logout -> { /* add here any logout functionality specific to your environment */ })
-                // add the JWT security filter for future requests
-                .addFilterAfter(jwtSecurityFilter, BasicAuthenticationFilter.class);
-
-        return http.build();
-
-    }
-```

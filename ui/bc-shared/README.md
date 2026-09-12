@@ -1,101 +1,24 @@
-# Use in workflow modules
+# bc-shared
 
-Example:
+The components and TypeScript types a workflow module's user interface and the cockpit both use,
+published as `@vanillabp/bc-shared`. `UserTaskForm`, `WorkflowPage`, `UserTaskListCell` and the
+column types a federated module is written against come from here.
 
-```js
-import { LoadingIndicator } from '@vanillabp/bc-shared';
-```
-
-Read the next sections for instructions of installation.
-
-## package.json
+How a workflow module uses them is in the wiki, under
+[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites),
+including the Webpack aliases a consuming build needs. This file is about the package.
 
 ```sh
-npm install @vanillabp/bc-shared
+npm run build      # once
+npm start          # the same, in watch mode
+npm run storybook  # the components on their own
 ```
 
-### Development
+A reactor build publishes this package to the NPM registry given by `-Dnpm.registry`, which
+[development/README.md](../../development/README.md#local-npm-registry) sets up for local work.
+Because a first build links the packages of this repository, a change here is picked up by the
+cockpit's user interface and by the simulator without publishing anything again.
 
-For local development of user-task forms in workflow modules one can
-
-1. [build this package locally](#build)
-1. Link the package `npm link`
-1. Get current package-version `npm -g list` (e.g. `@vanillabp/bc-shared@0.0.1`)
-1. Change to webapp folder of the workflow module
-1. Link the global package `npm link @vanillabp/bc-shared@0.0.1` (this needs to be repeated after each `npm install`)
-
-### Webpack
-
-Also Webpack needs to learn about the module. If the project is using `create-react-app` scripts one can use the drop-in replacement `craco` instead which allows to modify Webpack configuration.
-
-```sh
-install craco --save-dev
-```
-
-In the scripts-section of `package.json` replace occurrences of `react-script` by `craco`.
-
-Add the file `craco.config.js` to your root-folder:
-
-```js
-const path = require("path");
-
-const aliases = {
-  '@vanillabp/bc-shared': path.join(path.resolve(__dirname, '.'), "node_modules", "@vanillabp", "bc-shared"),
-  'styled-components': path.join(path.resolve(__dirname, '.'), "node_modules", "styled-components"),
-  'react': path.join(path.resolve(__dirname, '.'), "node_modules", "react"),
-  'react-dom': path.join(path.resolve(__dirname, '.'), "node_modules", "react-dom")
-};
-
-module.exports = {
-  webpack: {
-    alias: aliases
-  },
-  plugins: [
-    {
-      plugin: {
-        overrideWebpackConfig: ({ webpackConfig, pluginOptions, context: { paths } }) => {
-          const moduleScopePlugin = webpackConfig.resolve.plugins.find(plugin => plugin.appSrcs && plugin.allowedFiles);
-          if (moduleScopePlugin) {
-            Object
-                .keys(aliases)
-                .map(key => aliases[key])
-                .forEach(path => moduleScopePlugin.appSrcs.push(path));
-          }
-          const ignoreWarnings = [
-              { module: /@microsoft\/fetch-event-source/ }
-            ];
-          return { ...webpackConfig, ignoreWarnings }
-        }
-      }
-    }
-  ]
-};
-```
-
-*Details:*
-
-In the exports section `webpack.alias` the alias to the module is defined. In addition it is necessary to define aliases for 'react' and 'react-dom' because otherwise Webpack would add these modules twice (one time for the original app and one time for the module we've added).
-
-Create-react-app scripts limit sources to the `./src` folder. Unfortunately, the new aliases point to the `node_modules` directory and will be rejected. In the exports section `plugins[].plugin{}.overrideWebpackConfig` a craco-plugin is defined which is able to modify the webpack configuration. The `ModuleScopePlugin` which is used to block other folders than `./src` is determined and the pathes of the aliases are added.
-
-Last but not least, the craco plugin is also used to suppress warnings regarding missing `.map` files.
-
-# Build
-
-```sh
-npm run build
-```
-
-## Development
-
-```sh
-npm start
-```
-
-does the same as normal building but also enters `watch` mode.
-
-## Storybook
-
-```sh
-npm storybook
-```
+Anything a workflow module needs belongs here. Anything only a cockpit user interface needs belongs
+in [bc-ui](../bc-ui), because a workflow module should not have to install a cockpit to render a
+form.

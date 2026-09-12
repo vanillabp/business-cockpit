@@ -6,6 +6,12 @@ platform-neutral half of the Business Cockpit extension for VanillaBP Version 2.
 Read [`README.md`](./README.md) first. It says what each module is, how coverage is measured and
 what breaks a build.
 
+Documentation is split by who reads it. The README files of this repository and its modules are for
+somebody working on the code: what a module is, how it is built, what a change to it costs. The
+[wiki](https://github.com/vanillabp/business-cockpit/wiki) is for somebody using the cockpit:
+running it, configuring it, deriving an application from it, connecting a workflow module. Put a new
+paragraph on the side its reader is on, and link across rather than writing it twice.
+
 ## One integration lives here
 
 The Version 1 integration under `adapters/*` was built on `io.vanillabp:spring-boot-support`. It is
@@ -24,6 +30,20 @@ artifact:
 Whatever those three need from here is an interface in `io.vanillabp.cockpit.extension.spi`. A
 change there is a change to a published contract, so it is made deliberately and documented in the
 module's README.
+
+## Two names for the same thing
+
+The wiki calls this an adapter. This repository, and the three adapter repositories, call it an extension. Both are right, and which
+word fits depends on where you stand.
+
+Somebody using the Business Cockpit adds one dependency and sees their user tasks in the cockpit.
+From there this is a cockpit adapter, sitting next to the BPMS adapter which runs their workflows.
+The VanillaBP core sees something else: a bean which joins its deployment pipeline through
+`vanillabp-extension-spi`, and a bean like that is what the core calls an extension.
+
+So the end-user documentation says adapter and never extension. The documentation in this repository
+says extension where the core's own term is meant, and adapter where it is about what a user adds to
+their application. Say which of the two you mean, rather than assuming the reader knows.
 
 ## The decision log is binding
 

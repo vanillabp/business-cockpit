@@ -2,297 +2,69 @@
 
 # Development
 
-There are three stages of development, all explained by the contents of this module:
-1. Building business applications using *VanillaBP Business Cockpit* as a frontend for user tasks.
-1. Building a custom user task application based on *VanillaBP Business Cockpit*.
-1. Contributing to *VanillaBP Business Cockpit* to improve it by fixes or new features.
+The local development environment of this repository, and the tools which support developing a
+workflow module: the dev shells for React and Angular, the dev shell simulator and the simulator.
 
-Pick your topics according to the desired stage. If one is interested in stage 2 or 3 then it is
-necessary to also read the preceding stage(s) before, since it is important to know about details
-only explained in the respective section.
-
-*Hint:* The *VanillaBP Business Cockpit* UI components are written in React. So, most of the
-documentation shows examples using React. Additionally, there are chapters explaining how to
-use Angular instead. However, please read the entire documentation since concepts are
-explained only once.
+Building a workflow module, developing its user task forms and deriving an application from the
+Business Cockpit are described in the
+[wiki](https://github.com/vanillabp/business-cockpit/wiki), under
+[Connecting a workflow module](https://github.com/vanillabp/business-cockpit/wiki/Connecting-a-workflow-module),
+[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites)
+and
+[Developing UI components locally](https://github.com/vanillabp/business-cockpit/wiki/Developing-UI-components-locally).
+This file is about working on the cockpit itself.
 
 **Contents:**
 
-1. [Developing business applications](#developing-business-applications)
-    1. [Building a business microservice](#building-a-business-microservice)
-        1. [A business application monolith](#a-business-application-monolith)
-        1. [Building a runtime container for multiple workflows](#building-a-runtime-container-for-multiple-workflows)
-            1. [Using a mono-repo](#using-a-mono-repo)
-            1. [Using multiple repositories](#using-multiple-repositories)
-    1. Customize lists of user tasks and workflows
-        1. Define columns of the user task list
-        1. Build custom rendered columns
-        1. Create predefined lists
-    1. Add custom functionality to the *VanillaBP Business Cockpit*<br>(e.g. a workflow start form)
-1. Building a customized business cockpit
-    1. Customizing the theme
-    1. Integrating business cockpit
-    1. Using Angular
-1. Contributing to the *VanillaBP Business Cockpit*
+1. [MongoDB](#mongodb)
+1. [Local NPM registry](#local-npm-registry)
+1. [Notification e-mails (Mailpit)](#notification-e-mails-mailpit)
+1. [Kafka](#kafka)
+1. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
+1. [Simulation Service](#simulation-service)
 
-## Developing business applications
-
-In this context a business application is assumed as a service which is about
-business workflows. Typically, those applications do not include the UI and
-functionality of the user task application, but they feed it through the adapter of their BPMS,
-listed in the [main README](../README.md#by-module).
-
-For tiny applications meant to be used in a non-enterprise context it might make sense to merge
-the user task application and the business application but this is currently not supported by
-the *VanillaBP Business Cockpit* (feel free to
-[fill an issue](https://github.com/vanillabp/business-cockpit/issues) if you interested in this option).
-
-### Building a business microservice
-
-The *VanillaBP Business Cockpit* is a microservice. That means it is only about providing cockpit functionality.
-The workflows have to be executed by other (micro-)services called business applications or business services.
-Each business application bundles BPMN, business code and UI components of a certain use case implemented.
-In this chapter one will find how to build up such a business application microservice.
-
-Defining the size of a microservice (how micro is a microservice?) is a long discussed topic.
-Unfortunately, there is not only "the way" to do. Actually it depends on considerations regarding operating those
-microservices, building independent chunks of code and constellations of teams building the microservices.
-However, VanillaBP supports all ways of sizing microservices by introducing
-[workflow modules](https://github.com/vanillabp/spring-boot-support?tab=readme-ov-file#workflow-modules).
-
-A workflow module is an independent bundle of components needed to run a certain workflow:
-The BPMNs, the business code and the UI components. Some workflows covered by a workflow module
-are big and cannot be splitted into parts. Typically, those workflow modules will also be deployed
-as a single microservice.
-Other workflow modules are tiny and one may consider grouping them to minimize resource consumption
-and operational workload. In other situations it's not clear and one might want to group
-workflow modules first and maybe split out individual workflow modules later, if necessary. Or
-build a microservice for a single workflow which is prepared to also host upcoming workflows.
-
-The next chapters explain how to achieve all of these variants.
-
-#### A business application monolith
-
-A business application monolith is a microservice which is about exactly one workflow module.
-Building microservices for multiple workflow modules requires a certain project structure which
-can be skipped in case of a monolith. However, keep in mind that merging monolithic applications
-later will cause a refactoring for building those structures.
-
-The project-structure of a monolithic business application looks like this:
-
-```
-src
-  main
-    java         -> the business code AND the runtime container code
-    resources
-      processes  -> the BPMN resources
-    webapp       -> the user tasks to be shown by the user task application
-pom.xml          -> also including the adapter dependency specific to the BPMS used
-```
-
-Checkout the
-[respective Blueprint](https://github.com/vanillabp/blueprint-workflowmodule-springboot-standalone-businesscockpit)
-implementing this structure, as basis for own applications.
-
-#### Building a runtime container for multiple workflows
-
-The project structures explained in this chapter apply to these scenarios:
-
-1. Running multiple workflow modules in a single runtime container (to minimize resource consumption and
-   operational workload).
-1. Building the first workflow module of several desired to be hosted in a single runtime container.
-1. Be prepared for splitting out a single workflow module (it may be necessary in the future due to
-   operational aspects).
-
-In these situations the workflow module is not a standalone application anymore. It is just a
-library fetched as a dependency by a runtime container forming the actual application.
-
-##### *Using multiple repositories*
-
-Typically, using multiple repositories makes sense if the workflow modules are built
-by several teams, so each team does not touch the code built by others. A similar situation is
-when workflow modules built by one team over the time are released independently.
-The main advantage of using multiple repositories is to be independent from
-other workflow modules development cycle.
-
-This is the structure of the workflow module's Maven project:
-
-```
-src
-  main
-    java         -> the workflow's business code ONLY
-    resources
-      processes  -> the BPMN resources
-    webapp       -> the user tasks to be shown by the user task application
-pom.xml          -> NOT including the adapter dependencies, only SPI
-```
-
-The runtime container is a separate Maven project having this structure:
-
-```
-src
-  main
-    java         -> the runtime container code ONLY
-pom.xml          -> including dependencies for the SPI-adapter AND the worfklow module
-```
-
-Since the runtime container is not part of the workflow module's Maven project one needs a
-separate runtime container for local development. This can be achieved by adding a
-light-weight runtime container using Maven sub-modules.
-
-```
-pom.xml          -> parent POM
-workflow         -> the module holding the workflow's code as shown above
-runtime          -> light-weight runtime conatiner for local development
-```
-
-Sometimes, also other parts are needed which can be easily integrated using sub-modules:
-
-```
-pom.xml          -> parent POM
-workflow         -> the module holding the workflow's code as shown above
-development      -> everything needed for local development
-  pom.xml        -> parent POM of development module
-  runtime        -> light-weight runtime conatiner for local development
-  simulator      -> a module which mimics foreign system for local development
-```
-
-*Hint:* In this example a simulator is used as an additional module. A simulator is a standalone
-Spring Boot application which mimics foreign systems the workflow module depends on to be
-used for local development. If the workflow module consumes a REST service the simulator
-is meant to provide this REST service. A simulator may also include some simple behaviour to
-support local development. Additionally, a simulator can be used for Spring Boot tests
-in which no beans are mocked but the foreign systems are mocked instead.
-
-Checkout the
-respective Blueprints for the
-[workflow module](https://github.com/vanillabp/blueprint-workflowmodule-springboot-businesscockpit)
-and the
-[runtime container](https://github.com/vanillabp/blueprint-workflowmodule-springboot-host)
-implementing this structure, as basis for own applications.
-
-##### *Using a mono-repo*
-
-```
-pom.xml          -> parent POM
-workflow1        -> the module holding the workflow's code as shown above
-workflow2        -> the module holding the workflow's code as shown above
-runtime          -> the runtime conatiner
-```
-
-Using a mono-repo sometimes makes things easier: There is no need for a light-weight runtime container
-since the original runtime container can be used for local development (e.g. using a special Spring
-boot profile). On the other hand this means to always run all workflows at local development
-even if your are working only on one workflow module.
-
-A mono-repo typically makes sense if the workflow modules included form a logical group of a higher
-level use-case in which one might want to also share business code. An example are workflows regarding
-telecom services: Activating and deactivating a SIM card are independent workflows of a higher level
-use-case.
-
-#### Developing user tasks forms in a local environment
-
-UI developers prefer to use [hot module replacement](https://webpack.js.org/concepts/hot-module-replacement/)
-as an efficient way of development. Unfortunately, Module Federation breaks it which forces the
-developer to run the business cockpit next to the workflow module, bundle the federated module after
-each change and refresh the browser to reload the new bundle. This is not a good developer experience.
-
-To overcome this a tiny webapp-wrapper is provided called **Dev Shell**. It is available as a
-React application as well as an Angular application and imports the workflow modules components
-in a regular way. In this way hot module replacement is available and user task forms or
-workflow status-sites can be developed without running the business cockpit.
-
-Enabling the Dev Shell is done by adapting your Webpack configuration depending on the build's target
-environment:
-
-```javascript
-process.env.NODE_ENV !== 'production'
-  ? { entry: './test/index.tsx' }                  // run Dev Shell
-  : { output: { publicPath: '/wm/TestModule/' } }  // build federated module
-```
-
-For details checkout the [simulator's webapp](simulator/src/main/webapp-react) which is used to mimic
-a workflow module and may be used as a template for own workflow module webapps.
-
-Bootstrapping the Dev Shell is done by passing the parts typically exposed in the federated module
-to a ready-to-use function:
-
-```typescript
-import { bootstrapDevShell } from '@vanillabp/bc-dev-shell-react';
-import { UserTaskForm } from '../src/UserTaskForm';
-import { UserTaskListCell, userTaskListColumns } from '../src/UserTaskList';
-import { WorkflowListCell, workflowListColumns } from '../src/WorkflowList';
-import { WorkflowPage } from '../src/WorkflowPage';
-import { Header } from '../src/Header';
-
-bootstrapDevShell(
-    'root',                // name of the HTML tag to render into
-    '/official-api/v1',    // where to load data from to fill the parameters of UI components
-    UserTaskForm,
-    userTaskListColumns,
-    UserTaskListCell,
-    workflowListColumns,
-    WorkflowListCell,
-    WorkflowPage,
-    {                      // optional: custom components exposed by the federated module
-       'Header': Header
-    });
-```
-
-After running the dev server a tiny web application is started listing the workflow module's UI
-components for interactive development using hot module replacement. Also additional components
-(e.g. `Header`) are listed. In this way one can test all UI components without running the business
-cockpit itself.
-
-*Hint:* The DevShell is only about UI development. The VanillaBP Business Cockpit
-is still needed as a backend. For simplifying local development the
-[DevShell Simulator](./dev-shell-simulator) can be used instead
-running the original Business Cockpit application.
-
-## Contributing to the *VanillaBP Business Cockpit*
-
-The VanillaBP business cockpit is a Java Spring Boot application using React as a web framework.
-
-For local development there are two preconditions:
-
-1. [A MongoDB cluster](#mongodb)
-1. [A local NPM registry](#local-npm-registry)
-
-Additionally, the provided docker-compose configuration contains two services which are not
-required to run the business cockpit but to develop and test particular features:
-
-1. [Mailpit](#notification-e-mails-mailpit) to check notification e-mails
-1. [A single-node Kafka](#kafka) to report BPMS events by Kafka instead of the REST API (only
-   needed for a real business service - the simulation service brings its own broker)
-
-All of them can be started by a prepared configuration using docker-compose:
+The Business Cockpit is a Java Spring Boot application with a React user interface. Two things have
+to be running before it builds and starts: a [MongoDB cluster](#mongodb) and a
+[local NPM registry](#local-npm-registry). The provided compose configuration also brings two
+services which are not needed to run the cockpit but to develop and test particular features,
+[Mailpit](#notification-e-mails-mailpit) for notification e-mails and a
+[single-node Kafka](#kafka) for reporting BPMS events over Kafka rather than over REST. The latter is
+only needed with a real business service, since the simulation service brings its own broker.
 
 ```sh
 cd development
 docker-compose up -d
 ```
 
-Afterwards one can [build and run the business cockpit](#build-and-run-the-business-cockpit).
+*Hint:* Building the cockpit also establishes npm links between the packages of this repository,
+which is what makes a local build use the versions next to it.
 
-*Hint:* Building the business cockpit will also establish npm-links between the packages provided by this repository. This helps to ensure using the right version during the build and also supports local development.
 
-### MongoDB
+## MongoDB
 
-For production MongoDB one has to use replica-sets because the VanillaBP business cockpit
-uses the MongoDB `changestream` feature, which not available otherwise
-(see https://www.mongodb.com/docs/manual/changeStreams/).
+The cockpit reads MongoDB's change stream, which MongoDB offers on a replica set only, so the local
+one is a single-node replica set as well. `docker-compose up -d` starts it.
 
-The local MongoDB is accessible at mongodb://127.0.0.1:27017 with your favourite tool,
-without user and password (which gives you an admin role).
+A database tool connects with these:
 
-The development application user credentials are:
+| | |
+|---|---|
+| Host | `business-cockpit-mongo`, port 27017 |
+| Replica set | `rs-business-cockpit` |
+| User and password | `business-cockpit` / `business-cockpit`, authenticating against `business-cockpit` |
+| Database | `business-cockpit` |
 
-* *username:* business-cockpit
-* *password:* business-cockpit
+The replica set names its member `business-cockpit-mongo`, and a tool follows that name, so it has
+to resolve. Add it to `/etc/hosts`, or to `C:\Windows\System32\drivers\etc\hosts` on Windows:
 
-and the replica set is named `rs-business-cockpit`.
+```
+127.0.0.1       business-cockpit-mongo
+```
 
-### Local NPM registry
+The container itself does not need that entry: the profile `local` connects to `localhost` with
+`?directConnection=true`, which skips the member discovery the name comes from.
+
+## Local NPM registry
 
 As part of the build NPM packages are published which has to be used by BPMS software which wants to integrate to the VanillaBP business cockpit. Additionally, the business cockpit itself uses those packages as dependencies. To make this work for local development as well as for publishing builds one has to use a local NPM registry. For this the tool [Verdaccio](https://www.verdaccio.org/) is used which is also part of the provided `docker-compose.yaml`.
 
@@ -313,7 +85,7 @@ To connect to the registry UI use these parameters:
 
 *Hint:* If you do repeating builds for testing then you have to use the Maven profile `unpublish-npm` which removes previously published packages from the local registry.
 
-### Notification e-mails (Mailpit)
+## Notification e-mails (Mailpit)
 
 Notification e-mails are not sent to a real mail server during development but to
 [Mailpit](https://mailpit.axllent.org/), which is part of the provided `docker-compose.yaml`. It
@@ -354,7 +126,7 @@ curl -s 'http://localhost:8025/api/v1/search?query=to%3Ajohn%40doe.com' | jq '.m
 curl -s -X DELETE http://localhost:8025/api/v1/messages
 ```
 
-### Kafka
+## Kafka
 
 Instead of reporting BPMS events by the REST API a business service may report them by Kafka. For
 that a single-node broker (KRaft mode, so no ZooKeeper involved) is part of the provided
@@ -407,7 +179,7 @@ one off as well - useful for a broker which is not at `localhost:9092`.
 The business cockpit is developed by using Java 21 and Spring Boot 4 (Spring MVC on virtual threads). To build the business cockpit Maven is used:
 
 ```sh
-cd vanillabp-business-cockpit
+cd business-cockpit
 mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
@@ -463,53 +235,20 @@ npm update --scope '@vanillabp/*'
 
 ## Simulation Service
 
-This is a service which can be used for local development and testing. I mimics a business service which reports user tasks and workflows to be shown in the business cockpit UI.
-
-To start it use these commands:
+The simulator is a standalone Spring Boot application which stands in for a business service: it
+reports user tasks and workflows to the cockpit the way a workflow module does, and it serves a user
+interface for them, so cockpit features can be developed without a BPMS and without a real
+application.
 
 ```sh
 cd development/simulator
 java --add-opens=java.base/java.lang=ALL-UNNAMED -jar target/simulator-*-runnable.jar
 ```
 
-Now you can open the [test data generator form](http://localhost:8079/testdata/usertask/form) in your browser. It gives you verify parameters to generate user tasks. For now simply press the `Generate` button. 10 new user tasks should appear in the VanillaBP business cockpit immediately.
+Its [test data form](http://localhost:8079/testdata/usertask/form) generates user tasks, ten per
+press of `Generate`, and they appear in the cockpit as they are generated. The tasks it makes belong
+to no process instance, which is what makes them cheap to make.
 
-## Integrate your Business Services
-
-The [simulation service](#simulation-service) also acts as template for your services. In `development/simulator/src/main/webapp` you will find samples of user task forms.
-
-to be completed...
-
-## Mongo
-
-Use
-
-```sh
-docker-compose up -d
-```
-
-to start Mongo database. It is required to use MongoDB as a ReplicaSet (for change-streams), so one has to add this line to you `/etc/hosts` file:
-
-```sh
-127.0.0.1       business-cockpit-mongo
-```
-
-*Hint:* For Windows the file is `C:\Windows\System32\drivers\etc\hosts`.
-
-Use these parameters to connect to Mongo database using a GUI database tool:
-
-- *Hostname:* business-cockpit-mongo
-- *Port:* 27017
-- *Replica set:* rs-business-cockpit
-- *Username:* business-cockpit
-- *Password:* business-cockpit
-- *Authentication database:* business-cockpit
-- *Database:* business-cockpit
-
-## Simulator
-
-The *simulator* is a standalone Spring Boot application which mimiks the behavior of bounded systems. It can be used to develop features of tasklist without the need of having external services available.
-
-### Generate testdata
-
-To develop tasklist features dummy tasks can be generated. At [this URL](http://localhost:8079/testdata/usertask/form) you will find a form used to trigger new tasks. The tasks generated are independent from any process instance data.
+Its user interface, `development/simulator/src/main/webapp-react`, is also the worked example a
+workflow module's user interface is copied from. What to do with it is in the wiki, under
+[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites).
