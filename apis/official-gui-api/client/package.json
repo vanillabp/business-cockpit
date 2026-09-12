@@ -30,7 +30,7 @@
     "postpublish": "node -e \"if(process.env.WAIT_FOR_NPM_PUBLISH==='1'){const cp=require('child_process');const root=process.env.GITHUB_WORKSPACE||cp.execSync('git rev-parse --show-toplevel').toString().trim();cp.execSync('bash \\\"'+root+'/.github/scripts/wait-for-npm-publish.sh\\\"',{stdio:'inherit'})}\""
   },
   "devDependencies": {
-    "@types/node": "25.0.9",
+    "@types/node": "25.9.5",
     "@types/web": "0.0.356",
     "cross-env": "10.1.0",
     "tsup": "8.5.1",
