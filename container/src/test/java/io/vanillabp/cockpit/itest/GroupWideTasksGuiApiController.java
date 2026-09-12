@@ -27,7 +27,7 @@ public class GroupWideTasksGuiApiController extends AbstractUserTaskListGuiApiCo
             final UserDetails currentUser) {
 
         return new UserTaskVisibility(
-                false, false, null, null, currentUser.getAuthorities(), null);
+                false, false, null, null, currentUser.getAuthorities(), null, null);
 
     }
 

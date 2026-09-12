@@ -226,7 +226,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		final var currentUser = userContext.getUserLoggedInDetails();
 		final var visibility = userTasksVisibleTo(currentUser);
 
-		final var found = userTaskService.getUserTask(visibility, userTaskId);
+		// the whole task shown to a person, which is what counts as having opened it
+		final var found = userTaskService.getUserTask(visibility, userTaskId, true);
 		if (found == null) {
 			return ResponseEntity.notFound().build();
 		}
