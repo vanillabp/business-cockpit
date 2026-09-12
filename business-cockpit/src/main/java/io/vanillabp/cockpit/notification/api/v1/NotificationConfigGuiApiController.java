@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.gui.api.v1.WorkflowNotificationConfiguration;
 import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.UserRepository;
 import java.util.List;
@@ -126,14 +127,10 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
     public ResponseEntity<List<NotificationWorkflow>> getNotificationWorkflows() {
 
         final var currentUser = userContext.getUserLoggedInDetails();
-        final var userId = currentUser.getId();
 
         return ResponseEntity.ok(userTaskService
                 .getVisibleWorkflows(
-                        List.of(userId),
-                        List.of(userId),
-                        currentUser.getAuthorities(),
-                        List.of(userId))
+                        UserTaskVisibility.everythingTheUserMayWorkOn(currentUser))
                 .stream()
                 .map(this::toApiWorkflow)
                 .toList());

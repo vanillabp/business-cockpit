@@ -14,21 +14,39 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
+import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.util.SearchQuery;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
+/**
+ * Turns the tasklist requests of the GUI API into calls of {@link UserTaskService} and maps the
+ * result back. What it leaves open is one question, asked once: which user tasks this view lets the
+ * person making the request reach.
+ *
+ * <p>A subclass answers it in {@link #userTasksVisibleTo(UserDetails)} and is then done. The list,
+ * the fulltext suggestions, opening one task and every action on one task are answered from that
+ * one {@link UserTaskVisibility}, so a task the list would not show cannot be opened, claimed,
+ * assigned or marked as read by guessing its id either. All of those answer HTTP 404 in that case,
+ * the same answer an id which was never reported gets, so the answer itself tells nobody the task
+ * exists.
+ *
+ * <p>{@link UserTaskVisibility} names the ready-made views the cockpit ships with. An application
+ * which needs another one builds a {@code UserTaskVisibility} of its own rather than overriding the
+ * methods below, which is the difference between describing who may see something and rewriting how
+ * it is fetched.
+ */
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
 	@Autowired
@@ -41,17 +59,43 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 	protected PersonAndGroupApiMapper personAndGroupMapper;
 
 	@Autowired
+	protected PersonAndGroupMapper personAndGroupModelMapper;
+
+	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
 
-	protected abstract Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
-			final UserDetails currentUser,
+	@Autowired
+	protected UserTaskService userTaskService;
+
+	/**
+	 * The user tasks this view lets the given user reach, which is the only thing a subclass has to
+	 * decide. It is asked once per request and used for the list as well as for everything naming a
+	 * single task.
+	 */
+	protected abstract UserTaskVisibility userTasksVisibleTo(
+			final UserDetails currentUser);
+
+	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
+			final UserTaskVisibility visibility,
 			final int pageNumber,
 			final int pageSize,
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode);
+			final UserTaskService.RetrieveItemsMode mode) {
+
+		return userTaskService.getUserTasks(
+				visibility,
+				pageNumber,
+				pageSize,
+				initialTimestamp,
+				searchQueries,
+				sort,
+				sortAscending,
+				mode);
+
+	}
 
     @Override
     public ResponseEntity<UserTasks> getUserTasks(
@@ -65,7 +109,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		final var currentUser = userContext.getUserLoggedInDetails();
 
 		final var userTasks = getUserTasks(
-				currentUser,
+				userTasksVisibleTo(currentUser),
 				userTasksRequest.getPageNumber(),
 				userTasksRequest.getPageSize(),
 				timestamp,
@@ -80,15 +124,27 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	}
 
-	public abstract Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
+	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
+			final UserTaskVisibility visibility,
 			final int size,
 			final Collection<String> knownUserTasksIds,
 			final OffsetDateTime initialTimestamp,
 			final Collection<SearchQuery> searchQueries,
 			final String sort,
 			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode);
+			final UserTaskService.RetrieveItemsMode mode) {
+
+		return userTaskService.getUserTasksUpdated(
+				visibility,
+				size,
+				knownUserTasksIds,
+				initialTimestamp,
+				searchQueries,
+				sort,
+				sortAscending,
+				mode);
+
+	}
 
 	@Override
 	public ResponseEntity<UserTasks> getUserTasksUpdate(
@@ -102,7 +158,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		final var currentUser = userContext.getUserLoggedInDetails();
 
 		final var userTasks = getUserTasksUpdated(
-				currentUser,
+				userTasksVisibleTo(currentUser),
 				userTasksUpdateRequest.getSize(),
 				userTasksUpdateRequest.getKnownUserTasksIds(),
 				timestamp,
@@ -117,12 +173,16 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	}
 
-    protected abstract List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
-            final UserDetails currentUser,
+    protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+            final UserTaskVisibility visibility,
             final OffsetDateTime endedSince,
             final List<SearchQuery> searchQueries,
             final String path,
-            final String query);
+            final String query) {
+
+        return userTaskService.kwic(visibility, endedSince, searchQueries, path, query);
+
+    }
 
     @Override
     public ResponseEntity<KwicResults> getUserTaskKwicResults(
@@ -148,7 +208,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
                 .map(mapper::toModel)
                 .toList();
 
-        final var result = kwic(currentUser, timestamp, searchQueries, effectivePath, query)
+        final var result =
+                kwic(userTasksVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
                 .stream()
                 .map(mapper::toApi)
                 .toList();
@@ -157,28 +218,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
     }
 
-    protected abstract io.vanillabp.cockpit.tasklist.model.UserTask getUserTask(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final String userTaskId);
-
-	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask markAsRead(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final String userTaskId,
-			final boolean unread);
-
-	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> markAsRead(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final List<String> userTaskIds,
-			final boolean unread);
-
 	@Override
     public ResponseEntity<UserTask> getUserTask(
             final String userTaskId,
 			final Boolean markAsRead) {
 
 		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(currentUser);
 
-		final var found = getUserTask(currentUser, userTaskId);
+		final var found = userTaskService.getUserTask(visibility, userTaskId);
 		if (found == null) {
 			return ResponseEntity.notFound().build();
 		}
@@ -190,7 +238,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 				|| (readAt != null)) {  // already read by current user
 			userTask = found;
 		} else {                        // to be marked as read by current user
-			userTask = markAsRead(currentUser, found.getId(), false);
+			userTask = userTaskService.markAsRead(visibility, found.getId(), currentUser.getId());
 		}
 		if (userTask == null) {
 			return ResponseEntity.notFound().build();
@@ -206,8 +254,11 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unread) {
 
 		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(currentUser);
 
-		final var result = markAsRead(currentUser, userTaskId, (unread != null) && unread);
+		final var result = (unread != null) && unread
+				? userTaskService.markAsUnread(visibility, userTaskId, currentUser.getId())
+				: userTaskService.markAsRead(visibility, userTaskId, currentUser.getId());
 
 		return result == null
 				? ResponseEntity.notFound().build()
@@ -221,22 +272,17 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unread) {
 
 		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(currentUser);
 
-		markAsRead(currentUser, userTaskIds.getUserTaskIds(), (unread != null) && unread);
+		if ((unread != null) && unread) {
+			userTaskService.markAsUnread(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
+		} else {
+			userTaskService.markAsRead(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
+		}
 
 		return ResponseEntity.ok().build();
 
 	}
-
-	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask claimTask(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final String userTaskId,
-			final boolean unclaim);
-
-	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> claimTasks(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final List<String> userTaskIds,
-			final boolean unclaim);
 
 	@Override
 	public ResponseEntity<Void> claimTask(
@@ -244,8 +290,13 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unclaim) {
 
 		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(currentUser);
+		final var currentUserId = currentUser.getId();
 
-		final var result = claimTask(currentUser, userTaskId, (unclaim != null) && unclaim);
+		final var result = (unclaim != null) && unclaim
+				? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
+				: userTaskService.claimTask(
+						visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
 
 		return result == null
 				? ResponseEntity.notFound().build()
@@ -259,24 +310,22 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unclaim) {
 
 		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(currentUser);
+		final var currentUserId = currentUser.getId();
 
-		claimTasks(currentUser, userTaskIds.getUserTaskIds(), (unclaim != null) && unclaim);
+		if ((unclaim != null) && unclaim) {
+			userTaskService.unclaimTask(
+					visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
+		} else {
+			userTaskService.claimTask(
+					visibility,
+					userTaskIds.getUserTaskIds(),
+					personAndGroupModelMapper.toModelPerson(currentUser));
+		}
 
 		return ResponseEntity.ok().build();
 
 	}
-
-	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask assignTask(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final String userTaskId,
-			final String userId,
-			final boolean unassign);
-
-	protected abstract List<io.vanillabp.cockpit.tasklist.model.UserTask> assignTasks(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final List<String> userTaskIds,
-			final String userId,
-			final boolean unassign);
 
 	@Override
 	public ResponseEntity<Void> assignTask(
@@ -284,9 +333,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unassign,
 			final String userId) {
 
-		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-		final var result = assignTask(currentUser, userTaskId, userId, (unassign != null) && unassign);
+		final var result = (unassign != null) && unassign
+				? userTaskService.unassignTask(visibility, userTaskId, userId)
+				: userTaskService.assignTask(
+						visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
 
 		return result == null
 				? ResponseEntity.notFound().build()
@@ -300,18 +352,18 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 			final Boolean unassign,
 			final String userId) {
 
-		final var currentUser = userContext.getUserLoggedInDetails();
+		final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-		assignTasks(currentUser, body.getUserTaskIds(), userId, (unassign != null) && unassign);
+		if ((unassign != null) && unassign) {
+			userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
+		} else {
+			userTaskService.assignTask(
+					visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+		}
 
 		return ResponseEntity.ok().build();
 
 	}
-
-	protected abstract io.vanillabp.cockpit.tasklist.model.UserTask setFollowUpDate(
-			final io.vanillabp.cockpit.commons.security.usercontext.UserDetails currentUser,
-			final String userTaskId,
-			final OffsetDateTime followUpDate);
 
 	@Override
 	public ResponseEntity<UserTask> setFollowUpDate(
@@ -326,7 +378,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 		final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
 		try {
-			userTask = setFollowUpDate(currentUser, userTaskId, request.getTimestamp());
+			userTask = userTaskService.setFollowUpDate(
+					userTasksVisibleTo(currentUser), userTaskId, request.getTimestamp());
 		} catch (UserTaskAlreadyCompletedException e) {
 			return ResponseEntity.status(HttpStatus.CONFLICT).build();
 		}

@@ -200,6 +200,11 @@ public class UserTaskService {
 
     }
 
+    /**
+     * One user task by its id, with nobody asked whether the caller may see it. This is the way in
+     * for what the BPMS reports, which knows the ids it sent and belongs to no user. Everything
+     * answering a person goes through the overload taking a {@link UserTaskVisibility}.
+     */
     public UserTask getUserTask(
             final String userTaskId) {
 
@@ -209,11 +214,50 @@ public class UserTaskService {
 
     }
 
+    /**
+     * The task of that id which the given visibility lets through, or {@code null} when there is
+     * none. Asking the database with the visibility in the query rather than filtering afterwards
+     * is what makes the check impossible to skip: holding an id is not enough, a caller has to name
+     * a view the task belongs to.
+     */
+    public UserTask getUserTask(
+            final UserTaskVisibility visibility,
+            final String userTaskId) {
+
+        return mongoTemplate.findOne(
+                new Query(buildUserTasksCriteria(
+                        visibility,
+                        null,
+                        RetrieveItemsMode.All,
+                        List.of(Criteria.where("id").is(userTaskId)))),
+                UserTask.class);
+
+    }
+
+    /**
+     * The tasks of those ids which the given visibility lets through. The ones it does not are left
+     * out silently, the same way a list leaves them out.
+     */
+    public List<UserTask> getUserTasks(
+            final UserTaskVisibility visibility,
+            final Collection<String> userTaskIds) {
+
+        return mongoTemplate.find(
+                new Query(buildUserTasksCriteria(
+                        visibility,
+                        null,
+                        RetrieveItemsMode.All,
+                        List.of(Criteria.where("id").in(userTaskIds)))),
+                UserTask.class);
+
+    }
+
     public UserTask markAsRead(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final String userId) {
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -223,20 +267,22 @@ public class UserTaskService {
     }
 
     public List<UserTask> markAsRead(
+            final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
             final String userId) {
 
-        final var found = userTasks.findAllById(userTaskIds);
+        final var found = getUserTasks(visibility, userTaskIds);
         found.forEach(userTask -> userTask.setReadAt(userId));
         return saveAllInitiatedByCockpit(found);
 
     }
 
     public UserTask markAsUnread(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final String userId) {
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -246,20 +292,22 @@ public class UserTaskService {
     }
 
     public List<UserTask> markAsUnread(
+            final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
             final String userId) {
 
-        final var found = userTasks.findAllById(userTaskIds);
+        final var found = getUserTasks(visibility, userTaskIds);
         found.forEach(userTask -> userTask.clearReadAt(userId));
         return saveAllInitiatedByCockpit(found);
 
     }
 
     public UserTask assignTask(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final Person person) {
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -269,20 +317,22 @@ public class UserTaskService {
     }
 
     public List<UserTask> assignTask(
+            final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
             final Person person) {
 
-        final var found = userTasks.findAllById(userTaskIds);
+        final var found = getUserTasks(visibility, userTaskIds);
         found.forEach(userTask -> userTask.addCandidatePerson(person));
         return saveAllInitiatedByCockpit(found);
 
     }
 
     public UserTask unassignTask(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final String personId) {
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -292,16 +342,18 @@ public class UserTaskService {
     }
 
     public List<UserTask> unassignTask(
+            final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
             final String personId) {
 
-        final var found = userTasks.findAllById(userTaskIds);
+        final var found = getUserTasks(visibility, userTaskIds);
         found.forEach(userTask -> userTask.removeCandidatePerson(personId));
         return saveAllInitiatedByCockpit(found);
 
     }
 
     public UserTask setFollowUpDate(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final OffsetDateTime followUpDate) {
 
@@ -309,7 +361,7 @@ public class UserTaskService {
                 ? null
                 : followUpDate.withSecond(0).withNano(0);
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -322,10 +374,11 @@ public class UserTaskService {
     }
 
     public UserTask claimTask(
+            final UserTaskVisibility visibility,
             final String userTaskId,
             final Person person) {
 
-        final var userTask = getUserTask(userTaskId);
+        final var userTask = getUserTask(visibility, userTaskId);
         if (userTask == null) {
             return null;
         }
@@ -339,55 +392,78 @@ public class UserTaskService {
     }
 
     public List<UserTask> claimTask(
+            final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
             final Person person) {
 
-        final var found = userTasks.findAllById(userTaskIds);
+        final var found = getUserTasks(visibility, userTaskIds);
         found.forEach(userTask -> userTask.setAssignee(person));
         return saveAllInitiatedByCockpit(found);
 
     }
 
+    /**
+     * Giving a task back is the one change which can take the task out of the very view it was made
+     * from: a list of what is mine holds nothing of mine any more once I let go. So the visibility
+     * decides whether the change may happen, and what comes back afterwards is read without it.
+     * Answering {@code null} would tell the caller their own action failed.
+     */
     public UserTask unclaimTask(
+            final UserTaskVisibility visibility,
             final String currentUser,
             final String userTaskId,
             final String personId) {
 
+        if (getUserTask(visibility, userTaskId) == null) {
+            return null;
+        }
+
         final var query = new Query();
         query.addCriteria(Criteria.where("id").is(userTaskId));
         query.addCriteria(Criteria.where("assignee.id").is(personId));
-        final var update = new Update();
-        update.unset("assignee");
-        update.set("updatedAt", OffsetDateTime.now());
-        update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
-        update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
 
-        mongoTemplate.updateFirst(query, update, UserTask.class);
+        mongoTemplate.updateFirst(query, unsetAssignee(currentUser), UserTask.class);
 
         return getUserTask(userTaskId);
 
     }
 
     public List<UserTask> unclaimTask(
+            final UserTaskVisibility visibility,
             final String currentUser,
             final Collection<String> userTaskIds,
             final String personId) {
 
+        final var unclaimable = getUserTasks(visibility, userTaskIds)
+                .stream()
+                .map(UserTask::getId)
+                .toList();
+        if (unclaimable.isEmpty()) {
+            return List.of();
+        }
+
         final var query = new Query();
-        query.addCriteria(Criteria.where("id").in(userTaskIds));
+        query.addCriteria(Criteria.where("id").in(unclaimable));
         query.addCriteria(Criteria.where("assignee.id").is(personId));
+
+        mongoTemplate.updateMulti(query, unsetAssignee(currentUser), UserTask.class);
+
+        final var findQuery = new Query();
+        findQuery.addCriteria(Criteria.where("id").in(unclaimable));
+
+        return mongoTemplate.find(findQuery, UserTask.class);
+
+    }
+
+    private Update unsetAssignee(
+            final String currentUser) {
+
         final var update = new Update();
         update.unset("assignee");
         update.set("updatedAt", OffsetDateTime.now());
         update.set("updatedBy", currentUser == null ? UpdateInformationAware.SYSTEM_USER : currentUser);
         update.set("initiator", currentUser == null ? UpdateInformationAware.COCKPIT_USER : currentUser);
-
-        mongoTemplate.updateMulti(query, update, UserTask.class);
-
-        final var findQuery = new Query();
-        findQuery.addCriteria(Criteria.where("id").in(userTaskIds));
-
-        return mongoTemplate.find(findQuery, UserTask.class);
+        return update;
 
     }
 
@@ -435,12 +511,7 @@ public class UserTaskService {
     }
 
     public Page<UserTask> getUserTasks(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidateUsersToBeExcluded,
+            final UserTaskVisibility visibility,
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -450,12 +521,7 @@ public class UserTaskService {
             final RetrieveItemsMode mode) {
 
         return retrieveUserTasks(
-                includeDanglingTasks,
-                notInAssignees,
-                assignees,
-                candidateUsers,
-                candidateGroups,
-                candidateUsersToBeExcluded,
+                visibility,
                 pageNumber,
                 pageSize,
                 initialTimestamp,
@@ -468,12 +534,7 @@ public class UserTaskService {
     }
 
     protected Page<UserTask> retrieveUserTasks(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidateUsersToBeExcluded,
+            final UserTaskVisibility visibility,
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
@@ -494,12 +555,7 @@ public class UserTaskService {
         final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
         query.addCriteria(
                 buildUserTasksCriteria(
-                        includeDanglingTasks,
-                        notInAssignees,
-                        assignees,
-                        candidateUsers,
-                        candidateGroups,
-                        candidateUsersToBeExcluded,
+                        visibility,
                         initialTimestamp,
                         mode,
                         predefinedCriterias));
@@ -570,12 +626,7 @@ public class UserTaskService {
     }
 
     public List<KwicResult> kwic(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidatesToBeExcluded,
+            final UserTaskVisibility visibility,
             final OffsetDateTime initialTimestamp,
             final Collection<SearchQuery> searchQueries,
             final String path,
@@ -590,12 +641,7 @@ public class UserTaskService {
         searchCriteria.add(new Criteria(path).regex(query, "i"));
         final var match =
                 buildUserTasksCriteria(
-                        includeDanglingTasks,
-                        notInAssignees,
-                        assignees,
-                        candidateUsers,
-                        candidateGroups,
-                        candidatesToBeExcluded,
+                        visibility,
                         initialTimestamp,
                         RetrieveItemsMode.OpenTasks,
                         searchCriteria);
@@ -614,12 +660,9 @@ public class UserTaskService {
             final boolean sortAscending) {
 
         return retrieveUserTasks(
-                    true,
-                    false,
-                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
-                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
-                    limitListAccordingToCurrentUsersPermissions ? currentUserGroups : null,
-                    limitListAccordingToCurrentUsersPermissions ? List.of(currentUser) : null,
+                    limitListAccordingToCurrentUsersPermissions
+                            ? UserTaskVisibility.everythingTheUserMayWorkOn(currentUser, currentUserGroups)
+                            : UserTaskVisibility.everyUserTask(),
                     0,
                     size,
                     OffsetDateTime.now(),
@@ -633,12 +676,7 @@ public class UserTaskService {
     }
 
     public Page<UserTask> getUserTasksUpdated(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidatesToBeExcluded,
+            final UserTaskVisibility visibility,
             final int size,
             final Collection<String> knownUserTasksIds,
             final OffsetDateTime initialTimestamp,
@@ -659,12 +697,7 @@ public class UserTaskService {
         query.fields().include("_id");
         query.addCriteria(
                 buildUserTasksCriteria(
-                        includeDanglingTasks,
-                        notInAssignees,
-                        assignees,
-                        candidateUsers,
-                        candidateGroups,
-                        candidatesToBeExcluded,
+                        visibility,
                         initialTimestamp,
                         effectiveMode,
                         null));
@@ -801,14 +834,10 @@ public class UserTaskService {
      * configuration page to offer per-workflow exceptions (AC func 4c).
      */
     public List<UserTask> getVisibleWorkflows(
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidatesToBeExcluded) {
+            final UserTaskVisibility visibility) {
 
         final var criteria = buildUserTasksCriteria(
-                true, false, assignees, candidateUsers, candidateGroups, candidatesToBeExcluded,
-                null, RetrieveItemsMode.All, List.of());
+                visibility, null, RetrieveItemsMode.All, List.of());
 
         final var aggregation = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
                 org.springframework.data.mongodb.core.aggregation.Aggregation.match(criteria),
@@ -825,15 +854,17 @@ public class UserTaskService {
     }
 
     public Criteria buildUserTasksCriteria(
-            final boolean includeDanglingTasks,
-            final boolean notInAssignees,
-            final Collection<String> assignees,
-            final Collection<String> candidateUsers,
-            final Collection<String> candidateGroups,
-            final Collection<String> candidatesToBeExcluded,
+            final UserTaskVisibility visibility,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode,
             final List<Criteria> predefinedCriterias) {
+
+        final var includeDanglingTasks = visibility.includeDanglingTasks();
+        final var notInAssignees = visibility.notInAssignees();
+        final var assignees = visibility.assignees();
+        final var candidateUsers = visibility.candidateUsers();
+        final var candidateGroups = visibility.candidateGroups();
+        final var candidatesToBeExcluded = visibility.excludedCandidates();
 
         final var subCriterias = new LinkedList<Criteria>();
 

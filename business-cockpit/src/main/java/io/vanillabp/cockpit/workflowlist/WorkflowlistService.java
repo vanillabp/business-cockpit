@@ -134,6 +134,11 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * One workflow by its id, with nobody asked whether the caller may see it. This is the way in
+     * for what the BPMS reports, which knows the ids it sent and belongs to no user. Everything
+     * answering a person goes through the overload taking a {@link WorkflowVisibility}.
+     */
     public Workflow getWorkflow(
             final String workflowId) {
 
@@ -143,45 +148,36 @@ public class WorkflowlistService {
 
     }
 
-    public Page<Workflow> getWorkflows(
-            final int pageNumber,
-            final int pageSize,
-            final OffsetDateTime initialTimestamp,
-            final boolean includeDanglingWorkflows,
-            final Collection<String> accessibleToUsers,
-            final Collection<String> accessibleToGroups,
-            final Collection<String> businessIds,
-            final Collection<SearchQuery> searchQueries,
-            final String sort,
-            final boolean sortAscending,
-            final WorkflowlistService.RetrieveItemsMode mode) {
+    /**
+     * The workflow of that id which the given visibility lets through, or {@code null} when there
+     * is none. The visibility sits in the query rather than in a check around it, so there is no
+     * way to the workflow which skips it.
+     */
+    public Workflow getWorkflow(
+            final WorkflowVisibility visibility,
+            final String workflowId) {
 
-        return getWorkflows(
-                pageNumber,
-                pageSize,
-                initialTimestamp,
-                includeDanglingWorkflows,
-                accessibleToUsers,
-                accessibleToGroups,
-                mode,
-                businessIds,
-                searchQueries,
-                sort,
-                sortAscending);
+        return mongoTemplate.findOne(
+                new Query(buildWorkflowlistCriteria(
+                        visibility,
+                        null,
+                        RetrieveItemsMode.All,
+                        List.of(Criteria.where("id").is(workflowId)),
+                        null)),
+                Workflow.class);
+
     }
 
     public Page<Workflow> getWorkflows(
             final int pageNumber,
             final int pageSize,
             final OffsetDateTime initialTimestamp,
-            final boolean includeDanglingWorkflows,
-            final Collection<String> accessibleToUsers,
-            final Collection<String> accessibleToGroups,
-            final RetrieveItemsMode mode,
+            final WorkflowVisibility visibility,
             final Collection<String> businessIds,
             final Collection<SearchQuery> searchQueries,
             final String sort,
-            final boolean sortAscending) {
+            final boolean sortAscending,
+            final RetrieveItemsMode mode) {
 
         final var orderBySort = getWorkflowListOrder(sort, sortAscending);
         final var pageRequest = PageRequest
@@ -196,9 +192,7 @@ public class WorkflowlistService {
         final var query = new Query();
         query.addCriteria(
                 buildWorkflowlistCriteria(
-                        includeDanglingWorkflows,
-                        accessibleToUsers,
-                        accessibleToGroups,
+                        visibility,
                         endedSince,
                         mode,
                         null,
@@ -311,9 +305,7 @@ public class WorkflowlistService {
     }
 
     public Page<Workflow> getWorkflowsUpdated(
-            final boolean includeDanglingWorkflows,
-            final Collection<String> accessibleToUsers,
-            final Collection<String> accessibleToGroups,
+            final WorkflowVisibility visibility,
             final int size,
             final Collection<String> knownWorkflowIds,
             final OffsetDateTime initialTimestamp,
@@ -334,9 +326,7 @@ public class WorkflowlistService {
         query.fields().include("_id");
         query.addCriteria(
                 buildWorkflowlistCriteria(
-                        includeDanglingWorkflows,
-                        accessibleToUsers,
-                        accessibleToGroups,
+                        visibility,
                         initialTimestamp,
                         effectiveMode,
                         null,
@@ -458,9 +448,7 @@ public class WorkflowlistService {
 
     public List<KwicResult> kwic(
             final OffsetDateTime endedSince,
-            final boolean includeDanglingWorkflows,
-            final Collection<String> accessibleToUsers,
-            final Collection<String> accessibleToGroups,
+            final WorkflowVisibility visibility,
             final Collection<SearchQuery> searchQueries,
             final String path,
             final String query) {
@@ -474,9 +462,7 @@ public class WorkflowlistService {
         searchCriteria.add(new Criteria(path).regex(query, "i"));
         final var match =
                 buildWorkflowlistCriteria(
-                        includeDanglingWorkflows,
-                        accessibleToUsers,
-                        accessibleToGroups,
+                        visibility,
                         endedSince,
                         RetrieveItemsMode.Active,
                         searchCriteria,
@@ -486,13 +472,15 @@ public class WorkflowlistService {
     }
 
     public CriteriaDefinition buildWorkflowlistCriteria(
-            final boolean includeDanglingWorkflows,
-            final Collection<String> accessibleToUsers,
-            final Collection<String> accessibleToGroups,
+            final WorkflowVisibility visibility,
             final OffsetDateTime initialTimestamp,
             final RetrieveItemsMode mode,
             final List<Criteria> predefinedCriterias,
 	    final Collection<String> businessIds) {
+
+        final var includeDanglingWorkflows = visibility.includeDanglingWorkflows();
+        final var accessibleToUsers = visibility.accessibleToUsers();
+        final var accessibleToGroups = visibility.accessibleToGroups();
 
         final var subCriterias = new LinkedList<Criteria>();
 
