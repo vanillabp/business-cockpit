@@ -149,6 +149,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- the mock request and response the security tests hand to a filter or a repository -->
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- the output suppression every test class of this module registers -->
       <groupId>io.vanillabp</groupId>
       <artifactId>test-utils</artifactId>
