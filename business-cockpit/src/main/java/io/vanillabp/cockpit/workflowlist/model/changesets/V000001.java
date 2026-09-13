@@ -324,4 +324,30 @@ public class V000001 {
 
     }
 
+    /**
+     * Backfills {@code latestEventAt} of workflows reported before that property existed, the way
+     * changeset 14 of the user tasks does, and for the same reason.
+     *
+     * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getLatestEventAt()
+     */
+    @Changeset(order = 1013)
+    public String introduceLatestEventAt(
+            final MongoTemplate mongo) {
+
+        final var query = new Query(Criteria
+                .where("latestEventAt").exists(false)
+                .and("createdAt").ne(null));
+        query.fields().include("_id", "createdAt");
+        mongo
+                .find(query, DBObject.class, Workflow.COLLECTION_NAME)
+                .forEach(document -> mongo
+                        .updateFirst(
+                                new Query(Criteria.where("_id").is(document.get("_id"))),
+                                new Update().set("latestEventAt", document.get("createdAt")),
+                                Workflow.COLLECTION_NAME));
+
+        return null;
+
+    }
+
 }
