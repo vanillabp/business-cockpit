@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.UserTaskDetailsPrefill;
@@ -11,6 +12,9 @@ import io.vanillabp.cockpit.extension.spi.UserTaskReference;
 import io.vanillabp.cockpit.extension.spi.WorkflowDetailsPrefill;
 import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.transaction.Status;
+import jakarta.transaction.TransactionSynchronizationRegistry;
 
 /**
  * The BPMS half of the extension, played by the test. It answers what an engine would answer
@@ -27,6 +31,33 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /** The workflow the test raises events for. */
   public static final String WORKFLOW_ID = "workflow-1";
+
+  @Inject
+  TransactionSynchronizationRegistry transactions;
+
+  private final List<Boolean> tasksLookedUpInATransaction = new CopyOnWriteArrayList<>();
+
+  /**
+   * @return For every lookup of one task of an aggregate, whether a transaction was open while
+   *         this engine was asked - what a test reads to see that a question of
+   *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one unit
+   *         of work
+   */
+  public List<Boolean> tasksLookedUpInATransaction() {
+
+    return List.copyOf(tasksLookedUpInATransaction);
+
+  }
+
+  /**
+   * Starts a fresh record of the lookups, so that the setup of a test is not mistaken for the run
+   * under test.
+   */
+  public void forgetLookups() {
+
+    tasksLookedUpInATransaction.clear();
+
+  }
 
   @Override
   public String adapterId() {
@@ -103,6 +134,11 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
       final String workflowAggregateId,
       final String userTaskId) {
 
+    tasksLookedUpInATransaction
+        .add(
+            Boolean
+                .valueOf(
+                    transactions.getTransactionStatus() != Status.STATUS_NO_TRANSACTION));
     return Optional
         .of(userTask(workflowModuleId, bpmnProcessId, workflowAggregateId, userTaskId));
 

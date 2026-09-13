@@ -54,6 +54,9 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
       public void aggregateChanged(
           final Object workflowAggregate) {
 
+        requireATransactionToReport(
+            extension.reportsWorkflows(),
+            "the change of workflow aggregate '%s'".formatted(aggregateIdOf(workflowAggregate)));
         bridgeOf(workflowAggregate)
             .workflowsOfAggregate(
                 context.getWorkflowModuleId(),
@@ -72,6 +75,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
           final Object workflowAggregate,
           final String... userTaskIds) {
 
+        requireATransactionToReport(
+            extension.reportsUserTasks(),
+            "the change of the user tasks of workflow aggregate '%s'"
+                .formatted(aggregateIdOf(workflowAggregate)));
         bridgeOf(workflowAggregate)
             .userTasksOfAggregate(
                 context.getWorkflowModuleId(),
@@ -91,15 +98,64 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
           final Object workflowAggregate,
           final String userTaskId) {
 
-        final var bridge = bridgeOf(workflowAggregate);
-        return bridge
-            .userTaskOfAggregate(
-                context.getWorkflowModuleId(),
-                context.getBpmnProcessId(),
-                aggregateIdOf(workflowAggregate),
-                userTaskId)
-            .flatMap(userTask -> extension.readUserTask(bridge, userTask))
-            .map(UserTask.class::cast);
+        // one transaction around the whole question, the caller's where the caller has one: the
+        // BPMS is asked which task it holds, the aggregate is read for the details provider, and
+        // an answer built from two units of work could describe two different moments
+        return extension
+            .readInOneTransaction(
+                context.getWorkflowAggregateClass(),
+                () -> {
+                  final var bridge = bridgeOf(workflowAggregate);
+                  return bridge
+                      .userTaskOfAggregate(
+                          context.getWorkflowModuleId(),
+                          context.getBpmnProcessId(),
+                          aggregateIdOf(workflowAggregate),
+                          userTaskId)
+                      .flatMap(userTask -> extension.readUserTask(bridge, userTask))
+                      .map(UserTask.class::cast);
+                });
+
+      }
+
+      /**
+       * Refuses a report where the calling thread runs no transaction.
+       * <p>
+       * The entry of a report is written into the transaction which persists the change it
+       * reports, so that nothing is reported for a change which was rolled back. Without a
+       * transaction there is nothing to write it into, and the platform's own refusal speaks of
+       * an adapter reporting from a worker thread, which is not what happened here.
+       * <p>
+       * A report nobody writes needs nothing. An application which switched the two lists off,
+       * and a workflow module which configured nothing about the cockpit, carry on without a
+       * transaction the way they did before anybody asked for one.
+       *
+       * @param anythingIsReported Whether this kind of report is switched on at all
+       * @param what The report, in a form fitting "Reporting ... to the Business Cockpit"
+       */
+      private void requireATransactionToReport(
+          final boolean anythingIsReported,
+          final String what) {
+
+        if (!anythingIsReported) {
+          return;
+        }
+        if (!extension.reportsAnythingOf(context.getWorkflowModuleId())) {
+          return;
+        }
+        if (extension.aTransactionIsOpenFor(context.getWorkflowAggregateClass())) {
+          return;
+        }
+        throw new IllegalStateException(
+            """
+                Reporting %s to the Business Cockpit needs a transaction, and the thread calling \
+                BusinessCockpitService runs none. A report is written into VanillaBP's outbox \
+                together with the change it is about, so that the cockpit never hears of a change \
+                which was rolled back, and there is nothing here to write it into. Open a \
+                transaction around the change and the report: annotate the method doing both with \
+                '@Transactional' (BPMN process '%s' of workflow module '%s'). Reading through \
+                this service needs no transaction - only reporting does."""
+                .formatted(what, context.getBpmnProcessId(), context.getWorkflowModuleId()));
 
       }
 
