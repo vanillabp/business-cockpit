@@ -10,7 +10,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.context.DeferredSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpRequestResponseHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 
@@ -19,8 +21,17 @@ import org.springframework.security.web.context.SecurityContextRepository;
  * subsequent requests. Wired into the HTTP basic configurer, so logging in once by basic auth is
  * enough: the response of that first request carries the cookie.
  * <p>
- * Reading the cookie back is not done here but by {@link PassiveJwtSecurityFilter}, which runs for
- * every request including the ones no security filter chain protects.
+ * In the cockpit's own filter chain the cookie is not read back here but by
+ * {@link PassiveJwtSecurityFilter}, which runs for every request including the ones no security
+ * filter chain protects. The basic authentication filter the repository is handed to only writes,
+ * it never asks for a context.
+ * <p>
+ * Reading is still part of the contract, for an application which makes this repository the context
+ * repository of its own chain. It happens in {@link #loadDeferredContext(HttpServletRequest)}, which
+ * hands out a {@link DeferredSecurityContext} rather than a context. Spring Security resolves that
+ * only where something asks who is logged in, so a request which never asks does not decode a token.
+ * This is the model {@code SecurityContextHolderFilter} works with, and it replaced the older one
+ * where a filter wrapped request and response to notice a context being written.
  */
 public class JwtSecurityContextRepository implements SecurityContextRepository {
 
@@ -39,19 +50,27 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
 
     }
 
+    @Override
+    public DeferredSecurityContext loadDeferredContext(
+            final HttpServletRequest request) {
+
+        return new DeferredCookieContext(request);
+
+    }
+
     /**
-     * Spring Security deprecated this method in favour of {@code loadDeferredContext}, but left it
-     * as the one abstract method of the interface, and its default {@code loadDeferredContext}
-     * delegates here. So this is where reading has to happen, deprecated or not.
+     * The interface still declares this method, so a caller written against the old model keeps
+     * working. It delegates the way Spring Security's own repositories delegate, and it is marked
+     * deprecated so that nobody takes it for the place to change.
+     *
+     * @deprecated use {@link #loadDeferredContext(HttpServletRequest)}
      */
     @Deprecated
     @Override
     public SecurityContext loadContext(
             final HttpRequestResponseHolder requestResponseHolder) {
 
-        return readToken(requestResponseHolder.getRequest())
-                .map(jwtMapper::toSecurityContext)
-                .orElse(null);
+        return loadDeferredContext(requestResponseHolder.getRequest()).get();
 
     }
 
@@ -136,6 +155,59 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
                     properties.getCookie().getName());
         }
         return Optional.of(matching.get(0).getValue());
+
+    }
+
+    /**
+     * Decodes the cookie when the context is first asked for and keeps the answer. A request without
+     * the cookie gets an empty context rather than null, which is what the interface asks for, and
+     * {@link #isGenerated()} says which of the two a caller got. A token which is expired or signed
+     * with another key lets the mapper's exception through where the context is asked for, which is
+     * where the deprecated read path let it through as well. {@link PassiveJwtSecurityFilter} is the
+     * place which turns such a token into a request without a user. See
+     * {@code JwtSecurityContextRepositoryTest}.
+     */
+    private final class DeferredCookieContext implements DeferredSecurityContext {
+
+        private final HttpServletRequest request;
+
+        private SecurityContext context;
+
+        private boolean generated;
+
+        private DeferredCookieContext(
+                final HttpServletRequest request) {
+
+            this.request = request;
+
+        }
+
+        @Override
+        public SecurityContext get() {
+
+            if (context == null) {
+                context = readToken(request)
+                        .map(jwtMapper::toSecurityContext)
+                        .orElseGet(this::emptyContext);
+            }
+            return context;
+
+        }
+
+        @Override
+        public boolean isGenerated() {
+
+            get();
+            return generated;
+
+        }
+
+        private SecurityContext emptyContext() {
+
+            generated = true;
+            return SecurityContextHolder.getContextHolderStrategy().createEmptyContext();
+
+        }
 
     }
 
