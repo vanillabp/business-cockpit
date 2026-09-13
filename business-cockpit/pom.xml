@@ -232,6 +232,16 @@
       <artifactId>jakarta.validation-api</artifactId>
     </dependency>
     <dependency>
+      <!--
+        Spring Framework 7 deprecated its own nullability annotations in org.springframework.lang
+        and points at JSpecify instead, so the sources here use JSpecify. Spring Core drags the
+        artifact in anyway; it is named here because this module compiles against it. The version
+        comes from the Spring Boot BOM imported in the root pom.
+      -->
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+    <dependency>
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
