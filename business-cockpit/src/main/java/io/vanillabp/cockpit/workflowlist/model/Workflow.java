@@ -28,7 +28,27 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private Person initiator;
 
+    /**
+     * When the reporting workflow system started this workflow. {@code null} means the cockpit never
+     * saw the creation and learned about the case from its end alone, which is what happens when the
+     * two reports overtake each other; the creation arriving afterwards fills in what the end could
+     * not report.
+     *
+     * @see #latestEventAt
+     */
     private OffsetDateTime createdAt;
+
+    /**
+     * When the event behind the latest report the cockpit stored about this workflow happened,
+     * measured by the reporting workflow system's clock.
+     * <p>
+     * Reports overtake each other, so the cockpit has to know how old its own state is to refuse a
+     * report which is older. {@link #reportedAt} cannot answer that (it is the cockpit's clock) and
+     * neither can {@link #updatedAt} (it is audit information, overwritten on every save). {@code
+     * null} means the workflow was stored before the cockpit kept this, and the next report is then
+     * applied whatever its timestamp says.
+     */
+    private OffsetDateTime latestEventAt;
 
     /**
      * When the cockpit stored the report about this workflow, measured by the cockpit's own clock -
@@ -181,6 +201,14 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public OffsetDateTime getLatestEventAt() {
+        return latestEventAt;
+    }
+
+    public void setLatestEventAt(OffsetDateTime latestEventAt) {
+        this.latestEventAt = latestEventAt;
     }
 
     public OffsetDateTime getUpdatedAt() {

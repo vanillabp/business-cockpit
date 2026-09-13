@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.bpms.api.v1;
 
 import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import jakarta.validation.Valid;
@@ -38,8 +39,10 @@ public class BpmsApiController implements BpmsApi {
             final @Valid UserTaskCreatedOrUpdatedEvent userTaskCreatedEvent) {
 
         return okOrBadRequest(
-                userTaskService.createUserTask(
-                        userTaskMapper.toNewTask(userTaskCreatedEvent)));
+                userTaskService.reportCreatedUserTask(
+                        userTaskCreatedEvent.getUserTaskId(),
+                        userTaskCreatedEvent.getTimestamp(),
+                        () -> userTaskMapper.toNewTask(userTaskCreatedEvent)));
 
     }
 
@@ -48,63 +51,51 @@ public class BpmsApiController implements BpmsApi {
             final String userTaskId,
             final @Valid UserTaskCreatedOrUpdatedEvent userTaskUpdatedEvent) {
 
-        final var knownTask = userTaskService.getUserTask(userTaskId);
-        // reporting an update for a task the cockpit never saw creates it, so a cockpit added to a
-        // running system does not stay blind to the tasks that existed before
-        if (knownTask == null) {
-            return okOrBadRequest(
-                    userTaskService.createUserTask(
-                            userTaskMapper.toNewTask(userTaskUpdatedEvent)));
-        }
-
         return okOrBadRequest(
-                userTaskService.updateUserTask(
-                        userTaskMapper.toUpdatedTask(userTaskUpdatedEvent, knownTask)));
+                userTaskService.reportChangedUserTask(
+                        userTaskId,
+                        userTaskUpdatedEvent.getTimestamp(),
+                        () -> userTaskMapper.toNewTask(userTaskUpdatedEvent),
+                        task -> userTaskMapper.toUpdatedTask(userTaskUpdatedEvent, task)));
 
     }
 
+    /**
+     * Version 1 of the API reports an end without the fields a change carries, so a task the cockpit
+     * hears of by its end alone is stored with the end and nothing else until the creation, which is
+     * still on its way, fills the rest in.
+     */
     @Override
     public ResponseEntity<Void> userTaskCompletedEvent(
             final String userTaskId,
             final @Valid UserTaskCompletedEvent userTaskCompletedEvent) {
 
-        final var task = userTaskService.getUserTask(userTaskId);
-        if (task == null) {
-            return ResponseEntity.ok().build();
-        }
-
-        task.setEndedAt(
-                userTaskCompletedEvent.getTimestamp());
-        // who completed the task, as reported by the application; read by the
-        // notification poller to skip a self-completion
-        task.setInitiator(userTaskCompletedEvent.getInitiator());
-
         return okOrBadRequest(
-                userTaskService.completeUserTask(
-                        task,
-                        userTaskCompletedEvent.getTimestamp()));
+                userTaskService.reportEndedUserTask(
+                        userTaskId,
+                        userTaskCompletedEvent.getTimestamp(),
+                        UserTaskEndReason.COMPLETED,
+                        // who completed the task, as reported by the application; read by the
+                        // notification poller to skip a self-completion
+                        task -> task.setInitiator(userTaskCompletedEvent.getInitiator())));
 
     }
 
+    /** @see #userTaskCompletedEvent(String, UserTaskCompletedEvent) */
     @Override
     public ResponseEntity<Void> userTaskCancelledEvent(
             final String userTaskId,
             final @Valid UserTaskCancelledEvent userTaskCancelledEvent) {
 
-        final var task = userTaskService.getUserTask(userTaskId);
-        if (task == null) {
-            return ResponseEntity.ok().build();
-        }
-
-        task.setEndedAt(
-                userTaskCancelledEvent.getTimestamp());
-        task.setInitiator(userTaskCancelledEvent.getInitiator());
-
         return okOrBadRequest(
-                userTaskService.cancelUserTask(
-                        task,
+                userTaskService.reportEndedUserTask(
+                        userTaskId,
                         userTaskCancelledEvent.getTimestamp(),
-                        userTaskCancelledEvent.getComment()));
+                        UserTaskEndReason.CANCELLED,
+                        task -> {
+                            task.setInitiator(userTaskCancelledEvent.getInitiator());
+                            task.setComment(userTaskCancelledEvent.getComment());
+                        }));
 
     }
 
@@ -113,49 +104,39 @@ public class BpmsApiController implements BpmsApi {
             final @Valid WorkflowCreatedOrUpdatedEvent workflowCreatedEvent) {
 
         return okOrBadRequest(
-                workflowlistService.createWorkflow(
-                        workflowMapper.toNewWorkflow(workflowCreatedEvent)));
+                workflowlistService.reportCreatedWorkflow(
+                        workflowCreatedEvent.getWorkflowId(),
+                        workflowCreatedEvent.getTimestamp(),
+                        () -> workflowMapper.toNewWorkflow(workflowCreatedEvent)));
 
     }
 
+    /** @see #userTaskCompletedEvent(String, UserTaskCompletedEvent) */
     @Override
     public ResponseEntity<Void> workflowCancelledEvent(
             final String workflowId,
             final WorkflowCancelledEvent workflowCancelledEvent) {
 
-        final var workflow = workflowlistService.getWorkflow(workflowId);
-        if (workflow == null) {
-            return ResponseEntity.ok().build();
-        }
-
-        workflow.setEndedAt(
-                workflowCancelledEvent.getTimestamp());
-
         return okOrBadRequest(
-                workflowlistService.cancelWorkflow(
-                        workflow,
+                workflowlistService.reportEndedWorkflow(
+                        workflowId,
                         workflowCancelledEvent.getTimestamp(),
-                        workflowCancelledEvent.getComment()));
+                        workflow -> workflow.setComment(workflowCancelledEvent.getComment())));
 
     }
 
+    /** @see #userTaskCompletedEvent(String, UserTaskCompletedEvent) */
     @Override
     public ResponseEntity<Void> workflowCompletedEvent(
             final String workflowId,
             final WorkflowCompletedEvent workflowCompletedEvent) {
 
-        final var workflow = workflowlistService.getWorkflow(workflowId);
-        if (workflow == null) {
-            return ResponseEntity.ok().build();
-        }
-
-        workflow.setEndedAt(
-                workflowCompletedEvent.getTimestamp());
-
         return okOrBadRequest(
-                workflowlistService.completeWorkflow(
-                        workflow,
-                        workflowCompletedEvent.getTimestamp()));
+                workflowlistService.reportEndedWorkflow(
+                        workflowId,
+                        workflowCompletedEvent.getTimestamp(),
+                        // version 1 reports nothing about a completed case but that it completed
+                        workflow -> { }));
 
     }
 
@@ -165,17 +146,12 @@ public class BpmsApiController implements BpmsApi {
             final String workflowId,
             final WorkflowCreatedOrUpdatedEvent workflowUpdatedEvent) {
 
-        final var knownWorkflow = workflowlistService.getWorkflow(workflowId);
-        // see userTaskUpdatedEvent: an update of an unknown workflow creates it
-        if (knownWorkflow == null) {
-            return okOrBadRequest(
-                    workflowlistService.createWorkflow(
-                            workflowMapper.toNewWorkflow(workflowUpdatedEvent)));
-        }
-
         return okOrBadRequest(
-                workflowlistService.updateWorkflow(
-                        workflowMapper.toUpdatedWorkflow(workflowUpdatedEvent, knownWorkflow)));
+                workflowlistService.reportChangedWorkflow(
+                        workflowId,
+                        workflowUpdatedEvent.getTimestamp(),
+                        () -> workflowMapper.toNewWorkflow(workflowUpdatedEvent),
+                        workflow -> workflowMapper.toUpdatedWorkflow(workflowUpdatedEvent, workflow)));
 
     }
 

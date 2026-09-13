@@ -84,6 +84,66 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
 
     }
 
+    /**
+     * The outbox of a workflow module gives its entries no order, so the end of a case can reach the
+     * cockpit before the report that the case was started. The cockpit used to answer 200 and store
+     * nothing, and the creation arriving afterwards then left a case which was running for good.
+     */
+    @Test
+    void completionArrivingBeforeTheCreationLeavesAFinishedCase() {
+
+        final var workflowId = unique("workflow");
+        final var createdAt = OffsetDateTime.parse("2026-09-01T09:00:00Z");
+        final var endedAt = OffsetDateTime.parse("2026-09-01T09:30:00Z");
+
+        assertThat(bpmsV1_1("/workflow/" + workflowId + "/completed",
+                workflowPayload(workflowId, endedAt.toString(), "")).statusCode()).isEqualTo(200);
+        assertThat(bpmsV1_1("/workflow/created", workflowPayload(
+                workflowId,
+                createdAt.toString(),
+                """
+                "details": { "ride-request": "4711" }
+                """)).statusCode()).isEqualTo(200);
+
+        assertThat(workflowList(cookie, token, "Active")
+                .read("$.workflows[*].id", List.class)).isEmpty();
+
+        // and the creation filled in what the completion could not report
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(OffsetDateTime.parse(workflow.read("$.endedAt", String.class)).toInstant())
+                .isEqualTo(endedAt.toInstant());
+        assertThat(OffsetDateTime.parse(workflow.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(createdAt.toInstant());
+        assertThat(workflow.read("$.details['ride-request']", String.class)).isEqualTo("4711");
+
+    }
+
+    /**
+     * Two changes of one case can reach the cockpit the other way round, and what decides which of
+     * them the cockpit keeps is the timestamp of the event rather than the moment it arrived.
+     */
+    @Test
+    void anUpdateOlderThanTheStoredStateChangesNothing() {
+
+        final var workflowId = unique("workflow");
+        bpmsV1_1("/workflow/created", workflowPayload(
+                workflowId, OffsetDateTime.parse("2026-09-01T09:00:00Z").toString(), ""));
+
+        assertThat(bpmsV1_1("/workflow/" + workflowId + "/updated",
+                workflowPayload(workflowId, "2026-09-01T11:00:00Z", "")
+                        .replace("Ride request 4711", "Ride request 4711 as agreed"))
+                .statusCode()).isEqualTo(200);
+
+        assertThat(bpmsV1_1("/workflow/" + workflowId + "/updated",
+                workflowPayload(workflowId, "2026-09-01T10:00:00Z", "")
+                        .replace("Ride request 4711", "Ride request 4711 the old way"))
+                .statusCode()).isEqualTo(200);
+
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(workflow.read("$.title.en", String.class)).isEqualTo("Ride request 4711 as agreed");
+
+    }
+
     @Test
     void unknownWorkflowDetailAnswers404() {
 

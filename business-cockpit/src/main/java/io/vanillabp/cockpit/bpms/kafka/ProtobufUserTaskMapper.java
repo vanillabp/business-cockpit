@@ -55,6 +55,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -96,6 +98,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -132,6 +136,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
