@@ -134,10 +134,11 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
-  @DisplayName("What the details provider wrote into the aggregate is committed with the dispatch")
-  public void whatTheProviderWroteIsCommitted() {
+  @DisplayName("The platform saves nothing after a user-task details provider, and JPA writes the change anyway")
+  public void aUserTaskProviderIsNotSavedForByThePlatform() {
 
     final var aggregate = aStartedWorkflow();
+    PlatformSaves.forget();
 
     transactions
         .executeWithoutResult(status -> publisher
@@ -146,9 +147,43 @@ public class BusinessCockpitExtensionTest {
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
     CockpitServer.awaitRequest("/usertask/created");
+    assertFalse(
+        PlatformSaves.sawSaveOf(aggregate.getToken()),
+        "the platform saved the aggregate a details provider was handed");
+    // and the note the provider wrote is in the database all the same. The aggregate is a
+    // managed JPA object inside the dispatch's transaction, so Hibernate writes what changed on
+    // it when that transaction commits, asked for or not. This is what the test found, not a
+    // promise anybody makes: on this persistence a change in a provider still lands.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE,
         aggregates.findById(aggregate.getId()).orElseThrow().getNote());
+
+  }
+
+  @Test
+  @DisplayName("The platform saves nothing after a workflow details provider either")
+  public void aWorkflowProviderIsNotSavedForByThePlatform() {
+
+    final var aggregate = aStartedWorkflow();
+    PlatformSaves.forget();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                new WorkflowReference(
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                        .toString(), RecordingBpmsBridge.WORKFLOW_ID),
+                WorkflowEventKind.CREATED, "bpms-event-16", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    CockpitServer.awaitRequest("/workflow/created");
+    assertFalse(
+        PlatformSaves.sawSaveOf(aggregate.getToken()),
+        "the platform saved the aggregate a workflow details provider was handed");
+    // same result as for a user task: the write happens, and it happens because of JPA
+    assertEquals(
+        TestWorkflowService.WORKFLOW_NOTE,
+        aggregates.findById(aggregate.getId()).orElseThrow().getWorkflowNote());
 
   }
 
@@ -207,7 +242,7 @@ public class BusinessCockpitExtensionTest {
   public void aRefusedReportIsRetried() {
 
     final var aggregate = aStartedWorkflow();
-    CockpitServer.refuseNextRequests(1);
+    CockpitServer.refuseRequestsAbout("bpms-event-6", 1);
 
     transactions
         .executeWithoutResult(status -> publisher
@@ -215,7 +250,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-6",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitRequest("/usertask/created", "bpms-event-6");
     assertTrue(request.body().contains("bpms-event-6"), request.body());
 
   }

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.quarkus.it;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -15,6 +16,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class TestAggregatePersistence implements AggregatePersistenceAware<TestAggregate> {
 
   private final Map<Long, TestAggregate> aggregates = new ConcurrentHashMap<>();
+
+  private final Set<Long> saved = ConcurrentHashMap.newKeySet();
 
   private final AtomicLong ids = new AtomicLong();
 
@@ -32,8 +35,31 @@ public class TestAggregatePersistence implements AggregatePersistenceAware<TestA
     if (aggregate.getId() == null) {
       aggregate.setId(ids.incrementAndGet());
     }
+    saved.add(aggregate.getId());
     aggregates.put(aggregate.getId(), aggregate);
     return aggregate;
+
+  }
+
+  /**
+   * Starts a fresh record of the saves, so that the save of a test's setup is not mistaken for
+   * one of the run under test.
+   */
+  public void forgetSaves() {
+
+    saved.clear();
+
+  }
+
+  /**
+   * @param id The aggregate asked about
+   * @return Whether somebody asked this persistence to save it since the last
+   *         {@link #forgetSaves()}
+   */
+  public boolean sawSaveOf(
+      final Long id) {
+
+    return saved.contains(id);
 
   }
 

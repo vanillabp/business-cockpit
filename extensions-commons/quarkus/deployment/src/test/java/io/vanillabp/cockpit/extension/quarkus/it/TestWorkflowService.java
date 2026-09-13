@@ -29,6 +29,9 @@ public class TestWorkflowService {
   /** What the provider matched by the task definition writes into the aggregate. */
   public static final String APPROVE_NOTE = "approved by the details provider";
 
+  /** What the provider of the workflow writes into the aggregate. */
+  public static final String WORKFLOW_NOTE = "seen by the workflow details provider";
+
   @Inject
   ProcessService<TestAggregate> processService;
 
@@ -100,6 +103,7 @@ public class TestWorkflowService {
       final TestAggregate aggregate,
       final PrefilledWorkflowDetails prefilled) {
 
+    aggregate.setWorkflowNote(WORKFLOW_NOTE);
     prefilled.setDetails(Map.of("customer", aggregate.getCustomer()));
     prefilled.setComment("workflow of "
         + aggregate.getCustomer());

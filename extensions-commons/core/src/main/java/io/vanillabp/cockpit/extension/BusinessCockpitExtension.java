@@ -533,7 +533,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var event = buildUserTaskEvent(
         userTask, UserTaskEventKind.UPDATED, UUID.randomUUID().toString(), OffsetDateTime.now());
     applyPrefill(event, prefill.get());
-    invokeUserTaskDetailsProvider(event, userTask, prefill.get(), false);
+    invokeUserTaskDetailsProvider(event, userTask, prefill.get());
     fillTitles(event, prefill.get());
     return Optional.of(event);
 
@@ -601,7 +601,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         return;
       }
       applyPrefill(event, prefill.get());
-      invokeUserTaskDetailsProvider(event, userTask, prefill.get(), true);
+      invokeUserTaskDetailsProvider(event, userTask, prefill.get());
       fillTitles(event, prefill.get());
     }
 
@@ -651,6 +651,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                       workflow.bpmnProcessId())
                   .workflowAggregateId(workflow.workflowAggregateId())
                   .payload(event)
+                  // read, do not write: see invokeUserTaskDetailsProvider
+                  .withoutSavingTheWorkflowAggregate()
                   .build());
       returned
           .map(WorkflowDetails.class::cast)
@@ -717,11 +719,17 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Runs the application's <code>&#64;UserTaskDetailsProvider</code>, if it has one.
+   * <p>
+   * The aggregate is there to be read. The platform does not save it afterwards, whichever way
+   * the provider was reached, because a provider is a question about what to report and not an
+   * instruction to change the case - see decision 17 in the repository's DECISIONS.md.
+   */
   private void invokeUserTaskDetailsProvider(
       final UserTaskEvent event,
       final UserTaskReference userTask,
-      final UserTaskDetailsPrefill prefill,
-      final boolean savingTheWorkflowAggregate) {
+      final UserTaskDetailsPrefill prefill) {
 
     final var call = HandlerCall
         .of(
@@ -745,9 +753,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
           }
         });
     prefill.multiInstances().forEach(call::multiInstance);
-    if (!savingTheWorkflowAggregate) {
-      call.withoutSavingTheWorkflowAggregate();
-    }
+    call.withoutSavingTheWorkflowAggregate();
     handlers
         .invoke(call.build())
         .map(UserTaskDetails.class::cast)
