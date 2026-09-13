@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.commons.rest.adapter;
 
 import tools.jackson.databind.json.JsonMapper;
+import feign.DefaultRetryer;
 import feign.Feign.Builder;
 import feign.Request;
 import feign.Retryer;
@@ -83,7 +84,7 @@ public abstract class ClientsConfigurationBase {
             
         }
         
-        builder.retryer(new Retryer.Default(
+        builder.retryer(new DefaultRetryer(
                 retryProperties.getPeriod().toMillis(),
                 retryProperties.getMaxPeriod().toMillis(),
                 retryProperties.getMaxAttempts()));

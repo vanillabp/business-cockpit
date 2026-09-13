@@ -4,27 +4,23 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
 import io.vanillabp.cockpit.gui.api.v1.GuiSseProperties;
 import java.util.Locale;
 import java.util.Map;
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.lang.NonNull;
 
 @ConfigurationProperties(prefix = "business-cockpit", ignoreUnknownFields = true)
 public class ApplicationProperties {
 
     private GuiSseProperties guiSse = new GuiSseProperties();
 
-    @NonNull
-    private String titleShort;
+    private @NonNull String titleShort;
     
-    @NonNull
-    private String titleLong;
+    private @NonNull String titleLong;
     
-    @NonNull
-    private String applicationVersion;
+    private @NonNull String applicationVersion;
 
     private String buildTimestamp;
     
-    @NonNull
-    private String applicationUri;
+    private @NonNull String applicationUri;
 
     private JwtProperties jwt = new JwtProperties();
 

@@ -43,7 +43,7 @@ public class RestfulExceptionHandler {
         logger.debug("Unprocessable entity", exception);
 
         return ResponseEntity
-                .unprocessableEntity()
+                .unprocessableContent()
                 .body(exception.getMessage());
 
     }
