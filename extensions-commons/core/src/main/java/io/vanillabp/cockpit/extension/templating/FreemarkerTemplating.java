@@ -18,6 +18,7 @@ import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateNotFoundException;
 import freemarker.template.Version;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 
 /**
  * {@link Templating} on Freemarker, configured the way the Business Cockpit needs it.
@@ -34,26 +35,14 @@ public class FreemarkerTemplating implements Templating {
 
   private static final Version FREEMARKER_VERSION = Configuration.VERSION_2_3_34;
 
-  /** What a template loader path starts with to be read from the classpath. */
-  static final String CLASSPATH_PREFIX = "classpath:";
-
-  /**
-   * What version 1 wrote for a classpath location which is to be searched in the jars of the
-   * workflow modules as well. Freemarker asks the class loader per template, which searches
-   * every jar anyway, so both spellings load the same templates.
-   */
-  static final String EVERY_CLASSPATH_PREFIX = "classpath*:";
-
-  /** What a template loader path starts with to be read from the file system. */
-  static final String FILE_PREFIX = "file:";
-
   private final Configuration configuration;
 
   /**
-   * @param templateLoaderPath Where templates are loaded from: a directory of the file system,
-   *          written plainly or with <code>file:</code> in front of it, or a directory of the
-   *          classpath, written with <code>classpath:</code> or <code>classpath*:</code> in
-   *          front of it - the spellings version 1 accepted
+   * @param templateLoaderPath Where templates are loaded from: a directory of the classpath,
+   *          written with <code>classpath:</code> or <code>classpath*:</code> in front of it, or
+   *          one of the file system, written with <code>file:</code> in front of it. The
+   *          configuration check refuses a directory without one of the prefixes, so a path which
+   *          gets here has already said where it is
    * @throws IllegalStateException If the location cannot be read - which is a configuration
    *           defect and is reported at startup, not at the first event
    */
@@ -61,27 +50,26 @@ public class FreemarkerTemplating implements Templating {
       final String templateLoaderPath) {
 
     this(newConfiguration());
-    if (templateLoaderPath.startsWith(CLASSPATH_PREFIX) || templateLoaderPath
-        .startsWith(EVERY_CLASSPATH_PREFIX)) {
+    if (templateLoaderPath.startsWith(Templating.CLASSPATH_PREFIX) || templateLoaderPath
+        .startsWith(Templating.EVERY_CLASSPATH_PREFIX)) {
       configuration
           .setTemplateLoader(
               new ClassTemplateLoader(
                   FreemarkerTemplating.class.getClassLoader(), classpathBase(templateLoaderPath)));
       return;
     }
-    final var directory = templateLoaderPath.startsWith(FILE_PREFIX)
-        ? templateLoaderPath.substring(FILE_PREFIX.length())
-        : templateLoaderPath;
+    final var directory = templateLoaderPath.substring(Templating.FILE_PREFIX.length());
     try {
       configuration.setDirectoryForTemplateLoading(new File(directory));
     } catch (final IOException e) {
       throw new IllegalStateException(
           """
               The directory '%s' configured as the Business Cockpit's template loader path cannot \
-              be read. Point the property at a directory holding the templates - a directory of \
-              the file system, or one of the classpath written as 'classpath:my-templates' -, or \
-              remove it and let the cockpit report the names written in the BPMN."""
-              .formatted(directory), e);
+              be read. Point '%s' at a directory holding the templates, or remove it and let the \
+              cockpit report the names written in the BPMN."""
+              .formatted(
+                  directory,
+                  ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH)), e);
     }
 
   }

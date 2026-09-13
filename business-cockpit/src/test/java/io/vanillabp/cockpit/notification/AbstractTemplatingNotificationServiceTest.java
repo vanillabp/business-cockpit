@@ -1,15 +1,22 @@
 package io.vanillabp.cockpit.notification;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 
 @ExtendWith(SuppressOutputExtension.class)
 class AbstractTemplatingNotificationServiceTest {
@@ -69,10 +76,18 @@ class AbstractTemplatingNotificationServiceTest {
     }
 
     private TestNotificationService service() {
-        // resolve the template path of this medium explicitly to the test template directory
+        return service("classpath:templates/notification/test-medium/");
+    }
+
+    /** A medium whose templates are configured to come from the given directory. */
+    private TestNotificationService service(final String templateDirectory) {
         final var properties = new NotificationProperties();
-        properties.setTemplates(Map.of("test-medium", "templates/notification/test-medium/"));
-        return new TestNotificationService(properties);
+        properties.setTemplates(Map.of("test-medium", templateDirectory));
+        final var service = new TestNotificationService(properties);
+        // outside Spring nobody calls the annotated method, and what it refuses is what these
+        // tests are about
+        service.checkTheTemplateDirectory();
+        return service;
     }
 
     @Test
@@ -157,13 +172,97 @@ class AbstractTemplatingNotificationServiceTest {
     }
 
     @Test
-    void render_missingTemplate_returnsNull() {
+    void render_missingTemplate_returnsNull(final CapturedOutput output) {
         assertNull(service().render(
                 "does-not-exist",
                 Map.of("greeting", "hi"),
                 userDetails(),
                 NotificationType.CREATED,
                 false));
+
+        // the operator reads the directory the way they wrote it, prefix included
+        assertTrue(
+                output.getAll().contains("classpath:templates/notification/test-medium/"),
+                output.getAll());
+    }
+
+    @Test
+    void templatesPath_defaultsToTheDeliveredTemplatesOnTheClasspath() {
+        assertEquals(
+                "classpath:templates/notification/email/",
+                new NotificationProperties().templatesPath("email"));
+    }
+
+    @Test
+    void checkTheTemplateDirectory_refusesAPathWhichDoesNotSayWhereItIs() {
+        final var failure = assertThrows(
+                IllegalStateException.class,
+                () -> service("notification-templates"));
+
+        final var message = failure.getMessage();
+        assertTrue(message.contains("business-cockpit.notification.templates.test-medium"), message);
+        assertTrue(message.contains("'classpath:notification-templates'"), message);
+        assertTrue(message.contains("'file:notification-templates'"), message);
+    }
+
+    @Test
+    void checkTheTemplateDirectory_refusesADirectoryItCannotRead(@TempDir final Path directory) {
+        final var missing = directory.resolve("nowhere");
+
+        final var failure = assertThrows(
+                IllegalStateException.class,
+                () -> service("file:" + missing));
+
+        final var message = failure.getMessage();
+        assertTrue(message.contains("business-cockpit.notification.templates.test-medium"), message);
+        assertTrue(message.contains(missing.toString()), message);
+        assertTrue(message.contains("classpath:"), message);
+    }
+
+    @Test
+    void render_readsTemplatesFromADirectoryOfTheFileSystem(@TempDir final Path directory)
+            throws Exception {
+        Files.writeString(
+                directory.resolve("probe.ftl"),
+                "from the file system: ${greeting}");
+
+        final var rendered = service("file:" + directory).render(
+                "probe",
+                Map.of("greeting", "hi"),
+                userDetails(),
+                NotificationType.CREATED,
+                false);
+
+        assertEquals("from the file system: hi", rendered);
+    }
+
+    @Test
+    void render_readsAChangedTemplateAgainWithoutARestart(@TempDir final Path directory)
+            throws Exception {
+        final var template = directory.resolve("probe.ftl");
+        Files.writeString(template, "first wording: ${greeting}");
+        final var service = service("file:" + directory);
+        assertEquals(
+                "first wording: hi",
+                service.render("probe", Map.of("greeting", "hi"), userDetails(),
+                        NotificationType.CREATED, false));
+
+        Files.writeString(template, "second wording: ${greeting}");
+
+        // Freemarker looks at the file again once its update delay has passed, which is five
+        // seconds by default and which the cockpit does not change. So the operator who edits a
+        // mail waits seconds rather than a deployment, and this test waits with them.
+        final var deadline = System.currentTimeMillis() + Duration.ofSeconds(30).toMillis();
+        String rendered = null;
+        while (System.currentTimeMillis() < deadline) {
+            rendered = service.render("probe", Map.of("greeting", "hi"), userDetails(),
+                    NotificationType.CREATED, false);
+            if ("second wording: hi".equals(rendered)) {
+                return;
+            }
+            Thread.sleep(250);
+        }
+        assertEquals("second wording: hi", rendered, "the changed template was never re-read");
     }
 
 }

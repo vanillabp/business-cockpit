@@ -7,7 +7,12 @@ import freemarker.template.Template;
 import freemarker.template.TemplateNotFoundException;
 import freemarker.template.Version;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import jakarta.annotation.PostConstruct;
+import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,12 +24,21 @@ import org.slf4j.LoggerFactory;
  * Base class for {@link NotificationService} implementations that render their message from
  * Freemarker templates (AC tech 2). Medium-agnostic: an SMS/Teams/... medium can reuse it.
  * <p>
- * Templates are looked up on the classpath under the directory resolved from
- * {@code business-cockpit.notification.<type>.templates} (default
- * {@code templates/notification/<type>/}). The rendering approach mirrors
- * the way the version 1 adapters rendered text. That code has left this repository, so the
- * approach is written out here: a Freemarker {@link Configuration} with a {@link Java8ObjectWrapper} exposed at
- * {@code EXPOSE_SAFE} (required so Java record component accessors become template properties).
+ * Templates are looked up under the directory resolved from
+ * {@code business-cockpit.notification.templates.<type>} (default
+ * {@code classpath:templates/notification/<type>/}). The value says where the directory is:
+ * {@code classpath:} for one built into the application, {@code file:} for one of the file system,
+ * which is what lets an operator change the wording of a mail without a new build. A value which
+ * says neither ends the boot of that medium, so nothing is guessed.
+ * <p>
+ * A template read from the file system is re-read while the cockpit runs. Freemarker checks the file
+ * again once its own update delay has passed, which is five seconds by default, and there is no
+ * setting of the cockpit's for it.
+ * <p>
+ * The rendering approach mirrors the way the version 1 adapters rendered text. That code has left
+ * this repository, so the approach is written out here: a Freemarker {@link Configuration} with a
+ * {@link Java8ObjectWrapper} exposed at {@code EXPOSE_SAFE} (required so Java record component
+ * accessors become template properties).
  */
 public abstract class AbstractTemplatingNotificationService implements NotificationService {
 
@@ -53,6 +67,59 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
             final NotificationProperties notificationProperties) {
 
         this.notificationProperties = notificationProperties;
+
+    }
+
+    /**
+     * Checks the template directory of this medium while the cockpit starts, rather than when the
+     * first notification is due. It runs for an enabled medium only, because an instance of this
+     * class is what an enabled medium is.
+     *
+     * @throws IllegalStateException if the configured directory does not say where it is, or if it
+     *                               is a directory of the file system which cannot be read
+     */
+    @PostConstruct
+    void checkTheTemplateDirectory() {
+
+        final var directory = notificationProperties.templatesPath(getType());
+        if (!saysWhereItIs(directory)) {
+            throw new IllegalStateException("""
+                    '%s' is set to '%s', and that says nothing about where the directory is. Write \
+                    the place in front of it: '%s%s' for a directory of the classpath, or '%s%s' \
+                    for one of the file system."""
+                    .formatted(
+                            NotificationProperties.templatesKey(getType()), directory,
+                            NotificationProperties.CLASSPATH_PREFIX, directory,
+                            NotificationProperties.FILE_PREFIX, directory));
+        }
+        if (!directory.startsWith(NotificationProperties.FILE_PREFIX)) {
+            return;
+        }
+        final var path = Path.of(directory.substring(NotificationProperties.FILE_PREFIX.length()));
+        if (!Files.isDirectory(path) || !Files.isReadable(path)) {
+            throw new IllegalStateException("""
+                    '%s' points at '%s', which is no directory this cockpit can read. Point it at \
+                    the directory holding the %s templates, or write '%s' in front of the path to \
+                    read them from the classpath instead."""
+                    .formatted(
+                            NotificationProperties.templatesKey(getType()), path, getType(),
+                            NotificationProperties.CLASSPATH_PREFIX));
+        }
+
+    }
+
+    /**
+     * @param directory a configured template directory
+     * @return whether it says where it is. {@code classpath*:} is the spelling a workflow module may
+     *         write for the templates of its titles, and it is accepted here so that one value means
+     *         one thing on both sides of the cockpit
+     */
+    private static boolean saysWhereItIs(
+            final String directory) {
+
+        return directory.startsWith(NotificationProperties.CLASSPATH_PREFIX)
+                || directory.startsWith(NotificationProperties.EVERY_CLASSPATH_PREFIX)
+                || directory.startsWith(NotificationProperties.FILE_PREFIX);
 
     }
 
@@ -187,6 +254,19 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
 
     }
 
+    /**
+     * @param directory a classpath template directory as it was configured
+     * @return the package-style base path the class loader wants: without the prefix, and without
+     *         the leading and trailing slashes Freemarker adds itself
+     */
+    private static String classpathBase(
+            final String directory) {
+
+        final var base = directory.substring(directory.indexOf(':') + 1);
+        return base.replaceAll("^/+", "").replaceAll("/+$", "");
+
+    }
+
     private Configuration buildConfiguration() {
 
         final var config = new Configuration(FREEMARKER_VERSION);
@@ -194,15 +274,21 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
         config.setRecognizeStandardFileExtensions(true);
         config.setDefaultEncoding("UTF-8");
 
-        var basePath = notificationProperties.templatesPath(getType());
-        // ClassLoader-based lookup wants a package-style base path without a leading slash
-        if (basePath.startsWith("/")) {
-            basePath = basePath.substring(1);
+        final var directory = notificationProperties.templatesPath(getType());
+        if (directory.startsWith(NotificationProperties.FILE_PREFIX)) {
+            final var path = directory.substring(NotificationProperties.FILE_PREFIX.length());
+            try {
+                config.setDirectoryForTemplateLoading(new File(path));
+            } catch (final IOException e) {
+                // the boot already refused an unreadable directory, so this is one which stopped
+                // being readable while the cockpit ran
+                throw new IllegalStateException(
+                        "The %s notification templates cannot be read from '%s' any more"
+                                .formatted(getType(), path), e);
+            }
+        } else {
+            config.setClassLoaderForTemplateLoading(getClass().getClassLoader(), classpathBase(directory));
         }
-        if (basePath.endsWith("/")) {
-            basePath = basePath.substring(0, basePath.length() - 1);
-        }
-        config.setClassLoaderForTemplateLoading(getClass().getClassLoader(), basePath);
 
         final var objectWrapper = new Java8ObjectWrapper(FREEMARKER_VERSION);
         // EXPOSE_SAFE promotes Java record accessors to template properties (Freemarker 2.3.33+).

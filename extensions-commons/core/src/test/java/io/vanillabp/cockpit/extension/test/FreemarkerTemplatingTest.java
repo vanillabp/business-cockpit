@@ -69,12 +69,9 @@ public class FreemarkerTemplatingTest {
   }
 
   @Test
-  @DisplayName("Templates are loaded from a directory, written with and without 'file:'")
+  @DisplayName("Templates are loaded from a directory of the file system")
   public void templatesAreLoadedFromADirectory() {
 
-    assertEquals(
-        "Approve order 4711",
-        rendered(new FreemarkerTemplating(templateDirectory().toString())));
     assertEquals(
         "Approve order 4711",
         rendered(new FreemarkerTemplating("file:"
@@ -83,14 +80,19 @@ public class FreemarkerTemplatingTest {
   }
 
   @Test
-  @DisplayName("A directory which does not exist is refused with a message naming it")
+  @DisplayName("A directory which does not exist is refused, naming it and the key")
   public void aMissingDirectoryIsRefused() {
 
     final var failure = assertThrows(
         IllegalStateException.class,
-        () -> new FreemarkerTemplating(templateDirectory().resolve("nowhere").toString()));
+        () -> new FreemarkerTemplating(
+            "file:"
+                + templateDirectory().resolve("nowhere")));
 
     assertTrue(failure.getMessage().contains("nowhere"), failure.getMessage());
+    assertTrue(
+        failure.getMessage().contains("vanillabp.cockpit.template-loader-path"),
+        failure.getMessage());
 
   }
 

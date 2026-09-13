@@ -15,6 +15,39 @@ import java.util.Optional;
  */
 public interface Templating {
 
+  /**
+   * What a template directory starts with to be read from the classpath.
+   * <p>
+   * A configured directory says where it is, and the two prefixes are how it says so. Neither is a
+   * default, because the same text meant the classpath on this side of the cockpit and the file
+   * system on the other, and guessing which one an application meant is what this rule ends.
+   */
+  String CLASSPATH_PREFIX = "classpath:";
+
+  /**
+   * What version 1 wrote for a classpath directory which is to be searched in the jars of the
+   * workflow modules as well. Freemarker asks the class loader per template, which searches every
+   * jar anyway, so both spellings load the same templates.
+   */
+  String EVERY_CLASSPATH_PREFIX = "classpath*:";
+
+  /** What a template directory starts with to be read from the file system. */
+  String FILE_PREFIX = "file:";
+
+  /**
+   * Whether a configured template directory says where it is.
+   *
+   * @param templateDirectory What the application configured
+   * @return Whether it carries one of the prefixes
+   */
+  static boolean saysWhereItIs(
+      final String templateDirectory) {
+
+    return templateDirectory.startsWith(CLASSPATH_PREFIX) || templateDirectory
+        .startsWith(EVERY_CLASSPATH_PREFIX) || templateDirectory.startsWith(FILE_PREFIX);
+
+  }
+
   /** The template of a workflow's title, looked up per language. */
   String WORKFLOW_TITLE = "workflow-title.ftl";
 

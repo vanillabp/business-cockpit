@@ -267,7 +267,7 @@ public class BusinessCockpitConfigurationTest {
     final var withTemplates = ConfigurationFixture
         .aConfiguredApplication()
         .withoutWorkflowModule("bpmn-description-language")
-        .with("template-loader-path", "/tmp/templates");
+        .with("template-loader-path", "file:/tmp/templates");
     assertNull(
         read(withTemplates, true)
             .workflowModule(ConfigurationFixture.WORKFLOW_MODULE)
@@ -280,10 +280,42 @@ public class BusinessCockpitConfigurationTest {
   public void templatePathWithoutAnEngineIsReported() {
 
     final var defects = defectsOf(
-        ConfigurationFixture.aConfiguredApplication().with("template-loader-path", "/tmp"),
+        ConfigurationFixture.aConfiguredApplication().with("template-loader-path", "file:/tmp"),
         false);
 
     assertTrue(defects.contains("org.freemarker:freemarker"), defects);
+
+  }
+
+  @Test
+  @DisplayName("A template directory without a prefix is refused, showing both and the value")
+  public void aTemplateDirectoryWithoutItsPlaceIsRefused() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("template-loader-path", "notification-templates"),
+        true);
+
+    assertTrue(defects.contains("vanillabp.cockpit.template-loader-path"), defects);
+    assertTrue(defects.contains("'classpath:notification-templates'"), defects);
+    assertTrue(defects.contains("'file:notification-templates'"), defects);
+
+  }
+
+  @Test
+  @DisplayName("Both classpath spellings and the file one are accepted")
+  public void everySpellingOfATemplateDirectoryIsAccepted() {
+
+    for (final var templateDirectory : List
+        .of("classpath:templates", "classpath*:/templates/", "file:/tmp/templates")) {
+      final var configuration = read(
+          ConfigurationFixture
+              .aConfiguredApplication()
+              .with("template-loader-path", templateDirectory),
+          true);
+      assertEquals(templateDirectory, configuration.getTemplateLoaderPath());
+    }
 
   }
 

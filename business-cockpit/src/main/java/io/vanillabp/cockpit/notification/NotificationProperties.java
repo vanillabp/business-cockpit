@@ -13,6 +13,19 @@ public class NotificationProperties {
 
     public static final String PREFIX = "business-cockpit.notification";
 
+    /** What a template directory starts with to be read from the classpath. */
+    public static final String CLASSPATH_PREFIX = "classpath:";
+
+    /**
+     * The classpath spelling a workflow module may write for the templates of its titles, kept here
+     * so that the same value means the same thing on both sides of the cockpit. Every jar is
+     * searched either way, because the class loader is asked per template.
+     */
+    public static final String EVERY_CLASSPATH_PREFIX = "classpath*:";
+
+    /** What a template directory starts with to be read from the file system. */
+    public static final String FILE_PREFIX = "file:";
+
     /**
      * Interval at which notifiable user task changes are determined and sent (AC tech 4).
      */
@@ -41,18 +54,23 @@ public class NotificationProperties {
     private Smtp smtp = new Smtp();
 
     /**
-     * Freemarker template classpath directory per medium type. Defaults to
-     * {@code templates/notification/<type>/} when no explicit path is configured
+     * Freemarker template directory per medium type, written with {@code classpath:} or
+     * {@code file:} in front of it. Defaults to
+     * {@code classpath:templates/notification/<type>/} when no path is configured
      * (see {@link #templatesPath(String)}).
      */
     private Map<String, String> templates = new HashMap<>();
 
     /**
-     * Resolves the template classpath directory for a medium type, defaulting to
-     * {@code templates/notification/<type>/}.
+     * Resolves the template directory of a medium type, defaulting to
+     * {@code classpath:templates/notification/<type>/}, which is where the delivered templates are.
+     * <p>
+     * A configured value carries its own prefix, and
+     * {@link AbstractTemplatingNotificationService} ends the boot of an enabled medium whose value
+     * carries none. So the string this returns always says where the directory is.
      *
      * @param type the medium type (e.g. {@code "email"})
-     * @return the classpath directory holding the medium's templates
+     * @return the directory holding the medium's templates, as it was configured
      */
     public String templatesPath(final String type) {
 
@@ -60,7 +78,18 @@ public class NotificationProperties {
         if (configured != null) {
             return configured;
         }
-        return "templates/notification/" + type + "/";
+        return CLASSPATH_PREFIX + "templates/notification/" + type + "/";
+
+    }
+
+    /**
+     * @param type the medium type (e.g. {@code "email"})
+     * @return the property key naming that medium's template directory, for a message which asks
+     *         the operator to change it
+     */
+    public static String templatesKey(final String type) {
+
+        return PREFIX + ".templates." + type;
 
     }
 
