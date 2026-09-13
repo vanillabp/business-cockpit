@@ -16,6 +16,7 @@ import io.vanillabp.cockpit.extension.springboot.bridges.BridgesOfASecondBpms;
 import io.vanillabp.cockpit.extension.springboot.broken.BrokenApplication;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
+import io.vanillabp.cockpit.extension.springboot.brokenparts.TwoMethodsForEveryUserTaskService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
 import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -23,10 +24,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the application is told while it starts.
  * <p>
- * Two of these boots are meant to fail: a defect the extension can see at startup is refused
+ * Most of these boots are meant to fail: a defect the extension can see at startup is refused
  * there and not when the first event arrives, and the message names the method to change. The
- * third is meant to succeed although the cockpit server is unreachable - a workflow module which
- * cannot start because a reporting server is down would be the worse failure of the two.
+ * last one is meant to succeed although the cockpit server is unreachable - a workflow module
+ * which cannot start because a reporting server is down would be the worse failure of the two.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -132,6 +133,20 @@ public class BusinessCockpitBootTest {
 
     assertTrue(message.contains("approve"), message);
     assertTrue(message.contains(TwiceServingProviderService.class.getSimpleName()), message);
+
+  }
+
+  @Test
+  @DisplayName("Two details providers claiming every user task are refused, naming both")
+  public void twoProvidersOfEveryUserTaskAreRefused() {
+
+    final var message = failureOfBooting(
+        "cockpit-broken-every-task", BrokenApplication.class,
+        TwoMethodsForEveryUserTaskService.class);
+
+    assertTrue(message.contains("everyTaskByItsTaskDefinition"), message);
+    assertTrue(message.contains("everyTaskByItsElementId"), message);
+    assertTrue(message.contains(TwoMethodsForEveryUserTaskService.class.getSimpleName()), message);
 
   }
 
