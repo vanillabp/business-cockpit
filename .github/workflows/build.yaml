@@ -4,12 +4,22 @@ on:
   pull_request:
   workflow_dispatch:
 
-# a group of its own, apart from the publish workflow: this build runs 'install'
-# and uploads nothing, so it cannot overwrite an artifact a publish run wrote and
-# has no reason to wait behind one. Pull-request builds still run one at a time
-# among themselves, queued and never cancelled.
+# A group per pull request. GitHub keeps at most one waiting run per group, and a
+# newer run takes the place of the one that waits. The replaced run ends as
+# 'cancelled' without ever starting a job, so the pull request is left with no
+# build result and nothing says that a result is missing. Every cancelled run this
+# workflow ever had is of that kind: 24 by 2026-09-13, not one of them with a job.
+# Run 34644153553 was the build of the story branch feature/233-switch-to-0-9-0.
+# 'cancel-in-progress: false' does not help, because it only protects the run which
+# is already running.
+#
+# With the ref in the group name, a build waits only for another build of the same
+# pull request, and there the newest commit is the one which keeps its run. Builds
+# of different pull requests run beside each other, which is safe because this
+# build runs 'install' and uploads nothing. The publish workflow keeps its
+# repository-wide group, where two runs really do overwrite each other's snapshot.
 concurrency:
-  group: business-cockpit-pr-build
+  group: business-cockpit-pr-build-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

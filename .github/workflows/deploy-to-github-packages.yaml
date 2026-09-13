@@ -6,9 +6,15 @@ on:
       - 'release/**'
       - 'feature/wip-**'
 # snapshot artifacts share their coordinates across branches, so two runs
-# publishing at the same time overwrite each other. One publish at a time,
-# queued and never cancelled. The pull-request build sits in a group of its own
-# because it publishes nothing.
+# publishing at the same time overwrite each other. One publish at a time, and the
+# run which is already running is never cancelled. A run which is still waiting can
+# be taken out by a newer one, because GitHub keeps at most one waiting run per
+# group. As long as the newer run carries the newer state of the same branch, that
+# is what should happen anyway. A push to a branch can take out a waiting publish of
+# main as well, and then main's newest state stays unpublished until somebody pushes
+# again. That is what happened to run 34750580160 on 2026-09-13 at 09:56. The
+# pull-request build sits in a group of its own, one per pull request, because it
+# publishes nothing.
 concurrency:
   group: business-cockpit-build
   cancel-in-progress: false
