@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.tasklist;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
-import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
@@ -773,16 +773,16 @@ public class UserTaskService {
         task.setReadBy(stored.getReadBy());
         task.setLatestEventAt(stored.getLatestEventAt());
         // what an end could not report about the task is what this report is here for, and the other
-        // way round an end which did report it has the younger answer: DetailsOfAnEnd either way
+        // way round an end which did report it has the younger answer, so the same rule decides
+        // both ways round
         task.setDetails(
-                DetailsOfAnEnd.whatToStore(stored.getDetails(), task.getDetails()));
+                WhatAnEndReports.whatToStore(stored.getDetails(), task.getDetails()));
         task.setDetailsFulltextSearch(
-                DetailsOfAnEnd.whatToStore(stored.getDetailsFulltextSearch(), task.getDetailsFulltextSearch()));
+                WhatAnEndReports.whatToStore(stored.getDetailsFulltextSearch(), task.getDetailsFulltextSearch()));
         // the cockpit reported this task when the end arrived, so its own clock reading stands
         task.setReportedAt(stored.getReportedAt());
         // the candidates this report brings along become known to the cockpit now
         task.stampCandidatesSince(OffsetDateTime.now());
-        keepSortableByDueDate(task);
         return save(task);
 
     }
@@ -903,7 +903,14 @@ public class UserTaskService {
 
     /**
      * The task list is sorted by the due date, so a task without one needs a reading which sorts
-     * behind every real date rather than an empty field.
+     * behind every real date rather than an empty field. MongoDB sorts an empty field to the front
+     * of an ascending list, which would put the tasks nobody set a date for ahead of the ones which
+     * are almost late.
+     * <p>
+     * Every report the cockpit stores passes here, so a workflow module cannot leave a stored task
+     * without a reading: not by reporting a change of a task whose due date the process removed, and
+     * not by ending a task, which keeps the date it does not report. The reading is an internal one
+     * and the GUI mapper turns it back into an empty date.
      */
     private static void keepSortableByDueDate(
             final UserTask userTask) {
@@ -919,8 +926,6 @@ public class UserTaskService {
             final UserTask userTask,
             final OffsetDateTime eventTimestamp) {
 
-        keepSortableByDueDate(userTask);
-
         // the cockpit's own clock: 'createdAt' is the reporting system's timestamp and may lag
         // behind (or run ahead of) this one, which would break delta-scanning for notifications
         final var reportedAt = OffsetDateTime.now();
@@ -935,6 +940,8 @@ public class UserTaskService {
 
     private boolean save(
             final UserTask userTask) {
+
+        keepSortableByDueDate(userTask);
 
         try {
             userTasks.save(userTask);
