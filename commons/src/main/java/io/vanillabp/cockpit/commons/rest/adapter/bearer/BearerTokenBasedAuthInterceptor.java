@@ -1,6 +1,5 @@
 package io.vanillabp.cockpit.commons.rest.adapter.bearer;
 
-import java.util.Date;
 import java.util.List;
 
 import feign.FeignException;
@@ -42,7 +41,9 @@ public abstract class BearerTokenBasedAuthInterceptor extends ClientsConfigurati
                     response.status(),
                     response.reason(),
                     response.request().httpMethod(),
-                    new Date(),
+                    // the moment Feign may retry, in epoch millis: now, because all the
+                    // retry needs is a token which has not expired yet
+                    System.currentTimeMillis(),
                     response.request());
 
         }
