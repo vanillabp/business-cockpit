@@ -8,13 +8,16 @@ import static org.mockito.Mockito.when;
 
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The v1 ingress builds the assignee the same way v1.1 does, so it has to leave an absent assignee
  * absent as well instead of storing a person carrying a null id.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class UserTaskMapperAssigneeTest {
 
     private UserTaskMapper mapper;

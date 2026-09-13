@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vanillabp.cockpit.notification.NotificationProperties;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.YamlPropertySourceLoader;
@@ -25,6 +27,7 @@ import org.springframework.util.StringUtils;
  * {@link EmailNotificationConfiguration} bean, and {@code spring.mail.host} makes Spring Boot
  * auto-configure the {@code JavaMailSender} that bean requires.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class MailpitProfileTest {
 
     private static StandardEnvironment profile() throws IOException {

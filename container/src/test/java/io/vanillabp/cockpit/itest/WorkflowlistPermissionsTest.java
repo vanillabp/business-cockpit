@@ -3,11 +3,13 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The reference application shows a user the workflows addressed to them, and the rules it applies
@@ -29,6 +31,8 @@ import org.junit.jupiter.api.Test;
  *       not see as unknown.
  * </ol>
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class WorkflowlistPermissionsTest extends ItestBase {
 
     /** Registrations need a URI, but no test here follows the proxy route to it. */

@@ -7,11 +7,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -22,6 +24,7 @@ import org.springframework.mock.env.MockEnvironment;
  * property name to add and an example of a value. Nothing here asserts on wording beyond that, so
  * the texts stay free to improve.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class StartupConfigurationCheckTest {
 
     /**

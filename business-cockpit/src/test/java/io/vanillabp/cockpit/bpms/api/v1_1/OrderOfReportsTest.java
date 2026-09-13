@@ -23,6 +23,7 @@ import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
@@ -43,6 +45,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * followed it. Every test here drives the REST ingress of the current API version, because the guard
  * has to hold for what a mapper produces and not only for what a service is handed.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class OrderOfReportsTest {
 
     private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-09-11T08:00:00Z");

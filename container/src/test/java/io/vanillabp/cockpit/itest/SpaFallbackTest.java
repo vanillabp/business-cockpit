@@ -2,9 +2,11 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A deep link into the single-page application is a path only the browser-side router knows. The
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.Test;
  * <p>The shell used here is the stand-in in {@code src/test/resources/static/index.html}; the real
  * one is produced by the webapp build, which this build does not run.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class SpaFallbackTest extends ItestBase {
 
     private java.net.http.HttpResponse<String> get(

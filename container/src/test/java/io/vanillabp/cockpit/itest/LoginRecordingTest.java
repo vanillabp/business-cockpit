@@ -3,7 +3,9 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.vanillabp.cockpit.users.model.User;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
@@ -14,6 +16,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * inherits the behavior - which also means nothing else in the request path would complain if it
  * silently stopped running.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class LoginRecordingTest extends ItestBase {
 
     @Autowired

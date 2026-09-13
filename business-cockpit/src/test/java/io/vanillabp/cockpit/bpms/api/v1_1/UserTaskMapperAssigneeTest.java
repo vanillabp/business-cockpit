@@ -8,8 +8,10 @@ import static org.mockito.Mockito.when;
 
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A reporting system may leave the assignee out, which has to reach the stored task as no assignee
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
  * id: the GUI hid it, but claiming such a task compared the null id to the claiming user and
  * answered HTTP 500.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class UserTaskMapperAssigneeTest {
 
     private UserTaskMapper mapper;

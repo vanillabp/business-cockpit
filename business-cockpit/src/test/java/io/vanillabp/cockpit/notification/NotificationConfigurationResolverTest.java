@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.notification.model.WorkflowNotificationConfiguration;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(SuppressOutputExtension.class)
 class NotificationConfigurationResolverTest {
 
     private static final String MODULE = "moduleA";

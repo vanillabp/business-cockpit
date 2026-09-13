@@ -36,7 +36,6 @@
   </modules>
 
   <properties>
-    <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
     <version.quarkus>3.39.2</version.quarkus>
     <!-- pinned against the Spring Boot bill of materials, which manages Testcontainers 2.x:
       the tests here are written against the 1.x API (org.testcontainers.junit.jupiter and the
@@ -46,16 +45,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <!-- one place for every io.vanillabp coordinate, including the platform's own
-          spi-for-java: the cockpit's spi-for-java compiles against the released 1.1.0, and
-          inside this subtree the version the Version 2 platform ships wins. -->
-        <groupId>io.vanillabp</groupId>
-        <artifactId>vanillabp-bom</artifactId>
-        <version>${version.vanillabp}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>

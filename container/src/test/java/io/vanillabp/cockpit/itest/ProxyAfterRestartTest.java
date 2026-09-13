@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.sun.net.httpserver.HttpServer;
 import io.vanillabp.cockpit.BusinessCockpitStandaloneApplication;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -38,6 +40,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
  * <p>Kafka is left out: without the {@code bpms-api.kafka.topics.*} properties the consumer side
  * does not come up at all, and nothing in this scenario needs it.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class ProxyAfterRestartTest {
 
     private static final String BPMS_API_USER = "abc";

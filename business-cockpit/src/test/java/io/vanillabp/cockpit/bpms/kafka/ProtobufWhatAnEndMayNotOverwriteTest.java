@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What an end reported over Kafka leaves alone, field by field.
@@ -35,6 +37,7 @@ import org.junit.jupiter.api.Test;
  * out arrives as an unset optional, and the titles and the business data arrive empty, because
  * protobuf gives a map no presence information.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class ProtobufWhatAnEndMayNotOverwriteTest {
 
     private static final OffsetDateTime DUE_AT = OffsetDateTime.parse("2026-09-12T08:00:00Z");

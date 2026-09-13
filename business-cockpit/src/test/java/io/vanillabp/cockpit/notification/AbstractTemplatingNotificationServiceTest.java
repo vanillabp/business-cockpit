@@ -5,10 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(SuppressOutputExtension.class)
 class AbstractTemplatingNotificationServiceTest {
 
     /** A minimal medium whose templates live under {@code templates/notification/test-medium/}. */

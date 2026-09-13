@@ -6,15 +6,18 @@ import static org.mockito.Mockito.mock;
 
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.usertask.NotificationDelivery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Verifies the v1_1 REST ingress mapper carries the {@link NotificationDelivery} directive from the
  * event onto the persisted {@link UserTask}, and that an absent value maps to {@code null}
  * (interpreted as USER_CONFIG) (T03).
  */
+@ExtendWith(SuppressOutputExtension.class)
 class UserTaskMapperNotificationFlagsTest {
 
     private UserTaskMapper mapper;

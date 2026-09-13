@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -22,6 +24,8 @@ import org.springframework.data.mongodb.core.query.Update;
  * that shape of document and drives the changeset against the running MongoDB. No request to the
  * application could do it: changesets are applied once while the context starts.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class LatestEventAtChangesetTest extends ItestBase {
 
     @Autowired

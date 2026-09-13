@@ -3,18 +3,22 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Subscribes to the server-sent-events stream the way the single-page app does (authenticated by
  * the JWT cookie) and checks the two guarantees clients rely on: the confirmation ping shortly
  * after subscribing and an update event when a user task changes.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class SseUpdatesTest extends ItestBase {
 
     private Queue<String> openEventStream(

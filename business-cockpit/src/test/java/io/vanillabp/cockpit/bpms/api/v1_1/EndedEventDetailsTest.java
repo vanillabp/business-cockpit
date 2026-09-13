@@ -10,12 +10,14 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What an end reported over REST does to the business data the cockpit stored.
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.Test;
  * server threw away what it did get. Both halves of that are fixed, and these tests are the server
  * half.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class EndedEventDetailsTest {
 
     private UserTaskMapper userTaskMapper;

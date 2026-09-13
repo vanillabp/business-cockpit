@@ -25,6 +25,13 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!-- the gate reads the coverage reports and the test sources of the whole repository, and
+        both are asked the same questions in every VanillaBP repository -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>

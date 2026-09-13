@@ -7,15 +7,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Covers the bookkeeping a user task does for the cockpit itself: the authorities a task is visible
  * to, and since when a user is a personal candidate.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class UserTaskTest {
 
     private static Person person(final String id) {

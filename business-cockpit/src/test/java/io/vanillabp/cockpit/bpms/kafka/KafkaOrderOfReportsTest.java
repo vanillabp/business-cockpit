@@ -25,6 +25,7 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +33,7 @@ import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
@@ -42,6 +44,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * these tests are the proof of that rather than a second set of cases: a completion arriving before
  * the creation it completes, and a change arriving after the change which followed it.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class KafkaOrderOfReportsTest {
 
     private static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-09-11T08:00:00Z");

@@ -2,17 +2,21 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Exercises the BPMS API v1.1 user task events over plain HTTP and verifies the outcome through
  * the GUI API, the read side a real user would see.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class BpmsApiUserTaskLifecycleTest extends ItestBase {
 
     private String moduleId;

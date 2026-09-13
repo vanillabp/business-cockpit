@@ -1,11 +1,14 @@
 package io.vanillabp.cockpit.commons.security.usercontext;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(SuppressOutputExtension.class)
 public class GroupHierarchyResolverTest {
 
     @Test

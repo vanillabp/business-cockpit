@@ -8,6 +8,7 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Feeds protobuf events into the Kafka topics the container consumes - serialized the same way the
@@ -27,6 +29,8 @@ import org.junit.jupiter.api.Test;
  * wrapper) - and verifies the read side through the GUI API. Consumption is asynchronous, so all
  * verifications poll with a timeout.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class KafkaIngestionTest extends ItestBase {
 
     private static KafkaProducer<String, byte[]> producer;

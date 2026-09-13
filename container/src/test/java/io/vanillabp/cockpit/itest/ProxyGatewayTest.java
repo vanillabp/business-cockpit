@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.sun.net.httpserver.HttpServer;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -13,6 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Registering a workflow module creates a gateway route forwarding {@code /wm/{moduleId}/**} to
@@ -20,6 +22,8 @@ import org.junit.jupiter.api.Test;
  * the proxying: the rewritten request reaching the module and the module's response reaching the
  * caller. The route is public (permitAll), so no authentication is involved.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class ProxyGatewayTest extends ItestBase {
 
     private record RecordedRequest(String method, String path, String query, String testHeader, String body) {}

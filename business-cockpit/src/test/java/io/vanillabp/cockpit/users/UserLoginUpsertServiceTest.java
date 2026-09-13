@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.mongodb.client.result.UpdateResult;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.users.model.User;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -19,11 +20,13 @@ import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+@ExtendWith(SuppressOutputExtension.class)
 class UserLoginUpsertServiceTest {
 
     /** A Clock whose instant can be advanced from the test. */
