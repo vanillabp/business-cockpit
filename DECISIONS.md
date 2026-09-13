@@ -463,3 +463,37 @@ One field is cleared by an end on purpose. Who ended a user task is written as r
 reported means the process ended it. The notification poller reads that field to tell a completion by
 somebody else from one the reader did themselves, so a name left over from an earlier report would name
 the wrong person.
+
+### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none
+
+A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` run while a report is dispatched, and
+they are allowed to change the workflow aggregate. VanillaBP does not save after them (decision 17),
+but a persistence which writes the changes of a managed object by itself still writes them when the
+transaction of that dispatch commits. That transaction read the case before the application changed
+it, so a case which cannot notice a second writer loses the application's change without a word. It
+is the same defect as two branches of one model writing one aggregate, with the report in the place
+of the second branch.
+
+VanillaBP says so while the application boots, and it says it over the handler contracts an
+extension registered. An application whose details provider serves a BPMN process whose aggregate
+notices no concurrent change therefore reads a warning which names that module and that process and
+says what to do about it. A test on each platform pins that the warning reaches an application with
+the Business Cockpit.
+
+The extension adds no check next to it. The condition is the platform's to answer: whether a
+persistence notices a second writer is `AggregatePersistenceAware#detectsConcurrentModification`, a
+method of the application's own persistence, and an extension which compiles against no platform
+integration reaches neither the bean nor its answer. What it could read instead is the version
+attribute on the class, which is the DEFAULT behind that method rather than the method - so an own
+check would warn about a store which notices a second writer some other way and said so, and being
+stricter than the core is what decision 16 rules out. Two warnings about one aggregate would also
+say one thing twice.
+
+A declaration that these handlers only read would switch the warning off, and here it would be
+wrong. What VanillaBP stopped doing is saving; a provider which writes anyway is still written to
+the database by the persistence holding it. So this extension says that VanillaBP need not save
+after a details provider, and it does not say that a details provider cannot write.
+
+What the platform's message cannot carry is the half which belongs to this repository: the provider
+is not saved by VanillaBP and is a second writer all the same. That sentence is in the wiki page
+`Architecture`, next to what a report carries.
