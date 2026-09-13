@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.workflowlist;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
-import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
@@ -152,11 +152,12 @@ public class WorkflowlistService {
         workflow.setInitiator(stored.getInitiator());
         workflow.setLatestEventAt(stored.getLatestEventAt());
         // what an end could not report about the case is what this report is here for, and the other
-        // way round an end which did report it has the younger answer: DetailsOfAnEnd either way
+        // way round an end which did report it has the younger answer, so the same rule decides
+        // both ways round
         workflow.setDetails(
-                DetailsOfAnEnd.whatToStore(stored.getDetails(), workflow.getDetails()));
+                WhatAnEndReports.whatToStore(stored.getDetails(), workflow.getDetails()));
         workflow.setDetailsFulltextSearch(
-                DetailsOfAnEnd.whatToStore(stored.getDetailsFulltextSearch(), workflow.getDetailsFulltextSearch()));
+                WhatAnEndReports.whatToStore(stored.getDetailsFulltextSearch(), workflow.getDetailsFulltextSearch()));
         // the cockpit reported this case when the end arrived, so its own clock reading stands
         workflow.setReportedAt(stored.getReportedAt());
         return save(workflow);

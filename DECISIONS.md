@@ -424,7 +424,45 @@ report came first.
 
 Which state a report carries is a different question, and this decision leaves it alone. The state is
 read while the entry is dispatched (decision 3), so it is the state of that moment and not the state of
-the event. The reports also keep arriving in whatever order the outbox produces.
+the event. Which fields of a report the cockpit then writes is decision 19. The reports also keep
+arriving in whatever order the outbox produces.
+
+### 19. An end overwrites what it reports, and a field it left empty counts as not reported
+
+An end carries the same fields as a change, which is what lets the list of finished work show the data a
+case was finished with. A BPMS does not always still have those fields. Camunda 7 reads an ended task
+from its history, and history keeps no variables; the Process-Engine-API answers out of a store which
+may have been cleared by the time the report is sent. The report goes out anyway, because a completion
+which never arrives leaves a task the cockpit shows as open for good, and it then carries little more
+than the identifiers and the timestamp.
+
+Such an end overwrites nothing. Every field it does not report keeps the value the cockpit holds, and
+every field it does report replaces it.
+
+Each mapper used to list field by field what an end may not write, and whatever nobody had thought of
+fell through MapStruct's default and was written as `null`. What fell through was the due date the task
+list sorts by, the titles a task is found under, the business id, the version of the process, the sub
+workflow, the comment, the way notifications are to be delivered, and for a case who started it and who
+may open it. Only the business data was held back.
+
+A field which was not reported usually arrives as `null`, and there the mappers say the rule with
+MapStruct's `IGNORE` strategy. Maps and lists arrive empty instead: a report builds its collections
+whether it fills them or not, and over Kafka it could not do otherwise, because protobuf gives a map and
+a repeated field no presence information. An empty collection therefore counts as nothing reported. Both
+ways in answer alike, because a workflow module writing to a topic reports what one calling the server
+reports, and a rule which held on one of them only would make the choice of transport a business
+decision.
+
+The price is a report which can no longer empty a collection. A workflow module cannot say that a case
+has lost its title, or that nobody may open it any more, once the cockpit holds an answer. Saying it the
+other way round would be worse by far: a BPMS which has forgotten the case would erase what the cockpit
+knows, at the moment somebody opens the finished list to look at it. A module which really wants the
+readers of a case narrowed reports that as a change, before the end.
+
+One field is cleared by an end on purpose. Who ended a user task is written as reported, and nobody
+reported means the process ended it. The notification poller reads that field to tell a completion by
+somebody else from one the reader did themselves, so a name left over from an earlier report would name
+the wrong person.
 
 ### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none
 
