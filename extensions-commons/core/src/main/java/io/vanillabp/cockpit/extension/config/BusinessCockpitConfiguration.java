@@ -17,6 +17,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 
 /**
@@ -227,6 +228,9 @@ public final class BusinessCockpitConfiguration {
 
     final var templateLoaderPath = settings.templateLoaderPath();
     final var templating = templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank();
+    refuseATemplateDirectoryWithoutItsPlace(
+        templateLoaderPath, ConfigurationKeys.globalKey(ConfigurationKeys.TEMPLATE_LOADER_PATH),
+        defects);
     if (!templatingAvailable && (templateLoaderPath != null) && !templateLoaderPath.isBlank()) {
       defects.add(
           """
@@ -732,6 +736,40 @@ public final class BusinessCockpitConfiguration {
                   ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS)));
     }
+
+  }
+
+  /**
+   * Refuses a template directory which does not say where it is.
+   * <p>
+   * The same text is written a second time in the cockpit server, for the directory the
+   * notification templates come from. Both keys name a directory, and a developer who reads one of
+   * the two messages knows the other. The server does not depend on this module, so the price of
+   * saying it in the same words is saying it twice, and a test on each side holds the wording.
+   *
+   * @param templateLoaderPath What the application configured, possibly nothing
+   * @param key The property key, spelled the way the application writes it
+   * @param defects Where a defect of the configuration is collected
+   */
+  private static void refuseATemplateDirectoryWithoutItsPlace(
+      final String templateLoaderPath,
+      final String key,
+      final List<String> defects) {
+
+    if ((templateLoaderPath == null) || templateLoaderPath.isBlank()) {
+      return;
+    }
+    if (Templating.saysWhereItIs(templateLoaderPath)) {
+      return;
+    }
+    defects.add(
+        """
+            '%s' is set to '%s', and that says nothing about where the directory is. Write the place \
+            in front of it: '%s%s' for a directory of the classpath, or '%s%s' for one of the file \
+            system."""
+            .formatted(
+                key, templateLoaderPath, Templating.CLASSPATH_PREFIX, templateLoaderPath,
+                Templating.FILE_PREFIX, templateLoaderPath));
 
   }
 
