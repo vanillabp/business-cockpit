@@ -157,6 +157,7 @@ public final class ProtobufMapper {
     Optional
         .ofNullable(event.getExcludedCandidateUsers())
         .ifPresent(builder::addAllExcludedCandidateUsers);
+    Optional.ofNullable(event.getAdmittedUsers()).ifPresent(builder::addAllAdmittedUsers);
     Optional
         .ofNullable(event.getDueDate())
         .ifPresent(dueDate -> builder.setDueDate(timestampOf(dueDate)));

@@ -76,6 +76,7 @@ public class KafkaTransportTest {
     assertEquals("anna", message.getAssignee());
     assertEquals(List.of("approvers"), message.getCandidateGroupsList());
     assertEquals(List.of("carl"), message.getExcludedCandidateUsersList());
+    assertEquals(List.of("dora"), message.getAdmittedUsersList());
     assertEquals("Approve order 4711", message.getTitleMap().get("en"));
     assertFalse(message.getUpdated());
     assertEquals(

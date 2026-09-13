@@ -372,6 +372,7 @@ public class BusinessCockpitExtensionTest {
     assertTrue(request.body().contains("\"assignee\":\"inspector\""), request.body());
     assertTrue(request.body().contains("\"inspected\":true"), request.body());
     assertTrue(request.body().contains("\"notificationDelivery\":\"SUPPRESS\""), request.body());
+    assertTrue(request.body().contains("\"admittedUsers\":[\"quality-auditor\"]"), request.body());
     // what the provider left alone stays what the BPMS reported
     assertTrue(request.body().contains("\"bpmnProcessVersion\":\"1\""), request.body());
 

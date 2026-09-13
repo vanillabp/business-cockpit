@@ -63,6 +63,7 @@ public abstract class UserTaskMapper {
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedEvent event);
 
     @Mapping(target = "id", source = "userTaskId")
@@ -86,6 +87,7 @@ public abstract class UserTaskMapper {
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toNewTask(UserTaskUpdatedEvent event);
 
     @Mapping(target = "id", ignore = true)
@@ -111,10 +113,12 @@ public abstract class UserTaskMapper {
             nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // candidate users are cockpit-owned too: assigning a task in the cockpit adds a personal
     // candidate no event reports back, so an update must not replace the stored list. They are
-    // therefore taken from the create event only. Groups and exclusions stay mapped.
+    // therefore taken from the create event only. Groups, exclusions and admitted users stay
+    // mapped.
     @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskUpdatedEvent event, @MappingTarget UserTask result);
 
 }

@@ -76,6 +76,8 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
 
   private List<String> excludedCandidateUsers = new ArrayList<>();
 
+  private List<String> admittedUsers = new ArrayList<>();
+
   private OffsetDateTime dueDate;
 
   private OffsetDateTime followUpDate;
@@ -129,6 +131,7 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
     setCandidateUsers(details.getCandidateUsers());
     setCandidateGroups(details.getCandidateGroups());
     setExcludedCandidateUsers(details.getExcludedCandidateUsers());
+    setAdmittedUsers(details.getAdmittedUsers());
     setDueDate(details.getDueDate());
     setFollowUpDate(details.getFollowUpDate());
     setDetails(details.getDetails());
@@ -485,6 +488,21 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
       final List<String> excludedCandidateUsers) {
 
     this.excludedCandidateUsers = excludedCandidateUsers;
+
+  }
+
+  @Override
+  public List<String> getAdmittedUsers() {
+
+    return admittedUsers;
+
+  }
+
+  @Override
+  public void setAdmittedUsers(
+      final List<String> admittedUsers) {
+
+    this.admittedUsers = admittedUsers;
 
   }
 
