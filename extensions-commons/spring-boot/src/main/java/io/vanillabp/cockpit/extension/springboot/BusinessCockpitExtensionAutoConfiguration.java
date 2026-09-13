@@ -11,6 +11,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,7 @@ import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
+import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
@@ -54,6 +56,14 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 @EnableConfigurationProperties(CockpitOverlayProperties.class)
 public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean {
 
+  /**
+   * The name of the transport bean this auto-configuration contributes. It is spelled out
+   * because the configuration has to tell the application's own transport bean from this one,
+   * and a bean an application named the same way is a bean-definition override, which Spring
+   * Boot refuses by itself.
+   */
+  static final String TRANSPORT_BEAN_NAME = "businessCockpitTransport";
+
   private BusinessCockpitExtension extension;
 
   /**
@@ -72,14 +82,60 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
+   * What the application configured, read and validated once while it boots.
+   * <p>
+   * It is a bean of its own because an application which brings a transport of its own may want
+   * to wrap the shipped one, and
+   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} is what builds
+   * that from this object.
+   *
+   * @param properties VanillaBP's resolved configuration
+   * @param settings What the application wrote below the cockpit's own sections
+   * @param applicationContext Where the transport beans of the application are looked for
+   * @return The configuration
+   */
+  @Bean
+  public BusinessCockpitConfiguration businessCockpitConfiguration(
+      final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
+      final ApplicationContext applicationContext) {
+
+    return BusinessCockpitConfiguration
+        .readAndValidate(
+            properties, settings, Templating.engineAvailable(), transportProvidedByTheApplication(
+                applicationContext));
+
+  }
+
+  /**
+   * The transport the extension ships, which an application replaces by providing a bean of the
+   * same type. Version 1 of the Business Cockpit had that seam on its three publishing beans,
+   * and an application which used it keeps its way to the cockpit.
+   * <p>
+   * What such a transport inherits is why the seam is at this point: it is called while an outbox
+   * entry is dispatched, so a failure is repeated with a backoff and the call runs in the
+   * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
+   *
+   * @param configuration The validated configuration
+   * @return The transport
+   */
+  @Bean(TRANSPORT_BEAN_NAME)
+  @ConditionalOnMissingBean
+  public BusinessCockpitTransport businessCockpitTransport(
+      final BusinessCockpitConfiguration configuration) {
+
+    return BusinessCockpitAssembly.transportOf(configuration);
+
+  }
+
+  /**
    * The extension itself, built from what the application configured.
    * <p>
    * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
    * BPMS half injects: one bean, so that there is nothing to tell apart.
    *
-   * @param properties VanillaBP's resolved configuration, which knows the application's
-   *          workflow modules and adapters
-   * @param settings What the application wrote below the cockpit's own sections
+   * @param configuration What the application configured
+   * @param transport Where the reports go, the application's own bean where it has one
    * @param bridges The BPMS halves the application brought
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
@@ -92,8 +148,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    */
   @Bean
   public BusinessCockpitExtension businessCockpitExtension(
-      final MigrationAdapterProperties properties,
-      final CockpitSettings settings,
+      final BusinessCockpitConfiguration configuration,
+      final BusinessCockpitTransport transport,
       final ObjectProvider<BusinessCockpitBpmsBridge> bridges,
       final ObjectProvider<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
@@ -103,10 +159,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final TransactionRunnerResolver transactionRunners,
       final ApplicationContext applicationContext) {
 
-    final var configuration = BusinessCockpitConfiguration
-        .readAndValidate(properties, settings, Templating.engineAvailable());
     extension = new BusinessCockpitExtension(
-        configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
+        configuration, transport, theBridges(
             bridges,
             applicationContext), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
                 .templatingOf(configuration), theOutbox(
@@ -186,6 +240,30 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
     if (extension != null) {
       extension.stop();
     }
+
+  }
+
+  /**
+   * Whether the application brought a transport of its own, which is the question the
+   * configuration check needs answered: such an application configures neither of the shipped
+   * transports and starts all the same.
+   * <p>
+   * What is read are the bean definitions of the type, not the beans. Asking for the instance
+   * would build the shipped transport, which loads the Kafka client the application may not
+   * have, and it would do so before the configuration it is built from exists.
+   *
+   * @param applicationContext The context being built
+   * @return Whether a bean of the type is defined which this auto-configuration did not
+   *         contribute
+   */
+  private static boolean transportProvidedByTheApplication(
+      final ApplicationContext applicationContext) {
+
+    return Stream
+        .of(
+            applicationContext
+                .getBeanNamesForType(BusinessCockpitTransport.class, true, false))
+        .anyMatch(beanName -> !TRANSPORT_BEAN_NAME.equals(beanName));
 
   }
 

@@ -67,7 +67,7 @@ public class ConfigurationMatrixTest {
 
   private BusinessCockpitConfiguration configuration() {
 
-    return BusinessCockpitConfiguration.readAndValidate(properties, settings, false);
+    return BusinessCockpitConfiguration.readAndValidate(properties, settings, false, false);
 
   }
 

@@ -17,6 +17,7 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 
 /**
@@ -45,6 +46,8 @@ public final class BusinessCockpitConfiguration {
 
   private final KafkaTransportConfiguration kafka;
 
+  private final boolean transportProvidedByTheApplication;
+
   private final String templateLoaderPath;
 
   private final Map<String, WorkflowModuleConfiguration> workflowModules;
@@ -56,6 +59,7 @@ public final class BusinessCockpitConfiguration {
       final boolean workflowListEnabled,
       final RestTransportConfiguration rest,
       final KafkaTransportConfiguration kafka,
+      final boolean transportProvidedByTheApplication,
       final String templateLoaderPath,
       final Map<String, WorkflowModuleConfiguration> workflowModules,
       final Collection<String> configuredAdapterIds) {
@@ -64,6 +68,7 @@ public final class BusinessCockpitConfiguration {
     this.workflowListEnabled = workflowListEnabled;
     this.rest = rest;
     this.kafka = kafka;
+    this.transportProvidedByTheApplication = transportProvidedByTheApplication;
     this.templateLoaderPath = templateLoaderPath;
     this.workflowModules = Map.copyOf(workflowModules);
     this.configuredAdapterIds = List.copyOf(configuredAdapterIds);
@@ -131,6 +136,18 @@ public final class BusinessCockpitConfiguration {
   public KafkaTransportConfiguration getKafka() {
 
     return kafka;
+
+  }
+
+  /**
+   * @return Whether the application brought a
+   *         {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
+   *         own, which is then the way its reports take and which makes both of the shipped
+   *         transports optional
+   */
+  public boolean isTransportProvidedByTheApplication() {
+
+    return transportProvidedByTheApplication;
 
   }
 
@@ -205,6 +222,11 @@ public final class BusinessCockpitConfiguration {
    *          the <code>cockpit</code> sections of its workflow modules
    * @param templatingAvailable Whether a template engine is on the classpath at all - without
    *          one a template path is pointless and the BPMN language becomes mandatory
+   * @param transportProvidedByTheApplication Whether the application brought a
+   *          {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
+   *          own. The platform answers this, because a bean is what each of them knows about
+   *          and a property key which claimed it could be wrong. An application which reports
+   *          its own way needs neither of the shipped transports, so neither is missing then
    * @return The configuration
    * @throws IllegalStateException If anything is missing or contradictory. The message lists
    *           every defect found, each with the key which fixes it
@@ -212,13 +234,14 @@ public final class BusinessCockpitConfiguration {
   public static BusinessCockpitConfiguration readAndValidate(
       final MigrationAdapterProperties properties,
       final CockpitSettings settings,
-      final boolean templatingAvailable) {
+      final boolean templatingAvailable,
+      final boolean transportProvidedByTheApplication) {
 
     final var defects = new LinkedList<String>();
 
     final var rest = readRest(settings.rest(), defects);
     final var kafka = readKafka(settings.kafka(), defects);
-    validateTransportChoice(rest, kafka, defects);
+    validateTransportChoice(rest, kafka, transportProvidedByTheApplication, defects);
 
     final var userTasksEnabled = flag(
         settings.userTasksEnabled(), ConfigurationKeys.USER_TASKS_ENABLED, true, defects);
@@ -277,6 +300,8 @@ public final class BusinessCockpitConfiguration {
                   .get()));
     }
 
+    reportTheApplicationsOwnTransport(rest, kafka, transportProvidedByTheApplication);
+
     if (!userTasksEnabled) {
       logger
           .info(
@@ -291,7 +316,7 @@ public final class BusinessCockpitConfiguration {
     }
 
     return new BusinessCockpitConfiguration(
-        userTasksEnabled, workflowListEnabled, rest, kafka, templateLoaderPath, modules, configuredAdapterIdsOf(
+        userTasksEnabled, workflowListEnabled, rest, kafka, transportProvidedByTheApplication, templateLoaderPath, modules, configuredAdapterIdsOf(
             properties));
 
   }
@@ -701,10 +726,41 @@ public final class BusinessCockpitConfiguration {
 
   }
 
+  /**
+   * Which way the reports take, and what is missing or too much about it.
+   * <p>
+   * An application which brought a transport of its own reports through that one, so nothing is
+   * missing where it configured neither of the shipped transports. Both of them at once stays a
+   * defect even then: the shipped transport is what such an application wraps, and which of the
+   * two was meant is then answered by nothing.
+   *
+   * @param rest What was configured about the REST transport, or <code>null</code>
+   * @param kafka What was configured about the Kafka transport, or <code>null</code>
+   * @param transportProvidedByTheApplication The platform's answer whether the application has
+   *          a transport bean of its own
+   * @param defects Where a defect of the configuration is collected
+   */
   private static void validateTransportChoice(
       final RestTransportConfiguration rest,
       final KafkaTransportConfiguration kafka,
+      final boolean transportProvidedByTheApplication,
       final List<String> defects) {
+
+    if ((rest != null) && (kafka != null) && transportProvidedByTheApplication) {
+      defects.add(
+          """
+              Both transports to the cockpit server are configured, and the application provides \
+              a transport of its own as well. Its own transport is the one the extension reports \
+              through, and a transport which wraps a shipped one cannot tell which of the two was \
+              meant. Remove either '%s' or '%s'."""
+              .formatted(
+                  ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
+                  ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS)));
+      return;
+    }
+    if (transportProvidedByTheApplication) {
+      return;
+    }
 
     if ((rest == null) && (kafka == null)) {
       defects.add(
@@ -714,13 +770,15 @@ public final class BusinessCockpitConfiguration {
               to report events over REST, or
                   %s: localhost:9092
                   %s, %s, %s
-              to report them over Kafka."""
+              to report them over Kafka. A workflow module which reports its own way provides a \
+              bean of type %s instead and needs neither of these keys."""
               .formatted(
                   ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS),
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_TOPIC_USER_TASK),
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_TOPIC_WORKFLOW),
-                  ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_TOPIC_WORKFLOW_MODULE)));
+                  ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_TOPIC_WORKFLOW_MODULE),
+                  BusinessCockpitTransport.class.getName()));
       return;
     }
     if ((rest != null) && (kafka != null)) {
@@ -732,6 +790,48 @@ public final class BusinessCockpitConfiguration {
                   ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
                   ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS)));
     }
+
+  }
+
+  /**
+   * Says while the application boots that its own transport is the way its reports take, and
+   * what that means for a shipped transport it configured as well.
+   *
+   * @param rest What was configured about the REST transport, or <code>null</code>
+   * @param kafka What was configured about the Kafka transport, or <code>null</code>
+   * @param transportProvidedByTheApplication The platform's answer whether the application has
+   *          a transport bean of its own
+   */
+  private static void reportTheApplicationsOwnTransport(
+      final RestTransportConfiguration rest,
+      final KafkaTransportConfiguration kafka,
+      final boolean transportProvidedByTheApplication) {
+
+    if (!transportProvidedByTheApplication) {
+      return;
+    }
+    final var configuredTransport = (rest != null)
+        ? ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL)
+        : (kafka != null) ? ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS) : null;
+    if (configuredTransport == null) {
+      logger
+          .info(
+              """
+                  The Business Cockpit extension reports through the bean of type {} the \
+                  application provides, so neither '{}' nor '{}' is read.""",
+              BusinessCockpitTransport.class.getName(),
+              ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
+              ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS));
+      return;
+    }
+    logger
+        .info(
+            """
+                The Business Cockpit extension reports through the bean of type {} the \
+                application provides, so '{}' is not read by the extension itself. Remove the \
+                key unless the application's transport wraps the shipped one built from it.""",
+            BusinessCockpitTransport.class.getName(),
+            configuredTransport);
 
   }
 
