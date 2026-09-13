@@ -9,6 +9,27 @@ on:
       npm-bypass-2fa-token:
         description: 'NPM temporary bypass 2FA token. Use this to create one: https://www.npmjs.com/settings/vanillabp/tokens/granular-access-tokens/new'
         required: true
+concurrency:
+  # One release of this repository at a time. Two releases at once would deploy the same
+  # coordinates to Maven Central, write the same tag and work on the same release branch.
+  # GitHub keeps at most one waiting run per group, so a third dispatch while one release
+  # runs and one waits ends the waiting one as 'cancelled' without ever starting a job.
+  # A release is dispatched by hand, so somebody is there to notice and dispatch again.
+  # 'cancel-in-progress: false' protects the run which is already running and nothing
+  # else, which is what a release needs: it deploys to Maven Central and pushes a tag,
+  # and neither of those survives being cut in half.
+  #
+  # The publish keeps its own two groups, so a release and a publish can run at the same
+  # time. They write different things. The release deploys fixed versions to Maven Central
+  # and to npmjs.com, and the snapshot it publishes to GitHub Packages at the end carries
+  # the next version, which no branch holds yet. Its own pushes trigger no publish either,
+  # because deploy-to-github-packages.yaml ignores 'release/**'. What stays open is a
+  # release of a version older than the snapshot main carries: the next version is then
+  # main's version, and the two snapshot deploys meet. A run has one group and the publish
+  # has two, so that case cannot be wired away here, and the release version is what keeps
+  # it shut.
+  group: business-cockpit-release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
