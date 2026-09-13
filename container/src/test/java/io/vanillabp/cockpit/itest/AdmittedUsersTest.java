@@ -292,16 +292,35 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * An exclusion holds against an admission. Keeping somebody out of a task is the stronger word
-     * of the two, and a module which says both about the same person has contradicted itself.
+     * An admission holds against an exclusion. Four eyes do not suffer from that: the person who did
+     * the first step should never be shown the second task at all, and if the task did reach them,
+     * the workflow module's own security keeps the form shut. So a module which admits somebody has
+     * said what it wants, and the cockpit lets them read the task.
      */
     @Test
-    void anExclusionHoldsAgainstAnAdmission() {
+    void anAdmissionHoldsAgainstAnExclusion() {
 
         grantTheGroupToBoth();
         final var userTaskId = createTask("""
                 ,
                   "admittedUsers": [ "martin" ],
+                  "excludedCandidateUsers": [ "martin" ]""");
+
+        await().untilAsserted(
+                () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+                        .containsExactly(userTaskId));
+        assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+        assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
+
+    }
+
+    /** An exclusion still holds against somebody the task does not admit. */
+    @Test
+    void anExclusionHoldsAgainstACandidate() {
+
+        grantTheGroupToBoth();
+        final var userTaskId = createTask("""
+                ,
                   "excludedCandidateUsers": [ "martin" ]""");
 
         await().untilAsserted(

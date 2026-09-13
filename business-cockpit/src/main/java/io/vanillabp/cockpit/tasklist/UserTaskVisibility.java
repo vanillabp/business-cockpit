@@ -29,9 +29,13 @@ import java.util.List;
  * <p>Two of the values take tasks away again. {@code notInAssignees} turns the assignee reason
  * around, so the view holds what those users have not taken yet, which is how work still up for
  * grabs is described. {@code excludedCandidates} names users a task can keep out through its own
- * {@code excludedCandidateUsers}, which is how a workflow module enforces four eyes. Both of them
- * hold against every reason, {@code admittedUsers} included, so a module which bars somebody from a
- * task does not let them back in by admitting them.
+ * {@code excludedCandidateUsers}, which is how a workflow module enforces four eyes.
+ *
+ * <p>The exclusion cancels every reason but one: a user in {@code admittedUsers} sees the task even
+ * when the same task excludes them. Four eyes do not suffer from that. The first pair should never
+ * be shown the second task at all, and if the task did reach them, the workflow module's own
+ * security keeps the form shut. So the rule reads: the user is admitted, or they are a candidate
+ * and not excluded.
  *
  * <p>An application built on the cockpit picks one of the visibilities below or writes its own, and
  * the controller carrying it needs nothing else.
@@ -48,7 +52,7 @@ public record UserTaskVisibility(
     /**
      * Everything the user could take a hand in: their own tasks, the ones naming them or one of
      * their groups, the ones admitting them, and the ones addressed to nobody. A task naming the
-     * user as excluded is left out whatever else it says.
+     * user as excluded is left out, unless the same task admits them.
      */
     public static UserTaskVisibility everythingTheUserMayWorkOn(
             final UserDetails user) {

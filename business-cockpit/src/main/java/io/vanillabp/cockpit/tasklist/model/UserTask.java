@@ -109,8 +109,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     /**
      * Users the workflow module let through although they are no candidate. Who is in here sees the
-     * task whatever the candidates say, which is how a module keeps a case readable for everybody
-     * who had a hand in it.
+     * task whatever the candidates say and even when {@link #excludedCandidateUsers} names them,
+     * which is how a module keeps a case readable for everybody who had a hand in it.
      */
     private List<Person> admittedUsers = null;
 
