@@ -105,6 +105,13 @@ public class OwnUserTaskDetails implements UserTaskDetails {
   }
 
   @Override
+  public List<String> getAdmittedUsers() {
+
+    return List.of("quality-auditor");
+
+  }
+
+  @Override
   public OffsetDateTime getDueDate() {
 
     return null;

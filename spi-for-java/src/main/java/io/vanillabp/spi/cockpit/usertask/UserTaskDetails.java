@@ -27,7 +27,17 @@ public interface UserTaskDetails {
     List<String> getCandidateGroups();
 
     List<String> getExcludedCandidateUsers();
-    
+
+    /**
+     * Users who may see this task although they are no candidate for it. A workflow module fills
+     * this where somebody has to reach the task for a reason of the business rather than because
+     * work is waiting for them, for instance everybody who already worked on it and wants to read
+     * back later what they entered.
+     *
+     * @return The user ids admitted to this task
+     */
+    List<String> getAdmittedUsers();
+
     OffsetDateTime getDueDate();
     
     OffsetDateTime getFollowUpDate();

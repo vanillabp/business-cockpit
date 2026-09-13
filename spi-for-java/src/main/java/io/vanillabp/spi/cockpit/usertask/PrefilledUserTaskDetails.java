@@ -34,6 +34,8 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
 
     void setExcludedCandidateUsers(List<String> candidateUsers);
 
+    void setAdmittedUsers(List<String> admittedUsers);
+
     void setDetails(Map<String, Object> details);
     
     void setDetailsFulltextSearch(String detailsFulltextSearch);

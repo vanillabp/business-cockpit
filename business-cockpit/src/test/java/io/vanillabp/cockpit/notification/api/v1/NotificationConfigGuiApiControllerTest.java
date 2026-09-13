@@ -197,7 +197,8 @@ class NotificationConfigGuiApiControllerTest {
         // visibility of the main task list
         verify(userTaskService).getVisibleWorkflows(
                 new UserTaskVisibility(
-                        true, false, List.of("u1"), List.of("u1"), List.of("g1"), List.of("u1")));
+                        true, false, List.of("u1"), List.of("u1"), List.of("g1"), List.of("u1"),
+                        List.of("u1")));
     }
 
 }

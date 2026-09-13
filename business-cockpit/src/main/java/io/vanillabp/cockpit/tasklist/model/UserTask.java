@@ -107,6 +107,13 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private List<Person> excludedCandidateUsers = null;
 
+    /**
+     * Users the workflow module let through although they are no candidate. Who is in here sees the
+     * task whatever the candidates say, which is how a module keeps a case readable for everybody
+     * who had a hand in it.
+     */
+    private List<Person> admittedUsers = null;
+
     private OffsetDateTime dueDate;
 
     private OffsetDateTime followUpDate;
@@ -547,6 +554,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setExcludedCandidateUsers(List<Person> excludedCandidateUsers) {
         this.excludedCandidateUsers = excludedCandidateUsers;
+    }
+
+    public List<Person> getAdmittedUsers() {
+        return admittedUsers;
+    }
+
+    public void setAdmittedUsers(List<Person> admittedUsers) {
+        this.admittedUsers = admittedUsers;
     }
 
     public OffsetDateTime getDueDate() {

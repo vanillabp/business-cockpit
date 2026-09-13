@@ -429,6 +429,12 @@ components:
           items:
             type: string
           example: []
+        admittedUsers:
+          type: array
+          description: Users who may see this user-task although they are no candidate for it
+          items:
+            type: string
+          example: []
         dueDate:
           type: string
           format: date-time

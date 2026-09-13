@@ -86,6 +86,8 @@ message UserTaskCreatedOrUpdatedEvent {
   optional string details_fulltext_search = 31;
   repeated string excluded_candidate_users = 32;
   optional NotificationDelivery notification_delivery = 33;
+  // users who may see the task although they are no candidate for it
+  repeated string admitted_users = 34;
 
 }
 

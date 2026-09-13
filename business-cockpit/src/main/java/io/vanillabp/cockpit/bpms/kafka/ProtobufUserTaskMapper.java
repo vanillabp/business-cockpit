@@ -70,6 +70,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
 
@@ -87,7 +88,8 @@ public abstract class ProtobufUserTaskMapper {
      * do report the candidates known to the engine, which would drop the cockpit-side assignment.
      * Deliberate consequence: candidate users are taken from the create event only; later
      * changes made by the process do not reach the cockpit. Candidate groups and excluded
-     * candidates stay mapped - they are never written on the cockpit side.
+     * candidates stay mapped, and so do the admitted users - none of them is ever written on the
+     * cockpit side.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
@@ -111,6 +113,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 
@@ -145,6 +148,7 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", ignore = true)
     @Mapping(target = "excludedCandidateUsers", ignore = true)
+    @Mapping(target = "admittedUsers", ignore = true)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toEndedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 

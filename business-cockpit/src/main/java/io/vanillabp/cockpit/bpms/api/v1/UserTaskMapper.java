@@ -64,6 +64,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    // version 1 of the API has no admitted users, so a report through it leaves them as they are
+    @Mapping(target = "admittedUsers", ignore = true)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
     
     @Mapping(target = "id", ignore = true)
@@ -94,6 +96,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    // version 1 of the API has no admitted users, so a report through it leaves them as they are
+    @Mapping(target = "admittedUsers", ignore = true)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 
 }

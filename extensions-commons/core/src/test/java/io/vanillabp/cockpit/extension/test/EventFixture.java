@@ -58,6 +58,7 @@ public final class EventFixture {
     event.setCandidateUsers(List.of("bert"));
     event.setCandidateGroups(List.of("approvers"));
     event.setExcludedCandidateUsers(List.of("carl"));
+    event.setAdmittedUsers(List.of("dora"));
     event.setDueDate(TIMESTAMP.plusDays(1));
     event.setFollowUpDate(TIMESTAMP.plusHours(2));
     event.setDetails(details());

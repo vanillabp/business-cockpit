@@ -62,6 +62,7 @@ public final class UserTaskRestMapper {
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
     dto.setExcludedCandidateUsers(copy(event.getExcludedCandidateUsers()));
+    dto.setAdmittedUsers(copy(event.getAdmittedUsers()));
     dto.setDueDate(event.getDueDate());
     dto.setFollowUpDate(event.getFollowUpDate());
     dto.setDetails(copy(event.getDetails()));
@@ -103,6 +104,7 @@ public final class UserTaskRestMapper {
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
     dto.setExcludedCandidateUsers(copy(event.getExcludedCandidateUsers()));
+    dto.setAdmittedUsers(copy(event.getAdmittedUsers()));
     dto.setDueDate(event.getDueDate());
     dto.setFollowUpDate(event.getFollowUpDate());
     dto.setDetails(copy(event.getDetails()));
@@ -144,6 +146,7 @@ public final class UserTaskRestMapper {
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
     dto.setExcludedCandidateUsers(copy(event.getExcludedCandidateUsers()));
+    dto.setAdmittedUsers(copy(event.getAdmittedUsers()));
     dto.setDueDate(event.getDueDate());
     dto.setFollowUpDate(event.getFollowUpDate());
     dto.setDetails(copy(event.getDetails()));
@@ -185,6 +188,7 @@ public final class UserTaskRestMapper {
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
     dto.setExcludedCandidateUsers(copy(event.getExcludedCandidateUsers()));
+    dto.setAdmittedUsers(copy(event.getAdmittedUsers()));
     dto.setDueDate(event.getDueDate());
     dto.setFollowUpDate(event.getFollowUpDate());
     dto.setDetails(copy(event.getDetails()));

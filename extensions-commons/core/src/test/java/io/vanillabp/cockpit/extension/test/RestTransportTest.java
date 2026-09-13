@@ -123,6 +123,8 @@ public class RestTransportTest {
     assertTrue(request.body().contains("\"candidateGroups\":[\"approvers\"]"), request.body());
     assertTrue(
         request.body().contains("\"excludedCandidateUsers\":[\"carl\"]"), request.body());
+    assertTrue(
+        request.body().contains("\"admittedUsers\":[\"dora\"]"), request.body());
     assertTrue(request.body().contains("\"uiUriType\":\"WEBPACK_MF_REACT\""), request.body());
     assertTrue(request.body().contains("\"notificationDelivery\":\"FORCE\""), request.body());
     assertTrue(request.body().contains("\"amount\":250"), request.body());

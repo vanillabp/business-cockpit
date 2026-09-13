@@ -865,6 +865,7 @@ public class UserTaskService {
         final var candidateUsers = visibility.candidateUsers();
         final var candidateGroups = visibility.candidateGroups();
         final var candidatesToBeExcluded = visibility.excludedCandidates();
+        final var admittedUsers = visibility.admittedUsers();
 
         final var subCriterias = new LinkedList<Criteria>();
 
@@ -895,6 +896,12 @@ public class UserTaskService {
                 && !candidateGroups.isEmpty()) {
             final var candidateGroupsMatches = Criteria.where("candidateGroups.id").in(candidateGroups);
             userOrRestrictions.add(candidateGroupsMatches);
+        }
+        if ((admittedUsers != null)
+                && !admittedUsers.isEmpty()) {
+            // the workflow module let these users through, whether or not they are candidates
+            final var admittedUsersMatches = Criteria.where("admittedUsers.id").in(admittedUsers);
+            userOrRestrictions.add(admittedUsersMatches);
         }
 
         if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
