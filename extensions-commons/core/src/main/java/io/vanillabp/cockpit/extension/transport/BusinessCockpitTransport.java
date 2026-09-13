@@ -12,7 +12,7 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * bean it can replace, which is the seam version 1 of the Business Cockpit had on its three
  * publishing beans. This interface is therefore a published contract, and
  * {@link io.vanillabp.cockpit.extension.BusinessCockpitAssembly#transportOf} is how an application
- * builds the shipped transport it wants to wrap - see decision 21 in the repository's DECISIONS.md.
+ * builds the shipped transport it wants to wrap - see decision 22 in the repository's DECISIONS.md.
  * <p>
  * Every method is called while an outbox entry is dispatched, so a failure is reported by
  * throwing: the entry stays and is retried with a backoff, and no event is lost because a
