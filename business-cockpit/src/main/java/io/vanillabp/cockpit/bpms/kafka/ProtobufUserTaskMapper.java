@@ -133,11 +133,10 @@ public abstract class ProtobufUserTaskMapper {
      * information in protobuf, so an empty list cannot be told apart from "not provided" -
      * therefore they are ignored here rather than mapped with a null-value strategy.
      */
-    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
-    // without the fields a change carries, and writing that emptiness over the stored task would
-    // take away the due date the list sorts by. Those fields are declared optional in the protobuf
-    // schema and a missing one therefore arrives as null; the titles and the business data have no
-    // presence information and arrive empty, which is what toEndedTask answers.
+    // an end overwrites what it reports and leaves the rest of the stored task as it is - see
+    // decision 19 in the repository's DECISIONS.md. A field the sender left out is declared optional
+    // in the protobuf schema and arrives as null, which is what this strategy answers; the titles and
+    // the business data arrive empty instead, which toEndedTask answers.
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -155,9 +154,8 @@ public abstract class ProtobufUserTaskMapper {
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
-    // who ended the task, and nobody means the process ended it. This is the one field an end does
-    // clear: the notification poller reads it to tell a completion by somebody else from one the
-    // reader did themselves, and a name left over from an earlier report would name the wrong person
+    // who ended the task, and nobody reported means the process ended it: the one field an end does
+    // clear - see decision 19 in the repository's DECISIONS.md
     @Mapping(target = "initiator", source = "initiator",
             nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     // the service sets these two, because an end means more to it than the event says:
@@ -186,9 +184,9 @@ public abstract class ProtobufUserTaskMapper {
      * <p>
      * The sender fills the details field whether it has anything to put in it or not, and a
      * protobuf map carries no presence information either way, so an empty map is what an end of a
-     * task the BPMS can no longer describe looks like here. The three titles arrive the same way.
-     * Mapping those would erase what the task was last known to be about and the words it is found
-     * under in the finished list. {@link WhatAnEndReports} says why that matters.
+     * task the BPMS can no longer describe looks like here. The three titles arrive the same way, and
+     * mapping them would leave a finished task with no name in the list ({@link WhatAnEndReports}, and
+     * see decision 19 in the repository's DECISIONS.md).
      *
      * @param event The end as it was reported
      * @param result The stored task, changed in place

@@ -88,10 +88,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowUpdatedEvent event, @MappingTarget Workflow result);
 
-    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
-    // without the fields a change carries, and writing that emptiness over the stored case would
-    // take away the title it is found under and everybody's permission to open it. What the end
-    // does report replaces what is stored.
+    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
+    // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -116,10 +114,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     protected abstract Workflow mapEndedWorkflow(WorkflowCompletedEvent event, @MappingTarget Workflow result);
 
-    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
-    // without the fields a change carries, and writing that emptiness over the stored case would
-    // take away the title it is found under and everybody's permission to open it. What the end
-    // does report replaces what is stored.
+    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
+    // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -148,10 +144,9 @@ public abstract class WorkflowMapper {
      * Maps a completed or cancelled event onto the stored workflow, so that the list of finished
      * cases shows what the case ended with.
      * <p>
-     * Whatever the end does not report leaves what is stored alone. {@link WhatAnEndReports} says
-     * why a BPMS may have nothing left to report about a case which has just ended, why a map or a
-     * list arriving empty counts as nothing reported, and the mapping reads field by field like
-     * this.
+     * Whatever the end does not report leaves what is stored alone (see decision 19 in the
+     * repository's DECISIONS.md), and {@link WhatAnEndReports} holds the part of that rule a mapping
+     * annotation cannot express. Field by field the mapping reads like this.
      * <p>
      * An end may replace what it reports, because that is the youngest answer there is about the
      * case: where it sits in the model (the source, the workflow module, the BPMN process and its

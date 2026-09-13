@@ -78,12 +78,11 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
-    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
-    // without the fields a change carries, and writing that emptiness over the stored case would
-    // take away who started it. That field is declared optional in the protobuf schema and a
-    // missing one therefore arrives as null; the title, the business data and the permissions to
-    // open the case have no presence information and arrive empty, which is what toEndedWorkflow
-    // answers.
+    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
+    // decision 19 in the repository's DECISIONS.md. Who started the case is declared optional in the
+    // protobuf schema and arrives as null, which is what this strategy answers; the title, the
+    // business data and the permissions to open the case arrive empty instead, which
+    // toEndedWorkflow answers.
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -115,11 +114,10 @@ public abstract class ProtobufWorkflowMapper {
      * <p>
      * The sender fills the details field whether it has anything to put in it or not, and a
      * protobuf map carries no presence information either way, so an empty map is what an end of a
-     * case the BPMS can no longer describe looks like here. The title arrives the same way, and so
-     * do the users and groups the case is accessible to, because a repeated protobuf field has no
-     * presence information either. Mapping those would erase what the case was last known to be
-     * about, the words it is found under in the finished list and, worst of the three, everybody's
-     * permission to open it. {@link WhatAnEndReports} says why that matters.
+     * case the BPMS can no longer describe looks like here. The title arrives the same way, and so do
+     * the users and groups the case is accessible to, because a repeated protobuf field has no
+     * presence information either. Mapping that last one would take everybody's permission to open a
+     * finished case ({@link WhatAnEndReports}, and see decision 19 in the repository's DECISIONS.md).
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place
