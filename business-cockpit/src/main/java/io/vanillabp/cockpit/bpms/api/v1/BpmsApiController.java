@@ -64,6 +64,11 @@ public class BpmsApiController implements BpmsApi {
      * Version 1 of the API reports an end without the fields a change carries, so a task the cockpit
      * hears of by its end alone is stored with the end and nothing else until the creation, which is
      * still on its way, fills the rest in.
+     * <p>
+     * There is no mapping of an end here for the same reason. An end of this version says who ended
+     * the task and, where it was cancelled, why; both are written by hand below. So an end of this
+     * version cannot take the due date, the title or the business data of a stored task away,
+     * whatever the reporting side leaves out.
      */
     @Override
     public ResponseEntity<Void> userTaskCompletedEvent(

@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.Timestamp;
-import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.users.model.Group;
@@ -11,11 +11,13 @@ import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.time.OffsetDateTime;
 import java.util.Map;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
@@ -76,9 +78,48 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
+    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
+    // without the fields a change carries, and writing that emptiness over the stored case would
+    // take away who started it. That field is declared optional in the protobuf schema and a
+    // missing one therefore arrives as null; the title, the business data and the permissions to
+    // open the case have no presence information and arrive empty, which is what toEndedWorkflow
+    // answers.
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    // the record is the one the service looked up, and MongoDB counts its saves:
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    // maintained by the cockpit itself, never taken from an event:
+    @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
+    // an end does not say when the case began, and guessing it would make the same case look
+    // different depending on which of the two reports arrived first:
+    @Mapping(target = "createdAt", ignore = true)
+    // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "updatedBy", source = "initiator")
+    // the service sets this one, because an end means more to it than the event says
+    @Mapping(target = "endedAt", ignore = true)
+    // read from the users and groups the case is accessible to whenever they are asked for:
+    @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetGroups", ignore = true)
+    @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
+    protected abstract Workflow mapEndedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
+
     /**
-     * Maps a completed or cancelled event onto the stored workflow, keeping the business data the
-     * cockpit already has where the end reports none. {@link DetailsOfAnEnd} says why.
+     * Maps a completed or cancelled event onto the stored workflow, keeping the business data and
+     * the title the cockpit already has where the end reports none.
+     * <p>
+     * The sender fills the details field whether it has anything to put in it or not, and a
+     * protobuf map carries no presence information either way, so an empty map is what an end of a
+     * case the BPMS can no longer describe looks like here. The title arrives the same way, and so
+     * do the users and groups the case is accessible to, because a repeated protobuf field has no
+     * presence information either. Mapping those would erase what the case was last known to be
+     * about, the words it is found under in the finished list and, worst of the three, everybody's
+     * permission to open it. {@link WhatAnEndReports} says why that matters.
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place
@@ -88,12 +129,20 @@ public abstract class ProtobufWorkflowMapper {
             final WorkflowCreatedOrUpdatedEvent event,
             @MappingTarget final Workflow result) {
 
-        final var storedDetails = DetailsOfAnEnd.before(result.getDetails());
+        final var storedDetails = WhatAnEndReports.before(result.getDetails());
         final var storedFulltextSearch = result.getDetailsFulltextSearch();
-        final var workflow = toUpdatedWorkflow(event, result);
-        workflow.setDetails(DetailsOfAnEnd.whatToStore(workflow.getDetails(), storedDetails));
+        final var storedTitle = WhatAnEndReports.before(result.getTitle());
+        final var storedAccessibleToUsers = WhatAnEndReports.before(result.getAccessibleToUsers());
+        final var storedAccessibleToGroups = WhatAnEndReports.before(result.getAccessibleToGroups());
+        final var workflow = mapEndedWorkflow(event, result);
+        workflow.setDetails(WhatAnEndReports.whatToStore(workflow.getDetails(), storedDetails));
         workflow.setDetailsFulltextSearch(
-                DetailsOfAnEnd.whatToStore(workflow.getDetailsFulltextSearch(), storedFulltextSearch));
+                WhatAnEndReports.whatToStore(workflow.getDetailsFulltextSearch(), storedFulltextSearch));
+        workflow.setTitle(WhatAnEndReports.whatToStore(workflow.getTitle(), storedTitle));
+        workflow.setAccessibleToUsers(
+                WhatAnEndReports.whatToStore(workflow.getAccessibleToUsers(), storedAccessibleToUsers));
+        workflow.setAccessibleToGroups(
+                WhatAnEndReports.whatToStore(workflow.getAccessibleToGroups(), storedAccessibleToGroups));
         return workflow;
 
     }

@@ -2,7 +2,7 @@ package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.ProtocolStringList;
 import com.google.protobuf.Timestamp;
-import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
@@ -132,24 +133,44 @@ public abstract class ProtobufUserTaskMapper {
      * information in protobuf, so an empty list cannot be told apart from "not provided" -
      * therefore they are ignored here rather than mapped with a null-value strategy.
      */
+    // an end keeps what it does not report. A BPMS which can no longer read the case sends its end
+    // without the fields a change carries, and writing that emptiness over the stored task would
+    // take away the due date the list sorts by. Those fields are declared optional in the protobuf
+    // schema and a missing one therefore arrives as null; the titles and the business data have no
+    // presence information and arrive empty, which is what toEndedTask answers.
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
-    // the event's timestamp, stamped where reports are weighed against each other:
-    @Mapping(target = "latestEventAt", ignore = true)
-    @Mapping(target = "candidateUsersSince", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", source = "timestamp")
-    @Mapping(target = "updatedBy", source = "initiator")
-    @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "readBy", ignore = true)
     @Mapping(target = "readAt", ignore = true)
+    @Mapping(target = "candidateUsersSince", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
+    // an end does not say when the task began, and guessing it would make the same task look
+    // different depending on which of the two reports arrived first:
+    @Mapping(target = "createdAt", ignore = true)
+    // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
+    @Mapping(target = "updatedAt", source = "timestamp")
+    @Mapping(target = "updatedBy", source = "initiator")
+    // who ended the task, and nobody means the process ended it. This is the one field an end does
+    // clear: the notification poller reads it to tell a completion by somebody else from one the
+    // reader did themselves, and a name left over from an earlier report would name the wrong person
+    @Mapping(target = "initiator", source = "initiator",
+            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    // the service sets these two, because an end means more to it than the event says:
+    @Mapping(target = "endedAt", ignore = true)
+    @Mapping(target = "endReason", ignore = true)
+    // read from the assignee and the candidates whenever they are asked for:
     @Mapping(target = "dangling", ignore = true)
+    @Mapping(target = "targetGroups", ignore = true)
+    // what the notification poller hands on to the notification service, never stored:
     @Mapping(target = "notificationType", ignore = true)
     @Mapping(target = "forced", ignore = true)
-    @Mapping(target = "endReason", ignore = true)
-    @Mapping(target = "targetGroups", ignore = true)
+    // the follow-up date comes with the creation and belongs to the cockpit afterwards: a user sets
+    // it there and no workflow system hears about it
     @Mapping(target = "followUpDate", ignore = true)
     @Mapping(target = "assignee", ignore = true)
     @Mapping(target = "candidateUsers", ignore = true)
@@ -160,13 +181,14 @@ public abstract class ProtobufUserTaskMapper {
     protected abstract UserTask mapEndedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 
     /**
-     * Maps a completed or cancelled event onto the stored user task, keeping the business data the
-     * cockpit already has where the end reports none.
+     * Maps a completed or cancelled event onto the stored user task, keeping the business data and
+     * the titles the cockpit already has where the end reports none.
      * <p>
      * The sender fills the details field whether it has anything to put in it or not, and a
      * protobuf map carries no presence information either way, so an empty map is what an end of a
-     * task the BPMS can no longer describe looks like here. Mapping it would erase what the task
-     * was last known to be about. {@link DetailsOfAnEnd} says why that matters.
+     * task the BPMS can no longer describe looks like here. The three titles arrive the same way.
+     * Mapping those would erase what the task was last known to be about and the words it is found
+     * under in the finished list. {@link WhatAnEndReports} says why that matters.
      *
      * @param event The end as it was reported
      * @param result The stored task, changed in place
@@ -176,12 +198,19 @@ public abstract class ProtobufUserTaskMapper {
             final UserTaskCreatedOrUpdatedEvent event,
             @MappingTarget final UserTask result) {
 
-        final var storedDetails = DetailsOfAnEnd.before(result.getDetails());
+        final var storedDetails = WhatAnEndReports.before(result.getDetails());
         final var storedFulltextSearch = result.getDetailsFulltextSearch();
+        final var storedTitle = WhatAnEndReports.before(result.getTitle());
+        final var storedWorkflowTitle = WhatAnEndReports.before(result.getWorkflowTitle());
+        final var storedTaskDefinitionTitle = WhatAnEndReports.before(result.getTaskDefinitionTitle());
         final var task = mapEndedTask(event, result);
-        task.setDetails(DetailsOfAnEnd.whatToStore(task.getDetails(), storedDetails));
+        task.setDetails(WhatAnEndReports.whatToStore(task.getDetails(), storedDetails));
         task.setDetailsFulltextSearch(
-                DetailsOfAnEnd.whatToStore(task.getDetailsFulltextSearch(), storedFulltextSearch));
+                WhatAnEndReports.whatToStore(task.getDetailsFulltextSearch(), storedFulltextSearch));
+        task.setTitle(WhatAnEndReports.whatToStore(task.getTitle(), storedTitle));
+        task.setWorkflowTitle(WhatAnEndReports.whatToStore(task.getWorkflowTitle(), storedWorkflowTitle));
+        task.setTaskDefinitionTitle(
+                WhatAnEndReports.whatToStore(task.getTaskDefinitionTitle(), storedTaskDefinitionTitle));
         return task;
 
     }
