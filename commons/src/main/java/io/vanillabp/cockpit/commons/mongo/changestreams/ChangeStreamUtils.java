@@ -13,15 +13,11 @@ import java.util.List;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
 import org.springframework.data.mongodb.core.messaging.Subscription;
-import org.springframework.stereotype.Component;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import com.mongodb.client.model.changestream.FullDocument;
@@ -30,9 +26,12 @@ import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import io.vanillabp.cockpit.commons.mongo.MongoDbProperties;
 import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 
-@Component
-@ConditionalOnBean(MongoTemplate.class)
-@DependsOn("changesetAutoConfiguration")
+/**
+ * Subscribes to the change stream of a collection. Whoever registers this as a bean also owns the
+ * order it is built in: a change stream is opened on a collection, so the changesets creating the
+ * collections have to have run first. The Business Cockpit's persistence auto-configuration says so
+ * by asking for the bean which runs them.
+ */
 public class ChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";

@@ -13,3 +13,15 @@ A custom cockpit depends on this module, which the wiki describes under
 Anything a custom cockpit would also need belongs here rather than in `container`. Built as part of
 the reactor build described in the [root README](../README.md#building-it), and published as
 `io.vanillabp.businesscockpit:business-cockpit`.
+
+## How its beans reach an application
+
+Through the auto-configurations in `io.vanillabp.cockpit.autoconfigure`, which Spring Boot reads from
+this jar's `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`. There
+used to be a base class carrying a component scan, and an application got the beans by extending it.
+
+So a stereotype annotation alone does not make a bean here any more. A class added to
+`io.vanillabp.cockpit` is named in the `@Import` of the auto-configuration of its area, and
+`EveryCockpitBeanIsRegisteredTest` fails when it is not. The package documentation of
+`io.vanillabp.cockpit.autoconfigure` says why it is written out rather than scanned, and
+`container/README.md` says why the delivered application cannot be the one to prove it works.

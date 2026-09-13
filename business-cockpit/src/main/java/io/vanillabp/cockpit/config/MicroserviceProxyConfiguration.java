@@ -1,18 +1,21 @@
 package io.vanillabp.cockpit.config;
 
+import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration;
 import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 
 @Configuration
 public class MicroserviceProxyConfiguration {
 
+    /**
+     * @param changesetsHaveBeenApplied not read: the registry is filled in bulk from MongoDB while it
+     *      is being built, so the changesets which create the collection it reads have to have run.
+     *      Asking for the bean which runs them is what says so at compile time.
+     */
     @Bean
-    // the registry is filled in bulk from MongoDB on startup, which has to happen after the
-    // changesets created the collections it reads
-    @DependsOn("changesetAutoConfiguration")
-    public MicroserviceProxyRegistry microserviceProxyRegistry() {
+    public MicroserviceProxyRegistry microserviceProxyRegistry(
+            final ChangesetAutoConfiguration changesetsHaveBeenApplied) {
 
         return new MicroserviceProxyRegistry();
 
