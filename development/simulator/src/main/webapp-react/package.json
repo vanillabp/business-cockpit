@@ -10,7 +10,7 @@
     "@microsoft/fetch-event-source": "2.0.1",
     "grommet": "2.33.2",
     "grommet-icons": "4.12.1",
-    "i18next": "22.0.3",
+    "i18next": "22.5.1",
     "react": "18.2.0",
     "react-cookie": "4.1.1",
     "react-dom": "18.2.0",
