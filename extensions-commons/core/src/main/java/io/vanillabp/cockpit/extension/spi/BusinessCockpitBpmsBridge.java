@@ -21,8 +21,10 @@ import java.util.Optional;
  * outbox entry is dispatched, which is after the transaction the BPMS event arrived in was
  * committed and on a thread of the outbox dispatcher. The three <code>…OfAggregate</code>
  * methods are called from
- * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>, inside whatever transaction
- * the application was in. None of them may assume an engine transaction is open.
+ * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>: the two which serve a report
+ * inside the transaction the application was in, and <code>userTaskOfAggregate</code> inside
+ * that one or inside a transaction the extension opened where the application brought none.
+ * None of them may assume an engine transaction is open.
  * <p>
  * <b>What a failure means.</b> The two <code>prefilled…</code> methods have four answers, and
  * picking the right one decides whether a report is made, made later, or not made at all.

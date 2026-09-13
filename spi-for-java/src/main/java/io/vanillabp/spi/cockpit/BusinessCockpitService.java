@@ -18,6 +18,12 @@ import java.util.Optional;
  * report is sent. And the BPMS is elected per workflow rather than fixed: during a migration
  * one workflow of a workflow module may live in one BPMS and the next in another, and each is
  * asked where it is.
+ * <p>
+ * The methods come in two shapes, and each one says below which transaction it works in. A
+ * report needs the transaction which persists the change it is about and is refused without
+ * one. A question takes part in the transaction which is running and gets one of VanillaBP's
+ * own where nothing runs, so the answer sees what the caller changed and has not written yet,
+ * and a caller outside a transaction is answered all the same.
  *
  * @param <WA> The workflow-aggregate-class
  */
@@ -35,7 +41,11 @@ public interface BusinessCockpitService<WA> {
      * only workflow data. To update data of user tasks
      * use {@link #aggregateChanged(Object, String...)}
      * instead.
-     * 
+     * <p>
+     * <b>Which transaction this works in.</b> The one running on the calling thread. The entry is
+     * written into it, which is what ties the report to the change, and a thread carrying no
+     * transaction is refused with a message saying to open one.
+     *
      * @param workflowAggregate The workflow's aggregate
      */
     void aggregateChanged(WA workflowAggregate);
@@ -47,7 +57,10 @@ public interface BusinessCockpitService<WA> {
      * Processing is done asynchronous after the current
      * transaction and only if the transaction completes
      * successfully.
-     * 
+     * <p>
+     * <b>Which transaction this works in.</b> The one running on the calling thread, like the
+     * report of the workflow data, and a thread carrying no transaction is refused the same way.
+     *
      * @param workflowAggregate The workflow's aggregate
      * @param userTaskIds The ids of the user tasks to update, or none for every user task
      *                    the BPMS currently holds for this aggregate
@@ -63,6 +76,16 @@ public interface BusinessCockpitService<WA> {
      * Nothing is reported to the cockpit, and the workflow aggregate is not saved
      * afterwards - a details provider invoked this way is expected to read rather than
      * to change.
+     * <p>
+     * <b>Which transaction this works in.</b> The one running on the calling thread, and one of
+     * VanillaBP's own where nothing runs. So a workflow service which changed its aggregate and
+     * has not written it yet reads an answer built from that state, and a caller outside a
+     * transaction, say a REST controller showing a task, gets an answer as well.
+     * <p>
+     * Taking part in the caller's transaction has a second side. A details provider which
+     * changes the aggregate leaves that change where the caller will commit it, because a
+     * persistence writing what changed on a managed object by itself writes it there. A provider
+     * reached by this method should read only.
      *
      * @param workflowAggregate The workflow's aggregate
      * @param userTaskId The user-task's id

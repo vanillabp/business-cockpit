@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
@@ -11,13 +12,17 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.util.StringUtils;
 
+// registered through the .imports file of this module, which is what makes the conditions below the
+// only thing deciding whether the ingestion is there
 @AutoConfiguration
+@ConditionalOnClass({ DefaultKafkaConsumerFactory.class, BcEvent.class })
 @ConditionalOnProperty(
         prefix = BpmsApiProperties.PREFIX + ".kafka.topics",
         name = {"workflow", "user-task", "workflow-module"})

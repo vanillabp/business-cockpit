@@ -17,6 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.config.UiUriType;
+import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -36,8 +38,18 @@ public class BusinessCockpitConfigurationTest {
       final ConfigurationFixture fixture,
       final boolean templatingAvailable) {
 
+    return read(fixture, templatingAvailable, false);
+
+  }
+
+  private static BusinessCockpitConfiguration read(
+      final ConfigurationFixture fixture,
+      final boolean templatingAvailable,
+      final boolean transportProvidedByTheApplication) {
+
     return BusinessCockpitConfiguration
-        .readAndValidate(fixture.properties(), fixture.settings(), templatingAvailable);
+        .readAndValidate(
+            fixture.properties(), fixture.settings(), templatingAvailable, transportProvidedByTheApplication);
 
   }
 
@@ -45,9 +57,18 @@ public class BusinessCockpitConfigurationTest {
       final ConfigurationFixture fixture,
       final boolean templatingAvailable) {
 
+    return defectsOf(fixture, templatingAvailable, false);
+
+  }
+
+  private static String defectsOf(
+      final ConfigurationFixture fixture,
+      final boolean templatingAvailable,
+      final boolean transportProvidedByTheApplication) {
+
     return assertThrows(
         IllegalStateException.class,
-        () -> read(fixture, templatingAvailable)).getMessage();
+        () -> read(fixture, templatingAvailable, transportProvidedByTheApplication)).getMessage();
 
   }
 
@@ -146,6 +167,71 @@ public class BusinessCockpitConfigurationTest {
 
     assertTrue(defects.contains("reported twice"), defects);
     assertTrue(defects.contains("rest.base-url"), defects);
+
+  }
+
+  @Test
+  @DisplayName("Without a transport the application is told that it can bring one itself")
+  public void neitherTransportNamesTheOwnWayAsWell() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture.aConfiguredApplication().without("rest.base-url"), false);
+
+    assertTrue(defects.contains(BusinessCockpitTransport.class.getName()), defects);
+
+  }
+
+  @Test
+  @DisplayName("An application bringing its own transport needs neither of the shipped ones")
+  public void anOwnTransportNeedsNeitherShippedTransport(
+      final CapturedOutput output) {
+
+    final var configuration = assertDoesNotThrow(
+        () -> read(
+            ConfigurationFixture.aConfiguredApplication().without("rest.base-url"), false, true));
+
+    assertNull(configuration.getRest());
+    assertNull(configuration.getKafka());
+    assertTrue(configuration.isTransportProvidedByTheApplication());
+
+    final var reported = output.getAll();
+    assertTrue(reported.contains(BusinessCockpitTransport.class.getName()), reported);
+    assertTrue(reported.contains("vanillabp.cockpit.rest.base-url"), reported);
+    assertTrue(reported.contains("vanillabp.cockpit.kafka.bootstrap-servers"), reported);
+
+  }
+
+  @Test
+  @DisplayName("An own transport next to a configured one says which key stays unread")
+  public void anOwnTransportSaysWhichKeyStaysUnread(
+      final CapturedOutput output) {
+
+    assertDoesNotThrow(
+        () -> read(ConfigurationFixture.aConfiguredApplication(), false, true));
+
+    final var reported = output.getAll();
+    assertTrue(reported.contains("vanillabp.cockpit.rest.base-url"), reported);
+    assertTrue(reported.contains("is not read by the extension itself"), reported);
+    assertTrue(reported.contains("wraps the shipped one"), reported);
+
+  }
+
+  @Test
+  @DisplayName("Both shipped transports next to an own one are refused all the same")
+  public void bothTransportsAreRefusedNextToAnOwnTransport() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture
+            .aConfiguredApplication()
+            .with("kafka.bootstrap-servers", "broker:9092")
+            .with("kafka.topics.user-task", "user-task")
+            .with("kafka.topics.workflow", "workflow")
+            .with("kafka.topics.workflow-module", "workflow-module"),
+        false, true);
+
+    assertTrue(defects.contains("wraps a shipped one"), defects);
+    assertTrue(defects.contains("vanillabp.cockpit.rest.base-url"), defects);
+    assertTrue(defects.contains("vanillabp.cockpit.kafka.bootstrap-servers"), defects);
 
   }
 

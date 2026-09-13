@@ -1,0 +1,4 @@
+vanillabp:
+  cockpit:
+    rest:
+      base-url: ""

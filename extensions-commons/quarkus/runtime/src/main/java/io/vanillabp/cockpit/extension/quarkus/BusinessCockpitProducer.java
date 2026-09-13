@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import io.quarkus.arc.DefaultBean;
+import io.quarkus.arc.InjectableInstance;
+import io.quarkus.arc.InstanceHandle;
 import io.quarkus.arc.Unremovable;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -17,6 +20,7 @@ import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.templating.Templating;
+import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.cockpit.extension.wiring.BusinessCockpitWiringService;
 import io.vanillabp.integration.adapter.migration.config.MigrationAdapterProperties;
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
@@ -89,13 +93,64 @@ public class BusinessCockpitProducer {
   }
 
   /**
+   * What the application configured, read and validated once while it boots.
+   * <p>
+   * It is a bean of its own because an application which brings a transport of its own may want
+   * to wrap the shipped one, and
+   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} is what builds
+   * that from this object.
+   *
+   * @param properties VanillaBP's resolved configuration
+   * @param settings What the application wrote below the cockpit's own sections
+   * @param transports Every bean of the transport type this application has
+   * @return The configuration
+   */
+  @Produces
+  @Singleton
+  @Unremovable
+  public BusinessCockpitConfiguration businessCockpitConfiguration(
+      final MigrationAdapterProperties properties,
+      final CockpitSettings settings,
+      @Any final InjectableInstance<BusinessCockpitTransport> transports) {
+
+    return BusinessCockpitConfiguration
+        .readAndValidate(
+            properties, settings, Templating.engineAvailable(), transportProvidedByTheApplication(
+                transports));
+
+  }
+
+  /**
+   * The transport the extension ships, which an application replaces by producing a bean of the
+   * same type: <code>&#64;DefaultBean</code> is what ArC offers for the seam Spring Boot's
+   * <code>&#64;ConditionalOnMissingBean</code> makes on the other platform.
+   * <p>
+   * What such a transport inherits is why the seam is at this point: it is called while an outbox
+   * entry is dispatched, so a failure is repeated with a backoff and the call runs in the
+   * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
+   *
+   * @param configuration The validated configuration
+   * @return The transport
+   */
+  @Produces
+  @Singleton
+  @DefaultBean
+  @Unremovable
+  public BusinessCockpitTransport businessCockpitTransport(
+      final BusinessCockpitConfiguration configuration) {
+
+    return BusinessCockpitAssembly.transportOf(configuration);
+
+  }
+
+  /**
    * The extension itself, built from what the application configured.
    * <p>
    * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
    * BPMS half injects: one bean, so that there is nothing to tell apart.
    *
-   * @param properties VanillaBP's resolved configuration
-   * @param settings What the application wrote below the cockpit's own sections
+   * @param configuration What the application configured
+   * @param transport Where the reports go, the application's own bean where it has one
    * @param bridges The BPMS halves the application brought
    * @param bridgeLists The BPMS halves an extension produced as one list, which is how a BPMS
    *          half builds a bridge per configured adapter id on Quarkus: how many there are is
@@ -112,8 +167,8 @@ public class BusinessCockpitProducer {
   @Singleton
   @Unremovable
   public BusinessCockpitExtension businessCockpitExtension(
-      final MigrationAdapterProperties properties,
-      final CockpitSettings settings,
+      final BusinessCockpitConfiguration configuration,
+      final BusinessCockpitTransport transport,
       @Any final Instance<BusinessCockpitBpmsBridge> bridges,
       @Any final Instance<List<BusinessCockpitBpmsBridge>> bridgeLists,
       @Any final Instance<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
@@ -123,10 +178,8 @@ public class BusinessCockpitProducer {
       @Any final Instance<PhaseTwoOutboxAware<?>> outboxAwares,
       final TransactionRunnerResolver transactionRunners) {
 
-    final var configuration = BusinessCockpitConfiguration
-        .readAndValidate(properties, settings, Templating.engineAvailable());
     return new BusinessCockpitExtension(
-        configuration, BusinessCockpitAssembly.transportOf(configuration), theBridges(
+        configuration, transport, theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
                 .templatingOf(configuration), theOutbox(
                     outboxResolver, outboxes, outboxAwares), transactionRunners);
@@ -230,6 +283,31 @@ public class BusinessCockpitProducer {
       final BusinessCockpitExtension extension) {
 
     extension.stop();
+
+  }
+
+  /**
+   * Whether the application brought a transport of its own, which is the question the
+   * configuration check needs answered: such an application configures neither of the shipped
+   * transports and starts all the same.
+   * <p>
+   * Which beans of that type this application has, and which of them is the one this class
+   * produces as the default, was decided while the application was built. Asking the container
+   * reads that answer and creates none of them, which matters twice: the shipped transport loads
+   * the Kafka client the application may not have, and it is built from the very configuration
+   * being read here.
+   *
+   * @param transports Every bean of the transport type
+   * @return Whether one of them is not the shipped default
+   */
+  private static boolean transportProvidedByTheApplication(
+      final InjectableInstance<BusinessCockpitTransport> transports) {
+
+    return transports
+        .handlesStream()
+        .map(InstanceHandle::getBean)
+        .filter(Objects::nonNull)
+        .anyMatch(bean -> !bean.isDefaultBean());
 
   }
 

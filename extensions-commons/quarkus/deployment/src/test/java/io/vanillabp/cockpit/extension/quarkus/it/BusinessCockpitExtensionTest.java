@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,6 +68,9 @@ public class BusinessCockpitExtensionTest {
   TestAggregatePersistence aggregates;
 
   @Inject
+  TestBpmsBridge bridge;
+
+  @Inject
   BusinessCockpitEventPublisher publisher;
 
   @Inject
@@ -76,6 +80,7 @@ public class BusinessCockpitExtensionTest {
   public void forgetWhatArrivedBefore() {
 
     CockpitServer.forgetRequests();
+    bridge.forgetLookups();
 
   }
 
@@ -295,6 +300,69 @@ public class BusinessCockpitExtensionTest {
             .stream()
             .noneMatch(request -> request.path().contains("usertask")),
         "reading a user task reported something to the cockpit");
+
+  }
+
+  @Test
+  @DisplayName("A read answers with what the caller changed and has not written yet")
+  public void getUserTaskSeesWhatTheCallerHasNotWrittenYet() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+    aggregates.forgetSaves();
+
+    transaction.begin();
+    aggregates.byId(aggregate.getId()).setCustomer("Bea");
+    final var userTask = workflowService
+        .businessCockpit()
+        .getUserTask(aggregate, TestBpmsBridge.USER_TASK_ID);
+    transaction.commit();
+
+    assertNotNull(userTask);
+    assertTrue(userTask.isPresent());
+    assertEquals("Bea", userTask.get().getDetails().get("customer"));
+    assertEquals(List.of(Boolean.TRUE), bridge.tasksLookedUpInATransaction());
+    assertFalse(
+        aggregates.sawSaveOf(aggregate.getId()),
+        "reading a user task saved the workflow aggregate");
+
+  }
+
+  @Test
+  @DisplayName("A read from a caller without a transaction gets an answer")
+  public void getUserTaskWithoutATransactionAnswers() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    // what a REST endpoint does: it asks about a task and has opened nothing
+    final var userTask = workflowService
+        .businessCockpit()
+        .getUserTask(aggregate, TestBpmsBridge.USER_TASK_ID);
+
+    assertNotNull(userTask);
+    assertTrue(userTask.isPresent());
+    assertEquals("Anna", userTask.get().getDetails().get("customer"));
+    // the read opened one of its own, so the engine and the aggregate were asked in one unit of
+    // work here as well
+    assertEquals(List.of(Boolean.TRUE), bridge.tasksLookedUpInATransaction());
+
+  }
+
+  @Test
+  @DisplayName("A report from a caller without a transaction says what to do about it")
+  public void aggregateChangedWithoutATransactionSaysWhatToDo() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    final var failure = assertThrows(
+        IllegalStateException.class,
+        () -> workflowService.businessCockpit().aggregateChanged(aggregate));
+
+    assertTrue(failure.getMessage().contains("needs a transaction"), failure.getMessage());
+    assertTrue(failure.getMessage().contains("@Transactional"), failure.getMessage());
+    assertTrue(failure.getMessage().contains(BPMN_PROCESS), failure.getMessage());
+    // the sentence about a BPMS half reporting from a worker thread belongs to an adapter and
+    // would send an application looking in the wrong place
+    assertFalse(failure.getMessage().contains("EventTransaction"), failure.getMessage());
 
   }
 

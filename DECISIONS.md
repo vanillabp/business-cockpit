@@ -497,3 +497,89 @@ after a details provider, and it does not say that a details provider cannot wri
 What the platform's message cannot carry is the half which belongs to this repository: the provider
 is not saved by VanillaBP and is a second writer all the same. That sentence is in the wiki page
 `Architecture`, next to what a report carries.
+
+### 21. A question of the service works in the caller's transaction, a report demands one
+
+`BusinessCockpitService` offers two shapes in one interface. `aggregateChanged` reports something,
+`getUserTask` asks something, and they looked alike while they behaved differently: the report was
+written into the transaction the caller was in, and the read ran in a transaction of its own. An
+application could therefore report a change in the same method call in which it read an answer that
+did not know that change. Nothing in the interface said so, and nobody can guess it.
+
+The read now runs in the form the platform calls `CURRENT_OR_NEW`: the transaction running on the
+calling thread, and one of VanillaBP's own where nothing runs. Both halves are needed. Joining is
+what makes the answer match what the caller sees, because the aggregate the details provider is
+handed is then read in the caller's unit of work, which under JPA is the persistence context
+holding the change nobody has written yet. Opening one where nothing runs is what keeps a REST
+controller answerable, which reads a task without a transaction of any kind. The third form,
+demanding a running transaction, would refuse that controller, and a question may not do that.
+
+One transaction wraps the whole read rather than the aggregate alone. The BPMS is asked which task
+it holds, then the aggregate is read for the provider, and two units of work would let those two
+describe two different moments. On a BPMS whose store is a database of the application, the
+Process-Engine-API, both reads then also sit in the transaction the caller is in rather than beside
+it.
+
+That costs a caller who brought no transaction one open connection for as long as the engine takes
+to answer, which for a remote engine is an HTTP call. The exchange is worth it: a reader who has to
+reason about which of two moments an answer came from is worse off than one whose read is a little
+more expensive, and a caller who already runs a transaction pays nothing, because the engine was
+asked inside it before.
+
+Exactly one method of the service reads, so exactly one changed. The two reporting methods keep the
+running transaction and nothing else, for the reason decision 15 gives: the entry belongs in the
+transaction which persists the change it reports, and an entry committed on its own would tell the
+cockpit of a change which is still free to roll back.
+
+What they gained is their own refusal. The platform refuses a missing transaction with a sentence
+about a BPMS half reporting from a worker thread, which is the right sentence for an adapter and the
+wrong one for a workflow service calling this interface. So the service asks whether a transaction
+is open before it writes and says what the application has to do, and the answer of a runner an
+application contributed itself, which is allowed to say that it cannot tell, leaves the refusal to
+that runner.
+
+Taking part in the caller's transaction has a price, and it is paid knowingly. A details provider
+which changes the workflow aggregate now leaves that change where the caller will commit it, and a
+persistence which writes what changed on a managed object by itself writes it there. So reading can
+end in a version conflict at the caller's commit wherever a provider writes on the read path. The
+two ways out were weighed in decision 17 and stay rejected: a read-only transaction breaks the
+outbox entry a reporting run has to write, and detaching the aggregate breaks every provider which
+touches a lazy association. What is left is the sentence a provider reached by a read has to read in
+the Javadoc of `getUserTask`: read only.
+
+### 22. The transport is a bean an application replaces, and each platform answers whether it did
+
+Version 1 declared its three publishing beans with `@ConditionalOnMissingBean`, and applications used
+that seam to report their own way. Version 2 built the transport inside
+`BusinessCockpitAssembly.transportOf` and handed it to the extension, so there was no bean to
+replace. That was never decided, it just happened, and a customer who used the seam could not
+upgrade.
+
+The transport is a bean again. Spring Boot declares it `@Bean @ConditionalOnMissingBean`, Quarkus
+`@Produces @DefaultBean`, and the one interface carries the three methods version 1 spread over three
+beans. The seam sits at the end of the outbox dispatch rather than where the BPMS event arrives, so a
+transport an application wrote is handed a finished report and inherits the repetition with a backoff
+and the transaction of the workflow aggregate.
+
+`BusinessCockpitTransport` is therefore a published contract, like the interfaces of
+`io.vanillabp.cockpit.extension.spi` which the three BPMS halves implement. It is in
+`io.vanillabp.cockpit.extension.transport` because that is where the two shipped transports are and
+moving it would break the applications this decision is for. `BusinessCockpitConfiguration` is a bean
+of both platforms for the same reason: an application which wants to wrap a shipped transport builds
+it with `BusinessCockpitAssembly.transportOf(configuration)`, and without the bean that is a
+reimplementation rather than an addition.
+
+Whether an application brought a transport of its own is the platform's answer, not a property key.
+`readAndValidate` takes it as an argument, so the check stays in the neutral core, the message comes
+at the same moment as every other configuration message, and no key can claim a bean which is not
+there. Spring Boot reads the bean definitions of the type and counts the ones it did not contribute
+itself; Quarkus asks the container for the beans of the type and looks for one which is not the
+default bean. Both answers were decided while the application was built, and neither creates an
+instance: the shipped transport loads the Kafka client an application may not have, and it is built
+from the very configuration being read.
+
+What such an application reads while it boots follows from that. Neither shipped transport is missing
+any more, because the reports have a way. A shipped transport configured next to an own bean is named
+in one line as a key the extension does not read, since silence about it would be the worst of the
+three answers. Both shipped transports next to an own bean still end the boot: the shipped transport
+is what an own one wraps, and nothing says which of the two was meant.

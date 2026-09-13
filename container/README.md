@@ -18,6 +18,7 @@ This file is about the module.
 
 1. [What is here](#what-is-here)
 1. [Why the library and the application are two modules](#why-the-library-and-the-application-are-two-modules)
+1. [Why its own tests cannot prove the wiring](#why-its-own-tests-cannot-prove-the-wiring)
 1. [Running it from a build](#running-it-from-a-build)
 1. [Why it is not reactive](#why-it-is-not-reactive)
 
@@ -26,8 +27,10 @@ This file is about the module.
 Four things, and each of them is the reference answer to something a custom cockpit has to write for
 itself:
 
-* `BusinessCockpitStandaloneApplication`, which extends `BusinessCockpitApplication` and adds a
-  `main` method and nothing else.
+* `BusinessCockpitStandaloneApplication`, a `@SpringBootApplication` with a `main` method and nothing
+  else. It says nothing about the cockpit, because the dependency on `business-cockpit` brings the
+  auto-configurations of `io.vanillabp.cockpit.autoconfigure` along. A custom cockpit writes the same
+  class.
 * The `application*.yaml` files below `config/`, the defaults of a standalone deployment, including
   the profile `local` with its demo users and its MongoDB URI.
 * The five concrete GUI API controllers below `io/vanillabp/cockpit`, which implement the three
@@ -48,6 +51,19 @@ it. The split is what keeps a custom cockpit from doing that.
 
 Anything added here which a custom cockpit would also need belongs in the library instead. The test
 for it is whether an application depending only on `business-cockpit` would miss it.
+
+## Why its own tests cannot prove the wiring
+
+This module lives in `io.vanillabp.cockpit`, the library's own package. So the component scan of its
+`@SpringBootApplication` reaches the library's classes, and the package Spring Boot looks in for
+Spring Data repositories is that package as well. The application therefore starts whether the
+library's auto-configurations do their job or not, and every test in `io.vanillabp.cockpit.itest`
+starts it that way.
+
+`io.vanillabp.derived.cockpit.ApplicationWithoutTheBaseClassTest` is the one which does not. It boots
+an application in a package of its own, so nothing of the library is in reach of its scan, and that
+is the application a custom cockpit really writes. Wiring work belongs in front of that test, not in
+front of the suite above it.
 
 ## Running it from a build
 
