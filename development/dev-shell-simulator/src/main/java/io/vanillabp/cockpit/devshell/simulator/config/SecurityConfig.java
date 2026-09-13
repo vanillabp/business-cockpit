@@ -23,12 +23,20 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    /**
+     * The one password all simulated users share. It belongs to this simulator and nowhere else:
+     * the users are made up people from a configuration file, and the simulator runs on a
+     * developer's machine and ships in no product.
+     */
+    static final String SIMULATED_USER_PASSWORD = "Secure_123";
 
     @Bean
     @ConfigurationProperties("application.jwt")
@@ -60,13 +68,17 @@ public class SecurityConfig {
     public UserDetailsService inMemoryUserDetailsService(
             final Properties properties) {
 
+        // Spring Security deprecated User.withDefaultPasswordEncoder because it encoded the password
+        // out of sight of the reader, which made a sample look like something to copy. The encoder
+        // is created here instead, so the file shows which one encodes what.
+        final var passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
+
         final var users =
                 properties.getUsers().stream()
                         .map(
                                 user ->
-                                        User.withDefaultPasswordEncoder()
-                                                .username(user.getId())
-                                                .password("Secure_123")
+                                        User.withUsername(user.getId())
+                                                .password(passwordEncoder.encode(SIMULATED_USER_PASSWORD))
                                                 .authorities(
                                                         Optional.ofNullable(user.getGroups()).orElse(List.of()).stream()
                                                                 .map(SimpleGrantedAuthority::new)
