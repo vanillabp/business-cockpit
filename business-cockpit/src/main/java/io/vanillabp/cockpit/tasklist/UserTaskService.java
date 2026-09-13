@@ -853,6 +853,13 @@ public class UserTaskService {
 
     }
 
+    /**
+     * The query behind every list and every request naming a single task. The part which honours
+     * the user's permissions reads: the task admits the user, or it names them as assignee,
+     * candidate user or candidate group, or it addresses nobody, and it does not exclude them. So
+     * an exclusion cancels each of the other reasons, while an admission stands next to all of
+     * them and is not cancelled. {@link UserTaskVisibility} says why.
+     */
     public Criteria buildUserTasksCriteria(
             final UserTaskVisibility visibility,
             final OffsetDateTime initialTimestamp,
@@ -871,56 +878,83 @@ public class UserTaskService {
 
         // honour user's permissions
 
-        final var userAndRestrictions = new LinkedList<Criteria>();
-        final var userOrRestrictions = new LinkedList<Criteria>();
+        // a task is visible for one of these reasons, and an exclusion cancels each of them
+        final var reasonsAnExclusionCancels = new LinkedList<Criteria>();
+        // an admission is the reason no exclusion reaches, so it stands beside the group above
+        final var reasonsNoExclusionCancels = new LinkedList<Criteria>();
+        // what the task says about keeping somebody out, weighed against the group above only
+        final var exclusions = new LinkedList<Criteria>();
+        // this one holds whatever the reason is, because it says which view was asked for
+        final var restrictionsOnTheAssignee = new LinkedList<Criteria>();
+
         if ((assignees != null)
                 && !assignees.isEmpty()) {
             if (notInAssignees) {
                 final var assigneeMatches = Criteria.where("assignee.id").not().in(assignees);
-                userAndRestrictions.add(assigneeMatches);
+                restrictionsOnTheAssignee.add(assigneeMatches);
             } else {
                 final var assigneeMatches = Criteria.where("assignee.id").in(assignees);
-                userOrRestrictions.add(assigneeMatches);
+                reasonsAnExclusionCancels.add(assigneeMatches);
             }
         } else if (notInAssignees) {
             final var assigneeMatches = Criteria.where("assignee").exists(false);
-            userAndRestrictions.add(assigneeMatches);
+            restrictionsOnTheAssignee.add(assigneeMatches);
         }
 
         if ((candidateUsers != null)
                 && !candidateUsers.isEmpty()) {
             final var candidateUsersMatches = Criteria.where("candidateUsers.id").in(candidateUsers);
-            userOrRestrictions.add(candidateUsersMatches);
+            reasonsAnExclusionCancels.add(candidateUsersMatches);
         }
         if ((candidateGroups != null)
                 && !candidateGroups.isEmpty()) {
             final var candidateGroupsMatches = Criteria.where("candidateGroups.id").in(candidateGroups);
-            userOrRestrictions.add(candidateGroupsMatches);
+            reasonsAnExclusionCancels.add(candidateGroupsMatches);
         }
         if ((admittedUsers != null)
                 && !admittedUsers.isEmpty()) {
             // the workflow module let these users through, whether or not they are candidates
             final var admittedUsersMatches = Criteria.where("admittedUsers.id").in(admittedUsers);
-            userOrRestrictions.add(admittedUsersMatches);
+            reasonsNoExclusionCancels.add(admittedUsersMatches);
         }
 
         if(candidatesToBeExcluded != null && !candidatesToBeExcluded.isEmpty()){
             final var candidateUserExclusions =
                     Criteria.where("excludedCandidateUsers.id")
                             .not().in(candidatesToBeExcluded);
-            userAndRestrictions.add(candidateUserExclusions);
+            exclusions.add(candidateUserExclusions);
         }
 
-        if (!userAndRestrictions.isEmpty()
-                || !userOrRestrictions.isEmpty()) {
+        if (!restrictionsOnTheAssignee.isEmpty()
+                || !reasonsAnExclusionCancels.isEmpty()
+                || !reasonsNoExclusionCancels.isEmpty()
+                || !exclusions.isEmpty()) {
             if (includeDanglingTasks) {
                 final var noAssigneeOrNoCandidate = Criteria.where("dangling").is(Boolean.TRUE);
-                userOrRestrictions.add(noAssigneeOrNoCandidate);
+                reasonsAnExclusionCancels.add(noAssigneeOrNoCandidate);
             }
-            if (!userOrRestrictions.isEmpty()) {
-                subCriterias.add(new Criteria().orOperator(userOrRestrictions));
+            final var reasonsToBeVisible = new LinkedList<Criteria>();
+            if (!reasonsAnExclusionCancels.isEmpty()
+                    || !exclusions.isEmpty()) {
+                final var whatIsLeftAfterTheExclusions = new LinkedList<Criteria>();
+                if (!reasonsAnExclusionCancels.isEmpty()) {
+                    whatIsLeftAfterTheExclusions.add(
+                            new Criteria().orOperator(reasonsAnExclusionCancels));
+                }
+                whatIsLeftAfterTheExclusions.addAll(exclusions);
+                reasonsToBeVisible.add(
+                        whatIsLeftAfterTheExclusions.size() == 1
+                                ? whatIsLeftAfterTheExclusions.getFirst()
+                                : new Criteria().andOperator(whatIsLeftAfterTheExclusions));
             }
-            subCriterias.addAll(userAndRestrictions);
+            reasonsToBeVisible.addAll(reasonsNoExclusionCancels);
+            if (!reasonsToBeVisible.isEmpty()) {
+                subCriterias.add(
+                        reasonsToBeVisible.size() == 1
+                                ? reasonsToBeVisible.getFirst()
+                                : new Criteria().orOperator(reasonsToBeVisible));
+            }
+            subCriterias.addAll(restrictionsOnTheAssignee);
         }
 
         // limit result according to list mode

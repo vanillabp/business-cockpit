@@ -209,8 +209,9 @@ public class NotificationScanner {
     }
 
     /**
-     * The users explicitly excluded from a task's candidates. The task list hides the task from
-     * them, so they must not be notified about it either.
+     * The users explicitly excluded from a task's candidates. No work is waiting for them, so they
+     * must not be notified about it, and that stays true when the same task admits them as a
+     * reader.
      */
     private static Set<String> excludedCandidateUserIds(
             final UserTask task) {

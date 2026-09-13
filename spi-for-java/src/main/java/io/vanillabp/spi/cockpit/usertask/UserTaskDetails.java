@@ -34,6 +34,10 @@ public interface UserTaskDetails {
      * work is waiting for them, for instance everybody who already worked on it and wants to read
      * back later what they entered.
      *
+     * <p>This list is the stronger word of the two: a user named here sees the task even when
+     * {@link #getExcludedCandidateUsers()} names them as well. What such a reader gets to see is
+     * then up to the workflow module, because the cockpit only opens the module's own form.
+     *
      * @return The user ids admitted to this task
      */
     List<String> getAdmittedUsers();
