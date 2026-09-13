@@ -70,9 +70,23 @@ public class ConfigurationMatrixTest {
   @Inject
   BusinessCockpitEventPublisher publisher;
 
+  @Inject
+  TestWorkflowService workflowService;
+
   private BusinessCockpitConfiguration configuration() {
 
     return BusinessCockpitConfiguration.readAndValidate(properties, settings, false);
+
+  }
+
+  @Test
+  @DisplayName("A report which is switched off asks the caller for no transaction")
+  public void aReportWhichIsSwitchedOffAsksForNoTransaction() {
+
+    // both lists are off in this application, so aggregateChanged writes nothing at all and has
+    // no reason to demand the transaction a report would have needed
+    workflowService.businessCockpit().aggregateChanged(new TestAggregate());
+    workflowService.businessCockpit().aggregateChanged(new TestAggregate(), "task-1");
 
   }
 

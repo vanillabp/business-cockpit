@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -510,6 +511,75 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                                 null,
                                 null,
                                 Map.of()))));
+
+  }
+
+  /**
+   * Runs a question of <code>BusinessCockpitService</code> in ONE transaction: the one running on
+   * the calling thread, and one of VanillaBP's own where nothing runs.
+   * <p>
+   * Joining is what makes the answer match what the caller sees. A workflow service which changed
+   * its aggregate and has not written it yet gets an answer built from that state, because the
+   * aggregate the details provider is handed is read in the caller's own unit of work. A
+   * transaction of the extension's own would read what is committed and would answer about a case
+   * as it was before the caller touched it, in the same method call in which a report of that very
+   * change is accepted.
+   * <p>
+   * Opening one where nothing runs is what keeps a caller outside a transaction answerable. A REST
+   * controller reading a user task brings nothing to join, and it gets an answer all the same.
+   * <p>
+   * The runner is the one the aggregate's own writes go through, for the same reason a report
+   * rides that one: a workflow aggregate kept in a system the platform does not manage is read
+   * through the unit of work of that system and no other. Which transaction a question works in is
+   * decision 21 in the repository's DECISIONS.md.
+   *
+   * @param <T> What the question answers with
+   * @param workflowAggregateClass The aggregate the question is about
+   * @param question The read to run
+   * @return What the question answered
+   */
+  public <T> T readInOneTransaction(
+      final Class<?> workflowAggregateClass,
+      final Supplier<T> question) {
+
+    return requireTransactionFor(workflowAggregateClass)
+        .requireTransaction(question);
+
+  }
+
+  /**
+   * Whether the calling thread runs a transaction the given aggregate's writes would go through.
+   * <p>
+   * A report through <code>BusinessCockpitService</code> needs one, and the service asks before it
+   * writes so that a caller who brought none reads a sentence about the code they wrote rather
+   * than the platform's wording about a missing transaction.
+   * <p>
+   * A runner an application contributed answers <code>true</code> where it cannot tell, which
+   * leaves the refusal to the runner itself.
+   *
+   * @param workflowAggregateClass The aggregate a report would be written for
+   * @return Whether a transaction is open
+   */
+  public boolean aTransactionIsOpenFor(
+      final Class<?> workflowAggregateClass) {
+
+    return requireTransactionFor(workflowAggregateClass)
+        .isTransactionActive();
+
+  }
+
+  /**
+   * Whether a workflow module takes part in the Business Cockpit at all - what
+   * <code>BusinessCockpitService</code> asks before it demands a transaction, so that a module
+   * which configured nothing about the cockpit is not refused for a report nobody writes.
+   *
+   * @param workflowModuleId The module
+   * @return Whether it configured the extension
+   */
+  public boolean reportsAnythingOf(
+      final String workflowModuleId) {
+
+    return configuration.reportsToTheCockpit(workflowModuleId);
 
   }
 
