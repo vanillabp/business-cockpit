@@ -48,6 +48,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -72,6 +74,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -96,6 +100,8 @@ public abstract class UserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -127,11 +133,13 @@ public abstract class UserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
-    // the controller sets these two, because an end means more to them than the event says
+    // the service sets these two, because an end means more to it than the event says
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     @Mapping(target = "readBy", ignore = true)
@@ -156,11 +164,13 @@ public abstract class UserTaskMapper {
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
     @Mapping(target = "reportedAt", ignore = true)
+    // the event's timestamp, stamped where reports are weighed against each other:
+    @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "candidateUsersSince", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
-    // the controller sets these two, because an end means more to them than the event says
+    // the service sets these two, because an end means more to it than the event says
     @Mapping(target = "endedAt", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     @Mapping(target = "readBy", ignore = true)

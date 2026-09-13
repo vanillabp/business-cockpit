@@ -392,3 +392,36 @@ The second was detaching the aggregate before the call. That hides the writes, a
 aggregate with them. A detached JPA entity throws as soon as a provider touches a lazy association,
 which is what reading a case usually comes down to. A rule which turns the ordinary use of the
 parameter into an error is worse than the leak it closes.
+
+### 18. The timestamp of the event decides which report the cockpit stores
+
+VanillaBP's outbox gives its entries no order. It dispatches them in parallel, and an entry whose
+dispatch failed comes back after the entries planned later have gone through. So the reports about one
+user task or one case reach the cockpit in an order which is not the order they happened in: a change
+can arrive after the change which followed it, and an end can arrive before the creation it ends.
+
+The cockpit weighs every report against what it already holds, and it weighs by the timestamp of the
+event rather than by the moment the report arrived. The report is built while its outbox entry is
+dispatched, which is as late as the outbox happens to get to it, so the arrival says nothing about the
+order. A user task and a case each carry `latestEventAt`, the timestamp of the event behind the latest
+report the cockpit stored, and that is what the next report is weighed against. `updatedAt` cannot
+serve for it: it is audit information, and every save overwrites it with the cockpit's own clock.
+
+Four rules follow. The decision is made in those two services rather than in a controller, so the REST
+way in and the Kafka way in are held to it alike.
+
+A report older than what is stored changes nothing. An end is never undone, so nothing arriving after
+it clears `endedAt`. An end of a task or a case the cockpit does not hold creates it, ended, because
+the creation may still be waiting in the outbox and a dropped end leaves a task the cockpit shows as
+open for good. And a creation is the one report an older timestamp does not disqualify: where the
+cockpit knows a task from its end alone, the creation fills in what the end could not report. That is
+the oldest report there is and the only one which says when the task began, so the end stays what it
+is and everything it left empty is filled.
+
+A record the cockpit holds from an end alone is recognizable by its empty `createdAt`. An end does not
+say when a task began, and guessing it would make the same case look different depending on which
+report came first.
+
+Which state a report carries is a different question, and this decision leaves it alone. The state is
+read while the entry is dispatched (decision 3), so it is the state of that moment and not the state of
+the event. The reports also keep arriving in whatever order the outbox produces.

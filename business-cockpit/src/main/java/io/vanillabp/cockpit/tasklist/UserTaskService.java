@@ -1,11 +1,14 @@
 package io.vanillabp.cockpit.tasklist;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
@@ -25,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -728,67 +733,193 @@ public class UserTaskService {
 
     }
 
-    public boolean completeUserTask(
-            final UserTask userTask,
-            final OffsetDateTime timestamp) {
+    /**
+     * Stores what a workflow module reports about a user task it has just created.
+     * <p>
+     * A creation of a task the cockpit already holds stores nothing: it is the oldest report there
+     * is, so everything it says has been said again since, and storing it would throw away what the
+     * cockpit itself knows about the task - who took it over, who read it, that it has ended. The one
+     * task it does change is a task the cockpit learned about from its end alone, which has been
+     * waiting for exactly this report.
+     *
+     * @param userTaskId The task the report is about
+     * @param eventTimestamp When the workflow module created the task, by its own clock
+     * @param asReported The task as the report describes it
+     * @return Whether the cockpit is up to date about the task
+     */
+    public boolean reportCreatedUserTask(
+            final String userTaskId,
+            final OffsetDateTime eventTimestamp,
+            final Supplier<UserTask> asReported) {
 
-        if (userTask == null) {
-            return false;
+        final var stored = getUserTask(userTaskId);
+        if (stored == null) {
+            return storeReportedUserTask(asReported.get(), eventTimestamp);
         }
 
-        userTask.setEndedAt(timestamp);
-        userTask.setUpdatedAt(timestamp);
-        userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.COMPLETED);
-
-        try {
-            userTasks.save(userTask);
+        if (stored.getCreatedAt() != null) {
+            reportChangesNothing(userTaskId, "creation", eventTimestamp, stored);
             return true;
-        } catch (Exception e) {
-            logger.error("Could not save user task '{}'!",
-                    userTask.getId(),
-                    e);
-            return false;
         }
+
+        final var task = asReported.get();
+        // the end is the younger report of the two and stays untouched, as does everything the
+        // cockpit itself has recorded about the task since the end arrived
+        task.setVersion(stored.getVersion());
+        task.setEndedAt(stored.getEndedAt());
+        task.setEndReason(stored.getEndReason());
+        task.setComment(stored.getComment());
+        task.setInitiator(stored.getInitiator());
+        task.setReadBy(stored.getReadBy());
+        task.setLatestEventAt(stored.getLatestEventAt());
+        // what an end could not report about the task is what this report is here for, and the other
+        // way round an end which did report it has the younger answer: DetailsOfAnEnd either way
+        task.setDetails(
+                DetailsOfAnEnd.whatToStore(stored.getDetails(), task.getDetails()));
+        task.setDetailsFulltextSearch(
+                DetailsOfAnEnd.whatToStore(stored.getDetailsFulltextSearch(), task.getDetailsFulltextSearch()));
+        // the cockpit reported this task when the end arrived, so its own clock reading stands
+        task.setReportedAt(stored.getReportedAt());
+        // the candidates this report brings along become known to the cockpit now
+        task.stampCandidatesSince(OffsetDateTime.now());
+        keepSortableByDueDate(task);
+        return save(task);
 
     }
 
-    public boolean cancelUserTask(
+    /**
+     * Stores what a workflow module reports about a change of a user task.
+     *
+     * @param userTaskId The task the report is about
+     * @param eventTimestamp When the change happened, by the workflow module's clock
+     * @param asReported The task as the report describes it, for a task the cockpit does not hold
+     * @param ontoStored Lays the report onto the task the cockpit holds
+     * @return Whether the cockpit is up to date about the task
+     */
+    public boolean reportChangedUserTask(
+            final String userTaskId,
+            final OffsetDateTime eventTimestamp,
+            final Supplier<UserTask> asReported,
+            final Consumer<UserTask> ontoStored) {
+
+        final var stored = getUserTask(userTaskId);
+        // reporting a change of a task the cockpit never saw creates it, so a cockpit added to a
+        // running system does not stay blind to the tasks that existed before
+        if (stored == null) {
+            return storeReportedUserTask(asReported.get(), eventTimestamp);
+        }
+
+        if (OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
+            reportChangesNothing(userTaskId, "change", eventTimestamp, stored);
+            return true;
+        }
+
+        // a change never reopens a task: an end is mapped onto neither 'endedAt' nor 'endReason'
+        ontoStored.accept(stored);
+        stored.setLatestEventAt(eventTimestamp);
+        return save(stored);
+
+    }
+
+    /**
+     * Stores that a user task has ended, completed or cancelled.
+     * <p>
+     * An end of a task the cockpit does not hold creates the task, ended. The creation may still be
+     * waiting in the outbox of the workflow module, and dropping the end would leave the cockpit
+     * showing that task as open for good once the creation arrives.
+     * <p>
+     * An end is recorded even where the cockpit holds something younger, because nothing which comes
+     * after it undoes it. What such an end reports besides the end itself is older than what is
+     * stored and is left out.
+     *
+     * @param userTaskId The task the report is about
+     * @param eventTimestamp When the task ended, by the workflow module's clock
+     * @param endReason Whether the task was completed or cancelled
+     * @param ontoStored Lays the report onto the task the cockpit holds, or onto an empty one
+     * @return Whether the cockpit is up to date about the task
+     */
+    public boolean reportEndedUserTask(
+            final String userTaskId,
+            final OffsetDateTime eventTimestamp,
+            final UserTaskEndReason endReason,
+            final Consumer<UserTask> ontoStored) {
+
+        final var stored = getUserTask(userTaskId);
+        if (stored == null) {
+            final var task = new UserTask();
+            task.setId(userTaskId);
+            ontoStored.accept(task);
+            // 'createdAt' stays empty on purpose: an end does not say when the task began, and a
+            // task without it is the one a creation arriving later still fills in
+            task.setCreatedAt(null);
+            endUserTask(task, eventTimestamp, endReason);
+            return storeReportedUserTask(task, eventTimestamp);
+        }
+
+        if (stored.getEndedAt() != null) {
+            reportChangesNothing(userTaskId, "end", eventTimestamp, stored);
+            return true;
+        }
+
+        if (!OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
+            ontoStored.accept(stored);
+            stored.setLatestEventAt(eventTimestamp);
+        }
+        endUserTask(stored, eventTimestamp, endReason);
+        return save(stored);
+
+    }
+
+    private static void endUserTask(
             final UserTask userTask,
             final OffsetDateTime timestamp,
-            final String reason) {
-
-        if (userTask == null) {
-            return false;
-        }
+            final UserTaskEndReason endReason) {
 
         userTask.setEndedAt(timestamp);
-        userTask.setUpdatedAt(timestamp);
-        userTask.setComment(reason);
-        userTask.setEndReason(io.vanillabp.cockpit.tasklist.model.UserTaskEndReason.CANCELLED);
+        userTask.setEndReason(endReason);
 
-        try {
-            userTasks.save(userTask);
-            return true;
-        } catch (Exception e) {
-            logger.error("Could not save user task '{}'!",
-                    userTask.getId(),
-                    e);
-            return false;
+    }
+
+    /**
+     * Says that a report was read and stored nothing. It belongs in the log because it explains a
+     * change a workflow module sent and nobody finds in the cockpit.
+     */
+    private void reportChangesNothing(
+            final String userTaskId,
+            final String kindOfReport,
+            final OffsetDateTime eventTimestamp,
+            final UserTask stored) {
+
+        logger.info(
+                "Keeping user task '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
+                userTaskId,
+                kindOfReport,
+                eventTimestamp,
+                stored.getEndedAt() != null
+                        ? "the end of the task"
+                        : stored.getLatestEventAt());
+
+    }
+
+    /**
+     * The task list is sorted by the due date, so a task without one needs a reading which sorts
+     * behind every real date rather than an empty field.
+     */
+    private static void keepSortableByDueDate(
+            final UserTask userTask) {
+
+        if (userTask.getDueDate() == null) {
+            userTask.setDueDate(OffsetDateTime.MAX);
         }
 
     }
 
-    public boolean createUserTask(
-            final UserTask userTask) {
+    /** A user task the cockpit stores for the first time. */
+    private boolean storeReportedUserTask(
+            final UserTask userTask,
+            final OffsetDateTime eventTimestamp) {
 
-        if (userTask == null) {
-            return false;
-        }
-
-        if (userTask.getDueDate() == null) {
-            // for correct sorting
-            userTask.setDueDate(OffsetDateTime.MAX);
-        }
+        keepSortableByDueDate(userTask);
 
         // the cockpit's own clock: 'createdAt' is the reporting system's timestamp and may lag
         // behind (or run ahead of) this one, which would break delta-scanning for notifications
@@ -796,25 +927,14 @@ public class UserTaskService {
         userTask.setReportedAt(reportedAt);
         // the candidates a report brings along are known as of now
         userTask.stampCandidatesSince(reportedAt);
+        userTask.setLatestEventAt(eventTimestamp);
 
-        try {
-            userTasks.save(userTask);
-            return true;
-        } catch (Exception e) {
-            logger.error("Could not save user task '{}'!",
-                    userTask.getId(),
-                    e);
-            return false;
-        }
+        return save(userTask);
 
     }
 
-    public boolean updateUserTask(
+    private boolean save(
             final UserTask userTask) {
-
-        if (userTask == null) {
-            return false;
-        }
 
         try {
             userTasks.save(userTask);

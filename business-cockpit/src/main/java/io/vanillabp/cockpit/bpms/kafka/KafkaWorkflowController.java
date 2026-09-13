@@ -8,7 +8,6 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.util.protobuf.ProtobufHelper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
-import java.time.OffsetDateTime;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 
@@ -85,8 +84,10 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowCreatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        workflowlistService.createWorkflow(
-                workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
+        workflowlistService.reportCreatedWorkflow(
+                workflowCreatedOrUpdatedEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
+                () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
     }
 
     private void handleWorkflowCreatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
@@ -94,64 +95,54 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowUpdatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        final var knownWorkflow = workflowlistService.getWorkflow(
-                workflowCreatedOrUpdatedEvent.getWorkflowId());
-        // an update for a workflow the cockpit never saw creates it, mirroring the REST API
-        if (knownWorkflow == null) {
-            handleWorkflowCreatedEventV1(workflowCreatedOrUpdatedEvent);
-            return;
-        }
-        workflowlistService.updateWorkflow(
-                workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, knownWorkflow));
+        workflowlistService.reportChangedWorkflow(
+                workflowCreatedOrUpdatedEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
+                // an update for a workflow the cockpit never saw creates it, mirroring the REST API
+                () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent),
+                workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow));
     }
 
     private void handleWorkflowUpdatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
         handleWorkflowUpdatedEventV1(workflowCreatedOrUpdatedEvent);
     }
 
+    /**
+     * Version 1 of the API reports an end without the fields a change carries, so a case the cockpit
+     * hears of by its end alone is stored with the end and nothing else until the creation, which is
+     * still on its way, fills the rest in.
+     */
     private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
-        final var workflow = workflowlistService.getWorkflow(workflowCompletedEvent.getWorkflowId());
-        if (workflow == null) {
-            return;
-        }
-
-        final OffsetDateTime timestamp = ProtobufHelper.map(workflowCompletedEvent.getTimestamp());
-        workflow.setEndedAt(timestamp);
-
-        workflowlistService.completeWorkflow(workflow, timestamp);
+        workflowlistService.reportEndedWorkflow(
+                workflowCompletedEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+                // version 1 reports nothing about a completed case but that it completed
+                workflow -> { });
     }
 
     private void handleWorkflowCompletedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
 
-        final var knownWorkflow = workflowlistService.getWorkflow(workflowCompletedEvent.getWorkflowId());
-        if (knownWorkflow == null) {
-            return;
-        }
-        final var workflow = workflowMapper.toEndedWorkflow(workflowCompletedEvent, knownWorkflow);
-        workflowlistService.completeWorkflow(workflow, workflow.getUpdatedAt());
+        workflowlistService.reportEndedWorkflow(
+                workflowCompletedEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+                workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow));
 
     }
 
+    /** @see #handleWorkflowCompletedEventV1(WorkflowCompletedEvent) */
     private void handleWorkflowCancelledEventV1(WorkflowCancelledEvent workflowCancelledEvent) {
-        final var workflow = workflowlistService.getWorkflow(workflowCancelledEvent.getWorkflowId());
-        if (workflow == null) {
-            return;
-        }
-
-        final OffsetDateTime timestamp = ProtobufHelper.map(workflowCancelledEvent.getTimestamp());
-        workflow.setEndedAt(timestamp);
-
-        workflowlistService.cancelWorkflow(workflow, timestamp, workflowCancelledEvent.getComment());
+        workflowlistService.reportEndedWorkflow(
+                workflowCancelledEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+                workflow -> workflow.setComment(workflowCancelledEvent.getComment()));
     }
 
     private void handleWorkflowCancelledEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
 
-        final var knownWorkflow = workflowlistService.getWorkflow(workflowCancelledEvent.getWorkflowId());
-        if (knownWorkflow == null) {
-            return;
-        }
-        final var workflow = workflowMapper.toEndedWorkflow(workflowCancelledEvent, knownWorkflow);
-        workflowlistService.cancelWorkflow(workflow, workflow.getUpdatedAt(), workflow.getComment());
+        workflowlistService.reportEndedWorkflow(
+                workflowCancelledEvent.getWorkflowId(),
+                ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+                workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
 
     }
 

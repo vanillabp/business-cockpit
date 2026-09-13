@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.workflowlist;
 
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
+import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
@@ -21,6 +23,8 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,15 +116,171 @@ public class WorkflowlistService {
 
     }
 
-    public boolean createWorkflow(
-            final Workflow workflow) {
+    /**
+     * Stores what a workflow module reports about a case it has just started.
+     * <p>
+     * A creation of a case the cockpit already holds stores nothing: it is the oldest report there
+     * is, so everything it says has been said again since. The one case it does change is a case the
+     * cockpit learned about from its end alone, which has been waiting for exactly this report.
+     *
+     * @param workflowId The case the report is about
+     * @param eventTimestamp When the workflow module started the case, by its own clock
+     * @param asReported The case as the report describes it
+     * @return Whether the cockpit is up to date about the case
+     */
+    public boolean reportCreatedWorkflow(
+            final String workflowId,
+            final OffsetDateTime eventTimestamp,
+            final Supplier<Workflow> asReported) {
 
-        if (workflow == null) {
-            return false;
+        final var stored = getWorkflow(workflowId);
+        if (stored == null) {
+            return storeReportedWorkflow(asReported.get(), eventTimestamp);
         }
+
+        if (stored.getCreatedAt() != null) {
+            reportChangesNothing(workflowId, "creation", eventTimestamp, stored);
+            return true;
+        }
+
+        final var workflow = asReported.get();
+        // the end is the younger report of the two and stays untouched, as does everything the
+        // cockpit itself has recorded about the case since the end arrived
+        workflow.setVersion(stored.getVersion());
+        workflow.setEndedAt(stored.getEndedAt());
+        workflow.setComment(stored.getComment());
+        workflow.setInitiator(stored.getInitiator());
+        workflow.setLatestEventAt(stored.getLatestEventAt());
+        // what an end could not report about the case is what this report is here for, and the other
+        // way round an end which did report it has the younger answer: DetailsOfAnEnd either way
+        workflow.setDetails(
+                DetailsOfAnEnd.whatToStore(stored.getDetails(), workflow.getDetails()));
+        workflow.setDetailsFulltextSearch(
+                DetailsOfAnEnd.whatToStore(stored.getDetailsFulltextSearch(), workflow.getDetailsFulltextSearch()));
+        // the cockpit reported this case when the end arrived, so its own clock reading stands
+        workflow.setReportedAt(stored.getReportedAt());
+        return save(workflow);
+
+    }
+
+    /**
+     * Stores what a workflow module reports about a change of a case.
+     *
+     * @param workflowId The case the report is about
+     * @param eventTimestamp When the change happened, by the workflow module's clock
+     * @param asReported The case as the report describes it, for a case the cockpit does not hold
+     * @param ontoStored Lays the report onto the case the cockpit holds
+     * @return Whether the cockpit is up to date about the case
+     */
+    public boolean reportChangedWorkflow(
+            final String workflowId,
+            final OffsetDateTime eventTimestamp,
+            final Supplier<Workflow> asReported,
+            final Consumer<Workflow> ontoStored) {
+
+        final var stored = getWorkflow(workflowId);
+        // reporting a change of a case the cockpit never saw creates it, so a cockpit added to a
+        // running system does not stay blind to the cases that existed before
+        if (stored == null) {
+            return storeReportedWorkflow(asReported.get(), eventTimestamp);
+        }
+
+        if (OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
+            reportChangesNothing(workflowId, "change", eventTimestamp, stored);
+            return true;
+        }
+
+        // a change never reopens a case: an end is mapped onto 'endedAt' by neither mapper
+        ontoStored.accept(stored);
+        stored.setLatestEventAt(eventTimestamp);
+        return save(stored);
+
+    }
+
+    /**
+     * Stores that a case has ended, completed or cancelled.
+     * <p>
+     * An end of a case the cockpit does not hold creates the case, ended. The creation may still be
+     * waiting in the outbox of the workflow module, and dropping the end would leave the cockpit
+     * showing that case as running for good once the creation arrives.
+     * <p>
+     * An end is recorded even where the cockpit holds something younger, because nothing which comes
+     * after it undoes it. What such an end reports besides the end itself is older than what is
+     * stored and is left out.
+     *
+     * @param workflowId The case the report is about
+     * @param eventTimestamp When the case ended, by the workflow module's clock
+     * @param ontoStored Lays the report onto the case the cockpit holds, or onto an empty one
+     * @return Whether the cockpit is up to date about the case
+     */
+    public boolean reportEndedWorkflow(
+            final String workflowId,
+            final OffsetDateTime eventTimestamp,
+            final Consumer<Workflow> ontoStored) {
+
+        final var stored = getWorkflow(workflowId);
+        if (stored == null) {
+            final var workflow = new Workflow();
+            workflow.setId(workflowId);
+            ontoStored.accept(workflow);
+            // 'createdAt' stays empty on purpose: an end does not say when the case began, and a case
+            // without it is the one a creation arriving later still fills in
+            workflow.setCreatedAt(null);
+            workflow.setEndedAt(eventTimestamp);
+            return storeReportedWorkflow(workflow, eventTimestamp);
+        }
+
+        if (stored.getEndedAt() != null) {
+            reportChangesNothing(workflowId, "end", eventTimestamp, stored);
+            return true;
+        }
+
+        if (!OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
+            ontoStored.accept(stored);
+            stored.setLatestEventAt(eventTimestamp);
+        }
+        stored.setEndedAt(eventTimestamp);
+        return save(stored);
+
+    }
+
+    /**
+     * Says that a report was read and stored nothing, which is the answer to a report the cockpit has
+     * already been told something younger about. It belongs in the log because it explains a change a
+     * workflow module sent and nobody finds in the cockpit.
+     */
+    private void reportChangesNothing(
+            final String workflowId,
+            final String kindOfReport,
+            final OffsetDateTime eventTimestamp,
+            final Workflow stored) {
+
+        logger.info(
+                "Keeping workflow '{}' as it is: the reported {} happened at {}, and what is stored is about {}",
+                workflowId,
+                kindOfReport,
+                eventTimestamp,
+                stored.getEndedAt() != null
+                        ? "the end of the case"
+                        : stored.getLatestEventAt());
+
+    }
+
+    /** A case the cockpit stores for the first time. */
+    private boolean storeReportedWorkflow(
+            final Workflow workflow,
+            final OffsetDateTime eventTimestamp) {
 
         // the cockpit's own clock, see Workflow#getReportedAt
         workflow.setReportedAt(OffsetDateTime.now());
+        workflow.setLatestEventAt(eventTimestamp);
+
+        return save(workflow);
+
+    }
+
+    private boolean save(
+            final Workflow workflow) {
 
         try {
             workflowRepository.save(workflow);
@@ -355,72 +515,6 @@ public class WorkflowlistService {
                         .ofSize(result.isEmpty() ? 1 : result.size())
                         .withPage(0),
                 numberOfWorkflows);
-
-    }
-
-    public boolean updateWorkflow(
-            final Workflow workflow) {
-
-        if (workflow == null) {
-            return false;
-        }
-
-        try {
-            workflowRepository.save(workflow);
-            return true;
-        } catch (Exception e) {
-            logger.error("Could not save workflow '{}'!",
-                    workflow.getId(),
-                    e);
-            return false;
-        }
-
-    }
-
-    public boolean cancelWorkflow(
-            final Workflow workflow,
-            final OffsetDateTime timestamp,
-            final String reason) {
-
-        if (workflow == null) {
-            return false;
-        }
-
-        workflow.setEndedAt(timestamp);
-        workflow.setComment(reason);
-
-        try {
-            workflowRepository.save(workflow);
-            return true;
-        } catch (Exception e) {
-            logger.error("Could not save workflow '{}'!",
-                    workflow.getId(),
-                    e);
-            return false;
-        }
-
-    }
-
-
-    public boolean completeWorkflow(
-            final Workflow workflow,
-            final OffsetDateTime timestamp) {
-
-        if (workflow == null) {
-            return false;
-        }
-
-        workflow.setEndedAt(timestamp);
-
-        try {
-            workflowRepository.save(workflow);
-            return true;
-        } catch (Exception e) {
-            logger.error("Could not save workflow '{}'!",
-                    workflow.getId(),
-                    e);
-            return false;
-        }
 
     }
 

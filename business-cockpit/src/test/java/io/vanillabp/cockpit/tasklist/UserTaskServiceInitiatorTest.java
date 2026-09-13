@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -106,23 +107,23 @@ class UserTaskServiceInitiatorTest {
     }
 
     @Test
-    void createUserTask_stampsTheCockpitsOwnReportingTime() {
+    void reportCreatedUserTask_stampsTheCockpitsOwnReportingTime() {
         final var task = new UserTask();
         task.setId("task-2");
 
-        service.createUserTask(task);
+        service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
 
         // 'createdAt' stays the reporting system's timestamp, 'reportedAt' is the cockpit's own
         assertNotNull(task.getReportedAt());
     }
 
     @Test
-    void createUserTask_recordsSinceWhenTheReportedCandidatesAreCandidates() {
+    void reportCreatedUserTask_recordsSinceWhenTheReportedCandidatesAreCandidates() {
         final var task = new UserTask();
         task.setId("task-2");
         task.setCandidateUsers(new ArrayList<>(List.of(person("u1"), person("u2"))));
 
-        service.createUserTask(task);
+        service.reportCreatedUserTask("task-2", OffsetDateTime.now(), () -> task);
 
         assertEquals(task.getReportedAt(), task.getCandidateSince("u1"));
         assertEquals(task.getReportedAt(), task.getCandidateSince("u2"));
