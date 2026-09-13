@@ -16,8 +16,8 @@ on:
 # With the ref in the group name, a build waits only for another build of the same
 # pull request, and there the newest commit is the one which keeps its run. Builds
 # of different pull requests run beside each other, which is safe because this
-# build runs 'install' and uploads nothing. The publish workflow keeps its
-# repository-wide group, where two runs really do overwrite each other's snapshot.
+# build runs 'install' and uploads nothing. The publish workflow has its own groups,
+# where two runs really do overwrite each other's snapshot.
 concurrency:
   group: business-cockpit-pr-build-${{ github.ref }}
   cancel-in-progress: false
