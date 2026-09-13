@@ -64,7 +64,11 @@ public class CoverageGateTest {
           // a development aid impersonating a workflow module, so that the cockpit can be
           // run without one. It is deployed nowhere and ships in no artifact, so its
           // coverage would say nothing about what users get.
-          "simulator");
+          "simulator",
+          // the backend of the dev shell, which serves made up users and cases while a
+          // developer builds a user task form. Same reason as above: it runs on a
+          // developer's machine and reaches no user.
+          "dev-shell-simulator");
 
   @Test
   @DisplayName("Every module producing coverage data is read by an aggregated report")
