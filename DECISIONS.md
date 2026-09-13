@@ -357,3 +357,38 @@ The same rule holds everywhere else in this extension: it validates the way the 
 adapters do. What they let pass with a warning it lets pass with a warning of the same kind, and
 what ends the boot there ends the boot here. Seeing a defect from another angle does not make an
 extension stricter, and being optional does not make it more lenient.
+
+### 17. A details provider is asked a question, so the platform saves nothing after it
+
+A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` are called to fill a report. They
+answer what the cockpit should show, and answering a question does not change a case. VanillaBP
+saves the workflow aggregate after a `@WorkflowTask` method returned, and it does not save it after
+a details provider returned, on any of the three ways one is reached: the report of a user task,
+the report of a workflow, and the read behind `BusinessCockpitService.getUserTask`. Only the last of
+them used to say so.
+
+What the old behaviour cost is concurrency in a place which does not need it. A report is
+dispatched after the engine's transaction committed, on the outbox's own thread, while the
+application may be working on the same case. A save belonging to the reporting run then competes
+with the writes of the workflow itself, and one of the two reads the version conflict.
+
+An application which really wants to change something in a provider calls `save` itself and carries
+what follows from it. That differs from a `@WorkflowTask` method on purpose: the one is meant to
+write, the other is not.
+
+The save of the platform is all that is switched off. A persistence which writes what changed on a
+managed object by itself, which is what JPA's dirty checking does, still writes it when the
+transaction commits. So the sentence for the reader is not "a change here has no effect", it is
+"change nothing here, and if you do it anyway, it is your change with your consequences".
+
+Two stricter ways were weighed and left alone.
+
+The first was running the provider in a read-only transaction. It would make the promise true under
+JPA, and it would break what is allowed: an application which deliberately saves in a provider, and
+every other write the same transaction carries, the outbox entry of the report among them. A
+reporting run which may not write cannot record that it reported.
+
+The second was detaching the aggregate before the call. That hides the writes, and it hides the
+aggregate with them. A detached JPA entity throws as soon as a provider touches a lazy association,
+which is what reading a case usually comes down to. A rule which turns the ordinary use of the
+parameter into an error is worse than the leak it closes.

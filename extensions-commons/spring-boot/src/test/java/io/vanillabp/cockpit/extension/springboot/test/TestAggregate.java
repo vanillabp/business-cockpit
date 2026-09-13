@@ -1,5 +1,7 @@
 package io.vanillabp.cockpit.extension.springboot.test;
 
+import java.util.UUID;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,7 +22,14 @@ public class TestAggregate {
 
   private String customer;
 
+  // every aggregate of every test context of this module carries one of these, because the
+  // generated ids start at one in each of them and a test asking "was this one saved" would
+  // otherwise read the answer given about another context's first aggregate
+  private String token = UUID.randomUUID().toString();
+
   private String note;
+
+  private String workflowNote;
 
   public Long getId() {
 
@@ -32,6 +41,19 @@ public class TestAggregate {
       final Long id) {
 
     this.id = id;
+
+  }
+
+  public String getToken() {
+
+    return token;
+
+  }
+
+  public void setToken(
+      final String token) {
+
+    this.token = token;
 
   }
 
@@ -58,6 +80,19 @@ public class TestAggregate {
       final String note) {
 
     this.note = note;
+
+  }
+
+  public String getWorkflowNote() {
+
+    return workflowNote;
+
+  }
+
+  public void setWorkflowNote(
+      final String workflowNote) {
+
+    this.workflowNote = workflowNote;
 
   }
 

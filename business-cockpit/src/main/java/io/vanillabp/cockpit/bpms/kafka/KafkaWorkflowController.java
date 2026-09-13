@@ -127,7 +127,7 @@ public class KafkaWorkflowController {
         if (knownWorkflow == null) {
             return;
         }
-        final var workflow = workflowMapper.toUpdatedWorkflow(workflowCompletedEvent, knownWorkflow);
+        final var workflow = workflowMapper.toEndedWorkflow(workflowCompletedEvent, knownWorkflow);
         workflowlistService.completeWorkflow(workflow, workflow.getUpdatedAt());
 
     }
@@ -150,7 +150,7 @@ public class KafkaWorkflowController {
         if (knownWorkflow == null) {
             return;
         }
-        final var workflow = workflowMapper.toUpdatedWorkflow(workflowCancelledEvent, knownWorkflow);
+        final var workflow = workflowMapper.toEndedWorkflow(workflowCancelledEvent, knownWorkflow);
         workflowlistService.cancelWorkflow(workflow, workflow.getUpdatedAt(), workflow.getComment());
 
     }

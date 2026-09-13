@@ -21,6 +21,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * </pre>
  * 
  * A result type {@link WorkflowDetails} is expected.
+ * <p>
+ * The workflow aggregate is handed over to be read, the same way
+ * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} describes it: VanillaBP
+ * does not save it after this method returned, and what your persistence writes on its own is
+ * your change with your consequences.
  *
  * TODO GWI: parameters
  * 

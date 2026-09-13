@@ -134,10 +134,11 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
-  @DisplayName("What the details provider wrote into the aggregate is committed with the dispatch")
-  public void whatTheProviderWroteIsCommitted() {
+  @DisplayName("The platform saves nothing after a user-task details provider, and JPA writes the change anyway")
+  public void aUserTaskProviderIsNotSavedForByThePlatform() {
 
     final var aggregate = aStartedWorkflow();
+    PlatformSaves.forget();
 
     transactions
         .executeWithoutResult(status -> publisher
@@ -146,9 +147,43 @@ public class BusinessCockpitExtensionTest {
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
     CockpitServer.awaitRequest("/usertask/created");
+    assertFalse(
+        PlatformSaves.sawSaveOf(aggregate.getToken()),
+        "the platform saved the aggregate a details provider was handed");
+    // and the note the provider wrote is in the database all the same. The aggregate is a
+    // managed JPA object inside the dispatch's transaction, so Hibernate writes what changed on
+    // it when that transaction commits, asked for or not. This is what the test found, not a
+    // promise anybody makes: on this persistence a change in a provider still lands.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE,
         aggregates.findById(aggregate.getId()).orElseThrow().getNote());
+
+  }
+
+  @Test
+  @DisplayName("The platform saves nothing after a workflow details provider either")
+  public void aWorkflowProviderIsNotSavedForByThePlatform() {
+
+    final var aggregate = aStartedWorkflow();
+    PlatformSaves.forget();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                new WorkflowReference(
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                        .toString(), RecordingBpmsBridge.WORKFLOW_ID),
+                WorkflowEventKind.CREATED, "bpms-event-16", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    CockpitServer.awaitRequest("/workflow/created");
+    assertFalse(
+        PlatformSaves.sawSaveOf(aggregate.getToken()),
+        "the platform saved the aggregate a workflow details provider was handed");
+    // same result as for a user task: the write happens, and it happens because of JPA
+    assertEquals(
+        TestWorkflowService.WORKFLOW_NOTE,
+        aggregates.findById(aggregate.getId()).orElseThrow().getWorkflowNote());
 
   }
 
@@ -207,7 +242,7 @@ public class BusinessCockpitExtensionTest {
   public void aRefusedReportIsRetried() {
 
     final var aggregate = aStartedWorkflow();
-    CockpitServer.refuseNextRequests(1);
+    CockpitServer.refuseRequestsAbout("bpms-event-6", 1);
 
     transactions
         .executeWithoutResult(status -> publisher
@@ -215,7 +250,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-6",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitRequest("/usertask/created", "bpms-event-6");
     assertTrue(request.body().contains("bpms-event-6"), request.body());
 
   }
@@ -244,8 +279,8 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
-  @DisplayName("A completed task is reported without asking the application for details")
-  public void aCompletedTaskIsReportedAsIs() {
+  @DisplayName("A completed task is reported with the business data it was completed with")
+  public void aCompletedTaskCarriesItsBusinessData() {
 
     final var aggregate = aStartedWorkflow();
 
@@ -255,9 +290,71 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.COMPLETED, "bpms-event-8",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/task-1/completed");
-    assertTrue(request.body().contains("bpms-event-8"), request.body());
+    final var request = CockpitServer.awaitRequest("/usertask/task-1/completed", "bpms-event-8");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    // the details provider ran, and it was told which event it is running for
+    assertTrue(request.body().contains("\"event\":\"COMPLETED\""), request.body());
+    assertTrue(request.body().contains("Approve the order"), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A cancelled task is reported with the business data it was withdrawn at")
+  public void aCancelledTaskCarriesItsBusinessData() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.CANCELED, "bpms-event-17",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var request = CockpitServer.awaitRequest("/usertask/task-1/cancelled", "bpms-event-17");
+    assertTrue(request.body().contains("\"event\":\"CANCELED\""), request.body());
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A completed task the BPMS has forgotten is reported without details")
+  public void aForgottenCompletionIsStillReported() {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.knowsTheTask(false);
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.COMPLETED, "bpms-event-18",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    // a completion which never arrives leaves a task the cockpit shows as open forever, so the
+    // end goes out with what the entry itself carried
+    final var request = CockpitServer.awaitRequest("/usertask/task-1/completed", "bpms-event-18");
     assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A finished workflow is reported with the business data it ended with")
+  public void aFinishedWorkflowCarriesItsBusinessData() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                new WorkflowReference(
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                        .toString(), RecordingBpmsBridge.WORKFLOW_ID),
+                WorkflowEventKind.COMPLETED, "bpms-event-19", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    final var request = CockpitServer
+        .awaitRequest("/workflow/workflow-1/completed", "bpms-event-19");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("workflow of Anna"), request.body());
 
   }
 

@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.ProtocolStringList;
 import com.google.protobuf.Timestamp;
+import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
@@ -150,7 +151,34 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "excludedCandidateUsers", ignore = true)
     @Mapping(target = "admittedUsers", ignore = true)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
-    public abstract UserTask toEndedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
+    protected abstract UserTask mapEndedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
+
+    /**
+     * Maps a completed or cancelled event onto the stored user task, keeping the business data the
+     * cockpit already has where the end reports none.
+     * <p>
+     * The sender fills the details field whether it has anything to put in it or not, and a
+     * protobuf map carries no presence information either way, so an empty map is what an end of a
+     * task the BPMS can no longer describe looks like here. Mapping it would erase what the task
+     * was last known to be about. {@link DetailsOfAnEnd} says why that matters.
+     *
+     * @param event The end as it was reported
+     * @param result The stored task, changed in place
+     * @return The stored task
+     */
+    public UserTask toEndedTask(
+            final UserTaskCreatedOrUpdatedEvent event,
+            @MappingTarget final UserTask result) {
+
+        final var storedDetails = DetailsOfAnEnd.before(result.getDetails());
+        final var storedFulltextSearch = result.getDetailsFulltextSearch();
+        final var task = mapEndedTask(event, result);
+        task.setDetails(DetailsOfAnEnd.whatToStore(task.getDetails(), storedDetails));
+        task.setDetailsFulltextSearch(
+                DetailsOfAnEnd.whatToStore(task.getDetailsFulltextSearch(), storedFulltextSearch));
+        return task;
+
+    }
 
     public OffsetDateTime map(Timestamp value) {
         return ProtobufHelper.map(value);

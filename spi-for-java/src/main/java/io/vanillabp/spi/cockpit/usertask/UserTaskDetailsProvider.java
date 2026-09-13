@@ -42,6 +42,17 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * one method only. Two methods claiming the same thing end the boot, naming both, because
  * nothing would say which of them to call.
  *
+ * <p>
+ * The workflow aggregate is handed over to be read. A provider is asked what to report, it
+ * is not told to change the case, so VanillaBP does not save the aggregate after this method
+ * returned. Change nothing here. If you do change something and want it kept, save it
+ * yourself, and expect the version conflict a report competing with the workflow's own writes
+ * can produce.
+ * <p>
+ * Whether a change survives without that save depends on the persistence of your application,
+ * not on VanillaBP. JPA writes what changed on a managed object when the transaction commits,
+ * whether anybody asked for it or not.
+ *
  * @see UserTaskDetails
  */
 @Retention(RUNTIME)

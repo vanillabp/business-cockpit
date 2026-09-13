@@ -71,11 +71,14 @@ public class BpmsApiController implements BpmsApi {
             final String userTaskId,
             final @Valid UserTaskCompletedEvent userTaskCompletedEvent) {
 
-        final var task = userTaskService.getUserTask(userTaskId);
-        if (task == null) {
+        final var knownTask = userTaskService.getUserTask(userTaskId);
+        if (knownTask == null) {
             return ResponseEntity.ok().build();
         }
 
+        // an end carries the same fields as a change, so the list of finished work shows what the
+        // task was finished with instead of what the last change happened to say
+        final var task = userTaskMapper.toEndedTask(userTaskCompletedEvent, knownTask);
         task.setEndedAt(
                 userTaskCompletedEvent.getTimestamp());
         // capture who completed the task so the notification poller can tell a
@@ -96,11 +99,12 @@ public class BpmsApiController implements BpmsApi {
             final String userTaskId,
             final @Valid UserTaskCancelledEvent userTaskCancelledEvent) {
 
-        final var task = userTaskService.getUserTask(userTaskId);
-        if (task == null) {
+        final var knownTask = userTaskService.getUserTask(userTaskId);
+        if (knownTask == null) {
             return ResponseEntity.ok().build();
         }
 
+        final var task = userTaskMapper.toEndedTask(userTaskCancelledEvent, knownTask);
         task.setEndedAt(
                 userTaskCancelledEvent.getTimestamp());
         task.setInitiator(userTaskCancelledEvent.getInitiator());
@@ -128,11 +132,12 @@ public class BpmsApiController implements BpmsApi {
             final String workflowId,
             final WorkflowCancelledEvent workflowCancelledEvent) {
 
-        final var workflow = workflowlistService.getWorkflow(workflowId);
-        if (workflow == null) {
+        final var knownWorkflow = workflowlistService.getWorkflow(workflowId);
+        if (knownWorkflow == null) {
             return ResponseEntity.ok().build();
         }
 
+        final var workflow = workflowMapper.toEndedWorkflow(workflowCancelledEvent, knownWorkflow);
         workflow.setEndedAt(
                 workflowCancelledEvent.getTimestamp());
 
@@ -149,11 +154,13 @@ public class BpmsApiController implements BpmsApi {
             final String workflowId,
             final WorkflowCompletedEvent workflowCompletedEvent) {
 
-        final var workflow = workflowlistService.getWorkflow(workflowId);
-        if (workflow == null) {
+        final var knownWorkflow = workflowlistService.getWorkflow(workflowId);
+        if (knownWorkflow == null) {
             return ResponseEntity.ok().build();
         }
 
+        // see userTaskCompletedEvent: an end says what the case ended with
+        final var workflow = workflowMapper.toEndedWorkflow(workflowCompletedEvent, knownWorkflow);
         workflow.setEndedAt(
                 workflowCompletedEvent.getTimestamp());
 

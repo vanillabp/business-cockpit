@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.sun.net.httpserver.HttpServer;
 
@@ -35,6 +36,8 @@ public final class CockpitServer {
 
   private static final AtomicInteger REFUSALS_LEFT = new AtomicInteger();
 
+  private static final AtomicReference<String> REFUSED_MARKER = new AtomicReference<>();
+
   static {
     try {
       SERVER = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
@@ -47,7 +50,9 @@ public final class CockpitServer {
             exchange -> {
               final var body = new String(
                   exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-              if (REFUSALS_LEFT.getAndUpdate(left -> left > 0 ? left - 1 : 0) > 0) {
+              final var refusedMarker = REFUSED_MARKER.get();
+              if (((refusedMarker == null) || body.contains(refusedMarker)) && (REFUSALS_LEFT
+                  .getAndUpdate(left -> left > 0 ? left - 1 : 0) > 0)) {
                 exchange.sendResponseHeaders(503, -1);
                 exchange.close();
                 return;
@@ -78,12 +83,22 @@ public final class CockpitServer {
   }
 
   /**
-   * @param count How many of the next requests are answered with a failure, so that the outbox
-   *          has to try again
+   * Answers the next requests about one event with a failure, so that the outbox has to try
+   * again.
+   * <p>
+   * Which event it is has to be said, because every test class of this module talks to this one
+   * server and the contexts Spring keeps cached go on dispatching while another class runs. A
+   * refusal which took whatever arrived next was spent on a report of a class which had long
+   * finished, and the test then waited for a repetition nobody owed it.
+   *
+   * @param marker Something only the body of the event under test contains, its event id
+   * @param count How many requests about it are refused
    */
-  public static void refuseNextRequests(
+  public static void refuseRequestsAbout(
+      final String marker,
       final int count) {
 
+    REFUSED_MARKER.set(marker);
     REFUSALS_LEFT.set(count);
 
   }
@@ -95,6 +110,7 @@ public final class CockpitServer {
 
     RECEIVED.clear();
     REFUSALS_LEFT.set(0);
+    REFUSED_MARKER.set(null);
 
   }
 
@@ -140,11 +156,32 @@ public final class CockpitServer {
   public static Request awaitRequest(
       final String pathSuffix) {
 
-    final var deadline = System.currentTimeMillis() + 10000;
+    return awaitRequest(pathSuffix, "");
+
+  }
+
+  /**
+   * Waits for one request about one event, which is what a test asserts on where a report of
+   * another test class may arrive at the same path while it runs.
+   *
+   * @param pathSuffix What the path of the awaited request ends in
+   * @param marker Something only the body of the awaited event contains, its event id
+   * @return The request
+   */
+  public static Request awaitRequest(
+      final String pathSuffix,
+      final String marker) {
+
+    // half a minute rather than the ten seconds this used to wait: a test which boots the
+    // application spends most of its time on that, and the report it then waits for was arriving
+    // just past the deadline on a loaded machine. A slow answer is not the failure under test
+    // here, so waiting longer costs nothing but the seconds of a build which is red anyway.
+    final var deadline = System.currentTimeMillis() + 30000;
     while (System.currentTimeMillis() < deadline) {
       final var match = received()
           .stream()
           .filter(request -> request.path().endsWith(pathSuffix))
+          .filter(request -> request.body().contains(marker))
           .findFirst();
       if (match.isPresent()) {
         return match.get();
@@ -152,8 +189,8 @@ public final class CockpitServer {
       sleep();
     }
     throw new AssertionError(
-        "No request ending in '%s' arrived. Received: %s"
-            .formatted(pathSuffix, received().stream().map(Request::path).toList()));
+        "No request ending in '%s' about '%s' arrived. Received: %s"
+            .formatted(pathSuffix, marker, received().stream().map(Request::path).toList()));
 
   }
 

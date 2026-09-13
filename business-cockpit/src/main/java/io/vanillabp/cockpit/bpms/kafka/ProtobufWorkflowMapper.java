@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import com.google.protobuf.Timestamp;
+import io.vanillabp.cockpit.bpms.DetailsOfAnEnd;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.users.model.Group;
@@ -70,6 +71,28 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
+
+    /**
+     * Maps a completed or cancelled event onto the stored workflow, keeping the business data the
+     * cockpit already has where the end reports none. {@link DetailsOfAnEnd} says why.
+     *
+     * @param event The end as it was reported
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
+    public Workflow toEndedWorkflow(
+            final WorkflowCreatedOrUpdatedEvent event,
+            @MappingTarget final Workflow result) {
+
+        final var storedDetails = DetailsOfAnEnd.before(result.getDetails());
+        final var storedFulltextSearch = result.getDetailsFulltextSearch();
+        final var workflow = toUpdatedWorkflow(event, result);
+        workflow.setDetails(DetailsOfAnEnd.whatToStore(workflow.getDetails(), storedDetails));
+        workflow.setDetailsFulltextSearch(
+                DetailsOfAnEnd.whatToStore(workflow.getDetailsFulltextSearch(), storedFulltextSearch));
+        return workflow;
+
+    }
 
     public OffsetDateTime map(Timestamp value) {
         return ProtobufHelper.map(value);

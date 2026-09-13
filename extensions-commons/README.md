@@ -76,9 +76,11 @@ task belongs to that aggregate.
 Which answer a BPMS half gives decides whether a report happens at all. An engine which cannot be
 reached throws, and the outbox tries again. An engine whose read model has not caught up with the
 event it just sent throws `PhaseTwoRetryLater`, and the entry comes back after the window it names.
-An empty answer means the engine does not know the task or the workflow any more, and the report is
-dropped for good - which is right for a task somebody completed a second ago and wrong for one a
-remote engine has merely not made searchable yet.
+An empty answer means the engine does not know the task or the workflow any more. A report about a
+task or a case which is still running is then dropped for good, which is right for a task somebody
+completed a second ago and wrong for one a remote engine has merely not made searchable yet. A
+report of an end is sent all the same, with its identifiers and without details: a completion which
+never arrives leaves a task the cockpit shows as open forever.
 
 `BusinessCockpitEventPublisher` is the other direction, produced as a bean by the platform module. A
 BPMS half calls it when its engine reported something, saying which transaction the entry belongs in

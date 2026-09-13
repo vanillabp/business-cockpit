@@ -9,6 +9,8 @@ public class TestAggregate {
 
   private String note;
 
+  private String workflowNote;
+
   public Long getId() {
 
     return id;
@@ -45,6 +47,19 @@ public class TestAggregate {
       final String note) {
 
     this.note = note;
+
+  }
+
+  public String getWorkflowNote() {
+
+    return workflowNote;
+
+  }
+
+  public void setWorkflowNote(
+      final String workflowNote) {
+
+    this.workflowNote = workflowNote;
 
   }
 

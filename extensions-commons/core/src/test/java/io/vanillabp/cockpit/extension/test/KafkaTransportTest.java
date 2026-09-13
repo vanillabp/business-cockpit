@@ -104,6 +104,21 @@ public class KafkaTransportTest {
   }
 
   @Test
+  @DisplayName("A completed task carries the business data it was completed with")
+  public void aCompletionCarriesItsBusinessData() throws Exception {
+
+    transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.COMPLETED));
+
+    final var details = theEnvelope("user-task", "task-1")
+        .getUserTaskCompletedV11()
+        .getDetails()
+        .getDetailsMap();
+    assertEquals("250", details.get("amount").getArrayValues(0).getNumericValue());
+    assertEquals("EUR", details.get("currency").getArrayValues(0).getStringValue());
+
+  }
+
+  @Test
   @DisplayName("Business data becomes the nested shape the cockpit reads")
   public void detailsBecomeTheNestedShape() throws Exception {
 
