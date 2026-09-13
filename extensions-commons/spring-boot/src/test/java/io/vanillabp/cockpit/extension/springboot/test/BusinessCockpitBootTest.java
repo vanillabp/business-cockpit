@@ -12,6 +12,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.springboot.bridges.BridgesOfASecondBpms;
 import io.vanillabp.cockpit.extension.springboot.broken.BrokenApplication;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedProviderService;
@@ -119,6 +120,38 @@ public class BusinessCockpitBootTest {
       assertTrue(reported.contains("@UserTaskDetailsProvider"), reported);
       assertTrue(reported.contains("unseenByTheScan"), reported);
       assertTrue(reported.contains("Make the method public"), reported);
+
+    }
+
+  }
+
+  @Test
+  @DisplayName("A writing details provider on a case which cannot notice it is named while booting")
+  public void theSecondWriterOfTheCaseIsReported(
+      final CapturedOutput output) {
+
+    try (var ignored = new SpringApplicationBuilder(TestApplication.class)
+        .web(WebApplicationType.NONE)
+        .properties(
+            "spring.datasource.url=jdbc:h2:mem:cockpit-second-writer;DB_CLOSE_DELAY=-1",
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
+        .run()) {
+
+      final var reported = output
+          .getAll()
+          .lines()
+          .filter(line -> line.contains(ConfigurationKeys.EXTENSION_ID))
+          .filter(line -> line.contains(TestAggregate.class.getName()))
+          .findFirst()
+          .orElseThrow(
+              () -> new AssertionError(
+                  "nothing was said about the second writer this extension brings: "
+                      + output.getAll()));
+
+      // the way out is what a developer needs from the line, and it is a version attribute on
+      // the case - see decision 20 in the repository's DECISIONS.md for why this warning is
+      // VanillaBP's and not one of ours
+      assertTrue(reported.contains("version attribute"), reported);
 
     }
 
