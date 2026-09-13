@@ -57,6 +57,10 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
+    // protoc deprecates the plain getter of a map field and points at the ...Map() one, the same way
+    // it names a repeated field ...List. Naming the source explicitly keeps the deprecated getter out
+    // of the generated mapper. Both getters return the same map.
+    @Mapping(target = "title", source = "titleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
 
@@ -75,6 +79,7 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "title", source = "titleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
@@ -105,6 +110,7 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "title", source = "titleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     protected abstract Workflow mapEndedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 

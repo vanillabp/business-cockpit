@@ -60,6 +60,10 @@
                      leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
                      ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
                 <containerDefaultToNull>true</containerDefaultToNull>
+                <!-- Spring Framework 7 marks org.springframework.lang.Nullable for removal and points at
+                     JSpecify instead. The generator picks the annotation, not this repository, so the
+                     switch happens here. jspecify arrives with spring-core, no new dependency. -->
+                <useJspecify>true</useJspecify>
                 <useSpringController>true</useSpringController>
                 <enablePostProcessFile>true</enablePostProcessFile>
               </configOptions>

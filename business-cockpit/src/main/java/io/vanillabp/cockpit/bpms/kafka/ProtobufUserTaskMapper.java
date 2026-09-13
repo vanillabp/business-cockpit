@@ -75,6 +75,12 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
+    // protoc deprecates the plain getter of a map field and points at the ...Map() one, the same way
+    // it names a repeated field ...List. Naming the sources explicitly keeps the deprecated getters
+    // out of the generated mapper. Both getters return the same map.
+    @Mapping(target = "title", source = "titleMap")
+    @Mapping(target = "workflowTitle", source = "workflowTitleMap")
+    @Mapping(target = "taskDefinitionTitle", source = "taskDefinitionTitleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
 
@@ -120,6 +126,9 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "title", source = "titleMap")
+    @Mapping(target = "workflowTitle", source = "workflowTitleMap")
+    @Mapping(target = "taskDefinitionTitle", source = "taskDefinitionTitleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 
@@ -175,6 +184,9 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "candidateGroups", ignore = true)
     @Mapping(target = "excludedCandidateUsers", ignore = true)
     @Mapping(target = "admittedUsers", ignore = true)
+    @Mapping(target = "title", source = "titleMap")
+    @Mapping(target = "workflowTitle", source = "workflowTitleMap")
+    @Mapping(target = "taskDefinitionTitle", source = "taskDefinitionTitleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     protected abstract UserTask mapEndedTask(UserTaskCreatedOrUpdatedEvent event, @MappingTarget UserTask result);
 

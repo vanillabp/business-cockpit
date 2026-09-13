@@ -16,7 +16,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <version.protoc>3.23.0</version.protoc>
+        <!--
+          protoc and the protobuf-java runtime move together. protoc 23 wrote classes extending
+          GeneratedMessageV3, which protobuf-java 4 marks for removal, and a generated file is the
+          last place anybody can fix that. protoc 4.26 and newer write GeneratedMessage instead.
+          Generated code also names the version which wrote it and refuses to run on an older
+          runtime, so naming a second version here would be a trap.
+        -->
+        <version.protoc>${version.protobuf}</version.protoc>
         <protoc-jar-maven-plugin.version>3.11.4</protoc-jar-maven-plugin.version>
     </properties>
 
@@ -51,7 +58,15 @@
                         <configuration>
                             <optimizeCodegen>false</optimizeCodegen>
                             <protocVersion>${version.protoc}</protocVersion>
-                            <includeStdTypes>true</includeStdTypes>
+                            <!--
+                              v1.proto imports google/protobuf/timestamp.proto, so the well-known
+                              types have to be on the proto path. includeStdTypes reads them from a
+                              protoc bundled with the plugin, and the plugin bundles none as new as
+                              the one asked for here, which ends the build with a null pointer and
+                              no hint. protobuf-java carries the same files, and it is the artifact
+                              the generated code runs on anyway.
+                            -->
+                            <includeMavenTypes>direct</includeMavenTypes>
                         </configuration>
                     </execution>
                 </executions>
