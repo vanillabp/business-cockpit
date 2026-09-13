@@ -45,8 +45,10 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
      * Reports overtake each other, so the cockpit has to know how old its own state is to refuse a
      * report which is older. {@link #reportedAt} cannot answer that (it is the cockpit's clock) and
      * neither can {@link #updatedAt} (it is audit information, overwritten on every save). {@code
-     * null} means the workflow was stored before the cockpit kept this, and the next report is then
-     * applied whatever its timestamp says.
+     * null} means the cockpit cannot say which event its state came from, and the next report is then
+     * applied whatever its timestamp says. A workflow stored before this property existed had its
+     * {@link #createdAt} copied here by a changeset, so a case the cockpit knows from its end alone
+     * is the one which stays without a value.
      */
     private OffsetDateTime latestEventAt;
 

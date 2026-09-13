@@ -356,6 +356,40 @@ public class V000001 {
     }
 
     /**
+     * Backfills {@code latestEventAt} of tasks reported before that property existed.
+     * {@code createdAt} is the timestamp of the event which created the task, so it is a reading of
+     * the reporting system's own clock and it lies before every later event of that task. That is
+     * what the weighing of reports needs: a task whose value is missing takes the next report
+     * whatever its timestamp says, and one whose value is too early takes a report it should have
+     * refused, which is a smaller loss than refusing one it should have taken.
+     * <p>
+     * A task without a {@code createdAt} keeps an empty {@code latestEventAt}. There is nothing to
+     * copy for it, and inventing a reading would say the cockpit knows which event its state came
+     * from when it does not.
+     *
+     * @see io.vanillabp.cockpit.tasklist.model.UserTask#getLatestEventAt()
+     */
+    @Changeset(order = 14)
+    public String introduceLatestEventAt(
+            final MongoTemplate mongo) {
+
+        final var query = new Query(Criteria
+                .where("latestEventAt").exists(false)
+                .and("createdAt").ne(null));
+        query.fields().include("_id", "createdAt");
+        mongo
+                .find(query, DBObject.class, UserTask.COLLECTION_NAME)
+                .forEach(document -> mongo
+                        .updateFirst(
+                                new Query(Criteria.where("_id").is(document.get("_id"))),
+                                new Update().set("latestEventAt", document.get("createdAt")),
+                                UserTask.COLLECTION_NAME));
+
+        return null;
+
+    }
+
+    /**
      * Drops the assignee of tasks reported without one: until the REST ingress mappers learned that
      * an absent user id means no person, they stored an assignee whose id was null. Such a task
      * looks unassigned in the GUI but cannot be claimed - comparing the stored assignee to the
