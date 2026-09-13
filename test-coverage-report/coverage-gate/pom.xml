@@ -19,6 +19,20 @@
     <jacoco.agent/>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- the io.vanillabp coordinates this module reads, at the version the root POM names.
+          That POM also says why the import is repeated here instead of sitting there. -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

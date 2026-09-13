@@ -46,6 +46,17 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <!-- every io.vanillabp coordinate of this subtree, including the platform's own
+          spi-for-java: the cockpit's spi-for-java compiles against the released 1.1.0, and inside
+          this subtree the version the Version 2 platform ships wins. The version is the one the
+          root POM names, and that POM says why the import is repeated here. -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
         <version>${version.testcontainers}</version>
