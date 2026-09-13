@@ -25,7 +25,23 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * A result type {@link UserTaskDetails} is expected. The effected task-id can be passed
  * by defining a parameter annotated by {@link TaskId}. Also parameters annotated using
  * multi-instance annotations are supported.
- * 
+ *
+ * <p>
+ * Which method serves which user task:
+ * <ol>
+ * <li>the method naming the task, by its {@link #id()}, by its {@link #taskDefinition()},
+ * or by carrying neither attribute and being called like the task,
+ * <li>the method writing {@link #ALL}, which serves every user task of every BPMN process
+ * its <code>&#64;WorkflowService</code> declares.
+ * </ol>
+ *
+ * <p>
+ * The method naming the task therefore wins over the one writing {@link #ALL}: reporting the
+ * same columns for every task is written once, and a task needing more than that gets a
+ * method of its own next to it. Name a task in one method only, and write {@link #ALL} in
+ * one method only. Two methods claiming the same thing end the boot, naming both, because
+ * nothing would say which of them to call.
+ *
  * @see UserTaskDetails
  */
 @Retention(RUNTIME)
@@ -37,15 +53,23 @@ public @interface UserTaskDetailsProvider {
 
     static String USE_METHOD_NAME = "";
 
+    /**
+     * Written into {@link #id()} or into {@link #taskDefinition()}, it hands the method every
+     * user task of every BPMN process its <code>&#64;WorkflowService</code> declares, except
+     * those a method of its own names. Writing it into both attributes says the same as
+     * writing it into one.
+     */
     static String ALL = "*";
-    
+
     /**
      * @return The activity's BPMN id. If this property is defined then {@link #taskDefinition()} must not be defined.
+     *         Write {@link #ALL} for a method serving every user task of this workflow service.
      */
     String id() default USE_METHOD_NAME;
 
     /**
-     * @return The task-definition as defined in the BPMN. Use '*' to have once method for all user tasks of this service class.
+     * @return The task-definition as defined in the BPMN.
+     *         Write {@link #ALL} for a method serving every user task of this workflow service.
      */
     String taskDefinition() default USE_METHOD_NAME;
     

@@ -26,8 +26,10 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
  * <p>
  * A user-task provider is matched by the BPMN element id or by the task definition, whichever
  * the annotation names, and by the method's own name where it names neither - the convention
- * every VanillaBP annotation follows. A workflow provider exists once per BPMN process and
- * therefore serves every key of it.
+ * every VanillaBP annotation follows. A method writing
+ * {@link UserTaskDetailsProvider#ALL} instead of a name serves every user task of every BPMN
+ * process its workflow service declares, and it runs where no method of that process names the
+ * task. A workflow provider exists once per BPMN process and therefore serves every key of it.
  * <p>
  * No matching method is a legal answer, and the prefilled details then pass through unchanged:
  * a workflow module which reports nothing of its own still shows up in the cockpit, with the
@@ -84,13 +86,41 @@ public final class BusinessCockpitHandlers {
 
     final var provider = (UserTaskDetailsProvider) annotation;
     final var keys = new LinkedList<String>();
-    if (!UserTaskDetailsProvider.USE_METHOD_NAME.equals(provider.id())) {
-      keys.add(provider.id());
-    }
-    if (!UserTaskDetailsProvider.USE_METHOD_NAME.equals(provider.taskDefinition())) {
-      keys.add(provider.taskDefinition());
-    }
+    addLookupKey(keys, provider.id());
+    addLookupKey(keys, provider.taskDefinition());
     return keys;
+
+  }
+
+  /**
+   * Adds what one attribute of the annotation names to the keys a method serves.
+   * <p>
+   * {@link UserTaskDetailsProvider#ALL} becomes {@link HandlerContract#EVERY_KEY}, which is how
+   * a method claiming every user task reaches VanillaBP: it looks the same to it as a
+   * <code>&#64;WorkflowDetailsProvider</code> or a start method naming no start event, so the
+   * rule those follow holds here as well. A method naming one task wins over it, and two
+   * methods claiming every task of one workflow service end the boot.
+   * <p>
+   * Both constants read '*' today. The translation happens all the same, so that a method
+   * claiming every task keeps doing so if one of them ever changes.
+   *
+   * @param keys What the method serves so far
+   * @param attribute What <code>id</code> or <code>taskDefinition</code> says
+   */
+  private static void addLookupKey(
+      final List<String> keys,
+      final String attribute) {
+
+    if (UserTaskDetailsProvider.USE_METHOD_NAME.equals(attribute)) {
+      return;
+    }
+    final var key = UserTaskDetailsProvider.ALL.equals(attribute)
+        ? HandlerContract.EVERY_KEY
+        : attribute;
+    // writing the star in both attributes is one claim, not two
+    if (!keys.contains(key)) {
+      keys.add(key);
+    }
 
   }
 
@@ -186,8 +216,10 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * The keys an invocation for one user task accepts, most specific first: a method naming the
-   * task definition or the element id wins over one serving every task of the process.
+   * The keys an invocation for one user task accepts: a method naming the task definition or the
+   * element id runs, and where none does, the method claiming every task runs. A method carrying
+   * neither attribute is registered under its own name and is therefore reached by the same two
+   * keys.
    *
    * @param taskDefinition The task's form reference, may be <code>null</code>
    * @param bpmnTaskId The task's BPMN element id, may be <code>null</code>
