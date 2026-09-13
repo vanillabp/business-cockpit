@@ -6,7 +6,7 @@
     "@vanillabp/bc-shared": ">=0.9.0-SNAPSHOT <0.9.1",
     "@vanillabp/bc-ui": ">=0.9.0-SNAPSHOT <0.9.1",
     "@fontsource/roboto": "4.5.8",
-    "grommet": "2.33.2",
+    "grommet": "2.56.1",
     "grommet-icons": "4.12.1",
     "i18next": "22.0.3",
     "react": "18.2.0",
