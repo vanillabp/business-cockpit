@@ -66,7 +66,7 @@ say why.
 The transport itself is a bean of both platforms, and an application which brings one of its own
 reports through that instead. Whether it did is the platform's answer rather than a property key, so
 `BusinessCockpitConfiguration.readAndValidate` takes it as an argument and an application reporting
-its own way needs neither of the two shipped transports. Decision 21 says how each platform finds the
+its own way needs neither of the two shipped transports. Decision 22 says how each platform finds the
 answer without building a transport to get it.
 
 ## What a BPMS half implements
