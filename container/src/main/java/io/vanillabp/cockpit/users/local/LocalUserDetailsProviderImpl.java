@@ -31,7 +31,7 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
         this.devShellSimulatorUsersUri = devShellSimulatorUsersUri;
         this.restTemplate = new RestTemplateBuilder()
-                .rootUri(devShellSimulatorUsersUri)
+                .baseUri(devShellSimulatorUsersUri)
                 .build();
 
     }
