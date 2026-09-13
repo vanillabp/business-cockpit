@@ -109,10 +109,14 @@ Write the suppression above `@Testcontainers`. JUnit registers extensions in the
 written, and a Testcontainers extension registered first starts its container and logs it before
 anything is listening.
 
-Nothing is filtered by log level, not in a `logback-test.xml` and not in a test configuration.
-Everything is collected and a failure hands all of it back, which is exactly what somebody analysing
-that failure needs. A test which has to read what was logged takes a `CapturedOutput` parameter
-instead of redirecting the streams itself.
+INFO is the level everything is collected at, and nothing above it is ever dropped. A failure hands
+all of it back, which is what somebody analysing that failure needs, and a level which drops a
+record keeps it out of the capture too. So no `logback-test.xml` and no test configuration ever
+goes above INFO. Going up TO INFO is a different thing and sometimes needed: logback defaults to
+DEBUG when nothing configures it, and `extensions-commons/core` has the file which brings it to
+INFO, because at DEBUG the Docker client writes a few hundred lines into every green build. A test
+which has to read what was logged takes a `CapturedOutput` parameter instead of redirecting the
+streams itself.
 
 `CoverageGateTest` is the one class which prints on a green build. It carries `@PrintsWhenPassing`
 with the reason, because its measured number is worth having in every log. A second exemption needs a

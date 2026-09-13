@@ -1,0 +1,24 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- The file exists for the root level. Logback defaults to DEBUG when nothing configures it,
+         and the Docker client logs every request to the daemon at that level, wire content
+         included: 190 lines in a green build here, 922 in a green build on a runner which also
+         pulls the image, measured on 2026-09-13. They arrive before the output suppression can
+         catch anything, because a container test says
+         '@Testcontainers(disabledWithoutDocker = true)' and that detects Docker from an
+         ExecutionCondition, which runs between test classes rather than inside one.
+
+         INFO and not WARN. What a level drops reaches no appender, so it reaches no capture
+         either, and then a failing test could no longer say what its container did. INFO is the
+         level VanillaBP logs at everywhere, so this file brings the module to it instead of
+         hiding anything above it. What INFO still prints in a green build is a handful of lines
+         from the same moment, and no extension can reach those either. -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
