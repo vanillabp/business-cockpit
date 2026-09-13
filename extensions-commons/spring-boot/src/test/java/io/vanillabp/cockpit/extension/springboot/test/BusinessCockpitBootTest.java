@@ -19,6 +19,7 @@ import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedPro
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwoMethodsForEveryUserTaskService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
+import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
@@ -207,6 +208,41 @@ public class BusinessCockpitBootTest {
           "and the bridge registered as a bean of its own still does");
 
     }
+
+  }
+
+  @Test
+  @DisplayName("Without a transport the boot names both keys and the way of bringing one")
+  public void withoutATransportBothKeysAndTheOwnWayAreNamed() {
+
+    final var message = failureOfBooting(
+        "cockpit-without-a-transport",
+        new String[]{
+            // the properties of the builder are default properties, which the module's own
+            // application.yaml outranks, so the key it sets is emptied by a file of its own
+            "spring.config.additional-location=classpath:/without-a-transport/"
+        },
+        TestApplication.class);
+
+    assertTrue(message.contains("vanillabp.cockpit.rest.base-url"), message);
+    assertTrue(message.contains("vanillabp.cockpit.kafka.bootstrap-servers"), message);
+    assertTrue(message.contains(BusinessCockpitTransport.class.getName()), message);
+
+  }
+
+  @Test
+  @DisplayName("With both transports and no own one the boot still says to remove one")
+  public void withBothTransportsOneIsToBeRemoved() {
+
+    final var message = failureOfBooting(
+        "cockpit-with-both-transports",
+        new String[]{
+            "vanillabp.cockpit.kafka.bootstrap-servers=broker:9092", "vanillabp.cockpit.kafka.topics.user-task=user-task", "vanillabp.cockpit.kafka.topics.workflow=workflow", "vanillabp.cockpit.kafka.topics.workflow-module=workflow-module"
+        },
+        TestApplication.class);
+
+    assertTrue(message.contains("reported twice"), message);
+    assertTrue(message.contains("vanillabp.cockpit.rest.base-url"), message);
 
   }
 

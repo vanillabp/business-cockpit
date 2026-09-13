@@ -53,7 +53,7 @@ public class WorkflowsOfTheAdapterTest {
 
     assertFalse(
         BusinessCockpitConfiguration
-            .readAndValidate(properties, settings, false)
+            .readAndValidate(properties, settings, false, false)
             .reportsToTheCockpit("test-module"),
         "the module was read as one which reports, although it says nothing about the cockpit");
 

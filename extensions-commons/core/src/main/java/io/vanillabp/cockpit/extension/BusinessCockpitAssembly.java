@@ -27,14 +27,32 @@ public final class BusinessCockpitAssembly {
   }
 
   /**
+   * The transport the extension ships, built from what the application configured.
+   * <p>
+   * Both platform modules provide it as a bean an application can replace, and this method is
+   * also how an application's own transport gets hold of the shipped one it wants to wrap: it
+   * asks for the bean of type {@link BusinessCockpitConfiguration} and calls this.
+   *
    * @param configuration The validated configuration
    * @return The transport it chose
+   * @throws IllegalStateException If the application configured neither of the two, so there is
+   *           nothing to build
    */
   public static BusinessCockpitTransport transportOf(
       final BusinessCockpitConfiguration configuration) {
 
     if (configuration.getRest() != null) {
       return new RestTransport(configuration.getRest());
+    }
+    if (configuration.getKafka() == null) {
+      throw new IllegalStateException(
+          """
+              The Business Cockpit extension ships a transport over REST and one over Kafka, and \
+              this application configured neither, so there is none to build. Set '%s' for the \
+              one or '%s' for the other."""
+              .formatted(
+                  ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
+                  ConfigurationKeys.globalKey(ConfigurationKeys.KAFKA_BOOTSTRAP_SERVERS)));
     }
     requireKafkaClient();
     return kafkaTransport(configuration);

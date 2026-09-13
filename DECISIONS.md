@@ -497,3 +497,40 @@ after a details provider, and it does not say that a details provider cannot wri
 What the platform's message cannot carry is the half which belongs to this repository: the provider
 is not saved by VanillaBP and is a second writer all the same. That sentence is in the wiki page
 `Architecture`, next to what a report carries.
+
+### 21. The transport is a bean an application replaces, and each platform answers whether it did
+
+Version 1 declared its three publishing beans with `@ConditionalOnMissingBean`, and applications used
+that seam to report their own way. Version 2 built the transport inside
+`BusinessCockpitAssembly.transportOf` and handed it to the extension, so there was no bean to
+replace. That was never decided, it just happened, and a customer who used the seam could not
+upgrade.
+
+The transport is a bean again. Spring Boot declares it `@Bean @ConditionalOnMissingBean`, Quarkus
+`@Produces @DefaultBean`, and the one interface carries the three methods version 1 spread over three
+beans. The seam sits at the end of the outbox dispatch rather than where the BPMS event arrives, so a
+transport an application wrote is handed a finished report and inherits the repetition with a backoff
+and the transaction of the workflow aggregate.
+
+`BusinessCockpitTransport` is therefore a published contract, like the interfaces of
+`io.vanillabp.cockpit.extension.spi` which the three BPMS halves implement. It is in
+`io.vanillabp.cockpit.extension.transport` because that is where the two shipped transports are and
+moving it would break the applications this decision is for. `BusinessCockpitConfiguration` is a bean
+of both platforms for the same reason: an application which wants to wrap a shipped transport builds
+it with `BusinessCockpitAssembly.transportOf(configuration)`, and without the bean that is a
+reimplementation rather than an addition.
+
+Whether an application brought a transport of its own is the platform's answer, not a property key.
+`readAndValidate` takes it as an argument, so the check stays in the neutral core, the message comes
+at the same moment as every other configuration message, and no key can claim a bean which is not
+there. Spring Boot reads the bean definitions of the type and counts the ones it did not contribute
+itself; Quarkus asks the container for the beans of the type and looks for one which is not the
+default bean. Both answers were decided while the application was built, and neither creates an
+instance: the shipped transport loads the Kafka client an application may not have, and it is built
+from the very configuration being read.
+
+What such an application reads while it boots follows from that. Neither shipped transport is missing
+any more, because the reports have a way. A shipped transport configured next to an own bean is named
+in one line as a key the extension does not read, since silence about it would be the worst of the
+three answers. Both shipped transports next to an own bean still end the boot: the shipped transport
+is what an own one wraps, and nothing says which of the two was meant.

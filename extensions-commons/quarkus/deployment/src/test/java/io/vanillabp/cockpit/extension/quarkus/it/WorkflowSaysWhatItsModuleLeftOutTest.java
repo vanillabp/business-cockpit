@@ -54,7 +54,7 @@ public class WorkflowSaysWhatItsModuleLeftOutTest {
   public void theWorkflowSaysItForItsModule() {
 
     final var module = BusinessCockpitConfiguration
-        .readAndValidate(properties, settings, false)
+        .readAndValidate(properties, settings, false, false)
         .workflowModule("test-module");
 
     assertEquals(List.of("fr"), module.i18nLanguages("TestProcess"));

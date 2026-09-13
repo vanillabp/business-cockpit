@@ -5,8 +5,14 @@ import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 
 /**
- * How the extension reaches the cockpit server. There are two, one over REST and one over
- * Kafka, and an application chooses by configuring one of them.
+ * How the extension reaches the cockpit server. Two of them ship with the extension, one over
+ * REST and one over Kafka, and an application chooses by configuring one of them.
+ * <p>
+ * An application may also bring its own. Both platform modules provide the shipped transport as a
+ * bean it can replace, which is the seam version 1 of the Business Cockpit had on its three
+ * publishing beans. This interface is therefore a published contract, and
+ * {@link io.vanillabp.cockpit.extension.BusinessCockpitAssembly#transportOf} is how an application
+ * builds the shipped transport it wants to wrap - see decision 21 in the repository's DECISIONS.md.
  * <p>
  * Every method is called while an outbox entry is dispatched, so a failure is reported by
  * throwing: the entry stays and is retried with a backoff, and no event is lost because a
