@@ -2,8 +2,10 @@ package io.vanillabp.cockpit.simulator.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -28,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
  * <p>The properties are asserted rather than a broker being started: a real start binds 9092 and would
  * collide with a running development environment, and it would take tens of seconds.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class EmbeddedKafkaConfigurationTest {
 
     @SuppressWarnings("unchecked")

@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -26,6 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
  * between Jackson 2 and 3. A failure here means the React frontend and the official GUI API clients see
  * different JSON than before, so the expected strings must not be "fixed" without a deliberate decision.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class JsonConfigurationTest {
 
     private final JsonConfiguration configuration = new JsonConfiguration();

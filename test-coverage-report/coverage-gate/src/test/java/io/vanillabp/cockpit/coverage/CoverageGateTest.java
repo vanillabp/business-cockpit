@@ -9,6 +9,9 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import io.vanillabp.integration.test.utils.CoverageGate;
+import io.vanillabp.integration.test.utils.PrintsWhenPassing;
+
 /**
  * The coverage gate: it breaks the build when a measurement's aggregated coverage drops
  * below the threshold, so a drop is noticed while it happens instead of a year later. The
@@ -29,6 +32,11 @@ import org.junit.jupiter.api.Test;
  * stands against the rule, and a repository sitting between the threshold and the rule has
  * a gap which would otherwise be visible only to whoever opens the report.
  */
+@PrintsWhenPassing(
+  "the three numbers ARE the result of this class, and a number is only worth something while "
+      + "somebody still has the code it measures in front of them: whoever has just written tests "
+      + "reads here whether the gap to the rule got smaller, and a line only red builds carry "
+      + "would never reach them")
 public class CoverageGateTest {
 
   private static final Path ROOT = CoverageGate.repositoryRoot("coverage.repository.root");

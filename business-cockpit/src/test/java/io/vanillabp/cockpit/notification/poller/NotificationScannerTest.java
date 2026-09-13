@@ -9,6 +9,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.usertask.NotificationDelivery;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -18,7 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(SuppressOutputExtension.class)
 class NotificationScannerTest {
 
     private static final String EMAIL = "email";

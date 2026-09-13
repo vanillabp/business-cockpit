@@ -3,11 +3,13 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The permission data a workflow module hands over when it registers - the groups it is accessible
@@ -19,6 +21,8 @@ import org.junit.jupiter.api.Test;
  * re-registration, so a test that turns green afterwards proves the change reached the running
  * application, not just a fresh login.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class WorkflowModulePermissionsTest extends ItestBase {
 
     /** The one group both users of the stub share, which makes a task visible to either of them. */

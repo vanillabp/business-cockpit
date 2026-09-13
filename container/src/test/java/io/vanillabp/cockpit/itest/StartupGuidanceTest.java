@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.vanillabp.cockpit.BusinessCockpitStandaloneApplication;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.CockpitIsNotConfiguredException;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
@@ -47,6 +49,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
  * cached {@code @SpringBootTest} context - each case needs its own configuration, and half of them
  * never reach a running context at all.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class StartupGuidanceTest {
 
     private static final MongoDBContainer MONGODB =

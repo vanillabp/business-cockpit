@@ -20,6 +20,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
@@ -34,6 +36,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * Delivery of a bulk is accounted for per recipient: a recipient already reached must not receive
  * the notification again just because another recipient of the same bulk failed.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class NotificationPollerDeliveryTest {
 
     private static final String EMAIL = "email";

@@ -2,11 +2,13 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A list says what a user may see, and everything naming a single task has to say the same. These
@@ -28,6 +30,8 @@ import org.junit.jupiter.api.Test;
  *       reads against.
  * </ol>
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class UserTaskPermissionsTest extends ItestBase {
 
     /** Registrations need a URI, but no test here follows the proxy route to it. */

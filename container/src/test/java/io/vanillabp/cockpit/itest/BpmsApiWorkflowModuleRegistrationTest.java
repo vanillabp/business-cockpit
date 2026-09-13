@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.sun.net.httpserver.HttpServer;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The registration endpoint of the BPMS API is an upsert: a workflow module calls it on every
@@ -24,6 +26,8 @@ import org.junit.jupiter.api.Test;
  * <p>Two stub servers stand in for the module before and after the move, each one answering with
  * its own name so the tests can tell which of them the gateway actually reached.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
 
     private static HttpServer serverA;

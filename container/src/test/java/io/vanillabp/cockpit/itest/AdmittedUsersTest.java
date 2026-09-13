@@ -3,9 +3,11 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A user task may name who else sees it. The workflow module writes that list as
@@ -21,6 +23,8 @@ import org.junit.jupiter.api.Test;
  * who opened what. The cause is different now, the business question is the same, so they ask the
  * same things of the application.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class AdmittedUsersTest extends ItestBase {
 
     /** Registrations need a URI, but no test here follows the proxy route to it. */

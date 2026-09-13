@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import io.vanillabp.cockpit.users.model.Person;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 
@@ -26,6 +28,7 @@ import org.springframework.data.mongodb.core.query.Query;
  * carrying that information ({@code updatedBy} is audit information overwritten on every save), and
  * the notification poller reads it to skip notifications a user triggered himself.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class UserTaskServiceInitiatorTest {
 
     /**

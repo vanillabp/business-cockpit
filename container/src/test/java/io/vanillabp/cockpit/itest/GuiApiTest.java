@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.time.OffsetDateTime;
@@ -9,12 +10,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Exercises the GUI API the way the single-page app uses it: login via basic auth producing a JWT
  * cookie, then task list interactions like paging, sorting, mark-as-read, claim, assign and
  * follow-up dates.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class GuiApiTest extends ItestBase {
 
     private String moduleId;

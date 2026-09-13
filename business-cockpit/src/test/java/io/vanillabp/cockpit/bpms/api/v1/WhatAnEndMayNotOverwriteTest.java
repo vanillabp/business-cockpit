@@ -11,6 +11,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What an end reported through version 1 of the API does to what the cockpit stored.
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Test;
  * reporting side knows about the case by then, and these tests hold the controller to writing
  * nothing else.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class WhatAnEndMayNotOverwriteTest {
 
     private static final OffsetDateTime DUE_AT = OffsetDateTime.parse("2026-09-12T08:00:00Z");

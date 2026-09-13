@@ -19,10 +19,31 @@
     <jacoco.agent/>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- the io.vanillabp coordinates this module reads, at the version the root POM names.
+          That POM also says why the import is repeated here instead of sitting there. -->
+        <groupId>io.vanillabp</groupId>
+        <artifactId>vanillabp-bom</artifactId>
+        <version>${version.vanillabp}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- the gate reads the coverage reports and the test sources of the whole repository, and
+        both are asked the same questions in every VanillaBP repository -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

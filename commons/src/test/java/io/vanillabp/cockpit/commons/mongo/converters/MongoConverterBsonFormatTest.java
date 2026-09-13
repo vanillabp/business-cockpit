@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.commons.mongo.converters;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -10,6 +11,7 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.types.Decimal128;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
@@ -30,6 +32,7 @@ import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
  * the way Spring Data does, registers the four converters through {@link MongoCustomConversions}, and
  * checks what actually ends up in the {@link Document} - which is the only thing the driver sends.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class MongoConverterBsonFormatTest {
 
     public static class Sample {

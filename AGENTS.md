@@ -85,6 +85,39 @@ stays that way, because reformatting it would bury every later diff. Inside that
 `mvn spotless:apply` runs before every commit; it formats the POMs and the Markdown as well as the
 Java, and the build fails on a violation.
 
+## Tests keep quiet until one fails
+
+A test which passed has nothing to say. Whoever reads a red build is looking for the one place
+where something went wrong, and the output of hundreds of happy tests is what hides it.
+
+So every test class registers the output suppression of `io.vanillabp:test-utils`:
+
+```java
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput   // only where a container or a server keeps writing
+class MyTest {
+```
+
+The version of `test-utils` comes from the VanillaBP BOM imported in the root `pom.xml`, so a module
+names the dependency in test scope and no version.
+
+The annotation belongs on the class which holds the tests, not only on its base class. JUnit would
+inherit it, but `TestClassConventionsTest` in `test-coverage-report/coverage-gate` reads the sources,
+and it can only see what the file says.
+
+Write the suppression above `@Testcontainers`. JUnit registers extensions in the order they are
+written, and a Testcontainers extension registered first starts its container and logs it before
+anything is listening.
+
+Nothing is filtered by log level, not in a `logback-test.xml` and not in a test configuration.
+Everything is collected and a failure hands all of it back, which is exactly what somebody analysing
+that failure needs. A test which has to read what was logged takes a `CapturedOutput` parameter
+instead of redirecting the streams itself.
+
+`CoverageGateTest` is the one class which prints on a green build. It carries `@PrintsWhenPassing`
+with the reason, because its measured number is worth having in every log. A second exemption needs a
+reason of that shape.
+
 ## Building
 
 The reactor contains an NPM build, so a full `mvn install` at the root is slow and needs a node

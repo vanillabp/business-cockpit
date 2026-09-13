@@ -95,7 +95,9 @@ In the order they build on each other:
    when a module produces coverage data no aggregated report reads, because everything covered by
    that module alone would otherwise count as missed with nobody able to fix it by writing a test.
    Between the threshold and the rule of 90 the build passes, and the gate prints on every run how
-   far each report still is from that rule.
+   far each report still is from that rule. The same module checks that every test class of this
+   repository keeps quiet while it passes, so the log of a red build holds the output of the test
+   which failed and almost nothing else.
 
 ## Noteworthy & Contributors
 

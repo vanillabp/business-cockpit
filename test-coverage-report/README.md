@@ -17,3 +17,11 @@ rule of 90 the build passes, and the gate prints how far each report still is fr
 
 Adding a module means adding it to the report which covers it. The second rule above is what tells
 you if you forgot.
+
+The gate module also keeps a red build short. Every test class of this repository registers
+`SuppressOutputExtension` from `io.vanillabp:test-utils`, so a passing test prints nothing and a
+failing one replays all of it, INFO included. `TestClassConventionsTest` reads the test sources of
+the whole repository and names every class which forgot, and every class which registers the
+suppression below `@Testcontainers`, where a container gets to talk before anybody listens.
+`CoverageGateTest` is the one class which prints while it passes, and its `@PrintsWhenPassing` says
+why.

@@ -14,14 +14,18 @@ import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.User;
 import io.vanillabp.cockpit.users.model.UserRepository;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.mail.internet.MimeMessage;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class EmailNotificationServiceTest {
 
     private GreenMail greenMail;

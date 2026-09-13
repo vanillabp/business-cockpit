@@ -15,11 +15,13 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What an end reported over Kafka does to the business data the cockpit already stored.
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.Test;
  * would erase the business data of the case at the very moment the list of completed cases starts
  * showing it.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class ProtobufEndedEventDetailsTest {
 
     private ProtobufUserTaskMapper userTaskMapper;

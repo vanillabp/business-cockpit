@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.changesets.V000001;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -20,6 +22,8 @@ import org.springframework.data.mongodb.core.query.Update;
  * against the running MongoDB, which no request to the application could trigger: changesets are
  * applied once while the context starts.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class AssigneeCleanupChangesetTest extends ItestBase {
 
     @Autowired

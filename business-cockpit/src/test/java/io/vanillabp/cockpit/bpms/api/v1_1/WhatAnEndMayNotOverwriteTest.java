@@ -10,6 +10,7 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What an end reported over REST leaves alone, field by field.
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
  * task the cockpit shows as open forever. Every end here is that end: it reports none of the fields
  * a change would carry, and each test names one field the cockpit has to keep.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class WhatAnEndMayNotOverwriteTest {
 
     private static final OffsetDateTime DUE_AT = OffsetDateTime.parse("2026-09-12T08:00:00Z");

@@ -13,11 +13,13 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.annotation.Order;
@@ -46,6 +48,7 @@ import org.springframework.web.context.support.GenericWebApplicationContext;
  * {@code HttpSecurity} Spring Boot would inject, including the configurers it applies by default - without
  * them the filter list would be missing exactly the filters these assertions are about.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class WebSecurityChainTest {
 
     /**

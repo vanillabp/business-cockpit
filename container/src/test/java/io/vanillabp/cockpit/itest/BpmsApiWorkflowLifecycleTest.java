@@ -2,15 +2,19 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Exercises the BPMS API v1.1 workflow events over plain HTTP and verifies the outcome through
  * the GUI API's workflow list and detail endpoints.
  */
+@ExtendWith(SuppressOutputExtension.class)
+@SuppressOutputExtension.SuppressBackgroundOutput
 class BpmsApiWorkflowLifecycleTest extends ItestBase {
 
     private String moduleId;

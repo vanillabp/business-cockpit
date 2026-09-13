@@ -133,6 +133,14 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <!-- The tests here boot their application IN this JVM, and Quarkus logs that boot into a
+            log context of its own. It happens in the Quarkus extension's beforeAll, after the
+            output suppression started and before its first beforeEach, and nothing reaches it:
+            859 lines in a GREEN run, measured on 2026-09-13. So Surefire writes what a test class
+            prints into its report instead of the console. Nothing is dropped and no level is
+            touched, and the build workflow uploads these reports when a build fails, so the full
+            log of a red run is one download away. -->
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <quarkus.log.level>INFO</quarkus.log.level>

@@ -11,10 +11,12 @@ import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The assignment of a user task is cockpit-owned state: a task is taken over in the cockpit, so no
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Test;
  * defect which silenced the notification of the former assignee, because the notification poller
  * cannot determine a recipient without an assignee.
  */
+@ExtendWith(SuppressOutputExtension.class)
 class ProtobufUserTaskMapperAssigneeTest {
 
     private ProtobufUserTaskMapper mapper;
