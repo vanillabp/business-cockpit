@@ -9,8 +9,10 @@ package io.vanillabp.cockpit.extension.spi;
  * engine reports onto one of them: a task listener of Camunda 7, a task-listener job of
  * Camunda 8, a state change reported by the Process Engine API.
  * <p>
- * {@link #COMPLETED} and {@link #CANCELED} carry no details - the cockpit only needs to know
- * that the task is gone - so no details provider runs for them.
+ * All four kinds carry the same fields, and a details provider runs for all four. An end says
+ * what the task was finished with, which is what the list of completed tasks shows. Where the
+ * BPMS cannot answer about an ended task any more, the end is reported with its identifiers
+ * alone rather than dropped.
  */
 public enum UserTaskEventKind {
 
@@ -20,7 +22,7 @@ public enum UserTaskEventKind {
   /** Something about the task changed: its assignee, its candidates, its business data. */
   UPDATED,
 
-  /** Somebody finished the task. */
+  /** Somebody finished the task, and the report says what it was finished with. */
   COMPLETED,
 
   /**

@@ -589,17 +589,18 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         userTask, kind, args.get(BusinessCockpitOperations.ARG_EVENT_ID),
         parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP)));
 
-    if (carriesDetails(kind)) {
-      final var prefill = bridgeOf(call.adapterId()).prefilledUserTaskDetails(userTask);
-      if (prefill.isEmpty()) {
-        reportDropped(
-            "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')".formatted(
-                userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(),
-                userTask.bpmnProcessId(), userTask.workflowAggregateId()),
-            kind.name(),
-            call.adapterId());
+    final var described = "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')".formatted(
+        userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(), userTask
+            .bpmnProcessId(),
+        userTask.workflowAggregateId());
+    final var prefill = bridgeOf(call.adapterId()).prefilledUserTaskDetails(userTask);
+    if (prefill.isEmpty()) {
+      if (!ends(kind)) {
+        reportDropped(described, kind.name(), call.adapterId());
         return;
       }
+      reportedWithoutDetails(described, kind.name(), call.adapterId());
+    } else {
       applyPrefill(event, prefill.get());
       invokeUserTaskDetailsProvider(event, userTask, prefill.get());
       fillTitles(event, prefill.get());
@@ -629,17 +630,17 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     event.setUiUriPath(module.uiUriPath());
     event.setUiUriType(module.uiUriType());
 
-    if (carriesDetails(kind)) {
-      final var prefill = bridgeOf(call.adapterId()).prefilledWorkflowDetails(workflow);
-      if (prefill.isEmpty()) {
-        reportDropped(
-            "workflow '%s' of '%s/%s' (aggregate '%s')".formatted(
-                workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(),
-                workflow.workflowAggregateId()),
-            kind.name(),
-            call.adapterId());
+    final var described = "workflow '%s' of '%s/%s' (aggregate '%s')".formatted(
+        workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(), workflow
+            .workflowAggregateId());
+    final var prefill = bridgeOf(call.adapterId()).prefilledWorkflowDetails(workflow);
+    if (prefill.isEmpty()) {
+      if (!ends(kind)) {
+        reportDropped(described, kind.name(), call.adapterId());
         return;
       }
+      reportedWithoutDetails(described, kind.name(), call.adapterId());
+    } else {
       event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
       event.setBusinessId(prefill.get().businessId());
       event.setInitiator(prefill.get().initiator());
@@ -864,8 +865,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering empty, and
    * the outbox brings the entry back.
    * <p>
-   * Only a report which was to carry details reaches this method: the other kinds carry
-   * nothing to look up, so nothing about them can be missing.
+   * Only a report of a task or a case which is still running reaches this method. An end is
+   * reported without its details instead, because a report which never arrives leaves a task
+   * the cockpit shows as open forever.
    */
   private static void reportDropped(
       final String what,
@@ -881,6 +883,29 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Says that an end was reported with the identifiers alone.
+   * <p>
+   * The BPMS was asked and answered nothing, which for an end is an answer rather than a defect:
+   * an engine may forget a task the moment it is over, and a read model answering out of a cache
+   * may have dropped it by the time the report goes out. The cockpit then keeps the business
+   * data of the last change instead of the data the case was finished with, and this line says
+   * which case that happened to.
+   */
+  private static void reportedWithoutDetails(
+      final String what,
+      final String kind,
+      final String adapterId) {
+
+    logger
+        .info(
+            "Reporting {} as {} to the Business Cockpit without details: the BPMS '{}' does not know it any more",
+            what,
+            kind,
+            adapterId);
+
+  }
+
   private static String listed(
       final Collection<String> names) {
 
@@ -890,17 +915,25 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
-  private static boolean carriesDetails(
+  /**
+   * @param kind What happened to the user task
+   * @return Whether the task is over afterwards
+   */
+  private static boolean ends(
       final UserTaskEventKind kind) {
 
-    return (kind == UserTaskEventKind.CREATED) || (kind == UserTaskEventKind.UPDATED);
+    return (kind == UserTaskEventKind.COMPLETED) || (kind == UserTaskEventKind.CANCELED);
 
   }
 
-  private static boolean carriesDetails(
+  /**
+   * @param kind What happened to the workflow
+   * @return Whether the case is over afterwards
+   */
+  private static boolean ends(
       final WorkflowEventKind kind) {
 
-    return (kind == WorkflowEventKind.CREATED) || (kind == WorkflowEventKind.UPDATED);
+    return (kind == WorkflowEventKind.COMPLETED) || (kind == WorkflowEventKind.CANCELLED);
 
   }
 

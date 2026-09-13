@@ -200,6 +200,51 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("A completed task is reported with the business data it was completed with")
+  public void aCompletedTaskCarriesItsBusinessData() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    transaction.begin();
+    publisher
+        .publishUserTaskEvent(
+            TestBpmsBridge
+                .userTask(
+                    WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId().toString(),
+                    TestBpmsBridge.USER_TASK_ID),
+            UserTaskEventKind.COMPLETED, "bpms-event-8", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+
+    final var request = CockpitServer.awaitRequest("/usertask/task-1/completed");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("\"event\":\"COMPLETED\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A finished workflow is reported with the business data it ended with")
+  public void aFinishedWorkflowCarriesItsBusinessData() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+
+    transaction.begin();
+    publisher
+        .publishWorkflowEvent(
+            new WorkflowReference(
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                    .toString(), TestBpmsBridge.WORKFLOW_ID),
+            WorkflowEventKind.COMPLETED, "bpms-event-9", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+
+    final var request = CockpitServer.awaitRequest("/workflow/workflow-1/completed");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("workflow of Anna"), request.body());
+
+  }
+
+  @Test
   @DisplayName("aggregateChanged reports the workflows of the aggregate")
   public void aggregateChangedReportsTheWorkflows() throws Exception {
 

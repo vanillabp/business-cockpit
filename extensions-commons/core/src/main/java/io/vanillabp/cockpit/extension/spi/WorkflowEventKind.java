@@ -17,7 +17,7 @@ public enum WorkflowEventKind {
   /** Business data of the workflow changed. */
   UPDATED,
 
-  /** The workflow reached an end state. */
+  /** The workflow reached an end state, and the report says what it ended with. */
   COMPLETED,
 
   /** The workflow was terminated before reaching an end state. */

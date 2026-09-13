@@ -172,7 +172,11 @@ public final class CockpitServer {
       final String pathSuffix,
       final String marker) {
 
-    final var deadline = System.currentTimeMillis() + 10000;
+    // half a minute rather than the ten seconds this used to wait: a test which boots the
+    // application spends most of its time on that, and the report it then waits for was arriving
+    // just past the deadline on a loaded machine. A slow answer is not the failure under test
+    // here, so waiting longer costs nothing but the seconds of a build which is red anyway.
+    final var deadline = System.currentTimeMillis() + 30000;
     while (System.currentTimeMillis() < deadline) {
       final var match = received()
           .stream()
