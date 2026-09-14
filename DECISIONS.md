@@ -464,7 +464,7 @@ reported means the process ended it. The notification poller reads that field to
 somebody else from one the reader did themselves, so a name left over from an earlier report would name
 the wrong person.
 
-### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none
+### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none - the warning reaching a cockpit application superseded by decision 23
 
 A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` run while a report is dispatched, and
 they are allowed to change the workflow aggregate. VanillaBP does not save after them (decision 17),
@@ -583,3 +583,30 @@ any more, because the reports have a way. A shipped transport configured next to
 in one line as a key the extension does not read, since silence about it would be the worst of the
 three answers. Both shipped transports next to an own bean still end the boot: the shipped transport
 is what an own one wraps, and nothing says which of the two was meant.
+
+### 23. The details providers say while they are wired that they never write
+
+VanillaBP warns while an application boots about a handler it may save the workflow aggregate after.
+That warning is about what a handler is allowed to do and not about what one did, so it reached the
+details providers of this extension as well. Nothing is saved after them any more (decision 17), so
+every application with the Business Cockpit would have read it at every start, about something which
+cannot happen. A warning which is always there is one people stop reading.
+
+The statement sits on both handler contracts now, which is where VanillaBP can read it. It wires the
+methods long before anybody calls one, and the check about a second writer runs while it wires them.
+The opt-out every call used to carry goes with it. The contract says the same thing earlier and for
+all calls, and two places saying one thing is one place too many.
+
+The platform wrote the same rule down from its side, and it names the Business Cockpit as the case
+the statement was built for. So a reading extension has a way of saying what it is, and the check has
+a reason to pass over it.
+
+Nothing changes for somebody writing a provider. A provider which writes the aggregate anyway is
+written to the database by a persistence which writes managed objects by itself, and an aggregate
+without a version attribute still loses the application's change without a word. What ended is the
+report at every start, not the effect.
+
+The warning is alive for a handler which may write. An extension which registers a contract without
+that statement is reported exactly as before. A test of this repository boots such an extension next
+to the cockpit and reads both answers: the line about the writing handler, and no line about the
+details providers.

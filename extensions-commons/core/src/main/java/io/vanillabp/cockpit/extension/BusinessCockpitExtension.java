@@ -722,8 +722,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                       workflow.bpmnProcessId())
                   .workflowAggregateId(workflow.workflowAggregateId())
                   .payload(event)
-                  // read, do not write: see invokeUserTaskDetailsProvider
-                  .withoutSavingTheWorkflowAggregate()
                   .build());
       returned
           .map(WorkflowDetails.class::cast)
@@ -795,7 +793,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <p>
    * The aggregate is there to be read. The platform does not save it afterwards, whichever way
    * the provider was reached, because a provider is a question about what to report and not an
-   * instruction to change the case - see decision 17 in the repository's DECISIONS.md.
+   * instruction to change the case - see decision 17 in the repository's DECISIONS.md. The
+   * contract of the annotation carries that, so no call repeats it.
    */
   private void invokeUserTaskDetailsProvider(
       final UserTaskEvent event,
@@ -824,7 +823,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
           }
         });
     prefill.multiInstances().forEach(call::multiInstance);
-    call.withoutSavingTheWorkflowAggregate();
     handlers
         .invoke(call.build())
         .map(UserTaskDetails.class::cast)
