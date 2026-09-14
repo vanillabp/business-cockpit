@@ -38,6 +38,7 @@ This file is about the module.
 |                   Module                   |                Artifact                 |                             What it is                             |
 |--------------------------------------------|-----------------------------------------|--------------------------------------------------------------------|
 | [core](./core)                             | `extensions-commons`                    | Everything below, without Spring and without CDI                   |
+| [test-support](./test-support)             | `extensions-commons-test-support`       | The cockpit server every extension repository tests against        |
 | [spring-boot](./spring-boot)               | `extensions-commons-spring-boot`        | One auto-configuration handing the beans over                      |
 | [quarkus/runtime](./quarkus/runtime)       | `extensions-commons-quarkus`            | The producers doing the same with CDI                              |
 | [quarkus/deployment](./quarkus/deployment) | `extensions-commons-quarkus-deployment` | The build steps of the Quarkus extension, and the tests running it |
@@ -144,6 +145,17 @@ details providers, VanillaBP's BPMS double, a BPMS half played by the test, and 
 server. An event is reported, the transaction commits, and the test reads what arrived. That
 duplication between the two platforms is deliberate - the neutral core being right says nothing
 about a platform's glue ever calling it.
+
+That cockpit server is `test-support`, and the three BPMS repositories read it from there rather
+than holding a copy. It is a published module because a test classpath cannot read another
+repository's test classes, and it lives in `src/main/java` for the same reason. A test asks it
+everything over HTTP: a Quarkus extension test initializes its test class twice, once while the
+application is built and again inside the class loader of the running application, and the two
+copies share no static field. Three numbers are system properties, so a repository whose reports
+travel through a cluster waits longer without a class of its own:
+`businesscockpit.test-server.wait-millis`, `businesscockpit.test-server.quiet-window-millis` and
+`businesscockpit.test-server.quiet-wait-millis`. Its port comes from `FreePortUtil` of
+`io.vanillabp:test-utils`.
 
 What VanillaBP refuses about this extension's own annotations is asserted on both platforms too: a
 `@UserTaskDetailsProvider` naming the reserved `version` attribute keeps the application from

@@ -30,6 +30,8 @@
   </developers>
 
   <modules>
+    <!-- first: the tests of every module below report to the cockpit server it holds -->
+    <module>test-support</module>
     <module>core</module>
     <module>spring-boot</module>
     <module>quarkus</module>
