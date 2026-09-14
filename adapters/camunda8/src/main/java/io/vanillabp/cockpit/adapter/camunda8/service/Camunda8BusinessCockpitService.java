@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.search.enums.ProcessInstanceState;
 import io.vanillabp.cockpit.adapter.camunda8.Camunda8AdapterConfiguration;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
@@ -12,20 +11,16 @@ import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitSe
 import io.vanillabp.cockpit.adapter.common.service.BusinessCockpitServiceImplementation;
 import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.UserTask;
+import io.vanillabp.spi.process.WorkflowNotFoundException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 
 public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServiceImplementation<WA> {
-
-    private static final Logger logger = LoggerFactory.getLogger(Camunda8BusinessCockpitService.class);
 
     private final CrudRepository<WA, Object> workflowAggregateRepository;
 
@@ -47,6 +42,8 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
 
     private final Camunda8UserTaskEventHandler camunda8UserTaskEventHandler;
 
+    private final Camunda8BusinessCockpitSupportService supportService;
+
     private CamundaClient client;
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -58,7 +55,8 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                                           String workflowAggregateIdName,
                                           ApplicationEventPublisher applicationEventPublisher,
                                           Camunda8WorkflowEventHandler workflowEventHandler,
-                                          Camunda8UserTaskEventHandler userTaskEventHandler) {
+                                          Camunda8UserTaskEventHandler userTaskEventHandler,
+                                          Camunda8BusinessCockpitSupportService supportService) {
 
         this.workflowAggregateRepository = workflowAggregateRepository;
         this.workflowAggregateClass = workflowAggregateClass;
@@ -68,6 +66,7 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
         this.camunda8WorkflowEventHandler = workflowEventHandler;
         this.camunda8UserTaskEventHandler = userTaskEventHandler;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.supportService = supportService;
 
     }
 
@@ -114,36 +113,12 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
 
         final var businessKey = getWorkflowAggregateId.apply(workflowAggregate);
 
-        final var processesFound = client
-                .newProcessInstanceSearchRequest()
-                .filter(filter -> {
-                    filter.processDefinitionId(bpmnProcessId);
-                    // completed and terminated instances are still kept in secondary storage and
-                    // would be reported as additional workflows sharing the same business key
-                    filter.state(ProcessInstanceState.ACTIVE);
-                    filter.variables(
-                            Map.of(getWorkflowAggregateIdName(), "\"" + businessKey + "\""));
-                    if (tenantId != null) {
-                        filter.tenantId(tenantId);
-                    }
-                })
-                .send()
-                .join()
-                .items()
-                .stream()
-                // call-activity children inherit the business key, only the root is a workflow
-                .filter(processInstance -> processInstance.getParentProcessInstanceKey() == null)
-                .toList();
-        if (processesFound.isEmpty()) {
-            if (tenantId == null) {
-                logger.warn("Could not find process instance for business key '{}', BPMN process ID '{}'!",
-                        businessKey, bpmnProcessId);
-            } else {
-                logger.warn("Could not find process instance for business key '{}', BPMN process ID '{}', tenant '{}'!",
-                        businessKey, bpmnProcessId, tenantId);
-            }
-            return;
-        }
+        final var processesFound = supportService.getProcessInstances(
+                client,
+                tenantId,
+                bpmnProcessId,
+                businessKey.toString(),
+                getWorkflowAggregateIdName());
 
         processesFound
                 .stream()
@@ -175,43 +150,12 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 .map(Long::parseLong)
                 .toList();
 
-        final var userTasksFound = new HashSet<io.camunda.client.api.search.response.UserTask>();
-        boolean nextPage = true;
-        while (nextPage) {
-            final var result = client
-                    .newUserTaskSearchRequest()
-                    .filter(filter -> {
-                        filter.bpmnProcessId(bpmnProcessId);
-                        /*
-                        filter.processInstanceVariables(
-                                Map.of(idName, businessKey));
-                         */
-                        if (tenantId != null) {
-                            filter.tenantId(tenantId);
-                        }
-                    })
-                    .page(request -> request.limit(100))
-                    .execute();
-            result
-                    .items()
-                    .stream()
-                    .filter(userTask -> userTaskIdsConverted.contains(userTask.getUserTaskKey()))
-                    .forEach(userTasksFound::add);
-            if ((userTasksFound.size() == userTaskIds.length)
-                    || !result.page().hasMoreTotalItems()) {
-                nextPage = false;
-            }
-        }
-        if (userTasksFound.isEmpty()) {
-            if (tenantId == null) {
-                logger.warn("Could not found user tasks {} for business key '{}', BPMN process ID '{}'!",
-                        userTaskIdsConverted, businessKey, bpmnProcessId);
-            } else {
-                logger.warn("Could not found user tasks {} for business key '{}', BPMN process ID '{}', tenant '{}'!",
-                        userTaskIdsConverted, businessKey, bpmnProcessId, tenantId);
-            }
-            return;
-        }
+        final var userTasksFound = supportService.getUserTasks(
+                client,
+                tenantId,
+                bpmnProcessId,
+                businessKey.toString(),
+                userTaskIdsConverted);
 
         userTasksFound
                 .stream()
@@ -251,10 +195,14 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
             final WA workflowAggregate,
             final String userTaskId) {
 
-        final var userTask = client
-                .newUserTaskGetRequest(Long.parseLong(userTaskId))
-                .execute();
-        if (userTask == null) {
+        final io.camunda.client.api.search.response.UserTask userTask;
+        try {
+            userTask = supportService.getUserTask(
+                    client,
+                    tenantId,
+                    bpmnProcessId,
+                    Long.parseLong(userTaskId));
+        } catch (WorkflowNotFoundException e) {
             return Optional.empty();
         }
 
