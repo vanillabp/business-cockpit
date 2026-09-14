@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.extension.springboot.everytask;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
@@ -23,7 +24,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * One method reports what every user task of a workflow service has in common, and a method
- * naming a task reports what only that task has.
+ * naming a task reports what only that task has. Where two methods name the same task, one by
+ * its task definition and one by its BPMN element id, the element id decides.
  * <p>
  * Everything is asserted where a user sees it, in the request the cockpit server receives: the
  * details say which method wrote them. The second BPMN process of the workflow service is part
@@ -172,6 +174,28 @@ public class OneProviderForEveryUserTaskTest {
     final var body = reported(PRIMARY_PROCESS, "decide", "every-task-4");
 
     assertTrue(body.contains(OrderService.BY_THE_ELEMENT_ID), body);
+
+  }
+
+  @Test
+  @DisplayName("Naming the element id wins over naming the task definition")
+  public void theElementIdWinsOverTheTaskDefinition() {
+
+    final var body = reported(PRIMARY_PROCESS, "escalate", "every-task-6");
+
+    assertTrue(body.contains(OrderService.BY_THE_ELEMENT_ID), body);
+    assertFalse(body.contains(OrderService.BY_THE_TASK_DEFINITION), body);
+
+  }
+
+  @Test
+  @DisplayName("It wins whichever of the two methods was written first")
+  public void theElementIdWinsWhicheverMethodComesFirst() {
+
+    final var body = reported(PRIMARY_PROCESS, "cancel", "every-task-7");
+
+    assertTrue(body.contains(OrderService.BY_THE_ELEMENT_ID), body);
+    assertFalse(body.contains(OrderService.BY_THE_TASK_DEFINITION), body);
 
   }
 
