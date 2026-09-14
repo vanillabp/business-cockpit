@@ -216,10 +216,19 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * The keys an invocation for one user task accepts: a method naming the task definition or the
-   * element id runs, and where none does, the method claiming every task runs. A method carrying
+   * The keys an invocation for one user task accepts: a method naming the element id or the task
+   * definition runs, and where none does, the method claiming every task runs. A method carrying
    * neither attribute is registered under its own name and is therefore reached by the same two
    * keys.
+   * <p>
+   * The element id comes first, so a method naming it wins over a method naming the task
+   * definition of the same task. The platform takes the first offered key some method serves, and
+   * the element id is the name VanillaBP is moving towards: it is what a BPMN file always has,
+   * while the task definition is an attribute an adapter reads off the model today and will stop
+   * needing. Once it is gone this list simply loses its second entry and nothing else changes.
+   * <p>
+   * Which method wins is asserted where a user sees it, by
+   * <code>OneProviderForEveryUserTaskTest</code> on both platforms.
    *
    * @param taskDefinition The task's form reference, may be <code>null</code>
    * @param bpmnTaskId The task's BPMN element id, may be <code>null</code>
@@ -230,11 +239,11 @@ public final class BusinessCockpitHandlers {
       final String bpmnTaskId) {
 
     final var keys = new LinkedList<String>();
-    if ((taskDefinition != null) && !taskDefinition.isBlank()) {
-      keys.add(taskDefinition);
-    }
     if ((bpmnTaskId != null) && !bpmnTaskId.isBlank()) {
       keys.add(bpmnTaskId);
+    }
+    if ((taskDefinition != null) && !taskDefinition.isBlank()) {
+      keys.add(taskDefinition);
     }
     return keys;
 

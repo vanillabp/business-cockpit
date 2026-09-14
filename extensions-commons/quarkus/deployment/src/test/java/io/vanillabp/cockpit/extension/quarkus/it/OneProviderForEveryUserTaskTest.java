@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.extension.quarkus.it;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
@@ -21,7 +22,8 @@ import jakarta.transaction.UserTransaction;
 
 /**
  * One method reports what every user task of a workflow service has in common, and a method
- * naming a task reports what only that task has.
+ * naming a task reports what only that task has. Where two methods name the same task, one by
+ * its task definition and one by its BPMN element id, the element id decides.
  * <p>
  * It asserts the same thing as the Spring Boot test of this name, because a neutral core being
  * right says nothing about a platform's glue ever calling it.
@@ -180,6 +182,28 @@ public class OneProviderForEveryUserTaskTest {
     final var body = reported(PRIMARY_PROCESS, "decide", "every-task-4");
 
     assertTrue(body.contains(EveryUserTaskService.BY_THE_ELEMENT_ID), body);
+
+  }
+
+  @Test
+  @DisplayName("Naming the element id wins over naming the task definition")
+  public void theElementIdWinsOverTheTaskDefinition() throws Exception {
+
+    final var body = reported(PRIMARY_PROCESS, "escalate", "every-task-6");
+
+    assertTrue(body.contains(EveryUserTaskService.BY_THE_ELEMENT_ID), body);
+    assertFalse(body.contains(EveryUserTaskService.BY_THE_TASK_DEFINITION), body);
+
+  }
+
+  @Test
+  @DisplayName("It wins whichever of the two methods was written first")
+  public void theElementIdWinsWhicheverMethodComesFirst() throws Exception {
+
+    final var body = reported(PRIMARY_PROCESS, "cancel", "every-task-7");
+
+    assertTrue(body.contains(EveryUserTaskService.BY_THE_ELEMENT_ID), body);
+    assertFalse(body.contains(EveryUserTaskService.BY_THE_TASK_DEFINITION), body);
 
   }
 
