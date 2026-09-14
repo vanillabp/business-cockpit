@@ -12,15 +12,20 @@ import io.vanillabp.integration.extension.spi.ExtensionWiringService;
  * reading and enriching a BPMN model is what a BPMS half does, in the repository of its BPMS.
  * What is left here is the one thing every workflow module needs regardless of its engine -
  * telling the cockpit server that the module exists.
- * <p>
- * The order is the last one, which is the convention the Business Cockpit follows everywhere:
- * whatever an adapter or another extension does to a model has happened by the time this runs.
  */
 public class BusinessCockpitWiringService implements ExtensionWiringService<Object, Object> {
 
   /**
-   * Where the Business Cockpit sits in the pipeline. Late enough that VanillaBP's own wiring
-   * has decided which elements the application's methods serve.
+   * Where the Business Cockpit asks to sit in the pipeline. The number is high, so the cockpit
+   * runs behind every extension around today which picked a lower one.
+   * <p>
+   * That is all the number does. It places a wish. An extension which picks a higher number
+   * runs after the cockpit, and nothing in the platform stops it. Raising this number would
+   * only move the wish, because the next extension can raise its own.
+   * <p>
+   * What the cockpit does count on is that the BPMS adapter has wired a model before any
+   * extension sees it. The deployment pipeline calls the adapter first for that reason, so it
+   * holds whatever number stands here.
    */
   public static final int ORDER = 1000;
 
