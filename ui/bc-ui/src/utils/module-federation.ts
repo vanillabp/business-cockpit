@@ -33,6 +33,12 @@ export interface Module {
   moduleId: string;
   workflowModuleId: string;
   retry?: (callback?: () => void) => void;
+  /**
+   * Set for a module the cockpit does not load, because its user interface is not federated into
+   * the cockpit. Such a module brings no columns, no cells and no forms, and the cockpit shows
+   * what it knows about a task or a workflow itself.
+   */
+  notFederated?: boolean;
   buildVersion?: string;
   buildTimestamp?: Date;
   userTaskListColumns?: ColumnsOfUserTaskFunction;
@@ -169,6 +175,17 @@ const fetchModule = async (
   return factory();
 };
 
+/**
+ * Whether a module has come to rest, either because it was loaded, or because loading it failed
+ * and can be retried, or because it is not loaded at all.
+ */
+const isSettled = (
+    module: Module | undefined
+): boolean => (module !== undefined)
+    && ((module.buildTimestamp !== undefined)
+        || (module.retry !== undefined)
+        || (module.notFederated === true));
+
 const loadModule = (
     moduleId: string,
     moduleDefinition: ModuleDefinition,
@@ -196,6 +213,13 @@ const loadModule = (
         modules[moduleId] = {
           ...webpackModule,
           ...module
+        };
+      } else if (moduleDefinition.uiUriType === UiUriType.External) {
+        // the user interface of this module lives in another application, so there is nothing to
+        // load: the cockpit opens the address it was given and shows what it knows itself
+        modules[moduleId] = {
+          ...module,
+          notFederated: true
         };
       } else {
         throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
@@ -242,7 +266,7 @@ const getModule = (
     let subscribe: undefined | ((callback: HandlerFunction) => void) = undefined;
     let unsubscribe: undefined | ((callback: HandlerFunction) => void) = undefined;
 
-    if (module.buildTimestamp || module.retry) {
+    if (isSettled(module)) {
       subscribe = (callback: HandlerFunction) => callback(module);
       unsubscribe = (callback: HandlerFunction) => callback(module);
     } else {
@@ -329,7 +353,7 @@ const useFederationModules = (
         result[index] = loadedModule;
         const anyModuleStillLoading = result
             .reduce(
-                (anyModuleStillLoading, module) => anyModuleStillLoading || (module === undefined) || ((module.buildTimestamp === undefined) && (module.retry === undefined)),
+                (anyModuleStillLoading, module) => anyModuleStillLoading || !isSettled(module),
                 false);
         if (anyModuleStillLoading) {
           return;

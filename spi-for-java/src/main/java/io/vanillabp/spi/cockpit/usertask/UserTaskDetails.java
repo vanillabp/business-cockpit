@@ -61,7 +61,8 @@ public interface UserTaskDetails {
     Object getTemplateContext();
     
     /**
-     * @return A URI path if user-task is EXTERNAL
+     * @return What the cockpit opens for this task. It is the path the workflow module configured
+     *         unless a details provider set one of its own
      */
     String getUiUriPath();
 

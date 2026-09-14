@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.sun.net.httpserver.HttpServer;
 
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
+import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.RestTransport;
@@ -128,6 +129,40 @@ public class RestTransportTest {
     assertTrue(request.body().contains("\"uiUriType\":\"WEBPACK_MF_REACT\""), request.body());
     assertTrue(request.body().contains("\"notificationDelivery\":\"FORCE\""), request.body());
     assertTrue(request.body().contains("\"amount\":250"), request.body());
+
+  }
+
+  @Test
+  @DisplayName("The address of a task shown by another application travels as it was set")
+  public void anExternalUserTaskCarriesItsOwnAddress() {
+
+    final var event = EventFixture.userTask(UserTaskEventKind.CREATED);
+    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriPath("https://tickets.example.com/ticket/4711");
+
+    transport.publishUserTaskEvent(event);
+
+    final var body = theRequest().body();
+    assertTrue(body.contains("\"uiUriType\":\"EXTERNAL\""), body);
+    assertTrue(
+        body.contains("\"uiUriPath\":\"https://tickets.example.com/ticket/4711\""), body);
+
+  }
+
+  @Test
+  @DisplayName("The address of a case shown by another application travels as it was set")
+  public void anExternalWorkflowCarriesItsOwnAddress() {
+
+    final var event = EventFixture.workflow(WorkflowEventKind.CREATED);
+    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriPath("https://orders.example.com/order/4711");
+
+    transport.publishWorkflowEvent(event);
+
+    final var body = theRequest().body();
+    assertTrue(body.contains("\"uiUriType\":\"EXTERNAL\""), body);
+    assertTrue(
+        body.contains("\"uiUriPath\":\"https://orders.example.com/order/4711\""), body);
 
   }
 

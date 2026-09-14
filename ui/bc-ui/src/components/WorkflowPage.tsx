@@ -95,6 +95,22 @@ const WorkflowPage = ({
         setWorkflow);
     }, [ workflowListApi, taskListApi, workflow, loadingWorkflow, showLoadingIndicator, setWorkflow ]);
   
+  // A case of another application has no page the cockpit could load, because its address is a
+  // page of that application. Somebody who lands here followed a link to the cockpit's own
+  // workflow page, so the browser is sent on to where the case really is.
+  useEffect(() => {
+    if (!workflow) {
+      return;
+    }
+    if (workflow.uiUriType !== 'EXTERNAL') {
+      return;
+    }
+    if (!workflow.uiUri) {
+      return;
+    }
+    window.location.assign(workflow.uiUri);
+  }, [ workflow ]);
+
   const module = useFederationModule(workflow as ModuleDefinition, 'WorkflowPage');
   useEffect(() => {
       if (!module) {

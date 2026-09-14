@@ -7,6 +7,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.tasklist.UserTaskService.RetrieveItemsMode;
+import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -41,7 +42,7 @@ public abstract class GuiApiMapper {
         return personAndGroupMapper.groupToApiGroup(group);
     }
 
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(userTask))")
+    @Mapping(target = "uiUri", expression = "java(uiUriToOpen(userTask))")
     @Mapping(target = "dueDate", expression = "java(mapDateTimeMaxToNull(userTask))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(userTask))")
     @Mapping(target = "read", expression = "java(userTask.getReadAt(userId))")
@@ -86,14 +87,25 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
     public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
 
+    /**
+     * Where the cockpit's user interface has to go to show this task.
+     * <p>
+     * A module federated into the cockpit is served by the cockpit itself, so its path is answered
+     * below the proxy route of the workflow module. A task of type EXTERNAL lives in another
+     * application, and its address is handed out the way the workflow module reported it: the
+     * cockpit neither proxies that application nor knows anything about it.
+     */
     @NoMappingMethod
-    protected String proxiedUiUri(
+    protected String uiUriToOpen(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
-        
-        if (userTask.getWorkflowModuleId() == null) {
+
+        if (userTask.getUiUriPath() == null) {
             return null;
         }
-        if (userTask.getUiUriPath() == null) {
+        if (userTask.getUiUriType() == UiUriType.EXTERNAL) {
+            return userTask.getUiUriPath();
+        }
+        if (userTask.getWorkflowModuleId() == null) {
             return null;
         }
         

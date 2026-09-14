@@ -97,6 +97,22 @@ const UserTaskPage: FC<UserTaskPageProps> = ({
     );
   }, [ userTaskId ]); //eslint-disable-line react-hooks/exhaustive-deps -- should only be executed on change of userTaskId
 
+  // A task of another application has no form the cockpit could load, because its address is a
+  // page of that application. Somebody who lands here followed a link to the cockpit's own task
+  // page, so the browser is sent on to where the task really is.
+  useEffect(() => {
+    if (!userTask) {
+      return;
+    }
+    if (userTask.uiUriType !== 'EXTERNAL') {
+      return;
+    }
+    if (!userTask.uiUri) {
+      return;
+    }
+    window.location.assign(userTask.uiUri);
+  }, [ userTask ]);
+
   const module = useFederationModule(userTask as ModuleDefinition, 'UserTaskForm');
 
   useEffect(() => {

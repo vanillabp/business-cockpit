@@ -230,6 +230,54 @@ class KafkaIngestionTest extends ItestBase {
 
     }
 
+    /**
+     * The type and the address of an item worked on in another application travel over Kafka the
+     * same way they travel over REST, and the cockpit hands the address out untouched.
+     */
+    @Test
+    void externalItemsKeepTheAddressTheyWereReportedWith() {
+
+        final var userTaskId = unique("task");
+        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+                .newBuilder()
+                .setUserTaskCreatedV11(userTaskEvent(userTaskId)
+                        .setUiUriType("EXTERNAL")
+                        .setUiUriPath("https://tickets.example.com/ticket/4711"))
+                .build());
+
+        await().untilAsserted(() ->
+                assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(200));
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+        assertThat(task.read("$.uiUri", String.class))
+                .isEqualTo("https://tickets.example.com/ticket/4711");
+
+        final var workflowId = unique("workflow");
+        produce(KAFKA_WORKFLOW_TOPIC, workflowId, BcEvent
+                .newBuilder()
+                .setWorkflowCreatedV11(WorkflowCreatedOrUpdatedEvent
+                        .newBuilder()
+                        .setId(UUID.randomUUID().toString())
+                        .setApiVersion("1.1")
+                        .setWorkflowId(workflowId)
+                        .setTimestamp(now())
+                        .setBpmnProcessId("taxi-ride")
+                        .putTitle("en", "Ride request (via Kafka)")
+                        .setWorkflowModuleId(moduleId)
+                        .setUiUriPath("https://orders.example.com/order/4711")
+                        .setUiUriType("EXTERNAL")
+                        .setDetailsFulltextSearch(token))
+                .build());
+
+        await().untilAsserted(() ->
+                assertThat(guiGet(cookie, "/workflow/" + workflowId).statusCode()).isEqualTo(200));
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(workflow.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+        assertThat(workflow.read("$.uiUri", String.class))
+                .isEqualTo("https://orders.example.com/order/4711");
+
+    }
+
     @Test
     void workflowModuleRegistrationEventRegistersTheModule() {
 

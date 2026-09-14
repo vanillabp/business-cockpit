@@ -32,6 +32,8 @@ i18n.addResources('en', appNs, {
       "url-tasklist-by-users-roles": "for-my-roles",
       "unsupported-ui-uri-type_title": "Open item",
       "unsupported-ui-uri-type_message": "Internal error: The item refers to an unsupported UI-URI-type!",
+      "no-ui-uri_title": "Open item",
+      "no-ui-uri_message": "This item does not say where it can be opened. The workflow module has to report an address for it.",
     });
 i18n.addResources('de', appNs, {
       "title.long": 'VanillaBP Business Cockpit',
@@ -50,6 +52,8 @@ i18n.addResources('de', appNs, {
       "url-tasklist-by-users-roles": "fuer-meine-rollen",
       "unsupported-ui-uri-type_title": "Element öffnen",
       "unsupported-ui-uri-type_message": "Internes Problem: Das Element bezieht sich auf einen nicht unterstützten UI-URI-Typ!",
+      "no-ui-uri_title": "Element öffnen",
+      "no-ui-uri_message": "Dieses Element sagt nicht, wo es geöffnet werden kann. Das Workflow-Modul muss eine Adresse dafür melden.",
     });
     
 type AppProps = {};

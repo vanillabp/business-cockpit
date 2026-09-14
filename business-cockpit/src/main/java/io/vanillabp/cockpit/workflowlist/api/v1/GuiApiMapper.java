@@ -6,6 +6,7 @@ import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
+import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -46,7 +47,7 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "Inactive", source = "INACTIVE")
     public abstract WorkflowlistService.RetrieveItemsMode toModel(WorkflowRetrieveMode mode);
 
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(workflow))")
+    @Mapping(target = "uiUri", expression = "java(uiUriToOpen(workflow))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(workflow))")
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsers", qualifiedByName = PERSON_MAPPING)
@@ -71,14 +72,25 @@ public abstract class GuiApiMapper {
 
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
+    /**
+     * Where the cockpit's user interface has to go to show this workflow.
+     * <p>
+     * A module federated into the cockpit is served by the cockpit itself, so its path is answered
+     * below the proxy route of the workflow module. A workflow of type EXTERNAL is shown by another
+     * application, and its address is handed out the way the workflow module reported it: the
+     * cockpit neither proxies that application nor knows anything about it.
+     */
     @NoMappingMethod
-    protected String proxiedUiUri(
+    protected String uiUriToOpen(
             final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
-        
-        if (workflow.getWorkflowModuleId() == null) {
+
+        if (workflow.getUiUriPath() == null) {
             return null;
         }
-        if (workflow.getUiUriPath() == null) {
+        if (workflow.getUiUriType() == UiUriType.EXTERNAL) {
+            return workflow.getUiUriPath();
+        }
+        if (workflow.getWorkflowModuleId() == null) {
             return null;
         }
         

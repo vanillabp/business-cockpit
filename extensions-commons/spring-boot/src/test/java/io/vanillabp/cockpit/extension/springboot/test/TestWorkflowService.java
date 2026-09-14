@@ -33,6 +33,12 @@ public class TestWorkflowService {
   /** What the provider of the workflow writes into the aggregate. */
   public static final String WORKFLOW_NOTE = "seen by the workflow details provider";
 
+  /** The address a details provider hands out for the task it is asked about. */
+  public static final String TASK_ADDRESS = "https://tickets.example.com/ticket/4711";
+
+  /** The address a details provider hands out for the case it is asked about. */
+  public static final String CASE_ADDRESS = "https://tickets.example.com/case/4711";
+
   private final ProcessService<TestAggregate> processService;
 
   private final BusinessCockpitService<TestAggregate> businessCockpitService;
@@ -119,6 +125,23 @@ public class TestWorkflowService {
   }
 
   /**
+   * A provider for a task which is worked on somewhere else. It says per task where that is,
+   * which is what a module of UI URI type EXTERNAL needs: the address of one ticket, not the
+   * address of the ticket system.
+   *
+   * @param prefilled What the BPMS reported
+   * @return The enriched details
+   */
+  @UserTaskDetailsProvider(taskDefinition = "handle-ticket")
+  public UserTaskDetails handleTheTicket(
+      final PrefilledUserTaskDetails prefilled) {
+
+    prefilled.setUiUriPath(TASK_ADDRESS);
+    return prefilled;
+
+  }
+
+  /**
    * A details provider which is not public, the way a developer writes one who assumes the
    * annotation is enough. The scan reads the PUBLIC methods of a workflow service class, so
    * this method is invoked by nobody - and unlike an unserved <code>&#64;WorkflowTask</code>
@@ -167,6 +190,7 @@ public class TestWorkflowService {
     prefilled.setDetails(Map.of("customer", aggregate.getCustomer()));
     prefilled.setComment("workflow of "
         + aggregate.getCustomer());
+    prefilled.setUiUriPath(CASE_ADDRESS);
     return prefilled;
 
   }

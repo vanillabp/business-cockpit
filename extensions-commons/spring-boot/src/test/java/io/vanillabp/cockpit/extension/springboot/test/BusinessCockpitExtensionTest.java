@@ -135,6 +135,51 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("The address a details provider sets is what the cockpit is told about the task")
+  public void aProviderSaysWhereTheTaskIsShown() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "handle-ticket"), UserTaskEventKind.CREATED,
+                "bpms-event-20", OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    final var request = CockpitServer.awaitRequest("/usertask/created");
+    assertTrue(
+        request.body().contains("\"uiUriPath\":\""
+            + TestWorkflowService.TASK_ADDRESS
+            + "\""),
+        request.body());
+
+  }
+
+  @Test
+  @DisplayName("The address a details provider sets is what the cockpit is told about the case")
+  public void aProviderSaysWhereTheCaseIsShown() {
+
+    final var aggregate = aStartedWorkflow();
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishWorkflowEvent(
+                new WorkflowReference(
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                        .toString(), RecordingBpmsBridge.WORKFLOW_ID),
+                WorkflowEventKind.CREATED, "bpms-event-21", OffsetDateTime.now(),
+                EventTransaction.CURRENT));
+
+    final var request = CockpitServer.awaitRequest("/workflow/created");
+    assertTrue(
+        request.body().contains("\"uiUriPath\":\""
+            + TestWorkflowService.CASE_ADDRESS
+            + "\""),
+        request.body());
+
+  }
+
+  @Test
   @DisplayName("The platform saves nothing after a user-task details provider, and JPA writes the change anyway")
   public void aUserTaskProviderIsNotSavedForByThePlatform() {
 
