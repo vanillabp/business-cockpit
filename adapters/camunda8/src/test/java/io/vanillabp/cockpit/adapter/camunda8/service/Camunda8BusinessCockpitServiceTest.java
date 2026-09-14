@@ -1,14 +1,5 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.RETURNS_SELF;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.page.AnyPage;
 import io.camunda.client.api.search.request.UserTaskSearchRequest;
@@ -22,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +21,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.repository.CrudRepository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_SELF;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
 class Camunda8BusinessCockpitServiceTest {
 
     @Mock
     private CamundaClient camundaClient;
+
+    @Mock
+    private Camunda8WorkflowEventHandler workflowEventHandler;
+
+    @Mock
+    private Camunda8UserTaskEventHandler userTaskEventHandler;
 
     private Camunda8BusinessCockpitService<String> service;
 
@@ -48,8 +53,9 @@ class Camunda8BusinessCockpitServiceTest {
                 businessKey -> businessKey,
                 "id",
                 mock(ApplicationEventPublisher.class),
-                mock(Camunda8WorkflowEventHandler.class),
-                mock(Camunda8UserTaskEventHandler.class));
+                workflowEventHandler,
+                userTaskEventHandler,
+                new Camunda8BusinessCockpitSupportService(workflowEventHandler, userTaskEventHandler));
         service.setBpmnProcessId("test-process");
 
         service.setParent(mock(AdapterAwareBusinessCockpitService.class));

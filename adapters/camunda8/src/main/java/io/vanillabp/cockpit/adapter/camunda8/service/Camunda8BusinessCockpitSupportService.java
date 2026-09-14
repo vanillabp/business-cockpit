@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
 import io.camunda.client.api.search.response.ProcessInstance;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
@@ -83,6 +84,7 @@ public class Camunda8BusinessCockpitSupportService {
                 .newProcessInstanceSearchRequest()
                 .filter(filter -> {
                     filter.processDefinitionId(bpmnProcessId);
+                    filter.state(ProcessInstanceState.ACTIVE);
                     filter.variables(
                             Map.of(workflowAggregateIdName, "\"" + businessKey + "\""));
                     if (tenantId != null) {
