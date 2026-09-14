@@ -79,6 +79,9 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
     @Lazy
     @Autowired
     private Camunda8UserTaskEventHandler userTaskEventHandler;
+    @Lazy
+    @Autowired
+    private Camunda8BusinessCockpitSupportService camunda8BusinessCockpitSupportService;
 
     @Autowired
     private Camunda8VanillaBpProperties properties;
@@ -347,7 +350,8 @@ public class Camunda8AdapterConfiguration extends AdapterConfigurationBase<Camun
                 springDataUtil.getIdName(workflowAggregateClass),
                 applicationEventPublisher,
                 workflowEventHandler,
-                userTaskEventHandler
+                userTaskEventHandler,
+                camunda8BusinessCockpitSupportService
         );
 
         putConnectableService(workflowAggregateClass, result);
