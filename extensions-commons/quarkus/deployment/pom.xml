@@ -93,6 +93,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- the cockpit server these tests report to, shared with every other extension
+        repository rather than copied into each of them -->
+      <groupId>${project.groupId}</groupId>
+      <artifactId>extensions-commons-test-support</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <scope>test</scope>

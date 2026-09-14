@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.vanillabp.businesscockpit</groupId>
+    <artifactId>extensions-commons-parent</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>extensions-commons-test-support</artifactId>
+  <name>Business Cockpit extension - Commons - Test support</name>
+  <description>The cockpit server the tests of every extension repository report to. It is published like the other modules, because the three adapter repositories are repositories of their own and a test classpath cannot read another repository's test classes.</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <!-- The classes live in src/main/java although only tests use them: a test classpath cannot
+    read another module's test classes, and reading them across repositories is the whole
+    reason this module exists. Nothing here is measured for coverage, because a test aid is
+    not the code under test. -->
+
+  <properties>
+    <jacoco.skip>true</jacoco.skip>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <!-- the free port the server binds comes from here and from nowhere else, so that two
+        servers of one build never pick the same one -->
+      <groupId>io.vanillabp</groupId>
+      <artifactId>test-utils</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>
