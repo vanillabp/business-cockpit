@@ -89,6 +89,39 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     }
 
     /**
+     * A case which is followed in another application is not served through the cockpit's proxy, so
+     * the address the workflow module reported is what the user interface is told to open.
+     */
+    @Test
+    void anExternalWorkflowKeepsTheAddressItWasReportedWith() {
+
+        final var workflowId = unique("workflow");
+        final var created = bpmsV1_1("/workflow/created", """
+                {
+                  "id": "%s",
+                  "workflowId": "%s",
+                  "timestamp": "%s",
+                  "workflowModuleId": "%s",
+                  "bpmnProcessId": "taxi-ride",
+                  "bpmnProcessVersion": "1",
+                  "initiator": "martin",
+                  "title": { "en": "Ride request 4711" },
+                  "uiUriPath": "https://orders.example.com/order/4711",
+                  "uiUriType": "EXTERNAL",
+                  "detailsFulltextSearch": "%s"
+                }
+                """.formatted(unique("event"), workflowId, isoNow(), moduleId, token));
+        assertThat(created.statusCode()).isEqualTo(200);
+
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(workflow.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+        assertThat(workflow.read("$.uiUri", String.class))
+                .isEqualTo("https://orders.example.com/order/4711");
+        assertThat(workflow.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
+
+    }
+
+    /**
      * The outbox of a workflow module gives its entries no order, so the end of a case can reach the
      * cockpit before the report that the case was started. The cockpit used to answer 200 and store
      * nothing, and the creation arriving afterwards then left a case which was running for good.

@@ -223,6 +223,7 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  @Override
   public void setUiUriPath(
       final String uiUriPath) {
 

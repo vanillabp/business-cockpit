@@ -336,6 +336,7 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
 
   }
 
+  @Override
   public void setUiUriPath(
       final String uiUriPath) {
 

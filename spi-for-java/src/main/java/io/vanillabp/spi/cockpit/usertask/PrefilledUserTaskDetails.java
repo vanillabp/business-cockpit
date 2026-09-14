@@ -50,4 +50,15 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
 
     void setNotificationDelivery(NotificationDelivery notificationDelivery);
 
+    /**
+     * Tells the cockpit where the user interface of this task is found.
+     *
+     * <p>Without this the cockpit uses the path the workflow module configured, which is the same
+     * for every task of the module. A module whose UI URI type is <code>EXTERNAL</code> uses it to
+     * hand out the address of the page in the other application which shows this very task.
+     *
+     * @param uiUriPath What the cockpit opens for this task
+     */
+    void setUiUriPath(String uiUriPath);
+
 }

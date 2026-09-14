@@ -22,6 +22,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.config.KafkaTransportConfiguration;
+import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.KafkaTransport;
@@ -81,6 +82,38 @@ public class KafkaTransportTest {
     assertFalse(message.getUpdated());
     assertEquals(
         EventFixture.TIMESTAMP.toEpochSecond(), message.getTimestamp().getSeconds());
+
+  }
+
+  @Test
+  @DisplayName("The address of a task shown by another application travels as it was set")
+  public void anExternalUserTaskCarriesItsOwnAddress() throws Exception {
+
+    final var event = EventFixture.userTask(UserTaskEventKind.CREATED);
+    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriPath("https://tickets.example.com/ticket/4711");
+
+    transport.publishUserTaskEvent(event);
+
+    final var message = theEnvelope("user-task", "task-1").getUserTaskCreatedV11();
+    assertEquals("EXTERNAL", message.getUiUriType());
+    assertEquals("https://tickets.example.com/ticket/4711", message.getUiUriPath());
+
+  }
+
+  @Test
+  @DisplayName("The address of a case shown by another application travels as it was set")
+  public void anExternalWorkflowCarriesItsOwnAddress() throws Exception {
+
+    final var event = EventFixture.workflow(WorkflowEventKind.CREATED);
+    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriPath("https://orders.example.com/order/4711");
+
+    transport.publishWorkflowEvent(event);
+
+    final var message = theEnvelope("workflow", "workflow-1").getWorkflowCreatedV11();
+    assertEquals("EXTERNAL", message.getUiUriType());
+    assertEquals("https://orders.example.com/order/4711", message.getUiUriPath());
 
   }
 

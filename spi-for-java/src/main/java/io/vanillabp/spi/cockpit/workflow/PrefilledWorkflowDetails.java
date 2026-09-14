@@ -31,4 +31,15 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
 
     void setAccessibleToGroups(List<String> accessibleToGroups);
 
+    /**
+     * Tells the cockpit where the status page of this workflow is found.
+     *
+     * <p>Without this the cockpit uses the path the workflow module configured, which is the same
+     * for every workflow of the module. A module whose UI URI type is <code>EXTERNAL</code> uses it
+     * to hand out the address of the page in the other application which shows this very case.
+     *
+     * @param uiUriPath What the cockpit opens for this workflow
+     */
+    void setUiUriPath(String uiUriPath);
+
 }

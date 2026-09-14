@@ -106,6 +106,40 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
 
     }
 
+    /**
+     * A task which is worked on in another application is not served through the cockpit's proxy,
+     * so the address the workflow module reported is what the user interface is told to open.
+     */
+    @Test
+    void anExternalTaskKeepsTheAddressItWasReportedWith() {
+
+        final var userTaskId = unique("task");
+        final var created = bpmsV1_1("/usertask/created", """
+                {
+                  "id": "%s",
+                  "userTaskId": "%s",
+                  "timestamp": "%s",
+                  "workflowModuleId": "%s",
+                  "bpmnProcessId": "taxi-ride",
+                  "bpmnProcessVersion": "1",
+                  "title": { "en": "Check the ticket" },
+                  "taskDefinition": "check-ticket",
+                  "uiUriPath": "https://tickets.example.com/ticket/4711",
+                  "uiUriType": "EXTERNAL",
+                  "candidateUsers": [ "martin" ],
+                  "detailsFulltextSearch": "%s"
+                }
+                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+        assertThat(created.statusCode()).isEqualTo(200);
+
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+        assertThat(task.read("$.uiUri", String.class))
+                .isEqualTo("https://tickets.example.com/ticket/4711");
+        assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
+
+    }
+
     @Test
     void updateEventChangesTitleAssigneeAndDueDate() {
 
