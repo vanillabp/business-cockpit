@@ -2,6 +2,7 @@ package io.vanillabp.cockpit.extension.quarkus.it;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
@@ -15,21 +16,21 @@ import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * An application whose details provider changes the workflow aggregate hears about the second
- * writer while it boots.
+ * An application whose only handlers are details providers hears nothing about a second writer
+ * while it boots.
  * <p>
- * A provider runs while a report is dispatched and writes the case back when that dispatch
- * commits, so a change the application made in between is written over where nothing notices a
- * second writer. VanillaBP says so, over the handler contracts an extension registered, and
- * this extension adds no warning of its own - see decision 20 in the repository's DECISIONS.md.
+ * VanillaBP warns about a handler it may save the workflow aggregate after, because such a
+ * handler writes over what the application changed in between where nothing notices a second
+ * writer. The contracts of this extension say that VanillaBP never saves after a details
+ * provider, so there is no such handler here, and a warning at every start about something which
+ * cannot happen is one people learn to skip.
  * <p>
- * What is asserted here is that the warning reaches an application with the Business Cockpit,
- * naming this extension and the case it is about. The wording belongs to the platform and is
- * asserted there; a change which stopped the warning from reaching a cockpit application would
- * fail here, which is the point.
+ * That the warning still reaches an application which really has a writing handler is asserted
+ * in the Spring Boot module, with an extension of its own next to the cockpit. The wording and
+ * the condition belong to the platform and are asserted there.
  */
 @ExtendWith(SuppressOutputExtension.class)
-public class SecondWriterOfTheCaseTest {
+public class DetailsProvidersBringNoSecondWriterTest {
 
   @RegisterExtension
   static final QuarkusExtensionTest extensionTest = new QuarkusExtensionTest()
@@ -49,25 +50,22 @@ public class SecondWriterOfTheCaseTest {
           "vanillabp.cockpit.rest.base-url", "http://localhost:1")
       .setLogRecordPredicate(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
       .assertLogRecords(records -> {
-        final var report = records
+        final List<String> aboutTheCase = records
             .stream()
             .map(LogRecord::getMessage)
             .filter(message -> (message != null) && message.contains(ConfigurationKeys.EXTENSION_ID))
             .filter(message -> message.contains(TestAggregate.class.getName()))
-            .findFirst()
-            .orElseThrow(
-                () -> new AssertionError(
-                    "nothing was said about the second writer this extension brings: "
-                        + records.stream().map(LogRecord::getMessage).toList()));
+            .toList();
 
-        // the way out is what a developer needs from the line, and it is a version attribute on
-        // the case
-        assertTrue(report.contains("version attribute"), report);
+        assertTrue(
+            aboutTheCase.isEmpty(),
+            "the boot warned about the aggregate of a details provider: "
+                + aboutTheCase);
       });
 
   @Test
-  @DisplayName("A writing details provider on a case which cannot notice it is named while booting")
-  public void theSecondWriterOfTheCaseIsReported() {
+  @DisplayName("A boot with details providers says nothing about a second writer")
+  public void theDetailsProvidersBringNoSecondWriter() {
 
     // the assertion is the one made on the boot's log records above
 

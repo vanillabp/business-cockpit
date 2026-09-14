@@ -34,6 +34,12 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
  * No matching method is a legal answer, and the prefilled details then pass through unchanged:
  * a workflow module which reports nothing of its own still shows up in the cockpit, with the
  * titles the BPMN carries.
+ * <p>
+ * Both contracts say that VanillaBP never saves the workflow aggregate after one of these
+ * methods ran. A details provider answers what the cockpit should show, and answering a question
+ * does not change a case - see decision 17 in the repository's DECISIONS.md. It is said here and
+ * not at every call because VanillaBP wires the methods long before anybody calls one, and a
+ * start which cannot read it warns about a writer this extension does not have.
  */
 public final class BusinessCockpitHandlers {
 
@@ -56,6 +62,7 @@ public final class BusinessCockpitHandlers {
         .parameterBinder(BusinessCockpitHandlers::bindDetailsEvent)
         .validatingAnnotation(BusinessCockpitHandlers::rejectReservedVersionAttribute)
         .deliversReturnValue()
+        .neverSavesTheWorkflowAggregate()
         .build();
 
   }
@@ -71,6 +78,7 @@ public final class BusinessCockpitHandlers {
         .coreParameters(CoreHandlerParameter.WORKFLOW_AGGREGATE)
         .parameterBinder(BusinessCockpitHandlers::bindPrefilledWorkflowDetails)
         .deliversReturnValue()
+        .neverSavesTheWorkflowAggregate()
         .build();
 
   }

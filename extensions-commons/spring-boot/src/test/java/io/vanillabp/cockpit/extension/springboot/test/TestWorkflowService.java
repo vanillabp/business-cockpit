@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import io.vanillabp.cockpit.extension.springboot.writinghandler.NoteOnTheCase;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
@@ -132,6 +133,21 @@ public class TestWorkflowService {
       final PrefilledUserTaskDetails prefilled) {
 
     return prefilled;
+
+  }
+
+  /**
+   * A handler of the second extension of this test module, the one whose methods may write. Only
+   * a boot which registers that extension's contract makes a handler out of it, and everywhere
+   * else it is an ordinary method nobody calls.
+   *
+   * @param aggregate The workflow aggregate, loaded by VanillaBP
+   */
+  @NoteOnTheCase
+  public void writeANoteOnTheCase(
+      final TestAggregate aggregate) {
+
+    aggregate.setNote("written by the second extension");
 
   }
 

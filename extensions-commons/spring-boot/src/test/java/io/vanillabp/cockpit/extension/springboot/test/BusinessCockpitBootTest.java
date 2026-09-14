@@ -19,6 +19,7 @@ import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedPro
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwoMethodsForEveryUserTaskService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
+import io.vanillabp.cockpit.extension.springboot.writinghandler.ExtensionWithAWritingHandler;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -127,11 +128,40 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
-  @DisplayName("A writing details provider on a case which cannot notice it is named while booting")
-  public void theSecondWriterOfTheCaseIsReported(
+  @DisplayName("A boot with details providers says nothing about a second writer")
+  public void theDetailsProvidersBringNoSecondWriter(
       final CapturedOutput output) {
 
     try (var ignored = new SpringApplicationBuilder(TestApplication.class)
+        .web(WebApplicationType.NONE)
+        .properties(
+            "spring.datasource.url=jdbc:h2:mem:cockpit-reading-providers;DB_CLOSE_DELAY=-1",
+            "vanillabp.cockpit.rest.base-url=http://localhost:1")
+        .run()) {
+
+      final var aboutTheCase = output
+          .getAll()
+          .lines()
+          .filter(line -> line.contains(ConfigurationKeys.EXTENSION_ID))
+          .filter(line -> line.contains(TestAggregate.class.getName()))
+          .toList();
+
+      assertTrue(
+          aboutTheCase.isEmpty(),
+          "the boot warned about the aggregate of a details provider: "
+              + aboutTheCase);
+
+    }
+
+  }
+
+  @Test
+  @DisplayName("A handler which may write is still named while booting")
+  public void aHandlerWhichMayWriteIsStillReported(
+      final CapturedOutput output) {
+
+    try (var ignored = new SpringApplicationBuilder(
+        TestApplication.class, ExtensionWithAWritingHandler.class)
         .web(WebApplicationType.NONE)
         .properties(
             "spring.datasource.url=jdbc:h2:mem:cockpit-second-writer;DB_CLOSE_DELAY=-1",
@@ -141,12 +171,12 @@ public class BusinessCockpitBootTest {
       final var reported = output
           .getAll()
           .lines()
-          .filter(line -> line.contains(ConfigurationKeys.EXTENSION_ID))
+          .filter(line -> line.contains(ExtensionWithAWritingHandler.EXTENSION_ID))
           .filter(line -> line.contains(TestAggregate.class.getName()))
           .findFirst()
           .orElseThrow(
               () -> new AssertionError(
-                  "nothing was said about the second writer this extension brings: "
+                  "nothing was said about the second writer that extension brings: "
                       + output.getAll()));
 
       // the way out is what a developer needs from the line, and it is a version attribute on
