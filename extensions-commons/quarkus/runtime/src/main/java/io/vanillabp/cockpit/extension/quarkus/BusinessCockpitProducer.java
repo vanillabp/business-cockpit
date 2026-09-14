@@ -1,7 +1,5 @@
 package io.vanillabp.cockpit.extension.quarkus;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -29,8 +27,6 @@ import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
-import io.vanillabp.integration.spi.PhaseTwoOutbox;
-import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 import jakarta.annotation.Priority;
@@ -158,8 +154,6 @@ public class BusinessCockpitProducer {
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
-   * @param outboxes The outbox stores of the application
-   * @param outboxAwares The stores an application named for single workflow aggregates
    * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
    * @return The extension
    */
@@ -174,15 +168,12 @@ public class BusinessCockpitProducer {
       @Any final Instance<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
       final PhaseTwoOutboxResolver outboxResolver,
-      @Any final Instance<PhaseTwoOutbox> outboxes,
-      @Any final Instance<PhaseTwoOutboxAware<?>> outboxAwares,
       final TransactionRunnerResolver transactionRunners) {
 
     return new BusinessCockpitExtension(
         configuration, transport, theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
-                .templatingOf(configuration), theOutbox(
-                    outboxResolver, outboxes, outboxAwares), transactionRunners);
+                .templatingOf(configuration), theOutbox(outboxResolver), transactionRunners);
 
   }
 
@@ -338,33 +329,16 @@ public class BusinessCockpitProducer {
    * the extension lands where an entry of the core lands: in the store the aggregate's
    * transaction reaches. Which of the platform's default stores serves which persistence, and
    * whether it is usable at all, is knowledge of the Quarkus integration, and an extension
-   * asking the resolver gets that answer without compiling against it (decision 2).
+   * asking the resolver gets that answer without compiling against it (decision 2). The list of
+   * every store the application holds is the resolver's answer for the same reason: a default
+   * store which is switched off or left without a datasource is a bean here and is no store the
+   * platform would ever pick.
    */
   private static BusinessCockpitOutbox theOutbox(
-      final PhaseTwoOutboxResolver outboxResolver,
-      final Instance<PhaseTwoOutbox> outboxes,
-      final Instance<PhaseTwoOutboxAware<?>> outboxAwares) {
+      final PhaseTwoOutboxResolver outboxResolver) {
 
     return new BusinessCockpitOutbox(
-        outboxResolver::resolveFor, () -> storesOf(outboxes, outboxAwares), outboxResolver.remediesDescription());
-
-  }
-
-  /**
-   * Every store the application holds, the ones named for a single workflow aggregate included:
-   * an application whose stores are all provided that way has no plain store bean at all, and
-   * telling it to add a datasource would be wrong.
-   */
-  private static Collection<PhaseTwoOutbox> storesOf(
-      final Instance<PhaseTwoOutbox> outboxes,
-      final Instance<PhaseTwoOutboxAware<?>> outboxAwares) {
-
-    return Stream
-        .concat(
-            outboxes.stream(),
-            outboxAwares.stream().map(PhaseTwoOutboxAware::getPhaseTwoOutbox))
-        .filter(Objects::nonNull)
-        .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+        outboxResolver::resolveFor, outboxResolver::allStores, outboxResolver.remediesDescription());
 
   }
 

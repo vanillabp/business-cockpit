@@ -34,8 +34,6 @@ import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
-import io.vanillabp.integration.spi.PhaseTwoOutbox;
-import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
@@ -140,8 +138,6 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolvers VanillaBP's attribution of an outbox store to a workflow aggregate
-   * @param outboxes The outbox stores of the application
-   * @param outboxAwares The stores an application named for single workflow aggregates
    * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
    * @param applicationContext Where a bean holding a list of BPMS halves is looked up
    * @return The extension
@@ -154,8 +150,6 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final ObjectProvider<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
       final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
-      final ObjectProvider<PhaseTwoOutbox> outboxes,
-      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares,
       final TransactionRunnerResolver transactionRunners,
       final ApplicationContext applicationContext) {
 
@@ -163,8 +157,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
         configuration, transport, theBridges(
             bridges,
             applicationContext), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
-                .templatingOf(configuration), theOutbox(
-                    outboxResolvers, outboxes, outboxAwares), transactionRunners);
+                .templatingOf(configuration), theOutbox(outboxResolvers), transactionRunners);
     return extension;
 
   }
@@ -301,14 +294,13 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * <p>
    * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
    * the extension lands where an entry of the core lands: in the store the aggregate's
-   * transaction reaches. What to do about a missing store is the resolver's answer too - the
-   * remedies depend on what this platform can provide, and repeating them here would be a
-   * second list to keep in step.
+   * transaction reaches. The list of every store the application holds is the resolver's answer
+   * as well, because a store the platform would never pick is not a store this extension may
+   * count, and so is what to do about a missing one: the remedies depend on what this platform
+   * can provide, and repeating them here would be a second list to keep in step.
    */
   private static BusinessCockpitOutbox theOutbox(
-      final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
-      final ObjectProvider<PhaseTwoOutbox> outboxes,
-      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares) {
+      final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers) {
 
     final var resolver = outboxResolvers.getIfAvailable();
     if (resolver == null) {
@@ -321,24 +313,7 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
               .formatted(PhaseTwoOutboxResolver.class.getName()));
     }
     return new BusinessCockpitOutbox(
-        resolver::resolveFor, () -> storesOf(outboxes, outboxAwares), resolver.remediesDescription());
-
-  }
-
-  /**
-   * Every store the application holds, the ones named for a single workflow aggregate included:
-   * an application whose stores are all provided that way has no plain store bean at all, and
-   * telling it to add a data source would be wrong.
-   */
-  private static Collection<PhaseTwoOutbox> storesOf(
-      final ObjectProvider<PhaseTwoOutbox> outboxes,
-      final ObjectProvider<PhaseTwoOutboxAware<?>> outboxAwares) {
-
-    return Stream
-        .concat(
-            outboxes.stream(),
-            outboxAwares.stream().map(PhaseTwoOutboxAware::getPhaseTwoOutbox))
-        .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+        resolver::resolveFor, resolver::allStores, resolver.remediesDescription());
 
   }
 
