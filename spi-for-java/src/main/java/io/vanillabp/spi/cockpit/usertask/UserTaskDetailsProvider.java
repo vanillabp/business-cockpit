@@ -11,8 +11,8 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * This annotation is used to define a method for providing details for a certain
- * user-task which will be available to a user interface (tasklist, data-store, etc.).
+ * Marks a method which provides the details of a user task. Those details go to a user
+ * interface, the task list or a data store for example.
  * 
  * <pre>
  * &#64;UserTaskDetails(taskDefinition = "someUserTask")
@@ -22,9 +22,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *         ) {
  * </pre>
  * 
- * A result type {@link UserTaskDetails} is expected. The effected task-id can be passed
- * by defining a parameter annotated by {@link TaskId}. Also parameters annotated using
- * multi-instance annotations are supported.
+ * The method returns {@link UserTaskDetails}. To get the id of the task, add a parameter
+ * annotated with {@link TaskId}. Parameters carrying a multi-instance annotation work here as
+ * well.
  *
  * <p>
  * Which method serves which user task:
@@ -36,18 +36,18 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * </ol>
  *
  * <p>
- * The method naming the task therefore wins over the one writing {@link #ALL}: reporting the
- * same columns for every task is written once, and a task needing more than that gets a
- * method of its own next to it. Name a task in one method only, and write {@link #ALL} in
- * one method only. Two methods claiming the same thing end the boot, naming both, because
- * nothing would say which of them to call.
+ * So the method which names the task wins over the one writing {@link #ALL}. Write the columns
+ * every task reports once, and give a task which needs more a method of its own next to it.
+ * Name a task in one method only, and write {@link #ALL} in one method only. Two methods which
+ * claim the same thing end the boot, and the message names both, because nothing would say
+ * which of them to call.
  *
  * <p>
- * The workflow aggregate is handed over to be read. A provider is asked what to report, it
- * is not told to change the case, so VanillaBP does not save the aggregate after this method
- * returned. Change nothing here. If you do change something and want it kept, save it
- * yourself, and expect the version conflict a report competing with the workflow's own writes
- * can produce.
+ * The workflow aggregate is handed over to be read. A provider is asked what to report. It is
+ * not told to change the case, so VanillaBP does not save the aggregate after this method
+ * returned. Change nothing here. If you do change something and want it kept, save it yourself.
+ * Expect a version conflict then, because your report competes with the writes of the workflow
+ * itself.
  * <p>
  * Whether a change survives without that save depends on the persistence of your application,
  * not on VanillaBP. JPA writes what changed on a managed object when the transaction commits,
@@ -65,15 +65,15 @@ public @interface UserTaskDetailsProvider {
     static String USE_METHOD_NAME = "";
 
     /**
-     * Written into {@link #id()} or into {@link #taskDefinition()}, it hands the method every
-     * user task of every BPMN process its <code>&#64;WorkflowService</code> declares, except
-     * those a method of its own names. Writing it into both attributes says the same as
+     * Write it into {@link #id()} or into {@link #taskDefinition()}. The method then gets every
+     * user task of every BPMN process its <code>&#64;WorkflowService</code> declares, except the
+     * tasks which a method of their own names. Writing it into both attributes says the same as
      * writing it into one.
      */
     static String ALL = "*";
 
     /**
-     * @return The activity's BPMN id. If this property is defined then {@link #taskDefinition()} must not be defined.
+     * @return The BPMN id of the activity. Set this one or {@link #taskDefinition()}, never both.
      *         Write {@link #ALL} for a method serving every user task of this workflow service.
      */
     String id() default USE_METHOD_NAME;
@@ -87,15 +87,15 @@ public @interface UserTaskDetailsProvider {
     /**
      * Reserved, and expected to stay unset.
      * <p>
-     * The idea is to let one method serve certain versions or ranges of versions of a
-     * process. Version 1 of the Business Cockpit documented the attribute and never read
-     * it; version 2 refuses a value instead, at startup, naming the method - a value which
-     * is silently ignored is worse than one which is refused, and applications wrote this
-     * one believing it worked.
+     * The idea was to let one method serve certain versions, or ranges of versions, of a
+     * process. Version 1 of the Business Cockpit documented the attribute and never read it.
+     * Version 2 refuses a value while the application starts, and the message names the
+     * method. A value which is silently ignored is worse than one which is refused, and
+     * applications wrote this one believing it worked.
      * <p>
-     * What it would take is a version on the events the cockpit reacts to. A task listener
-     * says which task fired, not which version of the model it came from, so there is
-     * nothing to decide by. Match by {@link #id()} or {@link #taskDefinition()} instead.
+     * It would need a version on the events the cockpit reacts to. A task listener says which
+     * task fired, not which version of the model it came from, so there is nothing to decide
+     * by. Match by {@link #id()} or {@link #taskDefinition()} instead.
      *
      * @return Nothing to set: {@link #ALL}, the default
      */

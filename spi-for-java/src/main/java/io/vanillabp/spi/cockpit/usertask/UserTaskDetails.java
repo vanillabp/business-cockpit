@@ -53,8 +53,8 @@ public interface UserTaskDetails {
     List<String> getI18nLanguages();
     
     /**
-     * Used for rendering title, workflow-title, task-definition-title and details-fulltext-search
-     * based on templates.
+     * The context the templates for title, workflow title, task definition title and details
+     * fulltext search are rendered with.
      * 
      * @return The template context
      */

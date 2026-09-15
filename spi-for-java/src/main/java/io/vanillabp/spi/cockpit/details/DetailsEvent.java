@@ -9,8 +9,7 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * This annotation is used to define a parameter for processing a particular
- * event.
+ * Marks the parameter which receives the event a details provider is called for.
  *
  * <pre>
  * &#64;UserTaskDetailsProvider(taskDefinition = "myFormKey")

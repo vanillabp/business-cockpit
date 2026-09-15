@@ -22,8 +22,7 @@ public interface WorkflowDetails {
     List<String> getI18nLanguages();
 
     /**
-     * Used for rendering title and details-fulltext-search
-     * based on templates.
+     * The context the templates for title and details fulltext search are rendered with.
      * 
      * @return The template context
      */

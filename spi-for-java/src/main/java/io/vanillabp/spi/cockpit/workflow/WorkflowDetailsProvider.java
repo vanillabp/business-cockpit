@@ -9,8 +9,7 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * This annotation is used to define a method for providing details for a certain
- * workflow.
+ * Marks a method which provides the details of a workflow.
  * 
  * <pre>
  * &#64;WorkflowDetailsProvider
@@ -20,10 +19,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *         ) {
  * </pre>
  * 
- * A result type {@link WorkflowDetails} is expected.
+ * The method returns {@link WorkflowDetails}.
  * <p>
  * The workflow aggregate is handed over to be read, the same way
- * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} describes it: VanillaBP
+ * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} describes it. VanillaBP
  * does not save it after this method returned, and what your persistence writes on its own is
  * your change with your consequences.
  *

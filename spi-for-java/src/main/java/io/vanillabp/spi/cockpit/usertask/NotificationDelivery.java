@@ -3,8 +3,8 @@ package io.vanillabp.spi.cockpit.usertask;
 /**
  * How a workflow module wants notifications for a particular user task to be delivered.
  * <p>
- * A {@code null} value is interpreted as {@link #USER_CONFIG}. Using a single enum instead of
- * separate boolean flags avoids contradictory combinations (e.g. "suppress" and "force" at once).
+ * A {@code null} value is read as {@link #USER_CONFIG}. One enum instead of two boolean flags,
+ * so that "suppress" and "force" cannot be set at the same time.
  */
 public enum NotificationDelivery {
 
@@ -12,12 +12,12 @@ public enum NotificationDelivery {
     USER_CONFIG,
 
     /**
-     * Always notify, overriding the user's configuration; the notification is marked as forced.
-     * Takes precedence over {@link #SUPPRESS} and over the user configuration.
+     * Always notify, whatever the user configured. The notification is marked as forced, and
+     * this wins over {@link #SUPPRESS} and over the user configuration.
      */
     FORCE,
 
-    /** Never notify from the cockpit - the workflow module notifies itself. */
+    /** Never notify from the cockpit. The workflow module notifies itself. */
     SUPPRESS
 
 }

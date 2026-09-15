@@ -10,21 +10,21 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * <p>
  * An application may also bring its own. Both platform modules provide the shipped transport as a
  * bean it can replace, which is the seam version 1 of the Business Cockpit had on its three
- * publishing beans. This interface is therefore a published contract, and
+ * publishing beans. So this interface is a published contract, and
  * {@link io.vanillabp.cockpit.extension.BusinessCockpitAssembly#transportOf} is how an application
- * builds the shipped transport it wants to wrap - see decision 22 in the repository's DECISIONS.md.
+ * builds the shipped transport it wants to wrap. See decision 22 in the repository's DECISIONS.md.
  * <p>
  * Every method is called while an outbox entry is dispatched, so a failure is reported by
- * throwing: the entry stays and is retried with a backoff, and no event is lost because a
+ * throwing. The entry stays and is retried with a backoff, and no event is lost because a
  * cockpit server was restarting.
  * <p>
  * Two failures are worth telling apart from that. A server which says how long it will be
  * unavailable is answered with <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>,
  * which gives the entry back instead of holding the dispatching thread. A server which refuses
- * the report itself - a payload it does not accept, a credential it does not know - ends the
- * entry with <code>io.vanillabp.integration.spi.PhaseTwoPermanentFailure</code>, because
- * sending the same bytes again would be refused again. Everything else is repeated, which is
- * the safe side of the classification.
+ * the report itself, because of a payload it does not accept or a credential it does not know,
+ * ends the entry with <code>io.vanillabp.integration.spi.PhaseTwoPermanentFailure</code>,
+ * because sending the same bytes again would be refused again. Everything else is repeated,
+ * which is the safe side of the classification.
  */
 public interface BusinessCockpitTransport {
 
