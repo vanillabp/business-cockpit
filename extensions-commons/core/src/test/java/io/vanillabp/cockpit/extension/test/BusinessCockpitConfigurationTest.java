@@ -211,7 +211,7 @@ public class BusinessCockpitConfigurationTest {
 
     final var reported = output.getAll();
     assertTrue(reported.contains("vanillabp.cockpit.rest.base-url"), reported);
-    assertTrue(reported.contains("is not read by the extension itself"), reported);
+    assertTrue(reported.contains("is not read by the adapter itself"), reported);
     assertTrue(reported.contains("wraps the shipped one"), reported);
 
   }

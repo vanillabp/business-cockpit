@@ -47,7 +47,7 @@ public final class BusinessCockpitAssembly {
     if (configuration.getKafka() == null) {
       throw new IllegalStateException(
           """
-              The Business Cockpit extension ships a transport over REST and one over Kafka, and \
+              The Business Cockpit adapter ships a transport over REST and one over Kafka, and \
               this application configured neither, so there is none to build. Set '%s' for the \
               one or '%s' for the other."""
               .formatted(

@@ -83,8 +83,8 @@ public final class BusinessCockpitOperations {
                 .formatted(args.get(ARG_USER_TASK_ID), args.get(ARG_EVENT_KIND)))
         .hintingWhenUnknown(
             """
-                The Business Cockpit extension is not part of this application any more, so nobody \
-                can report the event. The entry stays until the extension is back or somebody \
+                The Business Cockpit adapter is not part of this application any more, so nobody \
+                can report the event. The entry stays until the adapter is back or somebody \
                 removes it.""")
         .build();
 
@@ -103,8 +103,8 @@ public final class BusinessCockpitOperations {
                 .formatted(args.get(ARG_WORKFLOW_ID), args.get(ARG_EVENT_KIND)))
         .hintingWhenUnknown(
             """
-                The Business Cockpit extension is not part of this application any more, so nobody \
-                can report the event. The entry stays until the extension is back or somebody \
+                The Business Cockpit adapter is not part of this application any more, so nobody \
+                can report the event. The entry stays until the adapter is back or somebody \
                 removes it.""")
         .build();
 
@@ -124,7 +124,7 @@ public final class BusinessCockpitOperations {
             args -> "registering the workflow module at the Business Cockpit")
         .hintingWhenUnknown(
             """
-                The Business Cockpit extension is not part of this application any more, so the \
+                The Business Cockpit adapter is not part of this application any more, so the \
                 workflow module cannot be registered.""")
         .build();
 

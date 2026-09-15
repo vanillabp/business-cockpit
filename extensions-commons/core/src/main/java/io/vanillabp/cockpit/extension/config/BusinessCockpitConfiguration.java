@@ -186,7 +186,7 @@ public final class BusinessCockpitConfiguration {
     if (configuration == null) {
       throw new IllegalStateException(
           """
-              The Business Cockpit extension has no settings for workflow module '%s', so the \
+              The Business Cockpit adapter has no settings for workflow module '%s', so the \
               module reports nothing to the cockpit. Reporting are: %s. To let this module report \
               as well, configure it below '%s', starting with '%s'."""
               .formatted(
@@ -277,7 +277,7 @@ public final class BusinessCockpitConfiguration {
                 .info(
                     """
                         Workflow module '{}' reports nothing to the Business Cockpit: it configures \
-                        none of the extension's settings. Set '{}' to let it report as well.""",
+                        none of the adapter's settings. Set '{}' to let it report as well.""",
                     workflowModuleId,
                     ConfigurationKeys
                         .workflowModuleKey(
@@ -293,7 +293,7 @@ public final class BusinessCockpitConfiguration {
     if (!defects.isEmpty()) {
       throw new IllegalStateException(
           """
-              The Business Cockpit extension is on the classpath but its configuration is \
+              The Business Cockpit adapter is on the classpath but its configuration is \
               incomplete:
               %s"""
               .formatted(defects.stream().map("  - "::concat).reduce((
@@ -754,7 +754,7 @@ public final class BusinessCockpitConfiguration {
       defects.add(
           """
               Both transports to the cockpit server are configured, and the application provides \
-              a transport of its own as well. Its own transport is the one the extension reports \
+              a transport of its own as well. Its own transport is the one the adapter reports \
               through, and a transport which wraps a shipped one cannot tell which of the two was \
               meant. Remove either '%s' or '%s'."""
               .formatted(
@@ -855,7 +855,7 @@ public final class BusinessCockpitConfiguration {
       logger
           .info(
               """
-                  The Business Cockpit extension reports through the bean of type {} the \
+                  The Business Cockpit adapter reports through the bean of type {} the \
                   application provides, so neither '{}' nor '{}' is read.""",
               BusinessCockpitTransport.class.getName(),
               ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL),
@@ -865,8 +865,8 @@ public final class BusinessCockpitConfiguration {
     logger
         .info(
             """
-                The Business Cockpit extension reports through the bean of type {} the \
-                application provides, so '{}' is not read by the extension itself. Remove the \
+                The Business Cockpit adapter reports through the bean of type {} the \
+                application provides, so '{}' is not read by the adapter itself. Remove the \
                 key unless the application's transport wraps the shipped one built from it.""",
             BusinessCockpitTransport.class.getName(),
             configuredTransport);
