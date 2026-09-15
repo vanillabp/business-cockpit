@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 import java.util.Date;
 
 /**
- * Converter for writing OffsetDateTime as a date (e.g. during MongoDb deserialization).
+ * Reads a date stored by MongoDB back as an OffsetDateTime.
  */
 @ReadingConverter
 public class OffsetDateTimeReadConverter implements Converter<Date, OffsetDateTime> {

@@ -15,19 +15,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Pure classification of a changed user task into the notifications to send (AC func 2).
+ * Turns a changed user task into the notifications to send. It reads and changes nothing.
  * <p>
- * Given one changed user task and a {@link RecipientDirectory}, decides the notification type and
- * recipients per medium. Interpretation of overlapping conditions: a personal candidate gets a
- * CANDIDATE_USER notification (not also a CREATED one); other users who can merely see a newly
- * created task get CREATED, and so does the assignee of a task reported as already taken over. Delivery precedence FORCE &gt; SUPPRESS &gt; user-config is applied per
- * (recipient, medium). Deliberately side-effect free so it is unit-testable in isolation.
+ * Given one changed user task and a {@link RecipientDirectory}, it decides the type of the
+ * notification and the recipients per medium. Where two reasons overlap, it reads them like this.
+ * A personal candidate gets a CANDIDATE_USER notification and no CREATED one. Other users who can
+ * merely see a newly created task get CREATED, and so does the assignee of a task which was
+ * reported as taken over already. The order FORCE, then SUPPRESS, then what the user configured
+ * holds per recipient and medium. The class has no side effects on purpose, so it can be
+ * unit-tested on its own.
  * <p>
- * "Caused by the user himself" is read from {@link UserTask#getInitiator()}, the only field
- * carrying who triggered the last change: the workflow application reports it per event (it alone
- * knows the acting user) and the cockpit sets it on its own actions. {@code updatedBy} must not be
- * used - it is audit information which {@code UpdateInformationEventListener} overwrites with the
- * security context of the writing request on every save.
+ * Whether a user caused the change themselves is read from {@link UserTask#getInitiator()}. That
+ * is the only field which says who triggered the last change. The workflow application reports it
+ * per event, because it alone knows the acting user, and the cockpit sets it on its own actions.
+ * {@code updatedBy} must not be used for this. It is audit information, and
+ * {@code UpdateInformationEventListener} overwrites it on every save with the security context of
+ * the writing request.
  */
 public class NotificationScanner {
 
@@ -52,9 +55,10 @@ public class NotificationScanner {
         }
 
         planCandidateUsers(task, cursor, dir, planned);
-        // 'reportedAt' and not 'createdAt': the cursor advances by the cockpit's clock, whereas
-        // 'createdAt' is the reporting workflow system's timestamp - comparing the two drops the
-        // notification of a task whose event was delivered late or stamped by a clock running behind
+        // 'reportedAt' and not 'createdAt'. The cursor moves with the cockpit's clock, while
+        // 'createdAt' is the timestamp of the reporting workflow system. Comparing the two drops
+        // the notification of a task whose event arrived late, or was stamped by a clock which
+        // runs behind
         if (task.getReportedAt() != null && task.getReportedAt().isAfter(cursor)) {
             planCreated(task, dir, planned);
         }
@@ -72,12 +76,12 @@ public class NotificationScanner {
             return;
         }
         if (task.getEndReason() == UserTaskEndReason.COMPLETED) {
-            // notify only if completed by someone else (AC func 2c)
+            // notify only where somebody else completed it
             if (!Objects.equals(assignee, task.getInitiator())) {
                 planForRecipient(task, assignee, NotificationType.COMPLETED, dir, planned);
             }
         } else if (task.getEndReason() == UserTaskEndReason.CANCELLED) {
-            // cancelled by the process (AC func 2d)
+            // the process cancelled it
             planForRecipient(task, assignee, NotificationType.CANCELED, dir, planned);
         }
 
@@ -94,14 +98,14 @@ public class NotificationScanner {
             if (excluded.contains(candidate)) {
                 continue; // excluded candidates do not see the task in their task list
             }
-            // a candidate is notified when he becomes one, not on every later change of the task.
-            // An unknown timestamp counts as "known before" so a task changed long after the
-            // candidate was notified does not produce a second message.
+            // a candidate is notified when they become one, and not on every later change of
+            // the task. A timestamp nobody knows counts as known before, so a task changed long
+            // after the candidate was notified does not produce a second message
             final var candidateSince = task.getCandidateSince(candidate);
             if (candidateSince == null || !candidateSince.isAfter(cursor)) {
                 continue;
             }
-            // exclude the user who caused the change (AC func 2b: "unless caused by the user himself")
+            // leave out the user who caused the change
             if (dir.isLoggedIn(candidate) && !Objects.equals(candidate, task.getInitiator())) {
                 planForRecipient(task, candidate, NotificationType.CANDIDATE_USER, dir, planned);
             }
@@ -134,10 +138,11 @@ public class NotificationScanner {
     }
 
     /**
-     * Whether a newly reported task is addressed to that very user, which is the case for its
-     * assignee: the task was reported as taken over by him, so he sees it whatever the user
-     * directory reports as his authorities (only some report a personal {@code USER_<id>} one).
-     * As for a personal candidate, no notification is due if he caused the change himself.
+     * Whether a newly reported task is addressed to that very user, which holds for its assignee.
+     * The task was reported as taken over by them, so they see it whatever authorities the user
+     * directory reports for them. Only some directories report a personal {@code USER_<id>}
+     * authority. As with a personal candidate, no notification is due where the user caused the
+     * change themselves.
      */
     private static boolean isAddressedPersonally(
             final UserTask task,
@@ -209,8 +214,8 @@ public class NotificationScanner {
     }
 
     /**
-     * The users explicitly excluded from a task's candidates. No work is waiting for them, so they
-     * must not be notified about it, and that stays true when the same task admits them as a
+     * The users a task keeps out of its candidates by name. No work is waiting for them, so they
+     * must not be notified about it, and that stays true where the same task admits them as a
      * reader.
      */
     private static Set<String> excludedCandidateUserIds(

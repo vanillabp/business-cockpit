@@ -4,9 +4,9 @@ import org.springframework.boot.diagnostics.AbstractFailureAnalyzer;
 import org.springframework.boot.diagnostics.FailureAnalysis;
 
 /**
- * Turns the incomplete configuration into Spring Boot's "APPLICATION FAILED TO START" report. The
- * point of the whole exercise: the first thing a developer sees is the list of property names to
- * add, not a stack trace of the bean that happened to need one of them first.
+ * Turns the incomplete configuration into Spring Boot's "APPLICATION FAILED TO START" report. That
+ * is the point of the whole exercise. The first thing a developer sees is the list of property
+ * names to add, and not a stack trace of the bean which happened to need one of them first.
  * <p>
  * Registered in {@code META-INF/spring.factories}, which is where Spring Boot looks for failure
  * analyzers.

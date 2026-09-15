@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
- * Wires the chain-independent login user-upsert. Both beans are {@code @ConditionalOnMissingBean}
- * so a derived cockpit application can replace them (e.g. to enrich the user document from its own
- * directory).
+ * Wires the upsert of a user at login, which does not depend on a security filter chain. Both
+ * beans are {@code @ConditionalOnMissingBean}, so a derived cockpit application can replace them,
+ * for example to fill the user document from its own directory.
  */
 @Configuration
 public class UserLoginUpsertConfiguration {

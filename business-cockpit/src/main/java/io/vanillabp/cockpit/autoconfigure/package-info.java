@@ -6,10 +6,10 @@
  * <p>
  * Every bean of the library is named in an {@code @Import} or in an {@code @Bean} method of one of
  * the classes here. That is more writing than a scan, and it is worth it. A scan collects whatever
- * happens to lie in the package at the moment it runs, so the question which of these classes are
- * part of what the library offers never has to be answered. An import can be made conditional and a
- * scan cannot. And Spring Boot advises against scanning from an auto-configuration at all, because
- * the result then depends on the order the auto-configuration ran in.
+ * happens to lie in the package at the moment it runs, so nobody ever has to say which of these
+ * classes the library really offers. An import can be made conditional and a scan cannot. And
+ * Spring Boot advises against scanning from an auto-configuration at all, because the result then
+ * depends on the order the auto-configuration ran in.
  * <p>
  * The consequence for anybody adding a bean to {@code io.vanillabp.cockpit}: the stereotype
  * annotation alone does not register it any more. Name the class in the auto-configuration of its

@@ -30,7 +30,7 @@ public class MongoDbConfiguration {
     private MongoDbProperties properties;
     
     /**
-     * Used to enable TLS in integration environments.
+     * Switches TLS on, which an integration environment needs.
      */
     @Bean
     public MongoClientSettingsBuilderCustomizer settings() {
@@ -46,11 +46,7 @@ public class MongoDbConfiguration {
     }
     
     /**
-     * Used to serialize and deserialize
-     * <ul>
-     * <li>OffsetDateTime
-     * </ul>
-     * properly.
+     * Reads and writes an OffsetDateTime the way MongoDB stores a date.
      */
     @Bean
     public MongoCustomConversions customConversions() {
@@ -71,7 +67,7 @@ public class MongoDbConfiguration {
             final MongoConverter converter) {
         
         final var template = new MongoTemplate(mongoDbFactory, converter);
-        // throw exceptions for write concerns - also required for optimistic locking
+        // throw an exception when a write concern is not met. Optimistic locking needs it too
         template.setWriteResultChecking(WriteResultChecking.EXCEPTION);
         template.setWriteConcern(WriteConcern
                 .MAJORITY

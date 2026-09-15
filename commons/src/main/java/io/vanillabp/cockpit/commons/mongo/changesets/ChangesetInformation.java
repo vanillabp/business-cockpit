@@ -7,9 +7,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-/**
- * This entity is used to persist changeset information.
- */
 @Document(ChangesetInformation.COLLECTION_NAME)
 public class ChangesetInformation {
 

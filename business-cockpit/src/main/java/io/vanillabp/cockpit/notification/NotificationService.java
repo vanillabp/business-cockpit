@@ -7,15 +7,15 @@ import java.util.Map;
 /**
  * Sends notifications for one particular medium (e.g. e-mail).
  * <p>
- * The Business Cockpit is designed to be used as the basis of derived cockpit applications. The
- * available notification media are discovered at runtime as the set of beans implementing this
- * interface. A derived application can therefore add a medium simply by contributing another
- * bean, or replace the reference e-mail implementation by declaring its own bean (all provided
- * implementations are {@code @ConditionalOnMissingBean}).
+ * The Business Cockpit is built to carry derived cockpit applications. Which notification media
+ * there are is the set of beans implementing this interface, and that set is read while the
+ * application runs. So a derived application adds a medium by contributing another bean, and it
+ * replaces the reference e-mail implementation by declaring a bean of its own. Every
+ * implementation shipped here is {@code @ConditionalOnMissingBean}.
  * <p>
- * The method signatures are part of the public contract and must be kept as-is. They are blocking,
- * like the rest of the application: an implementation may read from a database or talk to a mail
- * server without any bridging (see the reference e-mail implementation).
+ * The signatures of the methods are part of the published contract and stay as they are. They
+ * block, like the rest of the application. An implementation may read a database or talk to a mail
+ * server directly, the way the reference e-mail implementation does.
  */
 public interface NotificationService {
 

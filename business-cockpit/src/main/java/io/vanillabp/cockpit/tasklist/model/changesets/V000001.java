@@ -292,10 +292,10 @@ public class V000001 {
     }
 
     /**
-     * Backfills {@code reportedAt} (and the per-candidate {@code candidateUsersSince}) of tasks
-     * reported before those properties existed. {@code createdAt} is the best approximation
-     * available - it is the reporting system's timestamp, but for existing records it is
-     * necessarily in the past, which is all the delta-scan needs.
+     * Fills {@code reportedAt} in for tasks reported before that property existed, and
+     * {@code candidateUsersSince} for each of their candidates. The closest value at hand is
+     * {@code createdAt}. It is the timestamp of the reporting system, but for a record which is
+     * already stored it lies in the past, and that is all the scan for what changed needs.
      */
     @Changeset(order = 12)
     public String introduceReportedAtAndCandidateUsersSince(
@@ -356,12 +356,12 @@ public class V000001 {
     }
 
     /**
-     * Backfills {@code latestEventAt} of tasks reported before that property existed.
-     * {@code createdAt} is the timestamp of the event which created the task, so it is a reading of
-     * the reporting system's own clock and it lies before every later event of that task. That is
-     * what the weighing of reports needs: a task whose value is missing takes the next report
-     * whatever its timestamp says, and one whose value is too early takes a report it should have
-     * refused, which is a smaller loss than refusing one it should have taken.
+     * Fills {@code latestEventAt} in for tasks reported before that property existed.
+     * {@code createdAt} is the timestamp of the event which created the task. So it is a reading
+     * of the reporting system's own clock, and it lies before every later event of that task. That
+     * is what the weighing of reports needs. A task whose value is missing takes the next report
+     * whatever its timestamp says. A task whose value is too early takes a report it should have
+     * refused, which is the smaller loss of the two.
      * <p>
      * A task without a {@code createdAt} keeps an empty {@code latestEventAt}. There is nothing to
      * copy for it, and inventing a reading would say the cockpit knows which event its state came
@@ -390,13 +390,15 @@ public class V000001 {
     }
 
     /**
-     * Drops the assignee of tasks reported without one: until the REST ingress mappers learned that
-     * an absent user id means no person, they stored an assignee whose id was null. Such a task
-     * looks unassigned in the GUI but cannot be claimed - comparing the stored assignee to the
-     * claiming user reads the null id and the request ends in HTTP 500.
+     * Drops the assignee of tasks which were reported without one. Until the mappers of the REST
+     * ingress learned that a missing user id means no person, they stored an assignee whose id was
+     * null. Such a task looks unassigned in the user interface but cannot be claimed. Comparing
+     * the stored assignee to the claiming user reads the null id, and the request ends in HTTP
+     * 500.
      * <p>
-     * Whether nobody is responsible for a task is stored as {@code dangling} to be queryable, so
-     * the tasks losing their phantom assignee have to be re-evaluated the way changeset 6 did.
+     * That nobody is responsible for a task is stored as {@code dangling}, so that it can be
+     * queried. The tasks which lose their phantom assignee therefore have to be judged again, the
+     * way changeset 6 did it.
      */
     @Changeset(order = 13)
     public String removeAssigneesHavingNoUserId(

@@ -21,8 +21,8 @@ import org.springframework.context.annotation.Import;
  * lists and the workflow modules.
  * <p>
  * The startup check is a {@code BeanFactoryPostProcessor}, so it runs before the first bean of the
- * application is built. That is the reason it is imported here rather than built by a {@code @Bean}
- * method: an imported class is a plain bean definition, and nothing of this configuration has to
+ * application is built. That is why it is imported here instead of being built by a {@code @Bean}
+ * method. An imported class is a plain bean definition, and nothing of this configuration has to
  * exist for it to run.
  */
 @AutoConfiguration

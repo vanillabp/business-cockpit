@@ -10,7 +10,7 @@ import java.util.Map;
  * @param workflowTopic The topic workflow events are sent to
  * @param workflowModuleTopic The topic a workflow module's registration is sent to
  * @param producerProperties Everything else configured below
- *          <code>kafka.properties.*</code>, handed to the producer unchanged - a security
+ *          <code>kafka.properties.*</code>, handed to the producer unchanged: a security
  *          protocol, a truststore, a client id
  */
 public record KafkaTransportConfiguration(

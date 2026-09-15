@@ -13,11 +13,11 @@ import io.vanillabp.integration.spi.PhaseTwoCall;
  * application is dispatched by today's, so an operation is never renamed and the rule deriving
  * its idempotency key is never changed.
  * <p>
- * An entry carries identifiers and nothing else - what the cockpit is told is read again while
- * the entry is dispatched, see decision 3 in the repository's DECISIONS.md. That is what keeps an
- * entry inside the 2048 characters the outbox stores hold, and it is what makes several pending
- * updates of one task collapse into one: they would all report the same state anyway. Why the keys
- * look the way they do is decision 4 in the repository's DECISIONS.md.
+ * An entry carries identifiers and nothing else. What the cockpit is told is read again while
+ * the entry is dispatched, see decision 3 in the repository's DECISIONS.md. That keeps an entry
+ * inside the 2048 characters the outbox stores hold, and it lets several pending updates of one
+ * task collapse into one. They would all report the same state anyway. Why the keys look the way
+ * they do is decision 4 in the repository's DECISIONS.md.
  */
 public final class BusinessCockpitOperations {
 

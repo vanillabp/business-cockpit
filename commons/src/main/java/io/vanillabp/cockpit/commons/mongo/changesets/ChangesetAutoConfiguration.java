@@ -35,8 +35,8 @@ import org.springframework.data.mongodb.core.query.Query;
  * @see DbChangeset
  * @see DbChangesetConfiguration
  */
-// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
-// @AutoConfigureBefore/After honoured
+// registered through the .imports file, so it has to be an @AutoConfiguration. Only then are
+// @AutoConfigureBefore and @AutoConfigureAfter read
 @AutoConfiguration
 @AutoConfigureBefore(DataMongoRepositoriesAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, MongoTemplate.class })

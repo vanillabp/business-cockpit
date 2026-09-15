@@ -37,9 +37,9 @@ public class UpdateInformationEventListener implements BeforeConvertCallback<Obj
     }
 
     /**
-     * Writes happening outside a request - change-stream reactions, schedulers, Kafka consumers -
-     * have no authenticated user, and neither has an anonymous request. Both are recorded as the
-     * system user rather than as no user at all.
+     * Some writes happen outside a request: a reaction to a change stream, a scheduler, a Kafka
+     * consumer. They have no authenticated user, and neither has an anonymous request. Both are
+     * recorded as the system user instead of as no user at all.
      */
     private String userLoggedInOrSystem() {
 

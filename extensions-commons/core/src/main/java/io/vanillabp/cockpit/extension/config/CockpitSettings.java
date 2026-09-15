@@ -9,10 +9,10 @@ import java.util.Map;
  * <code>vanillabp.workflow-modules.&lt;id&gt;.cockpit</code> for one workflow module, and the
  * two levels below it for one workflow and one of its user tasks.
  * <p>
- * Every leaf is the text the application wrote, not a parsed value. The two platforms bind
- * this tree with the means they have - a JavaBean overlay on Spring Boot, a configuration
- * mapping on Quarkus - and both hand over this one object, so that a value which is not a
- * number, not a span of time or not a boolean is answered by the same message on both.
+ * Every leaf is the text the application wrote, not a parsed value. The two platforms bind this
+ * tree with the means they have: a JavaBean overlay on Spring Boot, a configuration mapping on
+ * Quarkus. Both hand over this one object, so a value which is not a number, not a span of time
+ * or not a boolean gets the same message on both.
  * {@link BusinessCockpitConfiguration#readAndValidate} is where that happens, and it is the
  * only place which knows what a key means.
  *
@@ -22,7 +22,7 @@ import java.util.Map;
  *          nothing was configured
  * @param templateLoaderPath The directory Freemarker loads the templates from
  * @param rest The REST transport, or <code>null</code> where nothing below <code>rest</code>
- *          was written - a section which says nothing is a section which is not there, on either
+ *          was written. A section which says nothing is a section which is not there, on either
  *          platform
  * @param kafka The Kafka transport, or <code>null</code>
  * @param processEngineApi What the Process-Engine-API half of the cockpit reads, or
@@ -121,9 +121,9 @@ public record CockpitSettings(
    * Everything below <code>rest.authentication.oauth</code>.
    * <p>
    * In version 1 this section was a client configuration of its own, so an authorization
-   * server behind another proxy or with another certificate was reachable. It stays one: the
+   * server behind another proxy or with another certificate was reachable. It stays one. The
    * token client inherits nothing from <code>rest</code>, and what is not written here is the
-   * default rather than what the cockpit server's client uses.
+   * default, not what the cockpit server's client uses.
    *
    * @param baseUrl Where tokens are issued, and with it the choice of this flow
    * @param clientId The client the token is asked for
@@ -182,7 +182,7 @@ public record CockpitSettings(
   }
 
   /**
-   * The one setting of the cockpit's Process-Engine-API half, which is read by that half and
+   * The one setting of the cockpit's Process-Engine-API half. That half reads it. It is
    * declared here because a key which is not declared fails the boot on Quarkus.
    *
    * @param rememberedUserTasks How many delivered user tasks a node remembers

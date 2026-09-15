@@ -110,15 +110,16 @@ public class UserTaskService {
     private Subscription dbChangesSubscription;
 
     /**
-     * The initiator to be recorded for a change caused by the business cockpit itself: the
-     * logged-in user, or {@link UpdateInformationAware#COCKPIT_USER} if there is none (e.g. a
-     * cockpit-side job). Kept apart from {@link UpdateInformationAware#SYSTEM_USER}, which marks
-     * changes reported by the workflow system.
+     * The initiator recorded for a change the Business Cockpit itself caused. It is the user who
+     * is logged in, or {@link UpdateInformationAware#COCKPIT_USER} where there is none, a job of
+     * the cockpit for example. It is kept apart from
+     * {@link UpdateInformationAware#SYSTEM_USER}, which marks a change the workflow system
+     * reported.
      * <p>
-     * The initiator is the only record of who caused the latest change: {@code updatedBy} is audit
-     * information overwritten by {@code UpdateInformationEventListener} on every save. The
-     * notification poller reads it to skip notifications a user triggered himself, so every
-     * cockpit-side modification has to maintain it.
+     * The initiator is the only record of who caused the latest change. {@code updatedBy} is audit
+     * information, and {@code UpdateInformationEventListener} overwrites it on every save. The
+     * notification poller reads the initiator to skip a notification a user triggered themselves,
+     * so every change made in the cockpit has to keep it up to date.
      */
     private String cockpitInitiator() {
 
@@ -221,9 +222,9 @@ public class UserTaskService {
 
     /**
      * The task of that id which the given visibility lets through, or {@code null} when there is
-     * none. Asking the database with the visibility in the query rather than filtering afterwards
-     * is what makes the check impossible to skip: holding an id is not enough, a caller has to name
-     * a view the task belongs to.
+     * none. The visibility sits in the query and is not a filter running afterwards, which is what
+     * makes the check impossible to skip. Holding an id is not enough: a caller has to name a view
+     * the task belongs to.
      */
     public UserTask getUserTask(
             final UserTaskVisibility visibility,
@@ -408,10 +409,10 @@ public class UserTaskService {
     }
 
     /**
-     * Giving a task back is the one change which can take the task out of the very view it was made
-     * from: a list of what is mine holds nothing of mine any more once I let go. So the visibility
-     * decides whether the change may happen, and what comes back afterwards is read without it.
-     * Answering {@code null} would tell the caller their own action failed.
+     * Giving a task back is the one change which can take the task out of the very view it was
+     * made from. A list of what is mine holds nothing of mine any more once I let go. So the
+     * visibility decides whether the change may happen, and what comes back afterwards is read
+     * without it. Answering {@code null} would tell the caller their own action failed.
      */
     public UserTask unclaimTask(
             final UserTaskVisibility visibility,
@@ -587,10 +588,10 @@ public class UserTaskService {
     }
 
     /**
-     * Sorting and filtering by arbitrary properties needs an index per combination. They are
-     * created the first time such a combination is asked for and remembered afterwards. A failing
-     * creation is remembered as well: the query still works without the index, and retrying it on
-     * every request would only cost time.
+     * Sorting and filtering by arbitrary properties needs an index per combination. An index is
+     * created the first time its combination is asked for and is remembered afterwards. A creation
+     * which failed is remembered as well. The query still works without the index, and trying
+     * again on every request would only cost time.
      */
     private void ensureSortAndFilterIndex(
             final UserTaskListOrder orderBySort,
@@ -736,10 +737,10 @@ public class UserTaskService {
     /**
      * Stores what a workflow module reports about a user task it has just created.
      * <p>
-     * A creation of a task the cockpit already holds stores nothing: it is the oldest report there
-     * is, so everything it says has been said again since, and storing it would throw away what the
-     * cockpit itself knows about the task - who took it over, who read it, that it has ended. The one
-     * task it does change is a task the cockpit learned about from its end alone, which has been
+     * A creation of a task the cockpit already holds stores nothing. It is the oldest report
+     * there is, so everything it says has been said again since. Storing it would throw away what
+     * the cockpit itself knows about the task: who took it over, who read it, and that it has
+     * ended. There is one exception: a task the cockpit learned about from its end alone has been
      * waiting for exactly this report.
      *
      * @param userTaskId The task the report is about
@@ -772,9 +773,8 @@ public class UserTaskService {
         task.setInitiator(stored.getInitiator());
         task.setReadBy(stored.getReadBy());
         task.setLatestEventAt(stored.getLatestEventAt());
-        // what an end could not report about the task is what this report is here for, and the other
-        // way round an end which did report it has the younger answer, so the same rule decides
-        // both ways round
+        // this report is here for what an end could not say about the task. The other way round,
+        // an end which did say it holds the younger answer. One rule decides both ways
         task.setDetails(
                 WhatAnEndReports.whatToStore(stored.getDetails(), task.getDetails()));
         task.setDetailsFulltextSearch(
@@ -824,13 +824,13 @@ public class UserTaskService {
     /**
      * Stores that a user task has ended, completed or cancelled.
      * <p>
-     * An end of a task the cockpit does not hold creates the task, ended. The creation may still be
-     * waiting in the outbox of the workflow module, and dropping the end would leave the cockpit
+     * An end of a task the cockpit does not hold creates the task, ended. The creation may still
+     * be waiting in the outbox of the workflow module. Dropping the end would leave the cockpit
      * showing that task as open for good once the creation arrives.
      * <p>
-     * An end is recorded even where the cockpit holds something younger, because nothing which comes
-     * after it undoes it. What such an end reports besides the end itself is older than what is
-     * stored and is left out.
+     * An end is recorded even where the cockpit holds something younger, because nothing which
+     * comes after it undoes it. Whatever such an end reports besides the end itself is older than
+     * what is stored, and it is left out.
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the task ended, by the workflow module's clock
@@ -881,8 +881,8 @@ public class UserTaskService {
     }
 
     /**
-     * Says that a report was read and stored nothing. It belongs in the log because it explains a
-     * change a workflow module sent and nobody finds in the cockpit.
+     * Says that a report was read and stored nothing. It belongs in the log, because it explains
+     * a change a workflow module sent and nobody finds in the cockpit.
      */
     private void reportChangesNothing(
             final String userTaskId,
@@ -907,10 +907,10 @@ public class UserTaskService {
      * of an ascending list, which would put the tasks nobody set a date for ahead of the ones which
      * are almost late.
      * <p>
-     * Every report the cockpit stores passes here, so a workflow module cannot leave a stored task
-     * without a reading: not by reporting a change of a task whose due date the process removed, and
-     * not by ending a task, which keeps the date it does not report. The reading is an internal one
-     * and the GUI mapper turns it back into an empty date.
+     * Every report the cockpit stores passes here, so a workflow module cannot leave a stored
+     * task without a reading. It cannot do so by reporting a change of a task whose due date the
+     * process removed, and not by ending a task, which keeps the date it does not report. The
+     * reading is an internal one, and the GUI mapper turns it back into an empty date.
      */
     private static void keepSortableByDueDate(
             final UserTask userTask) {
@@ -956,9 +956,10 @@ public class UserTaskService {
     }
 
     /**
-     * The distinct workflows (module + BPMN process, with the workflow title) the given user has
-     * visible tasks for - the same visibility as the user task list. Used by the notification
-     * configuration page to offer per-workflow exceptions (AC func 4c).
+     * The workflows the given user has visible tasks for, each one once. A workflow here is a
+     * workflow module and a BPMN process, together with the title of the workflow, and the
+     * visibility is the one the user task list uses. The page for configuring notifications reads
+     * it to offer an exception per workflow.
      */
     public List<UserTask> getVisibleWorkflows(
             final UserTaskVisibility visibility) {

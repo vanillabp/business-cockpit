@@ -25,8 +25,9 @@ public abstract class UserTaskMapper {
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
-        // a reporting system which names no user means no person at all: building one from a null
-        // id yields a person the GUI hides but every id comparison stumbles over, e.g. a claim
+        // a reporting system which names no user means no person at all. A person built from a
+        // null id is hidden by the GUI, but every comparison of ids stumbles over it, a claim for
+        // example
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
@@ -90,13 +91,13 @@ public abstract class UserTaskMapper {
     @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "notificationDelivery", ignore = true)
     @Mapping(target = "followUpDate", ignore = true)
-    // the assignee is kept if the event provides none: a task is taken over in the
-    // cockpit, so no workflow system can report that assignment
+    // the assignee is kept if the event reports none. A task is taken over in the cockpit, so no
+    // workflow system can report that assignment
     @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING,
             nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    // candidate users are cockpit-owned too: assigning a task in the cockpit adds a personal
-    // candidate no event reports back, so an update must not replace the stored list. They are
-    // therefore taken from the create event only. Groups and exclusions stay mapped.
+    // candidate users belong to the cockpit too. Assigning a task there adds a personal candidate
+    // which no event reports back, so an update must not replace the stored list. Candidate users
+    // are therefore taken from the create event only. Groups and exclusions stay mapped.
     @Mapping(target = "candidateUsers", ignore = true)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)

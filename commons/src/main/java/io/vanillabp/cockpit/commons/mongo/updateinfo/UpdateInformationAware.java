@@ -5,15 +5,14 @@ import java.time.OffsetDateTime;
 public interface UpdateInformationAware {
 
     /**
-     * Used as the username when updates are not triggered by
-     * user interaction but by any other event like cron-jobs.
+     * The user name recorded where no user triggered the update, a cron job for example.
      */
     String SYSTEM_USER = "system";
 
     /**
-     * Used as the initiator of updates caused by the business cockpit itself rather than by a
-     * user interaction (e.g. a cockpit-side job). Told apart from {@link #SYSTEM_USER} on
-     * purpose: the latter marks updates reported by the workflow system.
+     * The initiator recorded where the Business Cockpit itself caused the update, a job of its
+     * own for example. It is kept apart from {@link #SYSTEM_USER} on purpose, which marks an
+     * update the workflow system reported.
      */
     String COCKPIT_USER = "cockpit";
 

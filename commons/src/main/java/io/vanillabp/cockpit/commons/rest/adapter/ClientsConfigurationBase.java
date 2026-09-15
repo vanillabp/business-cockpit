@@ -265,9 +265,8 @@ public abstract class ClientsConfigurationBase {
     }
 
     /**
-     * Filter the given list of properties beans to find the one implementing the
-     * given interfaces within the same workflow module as the class of the given
-     * injection point.
+     * Finds the properties bean which implements the given interface and belongs to the same
+     * workflow module as the class at the injection point.
      * 
      * @param <T>                 The type of the desired properties bean
      * @param injectionPoint      The injection point to identify the workflow

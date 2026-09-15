@@ -29,10 +29,10 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * chosen, a workflow module missing a setting, a value naming something which does not exist.
  * Each line names the property key to add, so the log is the documentation.
  * <p>
- * What is read is the tree {@link CockpitSettings} carries, which both platforms bind with
- * their own means and hand over as one object. Every value in it is the text the application
- * wrote, so a number which is none, a span of time which is none and a boolean which is none
- * are answered here - once, and with the same words on both platforms.
+ * What is read is the tree {@link CockpitSettings} carries. Both platforms bind that tree with
+ * their own means and hand it over as one object. Every value in it is the text the application
+ * wrote. So a number which is no number, a span of time which is none and a boolean which is
+ * none are all answered here, once and with the same words on both platforms.
  */
 public final class BusinessCockpitConfiguration {
 
@@ -77,10 +77,10 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * The adapters the application configured, which is what a report can come from. Kept
-   * because a dispatch naming an adapter no BPMS half serves is told which adapters exist at
-   * all - a half missing from the classpath and an adapter id misspelled in the configuration
-   * look the same otherwise.
+   * The adapters the application configured. A report can only come from one of them. They are
+   * kept so that a dispatch which names an adapter no BPMS half serves can be told which
+   * adapters exist at all. Without that, a half missing from the classpath looks the same as an
+   * adapter id misspelled in the configuration.
    *
    * @return The configured adapter ids
    */
@@ -91,8 +91,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * The workflow modules which report to the cockpit at all - the ones the application wrote a
-   * cockpit section for.
+   * The workflow modules which report to the cockpit at all. Those are the ones the application
+   * wrote a cockpit section for.
    *
    * @return Their ids
    */
@@ -143,8 +143,8 @@ public final class BusinessCockpitConfiguration {
   /**
    * @return Whether the application brought a
    *         {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
-   *         own, which is then the way its reports take and which makes both of the shipped
-   *         transports optional
+   *         own. Its reports then take that way, and both of the shipped transports become
+   *         optional
    */
   public boolean isTransportProvidedByTheApplication() {
 
@@ -177,7 +177,7 @@ public final class BusinessCockpitConfiguration {
    * @param workflowModuleId The module
    * @return Its settings
    * @throws IllegalStateException If the module says nothing about the cockpit and therefore
-   *           takes no part in it - the message names the module and the key which lets it in
+   *           takes no part in it. The message names the module and the key which lets it in
    */
   public WorkflowModuleConfiguration workflowModule(
       final String workflowModuleId) {
@@ -221,8 +221,8 @@ public final class BusinessCockpitConfiguration {
    *          application and the adapters it configured
    * @param settings What the application wrote below <code>vanillabp.cockpit</code> and below
    *          the <code>cockpit</code> sections of its workflow modules
-   * @param templatingAvailable Whether a template engine is on the classpath at all - without
-   *          one a template path is pointless and the BPMN language becomes mandatory
+   * @param templatingAvailable Whether a template engine is on the classpath at all. Without
+   *          one, a template path is pointless and the BPMN language becomes mandatory
    * @param transportProvidedByTheApplication Whether the application brought a
    *          {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
    *          own. The platform answers this, because a bean is what each of them knows about
@@ -328,12 +328,12 @@ public final class BusinessCockpitConfiguration {
   /**
    * Every adapter id this application configured, asked per BPMS type.
    * <p>
-   * Reading the keys of the configured sections is not that answer: an id named in
+   * Reading the keys of the configured sections does not answer this. An id named in
    * <code>prioritized-adapters</code> needs no section of its own, and an application which
-   * configured nothing at all has the id its single adapter dependency derives. Both are what
-   * {@code MigrationAdapterProperties#adapterIdsOfType} adds, and both are ids a BPMS half
-   * builds a bridge for - so a message naming "the configured adapters" has to name them too,
-   * or it sends a developer looking for a configuration mistake which is not there.
+   * configured nothing at all gets the id its single adapter dependency derives.
+   * {@code MigrationAdapterProperties#adapterIdsOfType} adds both, and a BPMS half builds a
+   * bridge for both. So a message about "the configured adapters" has to name them as well.
+   * Otherwise it sends a developer looking for a configuration mistake which is not there.
    *
    * @param properties VanillaBP's resolved configuration
    * @return The adapter ids, sorted
@@ -341,8 +341,8 @@ public final class BusinessCockpitConfiguration {
   private static Collection<String> configuredAdapterIdsOf(
       final MigrationAdapterProperties properties) {
 
-    // which TYPES an application uses is what the sections and the order between them say; the
-    // ids of each of them are the core's answer
+    // the sections, and the order between them, say which BPMS types an application uses. The
+    // ids of each type are the core's answer
     final var types = new LinkedHashSet<>(properties.adapterTypes().values());
     types.addAll(properties.getPrioritizedAdapters());
     final var adapterIds = new TreeSet<String>();
@@ -380,12 +380,13 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * Whether requests carry a basic authentication, which is what version 1's switch said and
-   * says here.
+   * Whether requests carry a basic authentication. The switch means here what it meant in
+   * version 1.
    * <p>
-   * A user name next to a switch which is off, and a switch which is on next to no user name,
-   * are both reported: each of them is a deployment which believes it authenticates and does
-   * not, and finding that out means reading the cockpit server's log rather than one's own.
+   * Both a user name next to a switch which is off, and a switch which is on next to no user
+   * name, are reported. Each of them is a deployment which believes it authenticates and does
+   * not. Finding that out otherwise means reading the cockpit server's log instead of one's
+   * own.
    */
   private static boolean readBasicAuthentication(
       final CockpitSettings.Authentication authentication,
@@ -425,9 +426,9 @@ public final class BusinessCockpitConfiguration {
   /**
    * The proxy a server is reached through, where one was configured.
    * <p>
-   * The host is what switches the proxy on, the way the base URL switches the REST transport
-   * on: a port without a host configures nothing and is more likely a leftover than a wish, so
-   * it is reported rather than ignored.
+   * The host switches the proxy on, the way the base URL switches the REST transport on. A port
+   * without a host configures nothing, and it is more likely a leftover than a wish, so it is
+   * reported instead of being ignored.
    *
    * @param proxy What was written below the connection's <code>proxy</code>
    * @param prefix Which connection this is, which is what a message names
@@ -483,9 +484,9 @@ public final class BusinessCockpitConfiguration {
   /**
    * The file holding the certificates a server's is checked against.
    * <p>
-   * The file is opened while the application starts rather than at the first report: a
-   * truststore which cannot be read is a deployment which was assembled wrongly, and finding
-   * that out when the first user task is reported means finding it out in production.
+   * The file is opened while the application starts, not at the first report. A truststore
+   * which cannot be read means the deployment was assembled wrongly. Finding that out at the
+   * first reported user task means finding it out in production.
    */
   private static String readTruststore(
       final String filename,
@@ -525,9 +526,9 @@ public final class BusinessCockpitConfiguration {
    * The client-credentials flow, where one was configured. The address of the authorization
    * server switches it on, and the two halves of the client's identity are needed with it.
    * <p>
-   * What the flow says about its own connection is its own: version 1 configured the token
-   * client separately from the cockpit server's, and an authorization server behind another
-   * proxy stays reachable because of it.
+   * What the flow says about its own connection stays its own. Version 1 configured the token
+   * client separately from the cockpit server's, and that is why an authorization server behind
+   * another proxy stays reachable.
    */
   private static RestTransportConfiguration.OAuth readOauth(
       final CockpitSettings.Authentication authentication,
@@ -733,10 +734,10 @@ public final class BusinessCockpitConfiguration {
   /**
    * Which way the reports take, and what is missing or too much about it.
    * <p>
-   * An application which brought a transport of its own reports through that one, so nothing is
-   * missing where it configured neither of the shipped transports. Both of them at once stays a
-   * defect even then: the shipped transport is what such an application wraps, and which of the
-   * two was meant is then answered by nothing.
+   * An application which brought a transport of its own reports through that one. So nothing is
+   * missing if it configured neither of the shipped transports. Configuring both of them at once
+   * stays a defect even then. Such an application wraps a shipped transport, and with two of
+   * them configured nothing says which one was meant.
    *
    * @param rest What was configured about the REST transport, or <code>null</code>
    * @param kafka What was configured about the Kafka transport, or <code>null</code>
@@ -801,9 +802,9 @@ public final class BusinessCockpitConfiguration {
    * Refuses a template directory which does not say where it is.
    * <p>
    * The same text is written a second time in the cockpit server, for the directory the
-   * notification templates come from. Both keys name a directory, and a developer who reads one of
-   * the two messages knows the other. The server does not depend on this module, so the price of
-   * saying it in the same words is saying it twice, and a test on each side holds the wording.
+   * notification templates come from. Both keys name a directory, and a developer who reads one
+   * of the two messages knows the other. The server does not depend on this module. So the price
+   * of the same words is writing them twice, and a test on each side holds the wording.
    *
    * @param templateLoaderPath What the application configured, possibly nothing
    * @param key The property key, spelled the way the application writes it
@@ -955,12 +956,12 @@ public final class BusinessCockpitConfiguration {
    * A key of a workflow module which the module itself does not write, and which its workflows
    * may write instead.
    * <p>
-   * Version 1 asked for the language of a module's BPMN names and for the languages it reports in
-   * when the first event of a workflow arrived, so a module whose workflows all said it for
-   * themselves never had to. That rule is kept, and the boot only ends here where no workflow says
-   * it either. Whether the workflows which say it are ALL the workflows of the module is a
-   * question only the deployment answers, and it is answered by
-   * {@link #validateWhatTheWorkflowsHaveToSay} once VanillaBP has wired them.
+   * Version 1 asked for the language of a module's BPMN names, and for the languages it reports
+   * in, when the first event of a workflow arrived. A module whose workflows all said it for
+   * themselves never had to. That rule is kept: the boot ends here only where no workflow says it
+   * either. Whether the workflows which say it are all the workflows of the module is a question
+   * only the deployment answers. {@link #validateWhatTheWorkflowsHaveToSay} answers it once
+   * VanillaBP has wired them.
    *
    * @param saysIt Whether one workflow's settings carry the key
    * @param why What the message tells somebody who has to add the key
@@ -991,11 +992,11 @@ public final class BusinessCockpitConfiguration {
    * Ends the boot where a workflow module left a key to its workflows and one of the workflows
    * VanillaBP deployed does not say it.
    * <p>
-   * Which BPMN processes a workflow module holds is nothing the configuration knows: it is what
-   * the deployment found, so this runs when the modules are registered rather than when the
-   * configuration is read. A workflow which reports in no language and a workflow whose BPMN
-   * names are in an unknown language are what this spares the application, and they would
-   * otherwise surface at the first event of exactly that process.
+   * The configuration does not know which BPMN processes a workflow module holds. That is what
+   * the deployment found, so this runs when the modules are registered and not when the
+   * configuration is read. It spares the application a workflow which reports in no language,
+   * and a workflow whose BPMN names are in an unknown language. Both would otherwise surface at
+   * the first event of exactly that process.
    *
    * @param workflowModuleId The module which was deployed
    * @param bpmnProcessIds The BPMN processes VanillaBP wired for it
@@ -1063,12 +1064,12 @@ public final class BusinessCockpitConfiguration {
    * What single workflows of a module, and single user tasks of those workflows, said about the
    * cockpit.
    * <p>
-   * Only three of the module's keys mean anything one workflow at a time - the language its
+   * Only three of the module's keys mean anything one workflow at a time: the language its
    * titles are written in, the languages they are reported in, and the directory its templates
-   * live in - and only the last of them means anything for a single user task. Which keys those
-   * are is declared by the binding of each platform, so a key which is none of them is refused
-   * by Quarkus while it starts and ignored by Spring Boot, the way every other key unknown to
-   * the <code>vanillabp</code> tree is.
+   * live in. Only the last of the three means anything for a single user task. The binding of
+   * each platform declares which keys those are. A key which is none of them is refused by
+   * Quarkus while it starts and ignored by Spring Boot, the way every other key unknown to the
+   * <code>vanillabp</code> tree is.
    */
   private static Map<String, WorkflowConfiguration> readWorkflows(
       final Map<String, CockpitSettings.Workflow> workflows) {

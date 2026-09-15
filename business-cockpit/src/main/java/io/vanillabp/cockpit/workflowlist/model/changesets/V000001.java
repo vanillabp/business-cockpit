@@ -301,8 +301,8 @@ public class V000001 {
     }
 
     /**
-     * Backfills {@code reportedAt} of workflows reported before that property existed;
-     * {@code createdAt} (the reporting system's timestamp) is the best approximation available.
+     * Fills {@code reportedAt} in for workflows reported before that property existed. The
+     * closest value at hand is {@code createdAt}, the timestamp of the reporting system.
      *
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getReportedAt()
      */
@@ -325,8 +325,8 @@ public class V000001 {
     }
 
     /**
-     * Backfills {@code latestEventAt} of workflows reported before that property existed, the way
-     * changeset 14 of the user tasks does, and for the same reason.
+     * Fills {@code latestEventAt} in for workflows reported before that property existed, the way
+     * changeset 14 of the user tasks does it, and for the same reason.
      *
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getLatestEventAt()
      */

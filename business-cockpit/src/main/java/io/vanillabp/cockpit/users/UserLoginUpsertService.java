@@ -17,14 +17,14 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 /**
- * Upserts the {@code users} document of an authenticated user at login time, so the notification
- * feature can restrict recipients to users who have logged in at least once (AC tech 5).
+ * Upserts the {@code users} document of an authenticated user at login, so the notification
+ * feature can restrict the recipients to users who have logged in at least once.
  * <p>
- * Failure-tolerant: a failing upsert never fails the request. The write is an atomic, lock-free
- * Mongo upsert that only touches {@code lastLoggedIn} and {@code email} (existing notification
- * configuration is preserved and the {@code @Version} optimistic lock is not involved), so
- * concurrent requests never conflict. Additionally throttled to at most once per configured window
- * per node to avoid unnecessary writes.
+ * An upsert which fails never fails the request. The write is one atomic MongoDB upsert without a
+ * lock, and it touches only {@code lastLoggedIn} and {@code email}. It keeps whatever
+ * notification configuration is stored and never reads the {@code @Version} optimistic lock, so
+ * two requests at once do not conflict. On top of that, a node writes at most once per configured
+ * window.
  */
 public class UserLoginUpsertService {
 
@@ -50,8 +50,9 @@ public class UserLoginUpsertService {
     }
 
     /**
-     * Creates or refreshes the {@code users} document for the given authenticated user. Preserves
-     * any existing notification configuration; only refreshes {@code lastLoggedIn} and {@code email}.
+     * Creates or refreshes the {@code users} document of the given authenticated user. It keeps
+     * whatever notification configuration is stored and refreshes {@code lastLoggedIn} and
+     * {@code email} only.
      */
     public void upsertOnLogin(
             final UserDetails userDetails) {

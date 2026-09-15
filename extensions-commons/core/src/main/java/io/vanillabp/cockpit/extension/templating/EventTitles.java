@@ -20,10 +20,9 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * language is rendered. Without one, the names written in the BPMN file are reported, in the
  * one language the module declared its BPMN to be written in.
  * <p>
- * A value the details provider already put in wins over both. It is then treated as the name of
- * a template first, and stays the literal text where no template of that name exists - which
- * is how a workflow module writes a fixed title for one task without shipping a template for
- * it.
+ * A value the details provider already put in wins over both. It is treated as the name of a
+ * template first, and it stays the literal text where no template of that name exists. That is
+ * how a workflow module writes a fixed title for one task without shipping a template for it.
  */
 public final class EventTitles {
 
@@ -132,8 +131,8 @@ public final class EventTitles {
    * The directories a template is looked for in, most specific first: everything below the
    * module's own path, narrowed by the BPMN process and then by the task definition. Each of
    * the three levels contributes the segment it configured, and its own id where it configured
-   * none - which is what makes a module's templates land in a directory of the module's name
-   * without anybody configuring it.
+   * none. That is what makes a module's templates land in a directory of the module's name, with
+   * nothing configured.
    *
    * @param module The workflow module's settings
    * @param bpmnProcessId The BPMN process, may be <code>null</code>
@@ -186,8 +185,8 @@ public final class EventTitles {
   }
 
   /**
-   * Where no template produced anything and no details provider wrote anything, the name the
-   * modeller gave the element is what the cockpit shows - in the one language the module
+   * Where no template produced anything and no details provider wrote anything, the cockpit
+   * shows the name the modeller gave the element. It shows it in the one language the module
    * declared its BPMN files to be written in, because that is the only language that name is
    * in.
    */
@@ -213,8 +212,8 @@ public final class EventTitles {
     try {
       texts.put(language, text);
     } catch (final UnsupportedOperationException e) {
-      // a details provider may hand in an immutable map, which is not a mistake worth
-      // reporting - it is replaced by one which can carry the rendered text
+      // a details provider may hand in an immutable map. That is not a mistake worth
+      // reporting, so it is replaced by a map which can carry the rendered text
       final var mutable = new LinkedHashMap<>(texts);
       mutable.put(language, text);
       replaceTexts.accept(mutable);

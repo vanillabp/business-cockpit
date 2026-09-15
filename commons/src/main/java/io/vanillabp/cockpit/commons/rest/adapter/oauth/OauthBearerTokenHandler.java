@@ -10,13 +10,13 @@ import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 
 /**
- * Adds a bearer token in the &quot;Authorization&quot; header.
+ * Adds a bearer token to the &quot;Authorization&quot; header.
  * <p>
- * If the token is expired a new token is created using the refresh token. If
- * this fails or no initial token is available a new token is created.
+ * An expired token is renewed with the refresh token. Where that fails, and where there is no
+ * token yet, a new one is fetched.
  * <p>
- * The tokens are created for each thread. This should avoid race conditions if
- * two or more threads needs to create or refresh a token.
+ * Each thread holds its own token, so two threads fetching or renewing at the same time do not
+ * get in each other's way.
  */
 public class OauthBearerTokenHandler extends BearerTokenBasedAuthInterceptor {
     

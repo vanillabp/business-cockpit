@@ -25,9 +25,9 @@ public class ApplicationProperties {
     private JwtProperties jwt = new JwtProperties();
 
     /**
-     * The application-wide default locale, used as the fallback when a user has no preferred locale
-     * (e.g. for rendering notification templates). Defaults to German, matching the currently
-     * hard-coded UI language.
+     * The default locale of the whole application. It is used where a user has no locale of their
+     * own, when a notification template is rendered for example. It defaults to German, the
+     * language every user interface is fixed to today.
      */
     private Locale defaultLocale = Locale.GERMAN;
 

@@ -11,27 +11,29 @@ import tools.jackson.databind.cfg.DateTimeFeature;
 import java.util.TimeZone;
 
 /**
- * Jackson 3 configuration for the GUI API, migrated from Jackson 2 in T16.
+ * The Jackson 3 configuration of the GUI API.
  * <p>
- * Three things changed beyond the package rename:
+ * Three things changed on the way from Jackson 2, beyond the rename of the packages:
  * <ul>
- * <li>the {@code JavaTimeModule} bean is gone - Jackson 3 has the Java 8 date and time types built in;</li>
- * <li>the date related flags moved from {@code SerializationFeature} to {@link DateTimeFeature}, so they
- * are set with {@code enable}/{@code disable} instead of {@code featuresToEnable}/{@code featuresToDisable};</li>
- * <li>{@code serializationInclusion(..)} became {@code changeDefaultPropertyInclusion(..)}, which takes an
- * operator on the existing value rather than a plain value.</li>
+ * <li>the {@code JavaTimeModule} bean is gone, because Jackson 3 has the Java 8 date and time
+ * types built in;</li>
+ * <li>the flags about dates moved from {@code SerializationFeature} to {@link DateTimeFeature}, so
+ * they are set with {@code enable} and {@code disable} instead of {@code featuresToEnable} and
+ * {@code featuresToDisable};</li>
+ * <li>{@code serializationInclusion(..)} became {@code changeDefaultPropertyInclusion(..)}, which
+ * takes an operator on the value at hand instead of a plain value.</li>
  * </ul>
- * Nothing else is needed: Spring Boot 4 builds the {@code JsonMapper} bean from the customizers below
- * and hands it to the message converter Spring MVC uses for request and response bodies.
+ * Nothing else is needed. Spring Boot 4 builds the {@code JsonMapper} bean from the customizers
+ * below and hands it to the message converter Spring MVC uses for request and response bodies.
  * <p>
- * The resulting wire format is deliberately unchanged: ISO-8601 timestamps normalised to UTC, indented
- * output, {@code null} properties omitted.
+ * What travels on the wire stays as it was, on purpose: ISO-8601 timestamps in UTC, indented
+ * output, and {@code null} properties left out.
  * <p>
- * <p>Measured while writing the tests for this class: Jackson 3 already defaults
- * {@code WRITE_DATES_AS_TIMESTAMPS} to <em>off</em>, whereas Jackson 2 defaulted it to <em>on</em>.
- * Removing the explicit {@code disable(..)} therefore changes nothing today. It is kept anyway, so a
- * future default flip cannot silently turn timestamps back into numbers. The flag that does carry the
- * output is {@code defaultTimeZone(UTC)}.
+ * One measurement from writing the tests of this class. Jackson 3 already has
+ * {@code WRITE_DATES_AS_TIMESTAMPS} switched off, where Jackson 2 had it switched on. Dropping the
+ * explicit {@code disable(..)} would therefore change nothing today. It is kept anyway, so a
+ * changed default cannot turn timestamps back into numbers without a word. The flag which really
+ * carries the output is {@code defaultTimeZone(UTC)}.
  */
 @Configuration
 public class JsonConfiguration {

@@ -8,9 +8,9 @@ import io.vanillabp.integration.extension.spi.ExtensionWiringService;
  * whichever BPMS a workflow module runs on.
  * <p>
  * It declares <code>Object</code> as both its model and its processing-context type, so it
- * takes part in the deployment of every workflow module of every BPMS, and it touches neither:
- * reading and enriching a BPMN model is what a BPMS half does, in the repository of its BPMS.
- * What is left here is the one thing every workflow module needs regardless of its engine -
+ * takes part in the deployment of every workflow module of every BPMS. It touches neither of the
+ * two. Reading and enriching a BPMN model is what a BPMS half does, in the repository of its
+ * BPMS. What is left here is the one thing every workflow module needs whatever its engine is:
  * telling the cockpit server that the module exists.
  */
 public class BusinessCockpitWiringService implements ExtensionWiringService<Object, Object> {
@@ -66,10 +66,9 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
    * Notes which workflow module the BPMN process belongs to.
    * <p>
    * Nothing is added to the model: what a model needs is added by the BPMS half, which is the
-   * only one knowing what a listener looks like in that engine. What this callback does carry,
-   * and nothing else does, is which module deployed which process - and the registration of a
-   * workflow module is written into the outbox store of one of that module's own workflow
-   * aggregates.
+   * only one knowing what a listener looks like in that engine. What this callback carries, and
+   * nothing else does, is which module deployed which process. The registration of a workflow
+   * module is written into the outbox store of one of that module's own workflow aggregates.
    */
   @Override
   public void wireBpmn(
@@ -87,9 +86,9 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
    * Notes that the workflow module is ready to be registered at the cockpit server.
    * <p>
    * The registration is not written here. VanillaBP calls this while the deployment pipeline
-   * runs, and on Quarkus the outbox store creates its table in a startup observer which comes
-   * after that - so the entries are written once the application is up, which the platform
-   * module triggers. Why that is the same on both platforms is decision 6 in the repository's
+   * runs. On Quarkus the outbox store creates its table in a startup observer which comes after
+   * that. So the entries are written once the application is up, and the platform module
+   * triggers that. Why it is the same on both platforms is decision 6 in the repository's
    * DECISIONS.md.
    */
   @Override

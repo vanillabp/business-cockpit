@@ -55,9 +55,9 @@ public class WebSecurityConfiguration {
     private ApplicationProperties properties;
 
     /**
-     * Authenticates a request from the JWT cookie whenever it carries one. Placed behind the basic
-     * authentication filter, so the login request (which has no cookie yet) authenticates by basic
-     * auth and every later request by its cookie.
+     * Authenticates a request from the JWT cookie whenever it carries one. It sits behind the
+     * basic authentication filter. So the login request, which has no cookie yet, authenticates
+     * by basic authentication, and every later request authenticates by its cookie.
      */
     private PassiveJwtSecurityFilter jwtSecurityFilter(
             final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {

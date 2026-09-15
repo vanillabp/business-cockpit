@@ -72,8 +72,8 @@ public class UpdateEmitter {
     /**
      * Writes one named event to the browser.
      *
-     * @return whether the client is still there; a client which closed the stream cannot be told
-     *         anything any more and its emitter has to be dropped
+     * @return Whether the client is still there. A client which closed the stream cannot be told
+     *         anything any more, and its emitter has to be dropped
      */
     public boolean send(
             final String name,

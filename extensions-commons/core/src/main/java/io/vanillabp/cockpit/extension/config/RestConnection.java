@@ -6,10 +6,10 @@ import java.time.Duration;
  * What stands between a workflow module and an HTTP server it talks to: how long it waits,
  * which proxy it passes, and which certificates it trusts.
  * <p>
- * Two servers are talked to, and each brings its own answer: the cockpit server, and the
- * authorization server issuing the token the cockpit expects. Version 1 configured both
- * separately and this version does too, so a deployment whose authorization server sits behind
- * another proxy or presents a certificate of another authority can still say so.
+ * There are two such servers, and each brings its own answer: the cockpit server, and the
+ * authorization server which issues the token the cockpit expects. Version 1 configured both
+ * separately and this version does too. So a deployment whose authorization server sits behind
+ * another proxy, or presents a certificate of another authority, can still say so.
  */
 public interface RestConnection {
 
@@ -61,8 +61,8 @@ public interface RestConnection {
   }
 
   /**
-   * @return Whether the connection needs anything the client's defaults do not give it, which
-   *         is what decides whether the generated client keeps its own HTTP stack
+   * @return Whether the connection needs anything the client's defaults do not give it. This
+   *         decides whether the generated client keeps its own HTTP stack
    */
   default boolean needsAClientOfItsOwn() {
 

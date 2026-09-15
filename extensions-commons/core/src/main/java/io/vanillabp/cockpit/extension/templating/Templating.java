@@ -8,19 +8,19 @@ import java.util.Optional;
 /**
  * Renders the texts the Business Cockpit shows from templates the workflow module ships.
  * <p>
- * Templating is optional in two independent ways, and both end here: the application may have
- * no template engine on its classpath, and it may have one but configure no template directory.
- * In either case {@link #none()} is used and every render answers empty, whereupon the cockpit
- * reports the names written in the BPMN files instead.
+ * Templating is optional in two ways, and both end here. The application may have no template
+ * engine on its classpath, or it may have one and configure no template directory. In either
+ * case {@link #none()} is used and every render answers empty, and the cockpit then reports the
+ * names written in the BPMN files instead.
  */
 public interface Templating {
 
   /**
    * What a template directory starts with to be read from the classpath.
    * <p>
-   * A configured directory says where it is, and the two prefixes are how it says so. Neither is a
-   * default, because the same text meant the classpath on this side of the cockpit and the file
-   * system on the other, and guessing which one an application meant is what this rule ends.
+   * A configured directory says where it is, and the two prefixes are how it says so. Neither is
+   * a default. The same text meant the classpath on this side of the cockpit and the file system
+   * on the other, and this rule ends the guessing.
    */
   String CLASSPATH_PREFIX = "classpath:";
 
@@ -66,12 +66,12 @@ public interface Templating {
   /**
    * Renders one template.
    *
-   * @param lookupPaths The directories to look in, most specific first - the first one holding
-   *          a template of that name wins
+   * @param lookupPaths The directories to look in, most specific first. The first one holding a
+   *          template of that name wins
    * @param templateName The file name
    * @param locale The language the text is rendered for, or <code>null</code> for the
    *          engine's default
-   * @param templateContext What the template reads its values from - a map, a POJO or a record
+   * @param templateContext What the template reads its values from: a map, a POJO or a record
    * @param additionalValues Values put next to the context under their own names, e.g. the
    *          titles a fulltext template joins
    * @return The text, or empty where no template of that name exists in any of the paths or

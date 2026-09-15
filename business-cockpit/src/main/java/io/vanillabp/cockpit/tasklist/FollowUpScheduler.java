@@ -13,14 +13,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Emits UserTask FOLLOWUP events for tasks whose follow-up date has
- * elapsed since the last tick, so SSE-connected clients know that the
- * list content may have changed (a previously hidden task can now appear)
- * and re-fetch — even if the task is not in their current list yet.
- *
- * Per-instance state only — when running multiple cluster nodes each node
- * keeps its own {@code previousCheckTimestamp} and emits to its own SSE
- * subscribers, which is sufficient because SSE clients are pinned to a node.
+ * Sends a FOLLOWUP event for every user task whose follow-up date has passed since the last tick.
+ * A browser on an open event stream then knows that the content of its list may have changed, and
+ * it asks again. A task which was hidden until now can appear that way, even though it is not in
+ * the list the browser holds.
+ * <p>
+ * The state belongs to one node. With several nodes in a cluster, each one keeps its own
+ * {@code previousCheckTimestamp} and sends to the browsers subscribed to it. That is enough,
+ * because a browser stays on the node its event stream was opened on.
  */
 @Component
 public class FollowUpScheduler {

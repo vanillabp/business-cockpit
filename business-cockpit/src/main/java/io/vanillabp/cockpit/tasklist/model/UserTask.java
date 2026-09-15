@@ -41,9 +41,9 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     /**
      * When the reporting workflow system created this user task. {@code null} means the cockpit
-     * never saw the creation and learned about the task from its end alone, which is what happens
-     * when the two reports overtake each other; the creation arriving afterwards fills in what the
-     * end could not report.
+     * never saw the creation and learned about the task from its end alone, which happens when the
+     * two reports overtake each other. The creation arriving afterwards fills in what the end
+     * could not report.
      *
      * @see #latestEventAt
      */
@@ -53,23 +53,23 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
      * When the event behind the latest report the cockpit stored about this user task happened,
      * measured by the reporting workflow system's clock.
      * <p>
-     * Reports overtake each other, so the cockpit has to know how old its own state is to refuse a
-     * report which is older. {@link #reportedAt} cannot answer that (it is the cockpit's clock) and
-     * neither can {@link #updatedAt} (it is audit information, overwritten on every save). {@code
-     * null} means the cockpit cannot say which event its state came from, and the next report is then
-     * applied whatever its timestamp says. A task stored before this property existed had its
-     * {@link #createdAt} copied here by a changeset, so a task the cockpit knows from its end alone
-     * is the one which stays without a value.
+     * Reports overtake each other, so the cockpit has to know how old its own state is before it
+     * can refuse an older report. {@link #reportedAt} cannot answer that, because it is the
+     * cockpit's clock. Neither can {@link #updatedAt}, which is audit information and is
+     * overwritten on every save. {@code null} means the cockpit cannot say which event its state
+     * came from, and the next report is then applied whatever its timestamp says. A task stored
+     * before this property existed had its {@link #createdAt} copied here by a changeset, so a
+     * task the cockpit knows from its end alone is the one which stays without a value.
      */
     private OffsetDateTime latestEventAt;
 
     /**
-     * When the cockpit stored the report about this user task, measured by the cockpit's own clock -
-     * as opposed to {@link #createdAt}, which is the timestamp of the reporting workflow system.
+     * When the cockpit stored the report about this user task, measured by the cockpit's own
+     * clock. {@link #createdAt} is the other one, the timestamp of the reporting workflow system.
      * <p>
-     * Needed to tell a newly reported task from an updated one when scanning for notifications: the
-     * scan cursor advances by the cockpit's clock, so comparing it to a foreign clock (or to the
-     * timestamp of an event delivered late) silently drops notifications.
+     * The scan for notifications needs it to tell a newly reported task from an updated one. The
+     * cursor of that scan moves with the cockpit's clock. Comparing it to a foreign clock, or to
+     * the timestamp of an event which arrived late, drops notifications without a word.
      */
     private OffsetDateTime reportedAt;
 
@@ -114,14 +114,15 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private List<Person> candidateUsers = null;
 
     /**
-     * For each personal candidate, when the cockpit learned about them - on reporting the task or
-     * on assigning it in the cockpit. Maintained by {@link #addCandidatePerson(Person)} /
-     * {@link #removeCandidatePerson(String)} and by
-     * {@link #stampCandidatesSince(OffsetDateTime)} for the candidates a report brought along.
+     * When the cockpit learned about each personal candidate, either as the task was reported or
+     * as it was assigned in the cockpit. {@link #addCandidatePerson(Person)} and
+     * {@link #removeCandidatePerson(String)} keep it up to date, and
+     * {@link #stampCandidatesSince(OffsetDateTime)} does so for the candidates a report brought
+     * along.
      * <p>
-     * Needed because a candidate has to be notified when he <i>becomes</i> a candidate, not on
-     * every later change of the task. The outbox alone cannot tell those apart: its entries are
-     * cleaned up after a while, and a proposal repeated after that turns into a second message.
+     * A candidate has to be notified when they <i>become</i> a candidate, and not on every later
+     * change of the task. The outbox alone cannot tell the two apart, because its entries are
+     * cleaned up after a while and a proposal repeated after that turns into a second message.
      */
     private List<CandidateSince> candidateUsersSince = null;
 
@@ -130,9 +131,9 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private List<Person> excludedCandidateUsers = null;
 
     /**
-     * Users the workflow module let through although they are no candidate. Who is in here sees the
-     * task whatever the candidates say and even when {@link #excludedCandidateUsers} names them,
-     * which is how a module keeps a case readable for everybody who had a hand in it.
+     * Users the workflow module let through although they are no candidate. Whoever is in here
+     * sees the task whatever the candidates say, and even where {@link #excludedCandidateUsers}
+     * names them. That is how a module keeps a case readable for everybody who had a hand in it.
      */
     private List<Person> admittedUsers = null;
 
@@ -154,21 +155,21 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private io.vanillabp.spi.cockpit.usertask.NotificationDelivery notificationDelivery;
 
     /**
-     * Why the task ended ({@code null} while open). Lets the notification poller tell a completion
-     * apart from a cancellation.
+     * Why the task ended, and {@code null} while it is open. It lets the notification poller tell
+     * a completion from a cancellation.
      */
     private UserTaskEndReason endReason;
 
     /**
-     * Transient carrier of the kind of change a notification is about. Set by the notification
-     * poller before calling {@code NotificationService#sendNotification}; never persisted.
+     * Carries the kind of change a notification is about. The notification poller sets it before
+     * it calls {@code NotificationService#sendNotification}. It is never stored.
      */
     @org.springframework.data.annotation.Transient
     private io.vanillabp.cockpit.notification.NotificationType notificationType;
 
     /**
-     * Transient carrier telling whether the workflow module forced this notification. Set by the
-     * notification poller before calling {@code NotificationService#sendNotification}; never persisted.
+     * Says whether the workflow module forced this notification. The notification poller sets it
+     * before it calls {@code NotificationService#sendNotification}. It is never stored.
      */
     @org.springframework.data.annotation.Transient
     private boolean forced;
@@ -244,8 +245,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     /**
      * @param userId a user
-     * @return when the cockpit learned that the user is a personal candidate, or {@code null} if
-     *         the user is no candidate or it is unknown since when he is one
+     * @return When the cockpit learned that the user is a personal candidate. {@code null} where
+     *         the user is no candidate, or where it is unknown since when they are one
      */
     public OffsetDateTime getCandidateSince(
             final String userId) {
@@ -264,8 +265,8 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     }
 
     /**
-     * Records the given timestamp for every personal candidate not stamped yet, used for the
-     * candidates a report brought along.
+     * Records the given timestamp for every personal candidate which carries none yet. It is used
+     * for the candidates a report brought along.
      *
      * @param timestamp when the cockpit learned about those candidates
      */

@@ -1,23 +1,16 @@
 package io.vanillabp.cockpit.commons.utils;
 
 /**
- * Used to configure async task executor.
+ * Configures the executor which runs the asynchronous tasks.
  */
 public class AsyncProperties {
 
-    /**
-     * Thread pool default core pool size.
-     */
     private int corePoolSize = 2;
 
-    /**
-     * Thread pool default maximum pool size.
-     */
     private int maxPoolSize = 50;
 
     /**
-     * Default queue capacity: If more tasks waiting then
-     * the configured queue capacity then a new thread is spawn. 
+     * How many tasks may wait. Once more than that are waiting, a new thread is started.
      */
     private int queueCapacity = 5;
 

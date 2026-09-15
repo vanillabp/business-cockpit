@@ -5,8 +5,9 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Read-only view of the data the {@link NotificationScanner} needs, so the classification logic can
- * be unit-tested without MongoDB or a real user directory. Built once per poll cycle by the poller.
+ * A read-only view of what the {@link NotificationScanner} needs. It lets the scanner be
+ * unit-tested without MongoDB and without a real user directory. The poller builds it once per
+ * cycle.
  */
 public interface RecipientDirectory {
 
@@ -20,9 +21,10 @@ public interface RecipientDirectory {
     Collection<String> loggedInUserIds();
 
     /**
-     * The authorities (roles + group ids + {@code USER_<id>}) of a user, or {@code null} if they
-     * cannot be determined (e.g. no user directory is configured) - in which case visibility-based
-     * CREATED notifications are skipped for that user.
+     * The authorities of a user, which are the roles, the group ids and {@code USER_<id>}. It is
+     * {@code null} where they cannot be found out, because no user directory is configured for
+     * example. A CREATED notification which rests on what the user may see is then skipped for
+     * that user.
      */
     List<String> authoritiesOf(String userId);
 

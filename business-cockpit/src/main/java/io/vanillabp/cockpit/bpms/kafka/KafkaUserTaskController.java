@@ -111,14 +111,14 @@ public class KafkaUserTaskController {
     }
 
     /**
-     * Version 1 of the API reports an end without the fields a change carries, so a task the cockpit
-     * hears of by its end alone is stored with the end and nothing else until the creation, which is
-     * still on its way, fills the rest in.
+     * Version 1 of the API reports an end without the fields a change carries. A task the cockpit
+     * hears of by its end alone is therefore stored with the end and nothing else. The creation is
+     * still on its way and fills the rest in when it arrives.
      * <p>
-     * There is no mapping of an end here for the same reason. An end of this version says who ended
-     * the task and, where it was cancelled, why; both are written by hand below. So an end of this
-     * version cannot take the due date, the title or the business data of a stored task away,
-     * whatever the reporting side leaves out.
+     * For the same reason an end is not mapped here. An end of this version says who ended the
+     * task, and for a cancellation it also says why. Both are written by hand below. So an end of
+     * this version can never take the due date, the title or the business data away from a stored
+     * task, whatever the reporting side leaves out.
      */
     private void handleUserTaskCompletedEventV1(UserTaskCompletedEvent userTaskCompleted) {
         userTaskService.reportEndedUserTask(

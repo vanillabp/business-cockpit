@@ -7,16 +7,17 @@ import java.util.Map;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
- * What the cockpit stores when a workflow module reports that a user task or a case has ended: an end
- * overwrites what it reports and leaves the rest of the record as it is - see decision 19 in the
- * repository's DECISIONS.md, which says what an end of a case nobody can describe any more still
- * carries and what keeping it costs.
+ * What the cockpit stores when a workflow module reports that a user task or a case has ended. An
+ * end overwrites what it reports and leaves the rest of the record as it is, see decision 19 in
+ * the repository's DECISIONS.md. That entry says what an end still carries when nobody can
+ * describe the case any more, and what keeping it costs.
  * <p>
- * A field which was not reported usually arrives as <code>null</code>, and a mapper answers that with
- * {@link NullValuePropertyMappingStrategy#IGNORE} rather than with a method here. The methods here are
- * for the maps and the lists, which arrive empty instead: a report fills its collections whether it has
- * anything to put in them or not, and over Kafka it could not do otherwise, because protobuf gives a
- * map and a repeated field no presence information. An empty collection is read as nothing reported.
+ * A field which was not reported usually arrives as <code>null</code>. A mapper answers that with
+ * {@link NullValuePropertyMappingStrategy#IGNORE}, so no method here is needed for it. The methods
+ * here are for the maps and the lists, which arrive empty instead. A report fills its collections
+ * whether it has anything to put in them or not, and over Kafka it cannot do otherwise: protobuf
+ * cannot tell a map or a repeated field which was left out from one which is empty. So an empty
+ * collection means nothing was reported.
  */
 public final class WhatAnEndReports {
 
@@ -26,9 +27,9 @@ public final class WhatAnEndReports {
     /**
      * Copies what is stored before a mapping runs.
      * <p>
-     * A generated mapper updates a map in place: it empties the one the stored object holds and
-     * fills it again. Reading the stored map after that reads what the event brought, so it has to
-     * be read before.
+     * A generated mapper updates a map in place. It empties the map the stored object holds and
+     * fills it again. Read that map after the mapping and you read what the event brought, so read
+     * it before.
      *
      * @param stored What the cockpit holds about the task or the case
      * @param <V> What the map holds

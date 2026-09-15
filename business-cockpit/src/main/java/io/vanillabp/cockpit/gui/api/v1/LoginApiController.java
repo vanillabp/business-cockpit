@@ -28,9 +28,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class LoginApiController implements LoginApi {
 
     /**
-     * The stream stays open for as long as the browser keeps the tab open, which is far longer than
-     * the default asynchronous request timeout. Timing it out would close the stream underneath a
-     * client that is perfectly healthy.
+     * The stream stays open for as long as the browser keeps the tab open, which is far longer
+     * than the default asynchronous request timeout. Timing it out would close the stream under a
+     * client which is perfectly healthy.
      */
     private static final long NO_SSE_TIMEOUT = Long.MAX_VALUE;
 
@@ -75,9 +75,9 @@ public class LoginApiController implements LoginApi {
         sseEmitter.onTimeout(() -> updateEmitters.remove(id));
         sseEmitter.onError(error -> updateEmitters.remove(id));
 
-        // This ping forces the browser to treat the text/event-stream request
-        // as closed and therefore the lock created in fetchApi.ts is released
-        // to avoid the UI would stuck in cases of errors.
+        // this ping makes the browser treat the text/event-stream request as closed. The lock
+        // fetchApi.ts created is then released, so the user interface does not hang after an
+        // error.
         taskScheduler.schedule(
                 () -> {
                     if (!pingUpdateEmitter(id, updateEmitter)) {
@@ -112,9 +112,10 @@ public class LoginApiController implements LoginApi {
     }
 
     /**
-     * An update stream never ends by itself, so on shutdown the clients have to be told. Reacting
-     * to the context closing rather than to bean destruction, because the web server refuses to
-     * shut down while requests - and an open event stream is one - are still in flight.
+     * An update stream never ends by itself, so the clients have to be told when the application
+     * shuts down. This reacts to the context closing and not to the bean being destroyed. The web
+     * server refuses to shut down while requests are still in flight, and an open event stream is
+     * such a request.
      */
     @EventListener(classes = ContextClosedEvent.class)
     public void closeUpdateStreams() {
@@ -141,7 +142,7 @@ public class LoginApiController implements LoginApi {
     }
 
     /**
-     * SSE channel is closed on idle, so we ping the client.
+     * An idle server-sent-event channel is closed, so the client is pinged to keep it open.
      */
     @Scheduled(fixedDelayString = "PT27S")
     public void cleanupUpdateEmitters() {
@@ -202,11 +203,11 @@ public class LoginApiController implements LoginApi {
             final String xRefreshToken) {
 
         final var user = userContext.getUserLoggedInDetails();
-        // The request which signs in by basic auth is authenticated, but it is the response to
-        // exactly that request which carries the JWT cookie the cockpit reads its user details
-        // from. So the sign-in request itself has no user to report yet and the client asks again
-        // with the cookie. Answered without a body, the way it was while the application was
-        // reactive and the empty publisher ended up as an empty 200.
+        // the request which signs in by basic authentication is authenticated, but the response
+        // to exactly that request is what carries the JWT cookie. The cockpit reads its user
+        // details from that cookie, so the sign-in request has no user to report yet and the
+        // client asks again with the cookie. The answer has no body, the way it had while the
+        // application was reactive and the empty publisher ended up as an empty 200.
         if (user == null) {
             return ResponseEntity.ok().build();
         }

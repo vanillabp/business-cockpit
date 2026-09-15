@@ -73,8 +73,8 @@ public record RestTransportConfiguration(
    * @param clientId The client the token is asked for
    * @param clientSecret The secret belonging to it
    * @param clientInAuthorizationHeader Whether the client identifies itself in an
-   *          <code>Authorization</code> header rather than in the form of the token request -
-   *          which of the two an authorization server accepts is its own decision
+   *          <code>Authorization</code> header instead of in the form of the token request.
+   *          Which of the two an authorization server accepts is its own decision
    * @param connectTimeout How long establishing the connection to the authorization server may
    *          take, which is this server's own setting and not the cockpit server's
    * @param readTimeout How long the authorization server may take to answer

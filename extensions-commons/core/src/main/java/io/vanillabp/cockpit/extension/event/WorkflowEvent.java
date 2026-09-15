@@ -76,7 +76,7 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   }
 
   /**
-   * Takes over what a details provider returned as an object of its own - see
+   * Takes over what a details provider returned as an object of its own. See
    * {@link UserTaskEvent#applyReturnedDetails} for why the comparison is by identity.
    *
    * @param details What the provider returned, or <code>null</code>

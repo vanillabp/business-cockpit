@@ -21,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Base class for {@link NotificationService} implementations that render their message from
- * Freemarker templates (AC tech 2). Medium-agnostic: an SMS/Teams/... medium can reuse it.
+ * The base class of every {@link NotificationService} which renders its message from Freemarker
+ * templates. It knows no medium, so a medium sending an SMS or a chat message can reuse it.
  * <p>
  * Templates are looked up under the directory resolved from
  * {@code business-cockpit.notification.templates.<type>} (default
@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
  * again once its own update delay has passed, which is five seconds by default, and there is no
  * setting of the cockpit's for it.
  * <p>
- * The rendering approach mirrors the way the version 1 adapters rendered text. That code has left
- * this repository, so the approach is written out here: a Freemarker {@link Configuration} with a
- * {@link Java8ObjectWrapper} exposed at {@code EXPOSE_SAFE} (required so Java record component
- * accessors become template properties).
+ * The rendering follows the way the version 1 adapters rendered text. That code has left this
+ * repository, so the way is written out here: a Freemarker {@link Configuration} with a
+ * {@link Java8ObjectWrapper} exposed at {@code EXPOSE_SAFE}. The exposure level is what makes the
+ * accessors of a Java record into template properties.
  */
 public abstract class AbstractTemplatingNotificationService implements NotificationService {
 
@@ -53,8 +53,9 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
     private static final String[] TEMPLATE_SUFFIXES = { ".ftlh", ".ftl" };
 
     /**
-     * A rendered template plus whether it is HTML (derived from the template's Freemarker output
-     * format, i.e. a {@code .ftlh} template or an explicit {@code <#ftl output_format="HTML">}).
+     * A rendered template, and whether it is HTML. That comes from the output format Freemarker
+     * read, which is a {@code .ftlh} template or an explicit
+     * {@code <#ftl output_format="HTML">}.
      */
     public record Rendered(String content, boolean html) {
     }
@@ -148,12 +149,13 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
     }
 
     /**
-     * Renders a template for an explicit locale. Freemarker's localized lookup resolves the most
-     * specific template available (e.g. {@code email-body_de.ftl}) and falls back to the
-     * locale-less template ({@code email-body.ftl}). Callers that know the recipient's preferred
-     * locale (e.g. the e-mail medium, which reads it from the user record and falls back to the
-     * application default) use this overload; the public 5-arg {@link #render} keeps the contract
-     * signature and derives the locale via {@link #localeOf(UserDetails)}.
+     * Renders a template for one named locale. Freemarker looks for the most specific template
+     * it has, {@code email-body_de.ftl} for example, and falls back to the template without a
+     * locale, {@code email-body.ftl}. A caller which knows the locale the recipient prefers uses
+     * this overload. The e-mail medium is such a caller: it reads the locale off the user record
+     * and falls back to the application's default. The public {@link #render} with five arguments
+     * keeps the signature of the contract and asks {@link #localeOf(UserDetails)} for the
+     * locale.
      */
     protected String render(
             final String templateName,
@@ -228,9 +230,10 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
     }
 
     /**
-     * The locale used by the public 5-arg {@link #render} for template lookup. Defaults to
-     * {@link Locale#ENGLISH}; the e-mail medium instead passes the recipient's resolved locale
-     * (user preference or application default) to the 6-arg overload.
+     * The locale the public {@link #render} with five arguments looks a template up with. It is
+     * {@link Locale#ENGLISH} by default. The e-mail medium takes the other way and hands the
+     * recipient's own locale, or the application's default, to the overload with six
+     * arguments.
      */
     protected Locale localeOf(final UserDetails userDetails) {
 

@@ -9,10 +9,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * A pending or sent notification for exactly one recipient, one user task and one medium.
  * <p>
- * The outbox is the persistence that makes delivery cluster-safe and crash-resilient (AC tech 8/9):
- * entries survive restarts and are retried until sent. A unique index on
- * {@code (userTaskId, notificationType, recipientUserId, medium)} makes inserts idempotent so the
- * delta-scan may re-propose the same notification without producing duplicates.
+ * The outbox is what makes a delivery survive a crash and work in a cluster. Its entries outlive
+ * a restart and are retried until they are sent. A unique index on
+ * {@code (userTaskId, notificationType, recipientUserId, medium)} makes an insert idempotent, so
+ * the scan may propose the same notification again without producing a second message.
  */
 @Document(collection = NotificationOutboxEntry.COLLECTION_NAME)
 public class NotificationOutboxEntry {
@@ -38,9 +38,9 @@ public class NotificationOutboxEntry {
     private boolean forced;
 
     /**
-     * How often delivery of this entry's bulk has been attempted. Once it reaches the configured
-     * maximum the entry is considered stale and is no longer retried; delivery resumes if the
-     * counter is manually reset to 0 in MongoDB.
+     * How often the delivery of this entry's bulk has been attempted. Once it reaches the
+     * configured maximum, the entry counts as stale and is no longer retried. Delivery starts
+     * again once somebody resets the counter to 0 in MongoDB.
      */
     private int attempts;
 

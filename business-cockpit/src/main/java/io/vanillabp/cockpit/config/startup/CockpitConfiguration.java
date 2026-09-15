@@ -11,12 +11,12 @@ import org.springframework.util.StringUtils;
  * The names of the configuration values a cockpit application has to provide, and a way to read
  * them straight from the environment.
  * <p>
- * Reading is deliberately not done through the {@code @ConfigurationProperties} beans: the startup
- * check runs before any bean is instantiated, and {@link BpmsApiIsConfigured} runs even earlier,
- * while configuration classes are still being parsed. Binding by
+ * Reading does not go through the {@code @ConfigurationProperties} beans on purpose. The startup
+ * check runs before any bean is built, and {@link BpmsApiIsConfigured} runs even earlier, while the
+ * configuration classes are still being parsed. Binding by
  * {@link ConfigurationPropertyName#adapt(CharSequence, char) adapted} name keeps Spring's relaxed
- * matching, so a value written as {@code hmacSHA256-base64} in yaml is found under exactly the name
- * spelled here - and under every other spelling Spring would accept for it.
+ * matching. So a value written as {@code hmacSHA256-base64} in YAML is found under exactly the name
+ * spelled here, and under every other spelling Spring would accept for it.
  */
 public final class CockpitConfiguration {
 
@@ -90,8 +90,8 @@ public final class CockpitConfiguration {
     }
 
     /**
-     * Whether the BPMS API can be served: it authenticates every request by HTTP basic, which needs
-     * all three of realm, user and password.
+     * Whether the BPMS API can be served. It authenticates every request by HTTP basic, which
+     * needs all three: realm, user and password.
      */
     public static boolean isBpmsApiConfigured(
             final Environment environment) {

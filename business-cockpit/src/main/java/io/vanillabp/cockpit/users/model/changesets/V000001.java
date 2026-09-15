@@ -7,8 +7,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Initializes the {@code users} collection (users who logged in at least once). Introduced by the
- * notification feature but generic - other features may reuse the {@code users} collection.
+ * Creates the {@code users} collection, which holds the users who logged in at least once. The
+ * notification feature brought it, but it is a general collection and other features may use it.
  */
 @Component("V100_User")
 @ChangesetConfiguration(author = "stephanpelikan")

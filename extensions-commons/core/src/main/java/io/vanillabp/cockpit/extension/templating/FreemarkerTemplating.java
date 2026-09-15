@@ -26,7 +26,7 @@ import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
  * The one setting worth explaining is the exposure level of the object wrapper. Freemarker
  * promotes the accessors of a Java record to template properties only while the exposure level
  * is lower than <code>EXPOSE_PROPERTIES_ONLY</code>, so a record handed in as the template
- * context would otherwise render nothing at all - and a record is the natural shape for the
+ * context would otherwise render nothing at all. And a record is the natural shape for the
  * little view object a workflow module builds for its titles.
  */
 public class FreemarkerTemplating implements Templating {
@@ -43,8 +43,8 @@ public class FreemarkerTemplating implements Templating {
    *          one of the file system, written with <code>file:</code> in front of it. The
    *          configuration check refuses a directory without one of the prefixes, so a path which
    *          gets here has already said where it is
-   * @throws IllegalStateException If the location cannot be read - which is a configuration
-   *           defect and is reported at startup, not at the first event
+   * @throws IllegalStateException If the location cannot be read. That is a configuration
+   *           defect, and it is reported at startup and not at the first event
    */
   public FreemarkerTemplating(
       final String templateLoaderPath) {
@@ -89,8 +89,8 @@ public class FreemarkerTemplating implements Templating {
   }
 
   /**
-   * @param configuration A configuration built elsewhere - a test loading its templates from
-   *          the classpath, or an application which needs settings of its own
+   * @param configuration A configuration built elsewhere, for example a test loading its
+   *          templates from the classpath, or an application which needs settings of its own
    */
   public FreemarkerTemplating(
       final Configuration configuration) {
@@ -123,8 +123,8 @@ public class FreemarkerTemplating implements Templating {
    * <p>
    * Where <code>no.api.freemarker:freemarker-java8</code> is on the classpath its wrapper is
    * used instead, which additionally lets a template read a <code>java.time</code> value.
-   * Version 1 required that library; here it is a choice the application makes, and a
-   * template rendering a date says so by failing rather than by an application carrying a
+   * Version 1 required that library. Here it is a choice the application makes. A template which
+   * renders a date fails without it, which is better than every application carrying a
    * dependency it may never need.
    */
   private static BeansWrapper objectWrapper() {
@@ -181,7 +181,7 @@ public class FreemarkerTemplating implements Templating {
       final Locale locale) {
 
     for (final var lookupPath : lookupPaths) {
-      // a Freemarker template name is a path of its own, always separated by '/' - what a
+      // a Freemarker template name is a path of its own, always separated by '/'. What a
       // file system calls a separator has nothing to do with it
       final var candidate = lookupPath.isEmpty()
           ? templateName
@@ -191,8 +191,8 @@ public class FreemarkerTemplating implements Templating {
       try {
         return configuration.getTemplate(candidate, locale);
       } catch (final TemplateNotFoundException e) {
-        // the next, less specific path is asked - a template of this name simply does not
-        // exist here, which is the normal case for all but one of the paths
+        // the next, less specific path is asked. A template of this name simply does not
+        // exist here, and that is the normal case for all but one of the paths
       } catch (final Exception e) {
         logger.error("Could not read the template '{}'", candidate, e);
         return null;

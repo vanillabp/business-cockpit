@@ -25,21 +25,21 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
  * providers, so that the machinery behind <code>&#64;WorkflowTask</code> serves them too.
  * <p>
  * A user-task provider is matched by the BPMN element id or by the task definition, whichever
- * the annotation names, and by the method's own name where it names neither - the convention
- * every VanillaBP annotation follows. A method writing
+ * the annotation names. Where it names neither, the method's own name is the match, which is
+ * the convention every VanillaBP annotation follows. A method writing
  * {@link UserTaskDetailsProvider#ALL} instead of a name serves every user task of every BPMN
  * process its workflow service declares, and it runs where no method of that process names the
  * task. A workflow provider exists once per BPMN process and therefore serves every key of it.
  * <p>
- * No matching method is a legal answer, and the prefilled details then pass through unchanged:
+ * No matching method is a legal answer. The prefilled details then pass through unchanged, so
  * a workflow module which reports nothing of its own still shows up in the cockpit, with the
  * titles the BPMN carries.
  * <p>
  * Both contracts say that VanillaBP never saves the workflow aggregate after one of these
- * methods ran. A details provider answers what the cockpit should show, and answering a question
- * does not change a case - see decision 17 in the repository's DECISIONS.md. It is said here and
- * not at every call because VanillaBP wires the methods long before anybody calls one, and a
- * start which cannot read it warns about a writer this extension does not have.
+ * methods ran. A details provider answers what the cockpit should show, and answering a
+ * question does not change a case. See decision 17 in the repository's DECISIONS.md. It is said
+ * here and not at every call, because VanillaBP wires the methods long before anybody calls one.
+ * A start which cannot read it warns about a writer this extension does not have.
  */
 public final class BusinessCockpitHandlers {
 
@@ -103,10 +103,10 @@ public final class BusinessCockpitHandlers {
   /**
    * Adds what one attribute of the annotation names to the keys a method serves.
    * <p>
-   * {@link UserTaskDetailsProvider#ALL} becomes {@link HandlerContract#EVERY_KEY}, which is how
-   * a method claiming every user task reaches VanillaBP: it looks the same to it as a
-   * <code>&#64;WorkflowDetailsProvider</code> or a start method naming no start event, so the
-   * rule those follow holds here as well. A method naming one task wins over it, and two
+   * {@link UserTaskDetailsProvider#ALL} becomes {@link HandlerContract#EVERY_KEY}. That is how
+   * a method claiming every user task reaches VanillaBP. To VanillaBP it looks like a
+   * <code>&#64;WorkflowDetailsProvider</code> or like a start method which names no start event,
+   * so the rule those follow holds here as well. A method naming one task wins over it, and two
    * methods claiming every task of one workflow service end the boot.
    * <p>
    * Both constants read '*' today. The translation happens all the same, so that a method
@@ -134,14 +134,14 @@ public final class BusinessCockpitHandlers {
 
   /**
    * The <code>version</code> attribute of <code>&#64;UserTaskDetailsProvider</code> is reserved
-   * and has to stay unset - see decision 7 in the repository's DECISIONS.md.
+   * and has to stay unset. See decision 7 in the repository's DECISIONS.md.
    * <p>
-   * Version-aware matching means picking a different method per deployed version of a process,
-   * and the events this extension reacts to carry no process version: a task listener says
-   * which task fired, not which version of the model it came from. Nothing would therefore
-   * distinguish two methods, and a value which is silently ignored is worse than one which is
-   * refused - version 1 documented the attribute and never read it, and applications wrote it
-   * believing it worked.
+   * Version-aware matching means picking a different method per deployed version of a process.
+   * The events this extension reacts to carry no process version: a task listener says which
+   * task fired, not which version of the model it came from. So nothing would tell two methods
+   * apart. A value which is silently ignored is worse than one which is refused. Version 1
+   * documented the attribute and never read it, and applications wrote it believing it
+   * worked.
    * <p>
    * VanillaBP runs this while it scans the annotation, holding the method which carries it, and
    * puts the annotation, the class, the method and this extension in front of what is said
@@ -149,7 +149,7 @@ public final class BusinessCockpitHandlers {
    *
    * @param annotation One occurrence of <code>&#64;UserTaskDetailsProvider</code>
    * @param method The method carrying it, which VanillaBP names in its refusal
-   * @throws IllegalStateException If it names a version - the message says what to write instead
+   * @throws IllegalStateException If it names a version. The message says what to write instead
    */
   private static void rejectReservedVersionAttribute(
       final Annotation annotation,
@@ -230,9 +230,9 @@ public final class BusinessCockpitHandlers {
    * keys.
    * <p>
    * The element id comes first, so a method naming it wins over a method naming the task
-   * definition of the same task. The platform takes the first offered key some method serves, and
-   * the element id is the name VanillaBP is moving towards: it is what a BPMN file always has,
-   * while the task definition is an attribute an adapter reads off the model today and will stop
+   * definition of the same task. The platform takes the first offered key some method serves.
+   * The element id is the name VanillaBP is moving towards, because a BPMN file always has one.
+   * The task definition is an attribute an adapter reads off the model today and will stop
    * needing. Once it is gone this list simply loses its second entry and nothing else changes.
    * <p>
    * Which method wins is asserted where a user sees it, by

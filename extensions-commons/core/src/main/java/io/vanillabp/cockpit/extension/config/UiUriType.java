@@ -17,7 +17,7 @@ public enum UiUriType {
    *
    * @param value What was configured
    * @return The type
-   * @throws IllegalArgumentException If the value names none of the types - the message lists
+   * @throws IllegalArgumentException If the value names none of the types. The message lists
    *           them
    */
   public static UiUriType of(

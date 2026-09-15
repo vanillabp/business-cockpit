@@ -19,8 +19,8 @@ import io.vanillabp.spi.cockpit.usertask.UserTask;
  * workflow aggregate class of the application.
  * <p>
  * Injecting it is optional. VanillaBP builds the bean when something asks for it, so an
- * application which never reports a change of its own never has one - which is the one thing
- * about this service that changed from version 1, where the primary process of a workflow
+ * application which never reports a change of its own never has one. That is the one thing
+ * about this service which changed from version 1, where the primary process of a workflow
  * service had to inject it whether it used it or not.
  */
 public class BusinessCockpitServiceFactory implements AggregateServiceFactory<BusinessCockpitService> {
@@ -98,9 +98,9 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
           final Object workflowAggregate,
           final String userTaskId) {
 
-        // one transaction around the whole question, the caller's where the caller has one: the
-        // BPMS is asked which task it holds, the aggregate is read for the details provider, and
-        // an answer built from two units of work could describe two different moments
+        // one transaction around the whole question, the caller's where the caller has one. The
+        // BPMS is asked which task it holds, and the aggregate is read for the details provider.
+        // An answer built from two units of work could describe two different moments
         return extension
             .readInOneTransaction(
                 context.getWorkflowAggregateClass(),
@@ -122,9 +122,9 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        * Refuses a report where the calling thread runs no transaction.
        * <p>
        * The entry of a report is written into the transaction which persists the change it
-       * reports, so that nothing is reported for a change which was rolled back. Without a
-       * transaction there is nothing to write it into, and the platform's own refusal speaks of
-       * an adapter reporting from a worker thread, which is not what happened here.
+       * reports, so nothing is reported for a change which was rolled back. Without a
+       * transaction there is nothing to write it into. The platform's own refusal speaks of an
+       * adapter reporting from a worker thread, which is not what happened here.
        * <p>
        * A report nobody writes needs nothing. An application which switched the two lists off,
        * and a workflow module which configured nothing about the cockpit, carry on without a

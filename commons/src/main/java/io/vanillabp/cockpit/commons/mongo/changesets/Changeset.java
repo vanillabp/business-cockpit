@@ -35,9 +35,8 @@ public @interface Changeset {
     String author() default "";
     
     /**
-     * Each changeset method has to declare its order. If and order value
-     * is declared more than one time then an exception is thrown before
-     * initialization and the runtime is stopped.
+     * Each changeset method has to declare its order. Two methods declaring the same order end
+     * the start before any changeset runs.
      */
     int order();
     

@@ -13,8 +13,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.messaging.DefaultMessageListenerContainer;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
 
-// registered through the .imports file, so it has to be an @AutoConfiguration - only then are
-// @AutoConfigureBefore/After honoured
+// registered through the .imports file, so it has to be an @AutoConfiguration. Only then are
+// @AutoConfigureBefore and @AutoConfigureAfter read
 @AutoConfiguration
 @AutoConfigureBefore(DataMongoRepositoriesAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
@@ -32,8 +32,9 @@ public class BusinessCockpitMongoDbAutoConfiguration {
      * the cursors, which is why a change-stream subscription is a registration here and not a
      * thread of its own.
      * <p>
-     * Those threads are daemons: a change stream never ends by itself, and a thread parked on the
-     * cursor of a database that is already gone would otherwise keep the JVM alive after shutdown.
+     * Those threads are daemons. A change stream never ends by itself, and a thread parked on the
+     * cursor of a database which is already gone would otherwise keep the JVM alive after the
+     * shutdown.
      */
     @Bean
     @ConditionalOnBean(MongoTemplate.class)

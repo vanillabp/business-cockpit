@@ -19,9 +19,9 @@ import io.vanillabp.cockpit.extension.event.UserTaskEvent;
  * The API declares one schema per kind of event, and the generator therefore produced four
  * classes carrying the same fields. Nothing but the class and the <code>updated</code> flag
  * differs between the four mappings below, which is why they look alike (see decision 9 in the
- * repository's DECISIONS.md); folding them into one
- * would mean converting between the generated classes, and a conversion of a timestamp is
- * exactly the kind of thing that goes wrong silently.
+ * repository's DECISIONS.md). Folding them into one would mean converting between the generated
+ * classes, and a conversion of a timestamp is exactly the kind of thing which goes wrong without
+ * a word.
  * <p>
  * Collections are copied on the way out. What travels here belongs to the event, which is
  * still readable by the application's details provider afterwards.

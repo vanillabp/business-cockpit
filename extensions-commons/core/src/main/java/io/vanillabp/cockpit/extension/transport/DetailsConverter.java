@@ -19,9 +19,9 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsValue;
  * Protobuf has no free-form value, so the data takes a detour through JSON: the object graph
  * becomes a tree, and the tree becomes the nested <code>DetailsMap</code> the cockpit reads.
  * Two properties of that shape are worth knowing. Every value is wrapped in an array, with a
- * flag saying whether it really was one, so that a reader needs one case less. And a number
- * travels as its decimal STRING, because a JSON number has no width and the cockpit must not
- * silently turn a business amount into a double.
+ * flag saying whether it really was one, so a reader needs one case less. And a number travels
+ * as its decimal text, because a JSON number has no width and the cockpit must not turn a
+ * business amount into a double without a word.
  */
 public final class DetailsConverter {
 

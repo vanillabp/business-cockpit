@@ -5,18 +5,18 @@ import io.vanillabp.cockpit.notification.model.WorkflowNotificationConfiguration
 import java.util.Map;
 
 /**
- * Pure, side-effect-free resolution of "does the user want to be notified for this
- * workflow via this medium?" from a {@link NotificationConfiguration} object tree.
+ * Answers one question off a {@link NotificationConfiguration} tree: does this user want to be
+ * notified about this workflow through this medium? It reads and changes nothing.
  * <p>
- * Rules (AC func 4):
+ * The rules:
  * <ol>
- *   <li>The default (no/empty configuration) is "none" - the user is not notified.</li>
- *   <li>A per-workflow override wins over the global setting.</li>
- *   <li>Selecting "none" (globally or per-workflow) turns all media off for that scope
- *       (AC func 4e).</li>
- *   <li>Media are independent of each other.</li>
+ *   <li>A configuration which is absent or empty means "none", so the user is not notified.</li>
+ *   <li>A setting for one workflow wins over the setting for all of them.</li>
+ *   <li>Choosing "none", for all workflows or for one, switches every medium off for that
+ *       scope.</li>
+ *   <li>The media do not depend on each other.</li>
  * </ol>
- * Reused by the notification poller (T04) and unit-tested in isolation.
+ * The notification poller uses it, and it is unit-tested on its own.
  */
 public final class NotificationConfigurationResolver {
 
@@ -45,7 +45,7 @@ public final class NotificationConfigurationResolver {
             final WorkflowNotificationConfiguration override =
                     perWorkflow.get(NotificationConfiguration.workflowKey(workflowModuleId, bpmnProcessId));
             if (override != null) {
-                // "none" for a workflow clears all media for that scope (AC func 4e).
+                // "none" for a workflow clears every medium of that scope
                 if (override.none()) {
                     return false;
                 }

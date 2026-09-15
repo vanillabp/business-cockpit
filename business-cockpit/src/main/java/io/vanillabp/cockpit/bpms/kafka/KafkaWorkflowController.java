@@ -108,9 +108,9 @@ public class KafkaWorkflowController {
     }
 
     /**
-     * Version 1 of the API reports an end without the fields a change carries, so a case the cockpit
-     * hears of by its end alone is stored with the end and nothing else until the creation, which is
-     * still on its way, fills the rest in.
+     * Version 1 of the API reports an end without the fields a change carries. A case the cockpit
+     * hears of by its end alone is therefore stored with the end and nothing else. The creation is
+     * still on its way and fills the rest in when it arrives.
      */
     private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
         workflowlistService.reportEndedWorkflow(

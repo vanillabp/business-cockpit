@@ -5,9 +5,9 @@ import java.util.Map;
 
 /**
  * What one workflow of a workflow module says about the Business Cockpit, and what its user
- * tasks say. Every value here is what the workflow differs from its module in, so a value the
- * workflow left out is <code>null</code> rather than a copy of the module's - the module is
- * asked next, and copying would make a later change of the module's value invisible.
+ * tasks say. Every value here is what the workflow differs from its module in. A value the
+ * workflow left out is <code>null</code> and not a copy of the module's. The module is asked
+ * next, and copying would hide a later change of the module's value.
  *
  * @param bpmnProcessId The workflow these settings belong to
  * @param i18nLanguages The languages this workflow's titles are reported in, or

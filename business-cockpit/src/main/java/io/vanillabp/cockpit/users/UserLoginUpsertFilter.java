@@ -16,19 +16,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Upserts the {@code users} document of the authenticated caller, independent of which
  * {@link org.springframework.security.web.SecurityFilterChain} authenticated it.
  * <p>
- * This is deliberately a plain filter bean and not part of a specific security chain: derived
- * cockpit applications such as {@code central-ui-service} declare their own {@code guiHttpSecurity},
- * so a login hook wired into the upstream chain would not run there. A filter bean is applied by
- * Spring Boot to every request regardless of the active security chain, so the behavior is
- * inherited. Ordered last so it runs inside the security filter chain, where the security context
- * is already established.
+ * It is a plain filter bean on purpose, and not part of one security chain. A derived cockpit
+ * application such as {@code central-ui-service} declares its own {@code guiHttpSecurity}, so a
+ * login hook wired into the chain upstream would not run there. Spring Boot applies a filter bean
+ * to every request, whichever security chain is active, so a derived application inherits the
+ * behaviour. It is ordered last, so it runs inside the security filter chain where the security
+ * context already stands.
  */
 public class UserLoginUpsertFilter extends OncePerRequestFilter implements Ordered {
 
     /**
-     * The endpoint the UI calls once per page load to determine the logged-in user - a good, low
-     * frequency "login moment". Restricting the upsert to this request avoids upserting on every
-     * request (which produced parallel writes and optimistic-lock conflicts on the same document).
+     * The endpoint the user interface calls once per page load to find out who is logged in.
+     * That is a good moment for a login, and a rare one. Upserting on every request wrote the
+     * same document in parallel and produced optimistic-lock conflicts.
      */
     private static final String CURRENT_USER_PATH = "/gui/api/v1/app/current-user";
 

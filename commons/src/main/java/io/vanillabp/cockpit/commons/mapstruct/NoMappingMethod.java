@@ -8,12 +8,9 @@ import java.lang.annotation.Target;
 import org.mapstruct.Qualifier;
 
 /**
- * Mapstruct-qualifiers are used to bind ambiguous mapping
- * resolutions to specific mappings. We use this as a
- * workaround to mark helper methods using such a qualifier
- * annotation. But this qualifier is never referenced in
- * any mapping, so the annotated method is ignored for
- * type mapping.
+ * A MapStruct qualifier binds an ambiguous mapping to one method. No mapping ever names this
+ * one, so MapStruct leaves a method carrying it out of the type mapping. That is how a helper
+ * method is kept out of its way.
  */
 @Qualifier
 @Target(ElementType.METHOD)

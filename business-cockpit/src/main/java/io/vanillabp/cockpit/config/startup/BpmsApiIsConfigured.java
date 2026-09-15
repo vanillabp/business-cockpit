@@ -9,9 +9,9 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  * an application which has not set them yet still boots. {@link StartupConfigurationCheck} says so
  * in a warning on every start.
  * <p>
- * A hand-written condition rather than {@code @ConditionalOnProperty}: that one counts a property
- * set to an empty string as present, which would let the incomplete configuration through to the
- * very exceptions this replaces.
+ * The condition is written by hand and not taken from {@code @ConditionalOnProperty}. That one
+ * counts a property set to an empty string as present, which would let an incomplete configuration
+ * through to the very exceptions this replaces.
  */
 public class BpmsApiIsConfigured implements Condition {
 

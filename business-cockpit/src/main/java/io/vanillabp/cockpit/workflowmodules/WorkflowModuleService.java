@@ -69,8 +69,8 @@ public class WorkflowModuleService {
     }
 
     /**
-     * @return whether anything had to be written; a registration repeating what is already stored
-     *         leaves the document untouched
+     * @return Whether anything had to be written. A registration which repeats what is already
+     *         stored leaves the document untouched
      */
     private boolean updateWorkflowModule(
             final String id,
@@ -142,10 +142,10 @@ public class WorkflowModuleService {
     }
 
     /**
-     * A registration brings the hierarchy as a map, the document keeps it as a list of entries, so
-     * both have to be brought into one shape before they can be compared. Otherwise every
-     * re-registration of a module having a hierarchy would look like a change and rewrite the
-     * document.
+     * A registration brings the hierarchy as a map, and the document keeps it as a list of
+     * entries. Both have to be brought into one shape before they can be compared. Otherwise
+     * every re-registration of a module with a hierarchy would look like a change and would
+     * rewrite the document.
      */
     private static Map<String, List<String>> asComparableHierarchy(
             final Map<String, Collection<String>> groupHierarchy) {

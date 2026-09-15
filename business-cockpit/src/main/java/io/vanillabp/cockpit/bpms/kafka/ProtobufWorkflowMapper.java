@@ -57,9 +57,9 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroupsList", qualifiedByName = GROUP_MAPPING)
-    // protoc deprecates the plain getter of a map field and points at the ...Map() one, the same way
-    // it names a repeated field ...List. Naming the source explicitly keeps the deprecated getter out
-    // of the generated mapper. Both getters return the same map.
+    // protoc deprecates the plain getter of a map field and points at the ...Map() one. It names
+    // a repeated field ...List in the same way. Naming the source here keeps the deprecated getter
+    // out of the generated mapper. Both getters return the same map.
     @Mapping(target = "title", source = "titleMap")
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
@@ -83,11 +83,11 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
-    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
-    // decision 19 in the repository's DECISIONS.md. Who started the case is declared optional in the
-    // protobuf schema and arrives as null, which is what this strategy answers; the title, the
-    // business data and the permissions to open the case arrive empty instead, which
-    // toEndedWorkflow answers.
+    // an end overwrites what it reports and leaves the rest of the stored case as it is. See
+    // decision 19 in the repository's DECISIONS.md. Who started the case is declared optional in
+    // the protobuf schema and arrives as null, and that is what this strategy answers. The title,
+    // the business data and the permissions to open the case arrive empty instead, and
+    // toEndedWorkflow answers that.
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -96,8 +96,8 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "reportedAt", ignore = true)
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
-    // an end does not say when the case began, and guessing it would make the same case look
-    // different depending on which of the two reports arrived first:
+    // an end does not say when the case began. Guessing it would make the same case look
+    // different, depending on which of the two reports arrived first:
     @Mapping(target = "createdAt", ignore = true)
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -119,11 +119,11 @@ public abstract class ProtobufWorkflowMapper {
      * the title the cockpit already has where the end reports none.
      * <p>
      * The sender fills the details field whether it has anything to put in it or not, and a
-     * protobuf map carries no presence information either way, so an empty map is what an end of a
-     * case the BPMS can no longer describe looks like here. The title arrives the same way, and so do
-     * the users and groups the case is accessible to, because a repeated protobuf field has no
-     * presence information either. Mapping that last one would take everybody's permission to open a
-     * finished case ({@link WhatAnEndReports}, and see decision 19 in the repository's DECISIONS.md).
+     * protobuf map says nothing about presence either way. So an empty map is how an end of a case
+     * the BPMS can no longer describe looks here. The title arrives the same way. So do the users
+     * and groups the case is accessible to, because a repeated protobuf field says nothing about
+     * presence either. Mapping those would take everybody's permission to open a finished case
+     * ({@link WhatAnEndReports}, and see decision 19 in the repository's DECISIONS.md).
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place
