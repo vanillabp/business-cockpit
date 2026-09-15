@@ -75,7 +75,7 @@ jobs:
         # packages; the ones published so far stay where they are. Remove the profile again as
         # soon as the frontend is worked on.
         run: |
-          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
           -Dnpm.registry=https://npm.pkg.github.com/ \
           deploy -P build-runnable-jars,java-install

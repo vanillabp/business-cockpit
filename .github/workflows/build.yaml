@@ -41,6 +41,12 @@ jobs:
           echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
       - name: Build and test
+        # '--update-snapshots', because this build reads the snapshots of the VanillaBP platform and
+        # Maven checks a snapshot once a day by default. The runner restores its local repository
+        # from a cache, so without this flag a build compiles against whatever the cache holds: the
+        # extension SPI of story 295 was published two hours before the build which said its package
+        # did not exist.
+        #
         # 'install' alone: it runs through verify, which is where the aggregated coverage reports
         # are written, and it puts the reactor's artifacts into the local repository, which the
         # Spring Boot tests of the container read from. Adding 'verify' after it would run the
@@ -51,7 +57,7 @@ jobs:
         # the backend is being refactored. What the frontend still owes a pull request is checked
         # beside this job, see 'frontend' below.
         run: |
-          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Dnpm.registry=https://npm.pkg.github.com/ \
           -Dskip.npm.publish-snapshot=true \
           -Pjava-install \
@@ -98,9 +104,9 @@ jobs:
         # side is built by the job beside this one, and nothing here needs a jar.
         # '-Pjava-install' keeps every npm step of the reactor out of this; npm is run below.
         run: |
-          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Pjava-install -DskipTests -pl openapi-generator-fixes install
-          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Pjava-install -DskipTests \
           -pl apis/official-gui-api/client,business-cockpit -am \
           generate-sources
