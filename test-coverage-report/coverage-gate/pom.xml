@@ -54,7 +54,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <!-- newer than the 2.5 pinned by release-parent, which has no 'skipIfEmpty' yet -->
-        <version>3.4.2</version>
+        <version>3.5.1</version>
         <configuration>
           <!-- this module has test sources only, so there is nothing to package -->
           <skipIfEmpty>true</skipIfEmpty>
