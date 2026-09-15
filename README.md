@@ -4,11 +4,11 @@
 
 # VanillaBP Business Cockpit
 
-The *VanillaBP Business Cockpit* is the application business people work in: it lists the user tasks
-they may work on and the business cases those belong to, whichever system runs them, and it renders
-each system's own forms inside its own pages. Like [VanillaBP](https://www.vanillabp.io) itself it is
-[BPMS](https://en.wikipedia.org/wiki/Business_process_management#Definitions)-agnostic, so workflows
-from different systems end up in one unifying user interface.
+The *VanillaBP Business Cockpit* is the application business people work in. It lists the user tasks
+they may work on and the business cases those tasks belong to, whichever system runs them, and it
+renders each system's own forms inside its own pages. Like [VanillaBP](https://www.vanillabp.io)
+itself it is [BPMS](https://en.wikipedia.org/wiki/Business_process_management#Definitions)-agnostic,
+so workflows from different systems end up in one user interface.
 
 **This file is for somebody working on this repository.** What the cockpit does, how it is run, how
 an application is derived from it and how a workflow module is connected to it is in the
@@ -24,39 +24,38 @@ an application is derived from it and how a workflow module is connected to it i
 
 ## Building it
 
-Java 21, Maven, and a local NPM registry, because the build publishes the user interface packages
-before it consumes them. [development/README.md](./development/README.md) sets that up and is the
-place to start; it also holds the MongoDB, the Kafka broker and the mail catcher the tests and a
-local run want.
+You need Java 21, Maven and a local NPM registry. The registry is needed because the build publishes
+the user interface packages before it consumes them.
+[development/README.md](./development/README.md) sets that up and is the place to start. It also
+holds the MongoDB, the Kafka broker and the mail catcher which the tests and a local run need.
 
 ```sh
 mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
-What a pull request is checked by is two jobs beside each other. One builds and tests the Java
+A pull request is checked by two jobs which run beside each other. One builds and tests the Java
 side, with `-Pjava-install`, so the frontend stays out of the reactor and out of the build time.
-The other runs `bin/frontend-checks.sh`, which type-checks every TypeScript package and runs every
-Jest test of this repository. It builds each package against the one below it rather than against
-the published snapshot, because otherwise a change which splits two packages apart would still be
-green. It bundles nothing: the bundle is what a release needs, and a type error does not wait for
-it. Storybook, the development shells and the simulator are left out as well, and the script says
-so where it says why.
+The other runs `bin/frontend-checks.sh`. It type-checks every TypeScript package and runs every Jest
+test of this repository. It builds each package against the one below it instead of against the
+published snapshot, because otherwise a change which splits two packages apart would still be green.
+It bundles nothing. A bundle is what a release needs, and a type error does not wait for it.
+Storybook, the development shells and the simulator are left out as well, and the script says why.
 
-The same script is what to run locally, and it needs the same local registry the build does.
+Run the same script locally. It needs the same local registry the build needs.
 
 The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no
-dual build: the Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
+dual build. The Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
 the 0.3.x line. The consequences for somebody deriving an application from the cockpit are in the
 wiki, under [Releases](https://github.com/vanillabp/business-cockpit/wiki/Releases).
 
 ## Test coverage
 
-Coverage is measured once per deployable and per platform, because none of them executes another's
-code and a single number spanning them would hide whichever is weakest. The cockpit library, the
-container and what they carry with them run in a business cockpit application. The extension runs
-inside a workflow module, next to the business code, on Spring Boot and on Quarkus, and each
-platform's tests reach only that platform's glue - the difference between its two numbers is what
-names the features one of them never runs.
+Coverage is measured once per deployable and per platform. None of them runs another's code, and a
+single number across them would hide whichever is weakest. The cockpit library, the container and
+what they carry with them run in a business cockpit application. The extension runs inside a
+workflow module, next to the business code, on Spring Boot and on Quarkus. Each platform's tests
+reach only that platform's glue, so the difference between its two numbers names the features one of
+them never runs.
 
 |                            | Spring Boot | Quarkus |
 |----------------------------|-------------|---------|
@@ -67,6 +66,7 @@ Each badge reads the report it links to, so the number shown here and the number
 cannot drift apart. Both reports are published on every build of the default branch. How they are
 produced and what breaks a build is described with the
 [test-coverage-report module](#the-modules).
+
 ## The modules
 
 In the order they build on each other:
@@ -103,8 +103,8 @@ In the order they build on each other:
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The
    thresholds are properties of the root `pom.xml`, in percent of covered instructions, which is the
    number the badges show. A build breaks when a report falls below its threshold. It also breaks
-   when a module produces coverage data no aggregated report reads, because everything covered by
-   that module alone would otherwise count as missed with nobody able to fix it by writing a test.
+   when a module produces coverage data no aggregated report reads. Everything covered by that
+   module alone would otherwise count as missed, and nobody could fix that by writing a test.
    Between the threshold and the rule of 90 the build passes, and the gate prints on every run how
    far each report still is from that rule. The same module checks that every test class of this
    repository keeps quiet while it passes, so the log of a red build holds the output of the test

@@ -12,10 +12,10 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * What a BPMS knows about a user task before the application's
  * <code>&#64;UserTaskDetailsProvider</code> method had its say.
  * <p>
- * Everything here is optional: a BPMS which cannot answer a question leaves the value
- * <code>null</code> respectively empty, and the Business Cockpit reports what it has. The two
- * name fields are the fallback the cockpit shows where neither a template nor a details
- * provider produced a title, which is why they are the BPMN <em>names</em> rather than ids.
+ * Everything here is optional. A BPMS which cannot answer a question leaves the value
+ * <code>null</code> or empty, and the Business Cockpit reports what it has. The two name fields
+ * are the fallback the cockpit shows where neither a template nor a details provider produced a
+ * title, which is why they hold the BPMN <em>names</em> and not the ids.
  *
  * @param bpmnProcessVersion The version of the deployed process the workflow runs on, as the
  *          BPMS counts it
@@ -34,9 +34,9 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * @param variables The process variables a <code>&#64;TaskParam</code> parameter of a details
  *          provider is bound from. A BPMS which does not deliver variables with its user-task
  *          events passes an empty map, and such a parameter then receives <code>null</code>. A
- *          variable which the engine holds as <code>null</code> is passed as such and reaches
- *          the parameter as <code>null</code>: an engine which lets a variable be set to
- *          nothing must not be forced to leave it out
+ *          variable which the engine holds as <code>null</code> is passed on as such and
+ *          reaches the parameter as <code>null</code>. An engine which lets a variable be set
+ *          to nothing must not be forced to leave it out
  * @param multiInstances The multi-instance context of the task, keyed by BPMN element id and
  *          outermost first, empty where the BPMS reports none
  */

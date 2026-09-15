@@ -65,6 +65,52 @@ Adding an entry has the same rule. A decision earns a number when several places
 copying the explanation to each of them would rot; anything smaller is a comment where it belongs,
 and anything larger is documentation.
 
+## How we write
+
+Most people who read this repository read English as a second language, and so does the
+maintainer. Long sentences, rare words and stacked nouns slow them down. Write so that
+nobody has to read a sentence twice.
+
+Short main sentences, one thought each. One subordinate clause is enough. Active voice.
+The common word instead of the rare one: `use` instead of `leverage`, `about` instead of
+`regarding`, `so` instead of `consequently`, `has` instead of `possesses`. A technical term
+stays a technical term, but say what it means the first time it turns up, and write an
+abbreviation out once. If a sentence trips you up when you read it aloud, rewrite it.
+
+This holds for every English text here: the README files, `DECISIONS.md`, this file, the
+Javadoc and comments which explain something, and the texts of commits and pull requests. It
+holds for the [wiki](https://github.com/vanillabp/business-cockpit/wiki) as well, because the
+wiki clone has no `AGENTS.md` of its own.
+
+Nothing a program reads is renamed for the sake of language. Class and method names,
+configuration keys, artifact coordinates and the headlines of decision log entries stay as
+they are, because code, tests and other repositories point at them.
+
+Before and after, from this repository:
+
+> What a pull request is checked by is two jobs beside each other.
+
+becomes
+
+> A pull request is checked by two jobs which run beside each other.
+
+> The BPMS' own event id is deliberately not part of the key, and no clock reading is - version 1
+> built an event id from `System.nanoTime()`, which made every repetition a new event.
+
+becomes
+
+> The BPMS' own event id is deliberately left out of the key, and so is any clock reading.
+> Version 1 built an event id from `System.nanoTime()`, which turned every repetition into a new
+> event.
+
+> A result type `UserTaskDetails` is expected. The effected task-id can be passed by defining a
+> parameter annotated by `@TaskId`.
+
+becomes
+
+> The method returns `UserTaskDetails`. To get the id of the task, add a parameter annotated with
+> `@TaskId`.
+
 ## Before you open a pull request
 
 A number your branch hands out can be taken by the time you open the pull request. Another branch

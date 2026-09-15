@@ -7,9 +7,9 @@ package io.vanillabp.cockpit.extension.spi;
  * cockpit is told about the workflow is read again while the entry is dispatched, which is why
  * a pending update never carries stale data.
  *
- * @param adapterId The configured adapter id of the BPMS holding this workflow - which BPMS
- *          that is changes per workflow during a migration, so it is part of the reference
- *          rather than of the extension
+ * @param adapterId The configured adapter id of the BPMS holding this workflow. Which BPMS
+ *          that is changes per workflow during a migration, so it belongs to the reference
+ *          and not to the extension
  * @param workflowModuleId The workflow module the BPMN process belongs to
  * @param bpmnProcessId The BPMN process id, in the plain form the application wrote it
  * @param workflowAggregateId The workflow aggregate's id, serialized

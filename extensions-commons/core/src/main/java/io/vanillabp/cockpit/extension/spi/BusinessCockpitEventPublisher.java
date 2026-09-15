@@ -7,15 +7,14 @@ import java.time.OffsetDateTime;
  * about. A bean of this type is produced by the extension's platform module, so a BPMS half
  * injects it and needs no other entry point.
  * <p>
- * A call writes ONE outbox entry and returns; nothing is sent to the cockpit while the caller
- * waits. The entry is dispatched after the transaction it was written in committed, so an
- * event is reported if and only if what caused it was committed too. A BPMS half may therefore
- * complete its job, acknowledge its listener or return from its transaction as soon as this
- * method returned.
+ * A call writes ONE outbox entry and returns. Nothing is sent to the cockpit while the caller
+ * waits. The entry is dispatched after the transaction it was written in committed, so an event
+ * is reported if and only if what caused it was committed too. So a BPMS half may complete its
+ * job, acknowledge its listener or return from its transaction as soon as this method returned.
  * <p>
  * <b>Repetitions are free.</b> The entries carry an idempotency key, and a repeated
  * notification about the same task and the same kind of event is discarded while the first one
- * is still waiting. Pending updates of one task collapse into one entry on purpose: the
+ * is still waiting. Pending updates of one task collapse into one entry on purpose. The
  * dispatch reads the current state anyway, so ten updates and one update tell the cockpit the
  * same thing.
  */
@@ -26,10 +25,10 @@ public interface BusinessCockpitEventPublisher {
    *
    * @param userTask The task the event is about
    * @param kind What happened
-   * @param bpmsEventId The BPMS' own identifier of this event - a history event id, a job key,
+   * @param bpmsEventId The BPMS' own identifier of this event: a history event id, a job key,
    *          anything the BPMS repeats unchanged when it repeats the notification. It becomes
    *          the event id the cockpit sees. Where the BPMS has none, pass the task id
-   * @param timestamp When the BPMS says it happened; the current time where it does not say
+   * @param timestamp When the BPMS says it happened, or the current time where it does not say
    * @param transaction Which transaction the entry is written in.
    *          {@link EventTransaction#CURRENT} requires a transaction to be running on this
    *          thread and says so where none is
@@ -68,7 +67,7 @@ public interface BusinessCockpitEventPublisher {
    * Whether user tasks are reported at all, which an application switches off with
    * <code>vanillabp.cockpit.user-tasks-enabled</code>.
    * <p>
-   * A BPMS half asks this to say why nothing was written: a report which was refused because one
+   * A BPMS half asks this to say why nothing was written. A report which was refused because one
    * of the same task is still waiting looks exactly like a report nobody wanted, and a developer
    * reading the log deserves to be told which of the two it was.
    *

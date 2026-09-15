@@ -13,18 +13,18 @@ import java.util.Optional;
  * Spring Boot and on Quarkus.
  * <p>
  * The neutral half owns the event model, the details providers, the templating and the
- * transports; it knows no engine. This interface is everything it asks an engine for, and it
- * is deliberately small: five questions, all of them about one workflow or one user task named
- * by identifiers.
+ * transports, and it knows no engine. This interface is everything it asks an engine for, and
+ * it is kept small: five questions, each about one workflow or one user task named by
+ * identifiers.
  * <p>
  * <b>When these methods run.</b> The two <code>prefilled…</code> methods are called while an
- * outbox entry is dispatched, which is after the transaction the BPMS event arrived in was
- * committed and on a thread of the outbox dispatcher. The three <code>…OfAggregate</code>
- * methods are called from
- * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>: the two which serve a report
- * inside the transaction the application was in, and <code>userTaskOfAggregate</code> inside
- * that one or inside a transaction the extension opened where the application brought none.
- * None of them may assume an engine transaction is open.
+ * outbox entry is dispatched. That is on a thread of the outbox dispatcher, after the
+ * transaction the BPMS event arrived in was committed. The three <code>…OfAggregate</code>
+ * methods are called from <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>. The two
+ * which serve a report run inside the transaction the application was in.
+ * <code>userTaskOfAggregate</code> runs inside that one, or inside a transaction the extension
+ * opened where the application brought none. None of them may assume an engine transaction is
+ * open.
  * <p>
  * <b>What a failure means.</b> The two <code>prefilled…</code> methods have four answers, and
  * picking the right one decides whether a report is made, made later, or not made at all.
@@ -33,14 +33,14 @@ import java.util.Optional;
  * <li>An exception, where the BPMS could not be reached. The dispatch of the entry is aborted
  * and the outbox repeats it with a backoff.</li>
  * <li><code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>, where the BPMS is reachable
- * and does not know it <em>yet</em> - a read model which has not caught up with the event it
- * just sent. The entry comes back after the window the exception names, and the number of
- * attempts an outbox store allows bounds the waiting. A remote engine which answers a report of
- * a freshly created task with 404 belongs here and not below.</li>
+ * and does not know it <em>yet</em>. That is a read model which has not caught up with the
+ * event it just sent. The entry comes back after the window the exception names, and the
+ * number of attempts an outbox store allows bounds the waiting. A remote engine which answers
+ * a report of a freshly created task with 404 belongs here and not below.</li>
  * <li>An empty result, where the BPMS is reachable and does not know it any more. Nothing is
- * reported, which is right for a task somebody completed a second ago and wrong for one the
- * BPMS has merely not made searchable yet: a report dropped here is dropped for good and is
- * said out loud in the log.</li>
+ * reported. That is right for a task somebody completed a second ago and wrong for one the
+ * BPMS has merely not made searchable yet, so a report dropped here is dropped for good and
+ * the log says so.</li>
  * </ol>
  *
  * @see BusinessCockpitEventPublisher for the other direction, which the BPMS half calls
@@ -65,7 +65,7 @@ public interface BusinessCockpitBpmsBridge {
    * What the BPMS knows about the given user task right now.
    *
    * @param userTask The task to read
-   * @return The values read, or empty where the BPMS does not know the task any more - which
+   * @return The values read, or empty where the BPMS does not know the task any more, which
    *         ends the report for good. Where the BPMS may know it in a moment, throw
    *         <code>PhaseTwoRetryLater</code> instead
    */
@@ -76,7 +76,7 @@ public interface BusinessCockpitBpmsBridge {
    * What the BPMS knows about the given workflow right now.
    *
    * @param workflow The workflow to read
-   * @return The values read, or empty where the BPMS does not know the workflow any more -
+   * @return The values read, or empty where the BPMS does not know the workflow any more,
    *         which ends the report for good. Where the BPMS may know it in a moment, throw
    *         <code>PhaseTwoRetryLater</code> instead
    */
@@ -84,7 +84,7 @@ public interface BusinessCockpitBpmsBridge {
       WorkflowReference workflow);
 
   /**
-   * The workflows of one workflow aggregate this BPMS holds - what
+   * The workflows of one workflow aggregate this BPMS holds, which is what
    * <code>BusinessCockpitService.aggregateChanged(aggregate)</code> reports a change of. A
    * workflow which already ended is included where the BPMS can still tell, so that the
    * cockpit's view of a finished case is complete.
@@ -100,7 +100,7 @@ public interface BusinessCockpitBpmsBridge {
       String workflowAggregateId);
 
   /**
-   * The user tasks of one workflow aggregate this BPMS holds - what
+   * The user tasks of one workflow aggregate this BPMS holds, which is what
    * <code>BusinessCockpitService.aggregateChanged(aggregate, userTaskIds)</code> reports a
    * change of.
    *
@@ -118,8 +118,8 @@ public interface BusinessCockpitBpmsBridge {
       List<String> userTaskIds);
 
   /**
-   * One user task of one workflow aggregate - what
-   * <code>BusinessCockpitService.getUserTask(aggregate, userTaskId)</code> reads. The id is
+   * One user task of one workflow aggregate, which is what
+   * <code>BusinessCockpitService.getUserTask(aggregate, userTaskId)</code> reads. The task is
    * answered only where it really belongs to this aggregate, so that an application cannot
    * read another case's task by guessing an id.
    *

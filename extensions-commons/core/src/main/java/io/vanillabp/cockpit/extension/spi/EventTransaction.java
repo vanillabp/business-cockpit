@@ -12,11 +12,11 @@ public enum EventTransaction {
 
   /**
    * Schedule in the transaction which is already running on this thread. This is what an
-   * embedded engine needs: Camunda 7 invokes its task listeners inside the engine's own
+   * embedded engine needs. Camunda 7 calls its task listeners inside the engine's own
    * transaction, so the entry belongs in that one and in no other.
    * <p>
-   * A thread which carries no transaction is a defect and is answered with a message saying so,
-   * rather than with an entry committed on its own: an entry written outside the transaction
+   * A thread which carries no transaction is a defect. It is answered with a message saying so,
+   * and not with an entry committed on its own, because an entry written outside the transaction
    * would report an event whether or not what caused it survived.
    * <p>
    * On Quarkus this joins a JTA transaction, and joining one means every resource it reaches
@@ -30,7 +30,7 @@ public enum EventTransaction {
   CURRENT,
 
   /**
-   * Open a transaction for the entry alone. This is what a remote engine needs: a Camunda 8
+   * Open a transaction for the entry alone. This is what a remote engine needs. A Camunda 8
    * job worker runs on a thread of its own with nothing to join, and the job is completed only
    * after the entry was committed.
    */
