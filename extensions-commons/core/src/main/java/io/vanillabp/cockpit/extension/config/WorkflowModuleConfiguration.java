@@ -3,6 +3,9 @@ package io.vanillabp.cockpit.extension.config;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+
+import io.vanillabp.integration.extension.spi.settings.SettingsResolution;
 
 /**
  * What the Business Cockpit has to know about one workflow module. Every value is resolved
@@ -34,7 +37,7 @@ public record WorkflowModuleConfiguration(
                                           String bpmnDescriptionLanguage,
                                           Map<String, Collection<String>> groupHierarchy,
                                           String templatePath,
-                                          Map<String, WorkflowConfiguration> workflows) {
+                                          Map<String, WorkflowConfiguration> workflows) implements CockpitSection {
 
   public WorkflowModuleConfiguration {
     i18nLanguages = i18nLanguages == null ? List.of() : List.copyOf(i18nLanguages);
@@ -51,10 +54,7 @@ public record WorkflowModuleConfiguration(
   public List<String> i18nLanguages(
       final String bpmnProcessId) {
 
-    final var workflow = workflows.get(bpmnProcessId);
-    return (workflow == null) || (workflow.i18nLanguages() == null)
-        ? i18nLanguages
-        : workflow.i18nLanguages();
+    return resolved(bpmnProcessId, CockpitSection::i18nLanguages);
 
   }
 
@@ -67,10 +67,26 @@ public record WorkflowModuleConfiguration(
   public String bpmnDescriptionLanguage(
       final String bpmnProcessId) {
 
-    final var workflow = workflows.get(bpmnProcessId);
-    return (workflow == null) || (workflow.bpmnDescriptionLanguage() == null)
-        ? bpmnDescriptionLanguage
-        : workflow.bpmnDescriptionLanguage();
+    return resolved(bpmnProcessId, CockpitSection::bpmnDescriptionLanguage);
+
+  }
+
+  /**
+   * What the most specific level says about one key, which is the platform's walk and not this
+   * repository's: see {@link CockpitSettingsLevels} for which section belongs to which level.
+   *
+   * @param <T> The type of the value
+   * @param bpmnProcessId The workflow, may be <code>null</code>
+   * @param key What to read off a section
+   * @return The value of the most specific level which says anything, or <code>null</code>
+   */
+  private <T> T resolved(
+      final String bpmnProcessId,
+      final Function<CockpitSection, T> key) {
+
+    return SettingsResolution
+        .resolve(
+            CockpitSettingsLevels.of(this), workflowModuleId, bpmnProcessId, null, null, key);
 
   }
 
