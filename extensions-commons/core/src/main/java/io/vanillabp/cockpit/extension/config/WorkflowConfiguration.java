@@ -24,7 +24,7 @@ public record WorkflowConfiguration(
                                     List<String> i18nLanguages,
                                     String bpmnDescriptionLanguage,
                                     String templatePath,
-                                    Map<String, String> templatePathPerUserTask) {
+                                    Map<String, String> templatePathPerUserTask) implements CockpitSection {
 
   public WorkflowConfiguration {
     i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);

@@ -295,6 +295,13 @@ authorization server behind another proxy, with another certificate or a slower 
 reachable, and what the flow does not say for itself is the default rather than what the cockpit
 server's client uses.
 
+Where the keys stand is the cockpit's, how the levels are asked is not. VanillaBP walks the levels
+of every plug-in the same way (decision 53 of `adapter-platform-integration`), and the cockpit hands
+it one section per level rather than writing a second walk: the names stay `vanillabp.cockpit.*`,
+the order lives in one place for every plug-in. That walk also knows a position per configured
+adapter at every level, which this extension does not use yet - nothing binds those keys, and a
+position nothing binds is not a position an application can write.
+
 Two keys move into the cockpit's own tree rather than being read out of Spring's:
 `kafka.bootstrap-servers` and `kafka.properties.*` are what version 1 took from
 `spring.kafka.bootstrap-servers` and `spring.kafka.producer.*`, and the extension builds its own
