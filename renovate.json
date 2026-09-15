@@ -1,4 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>vanillabp/renovate-config"]
+  "extends": ["github>vanillabp/renovate-config"],
+  "packageRules": [
+    {
+      "description": [
+        "No npm updates while version 1.0 is being built. The cockpit is not going to ship a user interface for every combination of platform and component library. It ships one reference implementation and an instruction an agent follows to build the interface a project really needs, and that work sits far back in the backlog.",
+        "Until it happens, every npm dependency in this repository belongs to code which is going to be rewritten or dropped: the packages under 'ui', the three development shells, the simulator and the webapp of the server. An update there is work on something nobody keeps, and the pull requests for it hid the Maven updates which do matter.",
+        "Switch this rule off again once the reference interface has reached its final shape. The roadmap carries it as story 1303 in 'prompts-businesscockpit/ROADMAP.md'."
+      ],
+      "matchManagers": ["npm"],
+      "enabled": false
+    }
+  ]
 }
