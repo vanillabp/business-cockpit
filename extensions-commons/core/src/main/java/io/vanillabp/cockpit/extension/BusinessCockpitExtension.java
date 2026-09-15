@@ -266,7 +266,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     }
     throw new IllegalStateException(
         """
-            The Business Cockpit extension cannot open a transaction for %s: it reports every \
+            The Business Cockpit adapter cannot open a transaction for %s: it reports every \
             event after the transaction which caused it was committed, and an event a remote \
             engine reported arrives on a worker thread which brings no transaction of its own. \
             To get one either
@@ -631,7 +631,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     }
     throw new IllegalStateException(
         """
-            The Business Cockpit extension has no BPMS half for the adapter '%s'. Configured \
+            The Business Cockpit has no BPMS half for the adapter '%s'. Configured \
             adapters are: %s, and a BPMS half is registered for: %s. Add the artifact belonging \
             to that adapter's BPMS to your workflow module - \
             'io.vanillabp.businesscockpit:businesscockpit-camunda7-adapter', \
@@ -889,7 +889,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       }
       throw new IllegalStateException(
           """
-              The Business Cockpit extension was asked to report %s of workflow module '%s' with \
+              The Business Cockpit was asked to report %s of workflow module '%s' with \
               EventTransaction.CURRENT, and the thread it was asked on runs no transaction. That \
               value means "write the entry in the transaction the BPMS is already in", which only \
               an embedded engine invoking its listeners inside its own transaction can promise. \

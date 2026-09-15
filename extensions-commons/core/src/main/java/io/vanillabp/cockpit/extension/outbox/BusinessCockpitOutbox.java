@@ -172,7 +172,7 @@ public class BusinessCockpitOutbox {
     }
     throw new IllegalStateException(
         """
-            The Business Cockpit extension cannot tell which of the outbox stores %s the event of \
+            The Business Cockpit adapter cannot tell which of the outbox stores %s the event of \
             BPMN process '%s' of workflow module '%s' belongs in. The store is the one holding the \
             workflow aggregate, and no workflow service of this application declares that BPMN \
             process - the ones it declares are %s. Annotate the service serving it with \
@@ -260,7 +260,7 @@ public class BusinessCockpitOutbox {
     // leaves the store an application writes itself to whoever asks - here as there, that is
     // the last of the remedies
     return """
-        The Business Cockpit extension needs an outbox store: it reports every event after the \
+        The Business Cockpit adapter needs an outbox store: it reports every event after the \
         transaction which caused it was committed, which is what keeps an event from being \
         reported for something that was rolled back. To get one either
         %s

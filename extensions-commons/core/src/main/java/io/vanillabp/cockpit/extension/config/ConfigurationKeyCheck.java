@@ -66,7 +66,7 @@ public final class ConfigurationKeyCheck {
     gone
         .put(
             "kafka.group-id-suffix",
-            "it made a consumer group unique, and the extension only produces");
+            "it made a consumer group unique, and the adapter only produces");
     gone
         .put(
             "jwt",
@@ -104,7 +104,7 @@ public final class ConfigurationKeyCheck {
     }
     throw new IllegalStateException(
         """
-            The Business Cockpit extension is configured with a key it does not read:
+            The Business Cockpit adapter is configured with a key it does not read:
             %s"""
             .formatted(String.join("\n", defects)));
 
