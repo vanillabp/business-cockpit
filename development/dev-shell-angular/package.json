@@ -32,7 +32,7 @@
     "@types/jasmine": "~5.1.0",
     "@vanillabp/bc-official-gui-client": ">=0.9.0-SNAPSHOT <0.9.1",
     "@vanillabp/bc-types": ">=0.9.0-SNAPSHOT <0.9.1",
-    "jasmine-core": "~5.1.0",
+    "jasmine-core": "~5.13.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
