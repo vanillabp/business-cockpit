@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * Produces SLF4J logger to be injected. The logger is initialized
- * with the class in which it was injected.
+ * Produces an SLF4J logger for injection. The logger is named after the class it is injected
+ * into.
  */
 @Configuration
 public class LoggerFactory {

@@ -92,7 +92,7 @@ public abstract class GuiApiMapper {
      * <p>
      * A module federated into the cockpit is served by the cockpit itself, so its path is answered
      * below the proxy route of the workflow module. A task of type EXTERNAL lives in another
-     * application, and its address is handed out the way the workflow module reported it: the
+     * application. Its address is handed out the way the workflow module reported it, because the
      * cockpit neither proxies that application nor knows anything about it.
      */
     @NoMappingMethod

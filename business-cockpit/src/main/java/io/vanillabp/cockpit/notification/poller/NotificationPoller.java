@@ -29,14 +29,15 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /**
- * Once-per-interval poller that determines and sends notifications (AC func 2, AC tech 4/6/8/9).
+ * Works out once per interval which notifications are due, and sends them.
  * <p>
- * A Mongo lease ({@link NotificationPollState}) makes a cycle run on only one cluster node; the
- * persisted cursor makes delta-scanning resilient across restarts; the persistent
- * {@link NotificationOutboxEntry} (with its unique index) makes enqueue idempotent and delivery
- * retried until sent - per recipient, as long as the medium reports which recipients it failed to
- * reach ({@link NotificationDeliveryException}). Registered only when at least one {@link NotificationService} bean exists so
- * installations without notifications keep their exact runtime behavior.
+ * A lease in MongoDB ({@link NotificationPollState}) makes a cycle run on one node of the cluster
+ * only. The stored cursor lets the scan survive a restart. A stored
+ * {@link NotificationOutboxEntry}, with its unique index, makes the enqueue idempotent and has the
+ * delivery retried until it is sent. That happens per recipient, as long as the medium says which
+ * recipients it failed to reach ({@link NotificationDeliveryException}). The poller is registered
+ * only where at least one {@link NotificationService} bean exists, so an installation which does
+ * not notify anybody behaves exactly as it did.
  */
 public class NotificationPoller {
 
@@ -95,9 +96,9 @@ public class NotificationPoller {
     }
 
     /**
-     * Hourly (configurable) cleanup: deletes successfully sent outbox entries older than the
-     * configured retention. The delete is idempotent, so no cluster lease is needed - if several
-     * nodes run it, they simply remove the same already-gone rows.
+     * Cleans up once an hour, or as often as configured. It deletes the outbox entries which were
+     * sent and are older than the configured retention. The delete is idempotent, so no lease is
+     * needed. Several nodes running it simply remove the same rows, which are gone already.
      */
     @Scheduled(
             fixedRateString = "${business-cockpit.notification.cleanup-interval:PT1H}",
@@ -203,8 +204,9 @@ public class NotificationPoller {
 
             @Override
             public List<String> authoritiesOf(String userId) {
-                // the user directory caches authorities (they are resolved on every browser
-                // request), so a direct lookup per user is cheap - no local cache needed
+                // the user directory caches the authorities, because they are resolved on
+                // every request of a browser. So a lookup per user is cheap and no cache of our
+                // own is needed
                 return userDirectory.getUser(userId).map(UserDetails::getAuthorities).orElse(null);
             }
 
@@ -276,7 +278,7 @@ public class NotificationPoller {
 
         final var task = userTaskRepository.findById(key.userTaskId()).orElse(null);
         if (task == null) {
-            // the task vanished - drop these entries so they are not retried forever
+            // the task is gone, so these entries are dropped and not retried forever
             markSent(entries, now);
             return;
         }
@@ -326,9 +328,9 @@ public class NotificationPoller {
             return;
         }
 
-        // count this delivery attempt for the entries which stay pending; once attempts reaches the
-        // maximum an entry becomes stale and is excluded from future scans until its counter is
-        // reset manually in MongoDB
+        // count this delivery attempt for the entries which stay pending. Once attempts reaches
+        // the maximum, an entry becomes stale and no later scan reads it, until somebody resets
+        // its counter in MongoDB
         entries.forEach(e -> e.setAttempts(e.getAttempts() + 1));
         final var attemptNo = entries.stream()
                 .mapToInt(NotificationOutboxEntry::getAttempts)

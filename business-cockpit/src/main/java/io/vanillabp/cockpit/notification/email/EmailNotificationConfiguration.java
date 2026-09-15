@@ -12,9 +12,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 /**
  * Registers the reference e-mail {@link EmailNotificationService}, gated by
  * {@code business-cockpit.notification.smtp.enabled=true} and overridable via
- * {@code @ConditionalOnMissingBean}. Declaring the conditions on a {@code @Bean} method (instead of
- * on the component itself) is the reliable placement - a self-named {@code @ConditionalOnMissingBean}
- * on the component excluded the bean from registering itself.
+ * {@code @ConditionalOnMissingBean}. The conditions stand on a {@code @Bean} method and not on the
+ * component itself, because that is the placement which works. A {@code @ConditionalOnMissingBean}
+ * on the component named the component itself and kept it from registering.
  * <p>
  * Requires a {@link JavaMailSender}, which Spring Boot auto-configures when {@code spring.mail.host}
  * is set.

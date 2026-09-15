@@ -23,10 +23,10 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher;
  * Secures the BPMS API by HTTP basic against the one client the application configures for its BPMS
  * adapters.
  * <p>
- * The conditions keep an application which has not configured that client yet startable: the chain
- * and its user are simply absent, requests to the BPMS API paths fall through to the GUI chain and
- * are answered with 401, and the startup check explains on every start what to add. Before that the
- * missing realm or missing credentials ended the start in an exception from Spring Security.
+ * An application which has not configured that client yet still starts. The conditions leave out
+ * the chain and its user. Requests to the BPMS API paths then fall through to the GUI chain and
+ * are answered with 401, and the startup check says on every start what to add. Before that, a
+ * missing realm or missing credentials ended the start with an exception from Spring Security.
  */
 public class BpmsApiWebSecurityConfiguration {
 
@@ -81,11 +81,11 @@ public class BpmsApiWebSecurityConfiguration {
     }
 
     /**
-     * Stands in for the BPMS API's user while that one is unconfigured. Without any
-     * {@code UserDetailsService} in the context Spring Boot invents a user, prints its generated
-     * password and warns about running that way in production - three lines of noise that have
-     * nothing to do with the missing configuration the startup check is guiding towards. Nobody
-     * authenticates against this one: the GUI chain brings its own users.
+     * Stands in for the BPMS API's user as long as that user is not configured. With no
+     * {@code UserDetailsService} in the context, Spring Boot invents a user, prints its generated
+     * password and warns about running that way in production. Those three lines say nothing about
+     * the configuration the startup check asks for, and they hide it. Nobody authenticates against
+     * the empty manager: the GUI chain brings its own users.
      */
     @Bean
     @Conditional(BpmsApiIsNotConfigured.class)

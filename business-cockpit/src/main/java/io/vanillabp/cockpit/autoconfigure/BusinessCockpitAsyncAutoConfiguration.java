@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * The cockpit has no {@code @Async} method of its own, so nothing of it changes when this is off.
  * The annotation is here because a cockpit application used to inherit it from the base class, and
  * an application which relies on it would otherwise find its asynchronous methods running on the
- * calling thread after the upgrade. Which is why the switch is a property: this one is for the
+ * calling thread after the upgrade. That is why the switch is a property: this one is for the
  * application to decide.
  */
 @AutoConfiguration

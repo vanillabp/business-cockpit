@@ -3,12 +3,12 @@ package io.vanillabp.cockpit.notification.model;
 import java.util.Map;
 
 /**
- * The complete per-user notification configuration (stored as an object tree on the {@link User}
- * document, AC tech 7).
+ * Everything one user configured about notifications. It is stored as a tree on the
+ * {@link User} document.
  * <p>
- * The default (an absent or empty configuration) means "none": the user is not notified. Enabling
- * a medium globally means "all via &lt;medium&gt;". Per-workflow entries override the global setting
- * for individual workflows (AC func 4).
+ * A configuration which is absent or empty means "none", so the user is not notified. Switching a
+ * medium on for every workflow means "all via that medium". An entry for one workflow wins over
+ * that setting for that workflow.
  *
  * @param globalAllViaMedium per-medium global setting, keyed by the medium type (e.g. {@code "email"});
  *                           {@code true} = "all via that medium". Absence/{@code false} = "none".

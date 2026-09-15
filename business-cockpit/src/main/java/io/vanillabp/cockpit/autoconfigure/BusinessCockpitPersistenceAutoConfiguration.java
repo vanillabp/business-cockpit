@@ -23,7 +23,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * <p>
  * Ordered ahead of Spring Boot's own MongoDB configuration, which is what lets
  * {@link MongoDbConfiguration} contribute the {@code MongoTemplate} and the converters. Spring
- * Boot's versions of both stand aside for a bean which is already there, so whoever registers first
+ * Boot's versions of both stand aside for a bean which is already there. So whoever registers first
  * decides, and leaving that to chance would mean two sets of converters on some starts and a
  * duplicate template on others.
  */
@@ -68,10 +68,10 @@ public class BusinessCockpitPersistenceAutoConfiguration {
      * well as in the application's own.
      * <p>
      * Spring Boot scans the package of the class carrying {@code @SpringBootApplication}, and the
-     * cockpit's repositories live in this jar. Adding to that list is the one way to have them found
-     * without taking the scan over: an {@code @EnableMongoRepositories} of our own would make Spring
-     * Boot's stand aside completely, and the application's own repositories would then be the ones
-     * nobody looks for.
+     * cockpit's repositories live in this jar. Adding to that list is the one way to have them
+     * found without taking the scan over. An {@code @EnableMongoRepositories} of our own would make
+     * Spring Boot's stand aside completely, and the application's own repositories would then be
+     * the ones nobody looks for.
      * <p>
      * The package added is the whole of {@link #COCKPIT_PACKAGE} rather than the five packages the
      * repositories sit in. Spring Boot keeps the list free of duplicates, and the delivered

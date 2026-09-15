@@ -21,11 +21,11 @@ import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
  * Turns an event into the protobuf message the Kafka transport sends, wrapped in the
  * <code>BcEvent</code> envelope the cockpit server reads one topic of.
  * <p>
- * The envelope has one slot per kind of event, and the slots ending in <code>V11</code> are
- * the ones this version of the API uses; the older slots stay in the schema so that a cockpit
- * server still reading them keeps working. The message inside is the same for all four kinds
- * of user-task event, which is why one mapper serves them all - what differs is the slot and
- * the <code>updated</code> flag.
+ * The envelope has one slot per kind of event. The slots ending in <code>V11</code> are the
+ * ones this version of the API uses, and the older slots stay in the schema so that a cockpit
+ * server still reading them keeps working. The message inside is the same for all four kinds of
+ * user-task event, which is why one mapper serves them all. What differs is the slot and the
+ * <code>updated</code> flag.
  * <p>
  * Every field is set through {@link Optional}, because a protobuf setter refuses
  * <code>null</code> while nearly everything a workflow module reports is optional.

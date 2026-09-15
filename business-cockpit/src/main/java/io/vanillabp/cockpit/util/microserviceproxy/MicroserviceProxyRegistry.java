@@ -24,12 +24,12 @@ import org.springframework.web.servlet.function.ServerResponse;
  * proxying the request to the module's own URI. The single-page application therefore loads module
  * assets and calls module APIs through the cockpit's origin.
  * <p>
- * Modules register at runtime, so the set of routes changes while the application is running. The
+ * Modules register while the application runs, so the set of routes changes as it runs. The
  * servlet gateway collects its {@code RouterFunction} beans once during startup and never asks the
- * application context again, so this registry is one stable bean that delegates to a router
- * function it swaps out on every registration. {@code RouterFunctionMapping} calls
- * {@link #route(ServerRequest)} for each request without caching the outcome, which is what makes
- * the swap take effect immediately.
+ * application context again. So this registry is one stable bean, and it delegates to a router
+ * function which it swaps out on every registration. {@code RouterFunctionMapping} calls
+ * {@link #route(ServerRequest)} for every request and caches no outcome, which is what makes the
+ * swap take effect at once.
  */
 public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse> {
 

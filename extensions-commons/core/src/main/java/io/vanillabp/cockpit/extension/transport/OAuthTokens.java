@@ -26,13 +26,13 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * <p>
  * There is no user in this flow. The workflow module is the client, it identifies itself with
  * an id and a secret, and the token it gets back says which module reported. A token is kept
- * until shortly before it expires and then asked for again - the flow has no refresh token, and
- * asking again is what it is for.
+ * until shortly before it expires and is then asked for again. The flow has no refresh token,
+ * and asking again is what it is for.
  * <p>
  * The token request goes through whatever stands between the workflow module and the outside:
  * the same proxy, the same truststore and the same timeouts as the reports themselves. An
- * authorization server which is unreachable gives the report back to the outbox rather than
- * ending it: a token which cannot be fetched now is the kind of thing which works in a minute.
+ * authorization server which is unreachable gives the report back to the outbox instead of
+ * ending it. A token which cannot be fetched now is the kind of thing which works in a minute.
  */
 public class OAuthTokens implements RequestInterceptor {
 
@@ -55,9 +55,9 @@ public class OAuthTokens implements RequestInterceptor {
   private volatile Instant replaceAfter = Instant.MIN;
 
   /**
-   * @param configuration What the application configured about the cockpit server, of which the
-   *          client-credentials flow - and with it the connection to the authorization server -
-   *          is one section
+   * @param configuration What the application configured about the cockpit server. One section
+   *          of it is the client-credentials flow, and with it the connection to the
+   *          authorization server
    */
   public OAuthTokens(
       final RestTransportConfiguration configuration) {

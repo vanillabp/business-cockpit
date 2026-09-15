@@ -22,9 +22,9 @@ import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 /**
  * Reports events to the cockpit server over Kafka, as protobuf.
  * <p>
- * The key of every record is the entity the event is about - the user task, the workflow, the
- * workflow module - so that everything about one entity lands in one partition and the cockpit
- * sees it in the order it happened.
+ * The key of every record is the entity the event is about: the user task, the workflow, or the
+ * workflow module. So everything about one entity lands in one partition, and the cockpit sees
+ * it in the order it happened.
  * <p>
  * A send is awaited rather than fired and forgotten. What the outbox guarantees is that an
  * event reaches the cockpit or is retried, and a producer whose queue swallowed the record
@@ -53,7 +53,7 @@ public class KafkaTransport implements BusinessCockpitTransport {
   /**
    * @param configuration The brokers and topics
    * @param objectMapper The mapper turning business data into a tree
-   * @param producer A producer built elsewhere - what a test hands in
+   * @param producer A producer built elsewhere, which is what a test hands in
    */
   public KafkaTransport(
       final KafkaTransportConfiguration configuration,
@@ -135,20 +135,20 @@ public class KafkaTransport implements BusinessCockpitTransport {
     } catch (final ExecutionException e) {
       throw failureOf(topic, e.getCause());
     } catch (final RuntimeException e) {
-      // what the client refuses before it ever reaches a broker - a record it cannot serialize,
-      // one larger than the configured maximum - arrives here instead of in the future
+      // what the client refuses before it ever reaches a broker arrives here instead of in the
+      // future: a record it cannot serialize, or one larger than the configured maximum
       throw failureOf(topic, e);
     }
 
   }
 
   /**
-   * What a failed send means for the outbox entry - see decision 11 in the repository's
+   * What a failed send means for the outbox entry. See decision 11 in the repository's
    * DECISIONS.md.
    * <p>
-   * The client's own verdict is taken: it knows which of its failures pass, and repeating a
-   * send it marks as retriable is the whole point of the outbox. Anything else is about the
-   * record rather than about the moment, so the same bytes would be refused again.
+   * The client's own verdict is taken. It knows which of its failures pass, and repeating a send
+   * it marks as retriable is the whole point of the outbox. Anything else is about the record
+   * and not about the moment, so the same bytes would be refused again.
    *
    * @param topic Where the record was to go
    * @param cause What the send failed with

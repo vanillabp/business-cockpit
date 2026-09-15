@@ -3,9 +3,9 @@ package io.vanillabp.cockpit.config.startup;
 import java.util.List;
 
 /**
- * Raised while the application context is still being prepared, listing every mandatory value that
- * is missing. It carries the description and the remedy as plain text so that
- * {@link CockpitIsNotConfiguredFailureAnalyzer} can present them as Spring Boot's failure report
+ * Raised while the application context is still being prepared, and it lists every mandatory value
+ * which is missing. It carries the description and the remedy as plain text, so
+ * {@link CockpitIsNotConfiguredFailureAnalyzer} can show them as Spring Boot's failure report
  * instead of a stack trace.
  */
 public class CockpitIsNotConfiguredException extends RuntimeException {

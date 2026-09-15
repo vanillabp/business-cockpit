@@ -11,10 +11,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * A user known to the Business Cockpit because they logged in at least once.
  * <p>
- * This is a generic entity: notifications are only the first feature relying on it, hence it lives
- * in the {@code users} package rather than the notification package. The document is upserted at
- * login time and additionally holds feature-specific data such as the notification configuration
- * (AC tech 5/7) and the per-medium recipient configuration values (AC tech 10).
+ * The entity is a general one. Notifications are only the first feature which needs it, which is
+ * why it lives in the {@code users} package and not in the notification package. The document is
+ * written at login, and it also holds what single features need: the notification configuration,
+ * and the recipient configuration per medium.
  */
 @Document(collection = User.COLLECTION_NAME)
 public class User {
@@ -32,27 +32,28 @@ public class User {
     private OffsetDateTime lastLoggedIn;
 
     /**
-     * The e-mail known from {@code UserDetails#getEmail()} at login. Used only as a default
-     * suggestion; the address the user is actually notified at is the editable per-medium value
-     * kept in {@link #recipientConfigurations}.
+     * The e-mail {@code UserDetails#getEmail()} knew at login. It is only a suggestion. The
+     * address a user is notified at is the value per medium in {@link #recipientConfigurations},
+     * which the user can edit.
      */
     private String email;
 
     /**
-     * The user's preferred locale. {@code null} means "use the application default locale"
-     * ({@code business-cockpit.default-locale}). Setting/changing it is the subject of a separate
-     * story; today all UIs are fixed to German, so this stays {@code null} for now but the
-     * notification templating already honors it.
+     * The locale the user prefers. {@code null} means the application's default locale, which is
+     * {@code business-cockpit.default-locale}. Setting it is a story of its own. Today every user
+     * interface is fixed to German, so this stays {@code null}, but the notification templating
+     * already reads it.
      */
     private Locale locale;
 
-    /** The user's notification configuration object tree (AC func 4 / tech 7). */
+    /** The tree holding what the user configured about notifications. */
     private NotificationConfiguration notificationConfiguration;
 
     /**
-     * Per-medium recipient configuration values, keyed by the medium type (e.g. {@code "email"})
-     * mapping to the raw values persisted by
-     * {@code NotificationService#saveRecipientConfiguration} (e.g. {@code {"emailAddress": "a@b.c"}}).
+     * The recipient configuration per medium, keyed by the type of the medium, {@code "email"}
+     * for example. The values are the ones
+     * {@code NotificationService#saveRecipientConfiguration} stored, for example
+     * {@code {"emailAddress": "a@b.c"}}.
      */
     private Map<String, Map<String, String>> recipientConfigurations;
 

@@ -39,18 +39,18 @@ import org.springframework.stereotype.Component;
  * <p>
  * It is a {@link BeanFactoryPostProcessor} because that is the last moment before the first bean is
  * built and therefore the earliest moment at which the whole configuration can be judged at once.
- * Every value checked here used to surface much later and much worse: as
+ * Every value checked here used to surface much later and much worse. It came as
  * {@code realmName must be specified} out of a security filter chain, as
  * {@code Cannot pass null or empty values to constructor} out of a user details manager, as a
- * connection timeout against a MongoDB nobody configured, or - for the signing key - only once
+ * connection timeout against a MongoDB nobody configured, or, for the signing key, only once
  * somebody tried to log in.
  * <p>
  * What is missing decides how it is reported:
  * <ul>
  * <li>Values without which no part of the cockpit works stop the start, collected into one
  * {@link CockpitIsNotConfiguredException} listing all of them.</li>
- * <li>Values that switch off one feature let the application boot and are reported as a warning
- * naming that feature, so the developer can fix them one start at a time.</li>
+ * <li>Values which switch off one feature let the application boot. They are reported as a
+ * warning naming that feature, so the developer can fix them one start at a time.</li>
  * <li>The JWT signing key is generated on the spot and the generated value is handed to the
  * developer to copy, because guessing a key is the one thing this check can do for them.</li>
  * </ul>
@@ -81,8 +81,8 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
     }
 
     /**
-     * Throws {@link CockpitIsNotConfiguredException} if the application cannot run at all, and logs
-     * one warning per feature that stays switched off.
+     * Throws {@link CockpitIsNotConfiguredException} if the application cannot run at all, and
+     * logs one warning per feature which stays switched off.
      */
     public void checkConfigurationOf(
             final ConfigurableEnvironment environment) {

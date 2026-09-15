@@ -50,16 +50,16 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * The Business Cockpit extension, without a single line knowing a BPMS or a platform.
+ * The Business Cockpit extension. No line of it knows a BPMS or a platform.
  * <p>
- * Everything an event goes through happens here. A BPMS half reports what its engine observed,
- * which writes one outbox entry inside the transaction the BPMS is in. After that transaction
- * committed, the entry is dispatched: the BPMS is asked what it knows about the task or the
- * workflow now, the application's details provider is invoked to enrich it, the titles are
- * rendered, and the result is handed to the configured transport.
+ * Everything an event goes through happens here. A BPMS half reports what its engine observed.
+ * That report writes one outbox entry, inside the transaction the BPMS is in. Once that
+ * transaction has committed, the entry is dispatched: the BPMS is asked what it knows about the
+ * task or the workflow now, the application's details provider is invoked to enrich it, the
+ * titles are rendered, and the result goes to the configured transport.
  * <p>
- * Reading at dispatch time rather than carrying the data through the outbox is what makes an
- * entry small enough for the store and what makes repeated updates collapse - see decision 3 in
+ * The data is read at dispatch time and not carried through the outbox. That keeps an entry
+ * small enough for the store, and it lets repeated updates collapse into one. See decision 3 in
  * the repository's DECISIONS.md.
  */
 public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
@@ -87,9 +87,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
 
   /**
-   * The BPMN processes each workflow module deployed, in the order VanillaBP wired them. It is
-   * what makes the registration of a module land in a store of one of the module's own
-   * aggregates rather than in a store of some other module's.
+   * The BPMN processes each workflow module deployed, in the order VanillaBP wired them. They
+   * tell the registration of a module which store to go to: one belonging to an aggregate of
+   * that module, and not one of another module.
    */
   private final Map<String, Set<String>> bpmnProcessesPerWorkflowModule = new ConcurrentHashMap<>();
 
@@ -169,21 +169,21 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Resolves where an entry of this application is written and in which transaction, ending the
-   * boot where either cannot be answered for one of its workflow aggregates.
+   * Resolves where an entry of this application is written and in which transaction. The boot
+   * ends if one of the two cannot be answered for a workflow aggregate of this application.
    * <p>
-   * This runs once the application is up rather than while the extension's bean is created:
-   * asking for the store of an aggregate reaches into the application's persistence, and
-   * VanillaBP's own startup validation waits for the same reason.
+   * This runs once the application is up, not while the extension's bean is created. Asking for
+   * the store of an aggregate reaches into the application's persistence, and VanillaBP's own
+   * startup validation waits for the same reason.
    * <p>
-   * Which BPMN processes a workflow module holds and which aggregate each of them works on is
-   * VanillaBP's answer, not a second scan of the application's beans - it read the
-   * <code>&#64;WorkflowService</code> annotations while it built the process services, through
-   * whatever proxies the platform put around them.
+   * Which BPMN processes a workflow module holds, and which aggregate each of them works on,
+   * comes from VanillaBP. The application's beans are not scanned a second time. VanillaBP read
+   * the <code>&#64;WorkflowService</code> annotations while it built the process services,
+   * through whatever proxies the platform put around them.
    *
-   * @throws IllegalStateException If a store is missing or cannot be attributed to an aggregate,
-   *           or if no transaction can be opened for one - see decisions 13 and 16 in the
-   *           repository's DECISIONS.md
+   * @throws IllegalStateException If a store is missing, if it cannot be attributed to an
+   *           aggregate, or if no transaction can be opened for one. See decisions 13 and 16 in
+   *           the repository's DECISIONS.md
    */
   public void validateWhereEntriesAreWritten() {
 
@@ -198,17 +198,17 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * The workflow aggregate every BPMN process of the reporting workflow modules is served
-   * through, asked of VanillaBP.
+   * The workflow aggregate which serves each BPMN process of the reporting workflow modules,
+   * asked of VanillaBP.
    * <p>
-   * A workflow service declares both: the aggregate it is written for, and the processes it
-   * serves - its primary one and whatever it names as secondary, which is the process called by
-   * a call activity and the process which was renamed. VanillaBP registered every one of those
-   * pairs while it built the process services, so an event naming a BPMN process becomes the
-   * class whose transaction the entry has to ride without anybody reading the annotations a
-   * second time.
-   *
-   * The pair is the key, not the BPMN process alone: two workflow modules of one application
+   * A workflow service declares two things: the aggregate it is written for, and the processes
+   * it serves. The processes are its primary one and any it names as secondary, which is a
+   * process called by a call activity or a process which was renamed. VanillaBP registered
+   * every one of those pairs while it built the process services. So an event which names a
+   * BPMN process yields the class whose transaction the entry has to ride, and nobody reads the
+   * annotations a second time.
+   * <p>
+   * The key is the pair, not the BPMN process alone. Two workflow modules of one application
    * may serve a process of the same name, and their aggregates may live in different
    * persistences.
    *
@@ -238,11 +238,11 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * The transaction an entry about this workflow aggregate is written in.
    * <p>
-   * It is the one the aggregate's own writes go through, which may well be a runner the
-   * APPLICATION contributed. Opening one of the extension's own would commit the report
-   * separately from the change it reports, and would lose what the platform's runner knows
-   * about the transaction it opened: its rollback-only verdict, its pre-commit callbacks and
-   * its recognition of an optimistic-locking failure.
+   * It is the transaction the aggregate's own writes go through, and that may well be a runner
+   * the application contributed. A transaction of the extension's own would commit the report
+   * separately from the change it reports. It would also lose what the platform's runner knows
+   * about the transaction it opened: its rollback-only verdict, its pre-commit callbacks, and
+   * that it sees an optimistic-locking failure.
    *
    * @param workflowAggregateClass The aggregate, or <code>null</code> for an entry belonging to
    *          none
@@ -252,10 +252,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private TransactionRunner requireTransactionFor(
       final Class<?> workflowAggregateClass) {
 
-    // an entry which belongs to no workflow aggregate - the registration of a workflow module,
-    // and an event about a BPMN process no workflow service of this application declares - is
-    // written through the runner serving every aggregate nobody claimed, which is what asking
-    // for the root of the type hierarchy answers
+    // some entries belong to no workflow aggregate: the registration of a workflow module, and
+    // an event about a BPMN process which no workflow service of this application declares.
+    // They are written through the runner which serves every aggregate nobody claimed, and
+    // asking for the root of the type hierarchy is how that runner is found
     final var runner = transactionRunners
         .resolveFor(
             workflowAggregateClass == null
@@ -317,9 +317,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Reports a user task, knowing which workflow aggregate class it belongs to.
    * <p>
-   * That is what a report through <code>BusinessCockpitService</code> knows and what a BPMS
-   * half does not: the class decides which of the application's outbox stores holds the entry,
-   * and the store has to be the one the aggregate's own transaction reaches.
+   * A report through <code>BusinessCockpitService</code> knows that class, a BPMS half does
+   * not. The class decides which of the application's outbox stores holds the entry, and that
+   * store has to be the one the aggregate's own transaction reaches.
    *
    * @param userTask The task
    * @param kind What happened to it
@@ -379,8 +379,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Reports a workflow, knowing which workflow aggregate class it belongs to - the counterpart
-   * of {@link #publishUserTaskEvent(UserTaskReference, UserTaskEventKind, String,
+   * Reports a workflow, knowing which workflow aggregate class it belongs to. It is the
+   * counterpart of {@link #publishUserTaskEvent(UserTaskReference, UserTaskEventKind, String,
    * OffsetDateTime, EventTransaction, Class)} for a workflow.
    *
    * @param workflow The workflow
@@ -445,9 +445,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Notes which workflow module a BPMN process was deployed by, which VanillaBP says once per
    * file while it wires them.
    * <p>
-   * The registration of a workflow module belongs to no workflow aggregate, and it is written
-   * into the store of one of the module's own aggregates - so the module has to be known to
-   * hold them.
+   * The registration of a workflow module belongs to no workflow aggregate, yet it is written
+   * into the store of one of the module's own aggregates. So it has to be known which
+   * aggregates the module holds.
    *
    * @param workflowModuleId The module
    * @param bpmnProcessId One of its BPMN processes
@@ -465,21 +465,21 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Schedules the registration of every workflow module which started.
    * <p>
-   * This happens when the application is up rather than while its workflow modules are being
-   * deployed, because the outbox store is only ready by then - on Quarkus the store creates its
-   * table in a startup observer of its own, which runs after the deployment pipeline.
+   * This happens when the application is up, not while its workflow modules are being deployed.
+   * Only by then is the outbox store ready. On Quarkus the store creates its table in a startup
+   * observer of its own, which runs after the deployment pipeline.
    * <p>
-   * Nothing is sent here. An entry is written per module, and what reaches the cockpit server
-   * reaches it afterwards, so a cockpit server which is down does not stop the application from
-   * booting: the outbox keeps trying until the server answers.
+   * Nothing is sent here. One entry is written per module, and it reaches the cockpit server
+   * later. So a cockpit server which is down does not stop the application from booting: the
+   * outbox keeps trying until the server answers.
    * <p>
    * A module which configured nothing about the cockpit is left out, the way it is left out of
    * everything else the extension does.
    * <p>
-   * What a module left to its workflows is checked first, because only now is it known which
-   * workflows the module actually holds. Nothing is registered where one of them lacks what the
-   * module did not say, so an application hears about it here rather than at the first event of
-   * that one process.
+   * A setting a module left to its workflows is checked first, because only now is it known
+   * which workflows the module holds. A workflow which does not carry that setting either ends
+   * the boot, and no module is registered. The application hears about it here, and not at the
+   * first event of that one process.
    */
   public void registerStartedWorkflowModules() {
 
@@ -515,23 +515,23 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Runs a question of <code>BusinessCockpitService</code> in ONE transaction: the one running on
-   * the calling thread, and one of VanillaBP's own where nothing runs.
+   * Runs a question of <code>BusinessCockpitService</code> in one transaction only: the one
+   * running on the calling thread, or one of VanillaBP's own if no transaction runs.
    * <p>
-   * Joining is what makes the answer match what the caller sees. A workflow service which changed
-   * its aggregate and has not written it yet gets an answer built from that state, because the
-   * aggregate the details provider is handed is read in the caller's own unit of work. A
-   * transaction of the extension's own would read what is committed and would answer about a case
-   * as it was before the caller touched it, in the same method call in which a report of that very
-   * change is accepted.
+   * Joining the caller's transaction makes the answer match what the caller sees. A workflow
+   * service which changed its aggregate and has not written it yet gets an answer built from
+   * that state, because the details provider reads the aggregate in the caller's own unit of
+   * work. A transaction of the extension's own would read what is committed. It would answer
+   * about the case as it was before the caller touched it, in the same call which accepts a
+   * report of that very change.
    * <p>
    * Opening one where nothing runs is what keeps a caller outside a transaction answerable. A REST
    * controller reading a user task brings nothing to join, and it gets an answer all the same.
    * <p>
    * The runner is the one the aggregate's own writes go through, for the same reason a report
-   * rides that one: a workflow aggregate kept in a system the platform does not manage is read
-   * through the unit of work of that system and no other. Which transaction a question works in is
-   * decision 21 in the repository's DECISIONS.md.
+   * rides that one. A workflow aggregate kept in a system the platform does not manage is read
+   * through the unit of work of that system and no other. Which transaction a question works in
+   * is decision 21 in the repository's DECISIONS.md.
    *
    * @param <T> What the question answers with
    * @param workflowAggregateClass The aggregate the question is about
@@ -550,9 +550,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Whether the calling thread runs a transaction the given aggregate's writes would go through.
    * <p>
-   * A report through <code>BusinessCockpitService</code> needs one, and the service asks before it
-   * writes so that a caller who brought none reads a sentence about the code they wrote rather
-   * than the platform's wording about a missing transaction.
+   * A report through <code>BusinessCockpitService</code> needs one. The service asks before it
+   * writes, so a caller who brought none reads a sentence about the code they wrote instead of
+   * the platform's wording about a missing transaction.
    * <p>
    * A runner an application contributed answers <code>true</code> where it cannot tell, which
    * leaves the refusal to the runner itself.
@@ -569,9 +569,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Whether a workflow module takes part in the Business Cockpit at all - what
-   * <code>BusinessCockpitService</code> asks before it demands a transaction, so that a module
-   * which configured nothing about the cockpit is not refused for a report nobody writes.
+   * Whether a workflow module takes part in the Business Cockpit at all.
+   * <code>BusinessCockpitService</code> asks this before it demands a transaction. A module
+   * which configured nothing about the cockpit is then not refused for a report nobody writes.
    *
    * @param workflowModuleId The module
    * @return Whether it configured the extension
@@ -585,7 +585,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   /**
    * Reads the current state of a user task and runs the details provider on it, without
-   * reporting anything to the cockpit - what
+   * reporting anything to the cockpit. This is what
    * <code>BusinessCockpitService.getUserTask(aggregate, id)</code> answers with.
    *
    * @param bridge The BPMS holding the task
@@ -612,13 +612,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * The BPMS half serving one adapter id.
    * <p>
-   * Which half serves a dispatch is decided by the adapter id the entry carries, which the
-   * election answered when the event was observed - see decision 5 in the repository's
+   * The adapter id the entry carries decides which half serves a dispatch. The election
+   * answered that id when the event was observed. See decision 5 in the repository's
    * DECISIONS.md.
    *
    * @param adapterId The adapter id an event came from
    * @return The bridge
-   * @throws IllegalStateException If no BPMS half is registered for that adapter - the message
+   * @throws IllegalStateException If no BPMS half is registered for that adapter. The message
    *           names the adapters the application configured, the halves which are registered
    *           and the three artifacts which provide one
    */
@@ -792,9 +792,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Runs the application's <code>&#64;UserTaskDetailsProvider</code>, if it has one.
    * <p>
    * The aggregate is there to be read. The platform does not save it afterwards, whichever way
-   * the provider was reached, because a provider is a question about what to report and not an
-   * instruction to change the case - see decision 17 in the repository's DECISIONS.md. The
-   * contract of the annotation carries that, so no call repeats it.
+   * the provider was reached. A provider is a question about what to report, not an instruction
+   * to change the case. See decision 17 in the repository's DECISIONS.md. The contract of the
+   * annotation carries that rule, so no call repeats it.
    */
   private void invokeUserTaskDetailsProvider(
       final UserTaskEvent event,
@@ -810,9 +810,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 .lookupKeysOf(userTask.taskDefinition(), userTask.bpmnTaskId()))
         .workflowAggregateId(userTask.workflowAggregateId())
         .payload(event);
-    // a variable the engine holds as null is left out rather than handed on: VanillaBP copies
-    // the variables of an invocation into an immutable map, which has no room for a null, and a
-    // '@TaskParam' of a variable nobody set receives null either way
+    // a variable the engine holds as null is left out instead of being handed on. VanillaBP
+    // copies the variables of an invocation into an immutable map, and such a map has no room
+    // for a null. A '@TaskParam' of a variable nobody set receives null either way
     prefill
         .variables()
         .forEach((
@@ -848,9 +848,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Writes one entry, into the store the workflow aggregate's transaction reaches and into the
    * transaction the caller asked for.
    * <p>
-   * {@link EventTransaction#CURRENT} runs through the transaction runner rather than writing
-   * straight away, so that a BPMS half which promised a running transaction and brought none is
-   * told instead of having its entry committed on its own.
+   * {@link EventTransaction#CURRENT} runs through the transaction runner instead of writing
+   * straight away. A BPMS half which promised a running transaction and brought none is then
+   * told about it, instead of having its entry committed on its own.
    */
   private boolean schedule(
       final PhaseTwoCall call,
@@ -874,9 +874,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (transaction == EventTransaction.NEW) {
       return transactionRunner.requireNew(() -> store.schedule(call));
     }
-    // whether the entry was written at all tells the two failures apart: a runner which never
-    // reached the supplier refused the transaction, and everything else is the store's own
-    // failure and travels on as it is
+    // whether the entry was written at all tells the two failures apart. A runner which never
+    // reached the supplier refused the transaction. Everything else is the store's own failure
+    // and travels on as it is
     final var entered = new AtomicBoolean();
     try {
       return transactionRunner.inCurrent(() -> {
@@ -902,15 +902,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * The workflow aggregate an entry belongs to: what VanillaBP serves that BPMN process of that
-   * workflow module with, else what the caller knows.
+   * The workflow aggregate an entry belongs to. It is the class VanillaBP serves that BPMN
+   * process of that workflow module with, and otherwise the class the caller knows.
    * <p>
-   * The class decides both the store and the transaction, and VanillaBP's is the class whose own
-   * writes reach that store, so a caller naming another one is served with VanillaBP's answer
-   * rather than refused. Where two workflow services declare one BPMN process for different
-   * aggregates, VanillaBP serves the process with the class it found first and warns about the
-   * other; an extension which refused there would end a boot the platform lets run, and would say
-   * a second time what has been said once already.
+   * The class decides both the store and the transaction, and VanillaBP names the class whose
+   * own writes reach that store. So a caller who names another class is served with VanillaBP's
+   * answer instead of being refused. Two workflow services may declare one BPMN process for
+   * different aggregates. VanillaBP then serves the process with the class it found first and
+   * warns about the other. If the extension refused there, it would end a boot which the
+   * platform lets run, and it would repeat a warning which has already been said.
    */
   private Class<?> aggregateOf(
       final String workflowModuleId,
@@ -926,12 +926,11 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Says that a report was dropped because the BPMS no longer knows what it is about.
    * <p>
-   * Dropping a report which was to carry details loses what the cockpit would have shown, so it
-   * is said out loud with everything needed to find the case again. A BPMS whose read model is
-   * merely lagging behind must not end here at all: a bridge which may know the task in a
-   * moment throws
-   * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering empty, and
-   * the outbox brings the entry back.
+   * A dropped report was to carry details, so the cockpit loses what it would have shown. That
+   * is said out loud, with everything needed to find the case again. A BPMS whose read model is
+   * only lagging behind must not end up here. A bridge which may know the task in a moment
+   * throws <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering
+   * empty, and the outbox brings the entry back.
    * <p>
    * Only a report of a task or a case which is still running reaches this method. An end is
    * reported without its details instead, because a report which never arrives leaves a task
@@ -954,8 +953,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Says that an end was reported with the identifiers alone.
    * <p>
-   * The BPMS was asked and answered nothing, which for an end is an answer rather than a defect:
-   * an engine may forget a task the moment it is over, and a read model answering out of a cache
+   * The BPMS was asked and answered nothing. For an end that is an answer, not a defect. An
+   * engine may forget a task the moment it is over, and a read model answering out of a cache
    * may have dropped it by the time the report goes out. The cockpit then keeps the business
    * data of the last change instead of the data the case was finished with, and this line says
    * which case that happened to.
@@ -1035,11 +1034,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Reads back the time an entry was written with.
    * <p>
-   * A value which cannot be read ends the dispatch for good rather than being replaced by the
-   * current time: the timestamp is what the cockpit orders the case's history by, and an entry
-   * carrying a broken one would be repeated forever or, worse, be shown at the wrong moment.
-   * Only this extension writes the value, so an unreadable one is a defect and not something a
-   * retry heals.
+   * A value which cannot be read ends the dispatch for good. It is not replaced by the current
+   * time. The cockpit orders the history of a case by this timestamp, so an entry with a broken
+   * one would be repeated forever or, worse, be shown at the wrong moment. Only this extension
+   * writes the value, so an unreadable one is a defect which no retry heals.
    */
   private static OffsetDateTime parseTimestamp(
       final String timestamp) {

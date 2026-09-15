@@ -25,14 +25,14 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * The client is the one generated from the cockpit's own OpenAPI document, so the payloads
  * cannot drift from what the server accepts.
  * <p>
- * What stands between the workflow module and the server - a proxy, a certificate its own
- * authority signed, an authorization server issuing the token - is configured too, and where
- * nothing of that is configured the client keeps the stack it was generated with.
+ * What stands between the workflow module and the server is configured too: a proxy, a
+ * certificate its own authority signed, an authorization server issuing the token. Where nothing
+ * of that is configured, the client keeps the stack it was generated with.
  * <p>
  * What the server answers decides what happens to the outbox entry. A status which says "not
- * now" - the server is unavailable, or asks to slow down - gives the entry back with the time
- * the server named. A status which says "not like this" - anything else the client is blamed
- * for - ends the entry, because the same bytes would be refused again and an entry retried
+ * now", meaning the server is unavailable or asks to slow down, gives the entry back with the
+ * time the server named. A status which says "not like this", meaning anything else the client
+ * is blamed for, ends the entry. The same bytes would be refused again, and an entry retried
  * forever hides the report which is actually broken. Everything else is repeated.
  */
 public class RestTransport implements BusinessCockpitTransport {
@@ -89,7 +89,8 @@ public class RestTransport implements BusinessCockpitTransport {
   }
 
   /**
-   * @param api A client built elsewhere - what a test pointing at its own HTTP server hands in
+   * @param api A client built elsewhere, which is what a test pointing at its own HTTP server
+   *          hands in
    */
   public RestTransport(
       final BpmsApi api,
@@ -182,7 +183,7 @@ public class RestTransport implements BusinessCockpitTransport {
   }
 
   /**
-   * What a status the server answered with means for the entry - see decision 11 in the
+   * What a status the server answered with means for the entry. See decision 11 in the
    * repository's DECISIONS.md.
    *
    * @param what The report being sent
@@ -222,8 +223,8 @@ public class RestTransport implements BusinessCockpitTransport {
   private static Duration retryAfterOf(
       final FeignException failure) {
 
-    // Feign reads 'Retry-After' itself and hands the moment on rather than the header, so that
-    // is the first place to look; the header is read where an answer came through unparsed
+    // Feign reads 'Retry-After' itself and hands on the moment instead of the header, so that
+    // is the first place to look. The header is read where an answer came through unparsed
     if (failure instanceof final RetryableException retryable) {
       final var until = retryable.retryAfter();
       if (until != null) {

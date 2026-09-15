@@ -11,9 +11,9 @@ import java.util.List;
  *
  * <p>A workflow is visible once it names one of the {@code accessibleToUsers} or one of the
  * {@code accessibleToGroups}. A collection left null or empty drops its reason instead of widening
- * the view. A visibility naming nobody restricts nothing, and {@link #everyWorkflow()} is the name
- * for that case. {@code includeDanglingWorkflows} decides what happens to
- * a workflow which names neither users nor groups: set, it counts as open to everybody.
+ * the view. A visibility which names nobody restricts nothing, and {@link #everyWorkflow()} is the
+ * name for that case. {@code includeDanglingWorkflows} decides what happens to a workflow which
+ * names neither users nor groups. Once it is set, such a workflow counts as open to everybody.
  *
  * <p>The values a workflow is matched against are what its {@code @WorkflowDetailsProvider}
  * reported, so an application built on the cockpit answers here with whatever it told the cockpit

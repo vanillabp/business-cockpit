@@ -16,30 +16,30 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
  * <p>
  * An outbox entry has to be written in the very transaction which persists the workflow
  * aggregate it belongs to, because that is what ties the report to the change it reports. An
- * application may hold several stores - one per persistence, or one an application wrote for a
- * single aggregate - so which store that is depends on the aggregate, and picking any of them
- * would break the promise while looking green.
+ * application may hold several stores: one per persistence, or one it wrote for a single
+ * aggregate. So which store to use depends on the aggregate, and picking any of them would break
+ * the promise while looking green.
  * <p>
- * The attribution itself is never made here. VanillaBP answers it for its own operations and
- * answers it for the extension too, so an entry of the extension lands where an entry of the
- * core lands - see decision 13 in the repository's DECISIONS.md.
+ * The attribution itself is never made here. VanillaBP answers it for its own operations and for
+ * the extension too, so an entry of the extension lands where an entry of the core lands. See
+ * decision 13 in the repository's DECISIONS.md.
  * <p>
- * An event a BPMS observed names a workflow module, a BPMN process and a serialized id and no
- * class at all. The class is looked up rather than demanded: VanillaBP read the
+ * An event a BPMS observed names a workflow module, a BPMN process and a serialized id, but no
+ * class at all. The class is looked up instead of being demanded. VanillaBP read the
  * <code>&#64;WorkflowService</code> annotations while it built the process services, so
  * {@link #validateAtStartup(Map)} turns its answers into the store of every process of the
  * application while it boots.
  * <p>
- * The lookup is keyed by the workflow module AND the BPMN process. Two modules of one
- * application may serve a process of the same name - a module is exactly the boundary which
- * makes that legal - and their aggregates may live in different persistences, so a key which
+ * The lookup is keyed by the workflow module and the BPMN process together. Two modules of one
+ * application may serve a process of the same name, because a module is exactly the boundary
+ * which makes that legal. Their aggregates may live in different persistences, so a key which
  * left the module out would write the reports of one module into the other's store.
  */
 public class BusinessCockpitOutbox {
 
   /**
-   * One BPMN process of one workflow module - the pair an event a BPMS observed names, and the
-   * pair a store is looked up by.
+   * One BPMN process of one workflow module. It is the pair an event a BPMS observed names, and
+   * the pair a store is looked up by.
    *
    * @param workflowModuleId The workflow module
    * @param bpmnProcessId The BPMN process, as the application wrote it
@@ -93,14 +93,14 @@ public class BusinessCockpitOutbox {
    * VanillaBP validates the outbox of its own process services at startup.
    * <p>
    * A store which cannot be attributed to an aggregate ends the boot with the platform's own
-   * message instead of surfacing at the first report. And the answers are kept, keyed by the
-   * BPMN process the aggregate is served through, so that an event a BPMS observed - which
-   * names identifiers and no class - reaches the store of its own aggregate rather than a store
-   * the application happens to share.
+   * message instead of surfacing at the first report. The answers are kept, keyed by the BPMN
+   * process the aggregate is served through. An event a BPMS observed names identifiers and no
+   * class, and it then reaches the store of its own aggregate instead of a store the application
+   * happens to share.
    *
    * @param workflowAggregateByBpmnProcess The workflow aggregate of every BPMN process of every
    *          workflow module the application serves
-   * @throws IllegalStateException If a store is missing or cannot be attributed - the message
+   * @throws IllegalStateException If a store is missing or cannot be attributed. The message
    *           names what to do
    */
   public void validateAtStartup(
@@ -125,7 +125,7 @@ public class BusinessCockpitOutbox {
    * @param workflowAggregateClass The class of the aggregate whose transaction the entry rides
    * @return The store
    * @throws IllegalStateException If the application has no store, or none which can be
-   *           attributed to that aggregate - the message names what to do
+   *           attributed to that aggregate. The message names what to do
    */
   public PhaseTwoOutbox ofWorkflowAggregate(
       final Class<?> workflowAggregateClass) {
@@ -141,8 +141,8 @@ public class BusinessCockpitOutbox {
   /**
    * The store an event a BPMS observed is written into.
    * <p>
-   * Such an event names a workflow module, a BPMN process and a serialized id and no class, and
-   * the class is what decides the store. It is looked up: a BPMN process is served by a
+   * Such an event names a workflow module, a BPMN process and a serialized id, but no class.
+   * The class is what decides the store, so it is looked up: a BPMN process is served by a
    * workflow service, and that service says which aggregate it is written for.
    *
    * @param workflowModuleId The module the event belongs to
@@ -188,10 +188,10 @@ public class BusinessCockpitOutbox {
    * The store the registration of a workflow module is written into.
    * <p>
    * The registration is about the module and not about any workflow, so it is written in a
-   * transaction of its own and belongs to no aggregate. Any store carries it correctly; which
+   * transaction of its own and belongs to no aggregate. Any store carries it correctly. Which
    * one is picked has to be the same after a restart, because two entries of the same
-   * registration in two stores would be sent twice. The store of the module's first aggregate
-   * by class name is that answer, and an application with one store has only that one anyway.
+   * registration in two stores would be sent twice. The store of the module's first aggregate by
+   * class name is that answer, and an application with one store has only that one anyway.
    *
    * @param workflowModuleId The module to register
    * @param bpmnProcessIdsOfTheModule The BPMN processes this module deployed
@@ -256,8 +256,8 @@ public class BusinessCockpitOutbox {
 
   private String noStoreAtAll() {
 
-    // the closing line is the platform's own: its resolver lists what enables a default and
-    // leaves the store an application writes itself to whoever asks - here as there, that is
+    // the closing line is the platform's own. Its resolver lists what enables a default and
+    // leaves the store an application writes itself to whoever asks. Here as there, that is
     // the last of the remedies
     return """
         The Business Cockpit extension needs an outbox store: it reports every event after the \

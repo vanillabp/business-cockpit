@@ -74,14 +74,14 @@ public class BpmsApiController implements BpmsApi {
                         userTaskCompletedEvent.getTimestamp(),
                         UserTaskEndReason.COMPLETED,
                         task -> {
-                            // an end carries the same fields as a change, so the list of finished work
-                            // shows what the task was finished with instead of what the last change
+                            // an end carries the same fields as a change. So the list of finished
+                            // work shows what the task was finished with, not what the last change
                             // happened to say
                             userTaskMapper.toEndedTask(userTaskCompletedEvent, task);
-                            // capture who completed the task so the notification poller can tell a
-                            // completion by another user apart from a self-completion (AC func 2c).
-                            // 'initiator' and not 'updatedBy': the latter is audit information
-                            // overwritten by UpdateInformationEventListener on every save.
+                            // keep who completed the task. The notification poller reads it to tell
+                            // a completion by somebody else from one the user did themselves. It
+                            // has to be the initiator and not updatedBy, because
+                            // UpdateInformationEventListener overwrites updatedBy on every save
                             task.setInitiator(userTaskCompletedEvent.getInitiator());
                         }));
 

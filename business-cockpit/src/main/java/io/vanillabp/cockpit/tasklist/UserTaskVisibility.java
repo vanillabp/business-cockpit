@@ -18,9 +18,9 @@ import java.util.List;
  *
  * <p>{@code admittedUsers} is the reason which says nothing about working on the task. A workflow
  * module writes the task's own {@code admittedUsers} to let somebody reach it for a reason of the
- * business, for instance everybody who already worked on it, and such a person keeps the task
- * whatever happened to their groups since. What they then get to see is the module's own detail
- * view, so the module decides how much of the task it shows them.
+ * business, everybody who already worked on it for example. Such a person keeps the task whatever
+ * happened to their groups since. What they get to see is the module's own detail view, so the
+ * module decides how much of the task it shows them.
  *
  * <p>Of the visibilities below only {@link #everythingTheUserMayWorkOn(UserDetails)} carries that
  * reason. It is the view of everything a person has to do with, and the narrower ones stay what
@@ -31,9 +31,9 @@ import java.util.List;
  * grabs is described. {@code excludedCandidates} names users a task can keep out through its own
  * {@code excludedCandidateUsers}, which is how a workflow module enforces four eyes.
  *
- * <p>The exclusion cancels every reason but one: a user in {@code admittedUsers} sees the task even
- * when the same task excludes them. Four eyes do not suffer from that. The first pair should never
- * be shown the second task at all, and if the task did reach them, the workflow module's own
+ * <p>The exclusion cancels every reason but one. A user in {@code admittedUsers} sees the task
+ * even where the same task excludes them. Four eyes do not suffer from that. The first pair should
+ * never be shown the second task at all, and if the task did reach them, the workflow module's own
  * security keeps the form shut. So the rule reads: the user is admitted, or they are a candidate
  * and not excluded.
  *
@@ -77,8 +77,8 @@ public record UserTaskVisibility(
 
     /**
      * What is the user's own: assigned to them, or naming them personally. Their groups do not
-     * count here, neither do the tasks addressed to nobody, and neither does a task which merely
-     * admits them: this view says what is addressed to the person today.
+     * count here, neither do the tasks addressed to nobody, and neither does a task which only
+     * admits them. This view says what is addressed to the person today.
      */
     public static UserTaskVisibility onlyWhatIsTheUsersOwn(
             final UserDetails user) {

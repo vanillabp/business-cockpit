@@ -17,21 +17,22 @@ import org.springframework.security.web.context.HttpRequestResponseHolder;
 import org.springframework.security.web.context.SecurityContextRepository;
 
 /**
- * Turns a successful authentication into the JWT cookie the single-page application sends on all
- * subsequent requests. Wired into the HTTP basic configurer, so logging in once by basic auth is
- * enough: the response of that first request carries the cookie.
+ * Turns a successful authentication into the JWT cookie the single-page application sends on
+ * every later request. It is wired into the HTTP basic configurer, so logging in once by basic
+ * authentication is enough. The response to that first request carries the cookie.
  * <p>
- * In the cockpit's own filter chain the cookie is not read back here but by
- * {@link PassiveJwtSecurityFilter}, which runs for every request including the ones no security
- * filter chain protects. The basic authentication filter the repository is handed to only writes,
- * it never asks for a context.
+ * In the cockpit's own filter chain the cookie is not read back here.
+ * {@link PassiveJwtSecurityFilter} reads it, and that filter runs for every request, including
+ * the ones no security filter chain protects. The basic authentication filter this repository is
+ * handed to only writes. It never asks for a context.
  * <p>
- * Reading is still part of the contract, for an application which makes this repository the context
- * repository of its own chain. It happens in {@link #loadDeferredContext(HttpServletRequest)}, which
- * hands out a {@link DeferredSecurityContext} rather than a context. Spring Security resolves that
- * only where something asks who is logged in, so a request which never asks does not decode a token.
- * This is the model {@code SecurityContextHolderFilter} works with, and it replaced the older one
- * where a filter wrapped request and response to notice a context being written.
+ * Reading is still part of the contract, for an application which makes this repository the
+ * context repository of its own chain. That happens in
+ * {@link #loadDeferredContext(HttpServletRequest)}, which hands out a
+ * {@link DeferredSecurityContext} and not a context. Spring Security resolves it only where
+ * something asks who is logged in, so a request which never asks decodes no token. This is the
+ * model {@code SecurityContextHolderFilter} works with. It replaced an older one, where a filter
+ * wrapped request and response to notice a context being written.
  */
 public class JwtSecurityContextRepository implements SecurityContextRepository {
 
@@ -159,13 +160,13 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
     }
 
     /**
-     * Decodes the cookie when the context is first asked for and keeps the answer. A request without
-     * the cookie gets an empty context rather than null, which is what the interface asks for, and
-     * {@link #isGenerated()} says which of the two a caller got. A token which is expired or signed
-     * with another key lets the mapper's exception through where the context is asked for, which is
-     * where the deprecated read path let it through as well. {@link PassiveJwtSecurityFilter} is the
-     * place which turns such a token into a request without a user. See
-     * {@code JwtSecurityContextRepositoryTest}.
+     * Decodes the cookie when the context is first asked for and keeps the answer. A request
+     * without the cookie gets an empty context and not null, which is what the interface asks
+     * for, and {@link #isGenerated()} says which of the two a caller got. A token which is
+     * expired, or signed with another key, lets the mapper's exception through where the context
+     * is asked for. The deprecated read path let it through in the same place.
+     * {@link PassiveJwtSecurityFilter} is what turns such a token into a request without a user.
+     * See {@code JwtSecurityContextRepositoryTest}.
      */
     private final class DeferredCookieContext implements DeferredSecurityContext {
 

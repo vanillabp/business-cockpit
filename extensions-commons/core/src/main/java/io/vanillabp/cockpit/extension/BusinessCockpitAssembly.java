@@ -29,9 +29,9 @@ public final class BusinessCockpitAssembly {
   /**
    * The transport the extension ships, built from what the application configured.
    * <p>
-   * Both platform modules provide it as a bean an application can replace, and this method is
-   * also how an application's own transport gets hold of the shipped one it wants to wrap: it
-   * asks for the bean of type {@link BusinessCockpitConfiguration} and calls this.
+   * Both platform modules provide it as a bean an application can replace. This method is also
+   * how an application's own transport gets hold of the shipped one it wants to wrap: it asks
+   * for the bean of type {@link BusinessCockpitConfiguration} and calls this method.
    *
    * @param configuration The validated configuration
    * @return The transport it chose
@@ -60,9 +60,9 @@ public final class BusinessCockpitAssembly {
   }
 
   /**
-   * The Kafka transport is built in a method of its own so that the classes of the Kafka client
-   * are loaded when Kafka was chosen and never otherwise - the client is an optional dependency
-   * of this module.
+   * The Kafka transport is built in a method of its own, so the classes of the Kafka client are
+   * loaded when Kafka was chosen and never otherwise. The client is an optional dependency of
+   * this module.
    */
   private static BusinessCockpitTransport kafkaTransport(
       final BusinessCockpitConfiguration configuration) {
@@ -120,9 +120,9 @@ public final class BusinessCockpitAssembly {
   /**
    * The mapper turning a workflow module's business data into the tree both transports send.
    * <p>
-   * Its settings are part of what the cockpit server receives, so they are pinned here rather
-   * than taken from whatever mapper an application happens to have: dates as ISO-8601 rather
-   * than as numbers, in UTC, and nothing absent written out as null.
+   * Its settings are part of what the cockpit server receives. So they are pinned here instead
+   * of being taken from whatever mapper an application happens to have: dates as ISO-8601 and
+   * not as numbers, in UTC, and nothing absent written out as null.
    *
    * @return The mapper
    */
@@ -135,9 +135,9 @@ public final class BusinessCockpitAssembly {
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         .disable(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
         .defaultTimeZone(TimeZone.getTimeZone("UTC"))
-        // for values as well as for what a map or a list holds: a detail nobody set is
-        // absent rather than null, which is how the cockpit reads it either way and what
-        // keeps a message from carrying what it does not say
+        // for values as well as for what a map or a list holds. A detail nobody set is
+        // absent and not null. The cockpit reads it the same way either way, and a message
+        // then carries nothing it does not say
         .defaultPropertyInclusion(
             JsonInclude.Value
                 .construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))

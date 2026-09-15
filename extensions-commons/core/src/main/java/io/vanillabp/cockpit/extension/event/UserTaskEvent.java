@@ -16,14 +16,14 @@ import io.vanillabp.spi.cockpit.usertask.UserTask;
  * One user-task event on its way to the cockpit server, and at the same time the object a
  * <code>&#64;UserTaskDetailsProvider</code> method receives and enriches.
  * <p>
- * It is one class for all four kinds of event, with {@link #getEventKind()} saying which (see
- * decision 9 in the repository's DECISIONS.md). The
- * mappers of both transports read the kind; a lifecycle event simply leaves the fields nobody
- * filled at their defaults, which is what the cockpit's lifecycle endpoints accept.
+ * It is one class for all four kinds of event, and {@link #getEventKind()} says which. See
+ * decision 9 in the repository's DECISIONS.md. The mappers of both transports read the kind. A
+ * lifecycle event simply leaves the fields nobody filled at their defaults, which is what the
+ * cockpit's lifecycle endpoints accept.
  * <p>
- * Being both the event and the <code>PrefilledUserTaskDetails</code> parameter is what makes a
- * details provider which only calls setters need no copying afterwards: it wrote into this
- * object. A provider returning an object of its own is the other case, and
+ * The object is both the event and the <code>PrefilledUserTaskDetails</code> parameter. So a
+ * details provider which only calls setters needs no copying afterwards, because it wrote into
+ * this very object. A provider returning an object of its own is the other case, and
  * {@link #applyReturnedDetails} handles it.
  */
 public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
@@ -113,9 +113,9 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
    * Takes over what a details provider returned as an object of its own.
    * <p>
    * A provider which enriched the object it was given returns that very object, and there is
-   * nothing to take over - the comparison is by identity for exactly that reason. A provider
-   * which built its own <code>UserTaskDetails</code> has filled only the fields the SPI lets
-   * business code fill, so only those are read; everything the BPMS reported stays.
+   * nothing to take over. That is why the comparison is by identity. A provider which built its
+   * own <code>UserTaskDetails</code> filled only the fields the SPI lets business code fill, so
+   * only those are read. Everything the BPMS reported stays.
    *
    * @param details What the provider returned, or <code>null</code> where it returned nothing
    */

@@ -36,8 +36,8 @@ public class SpaNoHandlerFoundExceptionHandler {
     @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class })
     public ResponseEntity<Resource> handleNotFound() {
 
-        // the shell itself is the answer, not an error, and it must not be cached - it carries the
-        // hashed asset names of the deployed build
+        // the shell itself is the answer and not an error. It must not be cached, because it
+        // carries the hashed names of the assets of the deployed build
         return ResponseEntity
                 .ok()
                 .contentType(MediaType.TEXT_HTML)

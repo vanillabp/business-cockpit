@@ -8,8 +8,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 
 /**
- * Logging out has to drop the JWT cookie as well, otherwise the next request would authenticate
- * again by the still valid token.
+ * Logging out has to drop the JWT cookie too. Otherwise the next request would authenticate
+ * again with the token, which is still valid.
  */
 public class JwtLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
 

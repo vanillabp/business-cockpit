@@ -9,20 +9,21 @@ import java.util.Map;
 /**
  * Tells a key the Business Cockpit reads from one which merely looks like it.
  * <p>
- * A misspelled key is configuration a developer stares at for an afternoon: it stands in the
- * file, it is read by nobody, and what it was meant to do simply does not happen. Quarkus
- * refuses such a key below <code>vanillabp</code> by itself, naming it; this check runs before
- * that and says which key was meant, which is the part a framework cannot know.
+ * A misspelled key is configuration a developer stares at for an afternoon. It stands in the
+ * file, nobody reads it, and what it was meant to do simply does not happen. Quarkus refuses
+ * such a key below <code>vanillabp</code> by itself and names it. This check runs before that
+ * and says which key was meant, which is the part a framework cannot know.
  * <p>
- * Spring Boot ignores a key no binding declares, and this repository leaves that as it is: the
- * asymmetry between the two platforms is the platform integration's own, documented decision.
+ * Spring Boot ignores a key no binding declares, and this repository leaves that as it is. The
+ * difference between the two platforms is the platform integration's own decision, and it is
+ * written down there.
  */
 public final class ConfigurationKeyCheck {
 
   /**
    * How far a key may be from one the cockpit reads and still be named as the one meant. Three
-   * edits catch a swapped letter, a missing one and a plural nobody asked for; beyond that two
-   * unrelated keys start looking like each other.
+   * edits catch a swapped letter, a missing one and a plural nobody asked for. Beyond three, two
+   * unrelated keys start to look like each other.
    */
   private static final int NEAREST = 3;
 
@@ -43,8 +44,8 @@ public final class ConfigurationKeyCheck {
   /**
    * The keys version 1 of the Business Cockpit read and version 2 does not, with what an
    * application does instead. A key of an application which is being upgraded is far more likely
-   * to be one of these than a typo, and a developer who wrote it once wants to know what became of
-   * it rather than which key it resembles.
+   * to be one of these than a typo. A developer who wrote it once wants to know what became of
+   * it, not which key it resembles.
    */
   private static final Map<String, String> GONE = goneKeys();
 
@@ -237,10 +238,11 @@ public final class ConfigurationKeyCheck {
   }
 
   /**
-   * A key which holds for one profile is the same key: <code>%prod.vanillabp.cockpit.rest.log</code>
-   * is as gone as <code>vanillabp.cockpit.rest.log</code>, and a developer who misspelled it in a
-   * profile wants to hear about it there too. SmallRye usually hands the name over without the
-   * prefix, and where it does not, this is what takes it off.
+   * A key which holds for one profile is the same key.
+   * <code>%prod.vanillabp.cockpit.rest.log</code> is as gone as
+   * <code>vanillabp.cockpit.rest.log</code>, and a developer who misspelled it in a profile wants
+   * to hear about it there too. SmallRye usually hands the name over without the prefix. Where it
+   * does not, this is what takes it off.
    *
    * @param propertyName A property name as a platform spells it
    * @return The name without the profile it holds for

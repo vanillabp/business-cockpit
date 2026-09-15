@@ -4,12 +4,10 @@ package io.vanillabp.cockpit.notification;
  * The kind of user task change a notification is about.
  *
  * <ul>
- *   <li>{@link #CREATED} - a new user task was reported and is visible to the recipient.</li>
- *   <li>{@link #CANDIDATE_USER} - the recipient was added as a personal candidate of a user task.</li>
- *   <li>{@link #COMPLETED} - a user task the recipient had taken over (assignee) was completed by
- *       someone else.</li>
- *   <li>{@link #CANCELED} - a user task the recipient had taken over (assignee) was cancelled by
- *       the process.</li>
+ *   <li>{@link #CREATED}: a new user task was reported and the recipient can see it.</li>
+ *   <li>{@link #CANDIDATE_USER}: the recipient became a personal candidate of a user task.</li>
+ *   <li>{@link #COMPLETED}: somebody else completed a user task the recipient had taken over.</li>
+ *   <li>{@link #CANCELED}: the process cancelled a user task the recipient had taken over.</li>
  * </ul>
  */
 public enum NotificationType {

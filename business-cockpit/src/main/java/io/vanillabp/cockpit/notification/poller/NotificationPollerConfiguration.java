@@ -13,11 +13,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
- * Registers the {@link NotificationPoller}. The poller only becomes active when at least one
- * {@link NotificationService} bean exists (its scheduled tick returns immediately otherwise), so
- * installations without notifications keep their exact runtime behavior (AC tech 4). This runtime
- * guard is used instead of a class-level {@code @ConditionalOnBean}, which is order-sensitive for
- * component-scanned beans.
+ * Registers the {@link NotificationPoller}. The poller only starts working once at least one
+ * {@link NotificationService} bean exists, and until then its scheduled tick returns at once. So an
+ * installation which does not notify anybody behaves exactly as it did. The check happens while the
+ * application runs and not as a {@code @ConditionalOnBean} on the class, because that one depends
+ * on the order the scanned beans are found in.
  */
 @Configuration
 public class NotificationPollerConfiguration {

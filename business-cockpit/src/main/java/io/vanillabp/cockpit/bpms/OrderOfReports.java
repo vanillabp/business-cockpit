@@ -3,17 +3,17 @@ package io.vanillabp.cockpit.bpms;
 import java.time.OffsetDateTime;
 
 /**
- * How the cockpit tells a report which brings news from one which is only arriving late.
+ * How the cockpit tells a report with news from a report which arrives late.
  * <p>
- * A workflow module reports through VanillaBP's outbox, and that outbox gives its entries no order.
- * They are dispatched in parallel, and an entry whose dispatch failed comes back after the entries
- * planned later have gone through. So a change can reach the cockpit after the change which followed
- * it, and an end can reach it before the creation it ends. Nothing in the reports themselves fixes
- * that, which is why the cockpit weighs them here.
+ * A workflow module reports through VanillaBP's outbox. That outbox puts its entries in no order.
+ * It dispatches them in parallel, and an entry whose dispatch failed comes back after later entries
+ * have gone through. So a change can reach the cockpit after the change which followed it, and an
+ * end can reach it before the creation it ends. The reports do not say which of them is the younger
+ * one, so the cockpit weighs them here.
  * <p>
- * What it weighs by is the timestamp of the event, never the moment the report arrived: the report
- * is built when its outbox entry is dispatched, which is as late as the outbox happens to get to it,
- * while the event is what the workflow module saw. See decision 18 in the repository's DECISIONS.md.
+ * It weighs by the timestamp of the event, never by the moment the report arrived. The report is
+ * built when the outbox gets around to its entry, which can be much later. The event is what the
+ * workflow module saw. See decision 18 in the repository's DECISIONS.md.
  */
 public final class OrderOfReports {
 
@@ -31,9 +31,9 @@ public final class OrderOfReports {
             final OffsetDateTime eventTimestamp,
             final OffsetDateTime latestEventStored) {
 
-        // a report without a timestamp cannot be weighed, and a state stored before the cockpit kept
-        // the timestamp cannot be weighed against: both are let through, because refusing a report
-        // the cockpit cannot judge would lose it for good
+        // a report without a timestamp cannot be weighed. Neither can a state which was stored
+        // before the cockpit kept the timestamp. Both are let through: a report the cockpit refuses
+        // is lost for good
         if ((eventTimestamp == null)
                 || (latestEventStored == null)) {
             return false;

@@ -27,14 +27,16 @@ public class NotificationProperties {
     public static final String FILE_PREFIX = "file:";
 
     /**
-     * Interval at which notifiable user task changes are determined and sent (AC tech 4).
+     * How often the cockpit looks for changes of a user task worth a notification, and sends
+     * them.
      */
     private Duration interval = Duration.ofMinutes(1);
 
     /**
-     * Maximum number of delivery attempts for a notification bulk before an outbox entry is
-     * considered stale and no longer retried (default 120 = two hours at a one-minute interval).
-     * Delivery resumes if the entry's {@code attempts} counter is manually reset in MongoDB.
+     * How often the delivery of one bulk is attempted. Once an outbox entry reaches this number
+     * it counts as stale and is no longer retried. The default of 120 is two hours at an interval
+     * of one minute. Delivery starts again once somebody resets the {@code attempts} counter of
+     * the entry in MongoDB.
      */
     private int maxDeliveryAttempts = 120;
 
@@ -147,15 +149,15 @@ public class NotificationProperties {
     public static class Smtp {
 
         /**
-         * Activates the reference e-mail {@code NotificationService} using the Spring Boot mail
-         * sender ({@code spring.mail.*}). Disabled by default so installations without notification
-         * keep their exact runtime behavior.
+         * Switches the reference e-mail {@code NotificationService} on, which sends through the
+         * Spring Boot mail sender ({@code spring.mail.*}). It is off by default, so an
+         * installation which does not notify anybody behaves exactly as it did.
          */
         private boolean enabled = false;
 
         /**
-         * The {@code From} address of notification e-mails. Should be set for real deployments;
-         * many SMTP servers reject messages without a sender.
+         * The {@code From} address of a notification e-mail. A real deployment should set it,
+         * because many SMTP servers refuse a message without a sender.
          */
         private String from;
 

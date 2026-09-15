@@ -26,8 +26,8 @@ public abstract class WorkflowMapper {
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
-        // a reporting system which names no user means no person at all: building one from a null
-        // id yields a person the GUI hides but every id comparison stumbles over
+        // a reporting system which names no user means no person at all. A person built from a
+        // null id is hidden by the GUI, but every comparison of ids stumbles over it
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
@@ -88,7 +88,7 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowUpdatedEvent event, @MappingTarget Workflow result);
 
-    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
+    // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
@@ -98,8 +98,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "reportedAt", ignore = true)
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
-    // an end does not say when the case began, and guessing it would make the same case look
-    // different depending on which of the two reports arrived first:
+    // an end does not say when the case began. Guessing it would make the same case look
+    // different, depending on which of the two reports arrived first:
     @Mapping(target = "createdAt", ignore = true)
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -114,7 +114,7 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     protected abstract Workflow mapEndedWorkflow(WorkflowCompletedEvent event, @MappingTarget Workflow result);
 
-    // an end overwrites what it reports and leaves the rest of the stored case as it is - see
+    // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
@@ -124,8 +124,8 @@ public abstract class WorkflowMapper {
     @Mapping(target = "reportedAt", ignore = true)
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
-    // an end does not say when the case began, and guessing it would make the same case look
-    // different depending on which of the two reports arrived first:
+    // an end does not say when the case began. Guessing it would make the same case look
+    // different, depending on which of the two reports arrived first:
     @Mapping(target = "createdAt", ignore = true)
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
@@ -145,20 +145,20 @@ public abstract class WorkflowMapper {
      * cases shows what the case ended with.
      * <p>
      * Whatever the end does not report leaves what is stored alone (see decision 19 in the
-     * repository's DECISIONS.md), and {@link WhatAnEndReports} holds the part of that rule a mapping
-     * annotation cannot express. Field by field the mapping reads like this.
+     * repository's DECISIONS.md). {@link WhatAnEndReports} holds the part of that rule which a
+     * mapping annotation cannot express. Field by field the mapping reads like this.
      * <p>
      * An end may replace what it reports, because that is the youngest answer there is about the
-     * case: where it sits in the model (the source, the workflow module, the BPMN process and its
-     * version, the business id), what the cockpit shows of it (the title, the address of the user
-     * interface, the comment, the business data and the words the fulltext search reads), who
-     * started it and who may see it.
+     * case. This covers where the case sits in the model: the source, the workflow module, the BPMN
+     * process and its version, and the business id. It covers what the cockpit shows of the case:
+     * the title, the address of the user interface, the comment, the business data and the words
+     * the fulltext search reads. And it covers who started the case and who may see it.
      * <p>
      * An end may not replace what it cannot know. When the cockpit stored the case and how often
-     * the record was saved are the cockpit's own record-keeping, and when the case began is what an
-     * end does not say. That it has ended is set by the service rather than mapped, because an end
-     * means more to it than the event says. The target groups and the dangling flag are read from
-     * the users and groups the case is accessible to.
+     * the record was saved is the cockpit's own record-keeping. When the case began is something an
+     * end does not say. That the case has ended is set by the service and not mapped, because an
+     * end means more to the service than the event says. The target groups and the dangling flag
+     * are read from the users and groups the case is accessible to.
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place
@@ -174,7 +174,7 @@ public abstract class WorkflowMapper {
 
     /**
      * The same for a cancellation. The API declares a schema per kind of event and the generator
-     * made a class of each, so there is no one type both of them are.
+     * made a class of each, so the two ends share no common type.
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place

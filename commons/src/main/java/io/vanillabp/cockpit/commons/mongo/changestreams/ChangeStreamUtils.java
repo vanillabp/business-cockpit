@@ -28,9 +28,9 @@ import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 
 /**
  * Subscribes to the change stream of a collection. Whoever registers this as a bean also owns the
- * order it is built in: a change stream is opened on a collection, so the changesets creating the
- * collections have to have run first. The Business Cockpit's persistence auto-configuration says so
- * by asking for the bean which runs them.
+ * order it is built in. A change stream is opened on a collection, so the changesets which create
+ * the collections have to have run first. The Business Cockpit's persistence auto-configuration
+ * says so by asking for the bean which runs them.
  */
 public class ChangeStreamUtils {
 

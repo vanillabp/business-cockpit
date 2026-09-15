@@ -26,12 +26,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 
 /**
- * Turns the workflowlist requests of the GUI API into calls of {@link WorkflowlistService} and maps
- * the result back. One question stays open, and the application built on this library answers it:
- * which workflows this view lets the person making the request reach. Only that application knows
- * what its workflows are about. A cockpit for a support team may
- * want every workflow in one list, another one may show nobody anything the reporting workflow
- * module did not address to them.
+ * Turns the workflowlist requests of the GUI API into calls of {@link WorkflowlistService} and
+ * maps the result back. One question stays open, and the application built on this library answers
+ * it: which workflows this view lets the person making the request reach. Only that application
+ * knows what its workflows are about. A cockpit for a support team may want every workflow in one
+ * list. Another one may show nobody anything the reporting workflow module did not address to
+ * them.
  *
  * <p>A subclass answers it in {@link #workflowsVisibleTo(UserDetails)} and is then done. The list,
  * the fulltext suggestions, opening one workflow and asking for its user tasks are answered from
@@ -203,8 +203,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
      * are wanted depends on what the site shows, which is why the caller decides per request:
      *
      * @param limitListAccordingToCurrentUsersPermissions {@code true} lists only the tasks the
-     *        current user could work on, the way the task list does; {@code false} lists every user
-     *        task of the workflow, for a site showing what the workflow is up to rather than what
+     *        current user could work on, the way the task list does. {@code false} lists every user
+     *        task of the workflow, for a site which shows what the workflow is up to and not what
      *        the reader has to do
      */
     protected List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(

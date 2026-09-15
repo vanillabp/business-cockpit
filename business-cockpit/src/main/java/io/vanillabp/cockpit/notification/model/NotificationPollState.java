@@ -6,9 +6,9 @@ import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
- * Singleton document coordinating the notification poller across a cluster: it holds the lease
- * (so only one node runs a cycle at a time, AC tech 8) and the delta-scan cursor (so notifications
- * are not lost across restarts, AC tech 9).
+ * The one document which keeps the notification pollers of a cluster in step. It holds the lease,
+ * so only one node runs a cycle at a time, and it holds the cursor of the scan, so no notification
+ * is lost over a restart.
  */
 @Document(collection = NotificationPollState.COLLECTION_NAME)
 public class NotificationPollState {

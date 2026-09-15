@@ -29,10 +29,10 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
     private Person initiator;
 
     /**
-     * When the reporting workflow system started this workflow. {@code null} means the cockpit never
-     * saw the creation and learned about the case from its end alone, which is what happens when the
-     * two reports overtake each other; the creation arriving afterwards fills in what the end could
-     * not report.
+     * When the reporting workflow system started this workflow. {@code null} means the cockpit
+     * never saw the creation and learned about the case from its end alone, which happens when the
+     * two reports overtake each other. The creation arriving afterwards fills in what the end
+     * could not report.
      *
      * @see #latestEventAt
      */
@@ -42,22 +42,22 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
      * When the event behind the latest report the cockpit stored about this workflow happened,
      * measured by the reporting workflow system's clock.
      * <p>
-     * Reports overtake each other, so the cockpit has to know how old its own state is to refuse a
-     * report which is older. {@link #reportedAt} cannot answer that (it is the cockpit's clock) and
-     * neither can {@link #updatedAt} (it is audit information, overwritten on every save). {@code
-     * null} means the cockpit cannot say which event its state came from, and the next report is then
-     * applied whatever its timestamp says. A workflow stored before this property existed had its
-     * {@link #createdAt} copied here by a changeset, so a case the cockpit knows from its end alone
-     * is the one which stays without a value.
+     * Reports overtake each other, so the cockpit has to know how old its own state is before it
+     * can refuse an older report. {@link #reportedAt} cannot answer that, because it is the
+     * cockpit's clock. Neither can {@link #updatedAt}, which is audit information and is
+     * overwritten on every save. {@code null} means the cockpit cannot say which event its state
+     * came from, and the next report is then applied whatever its timestamp says. A workflow
+     * stored before this property existed had its {@link #createdAt} copied here by a changeset,
+     * so a case the cockpit knows from its end alone is the one which stays without a value.
      */
     private OffsetDateTime latestEventAt;
 
     /**
-     * When the cockpit stored the report about this workflow, measured by the cockpit's own clock -
-     * as opposed to {@link #createdAt}, which is the timestamp of the reporting workflow system.
-     * Kept in sync with the equally named property of a user task, so a delta-scan (as done by the
-     * notification poller for user tasks) can tell a newly reported workflow from an updated one
-     * without comparing its cursor to a foreign clock.
+     * When the cockpit stored the report about this workflow, measured by the cockpit's own
+     * clock. {@link #createdAt} is the other one, the timestamp of the reporting workflow system.
+     * This property is kept in step with the one of the same name on a user task. So a scan for
+     * what changed, the way the notification poller scans user tasks, can tell a newly reported
+     * workflow from an updated one without comparing its cursor to a foreign clock.
      */
     private OffsetDateTime reportedAt;
 

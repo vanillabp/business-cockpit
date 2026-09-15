@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * GUI API for the notification configuration page (AC func 1/4/6, AC tech 3/10). All operations act
- * on the currently authenticated user; the user id is never taken from the client.
+ * The GUI API of the page which configures the notifications. Every operation acts on the user
+ * who is authenticated, and the user id never comes from the client.
  */
 @RestController
 @RequestMapping(path = "/gui/api/v1")

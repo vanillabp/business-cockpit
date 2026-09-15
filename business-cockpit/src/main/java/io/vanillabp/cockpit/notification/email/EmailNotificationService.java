@@ -22,10 +22,10 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.util.StringUtils;
 
 /**
- * Reference {@link io.vanillabp.cockpit.notification.NotificationService} implementation sending
- * e-mails via the Spring Boot mail sender (AC tech 1.vi / 2). Registered by
- * {@link EmailNotificationConfiguration} when {@code business-cockpit.notification.smtp.enabled=true},
- * overridable by a derived cockpit application via {@code @ConditionalOnMissingBean}.
+ * The reference {@link io.vanillabp.cockpit.notification.NotificationService}, which sends e-mails
+ * through the Spring Boot mail sender. {@link EmailNotificationConfiguration} registers it once
+ * {@code business-cockpit.notification.smtp.enabled=true}, and a derived cockpit application
+ * replaces it through {@code @ConditionalOnMissingBean}.
  */
 public class EmailNotificationService extends AbstractTemplatingNotificationService {
 
@@ -85,7 +85,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
             value = user.getRecipientConfigurations().get(TYPE).get(FIELD_EMAIL_ADDRESS);
         }
         if (!StringUtils.hasText(value) && user != null) {
-            // suggest the address known from login; editable, applies to all tasks (AC func 6)
+            // suggest the address login knew. The user may edit it, and it holds for every task
             value = user.getEmail();
         }
 
@@ -191,9 +191,9 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
     }
 
     /**
-     * The locale used to render the notification for a recipient: the user's preferred locale, or
-     * the application default locale ({@code business-cockpit.default-locale}) when the user has
-     * none (AC: templating honors the user locale with the default as fallback).
+     * The locale a notification is rendered in for a recipient. It is the locale the user
+     * prefers, and where the user has none, the application's default locale
+     * ({@code business-cockpit.default-locale}).
      */
     Locale resolveLocale(
             final User user) {
@@ -234,7 +234,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
         context.put("businessId", userTask.getBusinessId());
         context.put("notificationTypeName", notificationType == null ? null : notificationType.name());
         // only the application base URI is passed; the (localized) template builds the deep-link
-        // and task-list URLs itself, because the URL path segments differ per language (AC func 3b/3c)
+        // and task-list URLs itself, because the segments of a path differ per language
         context.put("baseUri", baseUri());
         return context;
 

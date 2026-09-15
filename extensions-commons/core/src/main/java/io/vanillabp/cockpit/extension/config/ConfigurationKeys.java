@@ -16,14 +16,15 @@ import java.util.stream.Stream;
  * vanillabp.workflow-modules.&lt;moduleId&gt;.workflows.&lt;process&gt;.user-tasks.&lt;task&gt;.cockpit.&lt;key&gt;
  * </pre>
  *
- * An application upgrades to version 2 by changing a dependency, and the Business Cockpit
- * having become an extension of the VanillaBP platform is nothing it has to know about. What
- * did change is written down in the decision log and in the migration pages, one reason per
- * key.
+ * An application upgrades to version 2 by changing a dependency. That the Business Cockpit
+ * became an extension of the VanillaBP platform is nothing the application has to know about.
+ * What did change is written down in the decision log and in the migration pages, one reason
+ * per key.
  * <p>
- * The levels are asked most specific first, per key: a user task beats its workflow, a
- * workflow beats its workflow module. What holds for the whole application - the transport,
- * the templates, the two switches - is written once at the top and exists nowhere else.
+ * The levels are asked most specific first, key by key: a user task beats its workflow, and a
+ * workflow beats its workflow module. What holds for the whole application, namely the
+ * transport, the templates and the two switches, is written once at the top and exists nowhere
+ * else.
  */
 public final class ConfigurationKeys {
 

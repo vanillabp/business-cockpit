@@ -32,9 +32,9 @@ public class WorkflowChangedNotification extends NotificationEvent {
             final Message<ChangeStreamDocument<Document>, Workflow> message) {
     
         final OperationType type;
-        // Since CosmosDB for MongoDB does not support OperationType yet it is
-        // necessary to derive the OperationType from the document's content.
-        // see https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
+        // CosmosDB for MongoDB does not support OperationType yet, so the operation has to be
+        // read off the content of the document. See
+        // https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations
         if (message.getRaw().getOperationTypeString() == null) {
             if (message.getBody().getCreatedAt().equals(message.getBody().getUpdatedAt())) {
                 type = OperationType.INSERT;

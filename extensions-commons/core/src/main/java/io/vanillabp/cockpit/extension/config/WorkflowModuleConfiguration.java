@@ -72,8 +72,9 @@ public record WorkflowModuleConfiguration(
   }
 
   /**
-   * What the most specific level says about one key, which is the platform's walk and not this
-   * repository's: see {@link CockpitSettingsLevels} for which section belongs to which level.
+   * What the most specific level says about one key. The walk over the levels is the platform's,
+   * not this repository's. See {@link CockpitSettingsLevels} for which section belongs to which
+   * level.
    *
    * @param <T> The type of the value
    * @param bpmnProcessId The workflow, may be <code>null</code>
@@ -94,9 +95,8 @@ public record WorkflowModuleConfiguration(
    * The segment one workflow contributes to the template lookup path.
    *
    * @param bpmnProcessId The workflow
-   * @return What the workflow configured, else the BPMN process id - which is what makes the
-   *         templates of a process land in a directory of its name without anybody configuring
-   *         it
+   * @return What the workflow configured, else the BPMN process id. That is what makes the
+   *         templates of a process land in a directory of its name, with nothing configured
    */
   public String templatePathOfWorkflow(
       final String bpmnProcessId) {

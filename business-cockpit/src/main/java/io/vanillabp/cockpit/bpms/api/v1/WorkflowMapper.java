@@ -22,8 +22,8 @@ public abstract class WorkflowMapper {
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
-        // a reporting system which names no user means no person at all: building one from a null
-        // id yields a person the GUI hides but every id comparison stumbles over
+        // a reporting system which names no user means no person at all. A person built from a
+        // null id is hidden by the GUI, but every comparison of ids stumbles over it
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 

@@ -9,9 +9,9 @@ import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
 
 /**
- * Initializes the {@code notification_outbox} collection with the unique index that makes
- * notification inserts idempotent. (The generic {@code users} collection is created by the
- * changeset in {@code io.vanillabp.cockpit.users.model.changesets}.)
+ * Creates the {@code notification_outbox} collection, with the unique index which makes an insert
+ * of a notification idempotent. The {@code users} collection is a general one and is created by
+ * the changeset in {@code io.vanillabp.cockpit.users.model.changesets}.
  */
 @Component("V100_Notification")
 @ChangesetConfiguration(author = "stephanpelikan")

@@ -40,7 +40,7 @@ public final class RestClientSetup {
 
   /**
    * How long the client waits. A configuration read from an application always carries both
-   * spans, version 1's where nothing was written; a configuration built in a test may leave one
+   * spans, version 1's where nothing was written. A configuration built in a test may leave one
    * out, and the same default fills it in.
    *
    * @param configuration What the application configured about this connection
@@ -203,9 +203,10 @@ public final class RestClientSetup {
   }
 
   /**
-   * What a deployment gets which switched the certificate check off - a test setup, or a
-   * cockpit server inside a network which is trusted as a whole. It trusts everything, which is
-   * why 'verify-ssl' is the one key of the REST section whose message says what it costs.
+   * What a deployment gets which switched the certificate check off, for example a test setup,
+   * or a cockpit server inside a network which is trusted as a whole. It trusts everything,
+   * which is why 'verify-ssl' is the one key of the REST section whose message says what it
+   * costs.
    */
   private static X509TrustManager trustingEverything() {
 

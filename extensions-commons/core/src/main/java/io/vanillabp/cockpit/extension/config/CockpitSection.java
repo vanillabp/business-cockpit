@@ -7,13 +7,13 @@ import java.util.List;
  * <p>
  * The platform walks the levels of a plug-in's configuration and asks each of them for a value
  * (see {@link io.vanillabp.integration.extension.spi.settings.SettingsResolution}). It does not
- * know what a section is, so this is what a section is here: the application, a workflow module, a
- * workflow and a user task each answer with what they say, and <code>null</code> where they say
- * nothing.
+ * know what a section is, so a section is defined here. The application, a workflow module, a
+ * workflow and a user task each answer with what they say, and with <code>null</code> where they
+ * say nothing.
  * <p>
- * Only keys which MEAN the same thing at every level belong here. The template path does not: the
- * path is assembled from a segment per level rather than overridden by the most specific one, so a
- * workflow's segment is not a workflow module's segment said again.
+ * Only keys which mean the same thing at every level belong here. The template path does not. It
+ * is assembled from one segment per level instead of being overridden by the most specific level,
+ * so a workflow's segment is not a workflow module's segment said again.
  */
 public interface CockpitSection {
 

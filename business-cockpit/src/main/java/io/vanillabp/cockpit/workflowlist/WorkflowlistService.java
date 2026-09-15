@@ -119,9 +119,9 @@ public class WorkflowlistService {
     /**
      * Stores what a workflow module reports about a case it has just started.
      * <p>
-     * A creation of a case the cockpit already holds stores nothing: it is the oldest report there
-     * is, so everything it says has been said again since. The one case it does change is a case the
-     * cockpit learned about from its end alone, which has been waiting for exactly this report.
+     * A creation of a case the cockpit already holds stores nothing. It is the oldest report
+     * there is, so everything it says has been said again since. There is one exception: a case
+     * the cockpit learned about from its end alone has been waiting for exactly this report.
      *
      * @param workflowId The case the report is about
      * @param eventTimestamp When the workflow module started the case, by its own clock
@@ -151,9 +151,8 @@ public class WorkflowlistService {
         workflow.setComment(stored.getComment());
         workflow.setInitiator(stored.getInitiator());
         workflow.setLatestEventAt(stored.getLatestEventAt());
-        // what an end could not report about the case is what this report is here for, and the other
-        // way round an end which did report it has the younger answer, so the same rule decides
-        // both ways round
+        // this report is here for what an end could not say about the case. The other way round,
+        // an end which did say it holds the younger answer. One rule decides both ways
         workflow.setDetails(
                 WhatAnEndReports.whatToStore(stored.getDetails(), workflow.getDetails()));
         workflow.setDetailsFulltextSearch(
@@ -201,13 +200,13 @@ public class WorkflowlistService {
     /**
      * Stores that a case has ended, completed or cancelled.
      * <p>
-     * An end of a case the cockpit does not hold creates the case, ended. The creation may still be
-     * waiting in the outbox of the workflow module, and dropping the end would leave the cockpit
+     * An end of a case the cockpit does not hold creates the case, ended. The creation may still
+     * be waiting in the outbox of the workflow module. Dropping the end would leave the cockpit
      * showing that case as running for good once the creation arrives.
      * <p>
-     * An end is recorded even where the cockpit holds something younger, because nothing which comes
-     * after it undoes it. What such an end reports besides the end itself is older than what is
-     * stored and is left out.
+     * An end is recorded even where the cockpit holds something younger, because nothing which
+     * comes after it undoes it. Whatever such an end reports besides the end itself is older than
+     * what is stored, and it is left out.
      *
      * @param workflowId The case the report is about
      * @param eventTimestamp When the case ended, by the workflow module's clock
@@ -246,9 +245,9 @@ public class WorkflowlistService {
     }
 
     /**
-     * Says that a report was read and stored nothing, which is the answer to a report the cockpit has
-     * already been told something younger about. It belongs in the log because it explains a change a
-     * workflow module sent and nobody finds in the cockpit.
+     * Says that a report was read and stored nothing, which is the answer to a report the cockpit
+     * has already been told something younger about. It belongs in the log, because it explains a
+     * change a workflow module sent and nobody finds in the cockpit.
      */
     private void reportChangesNothing(
             final String workflowId,
@@ -381,10 +380,10 @@ public class WorkflowlistService {
     }
 
     /**
-     * Sorting and filtering by arbitrary properties needs an index per combination. They are
-     * created the first time such a combination is asked for and remembered afterwards. A failing
-     * creation is remembered as well: the query still works without the index, and retrying it on
-     * every request would only cost time.
+     * Sorting and filtering by arbitrary properties needs an index per combination. An index is
+     * created the first time its combination is asked for and is remembered afterwards. A creation
+     * which failed is remembered as well. The query still works without the index, and trying
+     * again on every request would only cost time.
      */
     private void ensureSortAndFilterIndex(
             final WorkflowListOrder orderBySort) {
