@@ -278,6 +278,12 @@ These keys do not come back, one reason each:
   own, so the adapter's keys are read rather than copied. `workflow-visibility-timeout` is gone
   with the waiting it configured: a report of something the cluster has not exported yet goes back
   into the outbox, and `vanillabp.outbox.block-after-attempts` says how long it keeps coming back.
+  The adapter's key of that name is read where the extension does wait after all, which is one
+  place: on a Camunda 8.8 cluster a listener job has to ask for the call hierarchy of its process
+  instance, because that job does not carry its root, and the answer comes from the same lagging
+  storage the adapter waits out. The distance between two attempts of a report is not that number
+  and stays the extension's own: it is multiplied by the attempts the outbox allows, so ten seconds
+  there would be five hundred seconds of waiting per report.
 - `io.vanillabp.businesscockpit.tasklistener.prefixes`,
   `io.vanillabp.businesscockpit.executionlistener.prefixes` and `io.vanillabp.deployment.priority`:
   entries of an in-memory map of version 1's deployment, never keys of a configuration file. A job
