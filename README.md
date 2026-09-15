@@ -33,6 +33,17 @@ local run want.
 mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
+What a pull request is checked by is two jobs beside each other. One builds and tests the Java
+side, with `-Pjava-install`, so the frontend stays out of the reactor and out of the build time.
+The other runs `bin/frontend-checks.sh`, which type-checks every TypeScript package and runs every
+Jest test of this repository. It builds each package against the one below it rather than against
+the published snapshot, because otherwise a change which splits two packages apart would still be
+green. It bundles nothing: the bundle is what a release needs, and a type error does not wait for
+it. Storybook, the development shells and the simulator are left out as well, and the script says
+so where it says why.
+
+The same script is what to run locally, and it needs the same local registry the build does.
+
 The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no
 dual build: the Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
 the 0.3.x line. The consequences for somebody deriving an application from the cockpit are in the
