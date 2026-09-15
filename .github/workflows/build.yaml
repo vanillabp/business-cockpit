@@ -84,6 +84,24 @@ jobs:
           # the version the Maven build installs for the frontend modules, see the
           # frontend-maven-plugin configuration of the root POM
           node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+          cache: maven
+      - name: Generate the sources of the API client
+        # The client package is generated from apis/openapi/v1.yaml by the OpenAPI generator, so
+        # its TypeScript does not exist in a fresh checkout and the packages above it need it.
+        # '-Pjava-install' keeps every npm step out of this: what npm does here is done below.
+        run: |
+          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          -Pjava-install -DskipTests \
+          -pl openapi-generator-fixes,apis/official-gui-api/client -am \
+          install
+        env:
+          USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
+          USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Start the local npm registry
         # The packages of this repository depend on each other through a registry, so the check
         # brings the one the build already uses: Verdaccio, configured in development/verdaccio

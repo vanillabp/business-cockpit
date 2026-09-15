@@ -38,6 +38,14 @@ if ! curl --silent --fail "${NPM_REGISTRY%/}/-/ping" > /dev/null; then
   exit 1
 fi
 
+# The sources of the API client are generated from the OpenAPI document by Maven, not written by
+# anybody, so a fresh clone has none and this check cannot make them.
+if [ ! -f apis/official-gui-api/client/src/index.ts ]; then
+  echo "The API client has no sources yet. Generate them first:" >&2
+  echo "  mvn -Pjava-install -DskipTests -pl openapi-generator-fixes,apis/official-gui-api/client -am install" >&2
+  exit 1
+fi
+
 # '--no-package-lock': the lock files of this repository resolve the @vanillabp packages to
 # whichever registry the last committer used, and a check which rewrote them would leave a diff
 # behind in every run.
