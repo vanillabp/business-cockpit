@@ -38,11 +38,13 @@ if ! curl --silent --fail "${NPM_REGISTRY%/}/-/ping" > /dev/null; then
   exit 1
 fi
 
-# The sources of the API client are generated from the OpenAPI document by Maven, not written by
-# anybody, so a fresh clone has none and this check cannot make them.
-if [ ! -f apis/official-gui-api/client/src/index.ts ]; then
-  echo "The API client has no sources yet. Generate them first:" >&2
-  echo "  mvn -Pjava-install -DskipTests -pl openapi-generator-fixes,apis/official-gui-api/client -am install" >&2
+# Two of the TypeScript clients are generated from OpenAPI documents by Maven rather than written,
+# and both are git-ignored, so a fresh clone has neither and this check cannot make them.
+if [ ! -f apis/official-gui-api/client/src/index.ts ] \
+  || [ ! -f business-cockpit/src/main/webapp/src/client/gui/index.ts ]; then
+  echo "The generated API clients are missing. Generate them first:" >&2
+  echo "  mvn -Pjava-install -DskipTests -pl openapi-generator-fixes install" >&2
+  echo "  mvn -Pjava-install -DskipTests -pl apis/official-gui-api/client,business-cockpit -am generate-sources" >&2
   exit 1
 fi
 

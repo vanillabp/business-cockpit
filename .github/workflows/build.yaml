@@ -89,15 +89,21 @@ jobs:
           java-version: 21
           distribution: temurin
           cache: maven
-      - name: Generate the sources of the API client
-        # The client package is generated from apis/openapi/v1.yaml by the OpenAPI generator, so
-        # its TypeScript does not exist in a fresh checkout and the packages above it need it.
-        # '-Pjava-install' keeps every npm step out of this: what npm does here is done below.
+      - name: Generate the sources the frontend is made of
+        # Two TypeScript clients are generated from OpenAPI documents rather than written, and
+        # both are git-ignored, so a fresh checkout has neither: the package
+        # apis/official-gui-api/client, and the web application's own client under
+        # src/client/gui. The generator runs with a helper of this repository, which is why that
+        # one is installed first. 'generate-sources' and not 'install' for the rest: the Java
+        # side is built by the job beside this one, and nothing here needs a jar.
+        # '-Pjava-install' keeps every npm step of the reactor out of this; npm is run below.
         run: |
           mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
+          -Pjava-install -DskipTests -pl openapi-generator-fixes install
+          mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Pjava-install -DskipTests \
-          -pl openapi-generator-fixes,apis/official-gui-api/client -am \
-          install
+          -pl apis/official-gui-api/client,business-cockpit -am \
+          generate-sources
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
