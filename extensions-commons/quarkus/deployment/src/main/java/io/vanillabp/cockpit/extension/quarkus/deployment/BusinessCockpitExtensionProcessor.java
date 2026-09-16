@@ -14,7 +14,7 @@ import io.vanillabp.cockpit.extension.service.BusinessCockpitServiceFactory;
 
 /**
  * What the Business Cockpit extension has to say at build time. It produces no VanillaBP build
- * item: an extension announces itself by the beans it produces, unlike an adapter.
+ * item. Unlike an adapter, an extension announces itself by the beans it produces.
  */
 class BusinessCockpitExtensionProcessor {
 
@@ -39,16 +39,17 @@ class BusinessCockpitExtensionProcessor {
   }
 
   /**
-   * Ends the build where a key of one of the cockpit's sections is one nobody reads, naming the
-   * key it was nearest to.
+   * Ends the build if a key of one of the cockpit's sections is a key nobody reads. The message
+   * names the key it was nearest to.
    * <p>
    * Quarkus refuses such a key by itself while the application starts, because no configuration
-   * mapping declares it - and it can only say that much. This runs while the application is
-   * built, over what the configuration files say, and answers the question a developer actually
-   * has: which key was meant. What it sees is the configuration of the build: an environment
-   * variable of the container, and a workflow module's own defaults file, are read when the
-   * application starts and are therefore left to Quarkus and its own message, which names the key
-   * without guessing what it should have been.
+   * mapping declares it. That is all Quarkus can say. This check runs while the application is
+   * built, over what the configuration files say, and it answers the question a developer really
+   * has, which is which key was meant. It only sees the configuration of the build. An
+   * environment variable of the container and a workflow module's own defaults file are read
+   * when the application starts, so they are left to Quarkus and its own message, which names
+   * the key without guessing what it should have been.
+
    *
    * @param validation Where a defect of the application is collected, so that the build ends
    *          with it rather than with a stack trace of this step

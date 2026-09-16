@@ -8,12 +8,12 @@ import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 
 /**
- * Announces the extension to VanillaBP: the three outbox operations it dispatches itself, and
- * the two contracts telling VanillaBP how to find and invoke the application's details
- * providers.
+ * Announces the extension to VanillaBP. That is the three outbox operations it dispatches
+ * itself, and the two contracts which tell VanillaBP how to find and invoke the application's
+ * details providers.
  * <p>
  * Both happen once, and neither cares whether the application's workflow services have been
- * scanned yet - a contract registered late is applied to what was scanned before.
+ * scanned yet. A contract which is registered late is applied to what was scanned before.
  */
 public class BusinessCockpitRegistrar implements InitializingBean, ApplicationListener<ApplicationReadyEvent> {
 
@@ -43,9 +43,9 @@ public class BusinessCockpitRegistrar implements InitializingBean, ApplicationLi
   }
 
   /**
-   * Registers the workflow modules at the cockpit server once the application is up. Doing it
-   * here rather than while the modules are deployed is what the Quarkus half needs, and doing
-   * it the same way on both platforms is what keeps the two halves comparable.
+   * Registers the workflow modules at the cockpit server once the application is up. The Quarkus
+   * half needs it here and not while the modules are deployed. Both platforms do it the same
+   * way, and that keeps the two halves comparable.
    *
    * @param event The application having started
    */

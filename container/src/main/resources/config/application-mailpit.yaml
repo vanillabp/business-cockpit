@@ -1,8 +1,9 @@
-# Activates the reference e-mail notification medium and points it at the Mailpit container of
-# development/docker-compose.yaml, so notification e-mails can be checked manually via
-# http://localhost:8025 (web UI) or its REST API below http://localhost:8025/api/v1.
+# Switches on the reference e-mail notification medium and points it at the Mailpit container of
+# development/docker-compose.yaml. Notification e-mails can then be checked by hand at
+# http://localhost:8025 (web UI) or through its REST API below http://localhost:8025/api/v1.
 #
-# Meant to be combined with the profile 'local', e.g.
+# It is meant to be used together with the profile 'local', for example
+
 #   java -DworkerId=local -Dspring.profiles.active=local,mailpit -jar target/business-cockpit-*-runnable.jar
 spring:
   mail:
