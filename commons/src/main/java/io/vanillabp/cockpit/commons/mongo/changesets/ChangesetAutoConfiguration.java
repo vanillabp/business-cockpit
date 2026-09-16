@@ -30,7 +30,21 @@ import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Query;
 
 /**
- * This is a MongoDb initializer. It works based on annotated Spring beans.
+ * Applies the MongoDb migration steps of the application while it starts.
+ * <p>
+ * It collects the steps from the beans annotated with {@link DbChangesetConfiguration} and sorts
+ * them by the order each {@link DbChangeset} declares. Then it runs the ones this database has
+ * not seen. What ran is written into the collection of {@link ChangesetInformation}, and a later
+ * start reads that collection to know what to skip.
+ * <p>
+ * A step is saved before it is applied. So a second node which starts at the same moment and
+ * gets there first makes this save fail on the optimistic lock, instead of applying the step
+ * twice.
+ * <p>
+ * Two system properties exist for a developer. <code>initializer.rollback.all</code> rolls every
+ * known step back and ends the process. <code>initializer.rollback.unknown</code> rolls back what
+ * the database has and this software does not know any more, which is what a downgrade leaves
+ * behind.
  *
  * @see DbChangeset
  * @see DbChangesetConfiguration
@@ -246,7 +260,7 @@ public class ChangesetAutoConfiguration {
             final Map<ChangesetInformation, DbChangesetMethod> changeSetMethods) {
 
         final var changesetBeans = applicationContext
-                .getBeansWithAnnotation(ChangesetConfiguration.class);
+                .getBeansWithAnnotation(DbChangesetConfiguration.class);
         changesetBeans
                 .entrySet()
                 .forEach(beanEntry -> this.collectionChangesetsByMethodsOfAnnotatedBeans(
@@ -260,7 +274,7 @@ public class ChangesetAutoConfiguration {
 
         final var config = bean
                 .getClass()
-                .getAnnotation(ChangesetConfiguration.class);
+                .getAnnotation(DbChangesetConfiguration.class);
 
         Arrays
                 .stream(bean.getClass().getMethods())
@@ -278,7 +292,7 @@ public class ChangesetAutoConfiguration {
             final Object bean,
             final Method beanMethod) {
 
-        final var changesetAnnotation = beanMethod.getAnnotation(Changeset.class);
+        final var changesetAnnotation = beanMethod.getAnnotation(DbChangeset.class);
         if (changesetAnnotation == null) {
             return;
         }

@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.notification.model.changesets;
 
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,13 +14,13 @@ import org.springframework.stereotype.Component;
  * the changeset in {@code io.vanillabp.cockpit.users.model.changesets}.
  */
 @Component("V100_Notification")
-@ChangesetConfiguration(author = "stephanpelikan")
+@DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
     private static final String INDEX_OUTBOX_UNIQUE = "_outboxUnique";
     private static final String INDEX_OUTBOX_PENDING = "_outboxPending";
 
-    @Changeset(order = 3000)
+    @DbChangeset(order = 3000)
     public String createNotificationOutboxCollection(
             final MongoTemplate mongo) {
 
