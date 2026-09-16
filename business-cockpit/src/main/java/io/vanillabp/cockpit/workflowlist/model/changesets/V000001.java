@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.workflowlist.model.changesets;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 import static io.vanillabp.cockpit.workflowlist.WorkflowlistService.INDEX_CUSTOM_SORT_PREFIX;
 
 @Component("V100_Workflow")
-@ChangesetConfiguration(author = "gwieshammer")
+@DbChangesetConfiguration(author = "gwieshammer")
 public class V000001 {
 
     private static final String INDEX_DEFAULT_SORT = Workflow.COLLECTION_NAME + "_defaultSort";
@@ -35,7 +35,7 @@ public class V000001 {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
-    @Changeset(order = 1000)
+    @DbChangeset(order = 1000)
     public List<String> createWorkflowCollection(
             final MongoTemplate mongo) {
 
@@ -64,7 +64,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1002)
+    @DbChangeset(order = 1002)
     public String createWorkflowEndedAtIndex(
             final MongoTemplate mongo) {
 
@@ -78,7 +78,7 @@ public class V000001 {
 
     }
     
-    @Changeset(order = 1003, author = "stephanpelikan")
+    @DbChangeset(order = 1003, author = "stephanpelikan")
     public String fixDefaultUserTaskIndex(
             final MongoTemplate mongo) {
         
@@ -97,7 +97,7 @@ public class V000001 {
         
     }
 
-    @Changeset(order = 1004, author = "stephanpelikan")
+    @DbChangeset(order = 1004, author = "stephanpelikan")
     public String createDetailsFulltextSearchIndex(
             final MongoTemplate mongo) {
 
@@ -111,7 +111,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1005, author = "stephanpelikan")
+    @DbChangeset(order = 1005, author = "stephanpelikan")
     public String renameWorkflowModuleIntoWorkflowModuleId(
             final MongoTemplate mongo) {
 
@@ -132,7 +132,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1006)
+    @DbChangeset(order = 1006)
     public String moveWorkflowModuleUriIntoSeparateCollection(
             final MongoTemplate mongo) {
 
@@ -144,7 +144,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1007)
+    @DbChangeset(order = 1007)
     public String dropDefaultSortIndex( // will be created on demand
                                         final MongoTemplate mongo) {
 
@@ -156,7 +156,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1008)
+    @DbChangeset(order = 1008)
     public String introducePersonAndGroupForWorkflows(
             final MongoTemplate mongo) {
 
@@ -252,7 +252,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1009, author = "stephanpelikan")
+    @DbChangeset(order = 1009, author = "stephanpelikan")
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
              final MongoTemplate mongo) {
 
@@ -269,7 +269,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1010, author = "stephanpelikan")
+    @DbChangeset(order = 1010, author = "stephanpelikan")
     public String dropRedundantColumnWorkflowId(
             final MongoTemplate mongo) {
 
@@ -285,7 +285,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 1011, author = "martingreilinger")
+    @DbChangeset(order = 1011, author = "martingreilinger")
     public String addBusinessIdIndex(
             final MongoTemplate mongo) {
 
@@ -306,7 +306,7 @@ public class V000001 {
      *
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getReportedAt()
      */
-    @Changeset(order = 1012)
+    @DbChangeset(order = 1012)
     public String introduceReportedAt(
             final MongoTemplate mongo) {
 
@@ -330,7 +330,7 @@ public class V000001 {
      *
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getLatestEventAt()
      */
-    @Changeset(order = 1013)
+    @DbChangeset(order = 1013)
     public String introduceLatestEventAt(
             final MongoTemplate mongo) {
 

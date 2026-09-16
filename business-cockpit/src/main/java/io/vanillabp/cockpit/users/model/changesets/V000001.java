@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.users.model.changesets;
 
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.User;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
  * notification feature brought it, but it is a general collection and other features may use it.
  */
 @Component("V100_User")
-@ChangesetConfiguration(author = "stephanpelikan")
+@DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    @Changeset(order = 4000)
+    @DbChangeset(order = 4000)
     public String createUsersCollection(
             final MongoTemplate mongo) {
 

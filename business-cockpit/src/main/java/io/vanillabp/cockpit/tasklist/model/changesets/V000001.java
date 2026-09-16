@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.tasklist.model.changesets;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import io.vanillabp.cockpit.commons.mongo.changesets.Changeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
+import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
@@ -21,7 +21,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 @Component("V100_UserTask")
-@ChangesetConfiguration(author = "stephanpelikan")
+@DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
     private static final String INDEX_DEFAULT_SORT = "_defaultSort";
@@ -32,7 +32,7 @@ public class V000001 {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
-    @Changeset(order = 1)
+    @DbChangeset(order = 1)
     public List<String> createUsertaskCollection(
             final MongoTemplate mongo) {
 
@@ -62,7 +62,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 2)
+    @DbChangeset(order = 2)
     public String createUsertaskEndedAtIndex(
             final MongoTemplate mongo) {
 
@@ -76,7 +76,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 3)
+    @DbChangeset(order = 3)
     public String changeDefaultUserTaskIndex(
             final MongoTemplate mongo) {
 
@@ -96,7 +96,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 4)
+    @DbChangeset(order = 4)
     public String fixDefaultUserTaskIndex(
             final MongoTemplate mongo) {
 
@@ -116,7 +116,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 5)
+    @DbChangeset(order = 5)
     public String clearAndIndexReadBy(
             final MongoTemplate mongo) {
 
@@ -135,7 +135,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 6)
+    @DbChangeset(order = 6)
     public String setDanglingFieldAccordingToAssigneeAndCandidates(
             final MongoTemplate mongo) {
 
@@ -153,7 +153,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 7)
+    @DbChangeset(order = 7)
     public String renameWorkflowModuleIntoWorkflowModuleId(
             final MongoTemplate mongo) {
 
@@ -174,7 +174,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 8)
+    @DbChangeset(order = 8)
     public String moveWorkflowModuleUriIntoSeparateCollection(
             final MongoTemplate mongo) {
 
@@ -186,7 +186,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 9)
+    @DbChangeset(order = 9)
     public String dropDefaultSortIndex( // will be created on demand
             final MongoTemplate mongo) {
 
@@ -198,7 +198,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 10)
+    @DbChangeset(order = 10)
     public String introducePersonAndGroupForUserTasks(
             final MongoTemplate mongo) {
 
@@ -297,7 +297,7 @@ public class V000001 {
      * {@code createdAt}. It is the timestamp of the reporting system, but for a record which is
      * already stored it lies in the past, and that is all the scan for what changed needs.
      */
-    @Changeset(order = 12)
+    @DbChangeset(order = 12)
     public String introduceReportedAtAndCandidateUsersSince(
             final MongoTemplate mongo) {
 
@@ -338,7 +338,7 @@ public class V000001 {
 
     }
 
-    @Changeset(order = 11)
+    @DbChangeset(order = 11)
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
             final MongoTemplate mongo) {
 
@@ -369,7 +369,7 @@ public class V000001 {
      *
      * @see io.vanillabp.cockpit.tasklist.model.UserTask#getLatestEventAt()
      */
-    @Changeset(order = 14)
+    @DbChangeset(order = 14)
     public String introduceLatestEventAt(
             final MongoTemplate mongo) {
 
@@ -400,7 +400,7 @@ public class V000001 {
      * queried. The tasks which lose their phantom assignee therefore have to be judged again, the
      * way changeset 6 did it.
      */
-    @Changeset(order = 13)
+    @DbChangeset(order = 13)
     public String removeAssigneesHavingNoUserId(
             final MongoTemplate mongo) {
 
