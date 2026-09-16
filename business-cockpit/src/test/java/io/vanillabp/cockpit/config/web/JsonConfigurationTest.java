@@ -24,10 +24,10 @@ import tools.jackson.databind.json.JsonMapper;
  * properties left out, and the properties in the order they are declared.
  *
  * <p>Every one of those settings moved during the migration. The date flags went to
- * {@code DateTimeFeature} and the inclusion to {@code changeDefaultPropertyInclusion(..)}, and the
- * default order of the properties changed between Jackson 2 and 3. A failure here means the React
- * frontend and the official GUI API clients see different JSON than before, so the expected strings
- * must not be "fixed" without a deliberate decision.
+ * {@code DateTimeFeature} and the inclusion to {@code changeDefaultPropertyInclusion(..)}. The
+ * default order of the properties changed between Jackson 2 and 3 as well. A failure here means
+ * the React frontend and the official GUI API clients see different JSON than before, so the
+ * expected strings must not be "fixed" without a deliberate decision.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class JsonConfigurationTest {

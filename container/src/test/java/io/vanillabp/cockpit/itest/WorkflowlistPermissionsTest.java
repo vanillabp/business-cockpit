@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * The reference application shows a user the workflows addressed to them, and the rules it applies
  * are the ones pinned here. Each test names the rule it stands for. The rules live in a Mongo
  * query (WorkflowlistService.buildWorkflowlistCriteria) and in the same check the detail view
- * does, and reading either of them tells you the mechanics and not the intent.
+ * does. Reading either of them tells you the mechanics and not the intent.
  *
  * <p>The rules:
  *

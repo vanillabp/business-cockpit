@@ -28,10 +28,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The configuration in the shape version 1 of the Business Cockpit had, written the way an
- * application which upgrades already has it. There is a list as a list, a group hierarchy as a
- * map of lists, a workflow and one of its user tasks with sections of their own, a timeout as a
- * number of milliseconds next to one written with a unit, and a workflow module whose own
- * defaults file says something the application did not.
+ * application which upgrades already has it. There is a list as a list and a group hierarchy as
+ * a map of lists. A workflow and one of its user tasks have sections of their own. A timeout is
+ * written as a number of milliseconds next to one written with a unit, and a workflow module's
+ * own defaults file says something the application did not.
  * <p>
  * This asserts what only a booted application shows, that this platform's binding carries every
  * one of those shapes into the extension. The Quarkus twin of this test asserts the same tree,

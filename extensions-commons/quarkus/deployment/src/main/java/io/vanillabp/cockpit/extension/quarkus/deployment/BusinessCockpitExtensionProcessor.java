@@ -47,8 +47,8 @@ class BusinessCockpitExtensionProcessor {
    * built, over what the configuration files say, and it answers the question a developer really
    * has, which is which key was meant. It only sees the configuration of the build. An
    * environment variable of the container and a workflow module's own defaults file are read
-   * when the application starts, so they are left to Quarkus and its own message, which names
-   * the key without guessing what it should have been.
+   * when the application starts. They are left to Quarkus and its own message, which names the
+   * key without guessing what it should have been.
 
    *
    * @param validation Where a defect of the application is collected, so that the build ends

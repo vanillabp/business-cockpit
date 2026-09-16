@@ -29,8 +29,8 @@ import io.vanillabp.integration.test.utils.PrintsWhenPassing;
  * <p>
  * This test class prints while it passes, which no other one does. Here the passing run IS
  * the measurement. It is the only place where the build states how each half of the
- * repository stands against the rule, and a repository sitting between the threshold and
- * the rule has a gap which would otherwise be visible only to whoever opens the report.
+ * repository stands against the rule. A repository sitting between the threshold and the
+ * rule has a gap which would otherwise be visible only to whoever opens the report.
  */
 @PrintsWhenPassing(
   "the three numbers ARE the result of this class, and a number is only worth something while "

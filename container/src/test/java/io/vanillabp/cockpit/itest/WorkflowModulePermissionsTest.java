@@ -18,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * restarts the cockpit for that.
  *
  * <p>Both users log in once at the start of each test and keep their JWT cookie across the second
- * registration, so a test which turns green afterwards proves that the change reached the running
+ * registration. So a test which turns green afterwards proves that the change reached the running
  * application, and not only a fresh login.
  */
 @ExtendWith(SuppressOutputExtension.class)
