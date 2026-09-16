@@ -9,7 +9,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * @see {@link UserTaskDetailsProvider}
+ * Holds the repetitions of {@link UserTaskDetailsProvider} on one method. Java puts them here
+ * itself, so nobody writes this annotation by hand.
+ *
+ * @see UserTaskDetailsProvider
  */
 @Retention(RUNTIME)
 @Target(METHOD)
