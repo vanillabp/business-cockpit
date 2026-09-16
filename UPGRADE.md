@@ -46,6 +46,17 @@ acknowledged write while it does that. `mongodb.write-concern: 0` ends the start
 [The library's README](./business-cockpit/README.md#the-write-concern-the-cockpit-needs) has the
 list of what each value costs.
 
+### A table of the version 1 Camunda 8 adapter stays behind
+
+The version 1 adapters left this repository with 0.9.0. One of them leaves something in the
+database: the Camunda 8 adapter created a table `CAMUNDA8_BC_PROCESS_INSTANCES` through its
+Liquibase changelog, and nothing ever wrote a row into it. A changelog which drops the table was
+written back then and never switched on, so the table is still there and no version of the cockpit
+removes it.
+
+An application which ran the version 1 Camunda 8 adapter can drop the table by hand. Nothing reads
+it, nothing writes it, and dropping it costs no data.
+
 ### Read your `spring.autoconfigure.exclude`
 
 The auto-configuration has a new fully qualified name.
