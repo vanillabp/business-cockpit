@@ -21,6 +21,31 @@ identified by the class name of its changeset bean plus the name of its method, 
 own changeset beans stayed where they were. A database migrated by an earlier version runs no step
 a second time.
 
+### The write concern is yours now
+
+The changeset mechanism used to set `WriteConcern.JOURNALED` on the application's `MongoTemplate`
+while it migrated and never took it back. Every application built on the cockpit ran with that
+value without asking for it. The library gives the template back the way it found it now, so the
+write concern is the one the application configures.
+
+The delivered `container` configures it. A custom cockpit adds:
+
+```yaml
+mongodb:
+  write-concern: majority
+  write-concern-journal: true
+```
+
+Without it the cockpit writes with one acknowledging node and warns about that on every start. A
+write which only the primary has is lost when that primary steps down, and the user task the
+cockpit has already confirmed to the BPMS adapter never appears.
+
+Write the value here and not into `spring.mongodb.uri`. The cockpit's `MongoTemplate` checks the
+result of every write, and Spring Data replaces the write concern of the connection with a plain
+acknowledged write while it does that. `mongodb.write-concern: 0` ends the start.
+[The library's README](./business-cockpit/README.md#the-write-concern-the-cockpit-needs) has the
+list of what each value costs.
+
 ### Read your `spring.autoconfigure.exclude`
 
 The auto-configuration has a new fully qualified name.
