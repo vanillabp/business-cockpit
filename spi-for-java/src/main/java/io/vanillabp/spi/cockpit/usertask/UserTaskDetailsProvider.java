@@ -1,6 +1,5 @@
 package io.vanillabp.spi.cockpit.usertask;
 
-import io.vanillabp.spi.service.TaskId;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Repeatable;
@@ -15,16 +14,27 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * interface, the task list or a data store for example.
  * 
  * <pre>
- * &#64;UserTaskDetails(taskDefinition = "someUserTask")
+ * &#64;UserTaskDetailsProvider(taskDefinition = "someUserTask")
  * public UserTaskDetails someUserTaskDetails(
- *         final MyWorkflowAggregate aggregate
- *         @TaskId final String taskId,
+ *         final MyWorkflowAggregate aggregate,
+ *         final PrefilledUserTaskDetails prefilled
  *         ) {
  * </pre>
  * 
- * The method returns {@link UserTaskDetails}. To get the id of the task, add a parameter
- * annotated with {@link TaskId}. Parameters carrying a multi-instance annotation work here as
- * well.
+ * The method returns {@link UserTaskDetails}.
+ * <p>
+ * These parameters may stand there, in any order, and none of them is required. The workflow
+ * aggregate, taken by its type and without an annotation, the way a
+ * <code>&#64;WorkflowTask</code> method takes it. {@link PrefilledUserTaskDetails}, which
+ * carries what the BPMS reported about the task and is the object most methods fill in and hand
+ * back. A process variable named by <code>&#64;TaskParam</code>. The multi-instance parameters
+ * of the task. And <code>&#64;DetailsEvent</code>, which says why the method is asked. Any other
+ * parameter ends the start of the application, and the message names the method and says what
+ * may stand there instead.
+ * <p>
+ * The id of the task is not a parameter. It stands in the prefilled details, which every method
+ * may take, so <code>&#64;TaskId</code> is not bound here. It belongs to a BPMN task VanillaBP
+ * completes, and a method reporting what a task looks like is not that.
  *
  * <p>
  * Which method serves which user task:
