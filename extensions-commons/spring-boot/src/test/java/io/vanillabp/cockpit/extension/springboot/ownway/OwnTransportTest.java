@@ -24,21 +24,21 @@ import io.vanillabp.cockpit.extension.springboot.test.TestWorkflowService;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * An application which brings its own way to the cockpit: one bean of type
+ * An application which brings its own way to the cockpit. It has one bean of type
  * <code>BusinessCockpitTransport</code>, no REST and no Kafka, and the reports go the way the
  * application wrote.
  * <p>
- * What such a transport inherits is why the seam is at this point: it is called while an outbox
- * entry is dispatched, so the report it is handed has been through the BPMS half, the details
- * provider of the application and the rendering of the titles. The Quarkus twin of this test
- * asserts the same thing.
+ * The seam sits at this point because of what such a transport inherits. It is called while an
+ * outbox entry is dispatched, so the report it is handed has been through the BPMS half, the
+ * details provider of the application and the rendering of the titles. The Quarkus twin of this
+ * test asserts the same thing.
  */
 @SpringBootTest(classes = {
     TestApplication.class, OwnTransportConfiguration.class
 },
     properties = {
         "spring.datasource.url=jdbc:h2:mem:cockpit-own-transport;DB_CLOSE_DELAY=-1",
-        // an empty value is no value: the test module's file sets the key for every other test
+        // an empty value is no value. The test module's file sets the key for every other test
         // class, and an application reporting its own way configures neither transport
         "vanillabp.cockpit.rest.base-url="
     })

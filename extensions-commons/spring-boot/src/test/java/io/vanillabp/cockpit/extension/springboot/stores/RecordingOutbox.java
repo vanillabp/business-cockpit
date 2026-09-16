@@ -8,8 +8,8 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
 
 /**
  * A store of the application, next to the one VanillaBP brings for the relational database.
- * It writes nowhere: what the tests of the attribution ask is which store was handed the
- * entry, and an entry which is never dispatched answers that as well as one which is.
+ * It writes nowhere. The tests of the attribution ask which store was handed the entry, and an
+ * entry which is never dispatched answers that as well as one which is.
  */
 public class RecordingOutbox implements PhaseTwoOutbox {
 

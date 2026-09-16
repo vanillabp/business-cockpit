@@ -13,7 +13,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * An application whose details provider names the reserved <code>version</code> attribute does
  * not start, and the message names the method to change. The Spring Boot half of the extension
- * asserts the same thing: what an extension refuses has to be refused on both platforms, and
+ * asserts the same thing. What an extension refuses has to be refused on both platforms, and
  * only a booted application shows whether the platform's glue asks at all.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -43,9 +43,9 @@ public class VersionAttributeRefusedTest {
       });
 
   /**
-   * Every message of the chain: what an extension refuses is refused by VanillaBP's own scan,
-   * which names the annotation, the class and the method in front of what the extension said -
-   * so the two halves of the answer stand in two exceptions.
+   * Every message of the chain. What an extension refuses is refused by VanillaBP's own scan,
+   * which names the annotation, the class and the method in front of what the extension said. So
+   * the two halves of the answer stand in two exceptions.
    *
    * @param failure What the boot failed with
    * @return The messages, one per line
@@ -65,7 +65,7 @@ public class VersionAttributeRefusedTest {
   @DisplayName("A details provider naming a version keeps the application from starting")
   public void theApplicationDoesNotStart() {
 
-    // the assertion is the one the extension above makes: this application never runs
+    // the assertion is the one the extension above makes. This application never runs
 
   }
 

@@ -11,10 +11,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
  * Signing in has to leave a {@code users} document behind, because notifications are only sent to
- * users who have been here at least once. The filter doing that is registered globally rather than
- * inside a security filter chain, so that a derived cockpit application replacing the chain
- * inherits the behavior - which also means nothing else in the request path would complain if it
- * silently stopped running.
+ * users who have been here at least once. The filter which does that is registered globally and
+ * not inside a security filter chain, so a derived cockpit application which replaces the chain
+ * inherits the behavior. It also means that nothing else in the request path would complain if the
+ * filter stopped running.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

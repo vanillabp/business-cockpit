@@ -16,7 +16,7 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 
 /**
  * The status code every kind of exception turns into. These numbers are part of what a
- * client of the cockpit's REST APIs sees, so they are pinned as plain integers: a renamed
+ * client of the cockpit's REST APIs sees, so they are pinned as plain integers. A renamed
  * constant in Spring must not be able to move them.
  */
 @ExtendWith(SuppressOutputExtension.class)

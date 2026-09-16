@@ -12,14 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * The permission data a workflow module hands over when it registers - the groups it is accessible
- * to and the group hierarchy it contributes - has to take effect the moment the module registers
- * again, because a module announces changed permissions by re-registering and nobody restarts the
- * cockpit for that.
+ * A workflow module hands permission data over when it registers, the groups it is accessible to
+ * and the group hierarchy it contributes. That data has to take effect the moment the module
+ * registers again, because a module announces changed permissions by registering again and nobody
+ * restarts the cockpit for that.
  *
- * <p>Both users log in once at the start of each test and keep their JWT cookie across the
- * re-registration, so a test that turns green afterwards proves the change reached the running
- * application, not just a fresh login.
+ * <p>Both users log in once at the start of each test and keep their JWT cookie across the second
+ * registration. So a test which turns green afterwards proves that the change reached the running
+ * application, and not only a fresh login.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -85,7 +85,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
 
     }
 
-    /** One entry of the {@code groupHierarchy} array: members of {@code group} also get the targets. */
+    /** One entry of the {@code groupHierarchy} array. Members of {@code group} also get the targets. */
     private static String granting(
             final String group,
             final String... targets) {
@@ -125,8 +125,8 @@ class WorkflowModulePermissionsTest extends ItestBase {
     }
 
     /**
-     * Reports a task addressed to a group only - no assignee, no candidate users - so that nothing
-     * but group membership can make it show up in somebody's task list.
+     * Reports a task addressed to a group only, with no assignee and no candidate users, so that
+     * nothing but group membership can make it show up in somebody's task list.
      */
     private String createTaskForGroup(
             final String workflowModuleId,
@@ -159,9 +159,9 @@ class WorkflowModulePermissionsTest extends ItestBase {
     // accessibleToGroups
 
     /**
-     * Asserts the open half of the rule the module list is built on: a module is listed when its
-     * accessibleToGroups holds one of the requesting user's groups, when the list is empty, or -
-     * as here - when the module registered without one at all.
+     * Asserts the open half of the rule the module list is built on. A module is listed when its
+     * accessibleToGroups holds one of the requesting user's groups, when the list is empty, or, as
+     * here, when the module registered without one at all.
      */
     @Test
     void aModuleRegisteredWithoutAccessibleToGroupsIsListedForEveryUser() {
@@ -177,7 +177,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
     }
 
     /**
-     * The restricting half of the same rule: with a group listed, only members of that group find
+     * The restricting half of the same rule. With a group listed, only members of that group find
      * the module in their list.
      */
     @Test
@@ -235,7 +235,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
     }
 
     /**
-     * Names the reach of accessibleToGroups, which is narrower than the name suggests: it decides
+     * Names the reach of accessibleToGroups, which is narrower than the name suggests. It decides
      * the module list and nothing else. A user task is visible by its own assignee and candidates,
      * so a user who is kept out of the module still finds that module's tasks in their task list.
      */
@@ -258,7 +258,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
 
     /**
      * A hierarchy entry maps a group to the groups its members get on top, and the resolution is
-     * transitive: martin is in accounting, accounting grants the dispatcher group and that one
+     * transitive. Martin is in accounting, accounting grants the dispatcher group and that one
      * grants the night-shift group, so a task addressed to night-shift reaches him.
      */
     @Test
@@ -282,8 +282,8 @@ class WorkflowModulePermissionsTest extends ItestBase {
 
     /**
      * The hierarchies of all registered modules are merged into one, and the merged result is
-     * applied while the JWT of a request is read. So a re-registration reaches the next request of
-     * a user who is already logged in - the cookie both users hold here predates it.
+     * applied while the JWT of a request is read. So a second registration reaches the next
+     * request of a user who is already logged in. The cookie both users hold here is older than it.
      */
     @Test
     void reRegistrationWithAChangedHierarchyMovesTheTaskToTheOtherUser() {
@@ -331,7 +331,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
 
     /**
      * Because the hierarchies are merged across modules instead of being kept per module, a group
-     * one module grants counts everywhere: it opens up another module whose accessibleToGroups
+     * one module grants counts everywhere. It opens up another module whose accessibleToGroups
      * names it, although that module knows nothing about the hierarchy.
      */
     @Test

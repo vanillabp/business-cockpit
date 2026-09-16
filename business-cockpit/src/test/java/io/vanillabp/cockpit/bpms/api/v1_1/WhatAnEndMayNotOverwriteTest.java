@@ -26,7 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * <p>
  * A BPMS which can no longer read the case sends the end with the identifiers, the timestamp and the
  * address of the user interface and nothing else, because a completion which never arrives leaves a
- * task the cockpit shows as open forever. Every end here is that end: it reports none of the fields
+ * task the cockpit shows as open forever. Every end here is that end. It reports none of the fields
  * a change would carry, and each test names one field the cockpit has to keep.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -135,10 +135,10 @@ class WhatAnEndMayNotOverwriteTest {
 
     /**
      * The end of a task whose case the BPMS cannot read any more, built the way a workflow module
-     * builds it. The maps and the lists are empty rather than absent, because the event of the
-     * reporting side starts out with empty collections and nobody filled them; the address of the
-     * user interface is there because it comes from the configuration of the workflow module and is
-     * known whatever the BPMS can still say.
+     * builds it. The maps and the lists are empty and not absent, because the event of the
+     * reporting side starts out with empty collections and nobody filled them. The address of the
+     * user interface is there because it comes from the configuration of the workflow module, which
+     * is known whatever the BPMS can still say.
      */
     private static UserTaskCompletedEvent endOfATaskNobodyCanDescribe() {
 

@@ -92,7 +92,7 @@ public class OneProviderForEveryUserTaskTest {
    * @param bpmnProcessId Which of the two processes of the workflow service the task is in
    * @param taskDefinition The task definition, whose element id is 'Activity_' plus this text
    * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind: tasks of
+   *          task's id as well, because the outbox keeps one entry per task and kind. Tasks of
    *          their own are what lets these events stand next to each other
    * @return The body of the request the cockpit server received
    * @throws Exception If the transaction around the event fails
@@ -151,7 +151,7 @@ public class OneProviderForEveryUserTaskTest {
     final var body = reported(PRIMARY_PROCESS, "somethingNobodyNames", "every-task-1");
 
     assertTrue(body.contains(EveryUserTaskService.BY_EVERY_TASK), body);
-    // it is a details provider like any other: it reads the workflow aggregate
+    // it is a details provider like any other. It reads the workflow aggregate
     assertTrue(body.contains("\"customer\":\"Anna\""), body);
 
   }

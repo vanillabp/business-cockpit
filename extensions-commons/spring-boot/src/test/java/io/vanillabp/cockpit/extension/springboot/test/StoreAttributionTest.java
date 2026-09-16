@@ -23,11 +23,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * Which of an application's outbox stores the extension writes into.
  * <p>
- * Both applications below hold two stores: the one VanillaBP brings for the relational
- * database of the test, and one of the application. Which of them serves the workflow
- * aggregate is VanillaBP's answer, and the extension asks rather than guessing - an extension
- * refusing an application the platform serves, or picking a store the aggregate's transaction
- * never reaches, is what the guess produced.
+ * Both applications below hold two stores. One is what VanillaBP brings for the relational
+ * database of the test, the other belongs to the application. VanillaBP answers which of them
+ * serves the workflow aggregate, and the extension asks instead of guessing. The guess produced
+ * an extension which refused an application the platform serves, or which picked a store the
+ * aggregate's transaction never reaches.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -47,8 +47,8 @@ public class StoreAttributionTest {
   }
 
   /**
-   * Reports what a BPMS observed, which is the entry naming no workflow aggregate class - the
-   * one the extension writes into the store all aggregates of the application share.
+   * Reports what a BPMS observed. That is the entry which names no workflow aggregate class, and
+   * the extension writes it into the store all aggregates of the application share.
    */
   private static void reportAWorkflowOfTheBpms(
       final ConfigurableApplicationContext application) {

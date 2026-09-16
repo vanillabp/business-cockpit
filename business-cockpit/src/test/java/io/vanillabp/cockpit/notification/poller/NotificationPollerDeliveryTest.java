@@ -33,8 +33,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 /**
- * Delivery of a bulk is accounted for per recipient: a recipient already reached must not receive
- * the notification again just because another recipient of the same bulk failed.
+ * Delivery of a bulk is accounted for per recipient. A recipient who was already reached must not
+ * get the notification again just because another recipient of the same bulk failed.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class NotificationPollerDeliveryTest {

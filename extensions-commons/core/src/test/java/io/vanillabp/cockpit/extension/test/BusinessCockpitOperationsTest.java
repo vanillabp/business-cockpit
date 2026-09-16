@@ -18,9 +18,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * The keys the outbox deduplicates the extension's entries by.
  * <p>
- * These are a persisted contract: an entry written before an upgrade is deduplicated after it,
- * so a change here is a change of behaviour for entries which already exist. The assertions
- * pin the shape rather than describe it.
+ * These are a stored contract. An entry written before an upgrade is deduplicated after it, so
+ * a change here changes the behaviour of entries which already exist. The assertions pin the
+ * shape down instead of describing it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitOperationsTest {

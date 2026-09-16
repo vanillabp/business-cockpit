@@ -25,8 +25,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * What an application is told about its configuration, and when.
  * <p>
  * Every defect is reported while the application starts, all of them in one message, and every
- * line names the property key which fixes it - a developer reaching a working setup from the
- * log rather than from the documentation is what these assertions are about.
+ * line names the property key which fixes it. These assertions are about a developer who
+ * reaches a working setup from the log and not from the documentation.
  * <p>
  * The keys are the ones version 1 of the Business Cockpit read, so the tests are written in the
  * spelling an application which upgrades already has.

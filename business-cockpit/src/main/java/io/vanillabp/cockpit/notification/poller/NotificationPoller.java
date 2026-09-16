@@ -84,7 +84,7 @@ public class NotificationPoller {
     public void poll() {
 
         if (notificationServices.isEmpty()) {
-            return; // no medium configured: keep runtime behavior unchanged (AC tech 4)
+            return; // nothing is configured to notify with, so there is nothing to scan for
         }
 
         try {

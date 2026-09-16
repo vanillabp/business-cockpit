@@ -20,7 +20,7 @@ import org.springframework.mock.env.MockEnvironment;
 /**
  * What a cockpit application is told about its configuration, and which of it stops the start.
  *
- * <p>Every assertion is about the two things a message has to carry to be worth anything: the exact
+ * <p>Every assertion is about the two things a message has to carry to be worth anything, the exact
  * property name to add and an example of a value. Nothing here asserts on wording beyond that, so
  * the texts stay free to improve.
  */
@@ -132,8 +132,8 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * The point of collecting: a developer starting from nothing reads one message and adds
-     * everything at once instead of restarting into the next single complaint.
+     * This is the point of collecting. A developer who starts from nothing reads one message and
+     * adds everything at once, instead of restarting into the next single complaint.
      */
     @Test
     void allMandatoryValuesAreReportedInOneMessage() {
@@ -148,9 +148,9 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * A property set to an empty string is how somebody writes "I will fill this in later" - and how
-     * a start parameter unsets an inherited value. It has to count as missing, otherwise the empty
-     * value reaches the code that used to throw.
+     * A property set to an empty string is how somebody writes "I will fill this in later", and it
+     * is how a start parameter unsets an inherited value. It has to count as missing, otherwise the
+     * empty value reaches the code which used to throw.
      */
     @Test
     void anEmptyValueCountsAsAMissingOne() {
@@ -193,7 +193,7 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * The key is the one value the check can supply itself, so it does - and hands the generated one
+     * The key is the one value the check can supply itself, so it does. It hands the generated one
      * over to be written down.
      */
     @Test

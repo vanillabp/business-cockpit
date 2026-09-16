@@ -10,9 +10,9 @@ import io.vanillabp.integration.adapter.spi.WorkflowAwareness;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * The application the Business Cockpit extension is tested inside: a JPA workflow aggregate, a
- * workflow service with details providers, the BPMS double of the platform, and the test's own
- * BPMS half of the extension.
+ * The application the Business Cockpit extension is tested inside. It has a JPA workflow
+ * aggregate, a workflow service with details providers, the BPMS double of the platform and the
+ * test's own BPMS half of the extension.
  */
 @SpringBootApplication
 public class TestApplication {

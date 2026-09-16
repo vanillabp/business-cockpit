@@ -11,17 +11,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A user task may name who else sees it. The workflow module writes that list as
- * {@code admittedUsers}, and whoever stands in it reaches the task without being a candidate for it
- * and keeps reaching it after the group which once brought them the task is taken away.
+ * {@code admittedUsers}. Whoever stands in that list reaches the task without being a candidate for
+ * it, and keeps reaching it after the group which once brought them the task is taken away.
  *
- * <p>The withdrawal these tests run is the real one: a workflow module reports a group hierarchy,
- * the hierarchy is what puts the user into the group the task addresses, and re-registering the
- * module without that entry takes the group away again. It reaches the next request of a user who is
- * already logged in, so no second login is needed to see the effect.
+ * <p>These tests withdraw a role for real. A workflow module reports a group hierarchy, and that
+ * hierarchy puts the user into the group the task addresses. Registering the module again without
+ * that entry takes the group away. The change reaches the next request of a user who is already
+ * logged in, so no second login is needed to see it.
  *
  * <p>These tests came from story 258, which answered the same question inside the cockpit by noting
- * who opened what. The cause is different now, the business question is the same, so they ask the
- * same things of the application.
+ * who opened what. The cause is different now, but the business question is the same, so they ask
+ * the application the same things.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -230,8 +230,8 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * The case of the story: the task is done, the role is gone, and the person the module admitted
-     * can still read what they entered.
+     * The case of the story. The task is done and the role is gone, and the person the module
+     * admitted can still read what they entered.
      */
     @Test
     void anAdmittedUserKeepsACompletedTask() {
@@ -251,7 +251,7 @@ class AdmittedUsersTest extends ItestBase {
 
     }
 
-    /** Being admitted is enough on its own: petra is in no group this task addresses. */
+    /** Being admitted is enough on its own. Petra is in no group this task addresses. */
     @Test
     void anAdmittedUserSeesATaskWithoutBeingACandidate() {
 
@@ -264,7 +264,7 @@ class AdmittedUsersTest extends ItestBase {
 
     }
 
-    /** A task which admits nobody is gone with the role, which is what it was before this story. */
+    /** A task which admits nobody is gone with the role. That is how it was before this story. */
     @Test
     void aTaskAdmittingNobodyIsGoneWithTheRole() {
 
@@ -296,8 +296,8 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * An admission holds against an exclusion. Four eyes do not suffer from that: the person who did
-     * the first step should never be shown the second task at all, and if the task did reach them,
+     * An admission holds against an exclusion. Four eyes do not suffer from that. The person who
+     * did the first step should never be shown the second task at all. If the task did reach them,
      * the workflow module's own security keeps the form shut. So a module which admits somebody has
      * said what it wants, and the cockpit lets them read the task.
      */
@@ -337,8 +337,8 @@ class AdmittedUsersTest extends ItestBase {
 
     /**
      * The list of what a user's groups may take is about work offered to them, and a group they are
-     * no longer in offers nothing. Being admitted does not put a task back into that list, while the
-     * main list keeps it, which is where the person looks for what they had a hand in.
+     * no longer in offers nothing. Being admitted does not put a task back into that list. The main
+     * list keeps it, and that is where the person looks for what they had a hand in.
      */
     @Test
     void theListOfWorkUpForGrabsDoesNotOfferAnAdmittedTask() {

@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * What the interceptor does with a token which the server did not accept: an HTTP 401 has to
- * come back as a retryable exception, so Feign asks for a new token and sends the call again,
- * while every other status stays a plain failure.
+ * What the interceptor does with a token which the server did not accept. An HTTP 401 has to
+ * come back as a retryable exception, so Feign asks for a new token and sends the call again.
+ * Every other status stays a plain failure.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BearerTokenBasedAuthInterceptorTest {

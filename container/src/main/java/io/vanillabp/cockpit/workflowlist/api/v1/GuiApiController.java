@@ -6,13 +6,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The workflow list of the delivered application, holding the workflows which name the user in
- * their accessibleToUsers, the ones naming a group of theirs in accessibleToGroups, and the ones
- * naming neither and therefore open to everybody.
+ * The workflow list of the delivered application. It holds the workflows which name the user in
+ * their accessibleToUsers, the ones which name a group of theirs in accessibleToGroups, and the
+ * ones which name neither and are therefore open to everybody.
  *
- * <p>The user's groups are the authorities of the current request, which the JWT filter has already
- * widened by everything the registered workflow modules grant through their group hierarchy. The
- * task list of this application reads them from the same place.
+ * <p>The user's groups are the authorities of the current request. The JWT filter has already
+ * widened them by everything the registered workflow modules grant through their group hierarchy.
+ * The task list of this application reads them from the same place.
  */
 @RestController("workflowListGuiApiController")
 @RequestMapping(path = "/gui/api/v1")

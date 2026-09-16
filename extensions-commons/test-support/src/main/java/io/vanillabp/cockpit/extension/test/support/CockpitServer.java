@@ -21,7 +21,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.vanillabp.integration.test.utils.FreePortUtil;
 
 /**
- * The cockpit server, played by the test: it records every request and answers with whatever the
+ * The cockpit server, played by the test. It records every request and answers with whatever the
  * test told it to answer.
  * <p>
  * It is started once per JVM, before an application boots, because an application is configured
@@ -33,8 +33,8 @@ import io.vanillabp.integration.test.utils.FreePortUtil;
  * like an extension that never reported anything. On Spring Boot there is one copy and the detour
  * is a call to localhost.
  * <p>
- * Three numbers differ between the repositories using this server, and each is a system property
- * rather than a subclass:
+ * Three numbers differ between the repositories which use this server, and each of them is a
+ * system property and not a subclass:
  *
  * <pre>
  * businesscockpit.test-server.wait-millis          how long a test waits for a request (30 s)

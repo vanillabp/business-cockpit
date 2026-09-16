@@ -12,15 +12,15 @@ import io.vanillabp.cockpit.extension.config.CockpitSettings;
 
 /**
  * The Business Cockpit's OVERLAY of the shared <code>vanillabp.*</code> configuration tree on
- * Quarkus: a second RUN_TIME mapping over the same prefix as the platform's own, which is the
- * pattern every VanillaBP adapter and extension uses to contribute keys of its own. Overlapping
- * keys are served to both mappings, and SmallRye's unknown-key validation passes as soon as one
- * of them declares a key.
+ * Quarkus. It is a second RUN_TIME mapping over the same prefix as the platform's own. Every
+ * VanillaBP adapter and extension contributes keys of its own in this way. Overlapping keys are
+ * served to both mappings, and SmallRye's unknown-key validation passes as soon as one of them
+ * declares a key.
  * <p>
- * On this platform the mapping is not merely how the keys are read - it is what lets the
- * application boot at all. A key below <code>vanillabp</code> which no mapping declares ends
- * the startup, so everything the Business Cockpit reads is declared here, in the shape version
- * 1 of the cockpit had:
+ * On this platform the mapping does more than read the keys. It is what lets the application
+ * boot at all. A key below <code>vanillabp</code> which no mapping declares ends the startup, so
+ * everything the Business Cockpit reads is declared here, in the shape version 1 of the cockpit
+ * had:
  *
  * <pre>
  * vanillabp.cockpit.&lt;key&gt;
@@ -29,20 +29,21 @@ import io.vanillabp.cockpit.extension.config.CockpitSettings;
  * vanillabp.workflow-modules.&lt;id&gt;.workflows.&lt;process&gt;.user-tasks.&lt;task&gt;.cockpit.&lt;key&gt;
  * </pre>
  *
- * Every leaf is declared as text and parsed by the neutral core, so a value which is no number,
- * no span of time and no boolean is answered by the same message here and on Spring Boot rather
- * than by two frameworks in two ways. Lists and maps are the exception: they are what a
- * platform binds and an extension cannot reassemble from text.
+ * Every leaf is declared as text and parsed by the neutral core. A value which is no number, no
+ * span of time and no boolean gets the same message here and on Spring Boot, and not two
+ * messages from two frameworks. Lists and maps are the exception. A platform binds them, and an
+ * extension cannot reassemble them from text.
  * <p>
- * The workflow modules of the application are never taken from this map - they come from the
- * platform's own properties, and this is a lookup per module id.
+ * The workflow modules of the application are never taken from this map. They come from the
+ * platform's own properties, and this map is a lookup per module id.
  * <p>
  * The mapping is deliberately NOT <code>&#64;StaticInitSafe</code>. SmallRye validates the
- * unknown keys of a root once per configuration it builds, against the mappings registered in
- * that one: an overlay which is created while the application's static initializer runs, next to
- * a platform mapping which is created when the application starts, is the only mapping of
- * <code>vanillabp</code> there - and every key of the platform below that root is then a key
- * nothing declares. An overlay belongs in the phase the mapping it overlays is in.
+ * unknown keys of a root once per configuration it builds, and only against the mappings which
+ * are registered in that one. Say the overlay is created while the application's static
+ * initializer runs, and the platform's mapping when the application starts. Then the overlay is
+ * the only mapping of <code>vanillabp</code> in that configuration, and every key of the
+ * platform below that root is a key which nothing declares. An overlay belongs in the same phase
+ * as the mapping it overlays.
  */
 @ConfigRoot(phase = ConfigPhase.RUN_TIME)
 @ConfigMapping(prefix = "vanillabp")
@@ -350,9 +351,9 @@ public interface CockpitOverlayProperties {
     Topics topics();
 
     /**
-     * Anything else the producer is to be given, e.g.
-     * <code>kafka.properties.security.protocol</code>. A key of this map carries the dots it was
-     * written with, which is what makes a setting of the Kafka client reach it unchanged.
+     * Anything else the producer is to be given, for example
+     * <code>kafka.properties.security.protocol</code>. A key of this map keeps the dots it was
+     * written with, so a setting of the Kafka client reaches it unchanged.
      */
     Map<String, String> properties();
 
@@ -508,9 +509,9 @@ public interface CockpitOverlayProperties {
     Map<String, List<String>> groupHierarchy();
 
     /**
-     * A module which wrote nothing takes no part in the Business Cockpit, and on this platform
-     * that is what an absent section looks like: the groups of a mapping exist whether or not
-     * anything was written into them, so the section is empty rather than missing.
+     * A module which wrote nothing takes no part in the Business Cockpit. On this platform an
+     * absent section looks just like that. The groups of a mapping exist whether or not anything
+     * was written into them, so the section is empty and not missing.
      *
      * @return This section as the neutral core reads it, or <code>null</code> where the module
      *         wrote nothing at all
@@ -545,11 +546,11 @@ public interface CockpitOverlayProperties {
     Map<String, UserTaskOverlay> userTasks();
 
     /**
-     * The workflows of a workflow module are the platform's as well, and a workflow which says
-     * nothing about the cockpit is no workflow of the cockpit: this mapping gets an entry for
-     * every workflow the application configured, whatever it configured there. A module whose
-     * workflows only carry adapter keys would otherwise look like a module which takes part in
-     * the cockpit, and the boot would end asking it for a workflow module URI.
+     * The workflows of a workflow module belong to the platform as well, and a workflow which
+     * says nothing about the cockpit is no workflow of the cockpit. This mapping gets an entry
+     * for every workflow the application configured, whatever it configured there. Without that,
+     * a module whose workflows only carry adapter keys would look like a module which takes part
+     * in the cockpit, and the boot would end asking it for a workflow module URI.
      *
      * @return What this workflow said, as the neutral core reads it, or <code>null</code> where
      *         it said nothing

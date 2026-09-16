@@ -27,13 +27,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * naming a task reports what only that task has. Where two methods name the same task, one by
  * its task definition and one by its BPMN element id, the element id decides.
  * <p>
- * Everything is asserted where a user sees it, in the request the cockpit server receives: the
+ * Everything is asserted where a user sees it, in the request the cockpit server receives. The
  * details say which method wrote them. The second BPMN process of the workflow service is part
  * of it, because a method claiming every user task claims the tasks of that process as well.
  */
 @SpringBootTest(classes = EveryTaskApplication.class,
     properties = {
-        // an outbox store of its own: the contexts of the other test classes stay cached with
+        // an outbox store of its own. The contexts of the other test classes stay cached with
         // their pollers running, and on a shared store one of them takes the entry away
         "spring.datasource.url=jdbc:h2:mem:cockpit-every-task;DB_CLOSE_DELAY=-1"
     })
@@ -86,7 +86,7 @@ public class OneProviderForEveryUserTaskTest {
    * @param taskDefinition The task definition, which the BPMS double turns into the element
    *          id 'Activity_' plus this text
    * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind: tasks of
+   *          task's id as well, because the outbox keeps one entry per task and kind. Tasks of
    *          their own are what lets these events stand next to each other
    * @return The body of the request the cockpit server received
    */
@@ -142,7 +142,7 @@ public class OneProviderForEveryUserTaskTest {
     final var body = reported(PRIMARY_PROCESS, "somethingNobodyNames", "every-task-1");
 
     assertTrue(body.contains(OrderService.BY_EVERY_TASK), body);
-    // it is a details provider like any other: it reads the workflow aggregate
+    // it is a details provider like any other. It reads the workflow aggregate
     assertTrue(body.contains("\"customer\":\"Anna\""), body);
 
   }

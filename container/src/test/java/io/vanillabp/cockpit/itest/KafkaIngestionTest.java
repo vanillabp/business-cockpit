@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Feeds protobuf events into the Kafka topics the container consumes - serialized the same way the
- * adapters' *KafkaPublishing classes do it (record key = entity id, record value = a BcEvent
- * wrapper) - and verifies the read side through the GUI API. Consumption is asynchronous, so all
- * verifications poll with a timeout.
+ * Feeds protobuf events into the Kafka topics the container consumes and verifies the read side
+ * through the GUI API. The events are serialized the way the adapters' *KafkaPublishing classes
+ * do it, with the entity id as the record key and a BcEvent wrapper as the record value.
+ * Consumption is asynchronous, so every check polls with a timeout.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

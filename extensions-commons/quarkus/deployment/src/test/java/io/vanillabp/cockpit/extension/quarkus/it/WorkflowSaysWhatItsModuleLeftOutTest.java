@@ -21,7 +21,7 @@ import jakarta.inject.Inject;
  * it reports in starts, because its one workflow says both.
  * <p>
  * That is what version 1 did, and it asked at the first event of a workflow. This asks while the
- * application starts, once VanillaBP has said which processes the module holds: the boot of this
+ * application starts, once VanillaBP has said which processes the module holds. The boot of this
  * application is the assertion that the check accepts a module whose workflows carry what it
  * left out.
  */

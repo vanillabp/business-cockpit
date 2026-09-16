@@ -27,7 +27,7 @@ import jakarta.transaction.UserTransaction;
  * Each report has to reach the store of its own workflow, because an entry which is not
  * committed with what it reports reports something that may never have happened. The event a
  * BPMS observed names a BPMN process and no class, and the workflow service serving that process
- * is where the class comes from - see decision 13 of the repository's decision log.
+ * is where the class comes from. See decision 13 of the repository's decision log.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TwoStoresAttributionTest {

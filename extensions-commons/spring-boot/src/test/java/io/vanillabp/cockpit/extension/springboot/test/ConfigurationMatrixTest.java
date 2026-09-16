@@ -28,19 +28,19 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The configuration in the shape version 1 of the Business Cockpit had, written the way an
- * application which upgrades already has it: a list as a list, a group hierarchy as a map of
- * lists, a workflow and one of its user tasks with sections of their own, a timeout as a number
- * of milliseconds next to one written with a unit, and a workflow module whose own defaults file
- * says something the application did not.
+ * application which upgrades already has it. There is a list as a list and a group hierarchy as
+ * a map of lists. A workflow and one of its user tasks have sections of their own. A timeout is
+ * written as a number of milliseconds next to one written with a unit, and a workflow module's
+ * own defaults file says something the application did not.
  * <p>
- * What is asserted is what only a booted application shows: that this platform's binding carries
- * every one of those shapes into the extension. The Quarkus twin of this test asserts the same
- * tree, because a binding is exactly the part a neutral core cannot be right about on its own.
+ * This asserts what only a booted application shows, that this platform's binding carries every
+ * one of those shapes into the extension. The Quarkus twin of this test asserts the same tree,
+ * because a binding is exactly the part a neutral core cannot be right about on its own.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
         "spring.config.additional-location=classpath:/matrix/",
-        // an outbox store of its own: the contexts of the other test classes stay cached
+        // an outbox store of its own. The contexts of the other test classes stay cached
         // with their pollers running, so a shared store lets one of them dispatch an entry
         // written here, with the configuration it was booted with instead of this one
         "spring.datasource.url=jdbc:h2:mem:cockpit-configuration-matrix;DB_CLOSE_DELAY=-1"

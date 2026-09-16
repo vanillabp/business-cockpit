@@ -11,13 +11,13 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
 
 /**
  * The Business Cockpit's OVERLAY of the shared <code>vanillabp.*</code> configuration tree on
- * Spring Boot: a second {@code @ConfigurationProperties("vanillabp")} class next to the
- * platform's own binding, which is the pattern every adapter and extension of VanillaBP uses
- * to contribute keys of its own. Same-prefix classes bind side by side, and a key unknown to
- * one of them is ignored by that one.
+ * Spring Boot. It is a second {@code @ConfigurationProperties("vanillabp")} class next to the
+ * platform's own binding. Every adapter and extension of VanillaBP contributes keys of its own
+ * in this way. Classes with the same prefix bind side by side, and a key which one of them does
+ * not know is ignored by that one.
  * <p>
  * The shape is the one version 1 of the Business Cockpit had, so an application upgrades by
- * changing a dependency rather than by rewriting its configuration:
+ * changing a dependency and not by rewriting its configuration:
  *
  * <pre>
  * vanillabp.cockpit.&lt;key&gt;
@@ -26,14 +26,14 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * vanillabp.workflow-modules.&lt;id&gt;.workflows.&lt;process&gt;.user-tasks.&lt;task&gt;.cockpit.&lt;key&gt;
  * </pre>
  *
- * Every leaf is bound as text and parsed by the neutral core, so a value which is no number,
- * no span of time and no boolean is answered by the same message on both platforms. Lists and
- * maps are the exception: they are what a platform binds and an extension cannot reassemble
- * from text, so <code>i18n-languages</code> is a list here and the group hierarchy is a map of
- * lists, written the way version 1 wrote them.
+ * Every leaf is bound as text and parsed by the neutral core. A value which is no number, no
+ * span of time and no boolean gets the same message on both platforms. Lists and maps are the
+ * exception. A platform binds them, and an extension cannot reassemble them from text. So
+ * <code>i18n-languages</code> is a list here, and the group hierarchy is a map of lists, written
+ * the way version 1 wrote them.
  * <p>
- * The workflow modules of the application are never taken from this map - they come from the
- * platform's own properties, and this is a lookup per module id.
+ * The workflow modules of the application are never taken from this map. They come from the
+ * platform's own properties, and this map is a lookup per module id.
  */
 @ConfigurationProperties(MigrationAdapterProperties.PREFIX)
 public class CockpitOverlayProperties {

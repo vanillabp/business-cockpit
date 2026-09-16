@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Exercises the GUI API the way the single-page app uses it: login via basic auth producing a JWT
- * cookie, then task list interactions like paging, sorting, mark-as-read, claim, assign and
+ * Exercises the GUI API the way the single-page app uses it. A login by basic auth produces a JWT
+ * cookie, and the task list is then used for paging, sorting, mark-as-read, claim, assign and
  * follow-up dates.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -216,8 +216,8 @@ class GuiApiTest extends ItestBase {
     /**
      * A task reported without an assignee stays unassigned, so the first user claiming it becomes
      * the assignee. Until the ingress mappers learned that an absent user id means no person, such
-     * a task carried an assignee whose id was null: the GUI hid it, but the claim compared that
-     * null id to the claiming user and answered HTTP 500.
+     * a task carried an assignee whose id was null. The GUI hid that assignee, but the claim
+     * compared the null id to the claiming user and answered HTTP 500.
      */
     @Test
     void claimingATaskReportedWithoutAssigneeAssignsTheClaimer() {

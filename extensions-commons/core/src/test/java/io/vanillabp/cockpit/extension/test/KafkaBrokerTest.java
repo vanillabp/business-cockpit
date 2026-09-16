@@ -31,13 +31,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * a consumer reads off the topic.
  * <p>
  * The other Kafka assertions are made against the client's own test double, which is where the
- * content of a message belongs. What only a broker can show is what surrounds it: that the
- * producer this extension configures connects and serializes at all, and that a message this
- * extension sent is a message somebody else can read. That is worth one test and not more.
+ * content of a message belongs. What only a broker can show is what surrounds it. The producer
+ * this extension configures connects and serializes at all, and a message this extension sent is
+ * a message somebody else can read. That is worth one test and not more.
  * <p>
  * The container is started by Testcontainers, so the test needs a Docker daemon and is skipped
- * where there is none: a build machine without Docker is a machine which cannot run this, not a
- * defect of the extension.
+ * where there is none. A build machine without Docker is a machine which cannot run this, and
+ * not a defect of the extension.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

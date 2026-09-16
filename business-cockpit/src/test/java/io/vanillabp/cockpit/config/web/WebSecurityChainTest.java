@@ -34,25 +34,25 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 /**
- * The two servlet security chains of the cockpit: which requests they take, in which order they are
- * consulted, and where the JWT filter sits inside the GUI chain.
+ * The two servlet security chains of the cockpit. This asserts which requests they take, in which
+ * order they are consulted and where the JWT filter sits inside the GUI chain.
  *
  * <p>None of this fails loudly when it breaks. A JWT filter placed after the authorization filter leaves
- * every request unauthenticated, which looks like a plain 401; a GUI chain consulted before the BPMS-API
+ * every request unauthenticated, which looks like a plain 401. A GUI chain consulted before the BPMS-API
  * chain answers adapter requests with a login redirect, which looks like a broken adapter. The chains were
  * rewritten from WebFlux to Spring MVC, so the assertions below exist to show that the rewrite kept the
  * semantics.
  *
- * <p>The configurations are exercised directly rather than through a Spring context: the container's context
- * needs MongoDB, Kafka and a workflow module to come up. {@link #httpSecurity()} builds the same
- * {@code HttpSecurity} Spring Boot would inject, including the configurers it applies by default - without
+ * <p>The configurations are exercised directly and not through a Spring context, because the container's
+ * context needs MongoDB, Kafka and a workflow module to come up. {@link #httpSecurity()} builds the same
+ * {@code HttpSecurity} Spring Boot would inject, including the configurers it applies by default. Without
  * them the filter list would be missing exactly the filters these assertions are about.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class WebSecurityChainTest {
 
     /**
-     * Any HMAC key of the right length; the chains are built, not exercised cryptographically.
+     * Any HMAC key of the right length. The chains are built here, not used for cryptography.
      */
     private static final String HMAC_KEY = Base64.getEncoder().encodeToString(new byte[32]);
 
@@ -150,9 +150,9 @@ class WebSecurityChainTest {
 
     /**
      * {@code addFilterAfter(.., BasicAuthenticationFilter.class)} has to land the JWT filter behind the
-     * authentication filter - it reads the security context from the JWT cookie - and ahead of the
-     * authorization filter, which is what decides on 401. The filter set is Spring's, so a Spring upgrade
-     * can move the position without any compile error.
+     * authentication filter, because it reads the security context from the JWT cookie, and ahead of the
+     * authorization filter, which decides on 401. The filter set is Spring's, so a Spring upgrade can
+     * move the position without any compile error.
      */
     @Test
     void theJwtFilterSitsBetweenAuthenticationAndAuthorization() throws Exception {
@@ -173,8 +173,9 @@ class WebSecurityChainTest {
     }
 
     /**
-     * Anonymous access is switched off in the GUI chain, so the chain must carry no anonymous filter -
-     * otherwise unauthenticated requests would silently get an anonymous principal instead of a 401.
+     * Anonymous access is switched off in the GUI chain, so the chain must carry no anonymous filter.
+     * Otherwise an unauthenticated request would get an anonymous principal instead of a 401, and
+     * nothing would say so.
      */
     @Test
     void theGuiChainHasNoAnonymousAuthentication() throws Exception {
@@ -189,7 +190,7 @@ class WebSecurityChainTest {
 
         final var chain = bpmsApiChain();
 
-        // the two prefixes are "/bpms/api/v1" and "/bpms/api/v1_1" - an underscore, not a dot
+        // the two prefixes are "/bpms/api/v1" and "/bpms/api/v1_1", with an underscore and not a dot
         assertThat(matches(chain, "/bpms/api/v1/anything")).isTrue();
         assertThat(matches(chain, "/bpms/api/v1_1/anything")).isTrue();
         assertThat(matches(chain, "/gui/api/v1/app/info")).isFalse();
@@ -198,9 +199,9 @@ class WebSecurityChainTest {
     }
 
     /**
-     * The GUI chain has no {@code securityMatcher}, so it takes everything - including the BPMS-API paths.
+     * The GUI chain has no {@code securityMatcher}, so it takes everything, the BPMS-API paths included.
      * That is why the order of the two beans decides who answers an adapter request, and why the assertion
-     * below is about {@code @Order} rather than about matchers.
+     * below is about {@code @Order} and not about matchers.
      */
     @Test
     void theGuiChainTakesEverythingIncludingTheBpmsApiPaths() throws Exception {
@@ -231,7 +232,7 @@ class WebSecurityChainTest {
 
     /**
      * Both extension points are declared with {@code @ConditionalOnMissingBean(name = ..)}, which ties them
-     * to the <b>bean name</b> - that is, to the method name. Renaming the method would leave the condition
+     * to the <b>bean name</b>, and that is the method name. Renaming the method would leave the condition
      * pointing at a name nobody defines, so an application's override would stop taking effect without any
      * error. These names are public API for cockpit applications.
      */

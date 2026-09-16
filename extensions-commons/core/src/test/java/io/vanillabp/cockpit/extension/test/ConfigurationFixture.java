@@ -11,11 +11,11 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
 import io.vanillabp.integration.adapter.migration.config.WorkflowModuleAdapterProperties;
 
 /**
- * States a configuration the way a developer writes it - one property key at a time - and turns
- * it into the tree both platforms hand the extension.
+ * States a configuration the way a developer writes it, one property key at a time, and turns it
+ * into the tree both platforms hand the extension.
  * <p>
- * A key which is none of the extension's ends the fixture rather than the assertion: a test
- * writing a key nobody reads would pass for the wrong reason, and on Quarkus such a key does not
+ * A key which is none of the extension's ends the fixture and not the assertion. A test which
+ * writes a key nobody reads would pass for the wrong reason, and on Quarkus such a key does not
  * reach an application either.
  */
 public final class ConfigurationFixture {

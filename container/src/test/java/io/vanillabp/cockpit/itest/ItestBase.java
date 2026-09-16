@@ -33,16 +33,17 @@ import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * Base for black-box integration tests: boots the complete application on a random port and talks
- * to it exclusively over HTTP, the way real clients do. Nothing in here (nor in the tests built on
- * it) touches types of the web stack, which is what let the suite survive the move from WebFlux to
+ * Base for black-box integration tests. It boots the complete application on a random port and
+ * talks to it over HTTP only, the way real clients do. Nothing here and nothing in the tests built
+ * on it touches a type of the web stack. That is why the suite survived the move from WebFlux to
  * Spring MVC unchanged.
  *
- * <p>Infrastructure is shared across all test classes: one MongoDB replica set container (change
- * streams and the changeset migration require a replica set), one Apache Kafka container and one
- * stub HTTP server playing the role of the dev-shell simulator the 'local' profile loads its users
- * from. The containers live in static fields initialized once per JVM, and every test class uses
- * the identical context configuration, so Spring caches a single application context.
+ * <p>All test classes share the same infrastructure. That is one MongoDB replica set container,
+ * one Apache Kafka container and one stub HTTP server. The MongoDB has to be a replica set,
+ * because change streams and the changeset migration need one. The stub server plays the
+ * dev-shell simulator which the 'local' profile loads its users from. The containers live in
+ * static fields which are initialized once per JVM, and every test class uses the same context
+ * configuration, so Spring caches a single application context.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -67,7 +68,7 @@ public abstract class ItestBase {
     protected static final String BPMS_API_USER = "abc";
     protected static final String BPMS_API_PASSWORD = "123";
 
-    /** Users served by the dev-shell simulator stub; the GUI password is fixed to "test". */
+    /** Users served by the dev-shell simulator stub. The GUI password is always "test". */
     protected static final String USER_MARTIN = "martin";
     protected static final String USER_PETRA = "petra";
     protected static final String GUI_PASSWORD = "test";
@@ -196,8 +197,9 @@ public abstract class ItestBase {
     }
 
     /**
-     * The server omits null properties, so a missing leaf reads as null instead of failing - that
-     * way tests can assert absent fields (e.g. an unset assignee) the same as null ones.
+     * The server leaves null properties out, so a missing leaf reads as null instead of failing. A
+     * test can then assert an absent field, an unset assignee for example, the same way as a null
+     * one.
      */
     private static final Configuration JSON_PATH_CONFIGURATION = Configuration
             .builder()
@@ -249,8 +251,8 @@ public abstract class ItestBase {
     // GUI API (login by basic auth once, then the JWT cookie like the SPA does)
 
     /**
-     * Authenticates like the web app: the first request carries basic auth, the response sets the
-     * JWT cookie which authenticates all subsequent requests.
+     * Authenticates like the web app. The first request carries basic auth, and the response sets
+     * the JWT cookie which authenticates every request after it.
      *
      * @return the cookie pair "bc=..." to be sent as Cookie header
      */

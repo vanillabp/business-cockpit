@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * What the cockpit's user interface is told to open for a case, which follows the same rule as a
- * task: a federated module is served through the cockpit's own proxy, and a case shown by another
+ * What the cockpit's user interface is told to open for a case. It follows the same rule as a task.
+ * A federated module is served through the cockpit's own proxy, and a case shown by another
  * application keeps the address that application was reported with.
  */
 @ExtendWith(SuppressOutputExtension.class)

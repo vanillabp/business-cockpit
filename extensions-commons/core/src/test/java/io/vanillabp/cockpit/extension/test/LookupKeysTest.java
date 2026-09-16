@@ -15,8 +15,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * The keys one user task is looked up by, and the order they are offered in.
  * <p>
  * Which method a task ends up at is asserted where a user sees it, by the tests about one
- * provider for every user task. This one is about the edges those tests cannot show: a task
- * carrying only one of the two names, and a name which is there but empty.
+ * provider for every user task. This one is about the edges those tests cannot show, a task
+ * which carries only one of the two names and a name which is there but empty.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class LookupKeysTest {

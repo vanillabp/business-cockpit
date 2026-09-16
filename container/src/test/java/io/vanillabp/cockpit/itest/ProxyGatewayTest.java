@@ -19,8 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 /**
  * Registering a workflow module creates a gateway route forwarding {@code /wm/{moduleId}/**} to
  * the module's own HTTP server. The test runs such a server itself and checks both directions of
- * the proxying: the rewritten request reaching the module and the module's response reaching the
- * caller. The route is public (permitAll), so no authentication is involved.
+ * the proxying, the rewritten request which reaches the module and the module's response which
+ * reaches the caller. The route is public (permitAll), so no authentication is involved.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -131,9 +131,9 @@ class ProxyGatewayTest extends ItestBase {
     }
 
     /**
-     * Unregistered module ids fall through to the SPA handling instead of the gateway; asserting
-     * on the stub (and not on the status code) keeps this independent of whether the SPA bundle
-     * was part of the build.
+     * An unregistered module id falls through to the single-page application instead of the
+     * gateway. The assertion is on the stub and not on the status code, which keeps the test
+     * independent of whether the bundle of that application was part of the build.
      */
     @Test
     void unknownModuleRouteIsNotForwarded() {

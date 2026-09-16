@@ -55,8 +55,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * @param knows Whether the engine still knows the task - what a test switches off to prove
-   *          that a task which ended while its entry waited is not reported
+   * @param knows Whether the engine still knows the task. A test switches it off to prove that a
+   *          task which ended while its entry waited is not reported
    */
   public void knowsTheTask(
       final boolean knows) {
@@ -76,7 +76,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @return For every lookup of one task of an aggregate, whether a transaction was open while
-   *         this engine was asked - what a test reads to see that a question of
+   *         this engine was asked. A test reads it to see that a question of
    *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one unit
    *         of work
    */

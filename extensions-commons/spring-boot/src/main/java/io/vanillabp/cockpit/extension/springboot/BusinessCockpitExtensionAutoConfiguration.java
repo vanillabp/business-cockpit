@@ -40,12 +40,12 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 /**
  * Registers the Business Cockpit extension on Spring Boot.
  * <p>
- * Nothing here decides anything. The configuration is read and validated by the neutral core,
- * the transport is chosen there too, and this class does what only Spring can do: find the
- * beans, hand them over, and put the extension's own beans where VanillaBP collects them.
+ * Nothing here decides anything. The neutral core reads and validates the configuration, and it
+ * chooses the transport too. This class does what only Spring can do. It looks the beans up and
+ * hands them over, and it puts the extension's own beans where VanillaBP collects them.
  * <p>
- * It runs after VanillaBP's own auto-configuration, named rather than referenced, because an
- * extension does not compile against a platform integration.
+ * It runs after VanillaBP's own auto-configuration. That one is named as text and not
+ * referenced, because an extension does not compile against a platform integration.
  */
 @AutoConfiguration(afterName = "io.vanillabp.integration.processservice.SpringBootMigrationAdapterAutoConfiguration")
 @ConditionalOnBean({
@@ -56,17 +56,17 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
 
   /**
    * The name of the transport bean this auto-configuration contributes. It is spelled out
-   * because the configuration has to tell the application's own transport bean from this one,
-   * and a bean an application named the same way is a bean-definition override, which Spring
-   * Boot refuses by itself.
+   * because the configuration has to tell the application's own transport bean from this one. A
+   * bean which an application named the same way is a bean-definition override, and Spring Boot
+   * refuses that by itself.
    */
   static final String TRANSPORT_BEAN_NAME = "businessCockpitTransport";
 
   private BusinessCockpitExtension extension;
 
   /**
-   * What the application wrote about the Business Cockpit, read off this platform's binding and
-   * handed on as the neutral object the core and every BPMS half read.
+   * What the application wrote about the Business Cockpit. It is read off this platform's
+   * binding and handed on as the neutral object which the core and every BPMS half read.
    *
    * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
    * @return The settings
@@ -82,10 +82,10 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   /**
    * What the application configured, read and validated once while it boots.
    * <p>
-   * It is a bean of its own because an application which brings a transport of its own may want
-   * to wrap the shipped one, and
-   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} is what builds
-   * that from this object.
+   * It is a bean of its own. An application which brings a transport of its own may want to wrap
+   * the shipped one, and
+   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} builds that from
+   * this object.
    *
    * @param properties VanillaBP's resolved configuration
    * @param settings What the application wrote below the cockpit's own sections
@@ -106,12 +106,12 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * The transport the extension ships, which an application replaces by providing a bean of the
+   * The transport the extension ships. An application replaces it by providing a bean of the
    * same type. Version 1 of the Business Cockpit had that seam on its three publishing beans,
    * and an application which used it keeps its way to the cockpit.
    * <p>
-   * What such a transport inherits is why the seam is at this point: it is called while an outbox
-   * entry is dispatched, so a failure is repeated with a backoff and the call runs in the
+   * The seam sits at this point because of what such a transport inherits. It is called while an
+   * outbox entry is dispatched, so a failure is repeated with a backoff and the call runs in the
    * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
    *
    * @param configuration The validated configuration
@@ -129,8 +129,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   /**
    * The extension itself, built from what the application configured.
    * <p>
-   * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
-   * BPMS half injects: one bean, so that there is nothing to tell apart.
+   * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher}
+   * which a BPMS half injects. There is one bean, so there is nothing to tell apart.
    *
    * @param configuration What the application configured
    * @param transport Where the reports go, the application's own bean where it has one
@@ -181,14 +181,14 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
 
   /**
    * Resolves the outbox store and the transaction of every workflow aggregate once the
-   * application's singletons exist, which is what makes a store nobody can attribute end the
-   * boot rather than the first report.
+   * application's singletons exist. This is what makes a store nobody can attribute end the boot
+   * instead of the first report.
    * <p>
-   * It waits like VanillaBP's own startup validation does: asking for the store of an aggregate
+   * It waits like VanillaBP's own startup validation does. Asking for the store of an aggregate
    * reaches into the application's persistence, and doing that while beans are still being
-   * created would materialize repositories half way through the boot. By then VanillaBP has
-   * registered the workflow services of every process service too, which is what the extension
-   * asks for the aggregate of a BPMN process.
+   * created would build repositories half way through the boot. By then VanillaBP has also
+   * registered the workflow services of every process service, and the extension asks those for
+   * the aggregate of a BPMN process.
    *
    * @param extension The extension
    * @return The startup validation
@@ -237,13 +237,13 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * Whether the application brought a transport of its own, which is the question the
-   * configuration check needs answered: such an application configures neither of the shipped
-   * transports and starts all the same.
+   * Whether the application brought a transport of its own. The configuration check needs that
+   * answer, because such an application configures neither of the shipped transports and starts
+   * all the same.
    * <p>
-   * What is read are the bean definitions of the type, not the beans. Asking for the instance
-   * would build the shipped transport, which loads the Kafka client the application may not
-   * have, and it would do so before the configuration it is built from exists.
+   * The bean definitions of the type are read, not the beans themselves. Asking for the instance
+   * would build the shipped transport. That loads the Kafka client which the application may not
+   * have, and it would happen before the configuration it is built from exists.
    *
    * @param applicationContext The context being built
    * @return Whether a bean of the type is defined which this auto-configuration did not
@@ -263,9 +263,9 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   /**
    * Every BPMS half of this application, however it was produced.
    * <p>
-   * A BPMS half serving several configured adapter ids of its BPMS cannot always say at build
-   * time how many bridges that is, so it may produce them as one list bean instead of one bean
-   * each - the shape its Quarkus half has to use and which is therefore accepted here as well.
+   * A BPMS half which serves several configured adapter ids of its BPMS cannot always say at
+   * build time how many bridges that is, so it may produce them as one list bean instead of one
+   * bean each. Its Quarkus half has to use that shape, so it is accepted here as well.
    *
    * @param bridges The bridges produced one by one
    * @param applicationContext Where a bean holding a list of them is looked up
@@ -290,14 +290,14 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
-   * Where the extension writes its entries - see decision 12 in the repository's DECISIONS.md.
+   * Where the extension writes its entries. See decision 12 in the repository's DECISIONS.md.
    * <p>
-   * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
-   * the extension lands where an entry of the core lands: in the store the aggregate's
-   * transaction reaches. The list of every store the application holds is the resolver's answer
-   * as well, because a store the platform would never pick is not a store this extension may
-   * count, and so is what to do about a missing one: the remedies depend on what this platform
-   * can provide, and repeating them here would be a second list to keep in step.
+   * VanillaBP attributes the store to a workflow aggregate, so an entry of the extension lands
+   * where an entry of the core lands. That is the store which the aggregate's transaction
+   * reaches. The resolver also answers which stores the application holds, because a store the
+   * platform would never pick is not a store this extension may count. It answers what to do
+   * about a missing one too. Those remedies depend on what this platform can provide, and
+   * repeating them here would be a second list to keep in step.
    */
   private static BusinessCockpitOutbox theOutbox(
       final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers) {

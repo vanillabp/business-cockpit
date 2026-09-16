@@ -9,8 +9,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * A store of the application, next to the one VanillaBP brings for the datasource of the test.
- * It writes nowhere: what the tests of the attribution ask is which store was handed the entry,
- * and an entry which is never dispatched answers that as well as one which is.
+ * It writes nowhere. The tests of the attribution ask which store was handed the entry, and an
+ * entry which is never dispatched answers that as well as one which is.
  */
 @ApplicationScoped
 public class RecordingOutbox implements PhaseTwoOutbox {

@@ -18,9 +18,9 @@ import org.springframework.data.mongodb.core.query.Update;
 /**
  * Tasks reported without an assignee before the ingress mappers were fixed are stored with an
  * assignee whose id is null, and a claim on such a task answers HTTP 500. A changeset cleans them
- * up on the next startup - this test seeds exactly that shape of document and drives the changeset
- * against the running MongoDB, which no request to the application could trigger: changesets are
- * applied once while the context starts.
+ * up on the next startup. This test seeds exactly that shape of document and drives the changeset
+ * against the running MongoDB. No request to the application could trigger it, because changesets
+ * are applied once while the context starts.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

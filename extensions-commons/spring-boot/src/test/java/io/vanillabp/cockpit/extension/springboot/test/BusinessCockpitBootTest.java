@@ -27,9 +27,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the application is told while it starts.
  * <p>
- * Most of these boots are meant to fail: a defect the extension can see at startup is refused
+ * Most of these boots are meant to fail. A defect the extension can see at startup is refused
  * there and not when the first event arrives, and the message names the method to change. The
- * last one is meant to succeed although the cockpit server is unreachable - a workflow module
+ * last boot is meant to succeed although the cockpit server is unreachable. A workflow module
  * which cannot start because a reporting server is down would be the worse failure of the two.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -59,9 +59,9 @@ public class BusinessCockpitBootTest {
             .properties(properties)
             .run()
             .close());
-    // every message of the chain: what an extension refuses is refused by VanillaBP's own scan
+    // every message of the chain. What an extension refuses is refused by VanillaBP's own scan
     // now, which names the annotation, the class and the method in front of what the extension
-    // said - so the two halves of the answer stand in two exceptions
+    // said. So the two halves of the answer stand in two exceptions
     final var messages = new StringBuilder();
     for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
       messages.append(cause.getMessage()).append('\n');
@@ -91,7 +91,7 @@ public class BusinessCockpitBootTest {
     final var message = failureOfBooting(
         "cockpit-broken-proxied",
         new String[]{
-            // the everyday way into a JDK proxy: an interface plus @Transactional. What the
+            // the everyday way into a JDK proxy is an interface plus @Transactional. What the
             // bean's TYPE is then says nothing about the class the application wrote
             "spring.aop.proxy-target-class=false"
         },
@@ -180,7 +180,7 @@ public class BusinessCockpitBootTest {
                       + output.getAll()));
 
       // the way out is what a developer needs from the line, and it is a version attribute on
-      // the case - see decision 20 in the repository's DECISIONS.md for why this warning is
+      // the case. See decision 20 in the repository's DECISIONS.md for why this warning is
       // VanillaBP's and not one of ours
       assertTrue(reported.contains("version attribute"), reported);
 

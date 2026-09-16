@@ -24,8 +24,8 @@ import org.springframework.security.core.userdetails.User;
 
 /**
  * The token path of the dev shell. Switching the user writes a JWT cookie, and every request after
- * it has to come back as that user; the dev shell shows the wrong person, or nobody, the moment
- * that stops holding.
+ * it has to come back as that user. The moment that stops holding, the dev shell shows the wrong
+ * person or nobody at all.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class JwtServerSecurityContextRepositoryTest {

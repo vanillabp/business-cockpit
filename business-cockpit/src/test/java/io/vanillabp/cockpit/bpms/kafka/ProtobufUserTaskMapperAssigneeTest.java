@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * The assignment of a user task is cockpit-owned state: a task is taken over in the cockpit, so no
- * workflow system reports it. These tests pin down that an incoming event never wipes it - the
- * defect which silenced the notification of the former assignee, because the notification poller
- * cannot determine a recipient without an assignee.
+ * The assignment of a user task belongs to the cockpit. A task is taken over there, so no workflow
+ * system reports it. These tests pin down that an incoming event never wipes it. The defect it had
+ * silenced the notification of the former assignee, because the notification poller cannot work out
+ * a recipient without an assignee.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ProtobufUserTaskMapperAssigneeTest {

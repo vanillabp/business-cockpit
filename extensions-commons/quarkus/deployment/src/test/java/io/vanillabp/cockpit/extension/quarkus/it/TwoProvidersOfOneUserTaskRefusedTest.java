@@ -55,7 +55,7 @@ public class TwoProvidersOfOneUserTaskRefusedTest {
   @DisplayName("Two details providers claiming one user task keep the application from starting")
   public void theApplicationDoesNotStart() {
 
-    // the assertion is the one the extension above makes: this application never runs
+    // the assertion is the one the extension above makes. This application never runs
 
   }
 

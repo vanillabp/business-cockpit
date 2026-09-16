@@ -77,21 +77,18 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
             return null;
         }
 
-        // Format user details to display
         final var display = !StringUtils.hasText(user.lastName)
                 ? user.id
                 : !StringUtils.hasText(user.firstName)
                 ? user.lastName
                 : user.lastName + ", " + user.firstName;
 
-        // Format user details to displayShort
         final var displayShort = !StringUtils.hasText(user.lastName)
                 ? user.id
                 : !StringUtils.hasText(user.firstName)
                 ? user.lastName
                 : user.lastName + ", " + user.firstName.charAt(0) + ".";
 
-        // Create and return the user details implementation
         return new UserDetailsImpl(
                 user.id, user.email, display, displayShort, user.groups != null ? user.groups
                 : new ArrayList<>()

@@ -18,9 +18,9 @@ import io.vanillabp.cockpit.extension.transport.DetailsConverter;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The corners of the conversion of business data into the cockpit's protobuf shape: a value
- * which really is null, a number which must not lose precision, and a shape the cockpit has no
- * place for.
+ * The corners of the conversion of business data into the cockpit's protobuf shape. There is a
+ * value which really is null, a number which must not lose precision, and a shape the cockpit
+ * has no place for.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DetailsConverterTest {

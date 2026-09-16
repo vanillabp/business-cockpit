@@ -19,7 +19,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Which level answers a setting a workflow may say something about.
  * <p>
  * The order of the levels is the platform's and is tested there. What is tested here is that this
- * extension asks through it: the sections it hands over are its own records, and a value of a
+ * extension asks through it. The sections it hands over are its own records, and a value of a
  * workflow has to beat the value of its workflow module.
  */
 @ExtendWith(SuppressOutputExtension.class)

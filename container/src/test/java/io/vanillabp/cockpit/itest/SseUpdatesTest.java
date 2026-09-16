@@ -13,9 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Subscribes to the server-sent-events stream the way the single-page app does (authenticated by
- * the JWT cookie) and checks the two guarantees clients rely on: the confirmation ping shortly
- * after subscribing and an update event when a user task changes.
+ * Subscribes to the server-sent-events stream the way the single-page app does, authenticated by
+ * the JWT cookie. It checks the two things a client relies on, the confirmation ping shortly after
+ * subscribing and an update event when a user task changes.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -40,7 +40,7 @@ class SseUpdatesTest extends ItestBase {
             try {
                 response.body().forEach(lines::add);
             } catch (RuntimeException e) {
-                // the stream never completes; the JVM shutting down ends the read
+                // the stream never completes. The read ends when the JVM shuts down
             }
         }, "sse-reader");
         reader.setDaemon(true);

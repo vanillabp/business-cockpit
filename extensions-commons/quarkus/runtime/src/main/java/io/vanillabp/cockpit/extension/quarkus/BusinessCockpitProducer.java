@@ -39,12 +39,11 @@ import jakarta.inject.Singleton;
 import jakarta.interceptor.Interceptor;
 
 /**
- * Registers the Business Cockpit extension on Quarkus - the twin of the Spring Boot module's
- * auto-configuration, doing the same things with CDI.
+ * Registers the Business Cockpit extension on Quarkus. It is the twin of the Spring Boot
+ * module's auto-configuration and does the same things with CDI.
  * <p>
- * The producers are <code>&#64;Singleton</code> rather than
- * <code>&#64;ApplicationScoped</code>: what they produce has no no-argument constructor and is
- * therefore not client-proxyable.
+ * The producers are <code>&#64;Singleton</code> and not <code>&#64;ApplicationScoped</code>.
+ * What they produce has no no-argument constructor, so it cannot be proxied for a client.
  */
 @ApplicationScoped
 public class BusinessCockpitProducer {
@@ -52,28 +51,28 @@ public class BusinessCockpitProducer {
   /**
    * When the workflow modules are registered while the application starts.
    * <p>
-   * It has to be later than the startup observer which creates the outbox store's table, which
-   * VanillaBP's Quarkus integration runs at
-   * <code>VanillaBpDeploymentRunner.OUTBOX_DISPATCHER_STARTUP_PRIORITY</code> - priority
-   * <code>APPLICATION + 700</code> - because an entry written before that would find no table.
-   * The number is written out rather than read from the integration: an extension does not
-   * compile against a platform integration, so the two are kept in step by this comment - and
-   * by a test of the deployment module, which does see both numbers.
+   * It has to run later than the startup observer which creates the outbox store's table.
+   * VanillaBP's Quarkus integration runs that observer at
+   * <code>VanillaBpDeploymentRunner.OUTBOX_DISPATCHER_STARTUP_PRIORITY</code>, which is the
+   * priority <code>APPLICATION + 700</code>. An entry written any earlier would find no table.
+   * The number is written out here and not read from the integration, because an extension does
+   * not compile against a platform integration. This comment keeps the two in step, and so does
+   * a test of the deployment module, which sees both numbers.
    */
   public static final int REGISTRATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 800;
 
   /**
    * When the stores and transactions of the application's workflow aggregates are resolved.
    * <p>
-   * Later than VanillaBP's deployment runner, which registers the workflow service of every
-   * process service it builds, and earlier than the registration of the workflow modules, which
-   * writes the first entries.
+   * It runs later than VanillaBP's deployment runner, which registers the workflow service of
+   * every process service it builds. It runs earlier than the registration of the workflow
+   * modules, which writes the first entries.
    */
   public static final int VALIDATION_STARTUP_PRIORITY = Interceptor.Priority.APPLICATION + 750;
 
   /**
-   * What the application wrote about the Business Cockpit, read off this platform's mapping and
-   * handed on as the neutral object the core and every BPMS half read.
+   * What the application wrote about the Business Cockpit. It is read off this platform's
+   * mapping and handed on as the neutral object which the core and every BPMS half read.
    *
    * @param overlay The cockpit's overlay of the shared <code>vanillabp.*</code> tree
    * @return The settings
@@ -91,10 +90,10 @@ public class BusinessCockpitProducer {
   /**
    * What the application configured, read and validated once while it boots.
    * <p>
-   * It is a bean of its own because an application which brings a transport of its own may want
-   * to wrap the shipped one, and
-   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} is what builds
-   * that from this object.
+   * It is a bean of its own. An application which brings a transport of its own may want to wrap
+   * the shipped one, and
+   * {@link BusinessCockpitAssembly#transportOf(BusinessCockpitConfiguration)} builds that from
+   * this object.
    *
    * @param properties VanillaBP's resolved configuration
    * @param settings What the application wrote below the cockpit's own sections
@@ -117,12 +116,12 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * The transport the extension ships, which an application replaces by producing a bean of the
-   * same type: <code>&#64;DefaultBean</code> is what ArC offers for the seam Spring Boot's
+   * The transport the extension ships. An application replaces it by producing a bean of the
+   * same type. <code>&#64;DefaultBean</code> is what ArC offers for the seam which Spring Boot's
    * <code>&#64;ConditionalOnMissingBean</code> makes on the other platform.
    * <p>
-   * What such a transport inherits is why the seam is at this point: it is called while an outbox
-   * entry is dispatched, so a failure is repeated with a backoff and the call runs in the
+   * The seam sits at this point because of what such a transport inherits. It is called while an
+   * outbox entry is dispatched, so a failure is repeated with a backoff and the call runs in the
    * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
    *
    * @param configuration The validated configuration
@@ -142,15 +141,15 @@ public class BusinessCockpitProducer {
   /**
    * The extension itself, built from what the application configured.
    * <p>
-   * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher} a
-   * BPMS half injects: one bean, so that there is nothing to tell apart.
+   * It is also the {@link io.vanillabp.cockpit.extension.spi.BusinessCockpitEventPublisher}
+   * which a BPMS half injects. There is one bean, so there is nothing to tell apart.
    *
    * @param configuration What the application configured
    * @param transport Where the reports go, the application's own bean where it has one
    * @param bridges The BPMS halves the application brought
-   * @param bridgeLists The BPMS halves an extension produced as one list, which is how a BPMS
-   *          half builds a bridge per configured adapter id on Quarkus: how many there are is
-   *          decided by the configuration and therefore not by a producer method
+   * @param bridgeLists The BPMS halves an extension produced as one list. That is how a BPMS
+   *          half builds one bridge per configured adapter id on Quarkus. The configuration
+   *          decides how many there are, so a producer method cannot
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
@@ -225,12 +224,12 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Resolves the outbox store and the transaction of every workflow aggregate, which is what
-   * makes a store nobody can attribute end the boot rather than the first report.
+   * Resolves the outbox store and the transaction of every workflow aggregate. This is what
+   * makes a store nobody can attribute end the boot instead of the first report.
    * <p>
-   * It runs after the deployment pipeline because that is when VanillaBP has registered the
-   * workflow services of every process service, and the aggregate a BPMN process works on is
-   * what it is asked for.
+   * It runs after the deployment pipeline. Only then has VanillaBP registered the workflow
+   * services of every process service, and only then can it be asked which aggregate a BPMN
+   * process works on.
    *
    * @param event The startup
    * @param extension The extension
@@ -247,9 +246,9 @@ public class BusinessCockpitProducer {
   /**
    * Registers the workflow modules at the cockpit server.
    * <p>
-   * The priority is what makes this run late: VanillaBP's outbox store creates its table in a
-   * startup observer of its own, after the deployment pipeline noted which workflow modules
-   * started, so an entry written any earlier would find no table.
+   * The priority makes this run late. VanillaBP's outbox store creates its table in a startup
+   * observer of its own, after the deployment pipeline noted which workflow modules started. An
+   * entry written any earlier would find no table.
    *
    * @param event The startup
    * @param extension The extension
@@ -278,14 +277,14 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Whether the application brought a transport of its own, which is the question the
-   * configuration check needs answered: such an application configures neither of the shipped
-   * transports and starts all the same.
+   * Whether the application brought a transport of its own. The configuration check needs that
+   * answer, because such an application configures neither of the shipped transports and starts
+   * all the same.
    * <p>
-   * Which beans of that type this application has, and which of them is the one this class
-   * produces as the default, was decided while the application was built. Asking the container
-   * reads that answer and creates none of them, which matters twice: the shipped transport loads
-   * the Kafka client the application may not have, and it is built from the very configuration
+   * Which beans of that type this application has was decided while the application was built,
+   * and so was which of them this class produces as the default. Asking the container reads that
+   * answer and creates none of the beans. That matters twice. The shipped transport loads the
+   * Kafka client which the application may not have, and it is built from the very configuration
    * being read here.
    *
    * @param transports Every bean of the transport type
@@ -305,9 +304,9 @@ public class BusinessCockpitProducer {
   /**
    * Every BPMS half of this application, however it was produced.
    * <p>
-   * A BPMS half which serves several configured adapter ids of its BPMS cannot say at build
-   * time how many bridges that is, so it produces them as one list - the same shape VanillaBP's
-   * own Quarkus integration collects its adapter deployment services in.
+   * A BPMS half which serves several configured adapter ids of its BPMS cannot say at build time
+   * how many bridges that is, so it produces them as one list. VanillaBP's own Quarkus
+   * integration collects its adapter deployment services in the same shape.
    */
   private static List<BusinessCockpitBpmsBridge> theBridges(
       final Instance<BusinessCockpitBpmsBridge> bridges,
@@ -323,16 +322,15 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Where the extension writes its entries - see decision 12 in the repository's DECISIONS.md.
+   * Where the extension writes its entries. See decision 12 in the repository's DECISIONS.md.
    * <p>
-   * The attribution of a store to a workflow aggregate is VanillaBP's own, so that an entry of
-   * the extension lands where an entry of the core lands: in the store the aggregate's
-   * transaction reaches. Which of the platform's default stores serves which persistence, and
-   * whether it is usable at all, is knowledge of the Quarkus integration, and an extension
-   * asking the resolver gets that answer without compiling against it (decision 2). The list of
-   * every store the application holds is the resolver's answer for the same reason: a default
-   * store which is switched off or left without a datasource is a bean here and is no store the
-   * platform would ever pick.
+   * VanillaBP attributes the store to a workflow aggregate, so an entry of the extension lands
+   * where an entry of the core lands. That is the store which the aggregate's transaction
+   * reaches. Only the Quarkus integration knows which of the platform's default stores serves
+   * which persistence, and whether it is usable at all. An extension which asks the resolver
+   * gets that answer without compiling against the integration (decision 2). The resolver also
+   * answers which stores the application holds, for the same reason. A default store which is
+   * switched off or has no datasource is a bean here, but the platform would never pick it.
    */
   private static BusinessCockpitOutbox theOutbox(
       final PhaseTwoOutboxResolver outboxResolver) {

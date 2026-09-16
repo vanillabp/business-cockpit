@@ -7,13 +7,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Which aggregates somebody asked the repository to save.
  * <p>
  * JPA writes a change to a managed object whether anybody asked for it or not, so the row in the
- * database does not say who wrote it. This does: {@link TestAggregateRepository} notes every call
- * of <code>save</code> here, which is the call VanillaBP makes after a handler method it saves
- * for. A test which wants to know whether the platform saved reads this and not the database.
+ * database does not say who wrote it. This record does. {@link TestAggregateRepository} notes
+ * every call of <code>save</code> here, which is the call VanillaBP makes after a handler method
+ * it saves for. A test which wants to know whether the platform saved reads this and not the
+ * database.
  * <p>
- * Aggregates are told apart by their token rather than by their id: the record is one per JVM
- * while every test class of this module boots a context with a database of its own, and the
- * generated ids start at one in each of them.
+ * Aggregates are told apart by their token and not by their id. The record is one per JVM, while
+ * every test class of this module boots a context with a database of its own, and the generated
+ * ids start at one in each of them.
  */
 public final class PlatformSaves {
 

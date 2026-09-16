@@ -13,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * server has to answer it with the application shell instead of an error, otherwise reloading the
  * page or opening a bookmark lands on a 404.
  *
- * <p>The shell used here is the stand-in in {@code src/test/resources/static/index.html}; the real
- * one is produced by the webapp build, which this build does not run.
+ * <p>The shell used here is the stand-in in {@code src/test/resources/static/index.html}. The real
+ * one is produced by the webapp build, and this build does not run it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -59,9 +59,9 @@ class SpaFallbackTest extends ItestBase {
     }
 
     /**
-     * The sign-in request carries basic auth, and its response carries the JWT cookie the cockpit
-     * derives the user from - so that very request cannot report a user yet. It answers with an
-     * empty body rather than an error, and the client asks again with the cookie.
+     * The sign-in request carries basic auth, and its response carries the JWT cookie which the
+     * cockpit derives the user from. So that request cannot report a user yet. It answers with an
+     * empty body instead of an error, and the client asks again with the cookie.
      */
     @Test
     void theSignInRequestSetsTheCookieAndAnswersWithoutAUser() {
