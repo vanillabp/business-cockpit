@@ -91,3 +91,15 @@ The library reads `mongodb.changesets.mode`, and the cockpit hands it the value 
 `mongodb.mode`. So `mongodb.mode` stays the key to set, and `mongodb.changesets.mode` must not be
 set: the cockpit binds the prefix `mongodb` strictly, and a key below it which the cockpit does not
 know ends the start.
+
+### `WorkflowDetailsProviders` is gone
+
+The annotation `io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProviders` is no longer
+published. It was the container of a repeatable annotation, but `@WorkflowDetailsProvider` is not
+repeatable, so Java never put a value into it and nothing ever read one. Delete the import if your
+code carries it. Nothing else changes, because the type could not be reached from a running
+application.
+
+A BPMN process has one workflow details provider, and that stays as it is. The method serves the
+whole process, so there is nothing to repeat. `@UserTaskDetailsProvider` is a different case: it
+stays repeatable and keeps its container `UserTaskDetailsProviders`.
