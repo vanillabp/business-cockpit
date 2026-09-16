@@ -16,8 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 /**
  * A reporting system may leave the assignee out, which has to reach the stored task as no assignee
  * at all. Mapping the absent value through the person mapper used to store a person carrying a null
- * id: the GUI hid it, but claiming such a task compared the null id to the claiming user and
- * answered HTTP 500.
+ * id. The GUI hid that person, but claiming such a task compared the null id to the claiming user
+ * and answered HTTP 500.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class UserTaskMapperAssigneeTest {

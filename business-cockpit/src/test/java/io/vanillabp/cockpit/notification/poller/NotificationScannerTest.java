@@ -171,7 +171,7 @@ class NotificationScannerTest {
     void candidateUser_selfCaused_excluded() {
         final var task = openTask();
         candidates(task, AFTER, "u1");
-        task.setInitiator("u1"); // the user caused it himself (AC func 2b)
+        task.setInitiator("u1"); // the user caused the change himself
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
         assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());

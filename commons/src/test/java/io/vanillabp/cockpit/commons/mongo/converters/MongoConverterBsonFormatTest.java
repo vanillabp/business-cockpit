@@ -19,18 +19,18 @@ import org.springframework.data.mongodb.core.convert.NoOpDbRefResolver;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 
 /**
- * The BSON types the cockpit stores, pinned down for the Spring Data MongoDB 5 upgrade (T18).
+ * The BSON types the cockpit stores, pinned down for the Spring Data MongoDB 5 upgrade.
  *
  * <p>{@code BigDecimal} and {@code OffsetDateTime} have no canonical BSON representation, so the cockpit
- * brings four converters of its own: {@code BigDecimal} goes to {@code Decimal128}, {@code OffsetDateTime}
- * to a BSON date, with {@code OffsetDateTime.MAX} mapped to {@code Long.MAX_VALUE} as an "open end"
- * sentinel. Spring Data ships defaults for both types too, and a default that wins over a custom converter
- * would change the stored type without any error - documents written before the upgrade would then be
- * unreadable, or new ones unreadable for older cockpit versions.
+ * brings four converters of its own. {@code BigDecimal} goes to {@code Decimal128} and
+ * {@code OffsetDateTime} to a BSON date, and {@code OffsetDateTime.MAX} becomes {@code Long.MAX_VALUE},
+ * which marks an open end. Spring Data ships defaults for both types too, and a default which wins over
+ * a custom converter would change the stored type and say nothing. Documents written before the upgrade
+ * would then be unreadable, or new ones unreadable for older cockpit versions.
  *
  * <p>The test therefore does not call the converters directly. It builds a {@link MappingMongoConverter}
  * the way Spring Data does, registers the four converters through {@link MongoCustomConversions}, and
- * checks what actually ends up in the {@link Document} - which is the only thing the driver sends.
+ * checks what ends up in the {@link Document}, which is the only thing the driver sends.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class MongoConverterBsonFormatTest {
@@ -104,15 +104,15 @@ class MongoConverterBsonFormatTest {
         final var dueDate = written().get("dueDate");
 
         assertThat(dueDate).isInstanceOf(Date.class);
-        // the offset is not stored - the instant is, normalised to UTC
+        // the offset is not stored. The instant is, normalised to UTC
         assertThat(((Date) dueDate).toInstant()).isEqualTo(sample().dueDate.toInstant());
 
     }
 
     /**
      * {@code OffsetDateTime.MAX} is the cockpit's "no end" marker, e.g. for follow-up dates. It cannot be
-     * expressed as a date, so it is stored as {@code Long.MAX_VALUE} milliseconds. Any change here silently
-     * turns "open end" into a date in the year 292278994.
+     * expressed as a date, so it is stored as {@code Long.MAX_VALUE} milliseconds. Any change here turns
+     * "open end" into a date in the year 292278994, and nothing says so.
      */
     @Test
     void theOpenEndSentinelIsStoredAsMaxMillis() {
@@ -134,9 +134,9 @@ class MongoConverterBsonFormatTest {
     }
 
     /**
-     * Reading is the direction that matters for backwards compatibility: documents written by earlier
+     * Reading is the direction which matters for backwards compatibility. Documents written by earlier
      * cockpit versions carry exactly these two BSON types, and they have to keep mapping onto the same Java
-     * values. The document below is assembled by hand rather than by the converter, so this is a real
+     * values. The document below is assembled by hand and not by the converter, so this is a real
      * "old data" test and not a round-trip.
      */
     @Test
@@ -158,8 +158,8 @@ class MongoConverterBsonFormatTest {
 
     /**
      * Without the four converters Spring Data falls back to its own handling, and that produces different
-     * BSON. Asserting the difference is what gives the tests above their meaning: they show the custom
-     * converters win, not that the types happen to match by luck.
+     * BSON. Asserting the difference is what gives the tests above their meaning. They show that the
+     * custom converters win, and not that the types match by luck.
      */
     @Test
     void withoutTheCustomConvertersTheBsonTypesDiffer() {

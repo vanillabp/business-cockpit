@@ -16,7 +16,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * A key which looks like a setting of the Business Cockpit and is read by nobody.
  * <p>
- * What is asserted here is the message rather than the refusal: which key was meant is the part a
+ * What is asserted here is the message and not the refusal. Which key was meant is the part a
  * framework cannot say, and it is the reason this check exists next to the one Quarkus does.
  */
 @ExtendWith(SuppressOutputExtension.class)

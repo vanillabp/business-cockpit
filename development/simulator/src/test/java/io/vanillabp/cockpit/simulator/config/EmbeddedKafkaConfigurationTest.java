@@ -16,19 +16,20 @@ import org.springframework.test.util.ReflectionTestUtils;
  *
  * <ul>
  * <li>{@code EmbeddedKafkaKraftBroker} runs broker and KRaft controller in one process. Overriding
- * {@code listeners} without a {@code CONTROLLER} entry makes Kafka refuse to start - "controller.listener.names
- * must contain at least one value appearing in the listeners configuration".</li>
+ * {@code listeners} without a {@code CONTROLLER} entry makes Kafka refuse to start with
+ * "controller.listener.names must contain at least one value appearing in the listeners configuration".</li>
  * <li>{@code KafkaClusterTestKit} pre-binds a socket for its own broker listener name, {@code EXTERNAL}, and
- * that port wins over the configured one. A fixed-port listener therefore needs a name of its own, otherwise
- * the broker silently listens somewhere else and {@code localhost:9092} - what the class promises and what
- * every run configuration uses - is closed.</li>
- * <li>{@code kafkaPorts(..)} is not a substitute: the broker stores the value and never reads it.</li>
+ * that port wins over the configured one. A fixed-port listener therefore needs a name of its own.
+ * Otherwise the broker listens somewhere else without a word, and {@code localhost:9092} is closed. That
+ * port is what the class promises and what every run configuration uses.</li>
+ * <li>{@code kafkaPorts(..)} is no replacement. The broker stores the value and never reads it.</li>
  * <li>The inter-broker listener has to be one of the advertised listeners, and {@code EXTERNAL} cannot be
  * advertised because its port is only known after start-up.</li>
  * </ul>
  *
- * <p>The properties are asserted rather than a broker being started: a real start binds 9092 and would
- * collide with a running development environment, and it would take tens of seconds.
+ * <p>The properties are asserted and no broker is started. A real start binds 9092 and would collide
+ * with a running development environment, and it would take tens of seconds.
+
  */
 @ExtendWith(SuppressOutputExtension.class)
 class EmbeddedKafkaConfigurationTest {

@@ -24,10 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 /**
  * What an end reported through version 1 of the API does to what the cockpit stored.
  * <p>
- * Version 1 has no mapping of an end and needs none: its end is a lifecycle event, saying who ended
- * the task or the case and why, and the controller writes those two fields by hand. So an end of
- * this version cannot take a due date, a title or the business data away however little the
- * reporting side knows about the case by then, and these tests hold the controller to writing
+ * Version 1 has no mapping of an end and needs none. Its end is a lifecycle event. It says who
+ * ended the task or the case and why, and the controller writes those two fields by hand. So an
+ * end of this version cannot take a due date, a title or the business data away, however little
+ * the reporting side knows about the case by then. These tests hold the controller to writing
  * nothing else.
  */
 @ExtendWith(SuppressOutputExtension.class)

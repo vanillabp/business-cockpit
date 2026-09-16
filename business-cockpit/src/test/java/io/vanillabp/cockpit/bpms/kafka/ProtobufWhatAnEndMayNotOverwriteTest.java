@@ -32,10 +32,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * What an end reported over Kafka leaves alone, field by field.
  * <p>
  * The same end as on the REST way in, and the same list of fields, because a workflow module which
- * writes to a topic reports what one writing to the server reports. Two things differ here and both
- * are why this is a second set of cases rather than a pointer at the first: a field the sender left
- * out arrives as an unset optional, and the titles and the business data arrive empty, because
+ * writes to a topic reports what one writing to the server reports. Two things differ here, and
+ * both are why this is a second set of cases and not a pointer at the first. A field the sender
+ * left out arrives as an unset optional. The titles and the business data arrive empty, because
  * protobuf gives a map no presence information.
+
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ProtobufWhatAnEndMayNotOverwriteTest {

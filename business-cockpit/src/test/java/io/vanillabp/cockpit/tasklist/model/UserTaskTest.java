@@ -15,8 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Covers the bookkeeping a user task does for the cockpit itself: the authorities a task is visible
- * to, and since when a user is a personal candidate.
+ * Covers the bookkeeping a user task does for the cockpit itself, the authorities a task is visible
+ * to and since when a user is a personal candidate.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class UserTaskTest {

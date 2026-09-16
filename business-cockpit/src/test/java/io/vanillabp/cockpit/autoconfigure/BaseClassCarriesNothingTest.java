@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * An application which still extends {@code BusinessCockpitApplication} has to behave exactly like
- * one which does not, and this is what makes that so: the class carries nothing.
+ * one which does not, and this is what makes it so. The class carries nothing.
  *
  * <p>Spring reads the annotations of a superclass while parsing the subclass, which is how extending
  * the class used to wire the cockpit. Anything left on it would therefore be wired twice, once from
@@ -48,7 +48,7 @@ class BaseClassCarriesNothingTest {
     }
 
     /**
-     * What an application extending it gets: nothing, and therefore no second copy of anything the
+     * An application which extends it gets nothing, and so it gets no second copy of anything the
      * auto-configurations register.
      */
     @Test

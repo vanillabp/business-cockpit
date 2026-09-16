@@ -18,8 +18,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * What a BPMS half may hand over.
  * <p>
  * The values are copied so that nothing changes them afterwards, and the copy has to take a
- * process variable which the engine holds as nothing: Camunda 7 delivers those routinely, and a
- * bridge which had to filter them first would filter them in three repositories.
+ * process variable which the engine holds as nothing. Camunda 7 delivers those all the time, and
+ * a bridge which had to filter them first would filter them in three repositories.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class UserTaskDetailsPrefillTest {

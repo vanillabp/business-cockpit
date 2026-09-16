@@ -15,18 +15,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Golden samples for the JSON format of the GUI API, pinned down during the Jackson 3 migration (T16).
+ * Golden samples for the JSON format of the GUI API, pinned down during the Jackson 3 migration.
  *
- * <p>{@link JsonConfiguration} does not build a mapper itself, it contributes two
+ * <p>{@link JsonConfiguration} does not build a mapper itself. It contributes two
  * {@code JsonMapperBuilderCustomizer} beans which Spring Boot applies to the auto-configured
- * {@code JsonMapper}. The test applies them to a plain builder in the same way, so what it asserts is the
- * format the GUI actually receives: indented output, ISO-8601 timestamps normalised to UTC, {@code null}
- * properties omitted, declaration order of properties.
+ * {@code JsonMapper}. The test applies them to a plain builder in the same way, so it asserts the
+ * format the GUI really receives: indented output, ISO-8601 timestamps normalised to UTC, {@code null}
+ * properties left out, and the properties in the order they are declared.
  *
- * <p>Every one of those settings moved during the migration - the date flags to {@code DateTimeFeature},
- * the inclusion to {@code changeDefaultPropertyInclusion(..)} - and property ordering changed default
- * between Jackson 2 and 3. A failure here means the React frontend and the official GUI API clients see
- * different JSON than before, so the expected strings must not be "fixed" without a deliberate decision.
+ * <p>Every one of those settings moved during the migration. The date flags went to
+ * {@code DateTimeFeature} and the inclusion to {@code changeDefaultPropertyInclusion(..)}, and the
+ * default order of the properties changed between Jackson 2 and 3. A failure here means the React
+ * frontend and the official GUI API clients see different JSON than before, so the expected strings
+ * must not be "fixed" without a deliberate decision.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class JsonConfigurationTest {
@@ -121,10 +122,11 @@ class JsonConfigurationTest {
 
     /**
      * Spring Boot 4 keeps Jackson 2 support in a separate module. If {@code spring-boot-jackson2} ever
-     * returns to the classpath - directly or transitively - its auto-configuration adds a second
-     * {@code ObjectMapper} bean which none of the customizers above touch: dates would be written as
-     * timestamps and {@code null} properties would be included. Whether that mapper is picked up depends
-     * on injection points, so the failure would be silent. Keep it off the classpath instead.
+     * returns to the classpath, directly or through another dependency, its auto-configuration adds a
+     * second {@code ObjectMapper} bean which none of the customizers above touch. Dates would then be
+     * written as timestamps and {@code null} properties would be included. Whether that mapper is
+     * picked up depends on the injection points, so nothing would say that it happened. Keep it off
+     * the classpath instead.
      */
     @Test
     void jackson2IsNotAutoConfigured() {

@@ -11,14 +11,15 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.integration.test.utils.TestClassConventions;
 
 /**
- * What keeps a red build of this repository short: every test class registers
+ * What keeps a red build of this repository short. Every test class registers
  * {@link SuppressOutputExtension}, so the log carries what a FAILING test printed and
  * little else.
  * <p>
- * A checked rule rather than a reviewed one, because a class which forgets the extension
- * stays quiet as long as its own tests pass and starts talking on the day it gets a mock
- * which warns or a container which boots. By then nobody connects the noise to the class,
- * and the next reader pays for it again.
+ * The rule is checked and not reviewed, because a class which forgets the extension stays
+ * quiet as long as its own tests pass. It starts talking on the day it gets a mock which
+ * warns or a container which boots. By then nobody connects the noise to the class, and
+ * the next reader pays for it again.
+
  * <p>
  * The check reads the test sources, so this one class covers every module of the
  * repository, the ones added after it included.

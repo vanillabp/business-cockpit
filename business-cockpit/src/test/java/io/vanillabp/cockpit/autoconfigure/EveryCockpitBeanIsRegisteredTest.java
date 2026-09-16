@@ -29,9 +29,9 @@ import org.springframework.core.type.classreading.MetadataReaderFactory;
  *
  * <p>Without it the failure arrives much later and reads like something else. A service nobody
  * registered is missing from the context of an application built on the library, while the delivered
- * application keeps working: it lives in {@code io.vanillabp.cockpit} itself, so its own component
- * scan finds the library's classes and hides the gap for exactly the one application the suite boots
- * most often.
+ * application keeps working. That one lives in {@code io.vanillabp.cockpit} itself, so its own
+ * component scan finds the library's classes and hides the gap for exactly the one application the
+ * suite boots most often.
  *
  * <p>Both sides are read from the classpath rather than listed here. On one side every concrete class
  * below {@code io.vanillabp.cockpit} which is a component, on the other everything the
@@ -83,8 +83,8 @@ class EveryCockpitBeanIsRegisteredTest {
 
     /**
      * Every concrete class below {@code io.vanillabp.cockpit} which a component scan would register,
-     * taken from the compiled library and from {@code commons}. Test classes are left out: they are
-     * beans of a test context and no auto-configuration has to know them.
+     * taken from the compiled library and from {@code commons}. Test classes are left out. They are
+     * beans of a test context, and no auto-configuration has to know them.
      */
     private Set<String> componentsOfTheLibrary() {
 

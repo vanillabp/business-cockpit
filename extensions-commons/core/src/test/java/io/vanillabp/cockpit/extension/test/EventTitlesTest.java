@@ -45,8 +45,8 @@ public class EventTitlesTest {
           .of());
 
   /**
-   * The same module, with one workflow and one of its user tasks saying something of their own -
-   * a language, and the directory their templates live in.
+   * The same module, with one workflow and one of its user tasks saying something of their own,
+   * a language and the directory their templates live in.
    */
   private static final WorkflowModuleConfiguration MODULE_WITH_A_SPECIAL_WORKFLOW = new WorkflowModuleConfiguration(
       "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map

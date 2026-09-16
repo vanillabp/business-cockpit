@@ -24,9 +24,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 
 /**
- * A cockpit-side change has to record who caused it in {@code initiator}: it is the only field
- * carrying that information ({@code updatedBy} is audit information overwritten on every save), and
- * the notification poller reads it to skip notifications a user triggered himself.
+ * A cockpit-side change has to record who caused it in {@code initiator}. That is the only field
+ * which carries the information, because {@code updatedBy} is audit information and is overwritten
+ * on every save. The notification poller reads {@code initiator} to skip a notification a user
+ * triggered himself.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class UserTaskServiceInitiatorTest {

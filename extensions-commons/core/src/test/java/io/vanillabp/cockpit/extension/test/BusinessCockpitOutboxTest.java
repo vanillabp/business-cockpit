@@ -21,9 +21,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Which store an entry goes into, and what an application is told while it boots.
  * <p>
  * The attribution itself belongs to the platform and is asserted there. What is asserted here
- * is what the extension makes of the answer: the store of every aggregate is resolved while the
- * application starts, an event naming a BPMN process reaches the store of the aggregate that
- * process is served through, and each gap ends the boot with a message naming the way out.
+ * is what the extension makes of the answer. The store of every aggregate is resolved while the
+ * application starts, an event which names a BPMN process reaches the store of the aggregate
+ * that process is served through, and each gap ends the boot with a message naming the way out.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitOutboxTest {

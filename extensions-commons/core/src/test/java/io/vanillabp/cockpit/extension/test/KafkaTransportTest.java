@@ -30,8 +30,8 @@ import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * What lands on the Kafka topics: which topic, which key, and which slot of the envelope the
- * cockpit server reads the message out of.
+ * What lands on the Kafka topics. It asserts which topic, which key and which slot of the
+ * envelope the cockpit server reads the message out of.
  * <p>
  * The producer is Kafka's own test double rather than a broker in a container. What is worth
  * asserting here is the message, and a broker would only carry the same bytes back at the price
@@ -177,7 +177,7 @@ public class KafkaTransportTest {
             .get("name")
             .getArrayValues(0)
             .getStringValue());
-    // a detail whose value is null is not transported at all - the cockpit reads an absent
+    // a detail whose value is null is not transported at all. The cockpit reads an absent
     // value and a null value the same way, and leaving it out keeps the message smaller
     assertFalse(details.containsKey("cancelledAt"));
 

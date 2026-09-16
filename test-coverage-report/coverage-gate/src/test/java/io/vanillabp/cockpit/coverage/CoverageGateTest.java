@@ -13,24 +13,24 @@ import io.vanillabp.integration.test.utils.CoverageGate;
 import io.vanillabp.integration.test.utils.PrintsWhenPassing;
 
 /**
- * The coverage gate: it breaks the build when a measurement's aggregated coverage drops
- * below the threshold, so a drop is noticed while it happens instead of a year later. The
+ * The coverage gate. It breaks the build when a measurement's aggregated coverage drops
+ * below the threshold, so a drop is noticed while it happens and not a year later. The
  * rule is 90 in every VanillaBP repository while the threshold sits below it, which keeps
  * one repository's bad week from being answered by editing the number.
  * <p>
- * JaCoCo's own <code>check</code> goal cannot do this: it judges ONE module's classes
+ * JaCoCo's own <code>check</code> goal cannot do this. It judges ONE module's classes
  * against ONE execution-data file, while both numbers of this repository come from
- * aggregated reports spanning many modules. So the gate reads exactly the report which is
+ * aggregated reports over many modules. So the gate reads exactly the report which is
  * published, and report and gate can never disagree.
  * <p>
- * The completeness test comes first for a reason: a threshold checked against an
+ * The completeness test comes first for a reason. A threshold checked against an
  * incomplete aggregate fails builds for coverage which exists and is only not counted, and
  * nobody can fix that by writing a test.
  * <p>
  * This test class prints while it passes, which no other one does. Here the passing run IS
- * the measurement: it is the only place the build states where each half of the repository
- * stands against the rule, and a repository sitting between the threshold and the rule has
- * a gap which would otherwise be visible only to whoever opens the report.
+ * the measurement. It is the only place where the build states how each half of the
+ * repository stands against the rule, and a repository sitting between the threshold and
+ * the rule has a gap which would otherwise be visible only to whoever opens the report.
  */
 @PrintsWhenPassing(
   "the three numbers ARE the result of this class, and a number is only worth something while "
@@ -43,8 +43,8 @@ public class CoverageGateTest {
 
   /**
    * What a report is expected to show, as opposed to the threshold, which is where the
-   * build stops. Reported on every run, never asserted: a build breaking at the rule
-   * would leave a repository nothing to do but edit the rule.
+   * build stops. It is reported on every run and never asserted. A build which broke at
+   * the rule would leave a repository nothing to do but edit the rule.
    */
   private static final double RULE = Double.parseDouble(System.getProperty("coverage.rule"));
 
@@ -56,17 +56,17 @@ public class CoverageGateTest {
 
   /**
    * Modules whose execution data belongs to no coverage report. Each entry is a
-   * decision - a module missing here and missing from both aggregates is the defect
-   * this test exists for.
+   * decision. A module which is missing here and missing from both aggregates is the
+   * defect this test exists for.
    */
   private static final Set<String> DELIBERATELY_NOT_AGGREGATED = Set
       .of(
-          // a development aid impersonating a workflow module, so that the cockpit can be
+          // a development aid which plays a workflow module, so that the cockpit can be
           // run without one. It is deployed nowhere and ships in no artifact, so its
           // coverage would say nothing about what users get.
           "simulator",
           // the backend of the dev shell, which serves made up users and cases while a
-          // developer builds a user task form. Same reason as above: it runs on a
+          // developer builds a user task form. Same reason as above. It runs on a
           // developer's machine and reaches no user.
           "dev-shell-simulator");
 
@@ -116,7 +116,7 @@ public class CoverageGateTest {
 
   /**
    * The threshold is read per measurement, because a report exists per measurement.
-   * Both numbers are the floor against regression rather than the goal: the rule is the
+   * Both numbers are the floor against regression and not the goal. The rule is the
    * {@code coverage.rule} property, and a report between the two has a gap somebody
    * still owes a test for.
    */

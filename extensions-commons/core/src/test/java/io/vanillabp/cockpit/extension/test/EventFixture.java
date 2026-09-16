@@ -111,8 +111,9 @@ public final class EventFixture {
   }
 
   /**
-   * The business data a details provider reports: a scalar, a list, a nested object and a
-   * value which is deliberately absent - every shape the protobuf conversion has a case for.
+   * The business data a details provider reports. It is a scalar, a list, a nested object and a
+   * value which is deliberately absent, which is every shape the protobuf conversion has a case
+   * for.
    *
    * @return The details
    */

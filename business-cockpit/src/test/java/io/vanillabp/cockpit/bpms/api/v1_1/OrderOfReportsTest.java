@@ -39,7 +39,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * What the cockpit stores when the reports of one user task or one case do not arrive in the order
  * they happened in.
  * <p>
- * The outbox of a workflow module gives its entries no order: it dispatches them in parallel and
+ * The outbox of a workflow module gives its entries no order. It dispatches them in parallel and
  * repeats a failed one after the entries planned later have gone through. So a completion can reach
  * the cockpit before the creation it completes, and a change can reach it after the change which
  * followed it. Every test here drives the REST ingress of the current API version, because the guard
@@ -279,8 +279,8 @@ class OrderOfReportsTest {
 
     /**
      * What a stored user task is compared by. Left out is what the cockpit measures by its own clock
-     * ({@code reportedAt}) and what a save recomputes ({@code version}, {@code updatedAt}): those say
-     * when the two runs happened, not what they stored.
+     * ({@code reportedAt}) and what a save recomputes ({@code version}, {@code updatedAt}). Those
+     * say when the two runs happened, not what they stored.
      */
     private static Map<String, Object> comparable(
             final UserTask task) {
