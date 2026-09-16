@@ -27,6 +27,14 @@ public final class CockpitConfiguration {
 
     public static final String MONGODB_HOST = "spring.mongodb.host";
 
+    /**
+     * The 'w' of the write concern the cockpit writes with. It belongs on the cockpit's
+     * MongoTemplate and not into the connection string, which {@link WriteConcernCheck} explains.
+     */
+    public static final String MONGODB_WRITE_CONCERN = "mongodb.write-concern";
+
+    public static final String MONGODB_WRITE_CONCERN_JOURNAL = "mongodb.write-concern-journal";
+
     public static final String TITLE_SHORT = "business-cockpit.title-short";
 
     public static final String TITLE_LONG = "business-cockpit.title-long";

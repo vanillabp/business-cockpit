@@ -8,8 +8,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.sun.net.httpserver.HttpServer;
 import io.vanillabp.cockpit.BusinessCockpitStandaloneApplication;
+import io.vanillabp.cockpit.config.CockpitMongoTemplate;
 import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.CockpitIsNotConfiguredException;
+import io.vanillabp.cockpit.config.startup.WritesAreNotAcknowledgedException;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -33,6 +35,7 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
@@ -273,6 +276,62 @@ class StartupGuidanceTest {
             assertThat(response.statusCode()).isEqualTo(401);
 
         }
+
+    }
+
+    /**
+     * Part of the answer to "which write concern does the cockpit run with", and the only place it
+     * can be read: the value the delivered configuration brings along, after the database migration
+     * has set its own and given the template back.
+     */
+    @Test
+    void theDeliveredConfigurationWritesWithAMajority() {
+
+        try (var application = startWith()) {
+
+            final var template = (CockpitMongoTemplate) application.getBean(MongoTemplate.class);
+            assertThat(template.writeConcernApplied().getWObject()).isEqualTo("majority");
+            assertThat(template.writeConcernApplied().getJournal()).isTrue();
+            assertThat(warnings()).doesNotContain(CockpitConfiguration.MONGODB_WRITE_CONCERN);
+
+        }
+
+    }
+
+    /**
+     * A write only the primary has can be lost by a failover, and an installation may still know
+     * that its database never fails over. So the cockpit runs and says what it writes with.
+     */
+    @Test
+    void startingWithAWriteConcernWhichCanLoseReportsWarnsAndRuns() {
+
+        try (var application = startWith(
+                "--" + CockpitConfiguration.MONGODB_WRITE_CONCERN + "=1")) {
+
+            assertThat(warnings())
+                    .contains("'w: 1'")
+                    .contains(CockpitConfiguration.MONGODB_WRITE_CONCERN)
+                    .contains("Example: " + CockpitConfiguration.MONGODB_WRITE_CONCERN + ": majority");
+            assertThat(portOf(application)).isPositive();
+
+        }
+
+    }
+
+    /**
+     * The one write concern the cockpit refuses. It reads the result of every write to notice a
+     * concurrent change, and an unacknowledged write has no result.
+     */
+    @Test
+    void startingWithUnacknowledgedWritesEndsTheStart() {
+
+        assertThatThrownBy(() -> startWith(
+                "--" + CockpitConfiguration.MONGODB_WRITE_CONCERN + "=0"))
+                .rootCause()
+                .isInstanceOf(WritesAreNotAcknowledgedException.class)
+                .hasMessageContaining("'w: 0'")
+                .hasMessageContaining(CockpitConfiguration.MONGODB_WRITE_CONCERN)
+                .hasMessageContaining("Example: " + CockpitConfiguration.MONGODB_WRITE_CONCERN + ": majority");
 
     }
 
