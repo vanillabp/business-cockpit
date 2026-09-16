@@ -18,14 +18,14 @@ import org.springframework.util.StringUtils;
 
 /**
  * Pins down what the Spring profile 'mailpit' of {@code config/application-mailpit.yaml} is good
- * for: switching on the reference e-mail medium and pointing it at the Mailpit container of
+ * for. It switches the reference e-mail medium on and points it at the Mailpit container of
  * {@code development/docker-compose.yaml}.
  * <p>
  * The shipped file is read and bound to the very properties the runtime uses, so a renamed property
- * fails here instead of leaving somebody wondering why no e-mail shows up. What the profile relies
- * on beyond that: {@code business-cockpit.notification.smtp.enabled} gates the
+ * fails here instead of leaving somebody wondering why no e-mail shows up. The profile relies on
+ * two more things. {@code business-cockpit.notification.smtp.enabled} gates the
  * {@link EmailNotificationConfiguration} bean, and {@code spring.mail.host} makes Spring Boot
- * auto-configure the {@code JavaMailSender} that bean requires.
+ * auto-configure the {@code JavaMailSender} which that bean needs.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class MailpitProfileTest {
@@ -48,7 +48,8 @@ class MailpitProfileTest {
                 .orElseThrow(() -> new AssertionError("nothing bound below " + NotificationProperties.PREFIX));
 
         assertTrue(notification.getSmtp().isEnabled());
-        // many SMTP servers reject a message without sender; Mailpit does not, but a real one would
+        // many SMTP servers reject a message without a sender. Mailpit does not, but a real one
+        // would
         assertTrue(StringUtils.hasText(notification.getSmtp().getFrom()));
     }
 

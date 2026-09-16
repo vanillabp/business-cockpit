@@ -33,18 +33,19 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * The point of the auto-configurations: an application which adds the dependency and writes nothing
- * else runs, serves the user interface, and its lists are empty only because nobody has reported
- * anything yet. The last part is why this test reports something and looks again.
+ * This is the point of the auto-configurations. An application which adds the dependency and
+ * writes nothing else runs and serves the user interface, and its lists are empty only because
+ * nobody has reported anything yet. The last part is why this test reports something and looks
+ * again.
  *
  * <p>{@link DerivedCockpitApplication} is that application, and its package is what makes the test
  * mean something. The delivered {@code container} lives in {@code io.vanillabp.cockpit} and finds the
  * library's beans through its own component scan, so its tests pass whether the auto-configurations
  * work or not.
  *
- * <p>Started like {@code StartupGuidanceTest} does, with a builder rather than a cached
- * {@code @SpringBootTest} context: the configuration here is the application's own and has nothing to
- * do with the {@code local} profile of the delivered one.
+ * <p>It is started the way {@code StartupGuidanceTest} starts an application, with a builder and
+ * not with a cached {@code @SpringBootTest} context. The configuration here is the application's
+ * own and has nothing to do with the {@code local} profile of the delivered one.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -143,8 +144,8 @@ class ApplicationWithoutTheBaseClassTest {
 
     /**
      * Both lists answer an empty page before anything is reported, and hold what is reported
-     * afterwards. An empty answer alone would not say much: a list nobody wired would look the same
-     * from the outside, with a 404 or a 500 instead of a page.
+     * afterwards. An empty answer alone would not say much. A list nobody wired can look much the
+     * same from the outside, except that it answers a 404 or a 500 instead of a page.
      */
     @Test
     void theListsAreEmptyUntilSomethingIsReported() {
@@ -179,8 +180,8 @@ class ApplicationWithoutTheBaseClassTest {
 
     /**
      * Four annotations of the auto-configurations act on the whole application and not only on the
-     * cockpit, so each of them says on every start what it does and what to write to decide it
-     * instead. A developer who never reads the wiki has to meet them in the log.
+     * cockpit. So each of them says on every start what it does, and what to write to decide it
+     * differently. A developer who never reads the wiki has to meet them in the log.
      */
     @Test
     void everySwitchAffectingTheWholeApplicationIsReportedOnStartup() {
@@ -197,8 +198,8 @@ class ApplicationWithoutTheBaseClassTest {
     }
 
     /**
-     * The BPMS API is protected by a chain of its own, which is the one thing the reports above could
-     * have gone through by accident had the cockpit's chains been replaced by Spring Boot's default.
+     * The BPMS API is protected by a chain of its own. If Spring Boot's default had replaced the
+     * cockpit's chains, the reports above could have gone through by accident.
      */
     @Test
     void theBpmsApiRejectsAClientWithoutTheConfiguredCredentials() {

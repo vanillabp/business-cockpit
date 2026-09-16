@@ -37,16 +37,16 @@ import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
  * What a derived application is told when it is started with a value missing. Every case here is a
- * real start of the reference application with one property emptied, because the whole point of the
- * feature is what happens during a start: a value that is only reported once some request touches
- * it has failed its purpose.
+ * real start of the reference application with one property emptied, because the whole point of
+ * the feature is what happens during a start. A value which is only reported once some request
+ * touches it has missed its purpose.
  *
  * <p>The assertions are on the two things a developer needs out of a message, the property name and
- * an example value, never on a stack trace. Starts that are expected to fail cost almost nothing:
- * the check runs before the first bean is built.
+ * an example value, never on a stack trace. A start which is expected to fail costs almost
+ * nothing, because the check runs before the first bean is built.
  *
- * <p>Like {@link ProxyAfterRestartTest} this starts the application itself rather than through a
- * cached {@code @SpringBootTest} context - each case needs its own configuration, and half of them
+ * <p>Like {@link ProxyAfterRestartTest} this starts the application itself and not through a
+ * cached {@code @SpringBootTest} context. Each case needs its own configuration, and half of them
  * never reach a running context at all.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -111,8 +111,8 @@ class StartupGuidanceTest {
     }
 
     /**
-     * Attaching the recorder has to wait for the application, not the other way round: Spring Boot
-     * configures the logging system while the environment is being prepared, which throws away
+     * Attaching the recorder has to wait for the application, not the other way round. Spring Boot
+     * configures the logging system while the environment is being prepared, and that throws away
      * whatever was attached before. {@code ApplicationPreparedEvent} is fired after that and still
      * before the first bean, so it is the one moment at which the startup messages can be caught.
      */
@@ -246,8 +246,8 @@ class StartupGuidanceTest {
     }
 
     /**
-     * The BPMS API is what workflow modules and adapters report to, and it used to end the start
-     * with 'realmName must be specified'. Now the application runs without it and says so.
+     * The BPMS API is what workflow modules and adapters report to. It used to end the start with
+     * 'realmName must be specified'. Now the application runs without that value and says so.
      */
     @Test
     void startingWithoutBpmsApiCredentialsBootsWithTheBpmsApiRejectingRequests() {
@@ -278,8 +278,9 @@ class StartupGuidanceTest {
 
     /**
      * Without a signing key the cockpit could not hand out a single login cookie, so one is made up
-     * for the run. The login below proves the run is usable; the warning carries the key to write
-     * down so that the next start keeps everybody logged in.
+     * for the run. The login below proves that the run is usable. The warning carries the key to
+     * write down, so that the next start keeps everybody logged in.
+
      */
     @Test
     void startingWithoutASigningKeyBootsAndReportsTheGeneratedKey() {

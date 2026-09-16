@@ -180,9 +180,9 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
 
     /**
      * An update event for a task the cockpit never saw creates it, so a cockpit added to a running
-     * system does not stay blind to the tasks that existed before. While the application was
-     * reactive this fallback answered HTTP 500, because it re-read the already consumed request
-     * body; reading the body once into an object removed the problem.
+     * system does not stay blind to the tasks which existed before. While the application was
+     * reactive this fallback answered HTTP 500, because it read the already consumed request body a
+     * second time. Reading the body once into an object removed the problem.
      */
     @Test
     void updateEventForUnknownTaskCreatesIt() {
@@ -328,8 +328,8 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     }
 
     /**
-     * Two changes of one task can reach the cockpit the other way round, and what decides which of
-     * them the cockpit keeps is the timestamp of the event rather than the moment it arrived.
+     * Two changes of one task can reach the cockpit the other way round. The timestamp of the event
+     * decides which of them the cockpit keeps, not the moment it arrived.
      */
     @Test
     void anUpdateOlderThanTheStoredStateChangesNothing() {
@@ -362,9 +362,9 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     }
 
     /**
-     * The v1.1 API declares suspend/activate endpoints, but the container does not implement them:
-     * the generated fallback answers 501. This test documents the current behavior so the
-     * migration cannot silently change it.
+     * The v1.1 API declares endpoints to suspend and to activate, but the container does not
+     * implement them. The generated fallback answers 501. This test pins the current behavior down,
+     * so the migration cannot change it without a word.
      */
     @Test
     void suspendAndActivateAreNotImplemented() {

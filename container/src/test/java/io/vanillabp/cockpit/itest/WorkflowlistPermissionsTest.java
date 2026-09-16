@@ -13,9 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The reference application shows a user the workflows addressed to them, and the rules it applies
- * are the ones pinned here. Each test names the rule it stands for, because the rules live in a
- * Mongo query (WorkflowlistService.buildWorkflowlistCriteria) plus the equivalent check the detail
- * view does, and reading either of them tells you the mechanics rather than the intent.
+ * are the ones pinned here. Each test names the rule it stands for. The rules live in a Mongo
+ * query (WorkflowlistService.buildWorkflowlistCriteria) and in the same check the detail view
+ * does, and reading either of them tells you the mechanics and not the intent.
  *
  * <p>The rules:
  *
@@ -120,7 +120,7 @@ class WorkflowlistPermissionsTest extends ItestBase {
 
     }
 
-    /** One entry of the {@code groupHierarchy} array: members of {@code group} also get the targets. */
+    /** One entry of the {@code groupHierarchy} array. Members of {@code group} also get the targets. */
     private void registerModuleGranting(
             final String group,
             final String target) {
@@ -153,8 +153,8 @@ class WorkflowlistPermissionsTest extends ItestBase {
     }
 
     /**
-     * An empty list is the same as no list at all, since what decides the case is both lists being
-     * empty rather than the reporting module having left them out.
+     * An empty list is the same as no list at all. What decides the case is that both lists are
+     * empty, not that the reporting module left them out.
      */
     @Test
     void aWorkflowWithEmptyAccessListsIsListedForEveryUser() {
@@ -190,8 +190,8 @@ class WorkflowlistPermissionsTest extends ItestBase {
     }
 
     /**
-     * The two lists widen each other instead of narrowing: petra is not in the group, yet she is
-     * named individually, so both users see the workflow.
+     * The two lists widen each other instead of narrowing. Petra is not in the group, but she is
+     * named on her own, so both users see the workflow.
      */
     @Test
     void beingNamedAsUserIsEnoughWithoutBeingInTheGroup() {
@@ -223,8 +223,8 @@ class WorkflowlistPermissionsTest extends ItestBase {
 
     /**
      * Martin is in accounting, the module grants the night-shift group to everybody in accounting,
-     * so a workflow addressed to night-shift reaches him. His cookie predates the registration,
-     * because the hierarchy is applied while the JWT of a request is read.
+     * so a workflow addressed to night-shift reaches him. His cookie is older than the
+     * registration, because the hierarchy is applied while the JWT of a request is read.
      */
     @Test
     void aGroupGrantedByTheHierarchyOpensTheWorkflowUp() {
@@ -317,10 +317,10 @@ class WorkflowlistPermissionsTest extends ItestBase {
     }
 
     /**
-     * The status-site of a workflow decides per request which of the two it wants, so both modes
-     * are exercised against the same pair of tasks: one addressed to martin's group, one to
-     * petra's. Limited, the caller sees the task they could work on; unlimited, they see what the
-     * workflow is up to as a whole.
+     * The status-site of a workflow decides per request which of the two it wants. So both modes
+     * are run against the same pair of tasks, one addressed to martin's group and one to petra's.
+     * In the limited mode the caller sees the task they could work on. In the unlimited mode they
+     * see what the workflow is up to as a whole.
      */
     @Test
     void theUserTasksOfAWorkflowAreLimitedToTheCurrentUserOnlyWhenAskedFor() {
@@ -343,8 +343,8 @@ class WorkflowlistPermissionsTest extends ItestBase {
 
     /**
      * Rule 4 covers this route as well. Without it the unlimited mode would hand petra the tasks of
-     * a workflow whose detail view answers 404 for her, and a task carries enough of the workflow
-     * (its title and the module it belongs to) to make that a way around the detail view.
+     * a workflow whose detail view answers 404 for her. A task carries enough of the workflow, its
+     * title and the module it belongs to, to make that a way around the detail view.
      */
     @Test
     void theUserTasksOfAWorkflowHiddenFromTheUserAreNotListedInEitherMode() {

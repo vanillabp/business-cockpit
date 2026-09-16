@@ -18,10 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * The registration endpoint of the BPMS API is an upsert: a workflow module calls it on every
+ * The registration endpoint of the BPMS API is an upsert. A workflow module calls it on every
  * start, so the second call for the same id has to update what the first one stored. This test
  * covers that update half, from a module which moved to another host to one which repeats what it
- * already registered, while {@link ProxyGatewayTest} covers the first registration.
+ * already registered. {@link ProxyGatewayTest} covers the first registration.
  *
  * <p>Two stub servers stand in for the module before and after the move, each one answering with
  * its own name so the tests can tell which of them the gateway actually reached.
@@ -123,8 +123,9 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
     }
 
     /**
-     * Builds the {@code groupHierarchy} member of a registration: two entries, one of them with two
-     * targets, so neither the number of entries nor the shape of a single one is trivial.
+     * Builds the {@code groupHierarchy} member of a registration. It has two entries and one of
+     * them has two targets, so neither the number of entries nor the shape of a single one is
+     * trivial.
      *
      * <p>Callers pass groups nobody else uses, because the cockpit merges the hierarchies of all
      * registered modules into one and a test must not widen the group resolution of another.
@@ -234,9 +235,9 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
     }
 
     /**
-     * The provider paths are stored on the module document but never handed to the GUI - the GUI
-     * model exposes the proxied URI {@code /wm/{id}} only - so the change is observed through the
-     * version counter of the document, which the repository raises on every actual write.
+     * The provider paths are stored on the module document but never handed to the GUI, whose
+     * model only carries the proxied URI {@code /wm/{id}}. So the change is watched through the
+     * version counter of the document, which the repository raises on every real write.
      */
     @Test
     void reRegistrationWithChangedProviderPathsIsStored() {
@@ -249,7 +250,8 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
         final var versionAfterChangedPaths = storedVersionOf(moduleId);
         assertThat(versionAfterChangedPaths).isGreaterThan(versionAfterFirstRegistration);
 
-        // an unchanged registration - what a restarted module sends - must not write anything
+        // an unchanged registration, which is what a restarted module sends, must not write
+        // anything
         register(moduleId, uriOf(serverA), "/tasks/v2", "/workflows/v2");
         assertThat(storedVersionOf(moduleId)).isEqualTo(versionAfterChangedPaths);
 
@@ -276,9 +278,8 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
     }
 
     /**
-     * The other half of the same rule: a module which really changed its hierarchy has to be
-     * written, because the stored hierarchy is what the cockpit resolves groups against after a
-     * restart.
+     * The other half of the same rule. A module which really changed its hierarchy has to be
+     * written, because the cockpit resolves groups against the stored hierarchy after a restart.
      */
     @Test
     void reRegistrationWithAChangedGroupHierarchyIsStored() {

@@ -22,7 +22,7 @@ import org.springframework.data.mongodb.core.query.Update;
  * {@code latestEventAt}, and every report about them would be applied whatever its timestamp said. A
  * changeset copies {@code createdAt} into the new property on the next startup, and this test seeds
  * that shape of document and drives the changeset against the running MongoDB. No request to the
- * application could do it: changesets are applied once while the context starts.
+ * application could do it, because changesets are applied once while the context starts.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -141,7 +141,8 @@ class LatestEventAtChangesetTest extends ItestBase {
 
         final var userTaskId = reportTask(OffsetDateTime.parse("2026-09-01T10:15:30Z"));
         takeAwayLatestEventAt(userTaskId, UserTask.COLLECTION_NAME);
-        // what a task the cockpit knows from its end alone looks like: nothing says when it began
+        // this is what a task looks like which the cockpit knows from its end alone. Nothing says
+        // when it began
         mongo.updateFirst(
                 new Query(Criteria.where("_id").is(userTaskId)),
                 new Update().unset("createdAt"),

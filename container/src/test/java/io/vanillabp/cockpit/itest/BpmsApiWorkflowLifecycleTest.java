@@ -156,8 +156,8 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     }
 
     /**
-     * Two changes of one case can reach the cockpit the other way round, and what decides which of
-     * them the cockpit keeps is the timestamp of the event rather than the moment it arrived.
+     * Two changes of one case can reach the cockpit the other way round. The timestamp of the event
+     * decides which of them the cockpit keeps, not the moment it arrived.
      */
     @Test
     void anUpdateOlderThanTheStoredStateChangesNothing() {
@@ -208,9 +208,10 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     }
 
     /**
-     * Like for user tasks, an update event for an unknown workflow creates it. While the
-     * application was reactive this fallback answered HTTP 500, because it re-read the already
-     * consumed request body.
+     * An update event for an unknown workflow creates it, the same way as for user tasks. While the
+     * application was reactive this fallback answered HTTP 500, because it read the already
+     * consumed request body a second time.
+
      */
     @Test
     void updateEventForUnknownWorkflowCreatesIt() {

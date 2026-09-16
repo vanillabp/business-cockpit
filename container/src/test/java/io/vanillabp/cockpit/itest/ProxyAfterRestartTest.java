@@ -28,16 +28,16 @@ import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
  * Workflow modules register themselves once, at their own startup, and are not asked again when
- * the cockpit restarts. The routes therefore have to survive a restart on their own: they are
- * rebuilt from the module documents in MongoDB while the application starts.
+ * the cockpit restarts. So the routes have to survive a restart on their own. They are rebuilt
+ * from the module documents in MongoDB while the application starts.
  *
- * <p>Proving that needs two application lifecycles in a row, which a cached
- * {@link org.springframework.boot.test.context.SpringBootTest} context cannot offer - so this test
- * starts the application itself, twice, against one database that outlives both runs. It also
- * brings its own MongoDB rather than sharing the one of {@link ItestBase}, which keeps the two
+ * <p>Proving that needs two application lifecycles in a row, and a cached
+ * {@link org.springframework.boot.test.context.SpringBootTest} context cannot offer them. So this
+ * test starts the application itself, twice, against one database which outlives both runs. It
+ * also brings its own MongoDB instead of sharing the one of {@link ItestBase}, which keeps the two
  * kinds of test independent of each other's lifecycle.
  *
- * <p>Kafka is left out: without the {@code bpms-api.kafka.topics.*} properties the consumer side
+ * <p>Kafka is left out. Without the {@code bpms-api.kafka.topics.*} properties the consumer side
  * does not come up at all, and nothing in this scenario needs it.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -206,7 +206,7 @@ class ProxyAfterRestartTest {
             firstRun.close();
         }
 
-        // same database, no registration this time: the routes may only come from what the first
+        // same database, no registration this time. The routes may only come from what the first
         // run stored, and they are rebuilt while the application starts
         final var secondRun = startApplication("restart-itest-2");
         try {

@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Stands in for an application built on this library which needs a view none of the delivered ones
- * offers, and shows what writing one costs: a visibility of its own and nothing else.
+ * offers. It shows what writing such a view costs, which is a visibility of its own and nothing
+ * else.
  *
  * <p>The view here is what a supervisor would ask for. It holds every task addressed to one of the
  * user's groups, including the ones which name the user as excluded, and it holds nothing else. A

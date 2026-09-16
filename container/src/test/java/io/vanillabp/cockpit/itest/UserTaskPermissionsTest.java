@@ -12,8 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A list says what a user may see, and everything naming a single task has to say the same. These
- * tests pin that down from the outside, because the two live in different places in the code: the
- * list is a Mongo query, the single task is one document, and only the visibility they are both
+ * tests pin that down from the outside, because the two live in different places in the code. The
+ * list is a Mongo query and the single task is one document, and only the visibility they are both
  * built from keeps them in step.
  *
  * <p>The rules:
@@ -248,9 +248,9 @@ class UserTaskPermissionsTest extends ItestBase {
     }
 
     /**
-     * The batch endpoints answer 200 whatever they found, the way they did before, so what is
-     * pinned here is the effect rather than the status: the task of somebody else stays untouched
-     * while the caller's own task in the same request is claimed.
+     * The batch endpoints answer 200 whatever they found, the way they did before. So this pins
+     * the effect down and not the status. The task of somebody else stays untouched, while the
+     * caller's own task in the same request is claimed.
      */
     @Test
     void claimingSeveralTasksSkipsTheOnesHiddenFromTheUser() {
@@ -340,8 +340,8 @@ class UserTaskPermissionsTest extends ItestBase {
 
     /**
      * The example controller keeps the tasks of a user's groups even when they name that user as
-     * excluded, which no delivered list does. The list and the task page follow it together, which
-     * is the point: the derived application described a visibility and got both.
+     * excluded, which no delivered list does. The list and the task page follow it together, and
+     * that is the point. The derived application described a visibility and got both.
      */
     @Test
     void anApplicationWithAVisibilityOfItsOwnGetsListAndTaskPageFromIt() {
@@ -360,7 +360,7 @@ class UserTaskPermissionsTest extends ItestBase {
 
     }
 
-    /** The view of its own is a view, not a way around every other rule: petra is in no group of it. */
+    /** A view of its own is a view, not a way around every other rule. Petra is in no group of it. */
     @Test
     void aVisibilityOfItsOwnStillKeepsOutWhoItDoesNotName() {
 
