@@ -152,7 +152,7 @@ public class BusinessCockpitExtensionTest {
     // and the note the provider wrote is readable from the store all the same. This
     // application keeps its aggregates in a map and hands out the very object it holds, so a
     // change to it is the stored state by the time it is made. This is what the test found,
-    // not a promise anybody makes: what an unsaved change costs is a question to the
+    // not a promise anybody makes. What an unsaved change costs is a question to the
     // persistence, and every persistence answers it differently.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE, aggregates.byId(aggregate.getId()).getNote());
@@ -334,7 +334,7 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // what a REST endpoint does: it asks about a task and has opened nothing
+    // this is what a REST endpoint does. It asks about a task and has opened nothing
     final var userTask = workflowService
         .businessCockpit()
         .getUserTask(aggregate, TestBpmsBridge.USER_TASK_ID);

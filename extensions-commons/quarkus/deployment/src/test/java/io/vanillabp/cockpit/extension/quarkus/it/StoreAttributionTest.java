@@ -19,9 +19,9 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * The store an entry goes into, in an application holding two of them: the one VanillaBP brings
- * for the datasource of the test, and one of the application which is named for the workflow
- * aggregate.
+ * The store an entry goes into, in an application which holds two of them. One is what VanillaBP
+ * brings for the datasource of the test. The other belongs to the application and is named for
+ * the workflow aggregate.
  * <p>
  * The extension used to work this out itself, which is what {@link QuarkusStoreAttributionTest}
  * of the platform shows cannot be done from outside the Quarkus integration. It asks the

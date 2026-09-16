@@ -15,9 +15,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * starting, and Quarkus is what refuses it.
  * <p>
  * The extension's own check runs while the application is built and sees the configuration of the
- * build; a module's defaults file is a configuration source of the running application, so it
- * reaches the startup instead. What is asserted here is that such a key does not slip through:
- * the message names it, without guessing which key was meant.
+ * build. A module's defaults file is a configuration source of the running application, so it
+ * reaches the startup instead. This test asserts that such a key does not slip through. The
+ * message names it, without guessing which key was meant.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class MisspelledKeyInAModuleFileTest {
@@ -52,7 +52,7 @@ public class MisspelledKeyInAModuleFileTest {
   @DisplayName("A key nobody reads in a module's own file ends the startup")
   public void theApplicationDoesNotStart() {
 
-    // the assertion is the one the extension above makes: this application never runs
+    // the assertion is the one the extension above makes. This application never runs
 
   }
 

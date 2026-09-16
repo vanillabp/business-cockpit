@@ -19,8 +19,8 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * The application under test: a workflow service reporting business data to the Business
- * Cockpit, with one details provider per way of matching a method.
+ * The application under test. It is a workflow service which reports business data to the
+ * Business Cockpit, with one details provider per way of matching a method.
  */
 @Service
 @WorkflowService(workflowAggregateClass = TestAggregate.class,
@@ -126,8 +126,8 @@ public class TestWorkflowService {
 
   /**
    * A provider for a task which is worked on somewhere else. It says per task where that is,
-   * which is what a module of UI URI type EXTERNAL needs: the address of one ticket, not the
-   * address of the ticket system.
+   * which is what a module of UI URI type EXTERNAL needs. That is the address of one ticket, not
+   * the address of the ticket system.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -144,9 +144,9 @@ public class TestWorkflowService {
   /**
    * A details provider which is not public, the way a developer writes one who assumes the
    * annotation is enough. The scan reads the PUBLIC methods of a workflow service class, so
-   * this method is invoked by nobody - and unlike an unserved <code>&#64;WorkflowTask</code>
-   * nothing else would ever say so, since a user task without a provider is simply reported
-   * with the details the BPMS carried. VanillaBP names it while the application boots.
+   * this method is invoked by nobody. Unlike an unserved <code>&#64;WorkflowTask</code>, nothing
+   * else would ever say so, because a user task without a provider is reported with the details
+   * the BPMS carried. VanillaBP names it while the application boots.
    *
    * @param prefilled What the BPMS reported
    * @return The details nobody asks this method for

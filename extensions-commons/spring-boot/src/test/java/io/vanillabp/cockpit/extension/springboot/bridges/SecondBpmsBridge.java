@@ -9,7 +9,7 @@ import io.vanillabp.cockpit.extension.spi.UserTaskReference;
 import io.vanillabp.cockpit.extension.spi.WorkflowDetailsPrefill;
 import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 
-/** A BPMS half which knows nothing: the test asks which bridge serves an adapter, no more. */
+/** A BPMS half which knows nothing. The test asks which bridge serves an adapter, no more. */
 public class SecondBpmsBridge implements BusinessCockpitBpmsBridge {
 
   private final String adapterId;

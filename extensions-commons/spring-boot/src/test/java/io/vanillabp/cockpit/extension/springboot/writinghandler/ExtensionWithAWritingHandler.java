@@ -11,9 +11,10 @@ import io.vanillabp.integration.extension.spi.handler.HandlerContract;
  * A second extension next to the Business Cockpit, added to a boot which wants a handler that
  * may write.
  * <p>
- * Its contract says nothing about saving, which is the normal case: VanillaBP saves the workflow
- * aggregate after such a method ran. A boot therefore warns about it, and that is what the test
- * reads, next to the silence about the cockpit's own providers.
+ * Its contract says nothing about saving, which is the normal case. VanillaBP saves the workflow
+ * aggregate after such a method ran. So a boot warns about it, and that is what the test reads,
+ * next to the silence about the cockpit's own providers.
+
  */
 @Configuration
 public class ExtensionWithAWritingHandler implements InitializingBean {

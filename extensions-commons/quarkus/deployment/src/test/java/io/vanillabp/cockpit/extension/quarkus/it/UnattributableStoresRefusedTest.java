@@ -12,10 +12,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The same two stores as {@link StoreAttributionTest} and no bean naming one of them for the
- * aggregate. The application persists its aggregate itself, so nothing can read a technology
- * off it, and VanillaBP refuses to guess - the extension ends the boot with that refusal
- * instead of with a verdict of its own, and the message is the platform's, naming the bean the
- * application has to add.
+ * aggregate. The application persists its aggregate itself, so nothing can read a technology off
+ * it, and VanillaBP refuses to guess. The extension ends the boot with that refusal and not with
+ * a verdict of its own. The message is the platform's and names the bean the application has to
+ * add.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class UnattributableStoresRefusedTest {
@@ -59,7 +59,7 @@ public class UnattributableStoresRefusedTest {
   @DisplayName("Two stores nobody attributed keep the application from starting")
   public void theApplicationDoesNotStart() {
 
-    // the assertion is the one the extension above makes: this application never runs
+    // the assertion is the one the extension above makes. This application never runs
 
   }
 

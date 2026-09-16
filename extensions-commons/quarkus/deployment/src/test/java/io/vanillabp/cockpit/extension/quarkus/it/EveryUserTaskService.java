@@ -50,8 +50,8 @@ public class EveryUserTaskService {
   }
 
   /**
-   * The one method this story is about: it reports the same columns for every user task of
-   * both BPMN processes, and it steps aside wherever a method below names the task.
+   * The one method this story is about. It reports the same columns for every user task of both
+   * BPMN processes, and it steps aside wherever a method below names the task.
    *
    * @param aggregate The workflow aggregate, loaded by VanillaBP
    * @param prefilled What the BPMS reported
@@ -153,7 +153,7 @@ public class EveryUserTaskService {
   }
 
   /**
-   * The convention this story leaves untouched: an annotation naming nothing stands for the
+   * The convention this story leaves untouched. An annotation which names nothing stands for the
    * task called like the method.
    *
    * @param prefilled What the BPMS reported

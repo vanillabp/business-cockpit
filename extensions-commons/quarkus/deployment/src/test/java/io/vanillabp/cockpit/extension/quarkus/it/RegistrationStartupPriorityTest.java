@@ -14,11 +14,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * When the workflow modules are registered at the cockpit server.
  * <p>
  * The registration is an outbox entry, so it must be written after VanillaBP's outbox store
- * created its table - and the store does that in a startup observer of its own. The runtime
- * half of this extension cannot read that priority, because an extension does not compile
- * against a platform integration (decision 2 in the repository's DECISIONS.md); it carries the
- * number as its own. This module does see both, and a platform moving its observer later would
- * end here rather than in an application whose first registration finds no table.
+ * created its table, and the store does that in a startup observer of its own. The runtime half
+ * of this extension cannot read that priority, because an extension does not compile against a
+ * platform integration (decision 2 in the repository's DECISIONS.md). It carries the number as
+ * its own. This module does see both numbers, and a platform which moves its observer later
+ * would end here instead of in an application whose first registration finds no table.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RegistrationStartupPriorityTest {

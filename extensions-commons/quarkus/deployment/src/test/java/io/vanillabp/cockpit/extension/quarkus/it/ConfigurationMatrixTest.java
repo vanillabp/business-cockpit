@@ -29,14 +29,14 @@ import jakarta.inject.Inject;
 
 /**
  * The configuration in the shape version 1 of the Business Cockpit had, written the way an
- * application which upgrades already has it: a list as a list, a group hierarchy as a map of
- * lists, a workflow and one of its user tasks with sections of their own, a timeout as a number
- * of milliseconds next to one written with a unit, and a workflow module whose own defaults file
- * says something the application did not.
+ * application which upgrades already has it. There is a list as a list, a group hierarchy as a
+ * map of lists, a workflow and one of its user tasks with sections of their own, a timeout as a
+ * number of milliseconds next to one written with a unit, and a workflow module whose own
+ * defaults file says something the application did not.
  * <p>
- * This is the twin of the Spring Boot test asserting the same tree. On this platform a section
- * the mapping does not declare ends the startup rather than being ignored, so a test which only
- * read the values would not notice that half the tree never arrived.
+ * This is the twin of the Spring Boot test which asserts the same tree. On this platform a
+ * section the mapping does not declare ends the startup instead of being ignored, so a test which
+ * only read the values would not notice that half the tree never arrived.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ConfigurationMatrixTest {

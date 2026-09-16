@@ -14,10 +14,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * A key which looks like a setting of the Business Cockpit and is read by nobody does not reach a
  * running application on this platform.
  * <p>
- * Quarkus refuses a key below <code>vanillabp</code> which no mapping declares, which is the
- * asymmetry between the two platforms the VanillaBP platform integration decided on. What the
- * extension adds to it is the answer to the question the developer has: the message names the key
- * which was meant.
+ * Quarkus refuses a key below <code>vanillabp</code> which no mapping declares. That is the
+ * asymmetry between the two platforms which the VanillaBP platform integration decided on. The
+ * extension adds the answer to the question the developer has. The message names the key which
+ * was meant.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class MisspelledKeyRefusedTest {
@@ -60,7 +60,7 @@ public class MisspelledKeyRefusedTest {
   @DisplayName("A misspelled key keeps the application from starting and names the one meant")
   public void theApplicationDoesNotStart() {
 
-    // the assertion is the one the extension above makes: this application never runs
+    // the assertion is the one the extension above makes. This application never runs
 
   }
 

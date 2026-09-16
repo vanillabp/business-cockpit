@@ -39,7 +39,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @return For every lookup of one task of an aggregate, whether a transaction was open while
-   *         this engine was asked - what a test reads to see that a question of
+   *         this engine was asked. A test reads it to see that a question of
    *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one unit
    *         of work
    */

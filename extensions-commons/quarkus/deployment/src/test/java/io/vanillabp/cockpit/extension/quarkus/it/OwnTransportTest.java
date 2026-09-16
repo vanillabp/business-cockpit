@@ -21,7 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * An application which brings its own way to the cockpit: one bean of type
+ * An application which brings its own way to the cockpit. It has one bean of type
  * <code>BusinessCockpitTransport</code>, no REST and no Kafka, and the reports go the way the
  * application wrote.
  * <p>

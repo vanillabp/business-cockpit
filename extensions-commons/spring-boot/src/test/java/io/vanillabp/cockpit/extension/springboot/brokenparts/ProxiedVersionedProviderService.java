@@ -11,7 +11,7 @@ import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * The same defect as {@link VersionedProviderService}, in a service Spring hands out as a JDK
- * proxy: it implements an interface and its method is transactional, which is the everyday way
+ * proxy. It implements an interface and its method is transactional, which is the everyday way
  * into a proxy. What the extension checks has to survive that.
  */
 @WorkflowService(workflowAggregateClass = BrokenAggregate.class,

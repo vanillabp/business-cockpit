@@ -17,10 +17,10 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * An application whose two workflow aggregates live in two outbox stores, each named by the
  * application itself.
  * <p>
- * Decision 12 refused such an application: an event a BPMS observed names identifiers and no
- * class, so there seemed to be nothing to attribute it by. There is - the workflow service
- * serving the BPMN process says which aggregate it is written for - and this application is
- * what shows that each report reaches the store of its own workflow.
+ * Decision 12 refused such an application. An event a BPMS observed names identifiers and no
+ * class, so there seemed to be nothing to attribute it by. There is something. The workflow
+ * service which serves the BPMN process says which aggregate it is written for, and this
+ * application shows that each report reaches the store of its own workflow.
  */
 @SpringBootApplication
 public class TwoStoresApplication {

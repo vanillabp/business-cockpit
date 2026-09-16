@@ -34,14 +34,14 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * The Business Cockpit extension inside a booted application, from the event a BPMS reported to
  * the request the cockpit server receives.
  * <p>
- * Nothing here mocks the way between the two: the workflow aggregate is persisted, the outbox
- * entry is written in the application's transaction, the dispatch happens after the commit on
- * the outbox's own thread, the application's details provider runs, and a cockpit server of the
- * test reads what arrives.
+ * Nothing here mocks the way between the two. The workflow aggregate is persisted, the outbox
+ * entry is written in the application's transaction, and the dispatch happens after the commit
+ * on the outbox's own thread. The application's details provider runs, and a cockpit server of
+ * the test reads what arrives.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        // an outbox store of its own: each test class of this module boots a context of its
+        // an outbox store of its own. Each test class of this module boots a context of its
         // own properties, Spring keeps all of them cached and polling, and on a store they
         // share the poller of a foreign context takes away the entry this test waits for
         "spring.datasource.url=jdbc:h2:mem:cockpit-reported-events;DB_CLOSE_DELAY=-1"
@@ -200,7 +200,7 @@ public class BusinessCockpitExtensionTest {
     // and the note the provider wrote is in the database all the same. The aggregate is a
     // managed JPA object inside the dispatch's transaction, so Hibernate writes what changed on
     // it when that transaction commits, asked for or not. This is what the test found, not a
-    // promise anybody makes: on this persistence a change in a provider still lands.
+    // promise anybody makes. On this persistence a change in a provider still lands.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE,
         aggregates.findById(aggregate.getId()).orElseThrow().getNote());
@@ -227,7 +227,7 @@ public class BusinessCockpitExtensionTest {
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a workflow details provider was handed");
-    // same result as for a user task: the write happens, and it happens because of JPA
+    // same result as for a user task. The write happens, and it happens because of JPA
     assertEquals(
         TestWorkflowService.WORKFLOW_NOTE,
         aggregates.findById(aggregate.getId()).orElseThrow().getWorkflowNote());
@@ -490,7 +490,7 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // the change stays in the persistence context: nothing is flushed and nothing is saved, so
+    // the change stays in the persistence context. Nothing is flushed and nothing is saved, so
     // only a read taking part in this very transaction can know about it
     final var userTask = transactions
         .execute(status -> {
@@ -514,7 +514,7 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // what a REST controller does: it asks about a task and has opened nothing
+    // this is what a REST controller does. It asks about a task and has opened nothing
     final var userTask = workflowService
         .businessCockpit()
         .getUserTask(aggregate, RecordingBpmsBridge.USER_TASK_ID);
@@ -654,7 +654,7 @@ public class BusinessCockpitExtensionTest {
     final var aggregate = aStartedWorkflow();
 
     // which class serves a BPMN process is VanillaBP's answer, and it stays the answer where a
-    // caller names another one: the entry belongs into the store and the transaction of the
+    // caller names another one. The entry belongs into the store and the transaction of the
     // class the workflow's own writes go through
     extension
         .publishUserTaskEvent(
