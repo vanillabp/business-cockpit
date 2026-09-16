@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.autoconfigure;
 
 import com.mongodb.client.MongoClient;
-import io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration;
+import com.phactum.mongodb.changesets.ChangesetApplier;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationEventListener;
 import io.vanillabp.cockpit.config.MongoDbConfiguration;
@@ -53,11 +53,14 @@ public class BusinessCockpitPersistenceAutoConfiguration {
      *
      * @param changesetsHaveBeenApplied not read, and not replaceable by an annotation: a change
      *      stream is opened on a collection, so the changesets which create the collections have to
-     *      have run. Asking for the bean which runs them is what says so at compile time.
+     *      have run. Asking for the bean which runs them is what says so at compile time. It has to
+     *      be {@link ChangesetApplier} and not the auto-configuration which declares it. A
+     *      configuration class exists before its own beans do, so asking for it would compile,
+     *      start and guarantee nothing.
      */
     @Bean
     public ChangeStreamUtils changeStreamUtils(
-            final ChangesetAutoConfiguration changesetsHaveBeenApplied) {
+            final ChangesetApplier changesetsHaveBeenApplied) {
 
         return new ChangeStreamUtils();
 

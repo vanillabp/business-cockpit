@@ -1,2 +1,2 @@
-io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration
 io.vanillabp.cockpit.commons.mongo.BusinessCockpitMongoDbAutoConfiguration
+io.vanillabp.cockpit.commons.mongo.ChangesetPropertiesAutoConfiguration

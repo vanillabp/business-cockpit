@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.tasklist.model.changesets;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
+import com.phactum.mongodb.changesets.DbChangeset;
+import com.phactum.mongodb.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
