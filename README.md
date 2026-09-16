@@ -14,6 +14,9 @@ so workflows from different systems end up in one user interface.
 an application is derived from it and how a workflow module is connected to it is in the
 [wiki](https://github.com/vanillabp/business-cockpit/wiki).
 
+What an application has to change when it moves to a new version of the cockpit is in
+[UPGRADE.md](./UPGRADE.md).
+
 **Contents:**
 
 1. [Building it](#building-it)
@@ -28,6 +31,13 @@ You need Java 21, Maven and a local NPM registry. The registry is needed because
 the user interface packages before it consumes them.
 [development/README.md](./development/README.md) sets that up and is the place to start. It also
 holds the MongoDB, the Kafka broker and the mail catcher which the tests and a local run need.
+
+The build reads two kinds of artifact which Maven Central does not have: the snapshots of the
+VanillaBP platform, and the MongoDB changeset library `com.phactum.mongodb:mongodb-changesets`. Both
+come from GitHub Packages, which asks for a token even for a public repository. The build of a pull
+request uses [.github/workflows/github-packages-settings.xml](./.github/workflows/github-packages-settings.xml),
+and a local build needs the same repositories in `~/.m2/settings.xml`, with a GitHub token which has
+the scope `read:packages`.
 
 ```sh
 mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm

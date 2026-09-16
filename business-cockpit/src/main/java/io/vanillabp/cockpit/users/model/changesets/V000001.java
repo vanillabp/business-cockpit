@@ -1,7 +1,7 @@
 package io.vanillabp.cockpit.users.model.changesets;
 
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
+import com.phactum.mongodb.changesets.DbChangeset;
+import com.phactum.mongodb.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.User;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;

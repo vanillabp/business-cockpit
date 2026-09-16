@@ -79,6 +79,18 @@
                         <enabled>false</enabled>
                     </releases>
                 </repository>
+                <!-- the MongoDB changeset mechanism, which this repository used to carry itself.
+                     Only its snapshots come from here; a release of it goes to Maven Central. -->
+                <repository>
+                    <id>phactum-mongodb-changesets</id>
+                    <url>https://maven.pkg.github.com/Phactum/mongodb-changesets</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                </repository>
             </repositories>
         </profile>
     </profiles>
@@ -116,6 +128,11 @@
         </server>
         <server>
             <id>zeebe-kafka-exporter-serde</id>
+            <username>${env.USER_NAME}</username>
+            <password>${env.USER_TOKEN}</password>
+        </server>
+        <server>
+            <id>phactum-mongodb-changesets</id>
             <username>${env.USER_NAME}</username>
             <password>${env.USER_TOKEN}</password>
         </server>

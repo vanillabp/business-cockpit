@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.workflowlist.model.changesets;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangeset;
-import io.vanillabp.cockpit.commons.mongo.changesets.DbChangesetConfiguration;
+import com.phactum.mongodb.changesets.DbChangeset;
+import com.phactum.mongodb.changesets.DbChangesetConfiguration;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;

@@ -44,6 +44,15 @@
       <artifactId>spring-boot-data-mongodb</artifactId>
     </dependency>
     <dependency>
+      <!--
+        The MongoDB migration which runs while an application starts. It was part of this module
+        until it became a library of its own, and the annotations a changeset bean carries come
+        from here now.
+      -->
+      <groupId>com.phactum.mongodb</groupId>
+      <artifactId>mongodb-changesets</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-mongodb</artifactId>
       <optional>true</optional>
