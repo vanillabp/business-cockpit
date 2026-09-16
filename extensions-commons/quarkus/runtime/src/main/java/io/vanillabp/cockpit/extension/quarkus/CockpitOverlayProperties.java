@@ -551,7 +551,6 @@ public interface CockpitOverlayProperties {
      * for every workflow the application configured, whatever it configured there. Without that,
      * a module whose workflows only carry adapter keys would look like a module which takes part
      * in the cockpit, and the boot would end asking it for a workflow module URI.
-
      *
      * @return What this workflow said, as the neutral core reads it, or <code>null</code> where
      *         it said nothing

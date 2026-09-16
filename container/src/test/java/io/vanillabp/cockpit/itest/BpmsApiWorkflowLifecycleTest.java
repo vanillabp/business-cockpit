@@ -211,7 +211,6 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
      * An update event for an unknown workflow creates it, the same way as for user tasks. While the
      * application was reactive this fallback answered HTTP 500, because it read the already
      * consumed request body a second time.
-
      */
     @Test
     void updateEventForUnknownWorkflowCreatesIt() {

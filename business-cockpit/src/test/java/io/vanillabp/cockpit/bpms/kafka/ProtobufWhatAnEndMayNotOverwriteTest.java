@@ -36,7 +36,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * both are why this is a second set of cases and not a pointer at the first. A field the sender
  * left out arrives as an unset optional. The titles and the business data arrive empty, because
  * protobuf gives a map no presence information.
-
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ProtobufWhatAnEndMayNotOverwriteTest {

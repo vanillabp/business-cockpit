@@ -31,7 +31,6 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * is only visible against a server which presents a certificate, and a test cannot issue one
  * itself. What a test can say is which stack a configuration leads to, and that a deployment
  * which configures nothing keeps the one the generated client brings.
-
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RestClientSetupTest {

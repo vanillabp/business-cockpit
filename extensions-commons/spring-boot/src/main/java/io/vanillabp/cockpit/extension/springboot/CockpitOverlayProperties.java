@@ -34,7 +34,6 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * <p>
  * The workflow modules of the application are never taken from this map. They come from the
  * platform's own properties, and this map is a lookup per module id.
-
  */
 @ConfigurationProperties(MigrationAdapterProperties.PREFIX)
 public class CockpitOverlayProperties {

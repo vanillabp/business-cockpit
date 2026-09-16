@@ -331,7 +331,6 @@ public class BusinessCockpitProducer {
    * gets that answer without compiling against the integration (decision 2). The resolver also
    * answers which stores the application holds, for the same reason. A default store which is
    * switched off or has no datasource is a bean here, but the platform would never pick it.
-
    */
   private static BusinessCockpitOutbox theOutbox(
       final PhaseTwoOutboxResolver outboxResolver) {

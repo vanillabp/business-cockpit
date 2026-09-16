@@ -15,7 +15,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * not inside a security filter chain, so a derived cockpit application which replaces the chain
  * inherits the behavior. It also means that nothing else in the request path would complain if the
  * filter stopped running.
-
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

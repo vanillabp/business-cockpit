@@ -35,7 +35,6 @@ import io.vanillabp.integration.test.utils.FreePortUtil;
  * <p>
  * Three numbers differ between the repositories which use this server, and each of them is a
  * system property and not a subclass:
-
  *
  * <pre>
  * businesscockpit.test-server.wait-millis          how long a test waits for a request (30 s)

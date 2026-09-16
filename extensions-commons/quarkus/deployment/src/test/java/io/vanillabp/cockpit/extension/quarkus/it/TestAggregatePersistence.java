@@ -11,7 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 /**
  * Where the test application keeps its workflow aggregates. It is in memory and not in a
  * database, because the extension is under test and not a persistence.
-
  */
 @ApplicationScoped
 public class TestAggregatePersistence implements AggregatePersistenceAware<TestAggregate> {

@@ -3,7 +3,6 @@
 # http://localhost:8025 (web UI) or through its REST API below http://localhost:8025/api/v1.
 #
 # It is meant to be used together with the profile 'local', for example
-
 #   java -DworkerId=local -Dspring.profiles.active=local,mailpit -jar target/business-cockpit-*-runnable.jar
 spring:
   mail:

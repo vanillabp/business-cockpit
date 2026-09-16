@@ -182,7 +182,6 @@ public class BusinessCockpitBootTest {
       // the way out is what a developer needs from the line, and it is a version attribute on
       // the case. See decision 20 in the repository's DECISIONS.md for why this warning is
       // VanillaBP's and not one of ours
-
       assertTrue(reported.contains("version attribute"), reported);
 
     }

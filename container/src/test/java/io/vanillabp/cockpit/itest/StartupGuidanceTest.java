@@ -280,7 +280,6 @@ class StartupGuidanceTest {
      * Without a signing key the cockpit could not hand out a single login cookie, so one is made up
      * for the run. The login below proves that the run is usable. The warning carries the key to
      * write down, so that the next start keeps everybody logged in.
-
      */
     @Test
     void startingWithoutASigningKeyBootsAndReportsTheGeneratedKey() {

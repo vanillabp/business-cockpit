@@ -19,7 +19,6 @@ import io.vanillabp.integration.test.utils.TestClassConventions;
  * quiet as long as its own tests pass. It starts talking on the day it gets a mock which
  * warns or a container which boots. By then nobody connects the noise to the class, and
  * the next reader pays for it again.
-
  * <p>
  * The check reads the test sources, so this one class covers every module of the
  * repository, the ones added after it included.

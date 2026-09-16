@@ -333,7 +333,6 @@ class WorkflowModulePermissionsTest extends ItestBase {
      * Because the hierarchies are merged across modules instead of being kept per module, a group
      * one module grants counts everywhere. It opens up another module whose accessibleToGroups
      * names it, although that module knows nothing about the hierarchy.
-
      */
     @Test
     void aHierarchyOfOneModuleWidensAccessToAnother() {

@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code business-cockpit}, {@code @SpringBootApplication}, a {@code main} method and the handful
  * of beans the library leaves to the application. There is no base class, no cockpit annotation
  * and no component scan over {@code io.vanillabp.cockpit}.
-
  *
  * <p>The package matters. It is outside {@code io.vanillabp.cockpit}, so the component scan of
  * {@code @SpringBootApplication} reaches nothing of the library, and the same goes for the package

@@ -29,7 +29,6 @@ import org.springframework.test.util.ReflectionTestUtils;
  *
  * <p>The properties are asserted and no broker is started. A real start binds 9092 and would collide
  * with a running development environment, and it would take tens of seconds.
-
  */
 @ExtendWith(SuppressOutputExtension.class)
 class EmbeddedKafkaConfigurationTest {

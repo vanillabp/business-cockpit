@@ -90,7 +90,6 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
                 : user.lastName + ", " + user.firstName.charAt(0) + ".";
 
         return new UserDetailsImpl(
-
                 user.id, user.email, display, displayShort, user.groups != null ? user.groups
                 : new ArrayList<>()
         );
