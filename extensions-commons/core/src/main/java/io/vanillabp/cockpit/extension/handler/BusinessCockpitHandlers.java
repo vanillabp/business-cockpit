@@ -4,7 +4,6 @@ import java.lang.annotation.Annotation;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
@@ -146,26 +145,19 @@ public final class BusinessCockpitHandlers {
    * versions of the BPMN process the method serves.
    * <p>
    * The specifications are passed on unread. They are VanillaBP's language, the same one
-   * <code>&#64;WorkflowTask</code> is written in, and reading them here would be a second opinion
-   * about what a range means. Only what says nothing at all is dropped: an empty attribute and a
-   * blank entry in it, which VanillaBP would otherwise have to refuse as a range it cannot parse.
-   * The star both annotations default to travels like any other specification and means every
-   * version, exactly as it does on a <code>&#64;WorkflowTask</code>.
+   * <code>&#64;WorkflowTask</code> is written in, so what a range covers, what a version tag means
+   * and what an attribute saying nothing means is answered there and nowhere else. A second
+   * reading here would be a second opinion.
    *
    * @param specifications What the attribute of one occurrence names
-   * @return The specifications, empty where the attribute names nothing
+   * @return The same specifications
    */
   private static List<String> versionsOf(
       final String[] specifications) {
 
-    if (specifications == null) {
-      return List.of();
-    }
-    return Arrays
-        .stream(specifications)
-        .filter(Objects::nonNull)
-        .filter(specification -> !specification.isBlank())
-        .toList();
+    return specifications == null
+        ? List.of()
+        : Arrays.asList(specifications);
 
   }
 
