@@ -1,8 +1,8 @@
-[![Apache License V.2](https://img.shields.io/badge/license-Apache%20V.2-blue.svg)](./LICENSE)
-
 ![VanillaBP](./readme/vanillabp-headline.png)
 
 # VanillaBP Business Cockpit
+
+[![Apache License V.2](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
 The *VanillaBP Business Cockpit* is the application business people work in. It lists the user tasks
 they may work on and the business cases those tasks belong to, whichever system runs them, and it
