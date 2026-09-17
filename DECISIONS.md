@@ -32,7 +32,7 @@ the platform's own runner does. What it buys is that no feature can quietly exis
 only. VanillaBP asks this of every extension, and its own sample extension is built that way, so a
 reviewer of either repository expects this shape.
 
-### 3. An outbox entry carries identifiers, and the event is built when it is dispatched
+### 3. An outbox entry carries identifiers, and the event is built when it is dispatched - the moment the event is built superseded by decision 26
 
 By contract, VanillaBP's outbox holds at most 2048 characters of arguments per entry. Version 1
 serialized the whole event into the entry, and that does not fit any more. An entry now carries the
@@ -48,7 +48,7 @@ change a details provider makes to the workflow aggregate is committed while the
 dispatched, not with the transaction the BPMS event arrived in. A provider which writes is writing
 later than it looks.
 
-### 4. The idempotency key of a report names the operation, the BPMS, the entity and the kind
+### 4. The idempotency key of a report names the operation, the BPMS, the entity and the kind - which of two entries of one key survives superseded by decision 26
 
 A task or a workflow gets `<operation>|<adapterId>|<taskId or workflowId>|<eventKind>`. The
 registration of a workflow module gets `<operation>|<workflowModuleId>`. Every key starts with the
@@ -408,7 +408,7 @@ aggregate with them. A detached JPA entity throws as soon as a provider touches 
 which is what reading a case usually comes down to. A rule which turns the ordinary use of the
 parameter into an error is worse than the leak it closes.
 
-### 18. The timestamp of the event decides which report the cockpit stores
+### 18. The timestamp of the event decides which report the cockpit stores - the state a report carries superseded by decision 26
 
 VanillaBP's outbox gives its entries no order. It dispatches them in parallel, and an entry whose
 dispatch failed comes back after entries planned later have gone through. So the reports about one
@@ -667,7 +667,7 @@ A method of a details provider does not take the version range of its `@BpmnProc
 service runs. Reporting to the cockpit is not running the workflow, and a range meant for the one
 would silently narrow the other.
 
-### 25. A report is to carry the state of its event, and the auditing id is the way there
+### 25. A report is to carry the state of its event, and the auditing id is the way there - superseded by decision 26 on 2026-09-17
 
 A report is built when the outbox entry is dispatched, not when the event happened (decision 3).
 Between the two the case can move on, so a report is right about the state of now and wrong about
@@ -715,3 +715,75 @@ auditing id. The one door to `AggregateServiceContext`, which has both methods, 
 only when an application injects it. So the platform gets an auditing id which can be asked for by
 the id of an aggregate, and a handler call which can be told to load the state of the event. This
 extension follows once it can.
+
+### 26. The report is built at the event and travels with its entry
+
+This replaces decision 25. A report carries the state of its event, which 25 already decided, and it
+gets there the other way: the report is put together while the BPMS event is being observed, and it
+travels as the payload of the outbox entry. The dispatch sends what the entry carries and asks
+nobody anything.
+
+Decision 25 chose the auditing id because a report was thought to need an answer from the BPMS which
+only a later read could give. That premise is wrong. What a BPMS says about a user task is an image
+of what the application decided: the values reach the model, go to the application as
+`PrefilledUserTaskDetails`, and may be changed there. Everything a report needs is at hand in the
+event which triggers it.
+
+Measured on 2026-09-17, in the three BPMS halves. The Process-Engine-API half already builds the
+whole prefill at the moment of the delivery and parks it until the dispatch reads it. The Camunda 7
+listeners are built-in task listeners which run inside the engine's own command, where every field
+of the task is there without a single query. On Camunda 8 the activated job carries assignee,
+candidates, due date and follow-up date, and the two BPMN names come from the model the adapter
+deployed itself. A user-task report written as JSON is about a kilobyte, and a payload may be a
+mebibyte.
+
+What this buys is the case which used to lose data. While the cockpit server is down the entries
+pile up, and every one of them used to be read hours later against a case which had moved on. Now
+each of them says what was true when it was planned.
+
+A failure while the report is built is meant to disturb. The details provider runs in the
+transaction of the event, so a failure there fails the engine's work, and on Camunda 8 the listener
+job holds the transition until it is answered. Only reading happens here, but what is read has to be
+right, and a defect which repetitions hide is a defect nobody fixes. The way to the cockpit server
+is the other half and stays quiet: it runs over the outbox, and a cockpit which is down for ten
+minutes is not worth a single error in anybody's log.
+
+The idempotency key stays exactly as decision 4 wrote it, and only the direction of the discard
+turns around. An entry used to be the intention to report, so the one which waited was as good as
+the one which came after it, and the newer call was dropped. An entry carries its report now, so
+dropping the newer call would keep the oldest state and a user would read the first report of a step
+instead of the last. The reports of the two lists are therefore planned through
+`PhaseTwoOutbox#scheduleReplacingWhatIsStillWaiting`, which puts the youngest call in the place of
+the waiting entry, payload included. Waiting reports of one task still collapse into one, which is
+what keeps a backlog from becoming a flood of notifications. Taking the step into the key would do
+the opposite, because then every step would keep an entry of its own. An entry a dispatch has
+already claimed is not replaced, so two reports arrive where one was asked for, and the timestamp of
+the event holds the older one back at the server (decision 18).
+
+The registration of a workflow module is planned the old way, with `schedule` and without a payload.
+It says that a module exists and where it answers, which is read from the configuration and is the
+same whenever the entry goes out. A second registration of one module says what the waiting one
+says, so keeping the waiting one is right.
+
+An entry which outlives its own payload is sent with its identifiers alone, and a line in the log
+names the case. The payload of an entry is removed when the entry was dispatched, and the outbox
+housekeeping removes what a crash left behind, so an entry can only meet this after waiting longer
+than `vanillabp.outbox.retention`. It is the same answer this extension gives an end whose BPMS said
+nothing: the cockpit keeps what it stored before, and a report which never arrives would leave a
+task open in the list for good.
+
+Two sentences of older entries stop being true with this. The event is no longer built when the
+entry is dispatched, which is the second half of decision 3, and what the BPMS answers is no longer
+the state of the dispatch, which is the closing paragraph of decision 18 and a paragraph of 25. Both
+entries keep their number and their text and say in their headline which part of them this entry
+replaced.
+
+One effect is worth naming, because the wiki promised the opposite. A details provider which writes
+the workflow aggregate used to be a second writer: it ran in the transaction of the dispatch, long
+after the event, and wrote over what the application had changed in between. The provider runs in
+the transaction of the event now. Where that transaction is the application's own, which is an
+embedded engine and every report through `BusinessCockpitService`, the provider's write is the
+application's write and there is no second writer left. Where the event arrives on a worker thread
+of a remote engine, the extension opens a transaction for it, and a provider which writes there is
+still a writer beside the application. A provider is asked a question and answers it, which is what
+decision 17 says, and that is still the way out of both cases.

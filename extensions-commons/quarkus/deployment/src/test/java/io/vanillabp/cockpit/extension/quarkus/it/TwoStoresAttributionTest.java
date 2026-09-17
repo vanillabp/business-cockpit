@@ -57,6 +57,12 @@ public class TwoStoresAttributionTest {
           "vanillabp.cockpit.rest.base-url", "http://localhost:1");
 
   @Inject
+  TestAggregatePersistence firstAggregates;
+
+  @Inject
+  SecondAggregatePersistence secondAggregates;
+
+  @Inject
   RecordingOutbox storeOfTheFirstAggregate;
 
   @Inject
@@ -83,17 +89,29 @@ public class TwoStoresAttributionTest {
   @DisplayName("Each report lands in the store of the aggregate its workflow belongs to")
   public void eachReportLandsInItsOwnStore() throws Exception {
 
+    // both cases are saved first, because a report is put together where it is made and the
+    // details provider of the application is handed the case the event is about
+    final var first = new TestAggregate();
+    first.setCustomer("Anna");
+    firstAggregates.save(first);
+    final var second = new SecondAggregate();
+    secondAggregates.save(second);
+
     transaction.begin();
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, "4711", TestBpmsBridge.WORKFLOW_ID),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, first
+                    .getId()
+                    .toString(), TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "of-the-first-aggregate", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "SecondProcess", TestBpmsBridge.PROCESS_VERSION, "4712", "workflow-2"),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "SecondProcess", TestBpmsBridge.PROCESS_VERSION, second
+                    .getId()
+                    .toString(), "workflow-2"),
             WorkflowEventKind.CREATED, "of-the-second-aggregate", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     transaction.commit();

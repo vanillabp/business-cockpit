@@ -208,6 +208,37 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("A report carries the state of its event and not the state of the moment it is sent")
+  public void aReportCarriesTheStateOfItsEvent() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+    // the first attempt is refused, so the report leaves this application after the case below
+    // was changed. Whichever moment the outbox gets to it, the report was written at the event
+    CockpitServer.refuseRequestsAbout("bpms-event-22", 1);
+
+    transaction.begin();
+    publisher
+        .publishUserTaskEvent(
+            TestBpmsBridge
+                .userTask(
+                    WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId().toString(),
+                    TestBpmsBridge.USER_TASK_ID),
+            UserTaskEventKind.CREATED, "bpms-event-22", OffsetDateTime.now(),
+            EventTransaction.CURRENT);
+    transaction.commit();
+
+    transaction.begin();
+    aggregates.byId(aggregate.getId()).setCustomer("Berta");
+    transaction.commit();
+
+    final var request = CockpitServer.awaitRequest("/usertask/created", "bpms-event-22");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertFalse(request.body().contains("Berta"), request.body());
+    assertEquals("Berta", aggregates.byId(aggregate.getId()).getCustomer());
+
+  }
+
+  @Test
   @DisplayName("A completed task is reported with the business data it was completed with")
   public void aCompletedTaskCarriesItsBusinessData() throws Exception {
 

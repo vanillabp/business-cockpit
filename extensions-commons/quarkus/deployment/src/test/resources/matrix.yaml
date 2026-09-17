@@ -53,6 +53,7 @@ vanillabp:
             - ASSISTANT
       workflows:
         TestProcess:
+          allow-full-sync-with-bpms: true
           cockpit:
             i18n-languages:
               - fr

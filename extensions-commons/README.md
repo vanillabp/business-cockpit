@@ -56,13 +56,15 @@ and
 
 The path an event takes is drawn in the wiki under
 [Architecture](https://github.com/vanillabp/business-cockpit/wiki/Architecture#the-path-a-report-takes).
-Two things about it are decisions of this module rather than facts a user needs. An outbox entry
-carries identifiers and nothing else, and the event is rebuilt when the entry is dispatched, which
-is what keeps an entry inside the 2048 characters an outbox store holds and what makes several
-pending reports about one task collapse into one. And a transport which fails throws, so the entry
-stays and the outbox repeats it, unless the cockpit server refused the report itself, which ends the
-entry rather than repeating it forever. Decisions 3 and 11 of the [decision log](../DECISIONS.md)
-say why.
+Two things about it are decisions of this module rather than facts a user needs. The report is put
+together while the BPMS event is observed and travels as the payload of the outbox entry, so what
+the cockpit is told is the state of the event; the entry itself stays a row of identifiers, because
+VanillaBP keeps the bytes beside it. Waiting reports about one task still collapse into one, and the
+one which is left is the youngest, which is why they are planned through
+`PhaseTwoOutbox#scheduleReplacingWhatIsStillWaiting`. And a transport which fails throws, so the
+entry stays and the outbox repeats it, unless the cockpit server refused the report itself, which
+ends the entry rather than repeating it forever. Decisions 26 and 11 of the
+[decision log](../DECISIONS.md) say why.
 
 The transport itself is a bean of both platforms, and an application which brings one of its own
 reports through that instead. Whether it did is the platform's answer rather than a property key, so
@@ -86,14 +88,19 @@ serve different generations of one model, so it is the plain version and never a
 for a screen. A BPMS which reports none leaves it empty, and only the providers naming no version
 then run.
 
-Which answer a BPMS half gives decides whether a report happens at all. An engine which cannot be
-reached throws, and the outbox tries again. An engine whose read model has not caught up with the
-event it just sent throws `PhaseTwoRetryLater`, and the entry comes back after the window it names.
-An empty answer means the engine does not know the task or the workflow any more. A report about a
-task or a case which is still running is then dropped for good, which is right for a task somebody
-completed a second ago and wrong for one a remote engine has merely not made searchable yet. A
-report of an end is sent all the same, with its identifiers and without details: a completion which
-never arrives leaves a task the cockpit shows as open forever.
+The two `prefilled…` questions are asked at the moment of the event, inside the transaction it
+arrived in, because that is where the report is built. A half answers them out of the event it is
+reporting rather than out of a storage which runs behind the engine. `prefilledUserTaskDetails`
+serves a second moment as well, the read of `BusinessCockpitService.getUserTask`, and that one is
+about now.
+
+Which answer a BPMS half gives decides whether a report happens at all. A half which cannot read
+what it was asked for throws, and the exception reaches the engine reporting the event, so its work
+fails and says so. An empty answer means the engine says nothing about the task or the workflow. A
+report about a task or a case which is still running is then dropped for good, and a report of an
+end is sent all the same, with its identifiers and without details: a completion which never
+arrives leaves a task the cockpit shows as open forever. `PhaseTwoRetryLater` is no answer here any
+more, because at the moment of the event there is no entry to dispatch again.
 
 `BusinessCockpitEventPublisher` is the other direction, produced as a bean by the platform module. A
 BPMS half calls it when its engine reported something, saying which transaction the entry belongs in

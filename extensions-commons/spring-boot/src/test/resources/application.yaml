@@ -20,6 +20,13 @@ vanillabp:
       adapters:
         test:
           resources-location: classpath*:test-module/processes/dummy
+      workflows:
+        TestProcess:
+          allow-full-sync-with-bpms: true
+        OrderProcess:
+          allow-full-sync-with-bpms: true
+        ComplaintProcess:
+          allow-full-sync-with-bpms: true
       cockpit:
         workflow-module-uri: http://localhost:8081/test-module
         ui-uri-type: WEBPACK_MF_REACT
