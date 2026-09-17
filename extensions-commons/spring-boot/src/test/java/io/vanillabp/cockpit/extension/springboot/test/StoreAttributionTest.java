@@ -49,17 +49,26 @@ public class StoreAttributionTest {
   /**
    * Reports what a BPMS observed. That is the entry which names no workflow aggregate class, and
    * the extension writes it into the store all aggregates of the application share.
+   * <p>
+   * The aggregate is started first, because the report is put together where it is made: the
+   * details provider of the application runs, and it is handed the case the event is about.
    */
   private static void reportAWorkflowOfTheBpms(
       final ConfigurableApplicationContext application) {
 
     final var publisher = application.getBean(BusinessCockpitEventPublisher.class);
-    application
-        .getBean(TransactionTemplate.class)
+    final var transactions = application.getBean(TransactionTemplate.class);
+    final var workflowService = application.getBean(TestWorkflowService.class);
+    final var aggregate = transactions.execute(status -> {
+      final var started = new TestAggregate();
+      started.setCustomer("Anna");
+      return workflowService.processes().startWorkflow(started);
+    });
+    transactions
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    "test", "test-module", "TestProcess", "1", "4711", "workflow-1"),
+                    "test", "test-module", "TestProcess", "1", aggregate.getId().toString(), "workflow-1"),
                 WorkflowEventKind.CREATED, "bpms-event-1", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 

@@ -27,6 +27,18 @@ public class RecordingOutbox implements PhaseTwoOutbox {
   }
 
   /**
+   * A report of the extension is planned this way, so a store of an application answers it.
+   * Inheriting the default would write a warning and discard what the extension wanted.
+   */
+  @Override
+  public boolean scheduleReplacingWhatIsStillWaiting(
+      final PhaseTwoCall call) {
+
+    return schedule(call);
+
+  }
+
+  /**
    * @return What was written into this store
    */
   public List<PhaseTwoCall> getScheduled() {

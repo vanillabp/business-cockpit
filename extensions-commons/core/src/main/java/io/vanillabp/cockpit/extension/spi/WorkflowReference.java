@@ -3,9 +3,9 @@ package io.vanillabp.cockpit.extension.spi;
 /**
  * Everything needed to address one workflow of one BPMS, and nothing else.
  * <p>
- * A reference travels through the outbox, so it consists of identifiers only. Whatever the
- * cockpit is told about the workflow is read again while the entry is dispatched, which is why
- * a pending update never carries stale data.
+ * A reference names a workflow to the BPMS half, so it consists of identifiers only. What the
+ * cockpit is told about the workflow is put together at the moment of the event and travels as
+ * the report of its outbox entry.
  *
  * @param adapterId The configured adapter id of the BPMS holding this workflow. Which BPMS
  *          that is changes per workflow during a migration, so it belongs to the reference

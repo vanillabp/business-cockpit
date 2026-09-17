@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.extension.event.ReportPayload;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 import io.vanillabp.cockpit.extension.handler.BusinessCockpitHandlers;
@@ -31,6 +32,7 @@ import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskDetailsPrefill;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.UserTaskReference;
+import io.vanillabp.cockpit.extension.spi.WorkflowDetailsPrefill;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import io.vanillabp.cockpit.extension.templating.EventTitles;
@@ -41,7 +43,9 @@ import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerCall;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
 import io.vanillabp.integration.spi.PhaseTwoCall;
+import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
+import io.vanillabp.integration.spi.PhaseTwoRetryLater;
 import io.vanillabp.integration.spi.TransactionRunner;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
@@ -53,14 +57,14 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * The Business Cockpit extension. No line of it knows a BPMS or a platform.
  * <p>
  * Everything an event goes through happens here. A BPMS half reports what its engine observed.
- * That report writes one outbox entry, inside the transaction the BPMS is in. Once that
- * transaction has committed, the entry is dispatched: the BPMS is asked what it knows about the
- * task or the workflow now, the application's details provider is invoked to enrich it, the
- * titles are rendered, and the result goes to the configured transport.
+ * The report is put together right there, inside the transaction the BPMS is in: the half is
+ * asked what the engine says about the task or the workflow, the application's details provider
+ * is invoked to enrich it, and the titles are rendered. The finished report travels with the
+ * outbox entry, and once the transaction has committed the dispatch sends what the entry
+ * carries.
  * <p>
- * The data is read at dispatch time and not carried through the outbox. That keeps an entry
- * small enough for the store, and it lets repeated updates collapse into one. See decision 3 in
- * the repository's DECISIONS.md.
+ * So a report says what was true when the event happened, and the dispatch asks nobody
+ * anything. See decision 26 in the repository's DECISIONS.md.
  */
 public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
@@ -343,6 +347,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       return false;
     }
 
+    final var eventId = eventIdOf(bpmsEventId);
+    final var eventTimestamp = timestampOf(timestamp);
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
     put(args, BusinessCockpitOperations.ARG_USER_TASK_ID, userTask.userTaskId());
@@ -350,20 +356,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     put(args, BusinessCockpitOperations.ARG_TASK_DEFINITION, userTask.taskDefinition());
     put(args, BusinessCockpitOperations.ARG_BPMN_TASK_ID, userTask.bpmnTaskId());
     put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, userTask.processVersion());
-    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(bpmsEventId));
-    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
+    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventId);
+    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, eventTimestamp.toString());
 
-    final var call = PhaseTwoCall
-        .of(
-            BusinessCockpitOperations.publishUserTaskEvent(),
-            userTask.workflowModuleId(),
-            userTask.bpmnProcessId(),
-            userTask.workflowAggregateId(),
-            userTask.adapterId(),
-            args);
     return schedule(
-        call, transaction, workflowAggregateClass, userTask.workflowModuleId(), userTask
-            .bpmnProcessId());
+        new ReportBeingPlanned(
+            BusinessCockpitOperations.PUBLISH_USER_TASK_EVENT, userTask.workflowModuleId(), userTask
+                .bpmnProcessId(), userTask.adapterId(), workflowAggregateClass, () -> userTaskCall(userTask, kind, args,
+                    eventId, eventTimestamp)),
+        transaction);
 
   }
 
@@ -406,24 +407,21 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       return false;
     }
 
+    final var eventId = eventIdOf(bpmsEventId);
+    final var eventTimestamp = timestampOf(timestamp);
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
     put(args, BusinessCockpitOperations.ARG_WORKFLOW_ID, workflow.workflowId());
     put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, workflow.processVersion());
-    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(bpmsEventId));
-    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
+    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventId);
+    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, eventTimestamp.toString());
 
-    final var call = PhaseTwoCall
-        .of(
-            BusinessCockpitOperations.publishWorkflowEvent(),
-            workflow.workflowModuleId(),
-            workflow.bpmnProcessId(),
-            workflow.workflowAggregateId(),
-            workflow.adapterId(),
-            args);
     return schedule(
-        call, transaction, workflowAggregateClass, workflow.workflowModuleId(), workflow
-            .bpmnProcessId());
+        new ReportBeingPlanned(
+            BusinessCockpitOperations.PUBLISH_WORKFLOW_EVENT, workflow.workflowModuleId(), workflow
+                .bpmnProcessId(), workflow.adapterId(), workflowAggregateClass, () -> workflowCall(workflow, kind, args,
+                    eventId, eventTimestamp)),
+        transaction);
 
   }
 
@@ -494,6 +492,11 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                     workflowModuleId,
                     bpmnProcessesPerWorkflowModule.getOrDefault(workflowModuleId, Set.of())));
 
+    // the one entry of this extension which carries no report and does not replace what waits.
+    // A registration says that a module exists and where it answers, which is read from the
+    // configuration at the dispatch and is the same whenever that happens. A second
+    // registration of one module says exactly what the waiting one says, so keeping the waiting
+    // one is right, and that is what plain scheduling does
     startedWorkflowModules
         .stream()
         .filter(configuration::reportsToTheCockpit)
@@ -647,7 +650,176 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Builds the report of a user-task event and the entry carrying it, in the transaction the
+   * event arrived in.
+   * <p>
+   * The BPMS half answers out of the event it is reporting, the details provider reads the
+   * workflow aggregate as the event left it, and the titles are rendered on both. What comes
+   * out is the whole report, and it travels with the entry.
+   *
+   * @return The entry to write, or <code>null</code> where there is nothing to report
+   */
+  private PhaseTwoCall userTaskCall(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final Map<String, String> args,
+      final String eventId,
+      final OffsetDateTime timestamp) {
+
+    final var event = buildUserTaskEvent(userTask, kind, eventId, timestamp);
+    final var described = described(userTask);
+    final var prefill = prefilledUserTaskDetails(userTask);
+    if (prefill.isEmpty()) {
+      if (!ends(kind)) {
+        reportDropped(described, kind.name(), userTask.adapterId());
+        return null;
+      }
+      reportedWithoutDetails(described, kind.name(), userTask.adapterId());
+    } else {
+      applyPrefill(event, prefill.get());
+      invokeUserTaskDetailsProvider(event, userTask, prefill.get());
+      fillTitles(event, prefill.get());
+    }
+    return PhaseTwoCall
+        .of(
+            BusinessCockpitOperations.publishUserTaskEvent(),
+            userTask.workflowModuleId(),
+            userTask.bpmnProcessId(),
+            userTask.workflowAggregateId(),
+            userTask.adapterId(),
+            args,
+            ReportPayload.of(event))
+        .replacingWhatIsStillWaiting();
+
+  }
+
+  /**
+   * Builds the report of a workflow event and the entry carrying it. It is the counterpart of
+   * {@link #userTaskCall} for a workflow.
+   *
+   * @return The entry to write, or <code>null</code> where there is nothing to report
+   */
+  private PhaseTwoCall workflowCall(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final Map<String, String> args,
+      final String eventId,
+      final OffsetDateTime timestamp) {
+
+    final var module = configuration.workflowModule(workflow.workflowModuleId());
+    final var event = buildWorkflowEvent(workflow, kind, eventId, timestamp);
+    final var described = described(workflow);
+    final var prefill = prefilledWorkflowDetails(workflow);
+    if (prefill.isEmpty()) {
+      if (!ends(kind)) {
+        reportDropped(described, kind.name(), workflow.adapterId());
+        return null;
+      }
+      reportedWithoutDetails(described, kind.name(), workflow.adapterId());
+    } else {
+      event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
+      event.setBusinessId(prefill.get().businessId());
+      event.setInitiator(prefill.get().initiator());
+      handlers
+          .invoke(
+              HandlerCall
+                  .of(
+                      WorkflowDetailsProvider.class, workflow.workflowModuleId(),
+                      workflow.bpmnProcessId())
+                  .processVersion(workflow.processVersion())
+                  .workflowAggregateId(workflow.workflowAggregateId())
+                  .payload(event)
+                  .build())
+          .map(WorkflowDetails.class::cast)
+          .ifPresent(event::applyReturnedDetails);
+      EventTitles.fill(event, module, templating, prefill.get().bpmnProcessName());
+    }
+    return PhaseTwoCall
+        .of(
+            BusinessCockpitOperations.publishWorkflowEvent(),
+            workflow.workflowModuleId(),
+            workflow.bpmnProcessId(),
+            workflow.workflowAggregateId(),
+            workflow.adapterId(),
+            args,
+            ReportPayload.of(event))
+        .replacingWhatIsStillWaiting();
+
+  }
+
+  /**
+   * What the BPMS says about a user task at the moment of the event.
+   *
+   * @param userTask The task the event is about
+   * @return What the BPMS half answered
+   * @throws IllegalStateException If the half asks to be tried again later, which nothing can do
+   *           here (guiding message)
+   */
+  private Optional<UserTaskDetailsPrefill> prefilledUserTaskDetails(
+      final UserTaskReference userTask) {
+
+    final var bridge = bridgeOf(userTask.adapterId());
+    try {
+      return bridge.prefilledUserTaskDetails(userTask);
+    } catch (final PhaseTwoRetryLater e) {
+      throw nothingToTryAgain(bridge, described(userTask), e);
+    }
+
+  }
+
+  /**
+   * What the BPMS says about a workflow at the moment of the event.
+   *
+   * @param workflow The workflow the event is about
+   * @return What the BPMS half answered
+   * @throws IllegalStateException If the half asks to be tried again later (guiding message)
+   */
+  private Optional<WorkflowDetailsPrefill> prefilledWorkflowDetails(
+      final WorkflowReference workflow) {
+
+    final var bridge = bridgeOf(workflow.adapterId());
+    try {
+      return bridge.prefilledWorkflowDetails(workflow);
+    } catch (final PhaseTwoRetryLater e) {
+      throw nothingToTryAgain(bridge, described(workflow), e);
+    }
+
+  }
+
   private void dispatchUserTaskEvent(
+      final PhaseTwoCall call) {
+
+    transport
+        .publishUserTaskEvent(
+            call.hasPayload()
+                ? ReportPayload.userTaskEvent(call.payload())
+                : userTaskEventWithoutItsReport(call));
+
+  }
+
+  private void dispatchWorkflowEvent(
+      final PhaseTwoCall call) {
+
+    transport
+        .publishWorkflowEvent(
+            call.hasPayload()
+                ? ReportPayload.workflowEvent(call.payload())
+                : workflowEventWithoutItsReport(call));
+
+  }
+
+  /**
+   * The report of an entry whose report is gone: the identifiers of the event and nothing else.
+   * <p>
+   * The bytes of a report are removed when its entry was dispatched, and the housekeeping of
+   * the outbox removes what a crash left behind. An entry which outlives its own bytes has
+   * waited longer than <code>vanillabp.outbox.retention</code>, or it was written by a
+   * transaction which crashed between the entry and the bytes. Sending it without business data
+   * is what is left, and it is the better half: the cockpit keeps what it stored about that
+   * task before, and a task whose end is never reported stays open in the list for good.
+   */
+  private UserTaskEvent userTaskEventWithoutItsReport(
       final PhaseTwoCall call) {
 
     final var args = call.args();
@@ -660,32 +832,18 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                     .get(
                         BusinessCockpitOperations.ARG_TASK_DEFINITION), args
                             .get(BusinessCockpitOperations.ARG_BPMN_TASK_ID));
-    final var event = buildUserTaskEvent(
+    reportWithoutItsPayload(described(userTask), kind.name());
+    return buildUserTaskEvent(
         userTask, kind, args.get(BusinessCockpitOperations.ARG_EVENT_ID),
         parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP)));
 
-    final var described = "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')".formatted(
-        userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(), userTask
-            .bpmnProcessId(),
-        userTask.workflowAggregateId());
-    final var prefill = bridgeOf(call.adapterId()).prefilledUserTaskDetails(userTask);
-    if (prefill.isEmpty()) {
-      if (!ends(kind)) {
-        reportDropped(described, kind.name(), call.adapterId());
-        return;
-      }
-      reportedWithoutDetails(described, kind.name(), call.adapterId());
-    } else {
-      applyPrefill(event, prefill.get());
-      invokeUserTaskDetailsProvider(event, userTask, prefill.get());
-      fillTitles(event, prefill.get());
-    }
-
-    transport.publishUserTaskEvent(event);
-
   }
 
-  private void dispatchWorkflowEvent(
+  /**
+   * The report of a workflow entry whose report is gone, for the reasons given at
+   * {@link #userTaskEventWithoutItsReport}.
+   */
+  private WorkflowEvent workflowEventWithoutItsReport(
       final PhaseTwoCall call) {
 
     final var args = call.args();
@@ -695,48 +853,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), args.get(
             BusinessCockpitOperations.ARG_PROCESS_VERSION), call.workflowAggregateId(), args
                 .get(BusinessCockpitOperations.ARG_WORKFLOW_ID));
-    final var module = configuration.workflowModule(call.workflowModuleId());
-    final var event = new WorkflowEvent(kind);
-    event.setEventId(args.get(BusinessCockpitOperations.ARG_EVENT_ID));
-    event.setTimestamp(parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP)));
-    event.setSource(source);
-    event.setWorkflowId(workflow.workflowId());
-    event.setWorkflowModuleId(workflow.workflowModuleId());
-    event.setBpmnProcessId(workflow.bpmnProcessId());
-    event.setUiUriPath(module.uiUriPath());
-    event.setUiUriType(module.uiUriType());
-
-    final var described = "workflow '%s' of '%s/%s' (aggregate '%s')".formatted(
-        workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(), workflow
-            .workflowAggregateId());
-    final var prefill = bridgeOf(call.adapterId()).prefilledWorkflowDetails(workflow);
-    if (prefill.isEmpty()) {
-      if (!ends(kind)) {
-        reportDropped(described, kind.name(), call.adapterId());
-        return;
-      }
-      reportedWithoutDetails(described, kind.name(), call.adapterId());
-    } else {
-      event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
-      event.setBusinessId(prefill.get().businessId());
-      event.setInitiator(prefill.get().initiator());
-      final var returned = handlers
-          .invoke(
-              HandlerCall
-                  .of(
-                      WorkflowDetailsProvider.class, workflow.workflowModuleId(),
-                      workflow.bpmnProcessId())
-                  .processVersion(workflow.processVersion())
-                  .workflowAggregateId(workflow.workflowAggregateId())
-                  .payload(event)
-                  .build());
-      returned
-          .map(WorkflowDetails.class::cast)
-          .ifPresent(event::applyReturnedDetails);
-      EventTitles.fill(event, module, templating, prefill.get().bpmnProcessName());
-    }
-
-    transport.publishWorkflowEvent(event);
+    reportWithoutItsPayload(described(workflow), kind.name());
+    return buildWorkflowEvent(
+        workflow, kind, args.get(BusinessCockpitOperations.ARG_EVENT_ID),
+        parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP)));
 
   }
 
@@ -770,6 +890,26 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     event.setBpmnProcessId(userTask.bpmnProcessId());
     event.setTaskDefinition(userTask.taskDefinition());
     event.setBpmnTaskId(userTask.bpmnTaskId());
+    event.setUiUriPath(module.uiUriPath());
+    event.setUiUriType(module.uiUriType());
+    return event;
+
+  }
+
+  private WorkflowEvent buildWorkflowEvent(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String eventId,
+      final OffsetDateTime timestamp) {
+
+    final var module = configuration.workflowModule(workflow.workflowModuleId());
+    final var event = new WorkflowEvent(kind);
+    event.setEventId(eventId);
+    event.setTimestamp(timestamp);
+    event.setSource(source);
+    event.setWorkflowId(workflow.workflowId());
+    event.setWorkflowModuleId(workflow.workflowModuleId());
+    event.setBpmnProcessId(workflow.bpmnProcessId());
     event.setUiUriPath(module.uiUriPath());
     event.setUiUriType(module.uiUriType());
     return event;
@@ -853,34 +993,59 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Writes one entry, into the store the workflow aggregate's transaction reaches and into the
-   * transaction the caller asked for.
+   * One report on its way into the outbox: what it is about, and how it is built.
+   *
+   * @param operation The name of the operation, for a message about a failed report
+   * @param workflowModuleId The module the event belongs to
+   * @param bpmnProcessId The BPMN process the event belongs to
+   * @param adapterId The BPMS the event came from
+   * @param workflowAggregateClass The aggregate the caller knows, or <code>null</code>
+   * @param buildTheEntry Builds the report and the entry carrying it. It is called inside the
+   *          transaction the entry is written in, because a report is put together from the
+   *          workflow aggregate and has to read it as that transaction sees it
+   */
+  private record ReportBeingPlanned(
+                                    String operation,
+                                    String workflowModuleId,
+                                    String bpmnProcessId,
+                                    String adapterId,
+                                    Class<?> workflowAggregateClass,
+                                    Supplier<PhaseTwoCall> buildTheEntry) {
+  }
+
+  /**
+   * Builds one report and writes its entry, into the store the workflow aggregate's transaction
+   * reaches and into the transaction the caller asked for.
    * <p>
    * {@link EventTransaction#CURRENT} runs through the transaction runner instead of writing
    * straight away. A BPMS half which promised a running transaction and brought none is then
    * told about it, instead of having its entry committed on its own.
+   * <p>
+   * The report is built inside that transaction and not before it. It reads the workflow
+   * aggregate, and the answer has to be the one the transaction of the event sees: a workflow
+   * service which changed its aggregate and has not written it yet is reported with that
+   * change. It is the rule a question of the service follows as well, see decision 21 in the
+   * repository's DECISIONS.md.
    */
   private boolean schedule(
-      final PhaseTwoCall call,
-      final EventTransaction transaction,
-      final Class<?> workflowAggregateClass,
-      final String workflowModuleId,
-      final String bpmnProcessId) {
+      final ReportBeingPlanned report,
+      final EventTransaction transaction) {
 
-    if (!configuration.reportsToTheCockpit(workflowModuleId)) {
+    if (!configuration.reportsToTheCockpit(report.workflowModuleId())) {
       logger
           .debug(
               "Not reporting anything of workflow module '{}': it configured none of the Business Cockpit's settings",
-              workflowModuleId);
+              report.workflowModuleId());
       return false;
     }
-    final var aggregateClass = aggregateOf(workflowModuleId, bpmnProcessId, workflowAggregateClass);
+    final var aggregateClass = aggregateOf(
+        report.workflowModuleId(), report.bpmnProcessId(), report.workflowAggregateClass());
     final var store = aggregateClass == null
-        ? outbox.ofEventObservedByABpms(workflowModuleId, bpmnProcessId)
+        ? outbox.ofEventObservedByABpms(report.workflowModuleId(), report.bpmnProcessId())
         : outbox.ofWorkflowAggregate(aggregateClass);
     final var transactionRunner = requireTransactionFor(aggregateClass);
     if (transaction == EventTransaction.NEW) {
-      return transactionRunner.requireNew(() -> store.schedule(call));
+      return transactionRunner.requireNew(() -> buildAndSchedule(store, report));
     }
     // whether the entry was written at all tells the two failures apart. A runner which never
     // reached the supplier refused the transaction. Everything else is the store's own failure
@@ -889,7 +1054,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     try {
       return transactionRunner.inCurrent(() -> {
         entered.set(true);
-        return store.schedule(call);
+        return buildAndSchedule(store, report);
       });
     } catch (final RuntimeException e) {
       if (entered.get()) {
@@ -904,8 +1069,28 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
               The BPMS half of adapter '%s' has to pass EventTransaction.NEW where it reports from \
               a worker thread, or open a transaction around the report."""
               .formatted(
-                  call.operation(), workflowModuleId, call.adapterId()), e);
+                  report.operation(), report.workflowModuleId(), report.adapterId()), e);
     }
+
+  }
+
+  /**
+   * Builds the report and hands its entry to the store.
+   * <p>
+   * The entry takes the place of an entry of the same key which is still waiting, instead of
+   * being discarded against it. An entry carries its report now, so the waiting one carries the
+   * older state, and a user reading the cockpit after a backlog wants the newest. What stays is
+   * that the waiting reports of one task collapse into one. See decision 26 in the repository's
+   * DECISIONS.md.
+   *
+   * @return Whether an entry was written
+   */
+  private static boolean buildAndSchedule(
+      final PhaseTwoOutbox store,
+      final ReportBeingPlanned report) {
+
+    final var call = report.buildTheEntry().get();
+    return (call != null) && store.scheduleReplacingWhatIsStillWaiting(call);
 
   }
 
@@ -932,13 +1117,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Says that a report was dropped because the BPMS no longer knows what it is about.
+   * Says that a report was dropped because the BPMS says nothing about what it is about.
    * <p>
    * A dropped report was to carry details, so the cockpit loses what it would have shown. That
-   * is said out loud, with everything needed to find the case again. A BPMS whose read model is
-   * only lagging behind must not end up here. A bridge which may know the task in a moment
-   * throws <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> instead of answering
-   * empty, and the outbox brings the entry back.
+   * is said out loud, with everything needed to find the case again. The BPMS half is asked
+   * while the event is being observed, so an empty answer means that the half has nothing about
+   * the very event it is reporting.
    * <p>
    * Only a report of a task or a case which is still running reaches this method. An end is
    * reported without its details instead, because a report which never arrives leaves a task
@@ -951,7 +1135,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
     logger
         .warn(
-            "Not reporting {} as {} to the Business Cockpit: the BPMS '{}' does not know it any more",
+            "Not reporting {} as {} to the Business Cockpit: the BPMS half of adapter '{}' says nothing about it",
             what,
             kind,
             adapterId);
@@ -962,10 +1146,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Says that an end was reported with the identifiers alone.
    * <p>
    * The BPMS was asked and answered nothing. For an end that is an answer, not a defect. An
-   * engine may forget a task the moment it is over, and a read model answering out of a cache
-   * may have dropped it by the time the report goes out. The cockpit then keeps the business
-   * data of the last change instead of the data the case was finished with, and this line says
-   * which case that happened to.
+   * engine may forget a task the moment it is over. The cockpit then keeps the business data of
+   * the last change instead of the data the case was finished with, and this line says which
+   * case that happened to.
    */
   private static void reportedWithoutDetails(
       final String what,
@@ -974,10 +1157,76 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
     logger
         .info(
-            "Reporting {} as {} to the Business Cockpit without details: the BPMS '{}' does not know it any more",
+            "Reporting {} as {} to the Business Cockpit without details: the BPMS half of adapter '{}' says nothing about it",
             what,
             kind,
             adapterId);
+
+  }
+
+  /**
+   * Says that an entry outlived the report it was to carry, and what that costs.
+   */
+  private static void reportWithoutItsPayload(
+      final String what,
+      final String kind) {
+
+    logger
+        .warn(
+            """
+                Reporting {} as {} to the Business Cockpit with its identifiers alone: the entry \
+                carries no report any more. A report is written beside its entry and is removed \
+                when the entry was dispatched, so this entry either waited longer than \
+                'vanillabp.outbox.retention' or lost its report to a crash. The cockpit keeps \
+                what it knows about this one from the report before.""",
+            what,
+            kind);
+
+  }
+
+  /**
+   * Refuses a BPMS half which asks for a report to be repeated later.
+   * <p>
+   * That answer belonged to the time when a report was built while its entry was dispatched: an
+   * entry existed, and the outbox could bring it back. A report is built while the event is
+   * observed now, and there is no entry yet.
+   */
+  private static IllegalStateException nothingToTryAgain(
+      final BusinessCockpitBpmsBridge bridge,
+      final String what,
+      final PhaseTwoRetryLater cause) {
+
+    return new IllegalStateException(
+        """
+            The BPMS half of adapter '%s' (%s) asked for the report about %s to be tried again \
+            later, and there is nothing to try again here: the report is put together while the \
+            BPMS event is being observed, and the outbox entry is written after that. A half \
+            answers this question out of the event it is reporting. A task listener of an \
+            embedded engine holds every field already, and a half whose engine is remote keeps \
+            what the engine delivered. A storage which runs behind the engine cannot answer at \
+            this moment, because the event being observed has not reached it yet."""
+            .formatted(bridge.adapterId(), bridge.adapterType(), what), cause);
+
+  }
+
+  private static String described(
+      final UserTaskReference userTask) {
+
+    return "user task '%s' (workflow '%s' of '%s/%s', aggregate '%s')"
+        .formatted(
+            userTask.userTaskId(), userTask.workflowId(), userTask.workflowModuleId(), userTask
+                .bpmnProcessId(),
+            userTask.workflowAggregateId());
+
+  }
+
+  private static String described(
+      final WorkflowReference workflow) {
+
+    return "workflow '%s' of '%s/%s' (aggregate '%s')"
+        .formatted(
+            workflow.workflowId(), workflow.workflowModuleId(), workflow.bpmnProcessId(), workflow
+                .workflowAggregateId());
 
   }
 

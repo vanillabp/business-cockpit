@@ -17,31 +17,41 @@ import java.util.Optional;
  * it is kept small: five questions, each about one workflow or one user task named by
  * identifiers.
  * <p>
- * <b>When these methods run.</b> The two <code>prefilled…</code> methods are called while an
- * outbox entry is dispatched. That is on a thread of the outbox dispatcher, after the
- * transaction the BPMS event arrived in was committed. The three <code>…OfAggregate</code>
- * methods are called from <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>. The two
- * which serve a report run inside the transaction the application was in.
- * <code>userTaskOfAggregate</code> runs inside that one, or inside a transaction the extension
- * opened where the application brought none. None of them may assume an engine transaction is
- * open.
+ * <b>When these methods run.</b> The two <code>prefilled…</code> methods are called at the
+ * moment of the event, inside the transaction it arrived in, while the report is being put
+ * together. A half answers them out of the event it is reporting: a task listener of an
+ * embedded engine holds every field of a task already, and a half whose engine is remote keeps
+ * what the engine delivered to it. Asking a storage which runs behind the engine does not work
+ * there, because the event being reported has not reached it yet.
  * <p>
- * <b>What a failure means.</b> The two <code>prefilled…</code> methods have four answers, and
- * picking the right one decides whether a report is made, made later, or not made at all.
+ * <code>prefilledUserTaskDetails</code> serves a second moment as well.
+ * <code>BusinessCockpitService.getUserTask</code> reads a task somebody asks about now, and
+ * that read is not about an event at all. A half which cannot answer both out of one source
+ * reads the engine for this one and keeps the event's own values for the other.
+ * <p>
+ * The three <code>…OfAggregate</code> methods are called from
+ * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>. The two which serve a report
+ * run inside the transaction the application was in. <code>userTaskOfAggregate</code> runs
+ * inside that one, or inside a transaction the extension opened where the application brought
+ * none. None of them may assume an engine transaction is open.
+ * <p>
+ * <b>What a failure means.</b> The two <code>prefilled…</code> methods have three answers, and
+ * picking the right one decides whether a report is made, made without business data, or not
+ * made at all.
  * <ol>
- * <li>The values, where the BPMS knows the task or the workflow.</li>
- * <li>An exception, where the BPMS could not be reached. The dispatch of the entry is aborted
- * and the outbox repeats it with a backoff.</li>
- * <li><code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code>, where the BPMS is reachable
- * and does not know it <em>yet</em>. That is a read model which has not caught up with the
- * event it just sent. The entry comes back after the window the exception names, and the
- * number of attempts an outbox store allows bounds the waiting. A remote engine which answers
- * a report of a freshly created task with 404 belongs here and not below.</li>
- * <li>An empty result, where the BPMS is reachable and does not know it any more. Nothing is
- * reported. That is right for a task somebody completed a second ago and wrong for one the
- * BPMS has merely not made searchable yet, so a report dropped here is dropped for good and
- * the log says so.</li>
+ * <li>The values, where the BPMS says something about the task or the workflow.</li>
+ * <li>An exception, where the half cannot read what it was asked for. It travels on to the
+ * caller, which is the engine reporting the event, so the engine's own work fails and says so.
+ * A report is only read here, but what is read has to be right, and a defect which is repeated
+ * away is a defect nobody fixes.</li>
+ * <li>An empty result, where the BPMS says nothing about it. A report about a task or a case
+ * which is still running is then dropped and the log says so; an end is reported with its
+ * identifiers and without business data, because a report which never arrives leaves a task
+ * the cockpit shows as open for good.</li>
  * </ol>
+ * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> is no answer here any more.
+ * It asked for an entry to be dispatched again, and at the moment of the event there is no
+ * entry yet. A half throwing it reads a message saying so.
  *
  * @see BusinessCockpitEventPublisher for the other direction, which the BPMS half calls
  */
@@ -62,23 +72,22 @@ public interface BusinessCockpitBpmsBridge {
   String adapterType();
 
   /**
-   * What the BPMS knows about the given user task right now.
+   * What the BPMS says about the given user task: the values of the event being reported, or
+   * the values of now where <code>BusinessCockpitService.getUserTask</code> asks.
    *
    * @param userTask The task to read
-   * @return The values read, or empty where the BPMS does not know the task any more, which
-   *         ends the report for good. Where the BPMS may know it in a moment, throw
-   *         <code>PhaseTwoRetryLater</code> instead
+   * @return The values read, or empty where the BPMS says nothing about the task, which ends
+   *         the report of a running task for good
    */
   Optional<UserTaskDetailsPrefill> prefilledUserTaskDetails(
       UserTaskReference userTask);
 
   /**
-   * What the BPMS knows about the given workflow right now.
+   * What the BPMS says about the given workflow, at the moment of the event being reported.
    *
    * @param workflow The workflow to read
-   * @return The values read, or empty where the BPMS does not know the workflow any more,
-   *         which ends the report for good. Where the BPMS may know it in a moment, throw
-   *         <code>PhaseTwoRetryLater</code> instead
+   * @return The values read, or empty where the BPMS says nothing about the workflow, which
+   *         ends the report of a running case for good
    */
   Optional<WorkflowDetailsPrefill> prefilledWorkflowDetails(
       WorkflowReference workflow);

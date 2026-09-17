@@ -2,8 +2,8 @@ package io.vanillabp.cockpit.extension.spi;
 
 /**
  * Everything needed to address one user task of one BPMS, and nothing else. The rule of
- * {@link WorkflowReference} holds here too: identifiers travel, data is read while the entry is
- * dispatched.
+ * {@link WorkflowReference} holds here too: a reference is identifiers, and what the cockpit is
+ * told is the report built at the event.
  *
  * @param adapterId The configured adapter id of the BPMS holding this task
  * @param workflowModuleId The workflow module the BPMN process belongs to

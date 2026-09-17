@@ -54,6 +54,9 @@ public class StoreAttributionTest {
   RecordingOutbox namedStore;
 
   @Inject
+  TestAggregatePersistence aggregates;
+
+  @Inject
   BusinessCockpitEventPublisher publisher;
 
   @Inject
@@ -63,11 +66,19 @@ public class StoreAttributionTest {
   @DisplayName("A store the application named for its aggregate is the one written into")
   public void theNamedStoreCarriesTheEntries() throws Exception {
 
+    // the case is saved first, because the report is put together where it is made and the
+    // details provider of the application is handed the case the event is about
+    final var aggregate = new TestAggregate();
+    aggregate.setCustomer("Anna");
+    aggregates.save(aggregate);
+
     transaction.begin();
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, "4711", TestBpmsBridge.WORKFLOW_ID),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, aggregate
+                    .getId()
+                    .toString(), TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "bpms-event-1", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     transaction.commit();

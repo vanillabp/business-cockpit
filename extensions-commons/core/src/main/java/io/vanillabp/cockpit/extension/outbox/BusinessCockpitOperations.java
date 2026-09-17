@@ -13,11 +13,15 @@ import io.vanillabp.integration.spi.PhaseTwoCall;
  * application is dispatched by today's, so an operation is never renamed and the rule deriving
  * its idempotency key is never changed.
  * <p>
- * An entry carries identifiers and nothing else. What the cockpit is told is read again while
- * the entry is dispatched, see decision 3 in the repository's DECISIONS.md. That keeps an entry
- * inside the 2048 characters the outbox stores hold, and it lets several pending updates of one
- * task collapse into one. They would all report the same state anyway. Why the keys look the way
- * they do is decision 4 in the repository's DECISIONS.md.
+ * An entry is a row of identifiers. The report itself is put together at the moment of the
+ * event and travels as the payload of the entry, which VanillaBP keeps beside it, so the 2048
+ * characters an outbox store holds for arguments are not what a report has to fit in. See
+ * decision 26 in the repository's DECISIONS.md.
+ * <p>
+ * Several waiting reports about one task still collapse into one. What changed is which of them
+ * survives: the youngest takes the place of the one which waits, because each of them carries
+ * its own state now and the newest is the one a reader wants. Why the keys look the way they do
+ * is decision 4 in the repository's DECISIONS.md.
  */
 public final class BusinessCockpitOperations {
 
@@ -144,9 +148,9 @@ public final class BusinessCockpitOperations {
    * The key of a user-task entry: the operation, the BPMS holding the task, the task and the
    * kind of event.
    * <p>
-   * Two pending updates of one task share a key on purpose. Only one of them survives, and
-   * that is right: the dispatch reads the task's current state, so the surviving entry reports
-   * everything the discarded ones would have reported.
+   * Two pending updates of one task share a key on purpose. Only one of them survives, and it
+   * is the youngest: every entry carries the report it was planned with, so the youngest is the
+   * one which says what is true now.
    *
    * @param call The entry being scheduled
    * @return The key

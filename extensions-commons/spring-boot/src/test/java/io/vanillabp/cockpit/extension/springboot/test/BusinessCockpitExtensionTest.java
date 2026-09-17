@@ -263,8 +263,8 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
-  @DisplayName("Pending updates of one task collapse into one report")
-  public void pendingUpdatesCollapse() {
+  @DisplayName("Pending updates of one task collapse into one report, and it is the youngest")
+  public void pendingUpdatesCollapseIntoTheYoungest() {
 
     final var aggregate = aStartedWorkflow();
     final var userTask = userTaskOf(aggregate, "approve");
@@ -282,7 +282,51 @@ public class BusinessCockpitExtensionTest {
     });
 
     assertTrue(scheduled.get(0), "the first update was not scheduled");
-    assertFalse(scheduled.get(1), "the second update was scheduled although one was pending");
+    assertTrue(scheduled.get(1), "the second update did not take the place of the first");
+
+    final var request = CockpitServer
+        .awaitRequest(
+            "/usertask/"
+                + RecordingBpmsBridge.USER_TASK_ID
+                + "/updated",
+            "bpms-event-5");
+    assertTrue(request.body().contains("bpms-event-5"), request.body());
+    CockpitServer.awaitQuiet();
+    assertTrue(
+        CockpitServer
+            .received()
+            .stream()
+            .noneMatch(reported -> reported.body().contains("bpms-event-4")),
+        "the first update was reported as well, so the two entries did not collapse");
+
+  }
+
+  @Test
+  @DisplayName("A report carries the state of its event and not the state of the moment it is sent")
+  public void aReportCarriesTheStateOfItsEvent() {
+
+    final var aggregate = aStartedWorkflow();
+    // the first attempt is refused, so the report leaves this application after the case below
+    // was changed. Whichever moment the outbox gets to it, the report was written at the event
+    CockpitServer.refuseRequestsAbout("bpms-event-22", 1);
+
+    transactions
+        .executeWithoutResult(status -> publisher
+            .publishUserTaskEvent(
+                userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-22",
+                OffsetDateTime.now(), EventTransaction.CURRENT));
+
+    transactions.executeWithoutResult(status -> {
+      final var changed = aggregates.findById(aggregate.getId()).orElseThrow();
+      changed.setCustomer("Berta");
+      aggregates.save(changed);
+    });
+
+    final var request = CockpitServer.awaitRequest("/usertask/created", "bpms-event-22");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertFalse(request.body().contains("Berta"), request.body());
+    assertEquals(
+        "Berta", aggregates.findById(aggregate.getId()).orElseThrow().getCustomer());
 
   }
 
@@ -680,11 +724,18 @@ public class BusinessCockpitExtensionTest {
             .getId()
             .toString(), RecordingBpmsBridge.WORKFLOW_ID, "task-9", "approve", "Activity_approve");
 
-    transactions
-        .executeWithoutResult(status -> publisher
-            .publishUserTaskEvent(
-                elsewhere, UserTaskEventKind.CREATED, "bpms-event-10", OffsetDateTime.now(),
-                EventTransaction.CURRENT));
+    // the report is put together where it is made, so the message reaches the code which
+    // reported the event instead of a dispatcher thread nobody is watching
+    final var refused = assertThrows(
+        IllegalStateException.class,
+        () -> transactions
+            .executeWithoutResult(status -> publisher
+                .publishUserTaskEvent(
+                    elsewhere, UserTaskEventKind.CREATED, "bpms-event-10", OffsetDateTime.now(),
+                    EventTransaction.CURRENT)));
+    assertTrue(refused.getMessage().contains("another-bpms"), refused.getMessage());
+    assertTrue(
+        refused.getMessage().contains("Configured adapters are: test"), refused.getMessage());
 
     CockpitServer.awaitQuiet();
     assertTrue(
