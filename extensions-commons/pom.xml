@@ -42,7 +42,7 @@
     <!-- pinned against the Spring Boot bill of materials, which manages Testcontainers 2.x:
       the tests here are written against the 1.x API (org.testcontainers.junit.jupiter and the
       org.testcontainers.kafka module, which is the one reading an apache/kafka image) -->
-    <version.testcontainers>1.20.4</version.testcontainers>
+    <version.testcontainers>1.21.4</version.testcontainers>
   </properties>
 
   <dependencyManagement>
