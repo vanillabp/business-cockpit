@@ -34,6 +34,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The workflow the test raises events for. */
   public static final String WORKFLOW_ID = "workflow-1";
 
+  /** The deployed version this BPMS double runs its workflows on. */
+  public static final String PROCESS_VERSION = "1";
+
   private final AtomicBoolean knowsTheTask = new AtomicBoolean(true);
 
   private final List<UserTaskReference> userTasksRead = new LinkedList<>();
@@ -139,7 +142,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
     return List
         .of(
             new WorkflowReference(
-                ADAPTER_ID, workflowModuleId, bpmnProcessId, workflowAggregateId, WORKFLOW_ID));
+                ADAPTER_ID, workflowModuleId, bpmnProcessId, PROCESS_VERSION, workflowAggregateId, WORKFLOW_ID));
 
   }
 
@@ -178,6 +181,26 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @param taskDefinition Which details provider the task is to be matched against
+   * @param processVersion Which version of the deployed process the task came from,
+   *          <code>null</code> for a BPMS which reports none
+   * @return A reference to a task of the given aggregate
+   */
+  public static UserTaskReference userTask(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String workflowAggregateId,
+      final String userTaskId,
+      final String taskDefinition,
+      final String processVersion) {
+
+    return new UserTaskReference(
+        ADAPTER_ID, workflowModuleId, bpmnProcessId, processVersion, workflowAggregateId, WORKFLOW_ID, userTaskId, taskDefinition, "Activity_"
+            + taskDefinition);
+
+  }
+
+  /**
+   * @param taskDefinition Which details provider the task is to be matched against
    * @return A reference to a task of the given aggregate
    */
   public static UserTaskReference userTask(
@@ -187,9 +210,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final String userTaskId,
       final String taskDefinition) {
 
-    return new UserTaskReference(
-        ADAPTER_ID, workflowModuleId, bpmnProcessId, workflowAggregateId, WORKFLOW_ID, userTaskId, taskDefinition, "Activity_"
-            + taskDefinition);
+    return userTask(
+        workflowModuleId, bpmnProcessId, workflowAggregateId, userTaskId, taskDefinition,
+        PROCESS_VERSION);
 
   }
 

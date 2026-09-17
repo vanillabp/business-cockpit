@@ -15,10 +15,10 @@ import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.springboot.bridges.BridgesOfASecondBpms;
 import io.vanillabp.cockpit.extension.springboot.broken.BrokenApplication;
-import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedVersionedProviderService;
+import io.vanillabp.cockpit.extension.springboot.brokenparts.OverlappingVersionsProviderService;
+import io.vanillabp.cockpit.extension.springboot.brokenparts.ProxiedOverlappingVersionsService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwiceServingProviderService;
 import io.vanillabp.cockpit.extension.springboot.brokenparts.TwoMethodsForEveryUserTaskService;
-import io.vanillabp.cockpit.extension.springboot.brokenparts.VersionedProviderService;
 import io.vanillabp.cockpit.extension.springboot.writinghandler.ExtensionWithAWritingHandler;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.CapturedOutput;
@@ -71,16 +71,19 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
-  @DisplayName("A details provider naming a version is refused, naming its method")
-  public void aVersionAttributeIsRefusedNamingTheMethod() {
+  @DisplayName("Two providers of one task whose versions overlap are refused, naming both")
+  public void overlappingVersionsAreRefusedNamingBothMethods() {
 
     final var message = failureOfBooting(
-        "cockpit-broken-version", BrokenApplication.class, VersionedProviderService.class);
+        "cockpit-broken-version", BrokenApplication.class,
+        OverlappingVersionsProviderService.class);
 
-    assertTrue(message.contains(VersionedProviderService.class.getName()), message);
-    assertTrue(message.contains("approve"), message);
-    assertTrue(message.contains("version"), message);
-    assertTrue(message.contains("taskDefinition"), message);
+    assertTrue(message.contains("approveUpToTheThird"), message);
+    assertTrue(message.contains("approveFromTheThird"), message);
+    // the ranges belong in the message: which of the two to narrow is what the developer has
+    // to decide, and they cannot decide it without reading both
+    assertTrue(message.contains("1-3"), message);
+    assertTrue(message.contains(">2"), message);
 
   }
 
@@ -95,11 +98,10 @@ public class BusinessCockpitBootTest {
             // bean's TYPE is then says nothing about the class the application wrote
             "spring.aop.proxy-target-class=false"
         },
-        BrokenApplication.class, ProxiedVersionedProviderService.class);
+        BrokenApplication.class, ProxiedOverlappingVersionsService.class);
 
-    assertTrue(message.contains(ProxiedVersionedProviderService.class.getName()), message);
-    assertTrue(message.contains("approve"), message);
-    assertTrue(message.contains("version"), message);
+    assertTrue(message.contains("approveUpToTheThird"), message);
+    assertTrue(message.contains("approveFromTheThird"), message);
 
   }
 

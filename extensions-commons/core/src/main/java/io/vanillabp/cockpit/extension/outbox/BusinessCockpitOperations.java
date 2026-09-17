@@ -61,6 +61,16 @@ public final class BusinessCockpitOperations {
   /** The task's BPMN element id, the other key a details provider is matched by. */
   public static final String ARG_BPMN_TASK_ID = "bpmnTaskId";
 
+  /**
+   * The version of the deployed BPMN process the event came from, or nothing where the BPMS
+   * reports none. It picks the details provider which serves that version.
+   * <p>
+   * It travels with the entry although the dispatch reads the rest again. The version is part of
+   * naming the event: a deployment made while the entry waited must not move the event to the
+   * method of the newer model.
+   */
+  public static final String ARG_PROCESS_VERSION = "processVersion";
+
   /** The BPMS' identifier of the event, which becomes the event id the cockpit sees. */
   public static final String ARG_EVENT_ID = "eventId";
 

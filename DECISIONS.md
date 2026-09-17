@@ -83,7 +83,7 @@ Quarkus the outbox store creates its table in a startup observer of its own, and
 after the deployment pipeline. An entry written any earlier would find no table. Both platforms
 write at the same point, so the two halves stay comparable.
 
-### 7. The `version` attribute of `@UserTaskDetailsProvider` is reserved and refused - who refuses it superseded by decision 16
+### 7. The `version` attribute of `@UserTaskDetailsProvider` is reserved and refused - who refuses it superseded by decision 16, the refusal itself by decision 24
 
 Version-aware matching means picking a different method for each deployed version of a process. The
 events this extension reacts to carry no process version. A task listener says which task fired, not
@@ -93,6 +93,10 @@ Version 1 documented the attribute and never read it, so applications wrote it a
 worked. A value is now refused while the application starts. The message names the attribute and the
 two attributes to match by instead. For an application which left the attribute alone, nothing about
 the annotation changes.
+
+Superseded by decision 24: the events do carry a version now. The platform reports it with every
+call of a handler, so there is something to decide by, and refusing the attribute would keep the
+Business Cockpit behind what `@WorkflowTask` has always been able to do.
 
 ### 8. The extension owns one outbox store, chosen at startup - superseded by decision 10
 
@@ -622,3 +626,43 @@ The warning is still alive for a handler which may write. An extension which reg
 without that statement is reported exactly as before. A test of this repository boots such an
 extension next to the cockpit and reads both answers: the line about the writing handler, and no
 line about the details providers.
+
+### 24. Both details providers pick their method by the version of the deployed process
+
+The `version` attribute of `@UserTaskDetailsProvider` is read, `@WorkflowDetailsProvider` has one
+too, and both go through the selection VanillaBP's own `@WorkflowTask` goes through. This replaces
+decision 7, which refused a value for the one attribute which existed.
+
+What changed is the event. A task listener still says which task fired and not which model it came
+from, but the reference an event travels in carries the version the BPMS reported, and the platform
+takes it with the call. Camunda 7 knows the version of every process definition, Camunda 8 reports
+it with every job, and an engine behind the Process-Engine-API fills a version tag where it wants
+to. So there is something to pick a method by, wherever the BPMS says anything at all.
+
+Nothing of the selection is built here. The platform holds the version ranges of one handler method
+in one place and answers the three questions about them, for its own three annotations and for the
+method of an extension alike. This extension names the attribute its versions stand in and says that
+its calls carry a version. Which range covers which deployment, how a version tag is resolved and
+when two methods are a duplicate is the platform's answer, and it is the same answer a
+`@WorkflowTask` method gets.
+
+The version travels with the outbox entry although the dispatch reads everything else again. An
+entry names its event, and the version is part of that name: a deployment made while the entry
+waited must not move the event to the method of the newer model.
+
+Three things follow.
+
+A method naming no version serves every version, so an application which never wrote the attribute
+reports what it always reported. An application which wrote it under version 1, where it was
+documented and never read, gets what it believed it had.
+
+Without a version from the BPMS only a method naming no version runs. A call without a version is
+served by the methods which name none, and a method which names one is named while the application
+boots rather than waiting for an event which never comes. That is the platform's report about a
+method which serves no deployed version, and it is a warning and not the end of the boot: a version
+which is not deployed yet is a normal state during a rolling deployment.
+
+A method of a details provider does not take the version range of its `@BpmnProcess`. A
+`@WorkflowTask` method does, because that range says which generation of a model the workflow
+service runs. Reporting to the cockpit is not running the workflow, and a range meant for the one
+would silently narrow the other.

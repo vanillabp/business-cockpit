@@ -186,7 +186,7 @@ public class ConfigurationMatrixTest {
         publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "no-aggregate", RecordingBpmsBridge.WORKFLOW_ID),
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", "no-aggregate", RecordingBpmsBridge.WORKFLOW_ID),
                 WorkflowEventKind.CREATED, "bpms-event-switched-off", OffsetDateTime.now(),
                 EventTransaction.CURRENT),
         "a workflow was reported although the workflow list is switched off");

@@ -1,10 +1,10 @@
 package io.vanillabp.cockpit.extension.handler;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
@@ -31,9 +31,15 @@ import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
  * process its workflow service declares, and it runs where no method of that process names the
  * task. A workflow provider exists once per BPMN process and therefore serves every key of it.
  * <p>
- * No matching method is a legal answer. The prefilled details then pass through unchanged, so
- * a workflow module which reports nothing of its own still shows up in the cockpit, with the
- * titles the BPMN carries.
+ * The version of the deployed BPMN process narrows both of them further. A method naming
+ * versions runs for those versions only, a method naming none runs for every version, and two
+ * methods serving one key are told apart by their versions. Both contracts say that their calls
+ * carry the version, so a method VanillaBP could never reach is named while the application
+ * starts. See decision 24 in the repository's DECISIONS.md.
+ * <p>
+ * No matching method is a legal answer, and that holds for a version nobody serves too. The
+ * prefilled details then pass through unchanged, so a workflow module which reports nothing of
+ * its own still shows up in the cockpit, with the titles the BPMN carries.
  * <p>
  * Both contracts say that VanillaBP never saves the workflow aggregate after one of these
  * methods ran. A details provider answers what the cockpit should show, and answering a
@@ -54,13 +60,14 @@ public final class BusinessCockpitHandlers {
     return HandlerContract
         .of(ConfigurationKeys.EXTENSION_ID, UserTaskDetailsProvider.class)
         .lookupKeys(BusinessCockpitHandlers::userTaskLookupKeys)
+        .versions(annotation -> versionsOf(((UserTaskDetailsProvider) annotation).version()))
+        .callsCarryTheProcessVersion()
         .coreParameters(
             CoreHandlerParameter.WORKFLOW_AGGREGATE,
             CoreHandlerParameter.TASK_PARAM,
             CoreHandlerParameter.MULTI_INSTANCE)
         .parameterBinder(BusinessCockpitHandlers::bindPrefilledUserTaskDetails)
         .parameterBinder(BusinessCockpitHandlers::bindDetailsEvent)
-        .validatingAnnotation(BusinessCockpitHandlers::rejectReservedVersionAttribute)
         .deliversReturnValue()
         .neverSavesTheWorkflowAggregate()
         .build();
@@ -75,6 +82,8 @@ public final class BusinessCockpitHandlers {
     return HandlerContract
         .of(ConfigurationKeys.EXTENSION_ID, WorkflowDetailsProvider.class)
         .lookupKeys(annotation -> List.of(HandlerContract.EVERY_KEY))
+        .versions(annotation -> versionsOf(((WorkflowDetailsProvider) annotation).version()))
+        .callsCarryTheProcessVersion()
         .coreParameters(CoreHandlerParameter.WORKFLOW_AGGREGATE)
         .parameterBinder(BusinessCockpitHandlers::bindPrefilledWorkflowDetails)
         .deliversReturnValue()
@@ -133,41 +142,30 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * The <code>version</code> attribute of <code>&#64;UserTaskDetailsProvider</code> is reserved
-   * and has to stay unset. See decision 7 in the repository's DECISIONS.md.
+   * What one occurrence of a <code>version</code> attribute names, handed to VanillaBP as the
+   * versions of the BPMN process the method serves.
    * <p>
-   * Version-aware matching means picking a different method per deployed version of a process.
-   * The events this extension reacts to carry no process version: a task listener says which
-   * task fired, not which version of the model it came from. So nothing would tell two methods
-   * apart. A value which is silently ignored is worse than one which is refused. Version 1
-   * documented the attribute and never read it, and applications wrote it believing it
-   * worked.
-   * <p>
-   * VanillaBP runs this while it scans the annotation, holding the method which carries it, and
-   * puts the annotation, the class, the method and this extension in front of what is said
-   * here.
+   * The specifications are passed on unread. They are VanillaBP's language, the same one
+   * <code>&#64;WorkflowTask</code> is written in, and reading them here would be a second opinion
+   * about what a range means. Only what says nothing at all is dropped: an empty attribute and a
+   * blank entry in it, which VanillaBP would otherwise have to refuse as a range it cannot parse.
+   * The star both annotations default to travels like any other specification and means every
+   * version, exactly as it does on a <code>&#64;WorkflowTask</code>.
    *
-   * @param annotation One occurrence of <code>&#64;UserTaskDetailsProvider</code>
-   * @param method The method carrying it, which VanillaBP names in its refusal
-   * @throws IllegalStateException If it names a version. The message says what to write instead
+   * @param specifications What the attribute of one occurrence names
+   * @return The specifications, empty where the attribute names nothing
    */
-  private static void rejectReservedVersionAttribute(
-      final Annotation annotation,
-      final Method method) {
+  private static List<String> versionsOf(
+      final String[] specifications) {
 
-    final var version = ((UserTaskDetailsProvider) annotation).version();
-    if ((version.length == 0) || Arrays
-        .stream(version)
-        .allMatch(UserTaskDetailsProvider.ALL::equals)) {
-      return;
+    if (specifications == null) {
+      return List.of();
     }
-    throw new IllegalStateException(
-        """
-            it names version '%s'. The attribute is reserved and has to stay unset: the Business \
-            Cockpit reacts to events which do not say which version of the process they came \
-            from, so a version cannot decide which method runs. Remove the attribute and match \
-            by 'id' or 'taskDefinition' instead."""
-            .formatted(String.join(", ", version)));
+    return Arrays
+        .stream(specifications)
+        .filter(Objects::nonNull)
+        .filter(specification -> !specification.isBlank())
+        .toList();
 
   }
 

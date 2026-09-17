@@ -349,6 +349,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     put(args, BusinessCockpitOperations.ARG_WORKFLOW_ID, userTask.workflowId());
     put(args, BusinessCockpitOperations.ARG_TASK_DEFINITION, userTask.taskDefinition());
     put(args, BusinessCockpitOperations.ARG_BPMN_TASK_ID, userTask.bpmnTaskId());
+    put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, userTask.processVersion());
     put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(bpmsEventId));
     put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
 
@@ -408,6 +409,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var args = new LinkedHashMap<String, String>();
     put(args, BusinessCockpitOperations.ARG_EVENT_KIND, kind.name());
     put(args, BusinessCockpitOperations.ARG_WORKFLOW_ID, workflow.workflowId());
+    put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, workflow.processVersion());
     put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(bpmsEventId));
     put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
 
@@ -652,9 +654,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var kind = UserTaskEventKind
         .valueOf(args.get(BusinessCockpitOperations.ARG_EVENT_KIND));
     final var userTask = new UserTaskReference(
-        call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), call.workflowAggregateId(), args.get(
-            BusinessCockpitOperations.ARG_WORKFLOW_ID), args.get(BusinessCockpitOperations.ARG_USER_TASK_ID), args.get(
-                BusinessCockpitOperations.ARG_TASK_DEFINITION), args.get(BusinessCockpitOperations.ARG_BPMN_TASK_ID));
+        call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), args.get(
+            BusinessCockpitOperations.ARG_PROCESS_VERSION), call.workflowAggregateId(), args.get(
+                BusinessCockpitOperations.ARG_WORKFLOW_ID), args.get(BusinessCockpitOperations.ARG_USER_TASK_ID), args
+                    .get(
+                        BusinessCockpitOperations.ARG_TASK_DEFINITION), args
+                            .get(BusinessCockpitOperations.ARG_BPMN_TASK_ID));
     final var event = buildUserTaskEvent(
         userTask, kind, args.get(BusinessCockpitOperations.ARG_EVENT_ID),
         parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP)));
@@ -687,8 +692,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var kind = WorkflowEventKind
         .valueOf(args.get(BusinessCockpitOperations.ARG_EVENT_KIND));
     final var workflow = new WorkflowReference(
-        call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), call.workflowAggregateId(), args
-            .get(BusinessCockpitOperations.ARG_WORKFLOW_ID));
+        call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), args.get(
+            BusinessCockpitOperations.ARG_PROCESS_VERSION), call.workflowAggregateId(), args
+                .get(BusinessCockpitOperations.ARG_WORKFLOW_ID));
     final var module = configuration.workflowModule(call.workflowModuleId());
     final var event = new WorkflowEvent(kind);
     event.setEventId(args.get(BusinessCockpitOperations.ARG_EVENT_ID));
@@ -720,6 +726,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                   .of(
                       WorkflowDetailsProvider.class, workflow.workflowModuleId(),
                       workflow.bpmnProcessId())
+                  .processVersion(workflow.processVersion())
                   .workflowAggregateId(workflow.workflowAggregateId())
                   .payload(event)
                   .build());
@@ -808,6 +815,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         .lookupKeys(
             BusinessCockpitHandlers
                 .lookupKeysOf(userTask.taskDefinition(), userTask.bpmnTaskId()))
+        .processVersion(userTask.processVersion())
         .workflowAggregateId(userTask.workflowAggregateId())
         .payload(event);
     // a variable the engine holds as null is left out instead of being handed on. VanillaBP

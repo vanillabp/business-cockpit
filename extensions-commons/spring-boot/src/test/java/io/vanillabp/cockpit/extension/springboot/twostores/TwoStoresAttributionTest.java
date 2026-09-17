@@ -73,13 +73,13 @@ public class TwoStoresAttributionTest {
             publisher
                 .publishWorkflowEvent(
                     new WorkflowReference(
-                        "test", "test-module", "TestProcess", "4711", "workflow-relational"),
+                        "test", "test-module", "TestProcess", "1", "4711", "workflow-relational"),
                     WorkflowEventKind.CREATED, "of-the-relational-aggregate", OffsetDateTime.now(),
                     EventTransaction.CURRENT);
             publisher
                 .publishWorkflowEvent(
                     new WorkflowReference(
-                        "test", "test-module", "SecondProcess", "4712", "workflow-document"),
+                        "test", "test-module", "SecondProcess", "1", "4712", "workflow-document"),
                     WorkflowEventKind.CREATED, "of-the-document-aggregate", OffsetDateTime.now(),
                     EventTransaction.CURRENT);
           });

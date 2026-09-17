@@ -32,6 +32,9 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The workflow the test raises events for. */
   public static final String WORKFLOW_ID = "workflow-1";
 
+  /** The deployed version this BPMS double runs its workflows on. */
+  public static final String PROCESS_VERSION = "1";
+
   @Inject
   TransactionSynchronizationRegistry transactions;
 
@@ -111,7 +114,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
     return List
         .of(
             new WorkflowReference(
-                ADAPTER_ID, workflowModuleId, bpmnProcessId, workflowAggregateId, WORKFLOW_ID));
+                ADAPTER_ID, workflowModuleId, bpmnProcessId, PROCESS_VERSION, workflowAggregateId, WORKFLOW_ID));
 
   }
 
@@ -154,7 +157,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
       final String userTaskId) {
 
     return new UserTaskReference(
-        ADAPTER_ID, workflowModuleId, bpmnProcessId, workflowAggregateId, WORKFLOW_ID, userTaskId, "approve", "Activity_approve");
+        ADAPTER_ID, workflowModuleId, bpmnProcessId, PROCESS_VERSION, workflowAggregateId, WORKFLOW_ID, userTaskId, "approve", "Activity_approve");
 
   }
 

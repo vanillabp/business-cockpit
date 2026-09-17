@@ -17,8 +17,10 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * are the fallback the cockpit shows where neither a template nor a details provider produced a
  * title, which is why they hold the BPMN <em>names</em> and not the ids.
  *
- * @param bpmnProcessVersion The version of the deployed process the workflow runs on, as the
- *          BPMS counts it
+ * @param bpmnProcessVersion The version of the deployed process the workflow runs on, as a
+ *          person reads it. This is what the cockpit shows, so a BPMS which has a version tag may
+ *          spell the tag and the counted version together here. What picks the details provider
+ *          is the plain version on {@link UserTaskReference} instead
  * @param workflowId The BPMS' identifier of the workflow, where it differs from what the
  *          reference carried (a call activity, say)
  * @param subWorkflowId The identifier of the called workflow the task lives in, if any

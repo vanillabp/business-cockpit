@@ -87,13 +87,13 @@ public class TwoStoresAttributionTest {
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", "4711", TestBpmsBridge.WORKFLOW_ID),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, "4711", TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "of-the-first-aggregate", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "SecondProcess", "4712", "workflow-2"),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "SecondProcess", TestBpmsBridge.PROCESS_VERSION, "4712", "workflow-2"),
             WorkflowEventKind.CREATED, "of-the-second-aggregate", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     transaction.commit();
