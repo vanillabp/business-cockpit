@@ -34,7 +34,7 @@
     <skip.npm.update>false</skip.npm.update>
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
-    <version.jupiter>5.14.4</version.jupiter>
+    <version.jupiter>6.1.3</version.jupiter>
     <jacoco.version>0.8.15</jacoco.version>
     <!-- where the build breaks, in PERCENT of covered instructions per measurement,
          enforced by test-coverage-report/coverage-gate. The container number is what its
