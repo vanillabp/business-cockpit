@@ -31,9 +31,11 @@ that a workflow module can compile against it without inheriting anything.
 | `workflowmodules` | `WorkflowModuleDetailsProvider`, the bean saying which groups may see a workflow module |
 | (root) | `BusinessCockpitService`, which a workflow service injects to report a change of its own |
 
-The `version` attribute of `@UserTaskDetailsProvider` is reserved and refused at startup. Version 1
-documented it and never read it, so applications wrote it believing it worked; refusing it is the
-only answer which tells them. Its Javadoc carries the reasoning.
+Both details provider annotations carry a `version` attribute, and it picks the method by the
+deployed version of the BPMN process. It is written the way `@WorkflowTask` writes it, version tags
+included, and it goes through the same selection of VanillaBP. Version 1 documented the attribute on
+`@UserTaskDetailsProvider` and never read it; version 2 reads it and gives `@WorkflowDetailsProvider`
+the same one.
 
 ## What a change to it costs
 
