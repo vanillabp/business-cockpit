@@ -666,3 +666,52 @@ A method of a details provider does not take the version range of its `@BpmnProc
 `@WorkflowTask` method does, because that range says which generation of a model the workflow
 service runs. Reporting to the cockpit is not running the workflow, and a range meant for the one
 would silently narrow the other.
+
+### 25. A report is to carry the state of its event, and the auditing id is the way there
+
+A report is built when the outbox entry is dispatched, not when the event happened (decision 3).
+Between the two the case can move on, so a report is right about the state of now and wrong about
+the state the event left behind. VanillaBP offers two ways out of that, and this entry says which
+one the Business Cockpit takes.
+
+The first way is to carry the report in the entry. An outbox entry can hold bytes, which VanillaBP
+keeps in a store of its own and hands back at the dispatch. The second way is to carry the name of a
+state. An application which keeps a history of its workflow aggregates answers
+`AggregatePersistenceAware#getAuditingId` with the state an aggregate stands at, and
+`loadByIdAndAuditingId` gives that state back later.
+
+The cockpit takes the second way.
+
+The first one asks for something this extension cannot do. A report is not the workflow aggregate
+alone. The assignee, the candidates, the due and the follow-up date, the business key, the version
+of the deployed process and the variables a `@TaskParam` binds all come from the BPMS, and the
+extension asks the BPMS half for them while the entry is dispatched. The details provider runs after
+that, on the event those answers filled (`BusinessCockpitExtension#dispatchUserTaskEvent`). To put
+the finished report into the entry, the BPMS would have to answer in the transaction of the event. A
+remote engine cannot promise that. Its read model runs behind the engine, which is why a half which
+may know the task in a moment asks for the entry to come back later. At the moment the entry is
+written there is no entry to come back.
+
+Building the report early would also end what decision 3 bought. Several pending reports about one
+task collapse into one because they would all say the same thing. Reports which each carry their own
+bytes say different things, so none of them may be dropped.
+
+The choice belongs to the single call and not to a setting. Every report this extension plans is
+about an event, and every one of them asks for the state of that event. There is nothing to switch
+on, and no report of this extension asks for anything else.
+
+What the BPMS answers keeps the state of the dispatch, and that is wanted. The assignee of a task
+and the dates on it are facts of the engine and not of the workflow aggregate. The engine keeps no
+history the extension could ask for by an auditing id, so these fields say what the engine says at
+the moment the report goes out. The wiki page `Architecture` is where a reader finds it.
+
+The extension cannot take this way yet, and the missing half is the platform's. When it plans an
+entry it holds the id of the workflow aggregate and not the aggregate, so it has nothing to ask
+`getAuditingId` about. A report of a BPMS event never has the aggregate in hand. When it dispatches
+an entry it does not load the aggregate either: VanillaBP loads it inside the handler call which
+runs the details provider (`ExtensionHandlerRegistry#invoke`), and a `HandlerCall` carries no
+auditing id. The one door to `AggregateServiceContext`, which has both methods, is
+`AggregateServiceFactory#createService`, and the service bean behind it is built on both platforms
+only when an application injects it. So the platform gets an auditing id which can be asked for by
+the id of an aggregate, and a handler call which can be told to load the state of the event. This
+extension follows once it can.
