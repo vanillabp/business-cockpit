@@ -21,6 +21,7 @@ vanillabp:
           resources-location: classpath:test-module/processes/dummy
       workflows:
         TestProcess:
+          allow-full-sync-with-bpms: true
           adapters:
             test:
               test: 2
