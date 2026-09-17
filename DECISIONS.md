@@ -743,10 +743,13 @@ each of them says what was true when it was planned.
 
 A failure while the report is built is meant to disturb. The details provider runs in the
 transaction of the event, so a failure there fails the engine's work, and on Camunda 8 the listener
-job holds the transition until it is answered. Only reading happens here, but what is read has to be
-right, and a defect which repetitions hide is a defect nobody fixes. The way to the cockpit server
-is the other half and stays quiet: it runs over the outbox, and a cockpit which is down for ten
-minutes is not worth a single error in anybody's log.
+job holds the transition until it is answered. On the Process-Engine-API the failure leaves the
+observer the adapter calls and fails the delivery, so the engine offers the task again until the
+provider works. The end of a task is the one event that engine does not repeat, and decision 11 of
+`businesscockpit-process-engine-api-adapter` says what that costs. Only reading happens here, but
+what is read has to be right, and a defect which repetitions hide is a defect nobody fixes. The way
+to the cockpit server is the other half and stays quiet: it runs over the outbox, and a cockpit
+which is down for ten minutes is not worth a single error in anybody's log.
 
 The idempotency key stays exactly as decision 4 wrote it, and only the direction of the discard
 turns around. An entry used to be the intention to report, so the one which waited was as good as
