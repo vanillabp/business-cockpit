@@ -106,7 +106,7 @@ public class OneProviderForEveryUserTaskTest {
     publisher
         .publishUserTaskEvent(
             new UserTaskReference(
-                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, bpmnProcessId, aggregate
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, bpmnProcessId, TestBpmsBridge.PROCESS_VERSION, aggregate
                     .getId()
                     .toString(), TestBpmsBridge.WORKFLOW_ID, eventId, taskDefinition, "Activity_"
                         + taskDefinition),

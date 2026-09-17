@@ -170,7 +170,8 @@ public class BusinessCockpitExtensionTest {
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, TestBpmsBridge.PROCESS_VERSION, aggregate
+                    .getId()
                     .toString(), TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "bpms-event-7", OffsetDateTime.now(),
             EventTransaction.CURRENT);
@@ -194,7 +195,8 @@ public class BusinessCockpitExtensionTest {
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, TestBpmsBridge.PROCESS_VERSION, aggregate
+                    .getId()
                     .toString(), TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "bpms-event-2", OffsetDateTime.now(),
             EventTransaction.NEW);
@@ -238,7 +240,8 @@ public class BusinessCockpitExtensionTest {
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                TestBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, TestBpmsBridge.PROCESS_VERSION, aggregate
+                    .getId()
                     .toString(), TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.COMPLETED, "bpms-event-9", OffsetDateTime.now(),
             EventTransaction.CURRENT);

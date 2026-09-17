@@ -166,7 +166,8 @@ public class BusinessCockpitExtensionTest {
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+                        .getId()
                         .toString(), RecordingBpmsBridge.WORKFLOW_ID),
                 WorkflowEventKind.CREATED, "bpms-event-21", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
@@ -218,7 +219,8 @@ public class BusinessCockpitExtensionTest {
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+                        .getId()
                         .toString(), RecordingBpmsBridge.WORKFLOW_ID),
                 WorkflowEventKind.CREATED, "bpms-event-16", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
@@ -393,7 +395,8 @@ public class BusinessCockpitExtensionTest {
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+                        .getId()
                         .toString(), RecordingBpmsBridge.WORKFLOW_ID),
                 WorkflowEventKind.COMPLETED, "bpms-event-19", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
@@ -415,7 +418,8 @@ public class BusinessCockpitExtensionTest {
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+                    RecordingBpmsBridge.ADAPTER_ID, WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+                        .getId()
                         .toString(), RecordingBpmsBridge.WORKFLOW_ID),
                 WorkflowEventKind.CREATED, "bpms-event-9", OffsetDateTime.now(),
                 EventTransaction.NEW));
@@ -672,7 +676,8 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
     final var elsewhere = new UserTaskReference(
-        "another-bpms", WORKFLOW_MODULE, BPMN_PROCESS, aggregate.getId()
+        "another-bpms", WORKFLOW_MODULE, BPMN_PROCESS, "1", aggregate
+            .getId()
             .toString(), RecordingBpmsBridge.WORKFLOW_ID, "task-9", "approve", "Activity_approve");
 
     transactions

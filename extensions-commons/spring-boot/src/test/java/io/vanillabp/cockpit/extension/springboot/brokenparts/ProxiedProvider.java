@@ -10,7 +10,10 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
  */
 public interface ProxiedProvider {
 
-  UserTaskDetails approve(
+  UserTaskDetails approveUpToTheThird(
+      PrefilledUserTaskDetails prefilled);
+
+  UserTaskDetails approveFromTheThird(
       PrefilledUserTaskDetails prefilled);
 
 }

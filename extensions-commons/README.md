@@ -80,6 +80,12 @@ five questions: what the BPMS knows about a user task, what it knows about a wor
 workflows of a workflow aggregate it holds, which user tasks of one it holds, and whether one named
 task belongs to that aggregate.
 
+Every reference a BPMS half hands over or is asked about carries the version of the deployed BPMN
+process, spelled the way the engine reports it. It is what picks between details providers which
+serve different generations of one model, so it is the plain version and never a version dressed up
+for a screen. A BPMS which reports none leaves it empty, and only the providers naming no version
+then run.
+
 Which answer a BPMS half gives decides whether a report happens at all. An engine which cannot be
 reached throws, and the outbox tries again. An engine whose read model has not caught up with the
 event it just sent throws `PhaseTwoRetryLater`, and the entry comes back after the window it names.
@@ -157,11 +163,12 @@ travel through a cluster waits longer without a class of its own:
 `businesscockpit.test-server.quiet-wait-millis`. Its port comes from `FreePortUtil` of
 `io.vanillabp:test-utils`.
 
-What VanillaBP refuses about this extension's own annotations is asserted on both platforms too: a
-`@UserTaskDetailsProvider` naming the reserved `version` attribute keeps the application from
-starting, and one which is not public is named in the startup report of the handler methods nobody
-sees. Both are the platform's doing now, and only a booted application shows whether the platform's
-glue registers the contract carrying them.
+What VanillaBP says about this extension's own annotations is asserted on both platforms too: two
+providers of one user task whose versions overlap keep the application from starting, a provider
+naming a version the BPMS does not hold is named while it boots, and one which is not public is
+named in the startup report of the handler methods nobody sees. All three are the platform's doing,
+and only a booted application shows whether the platform's glue registers the contract carrying
+them.
 
 The configuration is asserted twice for the same reason, and there it is the binding rather than the
 glue: each platform boots an application whose configuration carries every shape version 1 had - a

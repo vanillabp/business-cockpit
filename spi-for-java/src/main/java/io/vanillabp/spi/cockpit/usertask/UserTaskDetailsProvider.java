@@ -53,6 +53,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * which of them to call.
  *
  * <p>
+ * Two methods may name the same task all the same, as long as the versions of the process they
+ * serve do not overlap. That is how one generation of a model gets a method of its own. See
+ * {@link #version()}.
+ *
+ * <p>
  * The workflow aggregate is handed over to be read. A provider is asked what to report. It is
  * not told to change the case, so VanillaBP does not save the aggregate after this method
  * returned. Change nothing here. If you do change something and want it kept, save it yourself.
@@ -95,20 +100,43 @@ public @interface UserTaskDetailsProvider {
     String taskDefinition() default USE_METHOD_NAME;
     
     /**
-     * Reserved, and expected to stay unset.
+     * Which versions of the deployed BPMN process this method serves. The version is the version
+     * of the process DEFINITION as the BPMS counts it (Camunda 7 and Camunda 8 count integers
+     * upwards per BPMN process id), not a version the application invents.
      * <p>
-     * The idea was to let one method serve certain versions, or ranges of versions, of a
-     * process. Version 1 of the Business Cockpit documented the attribute and never read it.
-     * Version 2 refuses a value while the application starts, and the message names the
-     * method. A value which is silently ignored is worse than one which is refused, and
-     * applications wrote this one believing it worked.
+     * A boundary is either such a version or a version TAG given in the model
+     * (<code>camunda:versionTag</code> in Camunda 7, <code>zeebe:versionTag</code> in Camunda 8):
+     * <ul>
+     * <li><i>*</i>: every version (the default)
+     * <li><i>3</i> or <i>release-2024</i>: exactly that version, respectively every version
+     * carrying that tag
+     * <li><i>1-3</i> or <i>v1.0..v2.0</i>: a range, both boundaries included
+     * <li><i>&gt;3</i>, <i>&lt;v2.0</i>: open ended
+     * </ul>
+     * Ranges accept <code>..</code> as well as <code>-</code> as their separator. A boundary
+     * naming a tag which contains a <code>-</code> has to use <code>..</code>.
+     * &quot;Greater&quot; and &quot;less&quot; mean the deployment order, which for a BPMS
+     * counting versions upwards is the numeric order. It is the spelling
+     * <code>&#64;WorkflowTask</code> uses and it means the same here, because both go through
+     * the same selection of VanillaBP.
      * <p>
-     * It would need a version on the events the cockpit reacts to. A task listener says which
-     * task fired, not which version of the model it came from, so there is nothing to decide
-     * by. Match by {@link #id()} or {@link #taskDefinition()} instead.
+     * Several methods may serve one user task as long as their versions do not overlap, which is
+     * how one generation of a model gets a method of its own. Overlapping ones end the start of
+     * the application, and the message names both. A method naming no version serves every
+     * version, so a workflow service which says nothing about versions behaves as it always did.
+     * <p>
+     * Unlike a <code>&#64;WorkflowTask</code> method, a method naming no version does not take
+     * the range of the <code>&#64;BpmnProcess</code> its process was declared with. That range
+     * belongs to the workflow itself, and reporting to the cockpit is not part of running it.
+     * <p>
+     * The version arrives with the event the cockpit reacts to, so what the BPMS reports decides
+     * how far this gets. Camunda 7 and Camunda 8 report it for every task. An engine behind the
+     * Process-Engine-API reports a version tag where it fills one in and nothing otherwise. Where
+     * no version arrives, only a method naming no version runs, and a method which names one is
+     * reported while the application starts instead of silently never running.
      *
-     * @return Nothing to set: {@link #ALL}, the default
+     * @return The versions of the deployed BPMN process this method serves
      */
-    String[] version() default ALL;
+    String[] version() default "*";
     
 }

@@ -59,7 +59,7 @@ public class StoreAttributionTest {
         .executeWithoutResult(status -> publisher
             .publishWorkflowEvent(
                 new WorkflowReference(
-                    "test", "test-module", "TestProcess", "4711", "workflow-1"),
+                    "test", "test-module", "TestProcess", "1", "4711", "workflow-1"),
                 WorkflowEventKind.CREATED, "bpms-event-1", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 

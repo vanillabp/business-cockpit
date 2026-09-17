@@ -67,7 +67,7 @@ public class StoreAttributionTest {
     publisher
         .publishWorkflowEvent(
             new WorkflowReference(
-                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", "4711", TestBpmsBridge.WORKFLOW_ID),
+                TestBpmsBridge.ADAPTER_ID, "test-module", "TestProcess", TestBpmsBridge.PROCESS_VERSION, "4711", TestBpmsBridge.WORKFLOW_ID),
             WorkflowEventKind.CREATED, "bpms-event-1", OffsetDateTime.now(),
             EventTransaction.CURRENT);
     transaction.commit();

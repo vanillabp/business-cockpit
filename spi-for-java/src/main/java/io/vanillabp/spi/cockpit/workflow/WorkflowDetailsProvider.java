@@ -40,6 +40,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} describes it. VanillaBP
  * does not save it after this method returned, and what your persistence writes on its own is
  * your change with your consequences.
+ *  * <p>
+ * A BPMN process has one such method. It may have one per generation of the model instead, and
+ * then each of them names the versions it serves, see {@link #version()}.
  * 
  * @see WorkflowDetails
  */
@@ -49,5 +52,45 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 public @interface WorkflowDetailsProvider {
 
-    
+    /**
+     * Which versions of the deployed BPMN process this method serves. The version is the version
+     * of the process DEFINITION as the BPMS counts it (Camunda 7 and Camunda 8 count integers
+     * upwards per BPMN process id), not a version the application invents.
+     * <p>
+     * A boundary is either such a version or a version TAG given in the model
+     * (<code>camunda:versionTag</code> in Camunda 7, <code>zeebe:versionTag</code> in Camunda 8):
+     * <ul>
+     * <li><i>*</i>: every version (the default)
+     * <li><i>3</i> or <i>release-2024</i>: exactly that version, respectively every version
+     * carrying that tag
+     * <li><i>1-3</i> or <i>v1.0..v2.0</i>: a range, both boundaries included
+     * <li><i>&gt;3</i>, <i>&lt;v2.0</i>: open ended
+     * </ul>
+     * Ranges accept <code>..</code> as well as <code>-</code> as their separator. A boundary
+     * naming a tag which contains a <code>-</code> has to use <code>..</code>.
+     * &quot;Greater&quot; and &quot;less&quot; mean the deployment order, which for a BPMS
+     * counting versions upwards is the numeric order. It is the spelling
+     * <code>&#64;WorkflowTask</code> uses and it means the same here, because both go through
+     * the same selection of VanillaBP. The attribute of
+     * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} reads the same way.
+     * <p>
+     * Such a method stands for the whole BPMN process, so two of them in one workflow service
+     * are told apart by their versions and by nothing else. Overlapping ones end the start of
+     * the application, and the message names both. A method naming no version serves every
+     * version, so a workflow service which says nothing about versions behaves as it always did.
+     * <p>
+     * Unlike a <code>&#64;WorkflowTask</code> method, a method naming no version does not take
+     * the range of the <code>&#64;BpmnProcess</code> its process was declared with. That range
+     * belongs to the workflow itself, and reporting to the cockpit is not part of running it.
+     * <p>
+     * The version arrives with the event the cockpit reacts to, so what the BPMS reports decides
+     * how far this gets. Camunda 7 and Camunda 8 report it for every workflow. An engine behind
+     * the Process-Engine-API reports a version tag where it fills one in and nothing otherwise.
+     * Where no version arrives, only a method naming no version runs, and a method which names
+     * one is reported while the application starts instead of silently never running.
+     *
+     * @return The versions of the deployed BPMN process this method serves
+     */
+    String[] version() default "*";
+
 }
