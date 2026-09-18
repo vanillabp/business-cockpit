@@ -751,6 +751,17 @@ what is read has to be right, and a defect which repetitions hide is a defect no
 to the cockpit server is the other half and stays quiet: it runs over the outbox, and a cockpit
 which is down for ten minutes is not worth a single error in anybody's log.
 
+Corrected on 2026-09-18. The sentence about the end of a task puts two events into one pot, and the
+Process-Engine-API keeps them apart. A completion ends a task because somebody asked the engine to
+finish it, and a cancelation is the engine taking the task away, say through a boundary event.
+Measured against the API's reference implementation for an embedded Camunda 7 and against the test
+application of that half: a completion reaches the engine through a phase-two outbox entry, so a
+report which fails there fails that entry, and the entry comes back. An engine which takes part in
+the transaction of the dispatch even hands the task back, and the next attempt reports the end. A
+cancelation is the one this extension gets a single shot at. Decision 12 of
+`businesscockpit-process-engine-api-adapter` holds the numbers, and those two words are the ones to
+use in every text of ours about tasks.
+
 The idempotency key stays exactly as decision 4 wrote it, and only the direction of the discard
 turns around. An entry used to be the intention to report, so the one which waited was as good as
 the one which came after it, and the newer call was dropped. An entry carries its report now, so
