@@ -27,7 +27,7 @@
     <version.vanillabp>2.0.0-SNAPSHOT</version.vanillabp>
     <version.mongodb-changesets>1.0.0-SNAPSHOT</version.mongodb-changesets>
     <version.org.mapstruct>1.6.3</version.org.mapstruct>
-    <version.protobuf>4.31.1</version.protobuf>
+    <version.protobuf>4.36.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
