@@ -103,14 +103,15 @@
     </dependency>
     <dependency>
       <!-- one test sends through a broker in a container, so that the bytes the cockpit
-        server reads are the bytes a broker handed on -->
+        server reads are the bytes a broker handed on. The version comes from the
+        testcontainers-bom the Spring Boot BOM imports, like it does for the container module. -->
       <groupId>org.testcontainers</groupId>
-      <artifactId>kafka</artifactId>
+      <artifactId>testcontainers-kafka</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -34,7 +34,11 @@
     <skip.npm.update>false</skip.npm.update>
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
-    <version.jupiter>5.14.4</version.jupiter>
+    <!--
+      One property for the whole JUnit family, used by the BOM import below and by the Surefire
+      plugin, which reads its dependencies outside of dependency management.
+    -->
+    <version.jupiter>6.1.3</version.jupiter>
     <jacoco.version>0.8.15</jacoco.version>
     <!-- where the build breaks, in PERCENT of covered instructions per measurement,
          enforced by test-coverage-report/coverage-gate. The container number is what its
@@ -256,6 +260,21 @@
     <dependencies>
       <dependency>
         <!--
+          Imported before the other BOMs so it wins, and imported at all because naming the aggregator
+          'org.junit.jupiter:junit-jupiter' below does not move JUnit on its own. That artifact carries
+          no classes. The API, the engine and the parameterized-test module are coordinates of their
+          own, and the Spring Boot BOM manages all three through a junit-bom of its own. Without this
+          import the version named below reaches the aggregator and nothing else, and the tests run on
+          whatever engine Spring Boot brings.
+        -->
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${version.jupiter}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!--
           Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
           and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
           which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
@@ -315,6 +334,8 @@
         <version>${version.protobuf}</version>
       </dependency>
       <dependency>
+        <!-- the test scope is what this entry adds: two modules name the aggregator without one.
+             The version repeats the property the junit-bom above reads, so the two cannot drift. -->
         <groupId>org.junit.jupiter</groupId>
         <artifactId>junit-jupiter</artifactId>
         <scope>test</scope>
