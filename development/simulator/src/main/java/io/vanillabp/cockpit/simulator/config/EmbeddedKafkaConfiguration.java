@@ -19,7 +19,7 @@ import java.util.HashSet;
  * Use localhost:9092 to connect to.
  * <p>
  * For external addresses you can use Spring Boot property
- * &quote;server.address&quot; to bind to at port 9093.
+ * &quot;server.address&quot; to bind to at port 9093.
  * <p>
  * The broker is part of the "kafka-sync" mode and started by default, so reporting by Kafka needs
  * no Kafka installation at all. To report to a real broker instead - e.g. the single-node Kafka of
