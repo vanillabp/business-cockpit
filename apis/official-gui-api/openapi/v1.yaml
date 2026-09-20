@@ -581,6 +581,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/NotificationWorkflows'
 components:
+  # A placeholder in a description is written in braces, as in {medium}. The generator
+  # copies every description into the javadoc of the class it writes, and javadoc reads
+  # <medium> as an HTML tag it does not know. That fails the build.
   schemas:
     Translatable:
       type: object
@@ -619,12 +622,12 @@ components:
       properties:
         globalAllViaMedium:
           type: object
-          description: Global "all via <medium>" flag keyed by medium type
+          description: Global "all via {medium}" flag keyed by medium type
           additionalProperties:
             type: boolean
         perWorkflow:
           type: object
-          description: Per-workflow overrides keyed by "<workflowModuleId>#<bpmnProcessId>"
+          description: Per-workflow overrides keyed by "{workflowModuleId}#{bpmnProcessId}"
           additionalProperties:
             $ref: '#/components/schemas/WorkflowNotificationConfiguration'
     RecipientConfiguration:

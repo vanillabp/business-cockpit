@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Everything one user configured about notifications. It is stored as a tree on the
- * {@link User} document.
+ * {@link io.vanillabp.cockpit.users.model.User User} document.
  * <p>
  * A configuration which is absent or empty means "none", so the user is not notified. Switching a
  * medium on for every workflow means "all via that medium". An entry for one workflow wins over
