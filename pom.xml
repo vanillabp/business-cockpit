@@ -31,6 +31,13 @@
     <npm.registry>http://localhost:4873/</npm.registry>
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
+    <!--
+      This switches the execution named 'npm install', which runs 'npm update'. That step fills
+      node_modules, so a clean clone which skips it fails in the next step, 'npm run build'.
+      It also rewrites the checked-in package-lock.json of its module. A release wants that and
+      commits it, a branch does not, but switching the step off here would take the install with
+      it. A build which needs no npm passes '-Pjava-install', which AGENTS.md explains.
+    -->
     <skip.npm.update>false</skip.npm.update>
     <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
