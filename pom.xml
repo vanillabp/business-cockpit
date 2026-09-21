@@ -137,6 +137,11 @@
               </path>
             </annotationProcessorPaths>
             <compilerArgs>
+              <!-- javac is the only javadoc check which reads a package private class. The
+                   javadoc plugin of the parent opens what a release publishes, so it starts
+                   at protected. Every group is checked here except 'missing': a comment
+                   which was never written is a warning, not a broken build. -->
+              <arg>-Xdoclint:all,-missing</arg>
               <arg>-Amapstruct.suppressGeneratorTimestamp=true</arg>
               <arg>-Amapstruct.suppressGeneratorVersionInfoComment=true</arg>
               <arg>-Amapstruct.defaultComponentModel=spring</arg>

@@ -23,7 +23,7 @@ import jakarta.transaction.UserTransaction;
  * brings for the datasource of the test. The other belongs to the application and is named for
  * the workflow aggregate.
  * <p>
- * The extension used to work this out itself, which is what {@link QuarkusStoreAttributionTest}
+ * The extension used to work this out itself, which is what <code>QuarkusStoreAttributionTest</code>
  * of the platform shows cannot be done from outside the Quarkus integration. It asks the
  * platform's resolver now, and this test is the application in which the two answers would
  * differ.
