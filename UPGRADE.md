@@ -43,8 +43,8 @@ cockpit has already confirmed to the BPMS adapter never appears.
 Write the value here and not into `spring.mongodb.uri`. The cockpit's `MongoTemplate` checks the
 result of every write, and Spring Data replaces the write concern of the connection with a plain
 acknowledged write while it does that. `mongodb.write-concern: 0` ends the start.
-[The library's README](./business-cockpit/README.md#the-write-concern-the-cockpit-needs) has the
-list of what each value costs.
+[The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern)
+in the wiki has the list of what each value costs.
 
 ### A table of the version 1 Camunda 8 adapter stays behind
 

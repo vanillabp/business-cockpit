@@ -7,7 +7,7 @@ mongodb:
   # what makes that true: a write which a majority of the replica set has survives a primary which
   # steps down, and a write which only the primary has does not. Any other value is a value this
   # installation has chosen, and the cockpit says on every start what it is really writing with.
-  # business-cockpit/README.md lists what goes wrong with each of them.
+  # The wiki page "Running the Business Cockpit" lists what goes wrong with each of them.
   write-concern: majority
   # With 'w: majority' the server journals on the acknowledging nodes by itself, unless the
   # replica set was configured with 'writeConcernMajorityJournalDefault: false'. Asking for the

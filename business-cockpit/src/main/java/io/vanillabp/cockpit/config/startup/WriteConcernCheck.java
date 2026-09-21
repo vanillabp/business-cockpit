@@ -23,11 +23,12 @@ import org.springframework.util.StringUtils;
  * cockpit ran for years with a promise nobody had written down. The library gives the template back
  * the way it found it now, which leaves the cockpit to ask for what it needs.
  * <p>
- * What it needs, and what goes wrong with the rest, is written down in
- * {@code business-cockpit/README.md}. In short: a write which only the primary of a replica set has
- * is lost when that primary steps down, and the cockpit has answered the BPMS adapter by then that
- * the user task is stored. A write nobody acknowledges at all cannot be checked for a concurrent
- * change, which every versioned document of the cockpit depends on, so that one ends the start.
+ * Why the value belongs on the template is written down in {@code business-cockpit/README.md}, and
+ * what each value costs an installation is in the wiki page "Running the Business Cockpit". In
+ * short: a write which only the primary of a replica set has is lost when that primary steps down,
+ * and the cockpit has answered the BPMS adapter by then that the user task is stored. A write
+ * nobody acknowledges at all cannot be checked for a concurrent change, which every versioned
+ * document of the cockpit depends on, so that one ends the start.
  */
 public final class WriteConcernCheck {
 
