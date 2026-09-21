@@ -28,9 +28,12 @@ So a stereotype annotation alone does not make a bean here any more. A class add
 
 ## The write concern the cockpit needs
 
-A write concern says when MongoDB counts a write as stored. The cockpit needs one which survives
-a failover of the primary, it is configured in `mongodb.write-concern`,
-and the cockpit says on every start what it is really writing with.
+A write concern says when MongoDB counts a write as stored. The cockpit needs one which survives a
+failover of the primary, it is configured in `mongodb.write-concern`, and the cockpit says on every
+start what it is really writing with. What each value costs an installation, and what the warning
+on a start means, is in the wiki under
+[The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern).
+This section is about why the value has to stand there and nowhere else.
 
 Nobody had written this down until now. The MongoDB changeset mechanism set `JOURNALED` on the
 application's template while it migrated and never took it back, so the cockpit ran with that value
@@ -54,37 +57,17 @@ leaves the `w` open, and `prepareWriteConcern` replaces anything with an open `w
 acknowledged write, journal flag included. This is why `mongodb.write-concern-journal` is only read
 together with `mongodb.write-concern`.
 
-### What each setting does
+### Why `0` ends the start
 
-| `mongodb.write-concern` | carries | what happens |
-|---|---|---|
-| `majority` | yes | A write which a majority of the replica set has stays there when the primary steps down. This is what the delivered cockpit runs with. |
-| `majority`, plus `mongodb.write-concern-journal: true` | yes | The same, and each acknowledging node has the write in its journal before it answers. Only needed where the replica set runs with `writeConcernMajorityJournalDefault: false`, and the delivered cockpit sets it because that setting belongs to the database rather than to the cockpit. |
-| nothing, or `1` | no, warning | A write which only the primary has is gone when that primary steps down before another node got it. The cockpit has answered the BPMS adapter by then that the user task is stored, so the adapter never reports it again and the task never appears. It stays a warning, because an installation which runs one node has no failover to lose anything to. |
-| `1` plus a journal | no, warning | The same. A journal protects the one node against a crash, not the replica set against a failover. |
-| `2` and up | cannot be decided here, warning | Whether a number is a majority depends on how many nodes the replica set has, and the cockpit cannot see that. Below a majority it is the line above. On a three node set, `2` is a majority, and writing `majority` says that without depending on the size. |
-| the name of a tag set | cannot be decided here, warning | Which nodes a tag stands for is written in the configuration of the replica set. Below a majority it is the same loss. |
-| `0` | no, the start ends | Nobody acknowledges the write, so there is no result to read. Every document of the cockpit which carries `@Version` is saved by comparing the version, and Spring Data does that by reading how many documents the write changed. An unacknowledged write answers that question with an exception. The start ends even though Spring Data would quietly raise the value to one acknowledgement, because an installation which asked for `0` would otherwise run on a promise it never made. |
-
-### What does not depend on the write concern
-
-The user interface. The cockpit reads its own changes through a MongoDB change stream, and a change
-stream only reports what a majority of the replica set has. So a write which a failover takes back
-never reaches a browser, whatever the write concern was. What a weak write concern costs is the
-other direction: the report is lost, and nobody notices, because the BPMS adapter was told it
-arrived.
+Every document of the cockpit which carries `@Version` is saved by comparing the version, and
+Spring Data does that by reading how many documents the write changed. An unacknowledged write
+answers that question with an exception. The start ends even though Spring Data would quietly raise
+the value to one acknowledgement, because an installation which asked for `0` would otherwise run
+on a promise it never made.
 
 ### Azure Cosmos DB for MongoDB
 
-The cockpit knows this server through `mongodb.mode: AZURE_COSMOS_MONGO_4_2`. Cosmos DB speaks the
-MongoDB protocol but is not a replica set, and how durable a write is comes from the consistency
-level of the account rather than from the write concern the driver sends. So the table above
-describes a server such an installation does not have.
-
-Two things hold there all the same. `0` ends the start, because the cockpit needs the result of its
-writes and that is decided in the driver and in Spring Data, not in the server. And `majority` is
-the value to configure, because it is the one the cockpit does not warn about.
-
-Which write concerns Cosmos DB honours, and what `j: true` means to it, could not be decided from
-the code of this repository. An installation running on Cosmos DB reads the consistency level of
-its account instead.
+The cockpit knows this server through `mongodb.mode: AZURE_COSMOS_MONGO_4_2`, and the startup check
+reads that mode. Cosmos DB is not a replica set, so how durable a write is comes from the
+consistency level of the account and a message about failovers would describe a server such an
+installation does not have. What holds there instead is in the wiki section named above.
