@@ -85,7 +85,7 @@ public class PerWorkflowConfigurationTest {
                 UserTaskEventKind.CREATED, "bpms-event-per-workflow", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(
         request.body().contains("\"title\":{\"fr\":"),
         "the title arrived in a language the workflow did not configure: "
