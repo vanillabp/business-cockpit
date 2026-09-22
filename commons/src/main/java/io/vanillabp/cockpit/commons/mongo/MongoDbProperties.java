@@ -20,6 +20,9 @@ public class MongoDbProperties {
      * Nothing set means the cockpit writes with one acknowledging node, and it says so on every
      * start. It is set on the MongoTemplate rather than taken from the connection string, because
      * a MongoTemplate which checks write results ignores what the connection brings along.
+     * <p>
+     * <a href="https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern">The
+     * write concern</a> in the wiki says what each value costs.
      */
     private String writeConcern;
 
@@ -27,6 +30,9 @@ public class MongoDbProperties {
      * The 'j' of the write concern: whether an acknowledging node has to have the write in its
      * journal before it answers. It is only read together with {@link #writeConcern}. A journal
      * flag on its own is not a write concern, and the cockpit's MongoTemplate drops it.
+     * <p>
+     * <a href="https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern">The
+     * write concern</a> in the wiki says what the journal flag costs.
      */
     private Boolean writeConcernJournal;
 
