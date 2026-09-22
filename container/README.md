@@ -33,10 +33,9 @@ itself:
   class.
 * The `application*.yaml` files below `config/`, the defaults of a standalone deployment, including
   the profile `local` with its demo users and its MongoDB URI. They also carry
-  `mongodb.write-concern: majority`, so that an installation which configures nothing writes in a
-  way which survives a failover of the primary. A custom cockpit sets that value itself, and
+  `mongodb.write-concern: majority`, which a custom cockpit writes too.
   [The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern)
-  says what each value costs.
+  in the wiki says why, and what another value would cost.
 * The five concrete GUI API controllers below `io/vanillabp/cockpit`, which implement the three
   abstract controllers of the library and decide which tasks, workflows and modules a user gets.
   The rule they apply is described in the wiki under

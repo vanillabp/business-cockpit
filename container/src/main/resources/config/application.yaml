@@ -3,15 +3,11 @@ logging:
     ROOT: INFO
 
 mongodb:
-  # A user task the cockpit has confirmed to a BPMS adapter has to stay confirmed. 'majority' is
-  # what makes that true: a write which a majority of the replica set has survives a primary which
-  # steps down, and a write which only the primary has does not. Any other value is a value this
-  # installation has chosen, and the cockpit says on every start what it is really writing with.
-  # The wiki page "Running the Business Cockpit" lists what goes wrong with each of them.
+  # A user task the cockpit has confirmed to a BPMS adapter has to stay confirmed, and these two
+  # values are what makes that true. What each of them costs, and what another value would cost, is
+  # in the wiki:
+  # https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern
   write-concern: majority
-  # With 'w: majority' the server journals on the acknowledging nodes by itself, unless the
-  # replica set was configured with 'writeConcernMajorityJournalDefault: false'. Asking for the
-  # journal here says what the cockpit wants instead of relying on a setting of the database.
   write-concern-journal: true
 
 spring:
