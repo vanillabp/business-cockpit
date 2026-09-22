@@ -118,7 +118,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains("\"id\":\"bpms-event-1\""), request.body());
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("\"event\":\"CREATED\""), request.body());
@@ -145,7 +145,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    CockpitServer.awaitRequest("/usertask/created");
+    CockpitServer.awaitAnyRequest("/usertask/created");
     assertFalse(
         aggregates.sawSaveOf(aggregate.getId()),
         "the platform saved the aggregate a details provider was handed");
@@ -177,7 +177,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    CockpitServer.awaitRequest("/workflow/created");
+    CockpitServer.awaitAnyRequest("/workflow/created");
     assertFalse(
         aggregates.sawSaveOf(aggregate.getId()),
         "the platform saved the aggregate a workflow details provider was handed");
@@ -201,7 +201,7 @@ public class BusinessCockpitExtensionTest {
             WorkflowEventKind.CREATED, "bpms-event-2", OffsetDateTime.now(),
             EventTransaction.NEW);
 
-    final var request = CockpitServer.awaitRequest("/workflow/created");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/created");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("workflow of Anna"), request.body());
 
@@ -255,7 +255,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    final var request = CockpitServer.awaitRequest("/usertask/task-1/completed");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/completed");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("\"event\":\"COMPLETED\""), request.body());
 
@@ -278,7 +278,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    final var request = CockpitServer.awaitRequest("/workflow/workflow-1/completed");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/completed");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("workflow of Anna"), request.body());
 
@@ -294,7 +294,7 @@ public class BusinessCockpitExtensionTest {
     workflowService.businessCockpit().aggregateChanged(aggregate);
     transaction.commit();
 
-    final var request = CockpitServer.awaitRequest("/workflow/workflow-1/updated");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/updated");
     assertTrue(request.body().contains("\"updated\":true"), request.body());
 
   }
@@ -309,7 +309,7 @@ public class BusinessCockpitExtensionTest {
     workflowService.businessCockpit().aggregateChanged(aggregate, TestBpmsBridge.USER_TASK_ID);
     transaction.commit();
 
-    final var request = CockpitServer.awaitRequest("/usertask/task-1/updated");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/updated");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
 
   }

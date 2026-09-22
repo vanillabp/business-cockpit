@@ -123,7 +123,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-1",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains("\"id\":\"bpms-event-1\""), request.body());
     assertTrue(request.body().contains("\"taskDefinition\":\"approve\""), request.body());
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
@@ -147,7 +147,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "handle-ticket"), UserTaskEventKind.CREATED,
                 "bpms-event-20", OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(
         request.body().contains("\"uiUriPath\":\""
             + TestWorkflowService.TASK_ADDRESS
@@ -172,7 +172,7 @@ public class BusinessCockpitExtensionTest {
                 WorkflowEventKind.CREATED, "bpms-event-21", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/workflow/created");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/created");
     assertTrue(
         request.body().contains("\"uiUriPath\":\""
             + TestWorkflowService.CASE_ADDRESS
@@ -194,7 +194,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-2",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    CockpitServer.awaitRequest("/usertask/created");
+    CockpitServer.awaitAnyRequest("/usertask/created");
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a details provider was handed");
@@ -225,7 +225,7 @@ public class BusinessCockpitExtensionTest {
                 WorkflowEventKind.CREATED, "bpms-event-16", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 
-    CockpitServer.awaitRequest("/workflow/created");
+    CockpitServer.awaitAnyRequest("/workflow/created");
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a workflow details provider was handed");
@@ -468,7 +468,7 @@ public class BusinessCockpitExtensionTest {
                 WorkflowEventKind.CREATED, "bpms-event-9", OffsetDateTime.now(),
                 EventTransaction.NEW));
 
-    final var request = CockpitServer.awaitRequest("/workflow/created");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/created");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("workflow of Anna"), request.body());
     assertTrue(request.body().contains("Order handling"), request.body());
@@ -486,7 +486,7 @@ public class BusinessCockpitExtensionTest {
         .executeWithoutResult(status -> workflowService.businessCockpit()
             .aggregateChanged(aggregates.findById(aggregate.getId()).orElseThrow()));
 
-    final var request = CockpitServer.awaitRequest("/workflow/workflow-1/updated");
+    final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/updated");
     assertTrue(request.body().contains("\"updated\":true"), request.body());
 
   }
@@ -503,7 +503,7 @@ public class BusinessCockpitExtensionTest {
                 aggregates.findById(aggregate.getId()).orElseThrow(),
                 RecordingBpmsBridge.USER_TASK_ID));
 
-    final var request = CockpitServer.awaitRequest("/usertask/task-1/updated");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/updated");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
 
   }
@@ -622,7 +622,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "inspect"), UserTaskEventKind.CREATED, "bpms-event-11",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains(OwnUserTaskDetails.COMMENT), request.body());
     assertTrue(request.body().contains("\"assignee\":\"inspector\""), request.body());
     assertTrue(request.body().contains("\"inspected\":true"), request.body());
@@ -645,7 +645,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "somethingNobodyServes"), UserTaskEventKind.CREATED,
                 "bpms-event-12", OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains("bpms-event-12"), request.body());
     assertTrue(request.body().contains("Approve the order"), request.body());
     assertTrue(request.body().contains("\"details\":{}"), request.body());
@@ -664,7 +664,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "decide"), UserTaskEventKind.CREATED, "bpms-event-13",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains("the BPMN element id"), request.body());
 
   }
@@ -709,7 +709,7 @@ public class BusinessCockpitExtensionTest {
             userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-15",
             OffsetDateTime.now(), EventTransaction.NEW, OwnUserTaskDetails.class);
 
-    final var request = CockpitServer.awaitRequest("/usertask/created");
+    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
     assertTrue(request.body().contains("\"id\":\"bpms-event-15\""), request.body());
 
   }

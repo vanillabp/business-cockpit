@@ -338,12 +338,18 @@ public final class CockpitServer {
   }
 
   /**
-   * Waits for a request whose path ends with the given text.
+   * Waits for the first request whose path ends with the given text, whatever it reports.
+   * <p>
+   * A path which names the case, like {@code /usertask/<id>/completed}, can only be reached by
+   * the report the caller means. A collecting path like {@code /usertask/created} cannot. There
+   * the first match may be about another user task, or about an earlier test of the same class,
+   * because the dispatch of an entry outlives the test which caused it. On such a path use
+   * {@link #awaitRequest(String, String)} and say which report is meant.
    *
    * @param pathSuffix What the path has to end with
-   * @return The request
+   * @return The first request which arrived on that path
    */
-  public static Request awaitRequest(
+  public static Request awaitAnyRequest(
       final String pathSuffix) {
 
     return awaitRequests(pathSuffix, 1).getFirst();
@@ -357,6 +363,10 @@ public final class CockpitServer {
    * that test forgot what it had seen, because the dispatch of an entry outlives the test which
    * caused it. So a test which asserts content waits for the request carrying it rather than for
    * the next one of its kind.
+   * <p>
+   * This is the form for a collecting path like {@code /usertask/created}, where the path alone
+   * does not say which case a report is about. {@link #awaitAnyRequest(String)} takes whatever
+   * arrives there first.
    *
    * @param pathSuffix What the path has to end with
    * @param bodyPart What the body has to carry
