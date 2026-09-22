@@ -1,15 +1,23 @@
 name: Publish to GitHub Packages
 on:
   push:
-    branches-ignore:
-      - 'renovate/**'
-      - 'release/**'
-      - 'feature/wip-**'
-# A branch named 'feature/wip-...' publishes nothing. That is how to push a branch
-# without writing to the shared snapshot coordinates.
+    branches:
+      - 'main'
+  workflow_dispatch:
+# Only main writes the shared snapshot coordinates. A snapshot has the same coordinates on
+# every branch, so a push to a branch used to hand every consumer a version of this
+# repository which no pull request had agreed to yet. On 2026-09-22 the branch of a rename
+# in 'extensions-commons/test-support' published at 08:18 UTC and made main of all three
+# adapter repositories red, including the pull requests which had nothing to do with that
+# rename. The three adapter repositories have always published from main alone; this
+# repository now does the same.
 #
-# Two concurrency groups: one for main, one shared by every other branch. GitHub keeps at
-# most one waiting run per group, and a newer run of the same group takes the waiting one
+# Somebody who needs a snapshot from a branch, to try a change in another repository before
+# it is merged, runs this workflow by hand on that branch. Then the overwrite is a decision
+# and not a side effect of a push.
+#
+# Two concurrency groups: one for main, one shared by the runs started by hand. GitHub keeps
+# at most one waiting run per group, and a newer run of the same group takes the waiting one
 # out. The replaced run ends as 'cancelled' without ever starting a job, and nothing says
 # that a publish is missing. Main lost two publishes that way on 2026-09-13. Run
 # 34750580160 at 09:56 and run 34770715317 at 17:09 were both pushes to main, both
@@ -18,11 +26,6 @@ on:
 #
 # With main in a group of its own, only a newer push to main can take main's waiting run
 # out, and that is what should happen, because the newer run carries the newer artifacts.
-# The other branches keep one group between them, because snapshot artifacts have the same
-# coordinates on every branch, so two branches publishing at the same time would overwrite
-# each other. Main and a branch can now publish at the same time. The registry then keeps
-# what the run which wrote the metadata last has uploaded. That is no worse than before,
-# where the branch pushed last decided it anyway.
 #
 # 'cancel-in-progress: false' protects the run which is already running, and nothing else.
 # The pull-request build has a group of its own, one per pull request, because it publishes
