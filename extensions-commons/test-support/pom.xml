@@ -41,8 +41,13 @@
     <dependency>
       <!-- the free port the server binds comes from here and from nowhere else, so that two
         servers of one build never pick the same one -->
+      <!-- The BOM manages this artifact in test scope, which is right for an application: a
+        test tool belongs to the test and not to what ships. This module is a library of test
+        tools itself, so what it reads from test-utils sits in src/main/java. That is why it
+        names its own scope here, and why a later cleanup should leave the line alone. -->
       <groupId>io.vanillabp</groupId>
       <artifactId>test-utils</artifactId>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 
