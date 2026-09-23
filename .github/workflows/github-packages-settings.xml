@@ -20,36 +20,6 @@
                     </snapshots>
                 </repository>
                 <repository>
-                    <id>vanillabp-spring-boot-support</id>
-                    <url>https://maven.pkg.github.com/vanillabp/spring-boot-support</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                  </releases>
-                </repository>
-                <repository>
-                    <id>vanillabp-camunda7-adapter</id>
-                    <url>https://maven.pkg.github.com/camunda-community-hub/vanillabp-camunda7-adapter</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                  </releases>
-                </repository>
-                <repository>
-                    <id>vanillabp-camunda8-adapter</id>
-                    <url>https://maven.pkg.github.com/camunda-community-hub/vanillabp-camunda8-adapter</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                  </releases>
-                </repository>
-                <repository>
                     <id>vanillabp-adapter-platform-integration</id>
                     <url>https://maven.pkg.github.com/vanillabp/adapter-platform-integration</url>
                     <snapshots>
@@ -68,16 +38,6 @@
                     <releases>
                         <enabled>false</enabled>
                   </releases>
-                </repository>
-                <repository>
-                    <id>zeebe-kafka-exporter-serde</id>
-                    <url>https://maven.pkg.github.com/phactum/zeebe-kafka-exporter-serde</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                    </releases>
                 </repository>
                 <!-- the MongoDB changeset mechanism, which this repository used to carry itself.
                      Only its snapshots come from here; a release of it goes to Maven Central. -->
@@ -102,32 +62,12 @@
             <password>${env.GITHUB_TOKEN}</password>
         </server>
         <server>
-            <id>vanillabp-spring-boot-support</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
-        <server>
-            <id>vanillabp-camunda7-adapter</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
-        <server>
-            <id>vanillabp-camunda8-adapter</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
-        <server>
             <id>vanillabp-adapter-platform-integration</id>
             <username>${env.USER_NAME}</username>
             <password>${env.USER_TOKEN}</password>
         </server>
         <server>
             <id>vanillabp-spi-for-java</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
-        <server>
-            <id>zeebe-kafka-exporter-serde</id>
             <username>${env.USER_NAME}</username>
             <password>${env.USER_TOKEN}</password>
         </server>
