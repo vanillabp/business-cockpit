@@ -780,9 +780,12 @@ same whenever the entry goes out. A second registration of one module says what 
 says, so keeping the waiting one is right.
 
 An entry which outlives its own payload is sent with its identifiers alone, and a line in the log
-names the case. The payload of an entry is removed when the entry was dispatched, and the outbox
-housekeeping removes what a crash left behind, so an entry can only meet this after waiting longer
-than `vanillabp.outbox.retention`. It is the same answer this extension gives an end whose BPMS said
+names the case. The retention of the outbox counts at the entry, which the platform decided on
+2026-09-23: an entry which stands in the outbox keeps its payload, waiting or blocked, a dispatched
+entry loses entry and payload together after `vanillabp.outbox.retention`, and a payload no entry
+names any more is swept by age. Waiting is therefore no longer a way to meet this. What is left is a
+write which never committed between the entry and its payload, which is possible where MongoDB
+writes outside a transaction. It is the same answer this extension gives an end whose BPMS said
 nothing: the cockpit keeps what it stored before, and a report which never arrives would leave a
 task open in the list for good.
 

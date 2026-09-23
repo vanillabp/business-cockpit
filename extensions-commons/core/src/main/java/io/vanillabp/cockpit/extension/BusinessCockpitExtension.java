@@ -812,12 +812,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * The report of an entry whose report is gone: the identifiers of the event and nothing else.
    * <p>
-   * The bytes of a report are removed when its entry was dispatched, and the housekeeping of
-   * the outbox removes what a crash left behind. An entry which outlives its own bytes has
-   * waited longer than <code>vanillabp.outbox.retention</code>, or it was written by a
-   * transaction which crashed between the entry and the bytes. Sending it without business data
-   * is what is left, and it is the better half: the cockpit keeps what it stored about that
-   * task before, and a task whose end is never reported stays open in the list for good.
+   * An entry keeps its bytes for as long as it stands in the outbox, waiting or blocked, and
+   * loses them together with itself once it was dispatched. An entry which outlives its own
+   * bytes was therefore written by a transaction which crashed between the entry and the bytes,
+   * which is possible where MongoDB writes outside a transaction. Sending it without business
+   * data is what is left, and it is the better half: the cockpit keeps what it stored about
+   * that task before, and a task whose end is never reported stays open in the list for good.
    */
   private UserTaskEvent userTaskEventWithoutItsReport(
       final PhaseTwoCall call) {
@@ -1175,10 +1175,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         .warn(
             """
                 Reporting {} as {} to the Business Cockpit with its identifiers alone: the entry \
-                carries no report any more. A report is written beside its entry and is removed \
-                when the entry was dispatched, so this entry either waited longer than \
-                'vanillabp.outbox.retention' or lost its report to a crash. The cockpit keeps \
-                what it knows about this one from the report before.""",
+                carries no report any more. A report is written beside its entry and the two are \
+                removed together once the entry was dispatched, so this entry lost its report to \
+                a write which never committed, which is possible where MongoDB writes outside a \
+                transaction. Check that this application writes an outbox entry and its report in \
+                one transaction. The cockpit keeps what it knows about this one from the report \
+                before.""",
             what,
             kind);
 
