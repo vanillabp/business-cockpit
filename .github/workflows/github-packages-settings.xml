@@ -9,6 +9,19 @@
         <profile>
             <id>github</id>
             <repositories>
+                <!-- What this build resolves from outside its own reactor, and nothing else. This
+                     is not a list of what VanillaBP publishes: every GitHub Packages URL of an
+                     account serves every package of that account, so a line here does no work of
+                     its own. What it does is say where a dependency is expected to come from, and
+                     a line which names nothing claims a dependency which does not exist. Story
+                     1376 removed four of those, among them a repository whose name looks like an
+                     artifact this build uses and is not.
+                     Before adding a line, show that this build resolves a coordinate from it,
+                     directly or transitively, and show it with a reactor build against an empty
+                     local repository. A green run of the CI cannot show it, because setup-java
+                     runs with 'cache: maven' and the artifact may come from the runner's cache. -->
+                <!-- everything which is not VanillaBP: Spring Boot, Quarkus, the MongoDB driver, the
+                     test libraries, and the release parent of this build -->
                 <repository>
                     <id>central</id>
                     <url>https://repo1.maven.org/maven2</url>
@@ -19,6 +32,9 @@
                         <enabled>false</enabled>
                     </snapshots>
                 </repository>
+                <!-- every io.vanillabp artifact of the platform reactor, which is the integration and
+                     extension SPI, the Spring Boot and Quarkus integrations, vanillabp-spring-boot-support,
+                     the BPMS doubles and test-utils of the tests here -->
                 <repository>
                     <id>vanillabp-adapter-platform-integration</id>
                     <url>https://maven.pkg.github.com/vanillabp/adapter-platform-integration</url>
@@ -29,6 +45,7 @@
                         <enabled>false</enabled>
                   </releases>
                 </repository>
+                <!-- io.vanillabp:spi-for-java, the SPI an application writes against -->
                 <repository>
                     <id>vanillabp-spi-for-java</id>
                     <url>https://maven.pkg.github.com/vanillabp/spi-for-java</url>
