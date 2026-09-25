@@ -145,7 +145,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    CockpitServer.awaitAnyRequest("/usertask/created");
+    CockpitServer.awaitRequestOf("/usertask/created", "bpms-event-6");
     assertFalse(
         aggregates.sawSaveOf(aggregate.getId()),
         "the platform saved the aggregate a details provider was handed");
@@ -177,7 +177,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    CockpitServer.awaitAnyRequest("/workflow/created");
+    CockpitServer.awaitRequestOf("/workflow/created", "bpms-event-7");
     assertFalse(
         aggregates.sawSaveOf(aggregate.getId()),
         "the platform saved the aggregate a workflow details provider was handed");
