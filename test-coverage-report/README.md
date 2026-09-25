@@ -12,12 +12,32 @@ publishes them as pages.
 `coverage-gate` is what breaks a build. It breaks on a report below its threshold, and it breaks on
 a module producing coverage data no aggregated report reads, because everything covered by that
 module alone would otherwise count as missed with nobody able to fix it. The thresholds are
-properties of the root `pom.xml`, in percent of covered instructions. Between a threshold and the
-rule of 90 the build passes, and the gate prints how far each report still is from that rule.
+properties of the root `pom.xml`, in percent of covered instructions.
+`coverage.threshold.application-spring-boot` holds 55, which is what the container's suite reached.
+`coverage.threshold.extensions-commons-spring-boot` and
+`coverage.threshold.extensions-commons-quarkus` hold 85, the number every VanillaBP repository gates
+on. None of them is the target. `coverage.rule` is, and it holds 90. Between a threshold and the
+rule the build passes, and the gate prints how far each report still is from the rule. A threshold
+is raised as tests arrive and never lowered to make a build green.
 
-The gate judges what a run built. The reports are written in the `verify` phase, so a build which
-stops at `package` prints a line per measurement saying that the coverage was not checked, instead
-of failing over a file it never wrote.
+The gate reports what it measured on every run, green ones included. It is the one place in this
+repository where a passing test prints, because here the passing run is the measurement. The angle
+brackets stand for the numbers of the run:
+
+```
+coverage gate | Business Cockpit container (Spring Boot): <percent> % instructions (<missed> of <total> missed) | <gap> points below the rule of 90 %, build breaks below 55 %
+coverage gate | Business Cockpit extension (Spring Boot): <percent> % instructions (<missed> of <total> missed) | at the rule of 90 %
+coverage gate | Business Cockpit extension (Quarkus): <percent> % instructions (<missed> of <total> missed) | <gap> points below the rule of 90 %, build breaks below 85 %
+```
+
+A measurement at or above the rule ends in the short form. Anything below it names the gap and the
+threshold its build would break at.
+
+The gate judges what a run built. The reports are written in the `verify` phase, so `mvn package`
+checks no threshold at all. It prints a line per measurement which names the command the build was
+started with and says that the coverage was NOT checked, and the three tests holding the thresholds
+are reported as skipped. Nothing fails over a file the run never wrote, and nobody reads such a run
+as a checked one. `mvn install` is the run which judges.
 
 Adding a module means adding it to the report which covers it. The second rule above is what tells
 you if you forgot.

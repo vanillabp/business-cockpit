@@ -73,9 +73,9 @@ them never runs.
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
-cannot drift apart. Both reports are published on every build of the default branch. How they are
-produced and what breaks a build is described with the
-[test-coverage-report module](#the-modules).
+cannot drift apart. All three reports are published on every build of the default branch. How they
+are produced, what the gate prints on every run and what a run stopping at `package` does instead is
+in [test-coverage-report](./test-coverage-report).
 
 ## The modules
 
