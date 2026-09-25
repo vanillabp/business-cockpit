@@ -15,6 +15,9 @@
 
   <dependencies>
     <dependency>
+      <!-- a release on purpose, and not a number somebody forgot to raise. Why this module
+        compiles against the released API is written at the BOM import of
+        extensions-commons/pom.xml. -->
       <groupId>io.vanillabp</groupId>
       <artifactId>spi-for-java</artifactId>
       <version>1.1.0</version>
