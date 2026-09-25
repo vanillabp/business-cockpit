@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.integration.test.utils.CoverageGate;
+import io.vanillabp.integration.test.utils.MessageConventions;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.integration.test.utils.TestClassConventions;
 
@@ -22,6 +23,11 @@ import io.vanillabp.integration.test.utils.TestClassConventions;
  * <p>
  * The check reads the test sources, so this one class covers every module of the
  * repository, the ones added after it included.
+ * <p>
+ * It also checks the guiding messages of this repository. A message is what a developer
+ * reads in the moment something goes wrong, so a sentence which fell apart in the source
+ * takes away the one explanation they get. That check reads the main sources, and one run
+ * of it covers every module as well.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TestClassConventionsTest {
@@ -51,6 +57,34 @@ public class TestClassConventionsTest {
     assertTrue(
         offenders.isEmpty(),
         () -> TestClassConventions.describeTestClassesSuppressingTooLate(offenders));
+
+  }
+
+  @Test
+  @DisplayName("No message of this repository carries a run of spaces between two words")
+  public void noMessageFellApart() {
+
+    final var root = CoverageGate.repositoryRoot("coverage.repository.root");
+
+    final var offenders = MessageConventions.messagesPulledApart(root);
+
+    assertTrue(
+        offenders.isEmpty(),
+        () -> MessageConventions.describeMessagesPulledApart(offenders));
+
+  }
+
+  @Test
+  @DisplayName("No message of this repository glues two words into one")
+  public void noMessageIsGluedTogether() {
+
+    final var root = CoverageGate.repositoryRoot("coverage.repository.root");
+
+    final var offenders = MessageConventions.messagesGluedTogether(root);
+
+    assertTrue(
+        offenders.isEmpty(),
+        () -> MessageConventions.describeMessagesGluedTogether(offenders));
 
   }
 
