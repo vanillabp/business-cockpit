@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import io.vanillabp.integration.test.utils.FreePortUtil;
+import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
 
 /**
  * The cockpit server, played by the test. It records every request and answers with whatever the
@@ -121,7 +121,7 @@ public final class CockpitServer {
     if (published != null) {
       return Integer.parseInt(published);
     }
-    final var port = FreePortUtil.getFreePort();
+    final var port = OneFreePortPerJvm.getPort();
     final HttpServer server;
     try {
       server = HttpServer.create(new InetSocketAddress("localhost", port), 0);

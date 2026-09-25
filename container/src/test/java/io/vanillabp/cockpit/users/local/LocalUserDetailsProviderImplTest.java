@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.integration.test.utils.FreePortUtil;
+import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -62,7 +62,7 @@ class LocalUserDetailsProviderImplTest {
     @BeforeEach
     void startSimulator() throws IOException {
 
-        final var port = FreePortUtil.getFreePort();
+        final var port = OneFreePortPerJvm.getPort();
         simulator = HttpServer.create(new InetSocketAddress("localhost", port), 0);
         simulator.createContext("/dev-shell/user/all", this::serveUsers);
         simulator.start();
