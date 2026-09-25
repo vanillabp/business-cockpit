@@ -118,7 +118,7 @@ public class BusinessCockpitExtensionTest {
             EventTransaction.CURRENT);
     transaction.commit();
 
-    final var request = CockpitServer.awaitAnyRequest("/usertask/created");
+    final var request = CockpitServer.awaitRequest("/usertask/created", "bpms-event-1");
     assertTrue(request.body().contains("\"id\":\"bpms-event-1\""), request.body());
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("\"event\":\"CREATED\""), request.body());
@@ -201,7 +201,7 @@ public class BusinessCockpitExtensionTest {
             WorkflowEventKind.CREATED, "bpms-event-2", OffsetDateTime.now(),
             EventTransaction.NEW);
 
-    final var request = CockpitServer.awaitAnyRequest("/workflow/created");
+    final var request = CockpitServer.awaitRequest("/workflow/created", "bpms-event-2");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("workflow of Anna"), request.body());
 

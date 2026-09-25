@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +48,13 @@ public class CoverageGateTest {
    * the rule would leave a repository nothing to do but edit the rule.
    */
   private static final double RULE = Double.parseDouble(System.getProperty("coverage.rule"));
+
+  /**
+   * The command line this build was started with, handed over by the module's Surefire
+   * configuration. It answers the one question the gate cannot read off the disk:
+   * whether this run writes the reports at all.
+   */
+  private static final String MAVEN_COMMAND_LINE = System.getProperty("coverage.maven.command", "");
 
   private static final List<Path> AGGREGATE_POMS = List
       .of(
@@ -115,6 +123,11 @@ public class CoverageGateTest {
   }
 
   /**
+   * A run which stops before <code>verify</code> writes no report, and the gate says so
+   * and skips instead of failing over a file this run could not have written. It stays
+   * loud about it. The line is printed and the test is reported as skipped, so nobody
+   * reads a green run as a checked one.
+   * <p>
    * The threshold is read per measurement, because a report exists per measurement.
    * Both numbers are the floor against regression and not the goal. The rule is the
    * {@code coverage.rule} property, and a report between the two has a gap somebody
@@ -124,6 +137,12 @@ public class CoverageGateTest {
       final String measurement,
       final String reportDirectory,
       final String thresholdProperty) {
+
+    if (CoverageGate.stopsBeforeTheReportsAreWritten(MAVEN_COMMAND_LINE)) {
+      final var reason = CoverageGate.describeRunWithoutReports(MAVEN_COMMAND_LINE);
+      System.out.println("coverage gate | %s | %s".formatted(measurement, reason));
+      Assumptions.abort(reason);
+    }
 
     final var threshold = Double.parseDouble(System.getProperty(thresholdProperty));
 
