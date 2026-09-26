@@ -167,7 +167,7 @@ application is built and again inside the class loader of the running applicatio
 copies share no static field. Three numbers are system properties, so a repository whose reports
 travel through a cluster waits longer without a class of its own:
 `businesscockpit.test-server.wait-millis`, `businesscockpit.test-server.quiet-window-millis` and
-`businesscockpit.test-server.quiet-wait-millis`. Its port comes from `FreePortUtil` of
+`businesscockpit.test-server.quiet-wait-millis`. Its port comes from `OneFreePortPerJvm` of
 `io.vanillabp:test-utils`.
 
 What VanillaBP says about this extension's own annotations is asserted on both platforms too: two

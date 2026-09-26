@@ -194,7 +194,7 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-2",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    CockpitServer.awaitAnyRequest("/usertask/created");
+    CockpitServer.awaitRequestOf("/usertask/created", "bpms-event-2");
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a details provider was handed");
@@ -225,7 +225,7 @@ public class BusinessCockpitExtensionTest {
                 WorkflowEventKind.CREATED, "bpms-event-16", OffsetDateTime.now(),
                 EventTransaction.CURRENT));
 
-    CockpitServer.awaitAnyRequest("/workflow/created");
+    CockpitServer.awaitRequestOf("/workflow/created", "bpms-event-16");
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a workflow details provider was handed");

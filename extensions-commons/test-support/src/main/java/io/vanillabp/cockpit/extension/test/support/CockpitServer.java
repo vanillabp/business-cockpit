@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
-import io.vanillabp.integration.test.utils.FreePortUtil;
+import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
 
 /**
  * The cockpit server, played by the test. It records every request and answers with whatever the
@@ -121,7 +121,7 @@ public final class CockpitServer {
     if (published != null) {
       return Integer.parseInt(published);
     }
-    final var port = FreePortUtil.getFreePort();
+    final var port = OneFreePortPerJvm.getPort();
     final HttpServer server;
     try {
       server = HttpServer.create(new InetSocketAddress("localhost", port), 0);
@@ -343,8 +343,9 @@ public final class CockpitServer {
    * A path which names the case, like {@code /usertask/<id>/completed}, can only be reached by
    * the report the caller means. A collecting path like {@code /usertask/created} cannot. There
    * the first match may be about another user task, or about an earlier test of the same class,
-   * because the dispatch of an entry outlives the test which caused it. On such a path use
-   * {@link #awaitRequest(String, String)} and say which report is meant.
+   * because the dispatch of an entry outlives the test which caused it. On such a path say which
+   * report is meant: {@link #awaitRequest(String, String)} if the report is read afterwards,
+   * {@link #awaitRequestOf(String, String)} if only its arrival matters.
    *
    * @param pathSuffix What the path has to end with
    * @return The first request which arrived on that path
@@ -366,7 +367,8 @@ public final class CockpitServer {
    * <p>
    * This is the form for a collecting path like {@code /usertask/created}, where the path alone
    * does not say which case a report is about. {@link #awaitAnyRequest(String)} takes whatever
-   * arrives there first.
+   * arrives there first. {@link #awaitRequestOf(String, String)} waits the same way as this one
+   * but hands nothing back.
    *
    * @param pathSuffix What the path has to end with
    * @param bodyPart What the body has to carry
@@ -397,6 +399,30 @@ public final class CockpitServer {
                 bodyPart,
                 matching(pathSuffix),
                 received().stream().map(Request::path).toList()));
+
+  }
+
+  /**
+   * Waits for the report about the thing the caller means and hands nothing back.
+   * <p>
+   * A test which reads nothing from the report still has to say which one it waits for. On a
+   * collecting path like {@code /usertask/created} the report of an earlier test may arrive at
+   * any moment, so a wait which takes the next report of its kind can be over before the report
+   * under test was sent. Whatever the test asserts next then runs too early and passes without
+   * having seen anything.
+   * <p>
+   * Use {@link #awaitRequest(String, String)} when the report itself is read, and
+   * {@link #awaitAnyRequest(String)} only on a path which names the case, like
+   * {@code /usertask/<id>/completed}.
+   *
+   * @param pathSuffix What the path has to end with
+   * @param bodyPart What the body has to carry
+   */
+  public static void awaitRequestOf(
+      final String pathSuffix,
+      final String bodyPart) {
+
+    awaitRequest(pathSuffix, bodyPart);
 
   }
 
