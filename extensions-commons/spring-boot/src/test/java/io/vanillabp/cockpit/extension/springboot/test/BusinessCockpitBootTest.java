@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,6 +71,68 @@ public class BusinessCockpitBootTest {
       messages.append(cause.getMessage()).append('\n');
     }
     return messages.toString();
+
+  }
+
+  /**
+   * How deep a line is indented.
+   *
+   * @param line A line of the output
+   * @return The number of whitespace characters the line starts with
+   */
+  private static int indentationOf(
+      final String line) {
+
+    return line.length() - line.stripLeading().length();
+
+  }
+
+  /**
+   * What the boot said, cut into blocks.
+   * <p>
+   * VanillaBP writes a startup finding as a subject line with an indented body below it, so the
+   * extension it names and the aggregate it names are not on the same line. A block here is a
+   * line together with every line indented deeper below it, joined into one string. That is
+   * enough to read a finding as a whole, and it leaves the platform free to indent the body
+   * differently, to add lines to it or to write the finding on a single line again.
+   *
+   * @param reported Everything the boot wrote
+   * @return One block per line of the output, the first line of each block included
+   */
+  private static Stream<String> blocksOf(
+      final String reported) {
+
+    final var lines = reported.lines().toList();
+    final var blocks = new ArrayList<String>(lines.size());
+    for (int first = 0; first < lines.size(); first++) {
+      final var block = new StringBuilder(lines.get(first).strip());
+      final var depth = indentationOf(lines.get(first));
+      for (int below = first + 1; below < lines.size(); below++) {
+        if (indentationOf(lines.get(below)) <= depth) {
+          break;
+        }
+        block.append(' ').append(lines.get(below).strip());
+      }
+      blocks.add(block.toString());
+    }
+    return blocks.stream();
+
+  }
+
+  /**
+   * The blocks of the boot's output which name all of the given texts.
+   *
+   * @param reported Everything the boot wrote
+   * @param names The texts a block has to carry to be one the caller looks for
+   * @return The matching blocks
+   */
+  private static List<String> blocksNaming(
+      final String reported,
+      final String... names) {
+
+    return blocksOf(reported)
+        .filter(block -> Stream.of(names).allMatch(block::contains))
+        .toList();
 
   }
 
@@ -141,12 +207,10 @@ public class BusinessCockpitBootTest {
             "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
-      final var aboutTheCase = output
-          .getAll()
-          .lines()
-          .filter(line -> line.contains(ConfigurationKeys.EXTENSION_ID))
-          .filter(line -> line.contains(TestAggregate.class.getName()))
-          .toList();
+      final var aboutTheCase = blocksNaming(
+          output.getAll(),
+          ConfigurationKeys.EXTENSION_ID,
+          TestAggregate.class.getName());
 
       assertTrue(
           aboutTheCase.isEmpty(),
@@ -170,19 +234,19 @@ public class BusinessCockpitBootTest {
             "vanillabp.cockpit.rest.base-url=http://localhost:1")
         .run()) {
 
-      final var reported = output
-          .getAll()
-          .lines()
-          .filter(line -> line.contains(ExtensionWithAWritingHandler.EXTENSION_ID))
-          .filter(line -> line.contains(TestAggregate.class.getName()))
+      final var reported = blocksNaming(
+          output.getAll(),
+          ExtensionWithAWritingHandler.EXTENSION_ID,
+          TestAggregate.class.getName())
+          .stream()
           .findFirst()
           .orElseThrow(
               () -> new AssertionError(
                   "nothing was said about the second writer that extension brings: "
                       + output.getAll()));
 
-      // the way out is what a developer needs from the line, and it is a version attribute on
-      // the case. See decision 20 in the repository's DECISIONS.md for why this warning is
+      // the way out is what a developer needs from the finding, and it is a version attribute
+      // on the case. See decision 20 in the repository's DECISIONS.md for why this warning is
       // VanillaBP's and not one of ours
       assertTrue(reported.contains("version attribute"), reported);
 
