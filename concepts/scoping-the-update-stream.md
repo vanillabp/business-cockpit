@@ -16,6 +16,7 @@ sie sich stützt. Zeilennummern stehen für den Stand von `origin/main` am 2026-
 - [Der Begriff aus Story 250](#der-begriff-aus-story-250)
 - [Vorschlag](#vorschlag)
 - [Was der Server dem Browser schon gegeben hat](#was-der-server-dem-browser-schon-gegeben-hat)
+- [Was ein Ereignis später noch tragen muss](#was-ein-ereignis-später-noch-tragen-muss)
 - [Was aus den Fragen des Prompts folgt](#was-aus-den-fragen-des-prompts-folgt)
 - [Offene Fragen mit Default](#offene-fragen-mit-default)
 
@@ -125,7 +126,8 @@ werden.
 ## Vorschlag
 
 1. Ein Ereignis ist ein Wecker. Es trägt die Art der Entität, ihre Kennung und die Art der
-   Änderung, und keine Zielgruppen. `GuiEvent.targetGroups` und `GuiEvent.matchesTargetGroups`
+   Änderung, und keine Zielgruppen. Die Art der Änderung ist dabei mehr als Beiwerk, siehe
+   [Was ein Ereignis später noch tragen muss](#was-ein-ereignis-später-noch-tragen-muss). `GuiEvent.targetGroups` und `GuiEvent.matchesTargetGroups`
    entfallen. `NotificationEvent.targetGroups` wird heute nur an zwei Stellen gelesen, in den
    beiden `GuiNotificationService` (`tasklist/api/GuiNotificationService.java` und
    `workflowlist/api/GuiNotificationService.java`, je Zeile 24), und beide geben es nur an das
@@ -191,6 +193,32 @@ der Datenbank, und was das kostet, steht oben.
 
 Damit sind die drei Fälle aus der Abnahme der Story abgedeckt, ohne Vorbild aus der Datenbank und
 ohne eine zweite Sichtbarkeitsregel.
+
+## Was ein Ereignis später noch tragen muss
+
+Stephan hat beim Review dieses Konzepts einen Punkt nachgetragen, der über den Filter hinausgeht
+und eine eigene Zeile bekommen hat, `1410`. Er gehört hierher, weil er den Schnitt des Ereignisses
+betrifft.
+
+Ein Wecker sagt, dass sich etwas geändert hat. Er sagt nicht, WAS passiert ist, und eine
+Oberfläche braucht genau das: wer sich eine Aufgabe zuweist und damit jemand anderen als
+Bearbeiter abmeldet, soll bei dem anderen eine Meldung auslösen, in der Art "'yyyy' hat die
+Aufgabe 'abc' von Ihnen übernommen", mit der Aufgabe als Link. Je Komponente soll auf verschiedene
+Ereignisse verschieden reagiert werden können.
+
+Aus den Daten allein ist das oft nicht zu holen. Dass ein Bearbeiter von A auf B gewechselt ist,
+steht nach der Änderung nicht mehr im Dokument, und ein Vorbild aus der Datenbank gibt es nicht,
+siehe oben. Stephans Entwurf dafür: eine eigene Sammlung führt die Änderungshistorie, ein Eintrag
+nennt Objekt, Kennung und Aktion, das Objekt verweist auf den Eintrag, und die Aktion übergibt
+kein fertiges Satzstück, sondern ein Objekt als Template-Kontext. Gerendert wird erst beim
+Zustellen, in der Sprache dessen, der den Strom hält.
+
+Für dieses Konzept folgt daraus nur eines, und das ist der Grund, warum es hier steht: der
+Schnitt des Ereignisses bleibt offen. Die Art der Änderung gehört ins Ereignis, nicht nur die
+Kennung, und neben ihr bleibt der Platz für den Verweis auf einen Eintrag der Historie frei. Beides
+kommt additiv dazu, bricht also keine Oberfläche, und die Beschreibung aus `1238` soll sagen, dass
+dieser Platz frei ist, statt ihn zu verschweigen. Dass ein Strom die Sprache seines Benutzers
+kennt, fällt dabei mit ab: er trägt seit Punkt 2 die `UserDetails`, und `User.locale` steht darin.
 
 ## Was aus den Fragen des Prompts folgt
 
