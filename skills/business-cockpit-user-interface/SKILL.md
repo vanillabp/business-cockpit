@@ -36,6 +36,13 @@ Eine Dev Shell. Sie ist die Werkbank, auf der jemand ein Formular für ein Workf
 ohne ein Cockpit zu starten. Auch sie gibt es heute dreimal sprachspezifisch, und auch sie braucht
 eine Beschreibung statt dreier Vorlagen.
 
+## Was noch nicht fertig ist
+
+`intent.md` ist das Gerüst für den Teil, der nicht aus dem Code zu lesen ist: wozu ein Cockpit-UI
+da ist und welche Entscheidung Absicht war. Solange seine Felder leer sind, beschreibt dieser Skill
+nur, was das mitgelieferte UI tut. Ein Agent, der etwas baut, liest `intent.md` zuerst und nimmt
+ein leeres Feld als "nichts Besonderes", nicht als Freibrief.
+
 ## Die Teile der Beschreibung
 
 Lies sie in dieser Reihenfolge. Jede baut auf der vorigen auf.
