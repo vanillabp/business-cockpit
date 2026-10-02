@@ -79,18 +79,6 @@
     <pluginManagement>
       <plugins>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <executions>
-            <execution>
-              <id>attach-sources</id>
-              <goals>
-                <goal>jar</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.6.0</version>
           <configuration>
@@ -240,6 +228,24 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <!-- the sources jar every build attaches. The release parent binds this plugin
+           only in its 'release' profile, and a snapshot is deployed without that profile,
+           so a snapshot could go out with no sources and show decompiled code in the IDE
+           of everyone who builds against it. It is bound here, at the root, and no longer
+           in each module, so a module added later does not have to remember it. Version,
+           phase and the rest of the configuration come from the parent. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!-- declared here and not in pluginManagement, because the modules of
              test-coverage-report have to inherit it to build their aggregated reports -->
