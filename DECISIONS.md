@@ -804,3 +804,314 @@ application's write and there is no second writer left. Where the event arrives 
 of a remote engine, the extension opens a transaction for it, and a provider which writes there is
 still a writer beside the application. A provider is asked a question and answers it, which is what
 decision 17 says, and that is still the way out of both cases.
+
+### 27. The description of a cockpit user interface lives in this repository
+
+Version 1.0 does not ship a user interface per framework any more. It ships a description of what a
+cockpit user interface has to do, precise enough that somebody can build one from it without
+reading the React sources. The React application stays in the repository as the worked example of
+that description.
+
+The description is written in the skill format, as a `SKILL.md` with pages below `references/`, so
+an agent can load it. It does not live in `vanillabp/skills`, where the other VanillaBP skills are.
+It lives here, in `skills/business-cockpit-user-interface`.
+
+#### Why not in the skills repository
+
+The skills repository has one rule it stands on: a skill links the documentation instead of copying
+it, so an agent ends up in the current wiki and not in a snapshot of it. A description of the GUI
+API, of the module federation contract and of the types of `@vanillabp/bc-types` cannot follow that
+rule. There is no other document it could link. It *is* the document, and what it describes is the
+surface of this repository.
+
+A copy of that surface kept in another repository goes stale on its own schedule. Nobody changing
+`UserTaskService` here opens a pull request there, and nothing fails when the two drift apart. Kept
+here, the description sits next to the code it describes, a change which breaks it is visible in
+the same diff, and the reviewer of that change is the person who knows.
+
+So `vanillabp/skills` gets a skill named `business-cockpit` which points here for everything about
+the user interface. An agent finds the skill, and the skill leads it into this repository. That is
+the rule of the skills repository applied, not bent.
+
+#### Why the directory is named after the user interface
+
+The directory is `skills/business-cockpit-user-interface`, not `skills/business-cockpit`. Two
+reasons.
+
+The name of a skill is matched against a task, and an agent should load this one when somebody
+wants a front end, not whenever the Business Cockpit is mentioned. A skill called
+`business-cockpit` living here would compete with the skill of the same name in `vanillabp/skills`,
+and two skills with one name in one installation is a problem nobody needs to have.
+
+And `skills/` here is a directory, not a repository. Other descriptions of this kind will follow,
+for the cockpit server or for an extension of it, and each gets its own directory next to this one.
+A directory named after the product would have taken the whole space.
+
+#### What this means for maintenance
+
+The description is a published surface of this repository, like the OpenAPI specifications and like
+the wiki. Three consequences:
+
+A change to the GUI API, to the module federation contract or to the types of the NPM packages is
+not finished while the description still says the old thing. The description names the files it
+describes, so `grep` finds what to read.
+
+Where the description and the code disagree, the code is right and the description is the defect.
+The description says so itself, at the top. That is the same rule the wiki follows.
+
+Nothing in the description is allowed to be an unproven promise. Every sentence about behaviour in
+it was read out of the code, and where that reading found nothing, the text names the gap instead
+of guessing. A gap somebody can see is cheaper than a promise which turns out to be wrong, because
+whoever builds a user interface from this text has no second source to check it against.
+
+#### Where this decision is referred to
+
+- `skills/business-cockpit-user-interface/SKILL.md`, the paragraph saying why the text lives in
+  this repository.
+- the skill `business-cockpit` in `vanillabp/skills`, which points here instead of repeating.
+- the wiki page `Customizing the user interface`.
+
+#### Still open when this was written
+
+The text is German until it has been reviewed, and the translation into English is work of its
+own. Front matter stays English, because an agent matches a task against the `description`
+field. Every file of the description says this in its first lines, and those lines go away with the
+translation.
+
+### 28. An initiator is always set, and the application is the only one who knows it
+
+The initiator is the user who caused something. A process started from a button in a user
+interface has the person who pressed it as its initiator, and so does a user task which somebody
+assigned to a candidate group or took for themselves. An action no user caused has no initiator,
+and the answer for it is the constant `system`.
+
+#### Why no BPMS answers this
+
+Camunda 8 names nobody. The Process-Engine-API names nobody. Camunda 7 has
+`HistoricProcessInstance#getStartUserId`, which `Camunda7CockpitBridge` reads, and the engine
+fills it only where the application set an identity context of its own. None of the three says
+anything about who changed a user task.
+
+VanillaBP cannot fill the gap either. A details object is prefilled at the moment of the event,
+and by then the security context of the logged-in user is gone. It is gone on a retry as well, so
+there is no later moment which would know more. The application is the only party which can carry
+the user from its own request into the report, and it can only do that by writing the user down
+somewhere the report can read, which is the workflow aggregate.
+
+#### Why it has to be forced
+
+The cockpit is hard to use without it. A list of cases which does not say who started them, and a
+list of tasks which does not say who last touched them, leaves a reader with nothing to sort by
+and nothing to recognize.
+
+What makes this different from other missing values is that it cannot be added afterwards. Once a
+case has run without an initiator, nobody knows who started it. Switching the field on later means
+new cases carry it and the older ones stay empty for good, which is a split nobody can explain to
+a user. A developer who forgets this and finds out a year later has lost that year.
+
+So the field is mandatory, and after a details provider has run there is a value in every details
+object. Never `null`. A provider which wants to throw away what an adapter prefilled sets the
+constant, and silence stops being an answer.
+
+#### How it is forced
+
+Two layers, because neither alone is enough.
+
+The first is the start of the application. A property with no default, `initiator-source`, says
+which of the two ways this workflow module goes: `by-application` where the application sets the
+initiator itself, or `system` where this module knows no user-triggered action at all. The key is
+named after where the value comes from, not after the value, because what it settles is who
+answers and not who the initiator is. It resolves at three levels, the
+application, a workflow module and a single workflow, most specific first, like every other
+multi-level key of this extension. A module which reports to the cockpit and answers nowhere is a
+defect, and the application does not start. The message names the module, says what the initiator
+is, says that it cannot be reconstructed, and spells out both keys.
+
+The second is the moment a report is built, and only where the first said `by-application`. If no
+value stands after the provider ran, the extension throws. Since decision 26 the report is built
+in the transaction of the event, so this fails the engine's work rather than only the delivery.
+That is the intended weight. A missing initiator is not a report which arrives late, it is a case
+which will never be able to name its initiator.
+
+The second layer alone would miss the case which matters most. A details provider is optional, and
+an application which has none still reports; a check living inside the provider would never see
+the application which forgot to write one. The first layer alone would miss the provider which
+exists and leaves the field alone.
+
+The first layer is also what keeps the promise that defaults stay compatible with version 1. In
+version 1 the initiator was optional, and turning that into an exception by changing a default
+would be a silent change of behaviour. A property with no default is not a default. The developer
+meets the question once, at the first start, and answers it for good.
+
+There is no grace period. An application moving from version 1 writes one line of configuration,
+and `UPGRADE.md` says which.
+
+#### What stays untouched
+
+The order is prefill, then provider, then the rule. An adapter fills what its BPMS knows, the
+provider may set or overwrite it, and only what is still empty afterwards meets the rule.
+Prefilling `system` before the provider would be wrong twice: the Camunda 7 value would have to be
+overwritten back, and a provider reading the object would see a value nobody ever said.
+
+One case is exempt. Where the BPMS answers nothing at all and the extension reports an end without
+details, the provider never runs, and that report carries `system` whatever the property says. An
+end has to be reported, and a configuration cannot answer for an event nobody was asked about.
+
+One consequence is worth naming. A provider which deliberately calls `setInitiator(null)` to drop
+a Camunda 7 value looks exactly like a provider which did nothing, and under `by-application` it
+throws. The way out is the same constant, set on purpose.
+
+The constant is `system`, the same string the cockpit server writes as `SYSTEM_USER`. The two live
+in modules which do not see each other, so they stay two constants which name each other in their
+Javadoc. `COCKPIT_USER`, which is `cockpit`, is a different answer and stays what it is: a change
+the cockpit itself caused.
+
+### 29. An empty answer of a BPMS is silence, and 1.0 says so in words rather than in a type
+
+`BusinessCockpitService.getUserTask` promised that an empty `Optional` means the BPMS does not know
+a task of that id. Two of the three BPMS cannot keep that promise. Camunda 8 answers out of a
+searchable storage an exporter writes behind the engine, so a task born a moment ago is missing from
+the answer in the same way a task which ended is. The Process-Engine-API answers out of what the
+asking node was served, which is a second road to the same gap, and entry 7 of its `GAPS.md` already
+says so. Camunda 7 asks its own engine inside the caller's transaction, so there empty really is
+empty.
+
+Measured on 2026-10-01, the window on Camunda 8 is 219 ms on 8.10.0-rc1, 649 ms on 8.9.21 and
+1667 ms on 8.8.39, all on an idle machine with one cluster. Under an exporter backlog it is as wide
+as the backlog.
+
+#### What 1.0 does about it
+
+No answer changes. What changes is what the two interfaces say about an empty answer, what the
+Camunda 8 half writes into the log when it gives one, and what a test holds in place.
+
+The javadoc of `getUserTask` says that empty means the BPMS said nothing about the task, that this
+covers a task which ended and a task the BPMS has not published yet, and that a caller turning it
+into "there is no such task" says more than it was told. The three `…OfAggregate` methods of
+`BusinessCockpitBpmsBridge` say the same in their own words, and the type says that a half may not
+answer an empty result to mean a task is over.
+
+The two readers in `BusinessCockpitServiceFactory` carry a comment naming what an empty answer costs
+and what it does not do, and two tests pin it: an empty answer reports nothing to the cockpit and
+ends nothing, and a read of a task the BPMS says nothing about answers empty without reporting.
+
+The Camunda 8 half logs both readings on the two paths which were silent, which is what decision 8
+of that repository had already settled and only half applied.
+
+#### Why there is no third answer state
+
+A javadoc gives an application nothing to branch on. To let a caller tell "gone" from "not yet",
+`getUserTask` would need a third state the way `WorkflowAwareness` has one. That is a shape in a
+published SPI, so it is an open question and not a repair, and the release gate says the
+cheap way has right of way for 1.0.
+
+The cheap way is not a stopgap, because taking the third state later costs no more than taking it
+now. Both interfaces can grow a question without breaking anybody.
+
+`BusinessCockpitService` is implemented nowhere outside this repository. There is no `implements
+BusinessCockpitService` in the whole workspace, and the only implementation is the anonymous class
+`BusinessCockpitServiceFactory.createService` builds, so an application never writes that interface
+and a method added beside `getUserTask` cannot break one.
+
+`BusinessCockpitBpmsBridge` is implemented by the BPMS halves, and a question added there can be a
+default method which answers "I cannot tell" until a half knows better. A half which never learns
+stays correct.
+
+So a third answer state is an additive option after 1.0, on both interfaces, and the words written
+now stay true whether it is ever taken.
+
+#### What was weighed and not taken
+
+Asking the partition instead of the index on Camunda 8 answers in 12 to 21 ms, which is one to three
+orders of magnitude faster than the index on this question. It is still the wrong question. An empty
+`UpdateUserTask` answers existence and nothing else, while both callers need the process version,
+the workflow id, the task definition and the BPMN element id, and reading those is what the index is
+for. It also drops the promise that an id somebody guessed reads no task of another case, because
+the aggregate's id is part of the index filter and no part of an update command. And it writes where
+a read is expected: the command lands in the task's audit log, it fires a modelled `updating`
+listener which changes nothing, and it holds the task in `UPDATING` while it runs, so every other
+sender is refused for 60 to 145 ms. A screen refresh is the worst caller to pay that with.
+
+Waiting out the export window inside the bridge was weighed too. A REST endpoint held open for up to
+ten seconds is worse than a wrong 404, and the number to wait for lives on
+`MigratableProcessService.workflowVisibilityDelay()`, which the cockpit bridge has no route to.
+
+A tie-breaker probe, which searches the index and asks the partition once where the search found
+nothing, is the one idea worth keeping. It costs a command only on the empty case and it answers
+"is this task over" truly. It still produces no reference, so `getUserTask` could only say "I cannot
+tell you". Whether a read may fire a modeller's `updating` listener is not settled, and the
+Camunda 8 adapter keeps its whole-workflow probe off by default for exactly that reason.
+
+### 30. A key of the cockpit application starts with `business-cockpit`
+
+The cockpit application reads its own configuration below `business-cockpit`. That is the prefix of
+`ApplicationProperties`. The other prefix, `vanillabp.cockpit`, belongs to the workflow module side,
+where `ConfigurationKeys.GLOBAL_PREFIX` of `extensions-commons` names it. The two do not mix. One
+configures the application which shows the lists, the other configures the extension which reports
+to it.
+
+The question came up because two `@Scheduled` placeholders named something else. The
+collector of the update stream asked for `businessCockpit.guiSse.collectingInterval`, the follow-up
+scheduler for `businesscockpit.follow-up.check-rate`. Both are now spelled the way the configuration
+spells them.
+
+A placeholder is not a bound property, so Spring's relaxed binding does not reach it. It is looked
+up by its exact name. The lookup finds nothing and the default of the annotation is used, without a
+word in the log. A wrong key here is therefore invisible: the application starts, the work runs, and
+only the interval is not the one somebody configured.
+`EveryScheduledPlaceholderNamesACockpitKeyTest` is what notices the next one.
+
+The key of the follow-up scheduler was written down nowhere, neither in the wiki nor in this
+repository, so spelling it correctly takes nothing away from anybody. Both keys are on the wiki page
+`Configuration` now.
+
+### 31. A change event is built without the document behind it
+
+A notification about a changed user task or workflow is built from the change event alone. It
+carries the kind of entity, its id and what happened to it. It does not carry the target groups any
+more, and the change stream is not asked to look the document up.
+
+#### What was measured
+
+`ChangeStreamNotificationsTest` writes the same document three times and counts what arrives at a
+stream subscribed the way the two services subscribe, without a lookup:
+
+| write                                            | MongoDB operation | document in the event | notification before | after |
+|--------------------------------------------------|-------------------|-----------------------|---------------------|-------|
+| a newly reported task                            | `insert`          | yes                   | yes                 | yes |
+| a claim, which Spring Data sends as `replaceOne` | `replace`         | yes                   | yes                 | yes |
+| giving the task back, an `$unset`                | `update`          | no                    | no                  | yes |
+
+Two of three before, three of three after. The workflow side counted three of three before as well,
+because `WorkflowChangedNotification.build` already passed `null` for the target groups and never
+touched the document.
+
+The loss is narrower than it looked, and it is not a rare case. `UserTaskService.unclaimTask` and
+`unassignTask` are the only two writes which send an update operator, and both of them are somebody
+giving work back.
+
+#### Why not ask for the document
+
+The other way was to subscribe with `FullDocument.UPDATE_LOOKUP`, which MongoDB answers by reading
+the document again after the change. That buys a value nobody reads. The target groups of an event
+end up in `GuiEvent`, and `GuiEvent.getTargetGroups` has no caller: the filter in
+`LoginApiController.updateClients` is a comment, and the `matchesTargetGroups` beside it compares a
+collection with a string and can never be true. So every open stream gets every event today, with
+or without the target groups in it.
+
+What a browser sees changes with this: the event written to the server-sent-event stream has no
+`targetGroups` property any more. Nothing reads it. The property is in no API description, and
+`grep -rn targetGroups ui/ apis/` finds nothing.
+
+The concept `concepts/scoping-the-update-stream.md` keeps it that way on purpose. An event is a
+wake-up call there, who it concerns is decided per stream, and the stream asks the same visibility
+question the list asks. Building the event without the document is the shape that concept needs, and
+the filter itself is separate work which still waits for its review.
+
+#### One place reports a lost change
+
+A listener which throws used to be caught twice, in `UserTaskService.publishUserTaskChange` and in
+`ChangeStreamUtils.catchExceptionsListener`, and neither line said which change was lost. The
+wrapper in `ChangeStreamUtils` is the only one left, because it is the only one which knows all
+three things worth knowing: the collection, the key of the document and the operation. A listener
+does not catch any more, and whatever it throws ends up there.
