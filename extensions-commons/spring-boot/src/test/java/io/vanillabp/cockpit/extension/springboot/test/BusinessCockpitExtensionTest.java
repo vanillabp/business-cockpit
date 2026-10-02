@@ -509,6 +509,54 @@ public class BusinessCockpitExtensionTest {
   }
 
   @Test
+  @DisplayName("aggregateChanged reports nothing about a task the BPMS is silent about, and ends nothing")
+  public void aggregateChangedOfASilentBpmsEndsNothing() {
+
+    final var aggregate = aStartedWorkflow();
+    // the search of this engine names no task, which is what a storage written behind the engine
+    // answers for a task it has not got yet
+    bridge.knowsTheTask(false);
+
+    transactions
+        .executeWithoutResult(status -> workflowService.businessCockpit()
+            .aggregateChanged(
+                aggregates.findById(aggregate.getId()).orElseThrow(),
+                RecordingBpmsBridge.USER_TASK_ID));
+
+    CockpitServer.awaitQuiet();
+    // nothing at all about that task. Not an update, and above all not an end: a task leaves a
+    // cockpit list when the BPMS reports an end, never because a search found nothing
+    assertTrue(
+        CockpitServer.received().stream().noneMatch(request -> request.path().contains("usertask")),
+        "an empty answer of the BPMS was reported to the cockpit");
+
+  }
+
+  @Test
+  @DisplayName("getUserTask answers empty for a task the BPMS is silent about, and reports nothing")
+  public void getUserTaskOfASilentBpmsAnswersEmpty() {
+
+    final var aggregate = aStartedWorkflow();
+    bridge.knowsTheTask(false);
+
+    final var userTask = transactions
+        .execute(status -> workflowService.businessCockpit()
+            .getUserTask(
+                aggregates.findById(aggregate.getId()).orElseThrow(),
+                RecordingBpmsBridge.USER_TASK_ID));
+
+    // the empty answer travels on to the application, which the javadoc tells to read it as "no
+    // details right now" and not as "there is no such task"
+    assertNotNull(userTask);
+    assertTrue(userTask.isEmpty());
+    CockpitServer.awaitQuiet();
+    assertTrue(
+        CockpitServer.received().stream().noneMatch(request -> request.path().contains("usertask")),
+        "reading a task the BPMS is silent about reported something to the cockpit");
+
+  }
+
+  @Test
   @DisplayName("getUserTask answers what the cockpit would show, and reports nothing")
   public void getUserTaskAnswersWithoutReporting() {
 

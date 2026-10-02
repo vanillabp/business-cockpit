@@ -79,6 +79,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
             extension.reportsUserTasks(),
             "the change of the user tasks of workflow aggregate '%s'"
                 .formatted(aggregateIdOf(workflowAggregate)));
+        // a task the BPMS names none of is left out of the loop below, so no entry is written
+        // for it and the cockpit keeps the data it stored before. That is all an empty answer
+        // does here. It does not end the task, and it takes the task off no cockpit list: only
+        // the BPMS' own report of an end does that
         bridgeOf(workflowAggregate)
             .userTasksOfAggregate(
                 context.getWorkflowModuleId(),
@@ -105,6 +109,11 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
             .readInOneTransaction(
                 context.getWorkflowAggregateClass(),
                 () -> {
+                  // an empty answer of the BPMS is handed to the application as it is. It
+                  // says the BPMS said nothing about that task, which is not the same as the
+                  // task being over, and the javadoc of getUserTask tells the caller so. The
+                  // details are not read for it either, because flatMap has nothing to read
+                  // them for
                   final var bridge = bridgeOf(workflowAggregate);
                   return bridge
                       .userTaskOfAggregate(
