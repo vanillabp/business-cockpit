@@ -63,8 +63,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * @param knows Whether the engine still knows the task. A test switches it off to prove that a
-   *          task which ended while its entry waited is not reported
+   * @param knows Whether this engine says anything about the task. A test switches it off to prove
+   *          that a task an engine is silent about is not reported, and that the silence ends
+   *          nothing
    */
   public void knowsTheTask(
       final boolean knows) {
@@ -172,6 +173,12 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final String workflowAggregateId,
       final List<String> userTaskIds) {
 
+    // an engine which says nothing about its tasks names none of them. That is what a search of
+    // a storage written behind the engine answers while it is behind, and the test uses it to
+    // read what the commons half makes of an empty answer
+    if (!knowsTheTask.get()) {
+      return List.of();
+    }
     return List
         .of(
             userTask(
