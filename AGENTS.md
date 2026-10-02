@@ -153,6 +153,23 @@ nothing outside the branch has seen the number, so correcting it costs no more t
 Every other running number is checked the same way. The story prompts are such a series. They are
 kept outside this repository, so they are checked where they are kept.
 
+### A decision which has no number yet
+
+Several agents work on branches at the same time, and each of them checking the free numbers is not
+enough: two branches ask on the same afternoon, both get the same answer, and the second one to
+merge carries a number which is taken. So a branch does not number its decision at all. It writes
+it as its own file under `DECISIONS.pending/`, named after the story it comes from, in the form an
+entry of the log has, and without a number.
+
+Whoever merges the branch gives the number and moves the text into `DECISIONS.md`. The file under
+`DECISIONS.pending/` is deleted in the same step, and the headings of the text move one level below
+the entry, because the log has no sub-headings of its own.
+
+Two things go while the text moves: a line saying who decided it and when, and anything naming a
+story, a prompt or a measurement outside this repository. The section further down about what code
+may point at says why. Where such a line carried a reason the entry needs, the reason is written
+again without the person and without the number.
+
 ## What code may point at
 
 Nothing which a later change can invalidate without anything noticing: no story or prompt number,
