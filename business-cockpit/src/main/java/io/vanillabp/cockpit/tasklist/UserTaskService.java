@@ -185,15 +185,18 @@ public class UserTaskService {
 
     }
 
+    /**
+     * What a change to a user task becomes: one notification per change event.
+     * <p>
+     * Nothing is caught here. A failure is reported by {@code ChangeStreamUtils}, which knows the
+     * collection, the document and the operation, and the stream resumes there as well. Catching it
+     * twice used to mean two log lines, neither of which said which change was lost.
+     */
     private void publishUserTaskChange(
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
 
-        try {
-            applicationEventPublisher.publishEvent(
-                    UserTaskChangedNotification.build(message));
-        } catch (Exception e) {
-            logger.warn("Error on processing user-task change-stream event! Will resume stream.", e);
-        }
+        applicationEventPublisher.publishEvent(
+                UserTaskChangedNotification.build(message));
 
     }
 

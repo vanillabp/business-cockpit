@@ -528,15 +528,15 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * What a change to a workflow becomes: one notification per change event. Nothing is caught
+     * here, for the reason given at {@code UserTaskService#publishUserTaskChange}.
+     */
     private void publishWorkflowChange(
             final Message<ChangeStreamDocument<Document>, Workflow> message) {
 
-        try {
-            applicationEventPublisher.publishEvent(
-                    WorkflowChangedNotification.build(message));
-        } catch (Exception e) {
-            logger.warn("Error on processing workflow change-stream event! Will resume stream.", e);
-        }
+        applicationEventPublisher.publishEvent(
+                WorkflowChangedNotification.build(message));
 
     }
 

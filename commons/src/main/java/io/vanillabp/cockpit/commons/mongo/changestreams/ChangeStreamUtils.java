@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.messaging.ChangeStreamRequest;
+import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.MessageListener;
 import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
 import org.springframework.data.mongodb.core.messaging.Subscription;
@@ -35,6 +36,9 @@ import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
 public class ChangeStreamUtils {
 
     private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
+
+    /** What a log message says where a change event does not carry the value. */
+    private static final String UNKNOWN = "unknown";
     
     @Autowired
     private Logger logger;
@@ -96,7 +100,7 @@ public class ChangeStreamUtils {
         
         // build MongoDb request for change stream
         final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
-                .builder(catchExceptionsListener(listener, entityClass))
+                .builder(catchExceptionsListener(listener, collectionName))
                 .fullDocumentLookup(
                         fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
                                 ? FullDocument.UPDATE_LOOKUP // required for Cosmos
@@ -114,22 +118,69 @@ public class ChangeStreamUtils {
         
     }
     
+    /**
+     * Keeps the stream running when a listener fails, and says which single change was lost.
+     * <p>
+     * This is the only place which reports such a failure, so it names everything needed to find
+     * the change again: the collection, the key of the document and the operation. A listener
+     * therefore does not catch and log on its own; whatever it throws ends up here.
+     */
     private <T> MessageListener<ChangeStreamDocument<Document>, T> catchExceptionsListener(
             final MessageListener<ChangeStreamDocument<Document>, T> listener,
-            final Class<T> entityClass) {
+            final String collectionName) {
 
         return (message) -> {
             try {
                 listener.onMessage(message);
             } catch (Throwable e) {
-                logger.warn("Could error of change-stream listener for entity '{}'!",
-                        entityClass.getName(),
+                logger.warn(
+                        "Change-stream listener of collection '{}' failed on document '{}', "
+                        + "operation '{}'! The stream keeps running, so this one change was not "
+                        + "processed and whatever waits for it is not going to hear about it.",
+                        collectionName,
+                        documentKeyOf(message),
+                        operationOf(message),
                         e);
             }
         };
-        
+
     }
-    
+
+    /**
+     * The key of the document a change event is about, which every operation type carries. It is
+     * the only thing an {@code update} brings along without a lookup of the full document.
+     */
+    private static String documentKeyOf(
+            final Message<ChangeStreamDocument<Document>, ?> message) {
+
+        final var raw = message.getRaw();
+        if ((raw == null)
+                || (raw.getDocumentKey() == null)
+                || raw.getDocumentKey().isEmpty()) {
+            return UNKNOWN;
+        }
+        final var key = raw.getDocumentKey();
+        final var value = key.get(key.getFirstKey());
+        return value.isString()
+                ? value.asString().getValue()
+                : value.toString();
+
+    }
+
+    /**
+     * The operation behind a change event, as MongoDB names it. Azure Cosmos DB for MongoDB does
+     * not report it at all, which is why this can be unknown.
+     */
+    private static String operationOf(
+            final Message<ChangeStreamDocument<Document>, ?> message) {
+
+        final var raw = message.getRaw();
+        return (raw == null) || (raw.getOperationTypeString() == null)
+                ? UNKNOWN
+                : raw.getOperationTypeString();
+
+    }
+
     public void unsubscribe(
             final Subscription subscription) {
         
