@@ -15,6 +15,7 @@ sie sich stützt. Zeilennummern stehen für den Stand von `origin/main` am 2026-
 - [Woher der Zustand vor der Änderung kommt](#woher-der-zustand-vor-der-änderung-kommt)
 - [Der Begriff aus Story 250](#der-begriff-aus-story-250)
 - [Vorschlag](#vorschlag)
+- [Was der Server dem Browser schon gegeben hat](#was-der-server-dem-browser-schon-gegeben-hat)
 - [Was aus den Fragen des Prompts folgt](#was-aus-den-fragen-des-prompts-folgt)
 - [Offene Fragen mit Default](#offene-fragen-mit-default)
 
@@ -97,8 +98,12 @@ Zeile 104). Das Vorbild einzuschalten kostet mehr als eine Zeile: MongoDB will
 bis 95) kann es nicht.
 
 Es ist aber auch nicht nötig. Der Vorzustand wird nur für eine einzige Frage gebraucht: "Wem muss
-ich sagen, dass die Task weg ist?" Diese Frage kann der Strom selbst beantworten, weil er weiß,
-welche Kennungen er schon geliefert hat. Das ist die Antwort, die der Vorschlag unten benutzt.
+ich sagen, dass die Task weg ist?" Diese Frage beantwortet der Server aus dem, was er dieser
+Person schon ausgeliefert hat, und das weiß er von jeder Antwort auf eine Liste. Das ist die
+Antwort, die der Vorschlag unten benutzt, und sie trägt nur, wenn das Gedächtnis mehr kennt als
+die Wecker des Stroms; der Abschnitt
+[Was der Server dem Browser schon gegeben hat](#was-der-server-dem-browser-schon-gegeben-hat)
+sagt, warum.
 
 ## Der Begriff aus Story 250
 
@@ -136,11 +141,53 @@ werden.
    davon die Person sehen darf. Die Abfrage ist dieselbe wie in `getUserTasksUpdated`
    (`tasklist/UserTaskService.java`, Zeilen 702 bis 726): `buildUserTasksCriteria(visibility, …)`
    plus `_id in (…)` und `query.fields().include("_id")`.
-4. Eine Kennung, die die Abfrage nicht hergibt, geht trotzdem durch, wenn der Strom sie schon
-   einmal geliefert hat. Das ist der Entzug, und er verrät nichts: der Browser kennt die Kennung
-   bereits, und das Nachladen antwortet mit Abwesenheit. Alles andere fällt weg.
+4. Eine Kennung, die die Abfrage nicht hergibt, geht trotzdem durch, wenn der Browser dieser
+   Person sie schon hat. Das ist der Entzug, und er verrät nichts: die Kennung ist dem Browser
+   bekannt, und das Nachladen antwortet mit Abwesenheit. Alles andere fällt weg. Woher der Server
+   weiß, was ein Browser hält, steht im Abschnitt
+   [Was der Server dem Browser schon gegeben hat](#was-der-server-dem-browser-schon-gegeben-hat).
 5. Der Zugang braucht keinen Sonderfall. Wird eine Task jemandem zugewiesen, nennt die neue
    Sichtbarkeit diese Person, die Abfrage gibt die Kennung her, und der Wecker geht raus.
+
+## Was der Server dem Browser schon gegeben hat
+
+Der Entzug hängt daran, dass der Server weiß, welche Kennungen ein Browser zeigt. Die erste
+Fassung dieses Konzepts hat dafür gesagt: was der Strom geliefert hat. Das reicht nicht, und die
+Lücke ist nicht klein.
+
+Eine Liste wird nicht aus dem Strom gefüllt, sondern aus der ersten Abfrage. Wer eine Task beim
+Laden der Seite bekommt und zu der nie ein Wecker nötig war, hat sie im Browser, ohne dass der
+Strom je ihre Kennung ausgeliefert hätte. Wird diese Task der Person entzogen, sagt die Abfrage
+des Takts "nicht sichtbar" und das Gedächtnis "nie geliefert". Dann geht kein Wecker raus, der
+Browser lädt nicht nach, und die Task bleibt in der Liste stehen, obwohl die Person sie nicht mehr
+sehen darf. Genau dieser Fall ist der Grund, warum man den Zustand vor der Änderung vermisst.
+
+Der Ausweg braucht ihn nicht, weil der Server es ohnehin erfährt. Beide Wege, auf denen eine
+Liste zu ihren Einträgen kommt, laufen durch denselben Controller und durch denselben
+Aufruf von `mapper.toApi(userTasks, …)`:
+
+- `getUserTasks` beim Laden der Seite
+  (`tasklist/api/v1/AbstractUserTaskListGuiApiController.java`, Zeilen 101 bis 123). Der Server
+  weiß, welche Kennungen er gerade ausgeliefert hat.
+- `getUserTasksUpdate` bei jedem Nachladen (Zeilen 150 bis 172). Die Anfrage trägt zusätzlich
+  `getKnownUserTasksIds()`, also die Kennungen, die der Browser hält, bevor die Antwort sie
+  berichtigt.
+
+Das Gedächtnis wird damit an einer Stelle gefüttert und nicht an zwei: der Strom merkt sich jede
+Kennung, die der Server dieser Person in einer Liste beantwortet hat, und nicht nur die, die er
+selbst geweckt hat. Der Strom der Workflow-Seite bekommt dasselbe über
+`AbstractWorkflowListGuiApiController`.
+
+Das Gedächtnis gehört der angemeldeten Person und nicht einem einzelnen Tab: eine Liste in einem zweiten Tab zeigt dieselben Tasks, und der Strom ist einer je
+Anmeldung. Und es wird vom Nachladen auch dann gefüttert, wenn das Nachladen aus einem anderen
+Grund lief, etwa weil der Benutzer gesucht oder sortiert hat.
+
+Was bleibt, ist ein Fall, den dieser Weg nicht erreicht: ein Browser, dessen Liste aus einem
+Stand kommt, den ihm niemand mehr berichtigt, weil zwischen seinem letzten Nachladen und dem
+Entzug kein Takt lief, in dem er etwas Gesammeltes bekam. Praktisch heißt das, der Entzug wirkt
+bei seinem nächsten Nachladen, und nachgeladen wird bei jedem Wecker, beim Suchen, beim Sortieren
+und beim Neuladen der Seite. Wer eine Zusage ohne dieses "praktisch" will, braucht das Vorbild aus
+der Datenbank, und was das kostet, steht oben.
 
 Damit sind die drei Fälle aus der Abnahme der Story abgedeckt, ohne Vorbild aus der Datenbank und
 ohne eine zweite Sichtbarkeitsregel.
@@ -150,7 +197,8 @@ ohne eine zweite Sichtbarkeitsregel.
 Was müsste ein Ereignis tragen? Weniger als heute, nicht mehr: Art, Kennung, Änderungsart. Die
 Entscheidung, wen es angeht, gehört nicht ins Ereignis, weil sie je Strom anders ausfällt.
 
-Woher kommt der Zustand vorher? Aus dem Gedächtnis des Stroms, nicht aus dem Change-Stream.
+Woher kommt der Zustand vorher? Aus dem, was der Server dieser Person schon beantwortet hat, nicht
+aus dem Change-Stream.
 
 Reichen Gruppen, oder muss die Kennung der Person an den Emitter? Die Kennung ist schon da, als
 `USER_<id>` in den Authorities (`JwtMapper`, Zeile 57). Darauf zu bauen heißt aber, eine
@@ -191,7 +239,10 @@ heute schlechter, weil das Ereignis schon im Bau keine Zielgruppen bekommt.
    Liste, und die Ansicht filtert beim Nachladen ohnehin selbst. Ein Wecker zu viel kostet ein
    Nachladen, ein Wecker zu wenig lässt eine Liste veralten.
 5. Soll das Vorbild des Change-Streams eingeschaltet werden?
-   Default: nein. Siehe oben, der Entzug braucht es nicht, und der Cosmos-Modus kann es nicht.
+   Default: nein. Der Entzug braucht es nicht, sobald das Gedächtnis des Stroms von den Antworten
+   des Servers gefüttert wird, und der Cosmos-Modus kann es nicht. Dazu kommt, dass eine Änderung
+   heute überhaupt kein Dokument mitbringt, siehe Zeile `1404`; wer das Vorbild einschaltet, löst
+   zuerst diese Zeile und bezahlt dann an jeder Sammlung die Vor- und Nachbilder.
 6. Was passiert mit Ereignissen, die zu keiner Entität gehören?
    Default: sie bleiben ungefiltert. Der Ping (`LoginApiController`, Zeilen 147 bis 177) und die
    Registrierung eines Workflow-Moduls sagen nichts über einen Fall.
