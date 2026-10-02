@@ -304,6 +304,22 @@
       <artifactId>test-utils</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!--
+        A change stream only exists on a MongoDB replica set, and what it delivers per operation type
+        cannot be told from a mock. The version comes from the testcontainers BOM imported by the
+        Spring Boot BOM, the image from io.vanillabp.integration.test.utils.ContainerImages.
+      -->
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mongodb</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- a change stream is polled, so what it delivers is awaited and not asserted right away -->
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <licenses>
