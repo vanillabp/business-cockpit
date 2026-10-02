@@ -36,9 +36,15 @@ public class FollowUpScheduler {
 
     private OffsetDateTime previousCheckTimestamp = OffsetDateTime.now();
 
+    /**
+     * The key was written without the dash in {@code business-cockpit} and was therefore a key of
+     * its own. Nothing else in this application used it and no page of the wiki named it. A
+     * placeholder is looked up by its exact name, so a value written under the documented prefix
+     * was ignored, without a word in the log.
+     */
     @Scheduled(
-            fixedRateString = "${businesscockpit.follow-up.check-rate:PT1M}",
-            initialDelayString = "${businesscockpit.follow-up.check-rate:PT1M}")
+            fixedRateString = "${business-cockpit.follow-up.check-rate:PT1M}",
+            initialDelayString = "${business-cockpit.follow-up.check-rate:PT1M}")
     public void emitFollowUpReminders() {
 
         final var now = OffsetDateTime.now();
