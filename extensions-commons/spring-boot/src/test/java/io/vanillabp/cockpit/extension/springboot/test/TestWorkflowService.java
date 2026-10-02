@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import io.vanillabp.cockpit.extension.springboot.writinghandler.NoteOnTheCase;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
+import io.vanillabp.spi.cockpit.Initiator;
 import io.vanillabp.spi.cockpit.details.DetailsEvent;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
@@ -137,6 +138,23 @@ public class TestWorkflowService {
       final PrefilledUserTaskDetails prefilled) {
 
     prefilled.setUiUriPath(TASK_ADDRESS);
+    return prefilled;
+
+  }
+
+  /**
+   * A provider for a task no user ever causes, so it names the constant instead of a user. It is
+   * the second of the two answers an application may give, and the one which lets a module
+   * answer for itself and still report a task of its own making.
+   *
+   * @param prefilled What the BPMS reported
+   * @return The details, with the initiator said out loud
+   */
+  @UserTaskDetailsProvider(taskDefinition = "archive")
+  public UserTaskDetails archive(
+      final PrefilledUserTaskDetails prefilled) {
+
+    prefilled.setInitiator(Initiator.SYSTEM);
     return prefilled;
 
   }

@@ -11,6 +11,7 @@ vanillabp:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
   cockpit:
+    initiator-source: by-application
     rest:
       base-url: http://localhost:1
   workflow-modules:

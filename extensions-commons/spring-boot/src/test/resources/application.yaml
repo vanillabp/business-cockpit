@@ -13,6 +13,7 @@ vanillabp:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
   cockpit:
+    initiator-source: by-application
     rest:
       base-url: replaced-by-the-test
   workflow-modules:

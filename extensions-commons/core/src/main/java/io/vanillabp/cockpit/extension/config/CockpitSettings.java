@@ -21,6 +21,7 @@ import java.util.Map;
  * @param workflowListEnabled Whether workflows are reported at all, <code>true</code> where
  *          nothing was configured
  * @param templateLoaderPath The directory Freemarker loads the templates from
+ * @param initiatorSource Who answers the initiator of a report, for the whole application
  * @param rest The REST transport, or <code>null</code> where nothing below <code>rest</code>
  *          was written. A section which says nothing is a section which is not there, on either
  *          platform
@@ -33,6 +34,7 @@ public record CockpitSettings(
                               String userTasksEnabled,
                               String workflowListEnabled,
                               String templateLoaderPath,
+                              String initiatorSource,
                               Rest rest,
                               Kafka kafka,
                               ProcessEngineApi processEngineApi,
@@ -47,7 +49,7 @@ public record CockpitSettings(
    */
   public static CockpitSettings none() {
 
-    return new CockpitSettings(null, null, null, null, null, null, Map.of());
+    return new CockpitSettings(null, null, null, null, null, null, null, Map.of());
 
   }
 
@@ -233,6 +235,8 @@ public record CockpitSettings(
    * @param bpmnDescriptionLanguage The language the names in the BPMN files are written in
    * @param templatePath The segment this module contributes to the template lookup path
    * @param groupHierarchy Which groups a group stands for
+   * @param initiatorSource Who answers the initiator of this module's reports, or
+   *          <code>null</code> where the application decides
    */
   public record Cockpit(
                         String workflowModuleUri,
@@ -241,7 +245,8 @@ public record CockpitSettings(
                         List<String> i18nLanguages,
                         String bpmnDescriptionLanguage,
                         String templatePath,
-                        Map<String, List<String>> groupHierarchy) {
+                        Map<String, List<String>> groupHierarchy,
+                        String initiatorSource) {
 
     public Cockpit {
       i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);
@@ -262,12 +267,15 @@ public record CockpitSettings(
    * @param templatePath The segment this workflow contributes to the template lookup path, or
    *          <code>null</code>
    * @param userTasks What single user tasks of this workflow wrote, by task definition
+   * @param initiatorSource Who answers the initiator of this workflow's reports, or
+   *          <code>null</code> where the module or the application decides
    */
   public record Workflow(
                          List<String> i18nLanguages,
                          String bpmnDescriptionLanguage,
                          String templatePath,
-                         Map<String, UserTask> userTasks) {
+                         Map<String, UserTask> userTasks,
+                         String initiatorSource) {
 
     public Workflow {
       i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);

@@ -6,6 +6,11 @@ public interface UpdateInformationAware {
 
     /**
      * The user name recorded where no user triggered the update, a cron job for example.
+     *
+     * <p>The cockpit's SPI holds the same text as <code>Initiator.SYSTEM</code>, in the artifact
+     * <code>io.vanillabp.businesscockpit:spi-for-java</code>, where a workflow module sets it on
+     * a report. The two modules do not see each other, so there are two constants of one value,
+     * and neither may be changed alone.
      */
     String SYSTEM_USER = "system";
 

@@ -18,13 +18,18 @@ import java.util.Map;
  *          <code>null</code> where the BPMN process id is the segment
  * @param templatePathPerUserTask The segment a single user task contributes, by task
  *          definition, where it is not the task definition itself
+ * @param initiatorSource Who answers the initiator of this workflow's reports, or
+ *          <code>null</code> where the module or the application decides. This is the one
+ *          exception a single workflow is written for, so a process started by a timer reports
+ *          <code>system</code> while the rest of the module answers for itself
  */
 public record WorkflowConfiguration(
                                     String bpmnProcessId,
                                     List<String> i18nLanguages,
                                     String bpmnDescriptionLanguage,
                                     String templatePath,
-                                    Map<String, String> templatePathPerUserTask) implements CockpitSection {
+                                    Map<String, String> templatePathPerUserTask,
+                                    InitiatorSource initiatorSource) implements CockpitSection {
 
   public WorkflowConfiguration {
     i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);

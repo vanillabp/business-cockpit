@@ -7,7 +7,22 @@ import java.util.Map;
 public interface UserTaskDetails {
 
     String getId();
-    
+
+    /**
+     * Who caused this report. The value is mandatory: once a details provider has run, every
+     * details object carries one, and the two allowed answers are a user id and the constant
+     * {@link io.vanillabp.spi.cockpit.Initiator#SYSTEM} for an action no user caused.
+     *
+     * <p>Where the property <code>vanillabp.cockpit.initiator-source</code> says
+     * <code>by-application</code> and nothing is set, the report fails and the message says
+     * which of the two answers to give. Where it says <code>system</code>, the constant is
+     * filled in.
+     *
+     * <p>The cockpit also reads it to leave somebody out of a notification about their own
+     * work.
+     *
+     * @return The user who caused this report
+     */
     String getInitiator();
     
     String getComment();

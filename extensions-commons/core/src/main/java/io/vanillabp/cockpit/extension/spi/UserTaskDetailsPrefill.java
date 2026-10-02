@@ -27,7 +27,12 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  * @param businessId The business key the workflow was started with
  * @param bpmnTaskName The BPMN name of the user task element
  * @param bpmnProcessName The BPMN name of the process
- * @param initiator Who caused this event, if the BPMS records it
+ * @param initiator Who caused this event, where the BPMS records it. No engine records who
+ *          changed a user task, so this is usually empty and the application answers it in
+ *          its <code>&#64;UserTaskDetailsProvider</code> method. Leaving it empty is right
+ *          for a BPMS which knows nothing: a report which names nobody after the provider
+ *          ran is answered by <code>vanillabp.cockpit.initiator-source</code>, either with
+ *          the constant <code>Initiator.SYSTEM</code> or by failing the report
  * @param assignee The user the task is assigned to
  * @param candidateUsers The users who may claim the task
  * @param candidateGroups The groups whose members may claim the task
@@ -161,6 +166,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * @param initiator Who caused this event, where the BPMS records it. Prefilling
+     *          <code>system</code> instead of leaving it empty would be wrong: the application's
+     *          provider would then read a value nobody said
+     * @return The builder
+     */
     public Builder initiator(
         final String initiator) {
 

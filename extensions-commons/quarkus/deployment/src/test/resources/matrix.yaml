@@ -12,6 +12,7 @@ vanillabp:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
   cockpit:
+    initiator-source: by-application
     user-tasks-enabled: false
     workflow-list-enabled: false
     process-engine-api:

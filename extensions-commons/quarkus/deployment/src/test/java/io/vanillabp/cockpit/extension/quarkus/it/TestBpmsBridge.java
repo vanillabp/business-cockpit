@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.UserTaskDetailsPrefill;
@@ -35,10 +36,27 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The deployed version this BPMS double runs its workflows on. */
   public static final String PROCESS_VERSION = "1";
 
+  /** The initiator this engine prefills, the way Camunda 7 answers for a case it started. */
+  public static final String ENGINE_INITIATOR = "the-engine";
+
   @Inject
   TransactionSynchronizationRegistry transactions;
 
   private final List<Boolean> tasksLookedUpInATransaction = new CopyOnWriteArrayList<>();
+
+  private final AtomicBoolean prefillsAnInitiator = new AtomicBoolean(true);
+
+  /**
+   * @param prefills Whether this engine names an initiator at all. Camunda 8 and the
+   *          Process-Engine-API name none, so a test switches it off to run the way those two
+   *          report
+   */
+  public void prefillsAnInitiator(
+      final boolean prefills) {
+
+    prefillsAnInitiator.set(prefills);
+
+  }
 
   /**
    * @return For every lookup of one task of an aggregate, whether a transaction was open while
@@ -88,7 +106,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
                 .businessId("4711")
                 .bpmnTaskName("Approve the order")
                 .bpmnProcessName("Order handling")
-                .initiator("the-engine")
+                .initiator(prefillsAnInitiator.get() ? ENGINE_INITIATOR : null)
                 .assignee("anna")
                 .candidateUsers(List.of("bert"))
                 .dueDate(OffsetDateTime.now().plusDays(1))
@@ -101,7 +119,10 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   public Optional<WorkflowDetailsPrefill> prefilledWorkflowDetails(
       final WorkflowReference workflow) {
 
-    return Optional.of(new WorkflowDetailsPrefill("1", "4711", "Order handling", "the-engine"));
+    return Optional
+        .of(
+            new WorkflowDetailsPrefill(
+                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR : null));
 
   }
 

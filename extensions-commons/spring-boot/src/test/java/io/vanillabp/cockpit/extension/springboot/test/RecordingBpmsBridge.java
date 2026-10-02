@@ -37,7 +37,12 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The deployed version this BPMS double runs its workflows on. */
   public static final String PROCESS_VERSION = "1";
 
+  /** The initiator this engine prefills, the way Camunda 7 answers for a case it started. */
+  public static final String ENGINE_INITIATOR = "the-engine";
+
   private final AtomicBoolean knowsTheTask = new AtomicBoolean(true);
+
+  private final AtomicBoolean prefillsAnInitiator = new AtomicBoolean(true);
 
   private final List<UserTaskReference> userTasksRead = new LinkedList<>();
 
@@ -58,13 +63,26 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * @param knows Whether the engine still knows the task. A test switches it off to prove that a
-   *          task which ended while its entry waited is not reported
+   * @param knows Whether this engine says anything about the task. A test switches it off to prove
+   *          that a task an engine is silent about is not reported, and that the silence ends
+   *          nothing
    */
   public void knowsTheTask(
       final boolean knows) {
 
     knowsTheTask.set(knows);
+
+  }
+
+  /**
+   * @param prefills Whether this engine names an initiator at all. Camunda 8 and the
+   *          Process-Engine-API name none, so a test switches it off to run the way those two
+   *          report
+   */
+  public void prefillsAnInitiator(
+      final boolean prefills) {
+
+    prefillsAnInitiator.set(prefills);
 
   }
 
@@ -115,7 +133,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
                 .businessId("4711")
                 .bpmnTaskName("Approve the order")
                 .bpmnProcessName("Order handling")
-                .initiator("the-engine")
+                .initiator(prefillsAnInitiator.get() ? ENGINE_INITIATOR : null)
                 .assignee("anna")
                 .candidateUsers(List.of("bert"))
                 .dueDate(OffsetDateTime.now().plusDays(1))
@@ -129,7 +147,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final WorkflowReference workflow) {
 
     return Optional
-        .of(new WorkflowDetailsPrefill("1", "4711", "Order handling", "the-engine"));
+        .of(
+            new WorkflowDetailsPrefill(
+                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR : null));
 
   }
 
@@ -153,6 +173,12 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final String workflowAggregateId,
       final List<String> userTaskIds) {
 
+    // an engine which says nothing about its tasks names none of them. That is what a search of
+    // a storage written behind the engine answers while it is behind, and the test uses it to
+    // read what the commons half makes of an empty answer
+    if (!knowsTheTask.get()) {
+      return List.of();
+    }
     return List
         .of(
             userTask(

@@ -37,7 +37,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
     properties = {
         // an outbox store of its own. The contexts of the other test classes stay cached with
         // their pollers running, and on a shared store one of them takes the entry away
-        "spring.datasource.url=jdbc:h2:mem:cockpit-versions;DB_CLOSE_DELAY=-1"
+        "spring.datasource.url=jdbc:h2:mem:cockpit-versions;DB_CLOSE_DELAY=-1",
+        // this application is about which method serves which version, and its engine names no
+        // initiator. So it answers the initiator by configuration, which is the other of the two
+        // ways and the one a module without user-triggered actions takes
+        "vanillabp.cockpit.initiator-source=system"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

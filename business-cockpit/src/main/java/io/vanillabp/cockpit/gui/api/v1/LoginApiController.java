@@ -89,7 +89,18 @@ public class LoginApiController implements LoginApi {
 
     }
 
-    @Scheduled(fixedDelayString = "${businessCockpit.guiSse.collectingInterval:250}") // every 0.5 seconds
+    /**
+     * Looks at every open stream and writes out what has been collected for it. A stream whose last
+     * flush is less than its update interval ago is skipped, see
+     * {@link UpdateEmitter#consumeEvents()}.
+     *
+     * <p>The placeholder spells the property key the way the configuration spells it. Spring's
+     * relaxed binding turns {@code business-cockpit.gui-sse.collecting-interval} into
+     * {@link GuiSseProperties#getCollectingInterval()}, but it does not help a placeholder in an
+     * annotation. That one is looked up by its exact name. A camel-case name found nothing, so the
+     * default of 250 milliseconds was the only value which ever counted.
+     */
+    @Scheduled(fixedDelayString = "${business-cockpit.gui-sse.collecting-interval:250}")
     public void updateClients() {
 
         final var toBeRemoved = new LinkedList<String>();

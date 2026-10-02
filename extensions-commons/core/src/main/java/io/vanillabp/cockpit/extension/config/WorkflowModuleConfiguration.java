@@ -27,6 +27,8 @@ import io.vanillabp.integration.extension.spi.settings.SettingsResolution;
  * @param templatePath The segment this module contributes to the template lookup path, which
  *          is the module id where nothing was configured
  * @param workflows What single workflows of this module said, by BPMN process id
+ * @param initiatorSource Who answers the initiator of this module's reports, or
+ *          <code>null</code> where the application decides
  */
 public record WorkflowModuleConfiguration(
                                           String workflowModuleId,
@@ -37,7 +39,8 @@ public record WorkflowModuleConfiguration(
                                           String bpmnDescriptionLanguage,
                                           Map<String, Collection<String>> groupHierarchy,
                                           String templatePath,
-                                          Map<String, WorkflowConfiguration> workflows) implements CockpitSection {
+                                          Map<String, WorkflowConfiguration> workflows,
+                                          InitiatorSource initiatorSource) implements CockpitSection {
 
   public WorkflowModuleConfiguration {
     i18nLanguages = i18nLanguages == null ? List.of() : List.copyOf(i18nLanguages);
@@ -68,6 +71,22 @@ public record WorkflowModuleConfiguration(
       final String bpmnProcessId) {
 
     return resolved(bpmnProcessId, CockpitSection::bpmnDescriptionLanguage);
+
+  }
+
+  /**
+   * Who answers the initiator of one workflow's reports.
+   *
+   * @param bpmnProcessId The workflow, may be <code>null</code>
+   * @return What the workflow configured, else what the module configured, else
+   *         <code>null</code>. The application's value is added by
+   *         {@link BusinessCockpitConfiguration#initiatorSource}, because the walk over the
+   *         levels starts below it
+   */
+  public InitiatorSource initiatorSource(
+      final String bpmnProcessId) {
+
+    return resolved(bpmnProcessId, CockpitSection::initiatorSource);
 
   }
 

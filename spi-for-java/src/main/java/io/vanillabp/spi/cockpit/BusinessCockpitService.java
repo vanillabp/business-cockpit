@@ -57,6 +57,12 @@ public interface BusinessCockpitService<WA> {
      * <p>
      * <b>Which transaction this works in.</b> The one running on the calling thread, like the
      * report of the workflow data, and a thread carrying no transaction is refused the same way.
+     * <p>
+     * A task the BPMS names none of is left out, and the cockpit keeps the data it stored before.
+     * It is not ended by this and it does not leave any list, because only the BPMS' own report
+     * of an end does that. A task of a workflow started in this very transaction is such a task
+     * on a BPMS which publishes its tasks with a delay, so a report right after a start is
+     * usually one the BPMS' own listeners send anyway.
      *
      * @param workflowAggregate The workflow's aggregate
      * @param userTaskIds The ids of the user tasks to update, or none for every user task
@@ -81,11 +87,27 @@ public interface BusinessCockpitService<WA> {
      * changes the aggregate leaves that change where the caller will commit it, because a
      * persistence which writes the changes of a managed object by itself writes it there. A
      * provider reached by this method should read only.
+     * <p>
+     * <b>What an empty answer means.</b> That the BPMS said nothing about a task of that id. It
+     * does not say the task is over.
+     * <p>
+     * A BPMS which answers out of a storage of its own writes that storage behind its engine, so
+     * a task created a moment ago is not in it yet. Camunda 8 works that way. The
+     * Process-Engine-API answers out of what the asking node was served, which is a second way
+     * to the same gap. On both of them a living task reads like a task nobody knows. Camunda 7
+     * asks its own engine inside the caller's transaction, so there empty really is empty.
+     * <p>
+     * So read an empty answer as "no details right now" and keep what you already had. A caller
+     * which turns it into "there is no such task", a REST endpoint answering 404 for instance,
+     * says more than it was told, and the task it denies may be on somebody's screen in the
+     * business cockpit while it does so. The end of a task is reported by the BPMS when it
+     * happens, and that report is what tells the cockpit a task is done.
      *
      * @param workflowAggregate The workflow's aggregate
      * @param userTaskId The user-task's id
-     * @return The user-task details, or empty if the BPMS holding this workflow does not
-     *         know a task of that id belonging to this aggregate
+     * @return The user-task details, or empty where the BPMS said nothing about a task of that
+     *         id belonging to this aggregate. Empty covers a task which ended and a task the
+     *         BPMS has not published yet
      */
     Optional<UserTask> getUserTask(WA workflowAggregate, String userTaskId);
     

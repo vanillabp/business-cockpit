@@ -51,6 +51,7 @@ public final class ConfigurationFixture {
 
     return anApplication()
         .with(ConfigurationKeys.REST_BASE_URL, "http://localhost:8080")
+        .with(ConfigurationKeys.INITIATOR_SOURCE, "by-application")
         .withWorkflowModule(ConfigurationKeys.WORKFLOW_MODULE_URI, "http://localhost:8081")
         .withWorkflowModule(ConfigurationKeys.UI_URI_TYPE, "WEBPACK_MF_REACT")
         .withWorkflowModule(ConfigurationKeys.UI_URI_PATH, "/remoteEntry.js")
@@ -189,9 +190,10 @@ public final class ConfigurationFixture {
     return new CockpitSettings(
         global.get(ConfigurationKeys.USER_TASKS_ENABLED), global.get(ConfigurationKeys.WORKFLOW_LIST_ENABLED), global
             .get(
-                ConfigurationKeys.TEMPLATE_LOADER_PATH), restOf(), kafkaOf(), new CockpitSettings.ProcessEngineApi(global
-                    .get(ConfigurationKeys.REMEMBERED_USER_TASKS)), workflowModule.saysNothing() ? Map.of()
-                        : Map.of(WORKFLOW_MODULE, workflowModule));
+                ConfigurationKeys.TEMPLATE_LOADER_PATH), global.get(
+                    ConfigurationKeys.INITIATOR_SOURCE), restOf(), kafkaOf(), new CockpitSettings.ProcessEngineApi(global
+                        .get(ConfigurationKeys.REMEMBERED_USER_TASKS)), workflowModule.saysNothing() ? Map.of()
+                            : Map.of(WORKFLOW_MODULE, workflowModule));
 
   }
 
@@ -215,7 +217,8 @@ public final class ConfigurationFixture {
             .get(ConfigurationKeys.UI_URI_TYPE), ofTheWorkflowModule.get(ConfigurationKeys.UI_URI_PATH), listOf(
                 ofTheWorkflowModule.get(ConfigurationKeys.I18N_LANGUAGES)), ofTheWorkflowModule
                     .get(ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), ofTheWorkflowModule
-                        .get(ConfigurationKeys.TEMPLATE_PATH), groupHierarchy);
+                        .get(ConfigurationKeys.TEMPLATE_PATH), groupHierarchy, ofTheWorkflowModule
+                            .get(ConfigurationKeys.INITIATOR_SOURCE));
 
   }
 
@@ -234,7 +237,9 @@ public final class ConfigurationFixture {
                         ofTheUserTask.get(ConfigurationKeys.TEMPLATE_PATH))));
     return new CockpitSettings.Workflow(
         listOf(settings.get(ConfigurationKeys.I18N_LANGUAGES)), settings.get(
-            ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), settings.get(ConfigurationKeys.TEMPLATE_PATH), userTasks);
+            ConfigurationKeys.BPMN_DESCRIPTION_LANGUAGE), settings
+                .get(ConfigurationKeys.TEMPLATE_PATH), userTasks, settings
+                    .get(ConfigurationKeys.INITIATOR_SOURCE));
 
   }
 

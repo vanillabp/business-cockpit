@@ -102,6 +102,16 @@ end is sent all the same, with its identifiers and without details: a completion
 arrives leaves a task the cockpit shows as open forever. `PhaseTwoRetryLater` is no answer here any
 more, because at the moment of the event there is no entry to dispatch again.
 
+An empty answer is silence and never the end of a task. No BPMS can promise the stronger reading. A
+half whose engine publishes what it holds through a storage of its own writes that storage behind
+the engine, so a task created a moment ago is missing from the answer exactly like a task which
+ended. A half answering out of what its own node was served has the same gap for a case another node
+serves. Only an engine asked inside the caller's transaction really knows. So a half says both
+readings in the log where its answer is empty, the neutral half writes no report and leaves the
+stored data alone, and `BusinessCockpitService.getUserTask` hands the empty answer to the
+application with a javadoc saying what may be read into it. A task leaves a cockpit list when the
+half reports an end, never because a search found nothing.
+
 `BusinessCockpitEventPublisher` is the other direction, produced as a bean by the platform module. A
 BPMS half calls it when its engine reported something, saying which transaction the entry belongs in
 - the current one for an embedded engine invoking its listeners inside the engine's transaction, a
@@ -146,6 +156,16 @@ frameworks.
 A workflow module's own defaults file, `<module>.yaml` on the classpath root or below a directory of
 the module's name, carries these keys as well, below everything the application itself writes. That
 is how a module ships a template path it alone knows about.
+
+One key has no default on purpose: `initiator-source`. It says who answers the initiator of a
+report, and a workflow module which reports to the cockpit and says it nowhere does not start. Every
+other missing value shows an empty column until somebody configures it. This one cannot be put right
+later: a report is built at the moment of the event, when the security context of the request is
+already gone, so a case which ran without an initiator never learns who started it. Giving the key a
+default would turn a field which was optional in version 1 into an exception without anybody saying
+so. The runtime half of the rule sits in `BusinessCockpitExtension`, after the details provider and
+before the titles. It runs at all three places a details object is built, the read path of
+`BusinessCockpitService.getUserTask` included.
 
 ## How it is tested
 

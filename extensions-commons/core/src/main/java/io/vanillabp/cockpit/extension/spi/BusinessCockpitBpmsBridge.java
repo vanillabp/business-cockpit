@@ -52,6 +52,22 @@ import java.util.Optional;
  * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> is no answer here any more.
  * It asked for an entry to be dispatched again, and at the moment of the event there is no
  * entry yet. A half throwing it reads a message saying so.
+ * <p>
+ * <b>What an empty answer of the three <code>…OfAggregate</code> methods means.</b> That this
+ * BPMS says nothing about the task or the workflow which was asked about. It is silence and not
+ * an ending, and a half may not answer it to mean the task is over.
+ * <p>
+ * The reason is that no BPMS can promise the stronger reading. A half whose engine publishes
+ * what it holds through a storage of its own writes that storage behind the engine, so a task
+ * created a moment ago is missing from the answer exactly like a task which ended. A half which
+ * answers out of what its own node was served has the same gap for a case another node serves.
+ * Only an engine asked inside the caller's transaction really knows.
+ * <p>
+ * So a half says both readings in the log where its answer is empty, and nothing in the neutral
+ * half turns an empty answer into the end of a task. A report is left out, the cockpit keeps the
+ * data it stored before, and <code>BusinessCockpitService.getUserTask</code> hands the empty
+ * answer to the application with a javadoc saying what may be read into it. An end reaches the
+ * cockpit through the half's own event, never through a search.
  *
  * @see BusinessCockpitEventPublisher for the other direction, which the BPMS half calls
  */
@@ -101,7 +117,8 @@ public interface BusinessCockpitBpmsBridge {
    * @param workflowModuleId The workflow module
    * @param bpmnProcessId The primary BPMN process of the aggregate
    * @param workflowAggregateId The aggregate's id, serialized
-   * @return The workflows, empty where the BPMS holds none
+   * @return The workflows, empty where the BPMS names none of them. Empty is silence and not
+   *         the end of a case
    */
   List<WorkflowReference> workflowsOfAggregate(
       String workflowModuleId,
@@ -118,7 +135,8 @@ public interface BusinessCockpitBpmsBridge {
    * @param workflowAggregateId The aggregate's id, serialized
    * @param userTaskIds The ids the caller named, or empty for every active task of the
    *          aggregate
-   * @return The tasks, empty where none of them is active any more
+   * @return The tasks, empty where the BPMS names none of them. A task missing from the answer
+   *         is a task this BPMS says nothing about, which is not a task which ended
    */
   List<UserTaskReference> userTasksOfAggregate(
       String workflowModuleId,
@@ -136,7 +154,10 @@ public interface BusinessCockpitBpmsBridge {
    * @param bpmnProcessId The primary BPMN process of the aggregate
    * @param workflowAggregateId The aggregate's id, serialized
    * @param userTaskId The task's id
-   * @return The task, or empty where the BPMS does not know it or it belongs elsewhere
+   * @return The task, or empty where this BPMS says nothing about it. That covers a task which
+   *         belongs to another case, a task which ended, and a task the BPMS has not published
+   *         yet. A half says all of these readings in the log, because the caller cannot tell
+   *         them apart
    */
   Optional<UserTaskReference> userTaskOfAggregate(
       String workflowModuleId,
