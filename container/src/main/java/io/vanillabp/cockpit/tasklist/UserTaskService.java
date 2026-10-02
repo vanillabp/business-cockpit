@@ -803,13 +803,24 @@ public class UserTaskService {
 
         final var aggregation = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
                 org.springframework.data.mongodb.core.aggregation.Aggregation.match(criteria),
+                // sort so the $first picks a well-defined workflowTitle: without an ordering $first
+                // takes an arbitrary document of the group, so a title that differs between tasks of
+                // the same process (renamed over time, localised differently) would be picked at
+                // random. Oldest-first means the earliest reported task's title wins.
+                org.springframework.data.mongodb.core.aggregation.Aggregation.sort(
+                        Sort.by(Sort.Direction.ASC, "createdAt")),
                 org.springframework.data.mongodb.core.aggregation.Aggregation
                         .group("workflowModuleId", "bpmnProcessId")
                         .first("workflowModuleId").as("workflowModuleId")
                         .first("bpmnProcessId").as("bpmnProcessId")
                         .first("workflowTitle").as("workflowTitle"));
 
-        return mongoTemplate.aggregate(aggregation, UserTask.COLLECTION_NAME, UserTask.class);
+        // Pass the input type (not just the collection name) so the $match criteria run through
+        // the same field mapping as find(): nested "id" properties (assignee.id, candidateUsers.id,
+        // ...) are stored as "_id" by convention, and only the typed aggregation context rewrites
+        // them. With the untyped collection-name overload the criteria stay "assignee.id" etc. and
+        // never match - the list uses find() and is unaffected, which is why only this path was empty.
+        return mongoTemplate.aggregate(aggregation, UserTask.class, UserTask.class);
 
     }
 
