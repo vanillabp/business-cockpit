@@ -24,7 +24,8 @@ import java.util.stream.Stream;
  * The levels are asked most specific first, key by key: a user task beats its workflow, and a
  * workflow beats its workflow module. What holds for the whole application, namely the
  * transport, the templates and the two switches, is written once at the top and exists nowhere
- * else.
+ * else. {@link #INITIATOR_SOURCE} is the one key of the top which a workflow module and a single
+ * workflow may still answer for themselves.
  */
 public final class ConfigurationKeys {
 
@@ -106,6 +107,13 @@ public final class ConfigurationKeys {
 
   /** The segment this level contributes to the template lookup path. */
   public static final String TEMPLATE_PATH = "template-path";
+
+  /**
+   * Who answers the initiator of a report: <code>by-application</code> or <code>system</code>.
+   * It has no default, so a workflow module which reports to the cockpit and says it nowhere
+   * ends the boot. See {@link InitiatorSource}.
+   */
+  public static final String INITIATOR_SOURCE = "initiator-source";
 
   /** The address of the token endpoint of the client-credentials flow, and with it its choice. */
   public static final String REST_OAUTH_BASE_URL = "rest.authentication.oauth.base-url";
@@ -194,7 +202,7 @@ public final class ConfigurationKeys {
                   REST_BASIC, REST_USERNAME, REST_PASSWORD, REST_OAUTH_BASE_URL,
                   REST_OAUTH_CLIENT_ID, REST_OAUTH_CLIENT_SECRET, REST_OAUTH_BASIC,
                   KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_USER_TASK, KAFKA_TOPIC_WORKFLOW,
-                  KAFKA_TOPIC_WORKFLOW_MODULE, REMEMBERED_USER_TASKS),
+                  KAFKA_TOPIC_WORKFLOW_MODULE, REMEMBERED_USER_TASKS, INITIATOR_SOURCE),
           CONNECTION_KEYS.stream().map(REST_PREFIX::concat),
           CONNECTION_KEYS.stream().map(REST_OAUTH_PREFIX::concat))
       .flatMap(keys -> keys)
@@ -207,14 +215,14 @@ public final class ConfigurationKeys {
   public static final List<String> KEYS_OF_A_WORKFLOW_MODULE = List
       .of(
           WORKFLOW_MODULE_URI, UI_URI_TYPE, UI_URI_PATH, I18N_LANGUAGES,
-          BPMN_DESCRIPTION_LANGUAGE, TEMPLATE_PATH, GROUP_HIERARCHY);
+          BPMN_DESCRIPTION_LANGUAGE, TEMPLATE_PATH, GROUP_HIERARCHY, INITIATOR_SOURCE);
 
   /**
    * The keys the extension reads below a single workflow, which are the ones a workflow may
    * differ from its module in.
    */
   public static final List<String> KEYS_OF_A_WORKFLOW = List
-      .of(BPMN_DESCRIPTION_LANGUAGE, I18N_LANGUAGES, TEMPLATE_PATH);
+      .of(BPMN_DESCRIPTION_LANGUAGE, I18N_LANGUAGES, TEMPLATE_PATH, INITIATOR_SOURCE);
 
   /** The keys the extension reads below a single user task. */
   public static final List<String> KEYS_OF_A_USER_TASK = List.of(TEMPLATE_PATH);

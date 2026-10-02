@@ -51,6 +51,8 @@ public final class BusinessCockpitConfiguration {
 
   private final String templateLoaderPath;
 
+  private final InitiatorSource initiatorSource;
+
   private final Map<String, WorkflowModuleConfiguration> workflowModules;
 
   private final Collection<String> configuredAdapterIds;
@@ -62,6 +64,7 @@ public final class BusinessCockpitConfiguration {
       final KafkaTransportConfiguration kafka,
       final boolean transportProvidedByTheApplication,
       final String templateLoaderPath,
+      final InitiatorSource initiatorSource,
       final Map<String, WorkflowModuleConfiguration> workflowModules,
       final Collection<String> configuredAdapterIds) {
 
@@ -71,6 +74,7 @@ public final class BusinessCockpitConfiguration {
     this.kafka = kafka;
     this.transportProvidedByTheApplication = transportProvidedByTheApplication;
     this.templateLoaderPath = templateLoaderPath;
+    this.initiatorSource = initiatorSource;
     this.workflowModules = Map.copyOf(workflowModules);
     this.configuredAdapterIds = List.copyOf(configuredAdapterIds);
 
@@ -215,6 +219,30 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * Who answers the initiator of the reports of one workflow.
+   * <p>
+   * The most specific level wins: the workflow, then its workflow module, then the
+   * application. A workflow module which reports to the cockpit always has an answer, because a
+   * module without one ends the boot.
+   *
+   * @param workflowModuleId The module the report belongs to
+   * @param bpmnProcessId The workflow the report belongs to, may be <code>null</code>
+   * @return What was configured, or <code>null</code> for a module which reports nothing
+   */
+  public InitiatorSource initiatorSource(
+      final String workflowModuleId,
+      final String bpmnProcessId) {
+
+    final var module = workflowModules.get(workflowModuleId);
+    if (module == null) {
+      return null;
+    }
+    final var ofTheModuleOrTheWorkflow = module.initiatorSource(bpmnProcessId);
+    return ofTheModuleOrTheWorkflow == null ? initiatorSource : ofTheModuleOrTheWorkflow;
+
+  }
+
+  /**
    * Reads and validates the whole configuration.
    *
    * @param properties The core's resolved properties, which know the workflow modules of the
@@ -243,6 +271,10 @@ public final class BusinessCockpitConfiguration {
     final var rest = readRest(settings.rest(), defects);
     final var kafka = readKafka(settings.kafka(), defects);
     validateTransportChoice(rest, kafka, transportProvidedByTheApplication, defects);
+
+    final var initiatorSource = initiatorSource(
+        settings.initiatorSource(),
+        ConfigurationKeys.globalKey(ConfigurationKeys.INITIATOR_SOURCE), defects);
 
     final var userTasksEnabled = flag(
         settings.userTasksEnabled(), ConfigurationKeys.USER_TASKS_ENABLED, true, defects);
@@ -287,7 +319,8 @@ public final class BusinessCockpitConfiguration {
           modules
               .put(
                   workflowModuleId,
-                  readWorkflowModule(workflowModuleId, workflowModule, templating, defects));
+                  readWorkflowModule(
+                      workflowModuleId, workflowModule, templating, initiatorSource, defects));
         });
 
     if (!defects.isEmpty()) {
@@ -320,7 +353,7 @@ public final class BusinessCockpitConfiguration {
     }
 
     return new BusinessCockpitConfiguration(
-        userTasksEnabled, workflowListEnabled, rest, kafka, transportProvidedByTheApplication, templateLoaderPath, modules, configuredAdapterIdsOf(
+        userTasksEnabled, workflowListEnabled, rest, kafka, transportProvidedByTheApplication, templateLoaderPath, initiatorSource, modules, configuredAdapterIdsOf(
             properties));
 
   }
@@ -878,10 +911,11 @@ public final class BusinessCockpitConfiguration {
       final String workflowModuleId,
       final CockpitSettings.WorkflowModule workflowModule,
       final boolean templating,
+      final InitiatorSource initiatorSourceOfTheApplication,
       final List<String> defects) {
 
     final var settings = workflowModule.cockpit() == null
-        ? new CockpitSettings.Cockpit(null, null, null, null, null, null, Map.of())
+        ? new CockpitSettings.Cockpit(null, null, null, null, null, null, Map.of(), null)
         : workflowModule.cockpit();
 
     final var workflowModuleUri = required(
@@ -891,7 +925,7 @@ public final class BusinessCockpitConfiguration {
     final var uiUriPath = required(
         workflowModuleId, settings.uiUriPath(), ConfigurationKeys.UI_URI_PATH, defects,
         "It is the path below the module's URI the forms are served from.");
-    final var workflows = readWorkflows(workflowModule.workflows());
+    final var workflows = readWorkflows(workflowModuleId, workflowModule.workflows(), defects);
     final var moduleSaysTheLanguages = (settings.i18nLanguages() != null) && !settings
         .i18nLanguages()
         .isEmpty();
@@ -944,11 +978,87 @@ public final class BusinessCockpitConfiguration {
 
     final var templatePath = settings.templatePath();
 
+    final var initiatorSource = initiatorSource(
+        settings.initiatorSource(),
+        ConfigurationKeys
+            .workflowModuleKey(workflowModuleId, ConfigurationKeys.INITIATOR_SOURCE),
+        defects);
+    if ((initiatorSource == null) && (initiatorSourceOfTheApplication == null)) {
+      requireAnInitiatorSource(workflowModuleId, defects);
+    }
+
     return new WorkflowModuleConfiguration(
         workflowModuleId, workflowModuleUri, uiUriType, uiUriPath, i18nLanguages, bpmnDescriptionLanguage, groupHierarchy, (templatePath == null) || templatePath
             .isBlank()
                 ? workflowModuleId
-                : templatePath, workflows);
+                : templatePath, workflows, initiatorSource);
+
+  }
+
+  /**
+   * Reads one <code>initiator-source</code> value.
+   *
+   * @param value What the application wrote, or <code>null</code>
+   * @param key The full property key, for a message naming it
+   * @param defects Where a defect of the configuration is collected
+   * @return The value, or <code>null</code> where this level says nothing or says something
+   *         which is no value of this key
+   */
+  private static InitiatorSource initiatorSource(
+      final String value,
+      final String key,
+      final List<String> defects) {
+
+    if ((value == null) || value.isBlank()) {
+      return null;
+    }
+    try {
+      return InitiatorSource.of(value);
+    } catch (final IllegalArgumentException e) {
+      defects.add("'%s' is '%s'. %s".formatted(key, value, e.getMessage()));
+      return null;
+    }
+
+  }
+
+  /**
+   * Ends the boot of a workflow module which reports to the cockpit and says nowhere who
+   * answers the initiator of its reports.
+   * <p>
+   * This is the one gap the extension cannot fill in later. Every other missing value shows an
+   * empty column until somebody configures it. An initiator is read at the moment of the event,
+   * from a security context which is gone by the time a report is built, so a case which ran
+   * without one never learns who started it. That is why the key has no default and why the
+   * message spells out both answers instead of naming the key alone.
+   *
+   * @param workflowModuleId The module which reports and does not say it
+   * @param defects Where a defect of the configuration is collected
+   */
+  private static void requireAnInitiatorSource(
+      final String workflowModuleId,
+      final List<String> defects) {
+
+    defects
+        .add(
+            """
+                '%s' is missing, and so is '%s'. Workflow module '%s' reports to the Business \
+                Cockpit, and every report names an initiator: the user who caused what is \
+                reported. Nobody can work that out later, so a case which ran without one stays \
+                without one for good. Write '%s' where the application sets the initiator \
+                itself, in a method annotated with @WorkflowDetailsProvider or \
+                @UserTaskDetailsProvider. Write '%s' where this module knows no action a user \
+                causes, a nightly import for instance. A single workflow which differs says so \
+                at '%s'."""
+                .formatted(
+                    ConfigurationKeys
+                        .workflowModuleKey(workflowModuleId, ConfigurationKeys.INITIATOR_SOURCE),
+                    ConfigurationKeys.globalKey(ConfigurationKeys.INITIATOR_SOURCE),
+                    workflowModuleId,
+                    InitiatorSource.BY_APPLICATION.configuredAs(),
+                    InitiatorSource.SYSTEM.configuredAs(),
+                    ConfigurationKeys
+                        .workflowKey(
+                            workflowModuleId, "<process>", ConfigurationKeys.INITIATOR_SOURCE)));
 
   }
 
@@ -1064,15 +1174,18 @@ public final class BusinessCockpitConfiguration {
    * What single workflows of a module, and single user tasks of those workflows, said about the
    * cockpit.
    * <p>
-   * Only three of the module's keys mean anything one workflow at a time: the language its
-   * titles are written in, the languages they are reported in, and the directory its templates
-   * live in. Only the last of the three means anything for a single user task. The binding of
+   * Only four of the module's keys mean anything one workflow at a time: the language its
+   * titles are written in, the languages they are reported in, the directory its templates
+   * live in, and who answers its initiator. Only the template directory means anything for a
+   * single user task. The binding of
    * each platform declares which keys those are. A key which is none of them is refused by
    * Quarkus while it starts and ignored by Spring Boot, the way every other key unknown to the
    * <code>vanillabp</code> tree is.
    */
   private static Map<String, WorkflowConfiguration> readWorkflows(
-      final Map<String, CockpitSettings.Workflow> workflows) {
+      final String workflowModuleId,
+      final Map<String, CockpitSettings.Workflow> workflows,
+      final List<String> defects) {
 
     final var configurations = new LinkedHashMap<String, WorkflowConfiguration>();
     workflows
@@ -1094,7 +1207,12 @@ public final class BusinessCockpitConfiguration {
                   bpmnProcessId,
                   new WorkflowConfiguration(
                       bpmnProcessId, workflow.i18nLanguages(), workflow.bpmnDescriptionLanguage(), workflow
-                          .templatePath(), templatePathPerUserTask));
+                          .templatePath(), templatePathPerUserTask, initiatorSource(
+                              workflow.initiatorSource(), ConfigurationKeys
+                                  .workflowKey(
+                                      workflowModuleId, bpmnProcessId,
+                                      ConfigurationKeys.INITIATOR_SOURCE),
+                              defects)));
         });
     return configurations;
 

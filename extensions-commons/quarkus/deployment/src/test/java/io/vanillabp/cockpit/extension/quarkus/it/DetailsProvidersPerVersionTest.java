@@ -59,6 +59,10 @@ public class DetailsProvidersPerVersionTest {
               .addClass(CockpitServer.class))
       .overrideRuntimeConfigKey(
           "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl())
+      // this application is about which method serves which version, and its engine names no
+      // initiator. So it answers the initiator by configuration, which is the other of the two
+      // ways and the one a module without user-triggered actions takes
+      .overrideRuntimeConfigKey("vanillabp.cockpit.initiator-source", "system")
       .setLogRecordPredicate(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
       .assertLogRecords(records -> {
         final var report = records

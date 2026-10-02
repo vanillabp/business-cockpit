@@ -37,4 +37,15 @@ public interface CockpitSection {
 
   }
 
+  /**
+   * @return Who answers the initiator of a report, or <code>null</code> where this level leaves
+   *         it to the level above. The application is the level above a workflow module here,
+   *         and {@link BusinessCockpitConfiguration#initiatorSource} is where it is asked
+   */
+  default InitiatorSource initiatorSource() {
+
+    return null;
+
+  }
+
 }

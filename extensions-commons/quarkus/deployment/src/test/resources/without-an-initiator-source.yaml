@@ -2,7 +2,7 @@ quarkus:
   datasource:
     db-kind: h2
     jdbc:
-      url: jdbc:h2:mem:business-cockpit-left-to-the-workflows;DB_CLOSE_DELAY=-1
+      url: jdbc:h2:mem:business-cockpit-without-an-initiator-source;DB_CLOSE_DELAY=-1
 vanillabp:
   adapters:
     test:
@@ -11,23 +11,23 @@ vanillabp:
   outbox:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
-  cockpit:
-    initiator-source: by-application
-    rest:
-      base-url: http://localhost:1
   workflow-modules:
     test-module:
       adapters:
         test:
           resources-location: classpath:test-module/processes/dummy
+      workflows:
+        TestProcess:
+          allow-full-sync-with-bpms: true
+        SecondProcess:
+          allow-full-sync-with-bpms: true
+        OrderProcess:
+          allow-full-sync-with-bpms: true
+        ComplaintProcess:
+          allow-full-sync-with-bpms: true
       cockpit:
         workflow-module-uri: http://localhost:8081/test-module
         ui-uri-type: WEBPACK_MF_REACT
         ui-uri-path: /remoteEntry.js
-      workflows:
-        TestProcess:
-          allow-full-sync-with-bpms: true
-          cockpit:
-            i18n-languages:
-              - fr
-            bpmn-description-language: fr
+        i18n-languages: en
+        bpmn-description-language: en

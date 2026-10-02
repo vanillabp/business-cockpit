@@ -147,6 +147,16 @@ A workflow module's own defaults file, `<module>.yaml` on the classpath root or 
 the module's name, carries these keys as well, below everything the application itself writes. That
 is how a module ships a template path it alone knows about.
 
+One key has no default on purpose: `initiator-source`. It says who answers the initiator of a
+report, and a workflow module which reports to the cockpit and says it nowhere does not start. Every
+other missing value shows an empty column until somebody configures it. This one cannot be put right
+later: a report is built at the moment of the event, when the security context of the request is
+already gone, so a case which ran without an initiator never learns who started it. Giving the key a
+default would turn a field which was optional in version 1 into an exception without anybody saying
+so. The runtime half of the rule sits in `BusinessCockpitExtension`, after the details provider and
+before the titles. It runs at all three places a details object is built, the read path of
+`BusinessCockpitService.getUserTask` included.
+
 ## How it is tested
 
 The neutral core is tested where it can be tested without a platform: the configuration matrix, the

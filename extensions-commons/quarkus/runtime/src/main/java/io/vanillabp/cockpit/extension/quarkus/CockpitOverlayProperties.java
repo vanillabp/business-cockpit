@@ -71,7 +71,7 @@ public interface CockpitOverlayProperties {
             module) -> modules.put(workflowModuleId, module.toSettings()));
     return new CockpitSettings(
         cockpit().userTasksEnabled().orElse(null), cockpit().workflowListEnabled().orElse(null), cockpit()
-            .templateLoaderPath().orElse(null), cockpit().rest()
+            .templateLoaderPath().orElse(null), cockpit().initiatorSource().orElse(null), cockpit().rest()
                 .toSettings(), cockpit().kafka().toSettings(), cockpit().processEngineApi().toSettings(), modules);
 
   }
@@ -95,6 +95,11 @@ public interface CockpitOverlayProperties {
      * The directory the templates are loaded from.
      */
     Optional<String> templateLoaderPath();
+
+    /**
+     * Who answers the initiator of a report.
+     */
+    Optional<String> initiatorSource();
 
     /**
      * The connection to the cockpit server, and with it the REST transport.
@@ -509,6 +514,11 @@ public interface CockpitOverlayProperties {
     Map<String, List<String>> groupHierarchy();
 
     /**
+     * Who answers the initiator of this module's reports.
+     */
+    Optional<String> initiatorSource();
+
+    /**
      * A module which wrote nothing takes no part in the Business Cockpit. On this platform an
      * absent section looks just like that. The groups of a mapping exist whether or not anything
      * was written into them, so the section is empty and not missing.
@@ -519,12 +529,15 @@ public interface CockpitOverlayProperties {
     default CockpitSettings.Cockpit toSettings() {
 
       if (workflowModuleUri().isEmpty() && uiUriType().isEmpty() && uiUriPath().isEmpty() && i18nLanguages()
-          .isEmpty() && bpmnDescriptionLanguage().isEmpty() && templatePath().isEmpty() && groupHierarchy().isEmpty()) {
+          .isEmpty() && bpmnDescriptionLanguage().isEmpty() && templatePath().isEmpty() && initiatorSource()
+              .isEmpty() && groupHierarchy().isEmpty()) {
         return null;
       }
       return new CockpitSettings.Cockpit(
           workflowModuleUri().orElse(null), uiUriType().orElse(null), uiUriPath().orElse(null), i18nLanguages()
-              .orElse(null), bpmnDescriptionLanguage().orElse(null), templatePath().orElse(null), groupHierarchy());
+              .orElse(null), bpmnDescriptionLanguage().orElse(null), templatePath()
+                  .orElse(null), groupHierarchy(), initiatorSource()
+                      .orElse(null));
 
     }
 
@@ -568,12 +581,12 @@ public interface CockpitOverlayProperties {
                       templatePath -> ofTheUserTasks
                           .put(taskDefinition, new CockpitSettings.UserTask(templatePath))));
       if (cockpit().i18nLanguages().isEmpty() && cockpit().bpmnDescriptionLanguage().isEmpty() && cockpit()
-          .templatePath().isEmpty() && ofTheUserTasks.isEmpty()) {
+          .templatePath().isEmpty() && cockpit().initiatorSource().isEmpty() && ofTheUserTasks.isEmpty()) {
         return null;
       }
       return new CockpitSettings.Workflow(
           cockpit().i18nLanguages().orElse(null), cockpit().bpmnDescriptionLanguage().orElse(null), cockpit()
-              .templatePath().orElse(null), ofTheUserTasks);
+              .templatePath().orElse(null), ofTheUserTasks, cockpit().initiatorSource().orElse(null));
 
     }
 
@@ -598,6 +611,11 @@ public interface CockpitOverlayProperties {
      * The segment this workflow contributes to the template lookup path.
      */
     Optional<String> templatePath();
+
+    /**
+     * Who answers the initiator of this workflow's reports.
+     */
+    Optional<String> initiatorSource();
 
   }
 

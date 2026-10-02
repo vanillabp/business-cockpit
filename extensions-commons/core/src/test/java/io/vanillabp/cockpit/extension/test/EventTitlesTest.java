@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import freemarker.cache.ClassTemplateLoader;
+import io.vanillabp.cockpit.extension.config.InitiatorSource;
 import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.config.WorkflowConfiguration;
 import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
@@ -42,7 +43,7 @@ public class EventTitlesTest {
 
   private static final WorkflowModuleConfiguration MODULE = new WorkflowModuleConfiguration(
       "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map
-          .of());
+          .of(), InitiatorSource.BY_APPLICATION);
 
   /**
    * The same module, with one workflow and one of its user tasks saying something of their own,
@@ -53,7 +54,8 @@ public class EventTitlesTest {
           .of(
               "TestProcess",
               new WorkflowConfiguration(
-                  "TestProcess", List.of("fr"), "fr", "orders", Map.of("approve", "approval"))));
+                  "TestProcess", List.of("fr"), "fr", "orders", Map.of("approve",
+                      "approval"), null)), InitiatorSource.BY_APPLICATION);
 
   private static Templating templating() {
 

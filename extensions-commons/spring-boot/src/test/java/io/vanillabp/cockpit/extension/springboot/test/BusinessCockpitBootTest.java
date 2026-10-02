@@ -343,6 +343,30 @@ public class BusinessCockpitBootTest {
   }
 
   @Test
+  @DisplayName("Without an initiator-source the boot names the module, both keys and both answers")
+  public void withoutAnInitiatorSourceTheModuleAndBothKeysAreNamed() {
+
+    final var message = failureOfBooting(
+        "cockpit-without-an-initiator-source",
+        new String[]{
+            // the properties of the builder are default properties, which the module's own
+            // application.yaml outranks, so the key it sets is emptied by a file of its own
+            "spring.config.additional-location=classpath:/without-an-initiator-source/"
+        },
+        TestApplication.class);
+
+    assertTrue(
+        message.contains("vanillabp.workflow-modules.test-module.cockpit.initiator-source"),
+        message);
+    assertTrue(message.contains("vanillabp.cockpit.initiator-source"), message);
+    assertTrue(message.contains("by-application"), message);
+    assertTrue(message.contains("system"), message);
+    // why it is worth ending a boot over: the value cannot be added to a case afterwards
+    assertTrue(message.contains("for good"), message);
+
+  }
+
+  @Test
   @DisplayName("A cockpit server which is down does not keep the application from starting")
   public void anUnreachableCockpitServerStillLetsTheApplicationStart() {
 

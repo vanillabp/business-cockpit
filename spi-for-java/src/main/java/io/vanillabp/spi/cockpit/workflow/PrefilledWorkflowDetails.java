@@ -13,8 +13,23 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
     
     String getBpmnProcessVersion();
 
+    /**
+     * Names the user who caused this report.
+     *
+     * <p>This is mandatory, and your workflow module is the only one who can answer it. No
+     * workflow system records who started a case, and by the time this object is prefilled the
+     * security context of the request is gone. So keep the user in the workflow aggregate and
+     * read it back here.
+     *
+     * <p>Two answers are allowed: a user id, or
+     * {@link io.vanillabp.spi.cockpit.Initiator#SYSTEM} where no user caused the action. Set the
+     * constant as well to drop a value an adapter prefilled, because setting <code>null</code>
+     * looks like a provider which did nothing.
+     *
+     * @param initiator The user who caused this report
+     */
     void setInitiator(String initiator);
-    
+
     void setComment(String comment);
 
     void setTitle(Map<String, String> title);

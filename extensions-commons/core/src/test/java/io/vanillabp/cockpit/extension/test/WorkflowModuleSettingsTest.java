@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import io.vanillabp.cockpit.extension.config.InitiatorSource;
 import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.config.WorkflowConfiguration;
 import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
@@ -34,7 +35,8 @@ public class WorkflowModuleSettingsTest {
 
     return new WorkflowModuleConfiguration(
         MODULE_ID, "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map
-            .of(), MODULE_ID, workflow == null ? Map.of() : Map.of(PROCESS_ID, workflow));
+            .of(), MODULE_ID, workflow == null ? Map.of()
+                : Map.of(PROCESS_ID, workflow), InitiatorSource.BY_APPLICATION);
 
   }
 
@@ -43,7 +45,7 @@ public class WorkflowModuleSettingsTest {
   public void theModuleAnswersForASilentWorkflow() {
 
     final var module = aModuleWhoseWorkflowSays(
-        new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of()));
+        new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of(), null));
 
     assertEquals(List.of("en"), module.i18nLanguages(PROCESS_ID));
     assertEquals("en", module.bpmnDescriptionLanguage(PROCESS_ID));
@@ -66,7 +68,7 @@ public class WorkflowModuleSettingsTest {
   public void theWorkflowBeatsItsModule() {
 
     final var module = aModuleWhoseWorkflowSays(
-        new WorkflowConfiguration(PROCESS_ID, List.of("fr"), "fr", null, Map.of()));
+        new WorkflowConfiguration(PROCESS_ID, List.of("fr"), "fr", null, Map.of(), null));
 
     assertEquals(List.of("fr"), module.i18nLanguages(PROCESS_ID));
     assertEquals("fr", module.bpmnDescriptionLanguage(PROCESS_ID));
@@ -81,7 +83,7 @@ public class WorkflowModuleSettingsTest {
 
     final var module = new WorkflowModuleConfiguration(
         MODULE_ID, "http://localhost", UiUriType.EXTERNAL, "/ui", null, null, Map.of(), MODULE_ID, Map.of(PROCESS_ID,
-            new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of())));
+            new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of(), null)), null);
 
     assertEquals(List.of(), module.i18nLanguages(PROCESS_ID));
     assertNull(module.bpmnDescriptionLanguage(PROCESS_ID));

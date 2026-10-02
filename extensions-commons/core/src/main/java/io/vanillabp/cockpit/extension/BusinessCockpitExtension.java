@@ -19,6 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
+import io.vanillabp.cockpit.extension.config.InitiatorSource;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.ReportPayload;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
@@ -47,6 +49,7 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.spi.PhaseTwoRetryLater;
 import io.vanillabp.integration.spi.TransactionRunner;
+import io.vanillabp.spi.cockpit.Initiator;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetails;
@@ -609,6 +612,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         userTask, UserTaskEventKind.UPDATED, UUID.randomUUID().toString(), OffsetDateTime.now());
     applyPrefill(event, prefill.get());
     invokeUserTaskDetailsProvider(event, userTask, prefill.get());
+    requireAnInitiator(
+        event, userTask.workflowModuleId(), userTask.bpmnProcessId(),
+        userTask.taskDefinition(), "a read of the task");
     fillTitles(event, prefill.get());
     return Optional.of(event);
 
@@ -669,6 +675,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
     final var event = buildUserTaskEvent(userTask, kind, eventId, timestamp);
     final var described = described(userTask);
+    final var describedEvent = "the event "
+        + kind.name();
     final var prefill = prefilledUserTaskDetails(userTask);
     if (prefill.isEmpty()) {
       if (!ends(kind)) {
@@ -676,9 +684,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         return null;
       }
       reportedWithoutDetails(described, kind.name(), userTask.adapterId());
+      event.setInitiator(Initiator.SYSTEM);
     } else {
       applyPrefill(event, prefill.get());
       invokeUserTaskDetailsProvider(event, userTask, prefill.get());
+      requireAnInitiator(
+          event, userTask.workflowModuleId(), userTask.bpmnProcessId(),
+          userTask.taskDefinition(), describedEvent);
       fillTitles(event, prefill.get());
     }
     return PhaseTwoCall
@@ -710,6 +722,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     final var module = configuration.workflowModule(workflow.workflowModuleId());
     final var event = buildWorkflowEvent(workflow, kind, eventId, timestamp);
     final var described = described(workflow);
+    final var describedEvent = "the event "
+        + kind.name();
     final var prefill = prefilledWorkflowDetails(workflow);
     if (prefill.isEmpty()) {
       if (!ends(kind)) {
@@ -717,6 +731,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         return null;
       }
       reportedWithoutDetails(described, kind.name(), workflow.adapterId());
+      event.setInitiator(Initiator.SYSTEM);
     } else {
       event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
       event.setBusinessId(prefill.get().businessId());
@@ -733,6 +748,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                   .build())
           .map(WorkflowDetails.class::cast)
           .ifPresent(event::applyReturnedDetails);
+      requireAnInitiator(
+          event, workflow.workflowModuleId(), workflow.bpmnProcessId(), null, describedEvent);
       EventTitles.fill(event, module, templating, prefill.get().bpmnProcessName());
     }
     return PhaseTwoCall
@@ -989,6 +1006,112 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             templating,
             prefill.bpmnTaskName(),
             prefill.bpmnProcessName());
+
+  }
+
+  /**
+   * Makes sure a report names an initiator, after the details provider had its say.
+   *
+   * @param event The report being built
+   * @param workflowModuleId The module the report belongs to
+   * @param bpmnProcessId The BPMN process the report belongs to
+   * @param taskDefinition The task definition, for a message naming the task
+   * @param describedEvent What happened, as a message names it
+   */
+  private void requireAnInitiator(
+      final UserTaskEvent event,
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String describedEvent) {
+
+    event
+        .setInitiator(
+            initiatorOf(
+                event.getInitiator(), workflowModuleId, bpmnProcessId, taskDefinition,
+                describedEvent));
+
+  }
+
+  /**
+   * The same rule for the report of a workflow, which has no task to name.
+   *
+   * @param event The report being built
+   * @param workflowModuleId The module the report belongs to
+   * @param bpmnProcessId The BPMN process the report belongs to
+   * @param taskDefinition Always <code>null</code> here, so that both calls read alike
+   * @param describedEvent What happened, as a message names it
+   */
+  private void requireAnInitiator(
+      final WorkflowEvent event,
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String describedEvent) {
+
+    event
+        .setInitiator(
+            initiatorOf(
+                event.getInitiator(), workflowModuleId, bpmnProcessId, taskDefinition,
+                describedEvent));
+
+  }
+
+  /**
+   * The initiator a report carries, which is never nothing.
+   * <p>
+   * The order is prefill, then the details provider, then this. An adapter fills what its BPMS
+   * knows, the provider may set it or overwrite it, and only what is still empty afterwards
+   * meets the rule. What happens then is what the application configured: with
+   * <code>system</code> the constant is filled in, with <code>by-application</code> the report
+   * fails.
+   * <p>
+   * A provider which called <code>setInitiator(null)</code> on purpose, to drop a value its
+   * BPMS prefilled, looks exactly like a provider which did nothing. So that way out is the
+   * constant as well, set on purpose.
+   *
+   * @param initiator What stands in the report
+   * @return The value to report
+   * @throws IllegalStateException If nothing stands there and the application answers for the
+   *           initiator itself. The message names both ways out and says what the failure costs
+   */
+  private String initiatorOf(
+      final String initiator,
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String describedEvent) {
+
+    if ((initiator != null) && !initiator.isBlank()) {
+      return initiator;
+    }
+    if (configuration.initiatorSource(workflowModuleId, bpmnProcessId) == InitiatorSource.SYSTEM) {
+      return Initiator.SYSTEM;
+    }
+    throw new IllegalStateException(
+        """
+            No initiator was set for %s: workflow module '%s', BPMN process '%s'%s. This \
+            workflow is configured as '%s', so the application answers who the initiator is. Set \
+            it in your @WorkflowDetailsProvider or @UserTaskDetailsProvider method, out of what \
+            the workflow aggregate knows about the user. Or set the constant Initiator.SYSTEM, \
+            where no user caused this one event. Until one of the two is done, none of the work \
+            this event belongs to is committed. That is on purpose: nobody can find out later \
+            who caused a case, so a case reported without an initiator would stay without one \
+            for good. The setting is read at '%s', at '%s' and at '%s', most specific first."""
+            .formatted(
+                describedEvent,
+                workflowModuleId,
+                bpmnProcessId,
+                taskDefinition == null
+                    ? ""
+                    : ", user task '%s'".formatted(taskDefinition),
+                InitiatorSource.BY_APPLICATION.configuredAs(),
+                ConfigurationKeys
+                    .workflowKey(
+                        workflowModuleId, bpmnProcessId, ConfigurationKeys.INITIATOR_SOURCE),
+                ConfigurationKeys
+                    .workflowModuleKey(workflowModuleId, ConfigurationKeys.INITIATOR_SOURCE),
+                ConfigurationKeys.globalKey(ConfigurationKeys.INITIATOR_SOURCE)));
 
   }
 

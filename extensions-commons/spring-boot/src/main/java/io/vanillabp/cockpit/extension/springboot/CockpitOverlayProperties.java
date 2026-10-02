@@ -83,11 +83,11 @@ public class CockpitOverlayProperties {
             workflowModuleId,
             module) -> modules.put(workflowModuleId, module.toSettings()));
     if (cockpit == null) {
-      return new CockpitSettings(null, null, null, null, null, null, modules);
+      return new CockpitSettings(null, null, null, null, null, null, null, modules);
     }
     return new CockpitSettings(
         cockpit.getUserTasksEnabled(), cockpit.getWorkflowListEnabled(), cockpit
-            .getTemplateLoaderPath(), restOf(cockpit.getRest()), kafkaOf(
+            .getTemplateLoaderPath(), cockpit.getInitiatorSource(), restOf(cockpit.getRest()), kafkaOf(
                 cockpit.getKafka()), cockpit.getProcessEngineApi() == null
                     ? null
                     : new CockpitSettings.ProcessEngineApi(
@@ -164,6 +164,9 @@ public class CockpitOverlayProperties {
     /** The directory the templates are loaded from. */
     private String templateLoaderPath;
 
+    /** Who answers the initiator of a report. */
+    private String initiatorSource;
+
     /** The connection to the cockpit server, and with it the REST transport. */
     private Rest rest;
 
@@ -209,6 +212,19 @@ public class CockpitOverlayProperties {
         final String templateLoaderPath) {
 
       this.templateLoaderPath = templateLoaderPath;
+
+    }
+
+    public String getInitiatorSource() {
+
+      return initiatorSource;
+
+    }
+
+    public void setInitiatorSource(
+        final String initiatorSource) {
+
+      this.initiatorSource = initiatorSource;
 
     }
 
@@ -904,14 +920,16 @@ public class CockpitOverlayProperties {
       if ((cockpit.getWorkflowModuleUri() == null) && (cockpit.getUiUriType() == null) && (cockpit
           .getUiUriPath() == null) && (cockpit.getI18nLanguages() == null) && (cockpit
               .getBpmnDescriptionLanguage() == null) && (cockpit
-                  .getTemplatePath() == null) && ((cockpit.getGroupHierarchy() == null) || cockpit.getGroupHierarchy()
-                      .isEmpty())) {
+                  .getTemplatePath() == null) && (cockpit.getInitiatorSource() == null) && ((cockpit
+                      .getGroupHierarchy() == null) || cockpit.getGroupHierarchy()
+                          .isEmpty())) {
         return null;
       }
       return new CockpitSettings.Cockpit(
           cockpit.getWorkflowModuleUri(), cockpit.getUiUriType(), cockpit.getUiUriPath(), cockpit
               .getI18nLanguages(), cockpit
-                  .getBpmnDescriptionLanguage(), cockpit.getTemplatePath(), cockpit.getGroupHierarchy());
+                  .getBpmnDescriptionLanguage(), cockpit.getTemplatePath(), cockpit
+                      .getGroupHierarchy(), cockpit.getInitiatorSource());
 
     }
 
@@ -942,6 +960,9 @@ public class CockpitOverlayProperties {
 
     /** Which groups a group stands for. */
     private Map<String, List<String>> groupHierarchy;
+
+    /** Who answers the initiator of this module's reports. */
+    private String initiatorSource;
 
     public String getWorkflowModuleUri() {
 
@@ -1034,6 +1055,19 @@ public class CockpitOverlayProperties {
 
     }
 
+    public String getInitiatorSource() {
+
+      return initiatorSource;
+
+    }
+
+    public void setInitiatorSource(
+        final String initiatorSource) {
+
+      this.initiatorSource = initiatorSource;
+
+    }
+
   }
 
   /**
@@ -1102,14 +1136,17 @@ public class CockpitOverlayProperties {
           cockpit == null ? null : cockpit.getI18nLanguages(), cockpit == null
               ? null
               : cockpit.getBpmnDescriptionLanguage(), cockpit == null ? null
-                  : cockpit.getTemplatePath(), ofTheUserTasks);
+                  : cockpit.getTemplatePath(), ofTheUserTasks, cockpit == null
+                      ? null
+                      : cockpit.getInitiatorSource());
 
     }
 
     private boolean saysNothing() {
 
       return (cockpit == null) || ((cockpit.getI18nLanguages() == null) && (cockpit
-          .getBpmnDescriptionLanguage() == null) && (cockpit.getTemplatePath() == null));
+          .getBpmnDescriptionLanguage() == null) && (cockpit.getTemplatePath() == null) && (cockpit
+              .getInitiatorSource() == null));
 
     }
 
@@ -1128,6 +1165,9 @@ public class CockpitOverlayProperties {
 
     /** The segment this workflow contributes to the template lookup path. */
     private String templatePath;
+
+    /** Who answers the initiator of this workflow's reports. */
+    private String initiatorSource;
 
     public List<String> getI18nLanguages() {
 
@@ -1165,6 +1205,19 @@ public class CockpitOverlayProperties {
         final String templatePath) {
 
       this.templatePath = templatePath;
+
+    }
+
+    public String getInitiatorSource() {
+
+      return initiatorSource;
+
+    }
+
+    public void setInitiatorSource(
+        final String initiatorSource) {
+
+      this.initiatorSource = initiatorSource;
 
     }
 

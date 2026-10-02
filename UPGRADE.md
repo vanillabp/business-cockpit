@@ -114,3 +114,33 @@ application.
 A BPMN process has one workflow details provider, and that stays as it is. The method serves the
 whole process, so there is nothing to repeat. `@UserTaskDetailsProvider` is a different case: it
 stays repeatable and keeps its container `UserTaskDetailsProviders`.
+
+### Every report names an initiator, and one new key says who answers it
+
+The initiator is the user who caused what is reported: who started a case, who took a task. In
+version 1 the field was optional, and most applications left it empty. Now every report carries a
+value, and a new key says where the value comes from:
+
+```yaml
+vanillabp:
+  cockpit:
+    initiator-source: by-application
+```
+
+The key has no default, so write it before you start the application. `by-application` means your
+code sets the initiator in a method annotated with `@WorkflowDetailsProvider` or
+`@UserTaskDetailsProvider`. `system` means this workflow module knows no action a user causes, and
+every report of it then names `system`. A workflow module may say something of its own at
+`vanillabp.workflow-modules.<moduleId>.cockpit.initiator-source`, and a single workflow at
+`vanillabp.workflow-modules.<moduleId>.workflows.<process>.cockpit.initiator-source`.
+
+With `by-application` a report which names nobody after your provider ran fails, and it takes the
+engine's work with it, because the report is built in the transaction of the event. The constant
+`io.vanillabp.spi.cockpit.Initiator.SYSTEM` is the way to say that no user caused this one event. It
+is also how you drop a value Camunda 7 prefilled: calling `setInitiator(null)` looks exactly like a
+provider which did nothing.
+
+Your existing cases keep what they have. Nothing is filled in afterwards, because nobody can work
+out later who started a case which ran without an initiator. That is also why the key has no
+default. A field nobody can catch up on later is worth one line of configuration, and one question
+you answer once.

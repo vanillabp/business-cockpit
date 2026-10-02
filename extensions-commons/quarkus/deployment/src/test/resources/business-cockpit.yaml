@@ -11,6 +11,8 @@ vanillabp:
   outbox:
     poll-interval: PT0.2S
     attempt-frequency: PT0.2S
+  cockpit:
+    initiator-source: by-application
   workflow-modules:
     test-module:
       adapters:
