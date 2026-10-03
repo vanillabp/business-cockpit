@@ -12,6 +12,7 @@ import feign.RetryableException;
 import feign.auth.BasicAuthRequestInterceptor;
 import io.vanillabp.cockpit.bpms.api.v1_1.ApiClient;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
@@ -43,7 +44,19 @@ public class RestTransport implements BusinessCockpitTransport {
   /** The header a server names the length of its own unavailability in. */
   static final String RETRY_AFTER_HEADER = "Retry-After";
 
+  /** The role the cockpit server asks of every caller of its BPMS API. */
+  static final String BPMS_API_ROLE = "BPMS-API";
+
+  /** How much of what the server wrote into a refusal goes into the message. */
+  static final int MAXIMUM_REASON_LENGTH = 300;
+
   private static final int FIRST_CLIENT_ERROR = 400;
+
+  private static final int BAD_REQUEST = 400;
+
+  private static final int UNAUTHORIZED = 401;
+
+  private static final int FORBIDDEN = 403;
 
   private static final int REQUEST_TIMEOUT = 408;
 
@@ -206,12 +219,99 @@ public class RestTransport implements BusinessCockpitTransport {
       return new PhaseTwoPermanentFailure(
           """
               Reporting %s to %s was refused with %d, and sending the same report again would be \
-              refused again. Check whether the workflow module and the cockpit server speak the \
-              same version of the BPMS API and whether the credentials of '%s' are the ones the \
-              server knows."""
-              .formatted(what, describe(), status, baseUrl), failure);
+              refused again. %s
+              %s"""
+              .formatted(what, describe(), status, reasonOf(failure), whatToCheckFor(status)), failure);
     }
     return failure;
+
+  }
+
+  /**
+   * @param failure What the client threw
+   * @return What the server wrote into the body of its answer, shortened to one line, or a
+   *         sentence saying that it wrote nothing
+   */
+  private static String reasonOf(
+      final FeignException failure) {
+
+    final var body = failure.contentUTF8();
+    if ((body == null) || body.isBlank()) {
+      return "The server gave no reason.";
+    }
+    // the server writes the body, so it can be a whole error page. One line of it is enough to
+    // see what it is about, and the log stays readable
+    final var oneLine = body.strip().replaceAll("\\s+", " ");
+    return "The server said: \"%s\"."
+        .formatted(
+            oneLine.length() <= MAXIMUM_REASON_LENGTH
+                ? oneLine
+                : oneLine.substring(0, MAXIMUM_REASON_LENGTH)
+                    + "...");
+
+  }
+
+  /**
+   * The causes of a refusal, in the order they are worth checking. Each one says where to see
+   * whether it is the one, so the developer does not have to guess.
+   *
+   * @param status What the server answered with
+   * @return The steps, one per line
+   */
+  private static String whatToCheckFor(
+      final int status) {
+
+    final var versions = """
+        The workflow module and the cockpit server speak different versions of the BPMS API. \
+        This workflow module speaks version 1.1, under '%s'. Use a cockpit server of the same \
+        release as this extension, or a newer one.""".formatted(API_PATH);
+    return switch (status) {
+      case UNAUTHORIZED -> stepsOf(
+          """
+              The server does not know the credentials. Check the ones in '%s' or, for a token, \
+              in '%s'. They have to be the ones the server's BPMS API is configured with."""
+              .formatted(
+                  ConfigurationKeys.globalKey(ConfigurationKeys.REST_USERNAME),
+                  ConfigurationKeys.globalKey(ConfigurationKeys.REST_OAUTH_CLIENT_ID)));
+      case FORBIDDEN -> stepsOf(
+          """
+              The server knows the credentials, but they may not use the BPMS API. The user or \
+              the client needs the role '%s' on the server."""
+              .formatted(BPMS_API_ROLE));
+      case BAD_REQUEST -> stepsOf(
+          versions,
+          """
+              The server could not read the report: a value has the wrong type, or the server \
+              does not know it, like a new value of a list of choices. The server's log then has \
+              the warning 'Returning HTTP 400 Bad Request' with the field it could not read.""",
+          """
+              The path and the body of the report name different user tasks or workflows. The \
+              server's log then has the warning 'Refusing a report about ...' with both ids. \
+              This extension puts the same id in both places, so the id was changed on its way \
+              to the server, for example by a proxy which rewrites the path.""",
+          """
+              The server could not store the report. The server's log then has the error 'Could \
+              not save ...'.""");
+      default -> stepsOf(versions);
+    };
+
+  }
+
+  /**
+   * @param causes The possible causes, the likeliest first
+   * @return The causes as numbered steps, each on its own line
+   */
+  private static String stepsOf(
+      final String... causes) {
+
+    final var steps = new StringBuilder(
+        causes.length == 1
+            ? "Check this:"
+            : "Check these, one after the other:");
+    for (var i = 0; i < causes.length; i++) {
+      steps.append("\n%d. %s".formatted(i + 1, causes[i]));
+    }
+    return steps.toString();
 
   }
 
