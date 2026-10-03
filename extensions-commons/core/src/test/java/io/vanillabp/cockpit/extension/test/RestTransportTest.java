@@ -288,7 +288,9 @@ public class RestTransportTest {
     assertTrue(
         message.contains("\n3. The path and the body of the report name different"), message);
     assertTrue(message.contains("'Refusing a report about ...'"), message);
-    assertTrue(message.contains("\n4. The server could not store the report"), message);
+    assertTrue(message.contains("\n4. A required field of the report is missing"), message);
+    assertTrue(
+        message.contains("'Returning HTTP 400 Bad Request: The request is not valid: ...'"), message);
     assertFalse(
         message.contains("credentials"),
         "a 400 is no answer to credentials, so the message must not send anybody there");
@@ -316,6 +318,25 @@ public class RestTransportTest {
     assertFalse(message.contains("x".repeat(400)), "the whole body went into the message");
     assertTrue(message.contains("\n1. "), "the steps are still there: "
         + message);
+
+  }
+
+  @Test
+  @DisplayName("A refusal of a report which misses a field quotes the field the server named")
+  public void aRefusalOfAMissingFieldQuotesTheServer() {
+
+    status = 400;
+    responseBody = "The request is not valid: 'timestamp' is missing.";
+
+    final var message = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.UPDATED)))
+        .getMessage();
+
+    assertTrue(
+        message.contains("The server said: \"The request is not valid: 'timestamp' is missing.\"."),
+        message);
+    assertTrue(message.contains("\n4. A required field of the report is missing"), message);
 
   }
 

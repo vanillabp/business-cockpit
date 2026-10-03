@@ -10,9 +10,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 /**
  * The status code every kind of exception turns into. These numbers are part of what a
@@ -85,6 +90,47 @@ public class RestfulExceptionHandlerTest {
                 .assertThat(handler
                         .handleUnauthorizedException(new AuthenticationCredentialsNotFoundException("who?")).getBody())
                 .isEqualTo("who?");
+
+    }
+
+    /** A report as a controller would take it, for the parameter the validation is about. */
+    public static class Report {
+
+        public String timestamp;
+
+        public String details;
+
+    }
+
+    @SuppressWarnings("unused")
+    private void receive(
+            final Report report) {
+    }
+
+    @Test
+    public void anInvalidBodyIsBadRequestAndNamesEveryFieldButNoValue() throws Exception {
+
+        final var report = new Report();
+        report.details = "a value the answer must not repeat";
+        final var errors = new BeanPropertyBindingResult(report, "report");
+        errors.addError(new FieldError(
+                "report", "timestamp", null, false, new String[] { "NotNull.report.timestamp", "NotNull" },
+                null, "darf nicht null sein"));
+        errors.addError(new FieldError(
+                "report", "details", report.details, false, new String[] { "Size.report.details", "Size" },
+                null, "size must be between 0 and 3"));
+        errors.addError(new ObjectError("report", new String[] { "SameIds" }, null, "ids differ"));
+        errors.addError(new FieldError("report", "details", null, false, null, null, "no code at all"));
+        final var parameter = new MethodParameter(
+                RestfulExceptionHandlerTest.class.getDeclaredMethod("receive", Report.class), 0);
+
+        final var response = handler.handleInvalidRequestBody(new MethodArgumentNotValidException(parameter, errors));
+
+        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+        Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+        Assertions.assertThat(response.getBody()).isEqualTo(
+                "The request is not valid: 'details' breaks the rule @Size, 'details' is not valid, "
+                        + "'report' breaks the rule @SameIds, 'timestamp' is missing.");
 
     }
 

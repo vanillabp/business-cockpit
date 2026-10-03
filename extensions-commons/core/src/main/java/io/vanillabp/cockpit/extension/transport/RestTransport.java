@@ -290,8 +290,9 @@ public class RestTransport implements BusinessCockpitTransport {
               This extension puts the same id in both places, so the id was changed on its way \
               to the server, for example by a proxy which rewrites the path.""",
           """
-              The server could not store the report. The server's log then has the error 'Could \
-              not save ...'.""");
+              A required field of the report is missing, or a field breaks a rule of the \
+              schema. The server names the field in its answer, and its log has the warning \
+              'Returning HTTP 400 Bad Request: The request is not valid: ...'.""");
       default -> stepsOf(versions);
     };
 
