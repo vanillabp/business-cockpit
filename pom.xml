@@ -29,6 +29,20 @@
     <version.org.mapstruct>1.6.3</version.org.mapstruct>
     <version.protobuf>4.31.1</version.protobuf>
     <npm.registry>http://localhost:4873/</npm.registry>
+    <!--
+      The one switch for the whole npm side of this build. 'skip.npm' and 'skip.installnodenpm' are
+      the properties the frontend plugin reads itself, so setting them here reaches every npm
+      execution which carries no 'skip' of its own, in this POM and in every module. The executions
+      which do carry one read the properties below, and those derive from this switch, so one value
+      moves all of them. Set it to true and the build needs neither a node toolchain nor a registry,
+      which is what the profile 'java-install' does and what AGENTS.md tells you to pass. False here
+      is the plugin's own default, so a build which leaves the switch alone runs as it always did.
+
+      Keep the derived properties derived. A new npm execution with a hard-coded 'skip' escapes the
+      switch, and then a dev container build dies in that step and nothing says why.
+    -->
+    <skip.npm>false</skip.npm>
+    <skip.installnodenpm>${skip.npm}</skip.installnodenpm>
     <skip.npm.unpublish>true</skip.npm.unpublish>
     <skip.npm.prerelease>true</skip.npm.prerelease>
     <!--
@@ -36,10 +50,10 @@
       node_modules, so a clean clone which skips it fails in the next step, 'npm run build'.
       It also rewrites the checked-in package-lock.json of its module. A release wants that and
       commits it, a branch does not, but switching the step off here would take the install with
-      it. A build which needs no npm passes '-Pjava-install', which AGENTS.md explains.
+      it.
     -->
-    <skip.npm.update>false</skip.npm.update>
-    <skip.npm.publish-snapshot>false</skip.npm.publish-snapshot>
+    <skip.npm.update>${skip.npm}</skip.npm.update>
+    <skip.npm.publish-snapshot>${skip.npm}</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <!--
       One property for the whole JUnit family, used by the BOM import below and by the Surefire
@@ -410,16 +424,17 @@
         <skip.npm.prerelease>false</skip.npm.prerelease>
       </properties>
     </profile>
+    <!--
+      Build the Java side only. Pass this and no npm step runs, so the three modules which own a
+      user interface, 'business-cockpit', 'container' and 'development/simulator', build in a dev
+      container, where nobody serves the local npm registry. The pull request build passes it too.
+      The single property is enough because every npm skip derives from it, see the properties at
+      the top of this POM.
+    -->
     <profile>
       <id>java-install</id>
       <properties>
-        <skip.installnodenpm>true</skip.installnodenpm>
         <skip.npm>true</skip.npm>
-        <skip.npm.update>true</skip.npm.update>
-        <skip.npm.unpublish>true</skip.npm.unpublish>
-        <skip.npm.prerelease>true</skip.npm.prerelease>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
-        <skip.npm.publish-release>true</skip.npm.publish-release>
       </properties>
     </profile>
     <profile>

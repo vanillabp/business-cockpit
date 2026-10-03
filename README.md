@@ -27,10 +27,15 @@ What an application has to change when it moves to a new version of the cockpit 
 
 ## Building it
 
-You need Java 21, Maven and a local NPM registry. The registry is needed because the build publishes
-the user interface packages before it consumes them.
+You need Java 21 and Maven. A build of the user interface needs a local NPM registry as well,
+because it publishes the user interface packages before it consumes them.
 [development/README.md](./development/README.md) sets that up and is the place to start. It also
 holds the MongoDB, the Kafka broker and the mail catcher which the tests and a local run need.
+
+To build the Java side alone, pass `-Pjava-install` and you need neither the registry nor a node
+toolchain. That is the switch for a container or a machine which serves no registry, and it is
+also what the three modules owning a user interface need: `business-cockpit`, `container` and
+`development/simulator`.
 
 The build reads two kinds of artifact which Maven Central does not have: the snapshots of the
 VanillaBP platform, and the MongoDB changeset library `com.phactum.mongodb:mongodb-changesets`. Both
@@ -44,7 +49,7 @@ mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
 ```
 
 A pull request is checked by two jobs which run beside each other. One builds and tests the Java
-side, with `-Pjava-install`, so the frontend stays out of the reactor and out of the build time.
+side, with `-Pjava-install`, so no npm step runs and the frontend costs it no build time.
 The other runs `bin/frontend-checks.sh`. It type-checks every TypeScript package and runs every Jest
 test of this repository. It builds each package against the one below it instead of against the
 published snapshot, because otherwise a change which splits two packages apart would still be green.
