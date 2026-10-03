@@ -1234,3 +1234,85 @@ packages, it needs them absent.
 | `pom.xml`, the profile `java-install` | what the switch is for and which three modules need it |
 | `AGENTS.md`, section `Building`       | pass it for a single module as well, and what the errors look like without it |
 | `README.md`, section `Building it`    | the registry belongs to a frontend build, not to building this repository |
+
+### 34. A wait for a report has to name the report
+
+Decided on 2026-10-03.
+
+`CockpitServer.awaitAnyRequest` and `CockpitServer.awaitRequests` refuse a path which carries no
+id of a case. A test which waits on `/usertask/created` or `/workflow/created` has to say which
+report it waits for, through `awaitRequest` when it reads the report afterwards or through
+`awaitRequestOf` when only the arrival matters. The refusal is thrown before the wait starts, so
+the test which gets it wrong is the test which fails.
+
+### What went wrong
+
+Every test of a module reports into one server, and the dispatch of an outbox entry outlives the
+test which caused it. A report of an earlier test therefore arrives on a collecting path at any
+moment. A wait which takes the next report of its kind is satisfied by it, and the test walks on
+although nothing it provoked has happened yet.
+
+Eight places in the Process-Engine-API adapter made that visible, because each of them called
+`forgetRequests()` one line below the wait:
+
+```java
+aDeliveredUserTask(aggregate, "task-6");
+CockpitServer.awaitAnyRequest("/usertask/created");
+CockpitServer.forgetRequests();
+```
+
+The wait takes the stale report, the forget throws away the report of `task-6`, and the second
+wait further down then waits for a report nobody owes it any more. The failure lands in a later
+test or in a timeout, never where the mistake is.
+
+The `forgetRequests()` in that pattern is right and stays. It is what tells two reports about the
+same case apart: the test waits for the first report, forgets it, provokes the second and waits
+again. The wait in front of it was the only broken part.
+
+### Why the mechanic cannot do it alone
+
+A wait could record where the list of received reports stood and accept only what arrives after
+that. It would be wrong. A test provokes its report and waits afterwards, so the report is often
+already there when the wait runs, and a wait which refuses what it finds would never return. Only
+a mark set before the trigger could have that rule, and setting it would mean splitting every one
+of the 26 call sites into three steps.
+
+And it would buy nothing. A late report of the previous test lands on the same path as the report
+under test and differs from it in one thing: what it carries. Time does not tell them apart,
+content does. A wait which names the content is safe from another case's report whenever that
+report arrives, and a mark anchored in time is only safe from the ones which arrive early.
+
+What the mechanic can do is refuse the wait which has no chance of being right, and that is what
+it now does. The rule is read off the path: the cockpit is told about something new on a path of
+two parts, because it does not know the id yet and the body carries it. Every later report about
+that case has the id between the kind and what happened. So a suffix of two parts collects and a
+longer one names its case.
+
+### What it covers
+
+| repository                                   | collecting waits before | after |
+|----------------------------------------------|-------------------------|-------|
+| `business-cockpit`                           | 0                       | 0 |
+| `businesscockpit-process-engine-api-adapter` | 17                      | 0 |
+| `businesscockpit-camunda7-adapter`           | 9                       | 0 |
+| `businesscockpit-camunda8-adapter`           | 0                       | 0 |
+
+The main repository was already clean. The commit which introduced `awaitRequestOf` moved the
+four waits of `BusinessCockpitExtensionTest` onto it at the same time, and the six
+`awaitAnyRequest` calls left in `extensions-commons` all carry the id of their case. The Camunda 8
+adapter was counted the same way and has nothing on a collecting path.
+
+The two adapters go red the moment this snapshot reaches them, so their branches have to be in
+before it is published.
+
+### References
+
+- `extensions-commons/test-support/.../CockpitServer.java`: the refusal, and the Javadoc of
+  `awaitAnyRequest`, `awaitRequest`, `awaitRequestOf`, `awaitRequests` and `forgetRequests`
+- `extensions-commons/test-support/.../WaitMarkTest.java`: five tests, among them the wait which
+  falls when its report stays away and the wait which is served by a report arriving while it runs
+- `refuseRequestsAbout(marker, count)`, which asks for the event by name for the same reason: a
+  refusal which took whatever arrived next was spent on a report of a class which had long
+  finished
+- story `1351`, which introduced `awaitRequest(pathSuffix, bodyPart)`, story `1373`, which moved
+  the 30 waits reading a body onto it, and the commit beside them which added `awaitRequestOf`
