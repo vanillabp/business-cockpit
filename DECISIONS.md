@@ -1465,3 +1465,38 @@ change.
 The start of such a case in the list is the time of its first change, not the time the case began.
 A creation which was only late, and not missing, cannot correct that. The other way round would be
 worse: a creation which never comes would leave the case out of the list for good.
+
+### 37. A report whose path and body name different records is refused
+
+Decided on 2026-10-03 for story 1426. Before, the server took such a report and answered `200 OK`.
+
+A report about a user task or a case the cockpit may already hold carries the id twice. The path
+names it, for example `workflow/{workflowId}/updated`, and the body names it again, in `workflowId`
+or `userTaskId`. The schema of the body requires that field. The service looks the stored record up
+by the id in the path. The mapper which builds a record the cockpit does not hold yet takes the id
+from the body. Decision 36 lets a change create a case, so the two ids met in one call: a change
+whose body named another case was stored under the id of the body, and the next change with the
+same path did not find it.
+
+So both ids have to be the same. If they differ, the server answers `400 Bad Request`, stores
+nothing, and logs a warning which names both ids. This holds for version 1 and version 1.1 of the
+REST API, and for every report whose path carries an id: `updated`, `completed` and `cancelled`, of
+user tasks and of cases. A body which leaves the id out differs from the path as well, so it is
+refused too. The schema asks for the id anyway.
+
+The Kafka way in is not touched. A Kafka record has no path, and its body is the only place the id
+is named.
+
+#### Who sends such a report
+
+Nobody we know of. The Version 2 extension, `RestTransport` in `extensions-commons/core`, takes the
+id in the path and the id in the body from the same field of the same event. The Version 1
+integration, at the `0.4.0` tag, did the same in `UserTaskRestPublishing` and
+`WorkflowRestPublishing`. The three BPMS halves do not call the REST API themselves, they hand
+their events to `extensions-commons`.
+
+#### What it costs
+
+A client which sent different ids got `200 OK` before and gets `400 Bad Request` now. Such a
+client did not get what it asked for before either, because its report was stored under the id it
+did not use for the next report.
