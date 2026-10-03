@@ -355,8 +355,11 @@ Unter `/` liegt das UI selbst. Das mitgelieferte UI ist eine Single-Page-Anwendu
 statischen Dateien liegen im Jar der Bibliothek. Ein eigenes UI tritt an diese Stelle, siehe
 [../SKILL.md](../SKILL.md#wie-dein-ui-in-das-cockpit-kommt).
 
-In `uiUri` einer Aufgabe oder eines Falls steht beim Typ `WEBPACK_MF_REACT` schon der Pfad unter
-`/wm/<workflowModuleId>/`. Der Server setzt ihn aus dem gemeldeten Pfad zusammen. Beim Typ
-`EXTERNAL` steht die gemeldete Adresse unverändert da, denn das Cockpit kennt diese Anwendung nicht
-und leitet nichts dorthin weiter. In `workflowModuleUri` steht der Pfad zum Modul selbst, ohne
-Datei, für Anfragen eines Formulars an sein eigenes Backend.
+In `uiUri` einer Aufgabe oder eines Falls steht der Pfad, den das Workflow-Modul gemeldet hat,
+unverändert. Der Server baut daraus keine Adresse und liest auch `uiUriType` nicht. Die Adresse zu
+bilden ist Sache deines UIs: beim Typ `WEBPACK_MF_REACT` gehört der Pfad unter
+`/wm/<workflowModuleId>/`, weil das Cockpit das Modul dort selbst ausliefert, und beim Typ
+`EXTERNAL` ist der gemeldete Wert schon die ganze Adresse, denn das Cockpit kennt diese Anwendung
+nicht und leitet nichts dorthin weiter. In `workflowModuleUri` steht der Pfad zum Modul selbst, ohne
+Datei. Er dient Anfragen eines Formulars an sein eigenes Backend und ist zugleich der Vorsatz, den
+du vor einen gemeldeten Pfad setzt.

@@ -24,9 +24,12 @@ const CustomWorkflowModuleComponent = ({
   t: TranslationFunction,
   entryPoint?: string,
 }) => {
+  // The entry point is a path below the module's proxy route, the way a task or a case reports
+  // one. Loading a module puts the route in front of it, so this component hands over the path
+  // and not a finished address.
   const module = useMemo<ModuleDefinition>(() => ({
     uiUriType: UiUriType.WebpackMfReact,
-    uiUri: `${workflowModule.uri!}${entryPoint}`,
+    uiUri: entryPoint,
     workflowModuleId: workflowModule.id,
     workflowModuleUri: workflowModule.uri!
   }), [ workflowModule.id, workflowModule.uri, entryPoint ]);

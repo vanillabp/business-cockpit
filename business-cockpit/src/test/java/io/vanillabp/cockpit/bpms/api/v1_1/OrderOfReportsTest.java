@@ -176,7 +176,7 @@ class OrderOfReportsTest {
                 .taskDefinition("assign-driver")
                 .title(Map.of("en", "Assign a driver"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .dueDate(DUE_AT)
                 .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
                 .detailsFulltextSearch("Anna");
@@ -197,7 +197,7 @@ class OrderOfReportsTest {
                 .taskDefinition("assign-driver")
                 .title(Map.of("en", "Assign a driver"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .details(new LinkedHashMap<>(Map.of("customer", customer)))
                 .detailsFulltextSearch(customer);
 
@@ -221,7 +221,7 @@ class OrderOfReportsTest {
                 .taskDefinition("assign-driver")
                 .title(Map.of("en", "Assign a driver"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
                 .detailsFulltextSearch("Anna");
 
@@ -237,7 +237,7 @@ class OrderOfReportsTest {
                 .bpmnProcessId("ride")
                 .title(Map.of("en", "A ride"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
                 .detailsFulltextSearch("Anna");
 
@@ -255,7 +255,7 @@ class OrderOfReportsTest {
                 .bpmnProcessId("ride")
                 .title(Map.of("en", "A ride"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .details(new LinkedHashMap<>(Map.of("customer", customer)))
                 .detailsFulltextSearch(customer);
 
@@ -271,7 +271,7 @@ class OrderOfReportsTest {
                 .bpmnProcessId("ride")
                 .title(Map.of("en", "A ride"))
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .details(new LinkedHashMap<>(Map.of("customer", "Anna")))
                 .detailsFulltextSearch("Anna");
 
@@ -500,7 +500,7 @@ class OrderOfReportsTest {
                     .taskDefinition("assign-driver")
                     .title(Map.of("en", "Assign a driver"))
                     .uiUriPath("/ui")
-                    .uiUriType(UiUriType.WEBPACK_MF_REACT));
+                    .uiUriType("WEBPACK_MF_REACT"));
         });
 
         final var stored = cockpit.storedTask();

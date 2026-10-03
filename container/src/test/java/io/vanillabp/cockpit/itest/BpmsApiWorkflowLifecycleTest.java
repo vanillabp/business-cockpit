@@ -79,7 +79,7 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
         assertThat(workflow.read("$.bpmnProcessId", String.class)).isEqualTo("taxi-ride");
         assertThat(workflow.read("$.businessId", String.class)).isEqualTo("ride-4711");
         assertThat(workflow.read("$.workflowModuleId", String.class)).isEqualTo(moduleId);
-        assertThat(workflow.read("$.uiUri", String.class)).isEqualTo("/wm/" + moduleId + "/remoteEntry.js");
+        assertThat(workflow.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
         assertThat(workflow.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
         assertThat(OffsetDateTime.parse(workflow.read("$.createdAt", String.class)).toInstant())
                 .isEqualTo(createdAt.toInstant());

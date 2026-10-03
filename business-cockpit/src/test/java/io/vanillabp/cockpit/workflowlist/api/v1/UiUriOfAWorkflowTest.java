@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.workflowlist.api.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -12,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * What the cockpit's user interface is told to open for a case. It follows the same rule as a task.
- * A federated module is served through the cockpit's own proxy, and a case shown by another
- * application keeps the address that application was reported with.
+ * What the GUI API answers about where a case is shown. It follows the same rule as a task: the
+ * reported path is handed out unchanged, the type travels with it, and the proxy route of the
+ * module is answered on its own.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class UiUriOfAWorkflowTest {
@@ -31,7 +30,7 @@ class UiUriOfAWorkflowTest {
     }
 
     private static Workflow workflow(
-            final UiUriType uiUriType,
+            final String uiUriType,
             final String uiUriPath) {
 
         final var workflow = new Workflow();
@@ -44,18 +43,18 @@ class UiUriOfAWorkflowTest {
     }
 
     @Test
-    void aFederatedWorkflowIsServedThroughTheCockpitsProxy() {
+    void aFederatedWorkflowKeepsTheReportedPath() {
 
-        final var workflow = workflow(UiUriType.WEBPACK_MF_REACT, "/remoteEntry.js");
+        final var workflow = workflow("WEBPACK_MF_REACT", "/remoteEntry.js");
 
-        assertThat(mapper.toApi(workflow).getUiUri()).isEqualTo("/wm/taxi-ride/remoteEntry.js");
+        assertThat(mapper.toApi(workflow).getUiUri()).isEqualTo("/remoteEntry.js");
 
     }
 
     @Test
     void aWorkflowOfAnotherApplicationKeepsTheAddressItWasReportedWith() {
 
-        final var workflow = workflow(UiUriType.EXTERNAL, "https://orders.example.com/order/4711");
+        final var workflow = workflow("EXTERNAL", "https://orders.example.com/order/4711");
 
         assertThat(mapper.toApi(workflow).getUiUri())
                 .isEqualTo("https://orders.example.com/order/4711");
@@ -63,9 +62,28 @@ class UiUriOfAWorkflowTest {
     }
 
     @Test
+    void aTypeTheCockpitNeverHeardOfTravelsAllTheSame() {
+
+        final var answer = mapper.toApi(workflow("ANGULAR", "/some/where"));
+
+        assertThat(answer.getUiUriType()).isEqualTo("ANGULAR");
+        assertThat(answer.getUiUri()).isEqualTo("/some/where");
+
+    }
+
+    @Test
     void aWorkflowWithoutAnAddressHasNone() {
 
-        assertThat(mapper.toApi(workflow(UiUriType.EXTERNAL, null)).getUiUri()).isNull();
+        assertThat(mapper.toApi(workflow("EXTERNAL", null)).getUiUri()).isNull();
+
+    }
+
+    @Test
+    void theProxyRouteOfTheModuleIsAnsweredOnItsOwn() {
+
+        final var workflow = workflow("WEBPACK_MF_REACT", "/remoteEntry.js");
+
+        assertThat(mapper.toApi(workflow).getWorkflowModuleUri()).isEqualTo("/wm/taxi-ride");
 
     }
 

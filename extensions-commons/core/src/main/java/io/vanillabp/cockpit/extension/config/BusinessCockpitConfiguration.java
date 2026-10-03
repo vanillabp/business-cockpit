@@ -954,24 +954,14 @@ public final class BusinessCockpitConfiguration {
         ? settings.bpmnDescriptionLanguage()
         : null;
 
-    final var uiUriTypeValue = required(
+    // The cockpit carries this value and never reads it, so an unknown name is not a defect:
+    // the user interface which loads the module is the one which knows the names. That a value
+    // is there is still required, because a module which says nothing today would leave empty
+    // entries behind as soon as a second name exists, and nobody could say what empty means.
+    final var uiUriType = required(
         workflowModuleId, settings.uiUriType(), ConfigurationKeys.UI_URI_TYPE, defects,
-        "Valid values are: %s.".formatted(String.join(", ", UiUriType.names())));
-    UiUriType uiUriType = null;
-    if (uiUriTypeValue != null) {
-      try {
-        uiUriType = UiUriType.of(uiUriTypeValue);
-      } catch (final IllegalArgumentException e) {
-        defects
-            .add(
-                "'%s' is '%s'. %s"
-                    .formatted(
-                        ConfigurationKeys
-                            .workflowModuleKey(workflowModuleId, ConfigurationKeys.UI_URI_TYPE),
-                        uiUriTypeValue,
-                        e.getMessage()));
-      }
-    }
+        "The user interface reads this value, the cockpit does not. The shipped user interface knows: %s."
+            .formatted(String.join(", ", UiUriType.names())));
 
     final var groupHierarchy = new LinkedHashMap<String, Collection<String>>();
     settings.groupHierarchy().forEach(groupHierarchy::put);

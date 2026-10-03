@@ -3,7 +3,6 @@ package io.vanillabp.cockpit.simulator.workflow.testdata;
 import com.devskiller.jfairy.Fairy;
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.v1_1.UiUriType;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
@@ -251,7 +250,7 @@ public class WorkflowTestDataGenerator implements Runnable {
         result.setTimestamp(OffsetDateTime.now());
         result.setWorkflowModuleId("TestModule");
         result.setUiUriPath("/remoteEntry.js");
-        result.setUiUriType(UiUriType.WEBPACK_MF_REACT);
+        result.setUiUriType("WEBPACK_MF_REACT");
 
         final var testData1 = new TestData1();
         testData1.setTestId1(Integer.toString(random.nextInt(5)));

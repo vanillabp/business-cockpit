@@ -303,9 +303,11 @@ components:
   schemas:
     UiUriType:
       type: string
-      enum:
-      - EXTERNAL
-      - WEBPACK_MF_REACT  # MF ... Module Federation
+      description: >-
+        Which kind of user interface this workflow module brings. The cockpit carries the value
+        and never reads it. What a value means is agreed between the workflow module and the user
+        interface which loads it. The shipped user interface knows EXTERNAL for a module with
+        pages of its own and WEBPACK_MF_REACT for a React bundle loaded by module federation.
     UserTaskCreatedOrUpdatedEvent:
       type: object
       required:
@@ -398,7 +400,10 @@ components:
             de: Führe die Fahrt durch
         uiUriPath:
           type: string
-          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          description: >-
+            Where the user interface of this user task is found, as the workflow module reports
+            it. The cockpit stores the value and hands it out unchanged. Working out an address
+            from it is the business of the user interface, which reads uiUriType to know how.
           example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'
@@ -535,7 +540,10 @@ components:
           description: Version of the BPMN process (beneath the version tag)
         uiUriPath:
           type: string
-          description: A path added to workflowModuleUri to build a entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          description: >-
+            Where the user interface of this workflow is found, as the workflow module reports
+            it. The cockpit stores the value and hands it out unchanged. Working out an address
+            from it is the business of the user interface, which reads uiUriType to know how.
           example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'

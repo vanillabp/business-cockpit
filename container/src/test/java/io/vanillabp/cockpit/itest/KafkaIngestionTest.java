@@ -122,8 +122,7 @@ class KafkaIngestionTest extends ItestBase {
         assertThat(task.read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
         assertThat(task.read("$.candidateGroups[*].id", List.class))
                 .containsExactly(GROUP_OF_MARTIN);
-        assertThat(task.read("$.uiUri", String.class))
-                .isEqualTo("/wm/" + moduleId + "/remoteEntry.js");
+        assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
 
     }
 

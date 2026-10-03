@@ -92,7 +92,7 @@ class WhatAnEndMayNotOverwriteTest {
         task.setWorkflowTitle(new HashMap<>(Map.of("en", "Ride 4711")));
         task.setTaskDefinitionTitle(new HashMap<>(Map.of("en", "Assign a driver")));
         task.setUiUriPath("/ui");
-        task.setUiUriType(io.vanillabp.cockpit.tasklist.model.UiUriType.WEBPACK_MF_REACT);
+        task.setUiUriType("WEBPACK_MF_REACT");
         task.setComment("the driver called in sick");
         task.setDueDate(DUE_AT);
         task.setFollowUpDate(FOLLOW_UP_AT);
@@ -116,7 +116,7 @@ class WhatAnEndMayNotOverwriteTest {
         workflow.setBusinessId("4711");
         workflow.setTitle(new HashMap<>(Map.of("en", "Ride 4711")));
         workflow.setUiUriPath("/ui");
-        workflow.setUiUriType(io.vanillabp.cockpit.tasklist.model.UiUriType.WEBPACK_MF_REACT);
+        workflow.setUiUriType("WEBPACK_MF_REACT");
         workflow.setComment("the customer cancelled");
         final var starter = new Person();
         starter.setId("anna");
@@ -152,7 +152,7 @@ class WhatAnEndMayNotOverwriteTest {
                 .taskDefinition("assign-driver")
                 .bpmnTaskId("Task_AssignDriver")
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .title(Map.of())
                 .workflowTitle(Map.of())
                 .taskDefinitionTitle(Map.of())
@@ -174,7 +174,7 @@ class WhatAnEndMayNotOverwriteTest {
                 .workflowModuleId("taxi-ride")
                 .bpmnProcessId("ride")
                 .uiUriPath("/ui")
-                .uiUriType(UiUriType.WEBPACK_MF_REACT)
+                .uiUriType("WEBPACK_MF_REACT")
                 .title(Map.of())
                 .accessibleToUsers(List.of())
                 .accessibleToGroups(List.of())

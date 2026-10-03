@@ -144,3 +144,48 @@ Your existing cases keep what they have. Nothing is filled in afterwards, becaus
 out later who started a case which ran without an initiator. That is also why the key has no
 default. A field nobody can catch up on later is worth one line of configuration, and one question
 you answer once.
+
+### `uiUriType` is a string, and the address is the user interface's business
+
+`uiUriType` was an enum with two values in four published schemas. It is a plain string now, in
+`bpms-api` v1 and v1_1, in `official-gui-api` v1 and in `workflow-provider-api`. `EXTERNAL` and
+`WEBPACK_MF_REACT` are still valid strings, so a workflow module which reports one of them needs no
+change. `workflow-provider-api` called the schema `UiComponentsType` and showed `WEBPACK_REACT` as
+its example. Both are gone, and all four schemas now name the same thing the same way.
+
+The field stays required. Leaving it out looks tempting for a module whose user interface is
+federated anyway, but it would fill the database with entries that say nothing, and the day a second
+value shows up nobody could tell what an empty one was supposed to mean. One line of configuration
+answers that question once.
+
+The start of an application still checks `ui-uri-type`, and it only checks that a value is there.
+Any string passes. The message where nothing is configured offers `EXTERNAL` and `WEBPACK_MF_REACT`
+as a hint, because those are the two the shipped user interface knows.
+
+What changes for a user interface is `uiUri` in the GUI API. Until 0.9.0 the cockpit built the whole
+address: `/wm/<workflowModuleId>` plus the path the workflow module reported, unless the type was
+`EXTERNAL`, in which case the reported value was handed out as it was. Now the reported path is
+handed out in every case. The shipped user interface puts the proxy route in front of it itself, and
+a user interface of your own has to do the same. `workflowModuleId` and `workflowModuleUri` are in
+the same answer, so nothing has to be looked up for it.
+
+If you built your own user interface against the old answer, there are two ways out.
+
+The first is to do it in the browser. Your code looks at the text it got, and where it does not
+start with `/wm/` it adds the proxy route of the module. That keeps working against both versions of
+the cockpit, which matters while the two are rolled out one after the other.
+
+The second is to change what is stored, so the answer looks like it used to. Report the whole
+address as `ui-uri-path`, `/wm/taxi-ride/remoteEntry.js` rather than `/remoteEntry.js`, and update
+the entries which are already there in one block. Three things are worth knowing before you do
+that.
+
+The field exists twice. A user task has one and a workflow has one, so two MongoDB collections carry
+it, `UserTask` and `Workflow`.
+
+What is stored is the reported path and never the computed address. Only `GuiApiMapper` built the
+address, at the moment it answered, so nothing in the database has to be unpicked.
+
+Entries whose type is `EXTERNAL` must be left alone. Their path is the whole address already, the
+cockpit never prefixed it, and prefixing it now would send the browser to a route of the cockpit
+which does not exist. So an update in one block has to ask for the type first.

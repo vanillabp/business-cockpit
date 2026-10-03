@@ -7,15 +7,44 @@ import {
 import { useEffect, useState } from 'react';
 import { ColumnsOfUserTaskFunction, ColumnsOfWorkflowFunction } from '@vanillabp/bc-types';
 
+/**
+ * The values of `uiUriType` this user interface knows.
+ *
+ * The cockpit server carries the value and does not read it, so a task or a case may arrive with
+ * a name which is not in here. That is a module built for another user interface, and this one
+ * says so instead of guessing.
+ */
 export enum UiUriType {
   External = 'EXTERNAL',
   WebpackMfReact = 'WEBPACK_MF_REACT'
 };
 
+/** Where the cockpit serves the workflow modules it proxies. */
+const WORKFLOW_MODULES_PATH_PREFIX = '/wm/';
+
 export interface ModuleDefinition {
   workflowModuleId: string;
-  uiUriType: UiUriType;
+  uiUriType: string;
   uiUri: string;
+};
+
+/**
+ * The address a federated bundle is loaded from.
+ *
+ * A workflow module reports a path, and the cockpit hands that path out unchanged. A module
+ * federated into the cockpit is served by the cockpit itself, below the proxy route of its
+ * workflow module, so the path belongs under that route. Putting the two together is this user
+ * interface's convention and not something the server promises.
+ */
+const addressOfFederatedBundle = (
+    moduleDefinition: ModuleDefinition
+): string => {
+
+  const path = moduleDefinition.uiUri.startsWith('/')
+      ? moduleDefinition.uiUri
+      : `/${moduleDefinition.uiUri}`;
+  return `${WORKFLOW_MODULES_PATH_PREFIX}${moduleDefinition.workflowModuleId}${path}`;
+
 };
 
 export interface TasklistCellProps {
@@ -209,7 +238,7 @@ const loadModule = (
     try {
       if (module.buildTimestamp !== undefined) return;
       if (moduleDefinition.uiUriType === UiUriType.WebpackMfReact) {
-        const webpackModule =  await fetchModule(moduleDefinition.workflowModuleId, moduleDefinition.uiUri, initialTry || false, useCase);
+        const webpackModule =  await fetchModule(moduleDefinition.workflowModuleId, addressOfFederatedBundle(moduleDefinition), initialTry || false, useCase);
         modules[moduleId] = {
           ...webpackModule,
           ...module
@@ -222,7 +251,7 @@ const loadModule = (
           notFederated: true
         };
       } else {
-        throw new Error(`Unsupported UiUriType: ${moduleDefinition.uiUriType}!`);
+        throw new Error(`This user interface does not know the uiUriType '${moduleDefinition.uiUriType}'!`);
       }
     } catch (error) {
       console.error("Error loading module:", error);

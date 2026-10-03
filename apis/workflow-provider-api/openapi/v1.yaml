@@ -29,13 +29,13 @@ paths:
 
 components:
   schemas:
-    UiComponentsType:
+    UiUriType:
       type: string
-      enum:
-      - EXTERNAL
-      - WEBPACK_REACT
-      - WEBPACK_WEBCOMPONENT
-      - ANGULAR
+      description: >-
+        Which kind of user interface this workflow module brings. The cockpit carries the value
+        and never reads it. What a value means is agreed between the workflow module and the user
+        interface which loads it. The shipped user interface knows EXTERNAL for a module with
+        pages of its own and WEBPACK_MF_REACT for a React bundle loaded by module federation.
     UserTaskEventType:
       type: string
       enum:
@@ -130,8 +130,8 @@ components:
           description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
           example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
         uiUriType:
-          $ref: '#/components/schemas/UiComponentsType'
-          example: WEBPACK_REACT
+          $ref: '#/components/schemas/UiUriType'
+          example: WEBPACK_MF_REACT
         workflowModuleUri:
           type: string
         hasIcon:

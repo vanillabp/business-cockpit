@@ -18,7 +18,8 @@ import io.vanillabp.integration.extension.spi.settings.SettingsResolution;
  *
  * @param workflowModuleId The module these settings belong to
  * @param workflowModuleUri Where this module answers the cockpit's provider APIs
- * @param uiUriType How the cockpit loads this module's forms
+ * @param uiUriType Which kind of user interface this module brings, read by the user
+ *          interface and not by the cockpit
  * @param uiUriPath Where this module's forms are served from
  * @param i18nLanguages The languages titles are reported in, in the order they were configured
  * @param bpmnDescriptionLanguage The language the names in the BPMN files are written in
@@ -33,7 +34,7 @@ import io.vanillabp.integration.extension.spi.settings.SettingsResolution;
 public record WorkflowModuleConfiguration(
                                           String workflowModuleId,
                                           String workflowModuleUri,
-                                          UiUriType uiUriType,
+                                          String uiUriType,
                                           String uiUriPath,
                                           List<String> i18nLanguages,
                                           String bpmnDescriptionLanguage,
