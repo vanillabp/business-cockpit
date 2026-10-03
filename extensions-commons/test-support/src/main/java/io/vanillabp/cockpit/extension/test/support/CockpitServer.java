@@ -8,6 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -265,6 +266,13 @@ public final class CockpitServer {
 
   /**
    * Forgets everything received so far, and stops refusing reports. The registrations are kept.
+   * <p>
+   * A test uses this to tell two reports about the same case apart: it waits for the first one,
+   * forgets it, provokes the second and waits again. Only the order of those steps says which
+   * report a wait is about, so a wait standing in front of a forget has to name the report it
+   * waits for. A wait which takes the next report of its kind would be over before the report
+   * under test was sent, and this call would then throw that report away.
+   * {@link #awaitRequests(String, int)} refuses such a wait rather than leave it to the order.
    */
   public static void forgetRequests() {
 
@@ -340,14 +348,13 @@ public final class CockpitServer {
   /**
    * Waits for the first request whose path ends with the given text, whatever it reports.
    * <p>
-   * A path which names the case, like {@code /usertask/<id>/completed}, can only be reached by
-   * the report the caller means. A collecting path like {@code /usertask/created} cannot. There
-   * the first match may be about another user task, or about an earlier test of the same class,
-   * because the dispatch of an entry outlives the test which caused it. On such a path say which
-   * report is meant: {@link #awaitRequest(String, String)} if the report is read afterwards,
-   * {@link #awaitRequestOf(String, String)} if only its arrival matters.
+   * Only a path which names the case, like {@code /usertask/<id>/completed}, may be waited for
+   * this way, because only that path can be reached by the report the caller means. A collecting
+   * path like {@code /usertask/created} is refused by {@link #awaitRequests(String, int)}. On
+   * such a path say which report is meant: {@link #awaitRequest(String, String)} if the report
+   * is read afterwards, {@link #awaitRequestOf(String, String)} if only its arrival matters.
    *
-   * @param pathSuffix What the path has to end with
+   * @param pathSuffix What the path has to end with, with the id of the case in it
    * @return The first request which arrived on that path
    */
   public static Request awaitAnyRequest(
@@ -362,13 +369,15 @@ public final class CockpitServer {
    * <p>
    * Every test of a class shares this server, and a report of an earlier test may arrive after
    * that test forgot what it had seen, because the dispatch of an entry outlives the test which
-   * caused it. So a test which asserts content waits for the request carrying it rather than for
-   * the next one of its kind.
+   * caused it. Such a report lands on the same path as the one under test and differs from it
+   * only in what it carries, so a wait which names that content cannot be satisfied by it. This
+   * is why the collecting paths may be waited for in this form alone.
    * <p>
    * This is the form for a collecting path like {@code /usertask/created}, where the path alone
-   * does not say which case a report is about. {@link #awaitAnyRequest(String)} takes whatever
-   * arrives there first. {@link #awaitRequestOf(String, String)} waits the same way as this one
-   * but hands nothing back.
+   * does not say which case a report is about. {@link #awaitAnyRequest(String)} is for a path
+   * which carries the id of its case and refuses a collecting one.
+   * {@link #awaitRequestOf(String, String)} waits the same way as this one but hands nothing
+   * back.
    *
    * @param pathSuffix What the path has to end with
    * @param bodyPart What the body has to carry
@@ -409,7 +418,8 @@ public final class CockpitServer {
    * collecting path like {@code /usertask/created} the report of an earlier test may arrive at
    * any moment, so a wait which takes the next report of its kind can be over before the report
    * under test was sent. Whatever the test asserts next then runs too early and passes without
-   * having seen anything.
+   * having seen anything, and a {@link #forgetRequests()} standing behind such a wait throws
+   * away the report the test was waiting for.
    * <p>
    * Use {@link #awaitRequest(String, String)} when the report itself is read, and
    * {@link #awaitAnyRequest(String)} only on a path which names the case, like
@@ -428,8 +438,14 @@ public final class CockpitServer {
 
   /**
    * Waits until the given number of requests of one kind arrived.
+   * <p>
+   * The path has to carry the id of its case. A collecting path like {@code /usertask/created}
+   * is refused, because a wait on it is satisfied by the report of whichever case reported there
+   * last and therefore says nothing about the case under test. Several reports which belong to
+   * different cases are waited for one by one, each with the id of its own case, because one wait
+   * can only name one of them.
    *
-   * @param pathSuffix What the paths have to end with
+   * @param pathSuffix What the paths have to end with, with the id of the case in it
    * @param count How many are expected
    * @return The requests, in the order they arrived
    */
@@ -437,6 +453,17 @@ public final class CockpitServer {
       final String pathSuffix,
       final int count) {
 
+    if (namesNoCase(pathSuffix)) {
+      throw new AssertionError(
+          ("A wait for the next report on '%s' proves nothing: that path collects the reports of "
+              + "every case, and the report of an earlier test arrives on it at any moment, "
+              + "because the dispatch of an entry outlives the test which caused it. Such a wait "
+              + "is over before the report under test was sent, and everything the test asserts "
+              + "afterwards runs too early. Say which report is meant: "
+              + "awaitRequest(pathSuffix, bodyPart) when the report is read afterwards, "
+              + "awaitRequestOf(pathSuffix, bodyPart) when only its arrival matters.")
+              .formatted(pathSuffix));
+    }
     final var deadline = System.currentTimeMillis() + WAIT_MILLIS;
     while (System.currentTimeMillis() < deadline) {
       final var matches = matching(pathSuffix);
@@ -448,6 +475,30 @@ public final class CockpitServer {
     throw new AssertionError(
         "Fewer than %d requests ending in '%s' arrived. Received: %s"
             .formatted(count, pathSuffix, received().stream().map(Request::path).toList()));
+
+  }
+
+  /**
+   * Whether reports about more than one case reach this path, so that waiting for the next one of
+   * them says nothing about the case under test.
+   * <p>
+   * A report about something the cockpit has not heard of yet carries the id of the case in its
+   * body, because the cockpit is the one who is being told about it. Its path is the kind and
+   * what happened and nothing between them. Every later report about that case has the id of the
+   * case between the two, and a path which carries it can be reached by one case alone. So a
+   * path of two parts collects, and a longer one names its case.
+   * <p>
+   * The rule is checked rather than written down, because a wait on a collecting path passes for
+   * as long as some report keeps arriving and starts failing on the day the reports arrive in
+   * another order. The test which gets it wrong is then not the test which fails.
+   *
+   * @param pathSuffix What a caller wants to wait for
+   * @return Whether that path carries no id of a case
+   */
+  private static boolean namesNoCase(
+      final String pathSuffix) {
+
+    return Arrays.stream(pathSuffix.split("/")).filter(part -> !part.isEmpty()).count() < 3;
 
   }
 
