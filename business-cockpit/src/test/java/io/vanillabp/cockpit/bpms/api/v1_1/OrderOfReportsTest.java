@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpStatus;
 
 /**
  * What the cockpit stores when the reports of one user task or one case do not arrive in the order
@@ -506,6 +507,64 @@ class OrderOfReportsTest {
         final var stored = cockpit.storedTask();
         assertEquals(ENDED_AT, stored.getEndedAt());
         assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
+
+    }
+
+    // --- a change of a case the cockpit was never told was created ------------------------------
+
+    /**
+     * A workflow module does not always report the start of a case. Some report a case first
+     * when it changes, for example a case which never had a user task. The cockpit stores such
+     * a change as a new case, and the time of the change stands in for the start.
+     */
+    @Test
+    void aChangeOfACaseTheCockpitNeverSawCreatesIt() {
+
+        final var cockpit = new Cockpit();
+        final var answer = cockpit.bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+
+        assertEquals(HttpStatus.OK, answer.getStatusCode());
+        final var stored = cockpit.storedWorkflow();
+        assertNotNull(stored, "the change of an unknown case has to create it");
+        assertEquals(CHANGED_AT, stored.getCreatedAt());
+        assertEquals(CHANGED_AT, stored.getLatestEventAt());
+        assertNull(stored.getEndedAt());
+        assertEquals("taxi-ride", stored.getWorkflowModuleId());
+        assertEquals("ride", stored.getBpmnProcessId());
+        assertEquals(Map.of("en", "A ride"), stored.getTitle());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    /**
+     * A case created by a change is no longer waiting for its creation. So a creation which
+     * arrives later stores nothing, and the case keeps the time of the change as its start.
+     */
+    @Test
+    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseChangesNothing() {
+
+        final var cockpit = cockpitWhichWasSent(api -> {
+            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+            api.workflowCreatedEvent(workflowCreated());
+        });
+
+        final var stored = cockpit.storedWorkflow();
+        assertEquals(CHANGED_AT, stored.getCreatedAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    @Test
+    void aCaseCreatedByAChangeCanBeCompleted() {
+
+        final var cockpit = cockpitWhichWasSent(api -> {
+            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+            api.workflowCompletedEvent("workflow-1", workflowCompleted());
+        });
+
+        final var stored = cockpit.storedWorkflow();
+        assertEquals(CHANGED_AT, stored.getCreatedAt());
+        assertEquals(ENDED_AT, stored.getEndedAt());
 
     }
 
