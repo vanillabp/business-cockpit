@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms.api.v1_1;
 
 import io.vanillabp.cockpit.bpms.BpmsApiWebSecurityConfiguration;
+import io.vanillabp.cockpit.bpms.PathAndBody;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
@@ -55,7 +56,8 @@ public class BpmsApiController implements BpmsApi {
             final @Valid UserTaskUpdatedEvent userTaskUpdatedEvent) {
 
         return okOrBadRequest(
-                userTaskService.reportChangedUserTask(
+                PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskUpdatedEvent.getUserTaskId())
+                && userTaskService.reportChangedUserTask(
                         userTaskId,
                         userTaskUpdatedEvent.getTimestamp(),
                         () -> userTaskMapper.toNewTask(userTaskUpdatedEvent),
@@ -69,7 +71,8 @@ public class BpmsApiController implements BpmsApi {
             final @Valid UserTaskCompletedEvent userTaskCompletedEvent) {
 
         return okOrBadRequest(
-                userTaskService.reportEndedUserTask(
+                PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskCompletedEvent.getUserTaskId())
+                && userTaskService.reportEndedUserTask(
                         userTaskId,
                         userTaskCompletedEvent.getTimestamp(),
                         UserTaskEndReason.COMPLETED,
@@ -93,7 +96,8 @@ public class BpmsApiController implements BpmsApi {
             final @Valid UserTaskCancelledEvent userTaskCancelledEvent) {
 
         return okOrBadRequest(
-                userTaskService.reportEndedUserTask(
+                PathAndBody.nameTheSameRecord("user task", userTaskId, userTaskCancelledEvent.getUserTaskId())
+                && userTaskService.reportEndedUserTask(
                         userTaskId,
                         userTaskCancelledEvent.getTimestamp(),
                         UserTaskEndReason.CANCELLED,
@@ -123,7 +127,8 @@ public class BpmsApiController implements BpmsApi {
             final WorkflowCancelledEvent workflowCancelledEvent) {
 
         return okOrBadRequest(
-                workflowlistService.reportEndedWorkflow(
+                PathAndBody.nameTheSameRecord("workflow", workflowId, workflowCancelledEvent.getWorkflowId())
+                && workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCancelledEvent.getTimestamp(),
                         workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow)));
@@ -136,7 +141,8 @@ public class BpmsApiController implements BpmsApi {
             final WorkflowCompletedEvent workflowCompletedEvent) {
 
         return okOrBadRequest(
-                workflowlistService.reportEndedWorkflow(
+                PathAndBody.nameTheSameRecord("workflow", workflowId, workflowCompletedEvent.getWorkflowId())
+                && workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCompletedEvent.getTimestamp(),
                         // see userTaskCompletedEvent: an end says what the case ended with
@@ -151,7 +157,8 @@ public class BpmsApiController implements BpmsApi {
             final WorkflowUpdatedEvent workflowUpdatedEvent) {
 
         return okOrBadRequest(
-                workflowlistService.reportChangedWorkflow(
+                PathAndBody.nameTheSameRecord("workflow", workflowId, workflowUpdatedEvent.getWorkflowId())
+                && workflowlistService.reportChangedWorkflow(
                         workflowId,
                         workflowUpdatedEvent.getTimestamp(),
                         () -> workflowMapper.toNewWorkflow(workflowUpdatedEvent),
