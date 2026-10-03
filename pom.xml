@@ -39,7 +39,9 @@
       is the plugin's own default, so a build which leaves the switch alone runs as it always did.
 
       Keep the derived properties derived. A new npm execution with a hard-coded 'skip' escapes the
-      switch, and then a dev container build dies in that step and nothing says why.
+      switch, and then a dev container build dies in that step and nothing says why. A derived value
+      is only a default though: a profile which sets one of them back to false beats it, so the
+      profile 'java-install' names all of them itself.
     -->
     <skip.npm>false</skip.npm>
     <skip.installnodenpm>${skip.npm}</skip.installnodenpm>
@@ -427,14 +429,24 @@
     <!--
       Build the Java side only. Pass this and no npm step runs, so the three modules which own a
       user interface, 'business-cockpit', 'container' and 'development/simulator', build in a dev
-      container, where nobody serves the local npm registry. The pull request build passes it too.
-      The single property is enough because every npm skip derives from it, see the properties at
-      the top of this POM.
+      container, where nobody serves the local npm registry. The publish run passes it too.
+
+      It names every skip although they derive from 'skip.npm' at the top of this POM. A derived
+      value is a default, and another active profile which turns one step back on wins over it: the
+      publish run is handed '-Dnpm.prerelease', which activates 'prerelease-npm', and that profile
+      alone brought the npm step back while no node was installed. Whoever adds a profile which
+      turns an npm step on adds the step's skip here as well.
     -->
     <profile>
       <id>java-install</id>
       <properties>
         <skip.npm>true</skip.npm>
+        <skip.installnodenpm>true</skip.installnodenpm>
+        <skip.npm.update>true</skip.npm.update>
+        <skip.npm.unpublish>true</skip.npm.unpublish>
+        <skip.npm.prerelease>true</skip.npm.prerelease>
+        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
+        <skip.npm.publish-release>true</skip.npm.publish-release>
       </properties>
     </profile>
     <profile>
