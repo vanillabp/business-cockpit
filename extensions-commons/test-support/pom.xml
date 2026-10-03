@@ -34,7 +34,10 @@
     not the code under test. -->
 
   <properties>
+    <!-- the empty agent keeps Surefire's inherited '@{jacoco.agent}' resolvable while JaCoCo is
+      off, the way the coverage gate does it -->
     <jacoco.skip>true</jacoco.skip>
+    <jacoco.agent/>
   </properties>
 
   <dependencies>
@@ -49,5 +52,28 @@
       <artifactId>test-utils</artifactId>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <!-- the one rule of the cockpit server which does not need a running application is
+        checked here, so that it is checked once instead of in every extension repository -->
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- the tests of this module report into the server themselves, so a report is
+              either there or it never comes. The long wait is for the repositories whose
+              reports travel through an application and a cluster. -->
+            <businesscockpit.test-server.wait-millis>1000</businesscockpit.test-server.wait-millis>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
