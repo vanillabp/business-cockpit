@@ -1415,3 +1415,53 @@ checks a set of repositories against itself. One tool for nine repositories woul
 instead of two. It costs agreement between the two strands, and the platform has more than one
 chain. The default is this script, for the four cockpit repositories, until the maintainer decides
 otherwise.
+
+### 36. A change of a case the cockpit never saw created creates the case
+
+Measured on 2026-10-03 for story 1423. Nothing was changed, the entry writes down what the server
+already does.
+
+A workflow module does not always report the start of a case. The Process-Engine-API half reports a
+case with its first user task, and a case which never had one is reported first by a change. A
+cockpit added to a running system hears of older cases the same way. So the server takes a change
+of a case it does not hold as the first report of that case.
+
+This holds on every way in. Version 1 and version 1.1 of the REST API, `workflow/{id}/updated`,
+both answer `200 OK` and store the case. The Kafka way in does the same. The rule sits in
+`WorkflowlistService.reportChangedWorkflow`, so the controllers have no say in it. User tasks follow
+the same rule in `UserTaskService.reportChangedUserTask`.
+
+#### What such a case holds
+
+The case is built by `toNewWorkflow` from the change, the mapping a creation uses as well. So it
+holds everything the change reports, and nothing else.
+
+- `createdAt` is the timestamp of the change. A change does not say when the case began, and this
+  is the closest answer there is.
+- `latestEventAt` is the same timestamp, and `reportedAt` is the cockpit's own clock.
+- `endedAt` stays empty. A change never ends a case.
+
+#### What comes after it
+
+A creation which arrives later stores nothing. The case has a `createdAt`, so it does not look like
+a case known from its end alone, and only such a case waits for its creation. The case keeps the
+time of the change as its start, and the data of the change, which is younger than the creation
+anyway.
+
+An end which arrives later ends the case as it ends any other.
+
+A second change is laid onto the stored case by `toUpdatedWorkflow`. That mapping has no `IGNORE`
+strategy, unlike the mapping of an end in decision 19. A change writes every field it carries, and a
+field it leaves empty is written as empty. The fields are `initiator`, `updatedAt`, `updatedBy`,
+`source`, `workflowModuleId`, `comment`, `bpmnProcessId`, `bpmnProcessVersion`, `businessId`,
+`title`, `uiUriPath`, `uiUriType`, `accessibleToUsers`, `accessibleToGroups`, `details` and
+`detailsFulltextSearch`. The cockpit keeps `id`, `version`, `reportedAt`, `latestEventAt`,
+`createdAt`, `endedAt`, `targetGroups` and `dangling`. This entry leaves that rule as it is. It
+matters here because a case created by a change is from then on only as complete as the latest
+change.
+
+#### What it costs
+
+The start of such a case in the list is the time of its first change, not the time the case began.
+A creation which was only late, and not missing, cannot correct that. The other way round would be
+worse: a creation which never comes would leave the case out of the list for good.
