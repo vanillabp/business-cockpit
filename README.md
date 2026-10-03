@@ -58,6 +58,16 @@ Storybook, the development shells and the simulator are left out as well, and th
 
 Run the same script locally. It needs the same local registry the build needs.
 
+Once a night, the workflow `Chain check` runs `bin/check-the-chain.sh`. It looks at the main
+branches of this repository and the three adapter repositories, and at the MongoDB changeset
+library. It asks whether the four name the same Quarkus, Spring Boot and other shared versions,
+whether a version stayed behind without a pull request or a reason, whether the newest run on main
+was green, and whether the published snapshot belongs to the head of main. It builds nothing. A
+finding becomes one issue with the label `chain-check`, and a finding which is still there the
+next night is a comment on that issue. Run the script locally to get the same report. It needs
+the GitHub CLI, logged in, and for the snapshot question a token with `read:packages` in
+`PACKAGES_TOKEN`.
+
 The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no
 dual build. The Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
 the 0.3.x line. The consequences for somebody deriving an application from the cockpit are in the
