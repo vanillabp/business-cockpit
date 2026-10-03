@@ -150,24 +150,6 @@ public abstract class OfficialApiMapper {
     }
 
     @NoMappingMethod
-    protected String proxiedUiUri(
-            final String workflowModuleId,
-            final String uiUriPath) {
-
-        if (workflowModuleId == null) {
-            return null;
-        }
-        if (uiUriPath == null) {
-            return null;
-        }
-
-        return "/wm/"
-                + workflowModuleId
-                + (uiUriPath.startsWith("/") ? uiUriPath : "/" + uiUriPath);
-
-    }
-
-    @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
             final String workflowModuleId) {
 
@@ -191,7 +173,7 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
     @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "uiUri", source = "uiUriPath")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow toModel(WorkflowCreatedOrUpdatedEvent event);
 
@@ -203,7 +185,7 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "accessibleToUsers", qualifiedByName = "persons")
     @Mapping(target = "accessibleToGroups", qualifiedByName = "groups")
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "uiUri", source = "uiUriPath")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.Workflow toModel(WorkflowCreatedEvent event);
 
@@ -309,7 +291,7 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "candidateUsers", qualifiedByName = "apiPersons")
     @Mapping(target = "candidateGroups", qualifiedByName = "apiGroups")
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "uiUri", source = "uiUriPath")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
     @Mapping(target = "read", ignore = true)
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask toModel(UserTaskCreatedOrUpdatedEvent event);
@@ -335,7 +317,7 @@ public abstract class OfficialApiMapper {
     @Mapping(target = "candidateUsers", qualifiedByName = "apiPersons")
     @Mapping(target = "candidateGroups", qualifiedByName = "apiGroups")
     @Mapping(target = "version", ignore = true)
-    @Mapping(target = "uiUri", expression = "java(proxiedUiUri(event.getWorkflowModuleId(), event.getUiUriPath()))")
+    @Mapping(target = "uiUri", source = "uiUriPath")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(event.getWorkflowModuleId()))")
     @Mapping(target = "read", ignore = true)
     public abstract io.vanillabp.cockpit.devshell.simulator.businesscockpit.model.UserTask toModel(UserTaskCreatedEvent event);

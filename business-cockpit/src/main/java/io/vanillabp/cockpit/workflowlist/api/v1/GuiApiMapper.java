@@ -6,7 +6,6 @@ import io.vanillabp.cockpit.gui.api.v1.SearchQuery;
 import io.vanillabp.cockpit.gui.api.v1.Workflow;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
-import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -47,7 +46,17 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "Inactive", source = "INACTIVE")
     public abstract WorkflowlistService.RetrieveItemsMode toModel(WorkflowRetrieveMode mode);
 
-    @Mapping(target = "uiUri", expression = "java(uiUriToOpen(workflow))")
+    /**
+     * What the cockpit knows about one workflow, for its own user interface.
+     * <p>
+     * <code>uiUri</code> carries the path the workflow module reported, unchanged. Turning a path
+     * into an address is a convention between the module and the user interface which loads it, so
+     * the cockpit does not read <code>uiUriType</code> and builds nothing from it.
+     *
+     * @param workflow The workflow as it is stored
+     * @return The workflow as the GUI API answers it
+     */
+    @Mapping(target = "uiUri", source = "uiUriPath")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(workflow))")
     @Mapping(target = "initiator", source = "initiator", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "accessibleToUsers", source = "accessibleToUsers", qualifiedByName = PERSON_MAPPING)
@@ -71,36 +80,6 @@ public abstract class GuiApiMapper {
     public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
 
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
-
-    /**
-     * Where the cockpit's user interface has to go to show this workflow.
-     * <p>
-     * A module federated into the cockpit is served by the cockpit itself, so its path is answered
-     * below the proxy route of the workflow module. A workflow of type EXTERNAL is shown by another
-     * application. Its address is handed out the way the workflow module reported it, because the
-     * cockpit neither proxies that application nor knows anything about it.
-     */
-    @NoMappingMethod
-    protected String uiUriToOpen(
-            final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
-
-        if (workflow.getUiUriPath() == null) {
-            return null;
-        }
-        if (workflow.getUiUriType() == UiUriType.EXTERNAL) {
-            return workflow.getUiUriPath();
-        }
-        if (workflow.getWorkflowModuleId() == null) {
-            return null;
-        }
-        
-        return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
-                + workflow.getWorkflowModuleId()
-                + (workflow.getUiUriPath().startsWith("/")
-                        ? workflow.getUiUriPath()
-                        : "/" + workflow.getUiUriPath());
-        
-    }
 
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(

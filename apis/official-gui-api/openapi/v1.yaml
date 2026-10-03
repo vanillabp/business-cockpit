@@ -718,9 +718,11 @@ components:
             $ref: '#/components/schemas/Person'
     UiUriType:
       type: string
-      enum:
-      - EXTERNAL
-      - WEBPACK_MF_REACT  # MF ... Module Federation
+      description: >-
+        Which kind of user interface this workflow module brings. The cockpit carries the value
+        and never reads it. What a value means is agreed between the workflow module and the user
+        interface which loads it. The shipped user interface knows EXTERNAL for a module with
+        pages of its own and WEBPACK_MF_REACT for a React bundle loaded by module federation.
     SearchQuery:
       type: object
       required:
@@ -842,8 +844,13 @@ components:
             de: Führe die Fahrt durch
         uiUri:
           type: string
-          description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
-          example: http://localhost:8080/wm/what-ever/remoteEntry.js
+          description: >-
+            Where the user interface of this item is found, the way the workflow module reported
+            it. The cockpit hands the value out unchanged and builds no address from it. The user
+            interface reads uiUriType to know what to do with it: a module federated into the
+            cockpit is served below workflowModuleUri, and a module with pages of its own reports
+            the whole address already.
+          example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'
         workflowModuleUri:
@@ -960,8 +967,13 @@ components:
             de: "Führe die Fahrt #4711 durch"
         uiUri:
           type: string
-          description: An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
-          example: http://localhost:8080/wm/what-ever/remoteEntry.js
+          description: >-
+            Where the user interface of this item is found, the way the workflow module reported
+            it. The cockpit hands the value out unchanged and builds no address from it. The user
+            interface reads uiUriType to know what to do with it: a module federated into the
+            cockpit is served below workflowModuleUri, and a module with pages of its own reports
+            the whole address already.
+          example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'
         workflowModuleUri:

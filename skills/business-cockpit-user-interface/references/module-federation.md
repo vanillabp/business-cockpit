@@ -40,20 +40,22 @@ beiden Objekten gleich:
 | Feld | Bedeutung |
 |---|---|
 | `workflowModuleId` | das Workflow-Modul, aus dem die Zeile kommt |
-| `uiUriType` | `WEBPACK_MF_REACT` für ein Bundle, `EXTERNAL` für eine fremde Seite |
-| `uiUri` | die Adresse des Bundles, beim Typ `EXTERNAL` die Adresse der fremden Seite |
+| `uiUriType` | eine Zeichenkette; `WEBPACK_MF_REACT` für ein Bundle, `EXTERNAL` für eine fremde Seite |
+| `uiUri` | der gemeldete Pfad, beim Typ `EXTERNAL` die Adresse der fremden Seite |
 
-Beim Typ `WEBPACK_MF_REACT` steht in `uiUri` ein Pfad unter `/wm/<workflowModuleId>/`, den das
-Cockpit selbst ausliefert. Der Server setzt diesen Pfad zusammen, siehe
-[gui-api.md](gui-api.md#was-das-cockpit-ausliefert). Dein UI nimmt den Wert, wie er kommt, und baut
-ihn nicht selbst.
+Beim Typ `WEBPACK_MF_REACT` steht in `uiUri` ein Pfad und keine Adresse. Das Cockpit liefert das
+Modul unter `/wm/<workflowModuleId>/` selbst aus, also hängt dein UI diesen Vorsatz vor den
+gemeldeten Pfad, siehe [gui-api.md](gui-api.md#was-das-cockpit-ausliefert). Der Server tut es nicht
+für dich: er trägt den Wert und liest ihn nicht.
 
 Beim Typ `EXTERNAL` gibt es nichts zu laden. Die Adresse steht so da, wie das Modul sie gemeldet
-hat, und dein UI öffnet sie in einem eigenen Fenster. Ein solches Modul liefert keine Spalten, keine
+hat, und dein UI öffnet sie in einem eigenen Fenster. Ein Vorsatz davor würde den Browser auf eine
+Route des Cockpits schicken, die es nicht gibt. Ein solches Modul liefert keine Spalten, keine
 Zellen und keine Formulare.
 
-Ein dritter Wert in `uiUriType` ist ein Fehler, keine Erweiterung. Melde ihn dem Benutzer und zeige
-die Zeile trotzdem.
+`uiUriType` ist eine Zeichenkette, und das Cockpit prüft sie nicht. Ein dritter Wert ist deshalb
+kein Fehler des Servers, sondern ein Modul, das für ein anderes UI gebaut wurde. Melde ihn dem
+Benutzer und zeige die Zeile trotzdem.
 
 ## Der Ablauf beim Laden
 

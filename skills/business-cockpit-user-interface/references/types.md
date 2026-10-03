@@ -26,7 +26,9 @@ einem geladenen Teil eines Workflow-Moduls. Alles andere ist Bequemlichkeit.
 Die Wahrheit über diese Typen steht in `apis/official-gui-api/openapi/v1.yaml` und nicht in einem
 TypeScript-Paket. Ein UI, das nicht TypeScript spricht, erzeugt seinen eigenen Client daraus.
 `UserTask`, `Workflow`, `Page`, `SearchQuery`, `UserTaskRetrieveMode`, `WorkflowRetrieveMode`,
-`KwicResult`, `Person`, `Group`, `WorkflowModule` und `UiUriType` kommen alle von dort.
+`KwicResult`, `Person`, `Group` und `WorkflowModule` kommen alle von dort. `uiUriType` ist dort
+eine Zeichenkette und kein eigener Typ: welche Werte es gibt, ist eine Abmachung zwischen dem
+Workflow-Modul und dem UI, das es lädt, und der Server kennt sie nicht.
 
 Eine Falle liegt hier: `@vanillabp/bc-types` hat ein eigenes `Person`, das dem `Person` der GUI-API
 nachgebaut ist. Welches von beiden du vor dir hast, siehst du am Import und nicht an den Feldern.
@@ -147,7 +149,9 @@ erwarten, dass die Aufgabe danach dem Benutzer gehört und die Liste es weiß. `
 wieder mit diesen Funktionen.
 
 `BcWorkflowModule` in `bc-types` ist nur die Teilmenge von Feldern, die zum Laden eines Teils
-reicht: `workflowModuleId`, `uiUri` und `uiUriType`. Aufgabe und Fall erfüllen sie beide.
+reicht: `workflowModuleId`, `uiUri` und `uiUriType`. Aufgabe und Fall erfüllen sie beide. Alle drei
+braucht man zusammen, denn die Adresse entsteht erst aus der Modul-Kennung und dem gemeldeten
+Pfad.
 
 ## Was eine Zelle bekommt
 

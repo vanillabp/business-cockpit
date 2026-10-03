@@ -1,7 +1,6 @@
 package io.vanillabp.cockpit.workflowlist.model;
 
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
-import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.candidates.CandidatesAware;
@@ -83,7 +82,7 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     private String uiUriPath;
 
-    private UiUriType uiUriType;
+    private String uiUriType;
 
     private List<Person> accessibleToUsers;
 
@@ -303,11 +302,11 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
         this.uiUriPath = uiUriPath;
     }
 
-    public UiUriType getUiUriType() {
+    public String getUiUriType() {
         return uiUriType;
     }
 
-    public void setUiUriType(UiUriType uiUriType) {
+    public void setUiUriType(String uiUriType) {
         this.uiUriType = uiUriType;
     }
 

@@ -252,17 +252,27 @@ mvn --batch-mode -pl extensions-commons/core,extensions-commons/spring-boot -am 
 
 Quarkus tests load the extension from `~/.m2`, so they need `install`, never `package`.
 
-When you do build the whole reactor, pass `-Pjava-install`:
+Pass `-Pjava-install` whenever you are not working on the user interface. It is the switch for a
+build without npm, and it is the one you want in a dev container:
 
 ```bash
 mvn --batch-mode -Pjava-install -DskipTests install
 ```
 
-The profile switches every npm step off. Without it the build publishes each npm package to a
-local registry at `http://localhost:4873/`, and a dev container has none. The build then dies in
-`official-gui-api-client` with `ECONNREFUSED`, which looks like your own mistake. The pull
-request build passes the same profile, see `.github/workflows/build.yaml`. It adds
-`-Dskip.npm.publish-snapshot=true`, which the profile already sets.
+Pass it for a single module as well. A root build is not the only one which needs it: three
+modules own a user interface, and each runs npm in the middle of its own build: `business-cockpit`,
+`container`, which gets the bundle along with that dependency, and `development/simulator`. So
+`-pl business-cockpit -am` needs the profile as much as a root build does.
+
+Without the profile those builds want a local npm registry at `http://localhost:4873/`, and a dev
+container serves none. The build then dies with `ECONNREFUSED`, or in `development/simulator` with
+a bare exit code 254 from `npm link`, and both look like your own mistake. The pull request build
+passes the same profile, see `.github/workflows/build.yaml`.
+
+One property carries the switch, `skip.npm`, which the npm plugin reads itself. Every other npm
+skip in the root POM derives from it, so the profile sets that one value and all the npm steps
+follow. Give a new npm execution no `skip` of its own, or it steps out of the switch and a dev
+container build dies in it.
 
 The npm steps also change files which are checked in. The root POM has a step called
 `npm install`, and that step runs `npm update`. So it raises each dependency to the newest
@@ -270,5 +280,5 @@ version its range allows and writes the result into the `package-lock.json` of t
 A release wants that and commits it. Your branch does not, so never stage a lock file you did
 not set out to change. Under `-Pjava-install` the step does not run at all.
 
-A root build without the profile is a frontend build, and it needs the local npm registry from
+A build without the profile is a frontend build, and it needs the local npm registry from
 `development/README.md`. A pull request checks the frontend with `bin/frontend-checks.sh`.

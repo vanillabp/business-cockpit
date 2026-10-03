@@ -11,7 +11,6 @@ import io.vanillabp.cockpit.bpms.api.protobuf.v1.DetailsMap;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.NotificationDelivery;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
@@ -125,7 +124,7 @@ class ProtobufWhatAnEndMayNotOverwriteTest {
         task.setWorkflowTitle(new HashMap<>(Map.of("en", "Ride 4711")));
         task.setTaskDefinitionTitle(new HashMap<>(Map.of("en", "Assign a driver")));
         task.setUiUriPath("/ui");
-        task.setUiUriType(UiUriType.WEBPACK_MF_REACT);
+        task.setUiUriType("WEBPACK_MF_REACT");
         task.setComment("the driver called in sick");
         task.setDueDate(DUE_AT);
         task.setFollowUpDate(FOLLOW_UP_AT);
@@ -149,7 +148,7 @@ class ProtobufWhatAnEndMayNotOverwriteTest {
         workflow.setBusinessId("4711");
         workflow.setTitle(new HashMap<>(Map.of("en", "Ride 4711")));
         workflow.setUiUriPath("/ui");
-        workflow.setUiUriType(UiUriType.WEBPACK_MF_REACT);
+        workflow.setUiUriType("WEBPACK_MF_REACT");
         workflow.setComment("the customer cancelled");
         final var starter = new Person();
         starter.setId("anna");

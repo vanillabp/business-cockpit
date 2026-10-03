@@ -1115,3 +1115,122 @@ A listener which throws used to be caught twice, in `UserTaskService.publishUser
 wrapper in `ChangeStreamUtils` is the only one left, because it is the only one which knows all
 three things worth knowing: the collection, the key of the document and the operation. A listener
 does not catch any more, and whatever it throws ends up there.
+
+### 32. `uiUriType` is carried and never read, and the address is built in the user interface
+
+Decided by Stephan on 2026-10-03.
+
+`uiUriType` is a string in all four published schemas. The cockpit server stores it, hands it out
+and never compares it to anything. Which kind of user interface sits behind a workflow module is an
+agreement between that module and the user interface which loads it, and the server is the post
+office in between.
+
+Two things follow, and both are the point of the change.
+
+The address is built in the browser. Until now `GuiApiMapper` answered `uiUri` as
+`/wm/<workflowModuleId>` plus the reported path, and left the path alone when the type was
+`EXTERNAL`. Both mappers now answer the reported path, whatever the type says. The shipped user
+interface puts the proxy route in front of it in one place, `addressOfFederatedBundle` in
+`ui/bc-ui/src/utils/module-federation.ts`. It does that as an example of the convention and not as a
+promise of the server.
+
+The deep link of an `EXTERNAL` module is the same kind of agreement. It was never a property of the
+server: the cockpit does not proxy that application and knows nothing about it. The rule that such a
+path is already an address lives with the user interface which opens it.
+
+### The field stays required
+
+Making it optional was the obvious next step and it was turned down. A module whose user interface
+is federated would leave the key out today, and the entries it reports would carry nothing. The day
+a second value exists, and `EXTERNAL` is already that day for somebody else, those entries would
+have to mean something, and nobody wrote down what. A required field forces one decision now, which
+is cheaper than moving data later.
+
+So the start of an application still refuses a workflow module which reports without
+`ui-uri-type`. The check only asks that a value is there. It offers `EXTERNAL` and
+`WEBPACK_MF_REACT` as a hint, because those are the two the shipped user interface knows, and it
+accepts any other string without a word. The server does not ship the user interface, so it cannot
+know which names that one understands. That the application thought about it at all is something it
+can ask for.
+
+### What is no longer a type
+
+`io.vanillabp.cockpit.tasklist.model.UiUriType` is gone. It was the stored type of two fields and
+the thing the two mappers compared against, and both reasons went away.
+`io.vanillabp.cockpit.extension.config.UiUriType` stayed, as two string constants and the list of
+names for that one message. It is a list of what is known and not a set of what is allowed.
+
+`workflow-provider-api` called the same thing `UiComponentsType` and showed `WEBPACK_REACT` as its
+example, against an enum named `WEBPACK_MF_REACT`. Three words for one thing would have gone into
+1.0. All four schemas name it `uiUriType` now, as a string, with the same description.
+
+### Where this decision is referred to
+
+Each of these says it in its own words, so none of them has to cite a number:
+
+- `business-cockpit/src/main/java/io/vanillabp/cockpit/tasklist/api/v1/GuiApiMapper.java`, the
+  Javadoc of `toApi`
+- `business-cockpit/src/main/java/io/vanillabp/cockpit/workflowlist/api/v1/GuiApiMapper.java`, the
+  Javadoc of `toApi`
+- `extensions-commons/core/src/main/java/io/vanillabp/cockpit/extension/config/UiUriType.java`
+- `extensions-commons/core/src/main/java/io/vanillabp/cockpit/extension/config/BusinessCockpitConfiguration.java`,
+  the comment above the `ui-uri-type` check
+- `ui/bc-ui/src/utils/module-federation.ts`, `UiUriType` and `addressOfFederatedBundle`
+- `UPGRADE.md`, the section about the address
+- `skills/business-cockpit-user-interface/references/gui-api.md` and
+  `references/module-federation.md`
+- the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
+
+### 33. One property turns the whole npm side of the build off, and no registry runs beside it
+
+Decided on 2026-10-03.
+
+A build of this repository which does not touch the user interface runs no npm step at all. The
+switch is the property `skip.npm`, and the profile `java-install` is the name you pass on the
+command line. The local npm registry stays what it is today: something a frontend developer starts
+by hand, following `development/README.md`. It does not become part of building this repository and
+it does not move into the dev container.
+
+### What the three modules did before
+
+`business-cockpit`, `container` and `development/simulator` are the modules which own a user
+interface. Each of them reached npm in the middle of its own build, so each of them wanted the
+registry at `http://localhost:4873/`. Nobody serves that in a dev container, and the error said
+`ECONNREFUSED`, or in `development/simulator` only exit code 254 from `npm link`. Both read like a
+mistake in the clone rather than a missing service.
+
+The profile already existed and already covered the whole npm side of the three modules. What it
+did not have was a reader. The guidance named it for a build of the whole reactor, so a single
+module build went without it and walked into the wall. That is why story 1378 could measure eleven
+modules of this repository and left these three unmeasured.
+
+### Why one property and not seven
+
+The profile used to set seven properties, and that was the part which could rot. `skip.npm` and
+`skip.installnodenpm` are the npm plugin's own properties, so they already reach every execution
+which carries no `skip` of its own. The other five exist because five executions do carry one, and
+each of them had to be listed in the profile by hand. An execution added later with its own `skip`
+would have escaped the switch, and the profile would have looked complete while a dev container
+build died in that step.
+
+The five now derive from `skip.npm` in the root POM. The profile sets one value, every skip follows
+it, and `-Dskip.npm=true` does the same thing without the profile. Measured per module with
+`help:evaluate`, a build which passes no switch sees the same seven values as before, and so does
+every one of the five npm profiles.
+
+### Why not run the registry in the container
+
+A registry in the container would be one more service to start and to clean up afterwards, and it
+would publish snapshot versions of the user interface packages that nothing reads. The
+frontend is checked on its own, beside the Java build, by `bin/frontend-checks.sh`, and that script
+is where a frontend developer needs the registry. Building the Java side does not need the
+packages, it needs them absent.
+
+### What points at this
+
+| place                                 | what it says |
+|---------------------------------------|--------------|
+| `pom.xml`, the `skip.npm` properties  | the switch, and that the other skips must keep deriving from it |
+| `pom.xml`, the profile `java-install` | what the switch is for and which three modules need it |
+| `AGENTS.md`, section `Building`       | pass it for a single module as well, and what the errors look like without it |
+| `README.md`, section `Building it`    | the registry belongs to a frontend build, not to building this repository |

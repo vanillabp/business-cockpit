@@ -134,9 +134,7 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getTitle()).ifPresent(builder::putAllTitle);
     Optional.ofNullable(event.getWorkflowModuleId()).ifPresent(builder::setWorkflowModuleId);
     Optional.ofNullable(event.getUiUriPath()).ifPresent(builder::setUiUriPath);
-    Optional
-        .ofNullable(event.getUiUriType())
-        .ifPresent(uiUriType -> builder.setUiUriType(uiUriType.name()));
+    Optional.ofNullable(event.getUiUriType()).ifPresent(builder::setUiUriType);
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);
     Optional.ofNullable(event.getComment()).ifPresent(builder::setComment);
@@ -188,9 +186,7 @@ public final class ProtobufMapper {
     Optional.ofNullable(event.getBpmnProcessId()).ifPresent(builder::setBpmnProcessId);
     Optional.ofNullable(event.getWorkflowModuleId()).ifPresent(builder::setWorkflowModuleId);
     Optional.ofNullable(event.getUiUriPath()).ifPresent(builder::setUiUriPath);
-    Optional
-        .ofNullable(event.getUiUriType())
-        .ifPresent(uiUriType -> builder.setUiUriType(uiUriType.name()));
+    Optional.ofNullable(event.getUiUriType()).ifPresent(builder::setUiUriType);
     Optional.ofNullable(event.getBusinessId()).ifPresent(builder::setBusinessId);
     Optional.ofNullable(event.getInitiator()).ifPresent(builder::setInitiator);
     Optional.ofNullable(event.getSource()).ifPresent(builder::setSource);

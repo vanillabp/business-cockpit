@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
@@ -44,7 +43,7 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   private String uiUriPath;
 
-  private UiUriType uiUriType;
+  private String uiUriType;
 
   private Map<String, Object> details = new HashMap<>();
 
@@ -231,14 +230,14 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
-  public UiUriType getUiUriType() {
+  public String getUiUriType() {
 
     return uiUriType;
 
   }
 
   public void setUiUriType(
-      final UiUriType uiUriType) {
+      final String uiUriType) {
 
     this.uiUriType = uiUriType;
 

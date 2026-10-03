@@ -1,5 +1,3 @@
-import type { UiUriType } from '@vanillabp/bc-official-gui-client';
-
 export interface BcWorkflowModule {
   /**
    * The workflow module of this usertask
@@ -9,17 +7,19 @@ export interface BcWorkflowModule {
   workflowModuleId: string;
 
   /**
-   * An URI as an entrypoint URI for UI components. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+   * Where the user interface of this item is found, the way the workflow module reported it. The
+   * cockpit hands the value out unchanged, and the user interface builds the address from it.
    * @type {string}
    * @memberof UserTask
    */
   uiUri: string;
   /**
-   *
-   * @type {UiUriType}
+   * Which kind of user interface the workflow module brings. The cockpit carries the value and
+   * does not read it, so this is any string the module and the user interface agreed on.
+   * @type {string}
    * @memberof UserTask
    */
-  uiUriType: UiUriType;
+  uiUriType: string;
   /**
    * An URI pointing to the workflow-module's own API (maybe used by user-task forms)
    * @type {string}

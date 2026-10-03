@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.spi.cockpit.usertask.NotificationDelivery;
 import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
@@ -66,7 +65,7 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
 
   private String uiUriPath;
 
-  private UiUriType uiUriType;
+  private String uiUriType;
 
   private String assignee;
 
@@ -344,14 +343,14 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
 
   }
 
-  public UiUriType getUiUriType() {
+  public String getUiUriType() {
 
     return uiUriType;
 
   }
 
   public void setUiUriType(
-      final UiUriType uiUriType) {
+      final String uiUriType) {
 
     this.uiUriType = uiUriType;
 

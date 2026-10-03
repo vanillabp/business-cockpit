@@ -6,7 +6,6 @@ import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 
 /**
@@ -38,7 +37,7 @@ public final class WorkflowRestMapper {
     dto.setBpmnProcessId(event.getBpmnProcessId());
     dto.setBpmnProcessVersion(event.getBpmnProcessVersion());
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAccessibleToUsers(copy(event.getAccessibleToUsers()));
     dto.setAccessibleToGroups(copy(event.getAccessibleToGroups()));
     dto.setDetails(copy(event.getDetails()));
@@ -68,7 +67,7 @@ public final class WorkflowRestMapper {
     dto.setBpmnProcessId(event.getBpmnProcessId());
     dto.setBpmnProcessVersion(event.getBpmnProcessVersion());
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAccessibleToUsers(copy(event.getAccessibleToUsers()));
     dto.setAccessibleToGroups(copy(event.getAccessibleToGroups()));
     dto.setDetails(copy(event.getDetails()));
@@ -98,7 +97,7 @@ public final class WorkflowRestMapper {
     dto.setBpmnProcessId(event.getBpmnProcessId());
     dto.setBpmnProcessVersion(event.getBpmnProcessVersion());
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAccessibleToUsers(copy(event.getAccessibleToUsers()));
     dto.setAccessibleToGroups(copy(event.getAccessibleToGroups()));
     dto.setDetails(copy(event.getDetails()));
@@ -128,7 +127,7 @@ public final class WorkflowRestMapper {
     dto.setBpmnProcessId(event.getBpmnProcessId());
     dto.setBpmnProcessVersion(event.getBpmnProcessVersion());
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAccessibleToUsers(copy(event.getAccessibleToUsers()));
     dto.setAccessibleToGroups(copy(event.getAccessibleToGroups()));
     dto.setDetails(copy(event.getDetails()));
@@ -138,13 +137,5 @@ public final class WorkflowRestMapper {
 
   }
 
-  private static io.vanillabp.cockpit.bpms.api.v1_1.UiUriType uiUriTypeOf(
-      final UiUriType uiUriType) {
-
-    return uiUriType == null
-        ? null
-        : io.vanillabp.cockpit.bpms.api.v1_1.UiUriType.fromValue(uiUriType.name());
-
-  }
 
 }

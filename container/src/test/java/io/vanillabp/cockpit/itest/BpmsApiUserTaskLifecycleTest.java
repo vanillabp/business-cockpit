@@ -91,7 +91,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
         assertThat(task.read("$.bpmnProcessId", String.class)).isEqualTo("taxi-ride");
         assertThat(task.read("$.businessId", String.class)).isEqualTo("ride-4711");
         assertThat(task.read("$.workflowModuleId", String.class)).isEqualTo(moduleId);
-        assertThat(task.read("$.uiUri", String.class)).isEqualTo("/wm/" + moduleId + "/remoteEntry.js");
+        assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
         assertThat(task.read("$.uiUriType", String.class)).isEqualTo("WEBPACK_MF_REACT");
         assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
         assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");

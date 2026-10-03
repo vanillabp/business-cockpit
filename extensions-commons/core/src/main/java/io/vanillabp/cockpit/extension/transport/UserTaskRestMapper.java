@@ -10,7 +10,6 @@ import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCancelledEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCompletedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 
 /**
@@ -57,7 +56,7 @@ public final class UserTaskRestMapper {
     dto.setTaskDefinition(event.getTaskDefinition());
     dto.setTaskDefinitionTitle(copy(event.getTaskDefinitionTitle()));
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAssignee(event.getAssignee());
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
@@ -99,7 +98,7 @@ public final class UserTaskRestMapper {
     dto.setTaskDefinition(event.getTaskDefinition());
     dto.setTaskDefinitionTitle(copy(event.getTaskDefinitionTitle()));
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAssignee(event.getAssignee());
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
@@ -141,7 +140,7 @@ public final class UserTaskRestMapper {
     dto.setTaskDefinition(event.getTaskDefinition());
     dto.setTaskDefinitionTitle(copy(event.getTaskDefinitionTitle()));
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAssignee(event.getAssignee());
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
@@ -183,7 +182,7 @@ public final class UserTaskRestMapper {
     dto.setTaskDefinition(event.getTaskDefinition());
     dto.setTaskDefinitionTitle(copy(event.getTaskDefinitionTitle()));
     dto.setUiUriPath(event.getUiUriPath());
-    dto.setUiUriType(uiUriTypeOf(event.getUiUriType()));
+    dto.setUiUriType(event.getUiUriType());
     dto.setAssignee(event.getAssignee());
     dto.setCandidateUsers(copy(event.getCandidateUsers()));
     dto.setCandidateGroups(copy(event.getCandidateGroups()));
@@ -196,15 +195,6 @@ public final class UserTaskRestMapper {
     dto.setNotificationDelivery(notificationDeliveryOf(event.getNotificationDelivery()));
     dto.setUpdated(true);
     return dto;
-
-  }
-
-  private static io.vanillabp.cockpit.bpms.api.v1_1.UiUriType uiUriTypeOf(
-      final UiUriType uiUriType) {
-
-    return uiUriType == null
-        ? null
-        : io.vanillabp.cockpit.bpms.api.v1_1.UiUriType.fromValue(uiUriType.name());
 
   }
 

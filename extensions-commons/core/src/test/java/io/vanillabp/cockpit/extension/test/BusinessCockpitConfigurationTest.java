@@ -359,13 +359,28 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
-  @DisplayName("A UI URI type naming nothing known lists the known ones")
-  public void unknownUiUriTypeListsTheKnownOnes() {
+  @DisplayName("A UI URI type the cockpit never heard of is read all the same")
+  public void anUnknownUiUriTypeIsRead() {
 
-    final var defects = defectsOf(
+    final var configuration = read(
         ConfigurationFixture.aConfiguredApplication().withWorkflowModule("ui-uri-type", "IFRAME"),
         false);
 
+    assertEquals(
+        "IFRAME",
+        configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE).uiUriType());
+
+  }
+
+  @Test
+  @DisplayName("A missing UI URI type offers the names the shipped user interface knows")
+  public void aMissingUiUriTypeOffersTheKnownNames() {
+
+    final var defects = defectsOf(
+        ConfigurationFixture.aConfiguredApplication().withoutWorkflowModule("ui-uri-type"),
+        false);
+
+    assertTrue(defects.contains("ui-uri-type"), defects);
     assertTrue(defects.contains("EXTERNAL"), defects);
     assertTrue(defects.contains("WEBPACK_MF_REACT"), defects);
 

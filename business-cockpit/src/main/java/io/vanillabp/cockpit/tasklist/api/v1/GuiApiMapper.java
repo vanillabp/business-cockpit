@@ -7,7 +7,6 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.tasklist.UserTaskService.RetrieveItemsMode;
-import io.vanillabp.cockpit.tasklist.model.UiUriType;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
@@ -42,7 +41,18 @@ public abstract class GuiApiMapper {
         return personAndGroupMapper.groupToApiGroup(group);
     }
 
-    @Mapping(target = "uiUri", expression = "java(uiUriToOpen(userTask))")
+    /**
+     * What the cockpit knows about one user task, for its own user interface.
+     * <p>
+     * <code>uiUri</code> carries the path the workflow module reported, unchanged. Turning a path
+     * into an address is a convention between the module and the user interface which loads it, so
+     * the cockpit does not read <code>uiUriType</code> and builds nothing from it.
+     *
+     * @param userTask The task as it is stored
+     * @param userId Who is asking, which decides whether the task counts as read
+     * @return The task as the GUI API answers it
+     */
+    @Mapping(target = "uiUri", source = "userTask.uiUriPath")
     @Mapping(target = "dueDate", expression = "java(mapDateTimeMaxToNull(userTask))")
     @Mapping(target = "workflowModuleUri", expression = "java(proxiedWorkflowModuleUri(userTask))")
     @Mapping(target = "read", expression = "java(userTask.getReadAt(userId))")
@@ -86,36 +96,6 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "OpenTaskOnlyFollowUp", source = "OPENTASKONLYFOLLOWUP")
     @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
     public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
-
-    /**
-     * Where the cockpit's user interface has to go to show this task.
-     * <p>
-     * A module federated into the cockpit is served by the cockpit itself, so its path is answered
-     * below the proxy route of the workflow module. A task of type EXTERNAL lives in another
-     * application. Its address is handed out the way the workflow module reported it, because the
-     * cockpit neither proxies that application nor knows anything about it.
-     */
-    @NoMappingMethod
-    protected String uiUriToOpen(
-            final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
-
-        if (userTask.getUiUriPath() == null) {
-            return null;
-        }
-        if (userTask.getUiUriType() == UiUriType.EXTERNAL) {
-            return userTask.getUiUriPath();
-        }
-        if (userTask.getWorkflowModuleId() == null) {
-            return null;
-        }
-        
-        return MicroserviceProxyRegistry.WORKFLOW_MODULES_PATH_PREFIX
-                + userTask.getWorkflowModuleId()
-                + (userTask.getUiUriPath().startsWith("/")
-                        ? userTask.getUiUriPath()
-                        : "/" + userTask.getUiUriPath());
-        
-    }
 
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(

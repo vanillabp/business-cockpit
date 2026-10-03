@@ -107,7 +107,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     private String uiUriPath;
 
-    private UiUriType uiUriType;
+    private String uiUriType;
 
     private Person assignee;
 
@@ -539,11 +539,11 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
         this.uiUriPath = uiUriPath;
     }
 
-    public UiUriType getUiUriType() {
+    public String getUiUriType() {
         return uiUriType;
     }
 
-    public void setUiUriType(UiUriType uiUriType) {
+    public void setUiUriType(String uiUriType) {
         this.uiUriType = uiUriType;
     }
 
