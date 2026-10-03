@@ -56,6 +56,8 @@ public class RestTransportTest {
 
   private String retryAfter;
 
+  private String responseBody;
+
   @BeforeEach
   public void startTheCockpitServer() throws IOException {
 
@@ -73,7 +75,13 @@ public class RestTransportTest {
               if (retryAfter != null) {
                 exchange.getResponseHeaders().add("Retry-After", retryAfter);
               }
-              exchange.sendResponseHeaders(status, -1);
+              if (responseBody == null) {
+                exchange.sendResponseHeaders(status, -1);
+              } else {
+                final var bytes = responseBody.getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(status, bytes.length);
+                exchange.getResponseBody().write(bytes);
+              }
               exchange.close();
             });
     server.start();
@@ -259,6 +267,103 @@ public class RestTransportTest {
         PhaseTwoPermanentFailure.isPermanent(failure),
         "a report the server refuses would have been repeated forever");
     assertTrue(failure.getMessage().contains("REST API at"), failure.getMessage());
+
+  }
+
+  @Test
+  @DisplayName("A refusal without a reason names every cause a 400 can have, one step at a time")
+  public void aRefusalWithoutAReasonNamesTheCauses() {
+
+    status = 400;
+
+    final var message = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.UPDATED)))
+        .getMessage();
+
+    assertTrue(message.contains("workflow 'workflow-1' as UPDATED"), message);
+    assertTrue(message.contains("The server gave no reason."), message);
+    assertTrue(message.contains("\n1. The workflow module and the cockpit server speak"), message);
+    assertTrue(message.contains("\n2. The server could not read the report"), message);
+    assertTrue(
+        message.contains("\n3. The path and the body of the report name different"), message);
+    assertTrue(message.contains("'Refusing a report about ...'"), message);
+    assertTrue(message.contains("\n4. The server could not store the report"), message);
+    assertFalse(
+        message.contains("credentials"),
+        "a 400 is no answer to credentials, so the message must not send anybody there");
+
+  }
+
+  @Test
+  @DisplayName("A refusal with a reason carries the reason, cut to one short line")
+  public void aRefusalWithAReasonCarriesIt() {
+
+    status = 400;
+    responseBody = "{\"detail\":\n  \"workflowId must not be null\"}"
+        + "x".repeat(1_000);
+
+    final var message = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishWorkflowEvent(EventFixture.workflow(WorkflowEventKind.UPDATED)))
+        .getMessage();
+
+    assertTrue(
+        message.contains("The server said: \"{\"detail\": \"workflowId must not be null\"}xxx"),
+        message);
+    assertTrue(message.contains("x...\"."), "a long reason is cut: "
+        + message);
+    assertFalse(message.contains("x".repeat(400)), "the whole body went into the message");
+    assertTrue(message.contains("\n1. "), "the steps are still there: "
+        + message);
+
+  }
+
+  @Test
+  @DisplayName("A refusal of the credentials names the keys they are configured with")
+  public void aRefusalOfTheCredentialsNamesTheirKeys() {
+
+    status = 401;
+
+    final var message = assertThrows(
+        RuntimeException.class,
+        () -> transport.registerWorkflowModule(EventFixture.workflowModule()))
+        .getMessage();
+
+    assertTrue(message.contains("'vanillabp.cockpit.rest.authentication.username'"), message);
+    assertTrue(
+        message.contains("'vanillabp.cockpit.rest.authentication.oauth.client-id'"), message);
+    assertFalse(message.contains("could not read"), message);
+
+  }
+
+  @Test
+  @DisplayName("A refusal of the caller names the role the server asks for")
+  public void aForbiddenCallerIsToldTheRole() {
+
+    status = 403;
+
+    final var message = assertThrows(
+        RuntimeException.class,
+        () -> transport.registerWorkflowModule(EventFixture.workflowModule()))
+        .getMessage();
+
+    assertTrue(message.contains("the role 'BPMS-API'"), message);
+
+  }
+
+  @Test
+  @DisplayName("Any other refusal points at the versions of the API")
+  public void anotherRefusalPointsAtTheVersions() {
+
+    status = 422;
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.registerWorkflowModule(EventFixture.workflowModule()));
+
+    assertTrue(PhaseTwoPermanentFailure.isPermanent(failure));
+    assertTrue(failure.getMessage().contains("Check this:\n1. The workflow module"), failure.getMessage());
 
   }
 
