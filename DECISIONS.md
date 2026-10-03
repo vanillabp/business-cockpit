@@ -1500,3 +1500,110 @@ their events to `extensions-commons`.
 A client which sent different ids got `200 OK` before and gets `400 Bad Request` now. Such a
 client did not get what it asked for before either, because its report was stored under the id it
 did not use for the next report.
+
+### 38. A report the cockpit could not store is answered with 503
+
+Decided on 2026-10-03 for story 1433. Before, the server answered such a report with `400 Bad
+Request`.
+
+The services which store a report answer with `true` or `false`. They answer `false` in one case
+only: the save into MongoDB threw. That happens when MongoDB cannot be reached for a moment, or
+when another report about the same record was stored at the same time. A report older than what is
+stored is no such case. The service keeps what it has, logs that the report changed nothing, and
+answers `true`. So does an end of a record which has ended already, and a creation of a record the
+cockpit holds.
+
+The REST API of the BPMS side turned `false` into `400 Bad Request`. The sender, `RestTransport`
+in `extensions-commons/core`, gives up a report answered with 400, because decision 11 says that
+such a report would be refused again. So a report was lost for good while MongoDB was gone for a
+moment, and only a person could take it out of the outbox and send it again.
+
+Now the server answers `503 Service Unavailable` where the save failed. Decision 11 makes the
+sender repeat a 503. The answer carries no `Retry-After`, because the server does not know when
+MongoDB is back. Without the header the outbox store waits as long as its own backoff says. The
+report still counts against `vanillabp.outbox.block-after-attempts`, so a MongoDB which stays away
+for good ends in a blocked entry and not in a report repeated forever.
+
+The other answers stay as they were:
+
+- `200 OK` for a report which was stored, and for a report older than what is stored
+- `400 Bad Request` for a report whose path and body name different records (decision 37). That
+  check runs before anything is stored, so it answers 400 even while MongoDB is gone.
+
+This holds for version 1 and version 1.1 of the REST API, for every report about a user task or a
+case.
+
+#### Why 503 and not 500
+
+Both make the sender repeat the report. A 500 says that something went wrong which nobody
+expected, and it is the answer the server gives to a defect. A 503 says that the server cannot take
+the report right now, which is what happened. It is also the status decision 11 names for "not
+now", so it keeps meaning that if the sender ever treats a 500 differently.
+
+#### What is not changed
+
+The Kafka way in. Its listeners do not read the answer of the service. A save which failed is
+logged, and the record counts as consumed. A read from MongoDB which throws goes to the error
+handler of Spring Kafka. Both are defects of their own, and this decision leaves them as they are.
+
+A read which throws before the save is not changed either. It reaches the catch-all of the
+exception handler and is answered with 500, which the sender repeats as well.
+
+#### What it costs
+
+A client which read 400 as "not stored" reads 503 now. A client which gave up on 400 repeats now,
+which is the point of the change.
+
+### 39. A request which breaks the rules of its schema is answered with 400 and the field
+
+Decided on 2026-10-03 for story 1432. Before, the server answered such a request with `500
+Internal Server Error`, and the body held the whole message of the exception.
+
+The REST API of the BPMS side validates every report against its schema. A report which leaves out
+a required field, like `timestamp` or `workflowId`, makes Spring throw a
+`MethodArgumentNotValidException`. `RestfulExceptionHandler` in `commons` had no handler for it, so
+its catch-all answered 500. The sender, `RestTransport` in `extensions-commons/core`, repeats a 500
+(decision 11). So it repeated a report which could never go through, until the outbox blocked the
+entry after its last attempt, and the entry did not say that repeating was pointless.
+
+Now the handler answers `400 Bad Request` with a body of one line in plain text, for example:
+
+> The request is not valid: 'bpmnProcessId' is missing, 'title' is missing.
+
+The line names every field which breaks a rule, sorted by name. A missing field is "is missing",
+any other rule is named after its constraint, like "breaks the rule @Size". The validator's own
+message is left out, because it is written in the language of the server's locale. The value the
+request sent is never repeated, because it can be large or personal. The log of the server gets the
+same line as a warning which starts with `Returning HTTP 400 Bad Request`, without a stack trace.
+
+The same answer is given to a `HandlerMethodValidationException`. Spring throws it when a
+parameter of a controller method carries a constraint itself, like `@Size` on a path variable. No
+API of the cockpit has such a parameter today. The handler is there so that one added later does
+not end in the catch-all.
+
+This holds for version 1 and version 1.1 of the REST API, for every report.
+
+#### Why plain text and not Problem Details
+
+Spring can answer with Problem Details (RFC 9457). Nothing in this repository uses them, and
+every other handler of `RestfulExceptionHandler` answers with plain text. The sender shows the body
+of a refusal in its log, and one line of text is what reads well there.
+
+#### What is left out
+
+A `ConstraintViolationException` keeps the answer of the catch-all. In the cockpit it can only come
+from validation inside the server, like a service checking its own arguments. That is a defect of
+the server and not of the request, so a 500 is the right answer for it.
+
+#### The graphical user interface
+
+The handler is global, so the API of the graphical user interface reaches it too. That API is
+generated with `useBeanValidation` switched off, and none of its controllers validates a parameter.
+So neither of the two exceptions can come from it, and its answers stay as they were. The same holds
+for the simulator under `development/simulator`, which uses the handler with the classes of
+`official-gui-api-server`. None of those classes carries a validation annotation.
+
+#### What it costs
+
+A client which read 500 as "invalid" reads 400 now, with a body which names the field instead of
+the message of an exception.
