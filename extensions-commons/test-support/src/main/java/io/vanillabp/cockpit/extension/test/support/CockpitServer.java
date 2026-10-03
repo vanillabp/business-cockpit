@@ -441,7 +441,9 @@ public final class CockpitServer {
    * <p>
    * The path has to carry the id of its case. A collecting path like {@code /usertask/created}
    * is refused, because a wait on it is satisfied by the report of whichever case reported there
-   * last and therefore says nothing about the case under test.
+   * last and therefore says nothing about the case under test. Several reports which belong to
+   * different cases are waited for one by one, each with the id of its own case, because one wait
+   * can only name one of them.
    *
    * @param pathSuffix What the paths have to end with, with the id of the case in it
    * @param count How many are expected
