@@ -1245,7 +1245,7 @@ report it waits for, through `awaitRequest` when it reads the report afterwards 
 `awaitRequestOf` when only the arrival matters. The refusal is thrown before the wait starts, so
 the test which gets it wrong is the test which fails.
 
-### What went wrong
+#### What went wrong
 
 Every test of a module reports into one server, and the dispatch of an outbox entry outlives the
 test which caused it. A report of an earlier test therefore arrives on a collecting path at any
@@ -1269,7 +1269,7 @@ The `forgetRequests()` in that pattern is right and stays. It is what tells two 
 same case apart: the test waits for the first report, forgets it, provokes the second and waits
 again. The wait in front of it was the only broken part.
 
-### Why the mechanic cannot do it alone
+#### Why the mechanic cannot do it alone
 
 A wait could record where the list of received reports stood and accept only what arrives after
 that. It would be wrong. A test provokes its report and waits afterwards, so the report is often
@@ -1288,7 +1288,7 @@ two parts, because it does not know the id yet and the body carries it. Every la
 that case has the id between the kind and what happened. So a suffix of two parts collects and a
 longer one names its case.
 
-### What it covers
+#### What it covers
 
 | repository                                   | collecting waits before | after |
 |----------------------------------------------|-------------------------|-------|
@@ -1305,7 +1305,7 @@ adapter was counted the same way and has nothing on a collecting path.
 The two adapters go red the moment this snapshot reaches them, so their branches have to be in
 before it is published.
 
-### References
+#### References
 
 - `extensions-commons/test-support/.../CockpitServer.java`: the refusal, and the Javadoc of
   `awaitAnyRequest`, `awaitRequest`, `awaitRequestOf`, `awaitRequests` and `forgetRequests`
