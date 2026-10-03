@@ -200,6 +200,13 @@ public class WorkflowTestDataGenerator implements Runnable {
         
         result.setId(UUID.randomUUID().toString());
         result.setWorkflowId(createdEvent.getWorkflowId());
+        // the schema of an end asks for these as well, and the cockpit refuses an end without them
+        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+        result.setBusinessId(createdEvent.getBusinessId());
+        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+        result.setUiUriPath(createdEvent.getUiUriPath());
+        result.setUiUriType(createdEvent.getUiUriType());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         
@@ -215,6 +222,13 @@ public class WorkflowTestDataGenerator implements Runnable {
         
         result.setId(UUID.randomUUID().toString());
         result.setWorkflowId(createdEvent.getWorkflowId());
+        // the schema of an end asks for these as well, and the cockpit refuses an end without them
+        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+        result.setBusinessId(createdEvent.getBusinessId());
+        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+        result.setUiUriPath(createdEvent.getUiUriPath());
+        result.setUiUriType(createdEvent.getUiUriType());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         

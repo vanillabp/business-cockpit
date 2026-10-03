@@ -241,6 +241,19 @@ public class UserTaskTestDataGenerator implements Runnable {
         final var result = new UserTaskCancelledEvent();
         
         result.setId(UUID.randomUUID().toString());
+        // an end of this API version carries the fields of a change, and the cockpit refuses a
+        // report whose body names another task than its path
+        result.setUserTaskId(createdEvent.getUserTaskId());
+        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+        result.setWorkflowId(createdEvent.getWorkflowId());
+        result.setBusinessId(createdEvent.getBusinessId());
+        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+        result.setTaskDefinition(createdEvent.getTaskDefinition());
+        result.setTitle(createdEvent.getTitle());
+        result.setUiUriPath(createdEvent.getUiUriPath());
+        result.setUiUriType(createdEvent.getUiUriType());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         
@@ -255,6 +268,19 @@ public class UserTaskTestDataGenerator implements Runnable {
         final var result = new UserTaskCompletedEvent();
         
         result.setId(UUID.randomUUID().toString());
+        // an end of this API version carries the fields of a change, and the cockpit refuses a
+        // report whose body names another task than its path
+        result.setUserTaskId(createdEvent.getUserTaskId());
+        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+        result.setWorkflowId(createdEvent.getWorkflowId());
+        result.setBusinessId(createdEvent.getBusinessId());
+        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+        result.setTaskDefinition(createdEvent.getTaskDefinition());
+        result.setTitle(createdEvent.getTitle());
+        result.setUiUriPath(createdEvent.getUiUriPath());
+        result.setUiUriType(createdEvent.getUiUriType());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         
@@ -269,6 +295,8 @@ public class UserTaskTestDataGenerator implements Runnable {
         final var result = new UserTaskActivatedEvent();
         
         result.setId(UUID.randomUUID().toString());
+        // the cockpit refuses a report whose body names another task than its path
+        result.setUserTaskId(createdEvent.getUserTaskId());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         
@@ -283,6 +311,8 @@ public class UserTaskTestDataGenerator implements Runnable {
         final var result = new UserTaskSuspendedEvent();
         
         result.setId(UUID.randomUUID().toString());
+        // the cockpit refuses a report whose body names another task than its path
+        result.setUserTaskId(createdEvent.getUserTaskId());
         result.setComment(fairies.values().iterator().next().textProducer().word(3));
         result.setTimestamp(OffsetDateTime.now());
         
