@@ -716,7 +716,7 @@ only when an application injects it. So the platform gets an auditing id which c
 the id of an aggregate, and a handler call which can be told to load the state of the event. This
 extension follows once it can.
 
-### 26. The report is built at the event and travels with its entry
+### 26. The report is built at the event and travels with its entry - narrowed by decision 43, which builds a change the BPMS half cannot name right away when its entry is dispatched
 
 This replaces decision 25. A report carries the state of its event, which 25 already decided, and it
 gets there the other way: the report is put together while the BPMS event is being observed, and it
@@ -1841,6 +1841,77 @@ They are implemented when a sender needs them.
 A sender which repeated a report answered with 501 gives it up now. It was never stored before
 either. A server which answers 501 for a moment, and would take the report later, loses it. No
 server of the cockpit does that.
+
+### 43. A change the BPMS half cannot name right away is built when its entry is dispatched
+
+This entry narrows decision 26 for one way: `BusinessCockpitService.aggregateChanged(aggregate)`.
+Once it has its number, the headline of decision 26 gets the addition "- narrowed by decision NN,
+which builds a change the BPMS half cannot name right away when its entry is dispatched".
+
+#### What was wrong
+
+`aggregateChanged` runs in the application's transaction, and the report was built there. On
+Camunda 8 the BPMS half can only name the workflows of a case out of the cluster's searchable
+storage, unless VanillaBP wrote down key and version at the start. That storage is written by an
+exporter which runs behind the engine. So a change reported while the exporter was behind was
+dropped with a warning, and nothing reported it later. The last change of a case, and every change
+while the exporter stood still, never reached the cockpit. A storage which was down failed the
+application's transaction as well, so a report rolled back the application's own work.
+
+#### What is decided
+
+A BPMS half says itself whether it can name the workflows of an aggregate in the application's
+transaction, through `BusinessCockpitBpmsBridge#workflowsOfAggregateRightAway`. The default answers
+what `workflowsOfAggregate` answers, so a half which does not override it works as before. Where the
+half answers, the report is built right away, and decision 26 holds unchanged.
+
+Where the half answers nothing, the entry is written without a report. It carries what is known
+without the BPMS: aggregate, module, process, adapter, event id, the time of the change, and the
+workflow and its version where VanillaBP wrote them down. When the entry is dispatched, the half is
+asked `workflowsOfAggregate` and `prefilledWorkflowDetails`, and the report is built then. The
+application's details provider runs in a transaction of the dispatch on this way. It reads the
+aggregate as it was committed, which is what decision 26 wanted to get away from, and the price is
+paid only where the report cannot be built at the event.
+
+The entry is one of the same operation, `PUBLISH_WORKFLOW_EVENT`, marked by the argument
+`resolvedWhenDispatched`. A new operation would get a key of its own, so a waiting entry of one kind
+and a younger one of the other would both go out. With the same operation the youngest still takes
+the place of the waiting one, which is the brake against a flood that decision 26 set up. An entry
+which does not know its workflow yet is keyed by its aggregate instead of the workflow. Every entry
+which names its workflow keeps the key decision 4 gave it.
+
+An empty answer at the dispatch means "not written yet". The entry is given back to the outbox with
+`PhaseTwoRetryLater`, and a `PhaseTwoRetryLater` the half throws there is passed on as well. The
+first distance is two seconds. From then on it is a tenth of the time the change has waited, so it
+grows by a tenth per attempt after twenty seconds. The outbox counts every attempt and blocks an
+entry after `vanillabp.outbox.block-after-attempts` of them. That setting is one number for every
+entry of the application, fifty by default, and fifty attempts two seconds apart last less than two
+minutes. With the growing distance, about 46 attempts last ten minutes, which is how long an
+exporter may stand still without a report getting lost. A change which has no workflow after ten
+minutes is dropped with a warning and not left to be blocked. Any other exception goes to the outbox,
+which repeats the entry with its own backoff.
+
+The adapter of a change comes from VanillaBP's note of the start, or is the one adapter the
+application configured. Only an application with several adapters and no note still asks the
+election in the application's transaction, and the election may ask a BPMS there.
+
+#### What it costs
+
+A report built at the dispatch carries the timestamp of the change and the state of the dispatch.
+Where an event with a later timestamp reached the cockpit in between, the cockpit keeps the later
+one (decision 18), which is right. Otherwise the report shows details a little newer than its
+timestamp.
+
+The registration of a workflow module is no longer the only entry without a report which is built
+at its dispatch. An entry which lost its report to a write which never committed is still sent
+with its identifiers alone, and the argument tells the two apart.
+
+A node of an older version, while the deploy rolls, does not know the argument. It sends such an
+entry with its identifiers alone. Where the entry names its workflow, the cockpit gets an update
+without details and keeps what it showed. Where it does not, the REST transport sends a path
+without a workflow, the server refuses it with a client error, and the entry is blocked. The Kafka
+transport fails before it sends, and the entry comes back, to a newer node in the end. Both were read
+from the code and not tried. Before this entry such a change was not reported at all.
 
 ### 44. A key with a dot in the business data is stored once a replacement is configured
 
