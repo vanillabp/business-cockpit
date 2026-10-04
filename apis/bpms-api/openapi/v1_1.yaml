@@ -32,11 +32,13 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
   /usertask/created:
     post:
       tags:
@@ -53,11 +55,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /usertask/{userTaskId}/updated:
     post:
       tags:
@@ -80,11 +86,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /usertask/{userTaskId}/suspended:
     post:
       tags:
@@ -107,11 +117,13 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        500:
+          $ref: "#/components/responses/Unexpected"
   /usertask/{userTaskId}/activated:
     post:
       tags:
@@ -134,11 +146,13 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        500:
+          $ref: "#/components/responses/Unexpected"
   /usertask/{userTaskId}/completed:
     post:
       tags:
@@ -161,11 +175,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /usertask/{userTaskId}/cancelled:
     post:
       tags:
@@ -188,11 +206,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /workflow/created:
     post:
       tags:
@@ -209,11 +231,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /workflow/{workflowId}/updated:
     post:
       tags:
@@ -237,11 +263,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /workflow/{workflowId}/completed:
     post:
       tags:
@@ -265,11 +295,15 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
   /workflow/{workflowId}/cancelled:
     post:
       tags:
@@ -293,13 +327,39 @@ paths:
         200:
           description: successful operation
         400:
-          description: Bad request (validation failed)
+          $ref: "#/components/responses/Refused"
         401:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        500:
+          $ref: "#/components/responses/Unexpected"
+        503:
+          $ref: "#/components/responses/NotNow"
 
 components:
+  # What the cockpit answers where a report does not go through, and what the sender does about
+  # it. The body of a refusal is described in words and not as content: content would change the
+  # Accept header the generated client sends and the media type the generated server produces.
+  responses:
+    Refused:
+      description: >-
+        The cockpit refuses the request, and it will refuse the same request every time. Do not
+        send it again as it is. Change it first. Where a field breaks a rule of the schema, the
+        body is one line of plain text which names each such field, for example
+        "The request is not valid: 'bpmnProcessId' is missing.". Where the id in the path and the
+        id in the body name different records, the body is empty.
+    NotNow:
+      description: >-
+        The cockpit could not store the report right now, for example because MongoDB could not be
+        reached. Nothing of the report was stored. Send the same report again later. The answer
+        carries no Retry-After header, because the cockpit does not know when it can store again,
+        so wait as long as your own backoff says.
+    Unexpected:
+      description: >-
+        Something went wrong which the cockpit did not expect, for example a read from MongoDB
+        which failed before anything was stored. Send the same request again later. If it keeps
+        failing, the body holds the message of the error, and the log of the cockpit has the rest.
   schemas:
     UiUriType:
       type: string
