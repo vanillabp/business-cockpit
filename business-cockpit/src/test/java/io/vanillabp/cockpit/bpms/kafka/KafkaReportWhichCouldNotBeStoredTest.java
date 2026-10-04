@@ -394,7 +394,7 @@ class KafkaReportWhichCouldNotBeStoredTest {
                 .satisfies(line -> assertThat(line).contains(
                         "Passing over a Kafka record the cockpit cannot store: topic '"
                                 + userTaskTopic
-                                + "', partition 0, offset 0, key 'task-1'. MongoDB refuses it every time. "
+                                + "', partition 0, offset 0, key 'task-1'. Storing it fails the same way each time. "
                                 + "The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes "
                                 + "for one document."));
 
