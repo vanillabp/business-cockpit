@@ -1790,3 +1790,54 @@ which record it was and why.
 A defect of the cockpit which throws a `MappingException` for every record would pass every record
 over, instead of holding them up until a fixed release is deployed. No such defect is known. A
 mapping the cockpit cannot write at all would fail its own tests.
+
+### 42. A report answered with 501 is given up, and suspended and activated say that they answer it
+
+Decided on 2026-10-04 for story 1438. Before, the sender repeated a report answered with 501, and
+the BPMS API did not say that two of its operations answer it.
+
+Related entries: 11 (a failed report says whether repeating it can help), 38 (a report the cockpit
+could not store is answered with 503), 41 (a report MongoDB refuses every time is given up). This
+entry adds one status to what 11 calls "not like this". Entry 11 stays as it is. Whoever moves
+this entry into the log decides whether 11 gets a note in its heading, in the form the log uses
+already, like "- 501 changed by decision <n>".
+
+The REST API of the BPMS side has two operations which the server does not implement:
+`usertask/{userTaskId}/suspended` and `usertask/{userTaskId}/activated`, in version 1 and version
+1.1. The controllers leave them to the generated interface, and that answers `501 Not Implemented`
+without looking at the report. The sender, `RestTransport` in `extensions-commons/core`, gave up only
+a status from 400 to 499, so it repeated a 501 until its outbox blocked the entry. Repeating it
+never helps, because the server answers the same report the same way every time.
+
+Now `RestTransport` gives up a report answered with 501, like a status from 400 to 499 apart from
+408 and 429. Its message names two causes, one after the other. The workflow module and the cockpit
+server speak different versions of the BPMS API. Or something other than the cockpit server
+answered, for example a proxy which does not pass the request on, and the message names the key of
+the base URL to check.
+
+Both specifications say for the two operations that they are not implemented and answer 501, and
+they describe the 501 as a shared response, `NotImplemented`. That changes nothing but the
+Javadoc of the generated client and the server, and the `@Operation` and `@ApiResponse`
+annotations of the generated server.
+
+#### Who sends the two reports
+
+Nobody. `RestTransport` and `KafkaTransport` send a user task only as created, updated, completed or
+cancelled. The three BPMS halves hand their events to `extensions-commons` and call neither API
+themselves. The simulator under `development/simulator` has code which sends both reports, but it
+sits behind `doUpdate = true` and never runs.
+
+The Kafka way in carries the same two events in `v1.proto`. `KafkaUserTaskController` does not
+handle them and throws, so such a record is passed over at once like any record the cockpit cannot
+read (decision 40). This entry leaves that as it is.
+
+#### Why not implement them
+
+Nothing sends them, so nothing would show whether an implementation does what a sender expects.
+They are implemented when a sender needs them.
+
+#### What it costs
+
+A sender which repeated a report answered with 501 gives it up now. It was never stored before
+either. A server which answers 501 for a moment, and would take the report later, loses it. No
+server of the cockpit does that.
