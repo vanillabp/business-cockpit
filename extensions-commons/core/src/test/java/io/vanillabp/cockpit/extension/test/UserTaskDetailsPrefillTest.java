@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.spi.UserTaskDetailsPrefill;
+import io.vanillabp.cockpit.extension.spi.WorkflowDetailsPrefill;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
@@ -51,6 +53,22 @@ public class UserTaskDetailsPrefillTest {
     assertEquals(List.of(), prefill.candidateGroups());
     assertTrue(prefill.variables().isEmpty());
     assertTrue(prefill.multiInstances().isEmpty());
+
+  }
+
+  @Test
+  @DisplayName("A BPMS half which builds the values the way it did before says nothing about the start")
+  public void theValuesOfBeforeLeaveTheStartEmpty() {
+
+    final var prefill = new UserTaskDetailsPrefill(
+        "1", "workflow-1", null, "4711", "Approve", "Order handling", null, "anna", null, null, null, null, null, null);
+    final var workflow = new WorkflowDetailsPrefill("1", "4711", "Order handling", null);
+
+    assertNull(prefill.createdAt());
+    assertNull(workflow.createdAt());
+    assertEquals(
+        OffsetDateTime.parse("2026-10-01T08:00:00Z"),
+        UserTaskDetailsPrefill.builder().createdAt(OffsetDateTime.parse("2026-10-01T08:00:00Z")).build().createdAt());
 
   }
 

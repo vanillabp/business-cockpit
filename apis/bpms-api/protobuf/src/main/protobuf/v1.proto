@@ -88,6 +88,10 @@ message UserTaskCreatedOrUpdatedEvent {
   optional NotificationDelivery notification_delivery = 33;
   // users who may see the task although they are no candidate for it
   repeated string admitted_users = 34;
+  // when the user task was created, read only where the message is an end (userTaskCompletedV1_1,
+  // userTaskCancelledV1_1) and the first report about the task the cockpit gets. Without it the
+  // task starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 35;
 
 }
 
@@ -107,6 +111,9 @@ message UserTaskCompletedEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  // when the user task was created. Read only from an end which is the first report about the
+  // task the cockpit gets. Without it the task starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 8;
 }
 
 message UserTaskCancelledEvent {
@@ -117,6 +124,9 @@ message UserTaskCancelledEvent {
   optional string initiator = 5;
   optional string source = 6;
   optional string comment = 7;
+  // when the user task was created. Read only from an end which is the first report about the
+  // task the cockpit gets. Without it the task starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 8;
 }
 
 message UserTaskSuspendedEvent {
@@ -159,6 +169,10 @@ message WorkflowCreatedOrUpdatedEvent {
   repeated string accessible_to_users = 20;
   repeated string accessible_to_groups = 21;
   string workflow_module_id = 22;
+  // when the workflow was started, read only where the message is an end (workflowCompletedV1_1,
+  // workflowCancelledV1_1) and the first report about the workflow the cockpit gets. Without it
+  // the workflow starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 23;
 }
 
 message WorkflowCompletedEvent {
@@ -171,6 +185,9 @@ message WorkflowCompletedEvent {
   optional string comment = 7;
   optional string bpmn_process_id = 8;
   optional string bpmn_process_version = 9;
+  // when the workflow was started. Read only from an end which is the first report about the
+  // workflow the cockpit gets. Without it the workflow starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 10;
 }
 
 message WorkflowCancelledEvent {
@@ -183,6 +200,9 @@ message WorkflowCancelledEvent {
   optional string comment = 7;
   optional string bpmn_process_id = 8;
   optional string bpmn_process_version = 9;
+  // when the workflow was started. Read only from an end which is the first report about the
+  // workflow the cockpit gets. Without it the workflow starts at the timestamp of the end
+  optional google.protobuf.Timestamp created_at = 10;
 }
 
 message RegisterWorkflowModuleEvent {

@@ -736,6 +736,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
       event.setBusinessId(prefill.get().businessId());
       event.setInitiator(prefill.get().initiator());
+      event.setCreatedAt(prefill.get().createdAt());
       handlers
           .invoke(
               HandlerCall
@@ -946,6 +947,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     event.setCandidateGroups(prefill.candidateGroups());
     event.setDueDate(prefill.dueDate());
     event.setFollowUpDate(prefill.followUpDate());
+    event.setCreatedAt(prefill.createdAt());
     if (prefill.workflowId() != null) {
       event.setWorkflowId(prefill.workflowId());
     }

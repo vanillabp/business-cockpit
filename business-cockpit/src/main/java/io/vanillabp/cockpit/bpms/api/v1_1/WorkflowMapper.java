@@ -44,6 +44,7 @@ public abstract class WorkflowMapper {
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
+    @Mapping(target = "knownFromItsEndAlone", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
@@ -61,6 +62,7 @@ public abstract class WorkflowMapper {
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "createdAt", source = "timestamp")
+    @Mapping(target = "knownFromItsEndAlone", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
@@ -78,6 +80,7 @@ public abstract class WorkflowMapper {
     // the event's timestamp, stamped where reports are weighed against each other:
     @Mapping(target = "latestEventAt", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "knownFromItsEndAlone", ignore = true)
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
     @Mapping(target = "endedAt", ignore = true)
@@ -101,6 +104,7 @@ public abstract class WorkflowMapper {
     // an end does not say when the case began. Guessing it would make the same case look
     // different, depending on which of the two reports arrived first:
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "knownFromItsEndAlone", ignore = true)
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")
@@ -127,6 +131,7 @@ public abstract class WorkflowMapper {
     // an end does not say when the case began. Guessing it would make the same case look
     // different, depending on which of the two reports arrived first:
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "knownFromItsEndAlone", ignore = true)
     // audit information, replaced by the cockpit's own clock and user whenever the record is saved:
     @Mapping(target = "updatedAt", source = "timestamp")
     @Mapping(target = "updatedBy", source = "initiator")

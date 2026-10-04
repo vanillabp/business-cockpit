@@ -328,6 +328,69 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     }
 
     /**
+     * A completion which arrives without its creation and without a start of its own. The task
+     * then starts at its end, because the user interface needs a start for every task. A creation
+     * which still arrives sets the start it reports.
+     */
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheTaskAtItsEnd() {
+
+        final var userTaskId = unique("task");
+        final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
+
+        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/completed",
+                userTaskEndPayload(userTaskId, endedAt.toString())).statusCode()).isEqualTo(200);
+
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(task.read("$.createdAt", String.class))
+                .as("the user interface's schema requires a start")
+                .isNotNull();
+        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(endedAt.toInstant());
+        final var listed = userTaskList(cookie, token, "ClosedTasksOnly");
+        assertThat(listed.read("$.userTasks[0].createdAt", String.class)).isNotNull();
+
+    }
+
+    /**
+     * A completion which arrives without its creation, but says when the task was created. The
+     * task starts then, and a creation which arrives later changes nothing about that start.
+     */
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheTaskWhenItSays() {
+
+        final var userTaskId = unique("task");
+        final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30Z");
+        final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
+
+        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/completed",
+                userTaskEndPayload(userTaskId, endedAt.toString())
+                        .replace("\"initiator\"", "\"createdAt\": \"" + createdAt + "\",\n  \"initiator\""))
+                .statusCode()).isEqualTo(200);
+
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(createdAt.toInstant());
+
+        assertThat(bpmsV1_1("/usertask/created", userTaskCreatedPayload(
+                userTaskId,
+                createdAt.toString(),
+                """
+                "details": { "customer": "passenger A" }
+                """)).statusCode()).isEqualTo(200);
+
+        final var filledIn = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(OffsetDateTime.parse(filledIn.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(createdAt.toInstant());
+        assertThat(OffsetDateTime.parse(filledIn.read("$.endedAt", String.class)).toInstant())
+                .isEqualTo(endedAt.toInstant());
+        assertThat(filledIn.read("$.details.customer", String.class))
+                .as("the creation still fills in what the end could not report")
+                .isEqualTo("passenger A");
+
+    }
+
+    /**
      * Two changes of one task can reach the cockpit the other way round. The timestamp of the event
      * decides which of them the cockpit keeps, not the moment it arrived.
      */

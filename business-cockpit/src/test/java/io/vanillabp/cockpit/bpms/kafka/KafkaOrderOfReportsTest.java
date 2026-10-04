@@ -1,8 +1,10 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -237,6 +239,62 @@ class KafkaOrderOfReportsTest {
         // the creation filled in what the end could not report
         assertSameMoment(CREATED_AT, stored.getCreatedAt());
         assertEquals("Assign a driver", stored.getTitle().get("en"));
+
+    }
+
+    /** The user interface needs a start for every task, so an end which arrives alone gives one. */
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheTaskAtItsEnd() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskCompletedV11(reportedTask(ENDED_AT, "Anna"))
+                .build());
+
+        final var stored = storedTasks.get("task-1");
+        assertSameMoment(ENDED_AT, stored.getCreatedAt());
+        assertTrue(stored.isKnownFromItsEndAlone(), "the task still waits for its creation");
+
+    }
+
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheTaskWhenItSays() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskCompletedV11(reportedTask(ENDED_AT, "Anna").setCreatedAt(protobuf(CREATED_AT)))
+                .build());
+
+        final var stored = storedTasks.get("task-1");
+        assertSameMoment(CREATED_AT, stored.getCreatedAt());
+        assertSameMoment(ENDED_AT, stored.getEndedAt());
+
+    }
+
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheCaseWhenItSays() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setWorkflowCompletedV11(reportedWorkflow(ENDED_AT, "Anna").setCreatedAt(protobuf(CREATED_AT)))
+                .build());
+
+        final var stored = storedWorkflows.get("workflow-1");
+        assertSameMoment(CREATED_AT, stored.getCreatedAt());
+        assertTrue(stored.isKnownFromItsEndAlone(), "the case still waits for its creation");
+
+    }
+
+    /** A change which creates a task (decision 36) does not wait for a creation. */
+    @Test
+    void aTaskCreatedByAChangeDoesNotWaitForItsCreation() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskUpdatedV11(reportedTask(ENDED_AT, "Anna"))
+                .build());
+
+        assertFalse(storedTasks.get("task-1").isKnownFromItsEndAlone());
 
     }
 

@@ -37,6 +37,12 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
 
   private OffsetDateTime timestamp;
 
+  /**
+   * When the BPMS created the task, where the BPMS half could tell. Only the report of an end carries it,
+   * for the case that the end arrives at the cockpit before the creation.
+   */
+  private OffsetDateTime createdAt;
+
   private String source;
 
   private String workflowModuleId;
@@ -204,6 +210,22 @@ public class UserTaskEvent implements PrefilledUserTaskDetails, UserTask {
       final OffsetDateTime timestamp) {
 
     this.timestamp = timestamp;
+
+  }
+
+  /**
+   * @return When the BPMS created the task, or <code>null</code> where the BPMS half could not tell
+   */
+  public OffsetDateTime getCreatedAt() {
+
+    return createdAt;
+
+  }
+
+  public void setCreatedAt(
+      final OffsetDateTime createdAt) {
+
+    this.createdAt = createdAt;
 
   }
 

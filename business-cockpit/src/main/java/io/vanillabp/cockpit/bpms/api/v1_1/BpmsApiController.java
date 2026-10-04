@@ -81,6 +81,7 @@ public class BpmsApiController implements BpmsApi {
                         userTaskId,
                         userTaskCompletedEvent.getTimestamp(),
                         UserTaskEndReason.COMPLETED,
+                        userTaskCompletedEvent.getCreatedAt(),
                         task -> {
                             // an end carries the same fields as a change. So the list of finished
                             // work shows what the task was finished with, not what the last change
@@ -108,6 +109,7 @@ public class BpmsApiController implements BpmsApi {
                         userTaskId,
                         userTaskCancelledEvent.getTimestamp(),
                         UserTaskEndReason.CANCELLED,
+                        userTaskCancelledEvent.getCreatedAt(),
                         task -> {
                             // see userTaskCompletedEvent
                             userTaskMapper.toEndedTask(userTaskCancelledEvent, task);
@@ -140,6 +142,7 @@ public class BpmsApiController implements BpmsApi {
                 workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCancelledEvent.getTimestamp(),
+                        workflowCancelledEvent.getCreatedAt(),
                         workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow)));
 
     }
@@ -156,6 +159,7 @@ public class BpmsApiController implements BpmsApi {
                 workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCompletedEvent.getTimestamp(),
+                        workflowCompletedEvent.getCreatedAt(),
                         // see userTaskCompletedEvent: an end says what the case ended with
                         workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow)));
 

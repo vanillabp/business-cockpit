@@ -40,14 +40,23 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     private String initiator;
 
     /**
-     * When the reporting workflow system created this user task. {@code null} means the cockpit
-     * never saw the creation and learned about the task from its end alone, which happens when the
-     * two reports overtake each other. The creation arriving afterwards fills in what the end
-     * could not report.
+     * When the reporting workflow system created this user task. It is never {@code null}.
+     * <p>
+     * A task the cockpit learned about from its end alone, because the end overtook the creation,
+     * starts when the end says the task began. Where the end does not say it, the task starts at the
+     * end. The creation arriving afterwards fills in what the end could not report, and its start
+     * replaces this one. {@link #knownFromItsEndAlone} says which task still waits for its creation.
      *
      * @see #latestEventAt
      */
     private OffsetDateTime createdAt;
+
+    /**
+     * Whether the cockpit learned about this task from its end alone and still waits for its
+     * creation. Only such a task takes a creation which arrives later. A task the cockpit
+     * stored from its end alone before this property existed was given it by a changeset.
+     */
+    private boolean knownFromItsEndAlone;
 
     /**
      * When the event behind the latest report the cockpit stored about this user task happened,
@@ -392,6 +401,14 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isKnownFromItsEndAlone() {
+        return knownFromItsEndAlone;
+    }
+
+    public void setKnownFromItsEndAlone(boolean knownFromItsEndAlone) {
+        this.knownFromItsEndAlone = knownFromItsEndAlone;
     }
 
     public OffsetDateTime getLatestEventAt() {

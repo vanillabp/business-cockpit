@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.bpms.api.v1_1;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
@@ -334,9 +335,10 @@ class OrderOfReportsTest {
         assertNotNull(stored, "the completion of an unknown task has to create it");
         assertEquals(ENDED_AT, stored.getEndedAt());
         assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
-        // an end does not say when the task began, and the creation which will say it is the report
-        // this task is still waiting for
-        assertNull(stored.getCreatedAt());
+        // this end does not say when the task began, so the task starts at its end, and the
+        // creation which will say it is the report this task is still waiting for
+        assertEquals(ENDED_AT, stored.getCreatedAt());
+        assertTrue(stored.isKnownFromItsEndAlone());
 
     }
 
@@ -381,7 +383,8 @@ class OrderOfReportsTest {
         final var stored = cockpit.storedWorkflow();
         assertNotNull(stored, "the completion of an unknown case has to create it");
         assertEquals(ENDED_AT, stored.getEndedAt());
-        assertNull(stored.getCreatedAt());
+        assertEquals(ENDED_AT, stored.getCreatedAt());
+        assertTrue(stored.isKnownFromItsEndAlone());
 
     }
 

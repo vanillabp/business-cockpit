@@ -128,6 +128,7 @@ public class KafkaUserTaskController {
                 userTaskCompleted.getUserTaskId(),
                 ProtobufHelper.map(userTaskCompleted.getTimestamp()),
                 UserTaskEndReason.COMPLETED,
+                userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
                 // who completed the task, as reported by the application (may be null =
                 // completed by the process); read by the notification poller
                 task -> task.setInitiator(
@@ -141,6 +142,7 @@ public class KafkaUserTaskController {
                 userTaskCompleted.getUserTaskId(),
                 ProtobufHelper.map(userTaskCompleted.getTimestamp()),
                 UserTaskEndReason.COMPLETED,
+                userTaskCompleted.hasCreatedAt() ? ProtobufHelper.map(userTaskCompleted.getCreatedAt()) : null,
                 task -> protobufUserTaskMapper.toEndedTask(userTaskCompleted, task));
         RepeatUntilStored.storedOrThrow(outcome);
 
@@ -152,6 +154,7 @@ public class KafkaUserTaskController {
                 userTaskCancelledEvent.getUserTaskId(),
                 ProtobufHelper.map(userTaskCancelledEvent.getTimestamp()),
                 UserTaskEndReason.CANCELLED,
+                userTaskCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelledEvent.getCreatedAt()) : null,
                 task -> {
                     task.setInitiator(
                             userTaskCancelledEvent.hasInitiator() ? userTaskCancelledEvent.getInitiator() : null);
@@ -166,6 +169,7 @@ public class KafkaUserTaskController {
                 userTaskCancelled.getUserTaskId(),
                 ProtobufHelper.map(userTaskCancelled.getTimestamp()),
                 UserTaskEndReason.CANCELLED,
+                userTaskCancelled.hasCreatedAt() ? ProtobufHelper.map(userTaskCancelled.getCreatedAt()) : null,
                 task -> protobufUserTaskMapper.toEndedTask(userTaskCancelled, task));
         RepeatUntilStored.storedOrThrow(outcome);
 

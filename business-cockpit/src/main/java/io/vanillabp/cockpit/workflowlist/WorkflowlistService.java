@@ -140,11 +140,13 @@ public class WorkflowlistService {
             return storeReportedWorkflow(asReported.get(), eventTimestamp);
         }
 
-        if (stored.getCreatedAt() != null) {
+        if (!stored.isKnownFromItsEndAlone()) {
             reportChangesNothing(workflowId, "creation", eventTimestamp, stored);
             return OutcomeOfStoring.upToDate();
         }
 
+        // the creation's own start replaces the one the end gave the case, which is the same
+        // where the end reported it, and the time of the end where it did not
         final var workflow = asReported.get();
         // the end is the younger report of the two and stays untouched, as does everything the
         // cockpit itself has recorded about the case since the end arrived
@@ -213,6 +215,8 @@ public class WorkflowlistService {
      *
      * @param workflowId The case the report is about
      * @param eventTimestamp When the case ended, by the workflow module's clock
+     * @param reportedStart When the case was started, as the end reports it, or {@code null}
+     *        where it does not. Read only where the end creates the case
      * @param ontoStored Lays the report onto the case the cockpit holds, or onto an empty one
      * @return Whether the cockpit is up to date about the case, and if not, whether the same
      *         report can go through when it comes again
@@ -220,6 +224,7 @@ public class WorkflowlistService {
     public OutcomeOfStoring reportEndedWorkflow(
             final String workflowId,
             final OffsetDateTime eventTimestamp,
+            final OffsetDateTime reportedStart,
             final Consumer<Workflow> ontoStored) {
 
         final var stored = getWorkflow(workflowId);
@@ -227,9 +232,10 @@ public class WorkflowlistService {
             final var workflow = new Workflow();
             workflow.setId(workflowId);
             ontoStored.accept(workflow);
-            // 'createdAt' stays empty on purpose: an end does not say when the case began, and a case
-            // without it is the one a creation arriving later still fills in
-            workflow.setCreatedAt(null);
+            // the user interface needs a start for every case. Where the end does not say when
+            // the case began, the end is the earliest moment the cockpit knows of
+            workflow.setCreatedAt(reportedStart != null ? reportedStart : eventTimestamp);
+            workflow.setKnownFromItsEndAlone(true);
             workflow.setEndedAt(eventTimestamp);
             return storeReportedWorkflow(workflow, eventTimestamp);
         }

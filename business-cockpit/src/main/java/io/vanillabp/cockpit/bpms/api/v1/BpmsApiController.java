@@ -88,6 +88,7 @@ public class BpmsApiController implements BpmsApi {
                         userTaskId,
                         userTaskCompletedEvent.getTimestamp(),
                         UserTaskEndReason.COMPLETED,
+                        userTaskCompletedEvent.getCreatedAt(),
                         // who completed the task, as the application reported it. The
                         // notification poller reads it to skip a self-completion
                         task -> task.setInitiator(userTaskCompletedEvent.getInitiator())));
@@ -108,6 +109,7 @@ public class BpmsApiController implements BpmsApi {
                         userTaskId,
                         userTaskCancelledEvent.getTimestamp(),
                         UserTaskEndReason.CANCELLED,
+                        userTaskCancelledEvent.getCreatedAt(),
                         task -> {
                             task.setInitiator(userTaskCancelledEvent.getInitiator());
                             task.setComment(userTaskCancelledEvent.getComment());
@@ -140,6 +142,7 @@ public class BpmsApiController implements BpmsApi {
                 workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCancelledEvent.getTimestamp(),
+                        workflowCancelledEvent.getCreatedAt(),
                         workflow -> workflow.setComment(workflowCancelledEvent.getComment())));
 
     }
@@ -157,6 +160,7 @@ public class BpmsApiController implements BpmsApi {
                 workflowlistService.reportEndedWorkflow(
                         workflowId,
                         workflowCompletedEvent.getTimestamp(),
+                        workflowCompletedEvent.getCreatedAt(),
                         // version 1 reports nothing about a completed case but that it completed
                         workflow -> { }));
 

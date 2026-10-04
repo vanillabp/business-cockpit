@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -148,6 +149,35 @@ public class KafkaTransportTest {
         .getDetailsMap();
     assertEquals("250", details.get("amount").getArrayValues(0).getNumericValue());
     assertEquals("EUR", details.get("currency").getArrayValues(0).getStringValue());
+
+  }
+
+  @Test
+  @DisplayName("Only an end carries the time the task was created")
+  public void onlyAnEndCarriesTheStart() throws Exception {
+
+    final var createdAt = OffsetDateTime.parse("2026-10-01T08:00:00Z");
+    final var completed = EventFixture.userTask(UserTaskEventKind.COMPLETED);
+    completed.setCreatedAt(createdAt);
+    transport.publishUserTaskEvent(completed);
+
+    final var message = theEnvelope("user-task", "task-1").getUserTaskCompletedV11();
+    assertTrue(message.hasCreatedAt());
+    assertEquals(createdAt.toEpochSecond(), message.getCreatedAt().getSeconds());
+    producer.clear();
+
+    final var created = EventFixture.userTask(UserTaskEventKind.CREATED);
+    created.setCreatedAt(createdAt);
+    transport.publishUserTaskEvent(created);
+    assertFalse(theEnvelope("user-task", "task-1").getUserTaskCreatedV11().hasCreatedAt());
+    producer.clear();
+
+    final var cancelled = EventFixture.workflow(WorkflowEventKind.CANCELLED);
+    cancelled.setCreatedAt(createdAt);
+    transport.publishWorkflowEvent(cancelled);
+    assertEquals(
+        createdAt.toEpochSecond(),
+        theEnvelope("workflow", "workflow-1").getWorkflowCancelledV11().getCreatedAt().getSeconds());
 
   }
 

@@ -28,14 +28,23 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
     private Person initiator;
 
     /**
-     * When the reporting workflow system started this workflow. {@code null} means the cockpit
-     * never saw the creation and learned about the case from its end alone, which happens when the
-     * two reports overtake each other. The creation arriving afterwards fills in what the end
-     * could not report.
+     * When the reporting workflow system started this workflow. It is never {@code null}.
+     * <p>
+     * A case the cockpit learned about from its end alone, because the end overtook the creation,
+     * starts when the end says the case began. Where the end does not say it, the case starts at the
+     * end. The creation arriving afterwards fills in what the end could not report, and its start
+     * replaces this one. {@link #knownFromItsEndAlone} says which case still waits for its creation.
      *
      * @see #latestEventAt
      */
     private OffsetDateTime createdAt;
+
+    /**
+     * Whether the cockpit learned about this case from its end alone and still waits for its
+     * creation. Only such a case takes a creation which arrives later. A case the cockpit
+     * stored from its end alone before this property existed was given it by a changeset.
+     */
+    private boolean knownFromItsEndAlone;
 
     /**
      * When the event behind the latest report the cockpit stored about this workflow happened,
@@ -202,6 +211,14 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isKnownFromItsEndAlone() {
+        return knownFromItsEndAlone;
+    }
+
+    public void setKnownFromItsEndAlone(boolean knownFromItsEndAlone) {
+        this.knownFromItsEndAlone = knownFromItsEndAlone;
     }
 
     public OffsetDateTime getLatestEventAt() {

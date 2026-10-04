@@ -119,6 +119,7 @@ public class KafkaWorkflowController {
         final var outcome = workflowlistService.reportEndedWorkflow(
                 workflowCompletedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+                workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
                 // version 1 reports nothing about a completed case but that it completed
                 workflow -> { });
         RepeatUntilStored.storedOrThrow(outcome);
@@ -129,6 +130,7 @@ public class KafkaWorkflowController {
         final var outcome = workflowlistService.reportEndedWorkflow(
                 workflowCompletedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
+                workflowCompletedEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCompletedEvent.getCreatedAt()) : null,
                 workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow));
         RepeatUntilStored.storedOrThrow(outcome);
 
@@ -139,6 +141,7 @@ public class KafkaWorkflowController {
         final var outcome = workflowlistService.reportEndedWorkflow(
                 workflowCancelledEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+                workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
                 workflow -> workflow.setComment(workflowCancelledEvent.getComment()));
         RepeatUntilStored.storedOrThrow(outcome);
     }
@@ -148,6 +151,7 @@ public class KafkaWorkflowController {
         final var outcome = workflowlistService.reportEndedWorkflow(
                 workflowCancelledEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
+                workflowCancelledEvent.hasCreatedAt() ? ProtobufHelper.map(workflowCancelledEvent.getCreatedAt()) : null,
                 workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
         RepeatUntilStored.storedOrThrow(outcome);
 

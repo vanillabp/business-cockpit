@@ -23,6 +23,13 @@ That has two costs. Search and sorting find the key only by its stored form, lik
 `details.order~id` for the replacement `~`. And a key which holds the replacement already comes
 back with a dot in its place. Both specifications say the same in the description of `details`.
 
+An end of a user task or a workflow, completed or cancelled, may say when the record began, in
+`createdAt` (`created_at` on Kafka, and on the messages of version 1.1 read only where they carry an
+end). The field is optional. The cockpit reads it only where the end is the first report about the
+record it gets, which happens when the end overtakes the creation. Without it the record starts at
+the timestamp of the end, so every record the user interface shows has a start. A creation which
+arrives later still fills in what the end left out, and its own start replaces that of the end.
+
 The client names its own dependencies rather than reaching them through the cockpit's `commons`
 artifact, so that it drags no web framework into a consumer which has to stay free of one. Decision 1
 of the [decision log](../../DECISIONS.md) says why.
