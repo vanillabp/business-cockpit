@@ -26,7 +26,8 @@ public class KafkaWorkflowModuleController {
         this.workflowModuleService = workflowModuleService;
     }
 
-    @KafkaListener(topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow-module}",
+    @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
+            topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow-module}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
     public void consumeWorkflowModuleEvent(ConsumerRecord<String, byte[]> record) {

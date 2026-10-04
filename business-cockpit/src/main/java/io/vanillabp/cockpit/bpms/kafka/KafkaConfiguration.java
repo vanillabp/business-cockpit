@@ -14,8 +14,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.kafka.autoconfigure.ConcurrentKafkaListenerContainerFactoryConfigurer;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.util.StringUtils;
 
@@ -30,6 +33,13 @@ public class KafkaConfiguration {
 
     private static final String WORKER_ID_NOT_SET = "not-set";
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit";
+
+    /**
+     * The listener container factory the three listeners of the cockpit run in. It is one of its
+     * own, so that the error handler of {@link RepeatUntilStored} applies to them and not to any
+     * other listener of an application derived from the cockpit.
+     */
+    public static final String LISTENER_CONTAINER_FACTORY = "businessCockpitKafkaListenerContainerFactory";
 
     @Value("${workerId:" + WORKER_ID_NOT_SET + "}")
     private String workerId;
@@ -62,6 +72,22 @@ public class KafkaConfiguration {
         configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class);
 
         return new DefaultKafkaConsumerFactory<>(configs);
+    }
+
+    /**
+     * Built with the Kafka settings of Spring Boot, like the factory Spring Boot builds itself, and
+     * with the error handler of {@link RepeatUntilStored} in place of the one Spring Boot would set.
+     */
+    @Bean(LISTENER_CONTAINER_FACTORY)
+    public ConcurrentKafkaListenerContainerFactory<Object, Object> businessCockpitKafkaListenerContainerFactory(
+            ConcurrentKafkaListenerContainerFactoryConfigurer configurer,
+            ConsumerFactory<Object, Object> kafkaConsumerFactory) {
+
+        final var factory = new ConcurrentKafkaListenerContainerFactory<Object, Object>();
+        configurer.configure(factory, kafkaConsumerFactory);
+        factory.setCommonErrorHandler(RepeatUntilStored.errorHandler());
+        return factory;
+
     }
 
     @Bean
