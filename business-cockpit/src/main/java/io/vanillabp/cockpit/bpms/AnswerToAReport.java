@@ -10,9 +10,10 @@ import org.springframework.http.ResponseEntity;
  * What the REST API of the BPMS side answers to a report, in the words the sender acts on.
  * <p>
  * The sender gives up a report which was answered with a status from 400 to 499, apart from 408
- * and 429, because sending it again would be refused again. It repeats a report which was answered
- * with 503 or any other status from 500 up. See decision 11 in the repository's DECISIONS.md. So the
- * cockpit answers like this:
+ * and 429, because sending it again would be refused again. It gives up a report which was answered
+ * with 501 as well, because the server does not handle such a report at all. It repeats a report
+ * which was answered with 503 or any other status from 500 up. See decision 11 in the repository's
+ * DECISIONS.md. So the cockpit answers like this:
  * <ul>
  * <li>{@code 400 Bad Request} for a report the cockpit refuses for what it says.</li>
  * <li>{@code 503 Service Unavailable} for a report the cockpit could not store for now. MongoDB was

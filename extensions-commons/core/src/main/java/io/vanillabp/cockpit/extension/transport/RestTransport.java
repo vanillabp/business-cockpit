@@ -34,7 +34,9 @@ import io.vanillabp.integration.spi.PhaseTwoRetryLater;
  * now", meaning the server is unavailable or asks to slow down, gives the entry back with the
  * time the server named. A status which says "not like this", meaning anything else the client
  * is blamed for, ends the entry. The same bytes would be refused again, and an entry retried
- * forever hides the report which is actually broken. Everything else is repeated.
+ * forever hides the report which is actually broken. A status which says "never", meaning the
+ * server does not handle this kind of report at all, ends the entry as well. Everything else is
+ * repeated.
  */
 public class RestTransport implements BusinessCockpitTransport {
 
@@ -63,6 +65,8 @@ public class RestTransport implements BusinessCockpitTransport {
   private static final int TOO_MANY_REQUESTS = 429;
 
   private static final int FIRST_SERVER_ERROR = 500;
+
+  private static final int NOT_IMPLEMENTED = 501;
 
   private static final int SERVICE_UNAVAILABLE = 503;
 
@@ -215,7 +219,10 @@ public class RestTransport implements BusinessCockpitTransport {
               now. The report waits and is sent again."""
               .formatted(what, describe(), status), retryAfterOf(failure));
     }
-    if ((status >= FIRST_CLIENT_ERROR) && (status < FIRST_SERVER_ERROR) && (status != REQUEST_TIMEOUT)) {
+    final var blamesTheClient = (status >= FIRST_CLIENT_ERROR) && (status < FIRST_SERVER_ERROR) && (status != REQUEST_TIMEOUT);
+    // 501 is a status of the server, but it says that the server does not handle this kind of
+    // report at all. It answers the same way the next time, so repeating the report cannot help
+    if (blamesTheClient || (status == NOT_IMPLEMENTED)) {
       return new PhaseTwoPermanentFailure(
           """
               Reporting %s to %s was refused with %d, and sending the same report again would be \
@@ -293,6 +300,13 @@ public class RestTransport implements BusinessCockpitTransport {
               A required field of the report is missing, or a field breaks a rule of the \
               schema. The server names the field in its answer, and its log has the warning \
               'Returning HTTP 400 Bad Request: The request is not valid: ...'.""");
+      case NOT_IMPLEMENTED -> stepsOf(
+          versions,
+          """
+              Something other than the cockpit server answered, for example a proxy which does not \
+              pass the request on. Check that '%s' points at the cockpit server, and look in the \
+              server's log whether the report arrived there at all."""
+              .formatted(ConfigurationKeys.globalKey(ConfigurationKeys.REST_BASE_URL)));
       default -> stepsOf(versions);
     };
 
