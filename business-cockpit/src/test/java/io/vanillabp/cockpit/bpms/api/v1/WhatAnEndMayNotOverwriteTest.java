@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Person;
@@ -54,14 +55,14 @@ class WhatAnEndMayNotOverwriteTest {
         when(userTaskService.reportEndedUserTask(anyString(), any(), any(), any()))
                 .thenAnswer(invocation -> {
                     ((Consumer<UserTask>) invocation.getArgument(3)).accept(endedTask);
-                    return true;
+                    return OutcomeOfStoring.upToDate();
                 });
 
         final var workflowlistService = mock(WorkflowlistService.class);
         when(workflowlistService.reportEndedWorkflow(anyString(), any(), any()))
                 .thenAnswer(invocation -> {
                     ((Consumer<Workflow>) invocation.getArgument(2)).accept(endedWorkflow);
-                    return true;
+                    return OutcomeOfStoring.upToDate();
                 });
 
         bpmsApi = new BpmsApiController();

@@ -8,8 +8,9 @@ is what the cockpit receives with, and `protobuf` is the same messages for the K
 
 Both specifications, `openapi/v1.yaml` and `openapi/v1_1.yaml`, say what the cockpit answers where a
 report does not go through, and what the sender does about it. A `400` means: change the report
-first, because the same report is refused again. A `500` or a `503` means: send the same report
-again later. The answers are described in words only. A `content` for one of them would change the
+first, because the same report is refused again. A `422` means: the cockpit understood the report
+but can never store it, so do not send it again as it is. A `500` or a `503` means: send the same
+report again later. The answers are described in words only. A `content` for one of them would change the
 Accept header the client sends.
 
 The client names its own dependencies rather than reaching them through the cockpit's `commons`

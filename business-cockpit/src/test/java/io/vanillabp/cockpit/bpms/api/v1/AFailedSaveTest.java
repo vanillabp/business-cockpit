@@ -1,11 +1,14 @@
 package io.vanillabp.cockpit.bpms.api.v1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import io.vanillabp.cockpit.bpms.LoggedErrors;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
@@ -13,11 +16,13 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.workflowlist.model.WorkflowRepository;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.bson.BsonMaximumSizeExceededException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,15 +30,23 @@ import org.slf4j.Logger;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * What version 1 of the API answers when it cannot store a report.
  * <p>
  * The sender treats {@code 400 Bad Request} as a report which can never go through and gives it up.
  * A save which failed because MongoDB was gone for a moment is no such report. Sent again, it goes
- * through. So the cockpit answers {@code 503 Service Unavailable}, which the sender repeats. The
- * tests drive the REST ingress with the generated mappers and the real services, and keep the
- * records in memory. A switch lets every save fail, the way MongoDB does when it cannot be reached.
+ * through. So the cockpit answers {@code 503 Service Unavailable}, which the sender repeats. A save
+ * MongoDB refuses every time, like one of a document larger than 16 MB, is answered with
+ * {@code 422 Unprocessable Content} and the reason, which the sender gives up. The tests drive the
+ * REST ingress with the generated mappers and the real services, and keep the records in memory. A
+ * switch lets every save fail, the way MongoDB does when it cannot be reached, and another one lets
+ * it fail the way MongoDB fails a document which is too large.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class AFailedSaveTest {
@@ -46,9 +59,15 @@ class AFailedSaveTest {
 
     private final Map<String, Workflow> workflows = new HashMap<>();
 
+    private static final JsonMapper JSON = JsonMapper.builder().build();
+
     private boolean saveFails;
 
+    private boolean documentTooLarge;
+
     private BpmsApiController bpmsApi;
+
+    private MockMvc client;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -93,12 +112,18 @@ class AFailedSaveTest {
         set(BpmsApiController.class, bpmsApi, "userTaskService", userTaskService);
         set(BpmsApiController.class, bpmsApi, "workflowlistService", workflowlistService);
 
+        client = MockMvcBuilders.standaloneSetup(bpmsApi).build();
+
     }
 
     private void failIfSwitchedOn() {
 
         if (saveFails) {
             throw new DataAccessResourceFailureException("MongoDB cannot be reached");
+        }
+        if (documentTooLarge) {
+            // what the driver throws, unchanged by Spring
+            throw new BsonMaximumSizeExceededException("Payload document size is larger than maximum of 16793600.");
         }
 
     }
@@ -322,6 +347,89 @@ class AFailedSaveTest {
         assertEquals(
                 HttpStatus.BAD_REQUEST,
                 bpmsApi.workflowCompletedEvent("workflow-1", workflowCompleted("workflow-2")).getStatusCode());
+
+    }
+
+    /** One error per report which was not stored, and none from the service besides. */
+    @Test
+    void aReportWhichCannotBeStoredForNowIsLoggedOnce(
+            final CapturedOutput output) {
+
+        saveFails = true;
+
+        assertEquals(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                bpmsApi.userTaskCreatedEvent(taskCreated("task-1")).getStatusCode());
+
+        final var errors = LoggedErrors.of(output);
+        assertEquals(1, errors.size(), String.join("\n", errors));
+        assertTrue(errors.get(0).contains(
+                "Returning HTTP 503 Service Unavailable: The user task 'task-1' could not be stored for now: "
+                        + "DataAccessResourceFailureException. The sender sends the report again."), errors.get(0));
+
+    }
+
+    /**
+     * A report MongoDB refuses every time is answered with 422, which the sender gives up. The body
+     * says why, in one line of text, and it reaches the sender through Spring MVC.
+     */
+    @Test
+    void aReportMongoDbRefusesEveryTimeIsAnsweredWith422AndTheReason(
+            final CapturedOutput output) throws Exception {
+
+        documentTooLarge = true;
+
+        final var answer = client
+                .perform(post(BpmsApiController.BPMS_API_URL_PREFIX + "/usertask/created")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(taskCreated("task-1"))))
+                .andReturn();
+
+        assertEquals(422, answer.getResponse().getStatus());
+        assertEquals(
+                "The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes for one document.",
+                answer.getResponse().getContentAsString());
+        assertTrue(answer.getResponse().getContentType().startsWith(MediaType.TEXT_PLAIN_VALUE));
+        assertEquals(Map.of(), userTasks);
+        final var errors = LoggedErrors.of(output);
+        assertEquals(1, errors.size(), String.join("\n", errors));
+        assertTrue(errors.get(0).contains("Returning HTTP 422 Unprocessable Content: The user task 'task-1' cannot be stored"),
+                errors.get(0));
+
+    }
+
+    @Test
+    void everyReportMongoDbRefusesEveryTimeIsAnsweredWith422() {
+
+        documentTooLarge = true;
+
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.userTaskUpdatedEvent("task-1", taskChanged("task-1", CHANGED_AT)).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.userTaskCompletedEvent("task-1", taskCompleted("task-1")).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.userTaskCancelledEvent("task-1", taskCancelled("task-1")).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.workflowCreatedEvent(workflowCreated("workflow-1")).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged("workflow-1", CHANGED_AT)).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.workflowCompletedEvent("workflow-1", workflowCompleted("workflow-1")).getStatusCode());
+        assertEquals(
+                HttpStatus.UNPROCESSABLE_CONTENT,
+                bpmsApi.workflowCancelledEvent("workflow-1", workflowCancelled("workflow-1")).getStatusCode());
+        assertEquals(
+                "The workflow 'workflow-1' cannot be stored: it is larger than the 16 MB MongoDB takes for one document.",
+                // the generated API declares the body as Void, so the answer is read without that type
+                ((ResponseEntity<?>) bpmsApi.workflowCreatedEvent(workflowCreated("workflow-1"))).getBody());
+        assertEquals(Map.of(), userTasks);
+        assertEquals(Map.of(), workflows);
 
     }
 

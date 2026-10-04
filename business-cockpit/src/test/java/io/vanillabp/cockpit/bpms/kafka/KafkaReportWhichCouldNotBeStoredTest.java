@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.protobuf.Timestamp;
 import io.vanillabp.cockpit.bpms.BpmsApiProperties;
+import io.vanillabp.cockpit.bpms.LoggedErrors;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
@@ -27,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -35,6 +37,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.bson.BsonMaximumSizeExceededException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +58,8 @@ import org.testcontainers.kafka.KafkaContainer;
  * and the listener containers Spring builds.
  * <p>
  * A report which is not stored has to come again, like a report over REST answered with 503. A
- * record which can never be read must not hold up the records behind it. Both are about what the
+ * record which can never be read, or whose report MongoDB refuses every time, must not hold up the
+ * records behind it. Each attempt which failed is logged as one error. Both are about what the
  * listener container does once the listener threw, and that is what a broker and a real container
  * show and a call of the listener method does not.
  * <p>
@@ -86,6 +90,9 @@ class KafkaReportWhichCouldNotBeStoredTest {
     private final AtomicInteger savesToFail = new AtomicInteger();
 
     private final AtomicInteger readsToFail = new AtomicInteger();
+
+    /** The ids of the tasks MongoDB refuses every time, as it refuses a document over 16 MB. */
+    private final Set<String> tooLarge = ConcurrentHashMap.newKeySet();
 
     private String userTaskTopic;
 
@@ -132,6 +139,10 @@ class KafkaReportWhichCouldNotBeStoredTest {
                 throw new DataAccessResourceFailureException("MongoDB is gone for a moment");
             }
             final UserTask task = invocation.getArgument(0);
+            if (tooLarge.contains(task.getId())) {
+                // what the driver throws, unchanged by Spring
+                throw new BsonMaximumSizeExceededException("Payload document size is larger than maximum of 16793600.");
+            }
             storedTasks.put(task.getId(), task);
             savedInOrder.add(task.getId());
             return task;
@@ -286,7 +297,8 @@ class KafkaReportWhichCouldNotBeStoredTest {
      * created the task as if it had never had a creation: with the time of the change as its start.
      */
     @Test
-    void aCreationWhichCouldNotBeStoredComesAgainBeforeTheChangeBehindIt() {
+    void aCreationWhichCouldNotBeStoredComesAgainBeforeTheChangeBehindIt(
+            final CapturedOutput output) {
 
         savesToFail.set(2);
 
@@ -312,6 +324,14 @@ class KafkaReportWhichCouldNotBeStoredTest {
 
         });
 
+        assertThat(LoggedErrors.of(output))
+                .as("one error per attempt which failed, and nothing from the service besides")
+                .hasSize(2)
+                .allMatch(line -> line.contains("Handing a Kafka record over again, attempt ")
+                        && line.contains("topic '" + userTaskTopic + "', partition 0, offset 0, key 'task-1'. "
+                                + "The cause: org.springframework.dao.DataAccessResourceFailureException: "
+                                + "MongoDB is gone for a moment"));
+
     }
 
     /**
@@ -319,7 +339,8 @@ class KafkaReportWhichCouldNotBeStoredTest {
      * gave up such a record after ten attempts in a row, without a pause between them.
      */
     @Test
-    void aReportWhoseReadFailedComesAgain() {
+    void aReportWhoseReadFailedComesAgain(
+            final CapturedOutput output) {
 
         readsToFail.set(3);
 
@@ -334,6 +355,48 @@ class KafkaReportWhichCouldNotBeStoredTest {
                     .untilAsserted(() -> assertThat(savedInOrder).containsExactly("task-1"));
 
         });
+
+        assertThat(LoggedErrors.of(output))
+                .as("a failed read was logged at no level above INFO before, and nobody saw why the record waited")
+                .hasSize(3)
+                .allMatch(line -> line.contains("Handing a Kafka record over again, attempt ")
+                        && line.contains("key 'task-1'. The cause: org.springframework.dao.DataAccessResourceFailureException"));
+
+    }
+
+    /**
+     * A report MongoDB refuses every time, like one larger than a document may be, fails the same
+     * way however often it comes. Repeating it held up every record behind it for good. So it is
+     * passed over with one error, which names the record and says why.
+     */
+    @Test
+    void aReportMongoDbRefusesEveryTimeIsPassedOverAndNamed(
+            final CapturedOutput output) {
+
+        tooLarge.add("task-1");
+
+        cockpit.run(context -> {
+
+            assertThat(context).hasNotFailed();
+
+            produceCreation("task-1", "Assign a driver");
+            produceCreation("task-2", "Pay the driver");
+
+            await()
+                    .atMost(ARRIVAL)
+                    .untilAsserted(() -> assertThat(savedInOrder).containsExactly("task-2"));
+
+        });
+
+        assertThat(storedTasks).doesNotContainKey("task-1");
+        assertThat(LoggedErrors.of(output))
+                .singleElement()
+                .satisfies(line -> assertThat(line).contains(
+                        "Passing over a Kafka record the cockpit cannot store: topic '"
+                                + userTaskTopic
+                                + "', partition 0, offset 0, key 'task-1'. MongoDB refuses it every time. "
+                                + "The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes "
+                                + "for one document."));
 
     }
 
@@ -359,10 +422,12 @@ class KafkaReportWhichCouldNotBeStoredTest {
 
         });
 
-        assertThat(output.getAllOfThisTest())
-                .contains("Passing over a Kafka record the cockpit cannot read: topic '"
-                        + userTaskTopic
-                        + "', partition 0, offset 0, key 'broken'");
+        assertThat(LoggedErrors.of(output))
+                .singleElement()
+                .satisfies(line -> assertThat(line).contains(
+                        "Passing over a Kafka record the cockpit cannot read: topic '"
+                                + userTaskTopic
+                                + "', partition 0, offset 0, key 'broken'"));
 
     }
 

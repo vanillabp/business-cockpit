@@ -60,6 +60,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -91,6 +93,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -180,6 +184,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden 
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -211,6 +217,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -236,6 +244,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -268,6 +278,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -300,6 +312,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -332,6 +346,8 @@ paths:
           description: You are not authorized to view the resource
         403:
           description: Accessing the resource you were trying to reach is forbidden
+        422:
+          $ref: "#/components/responses/NeverStorable"
         500:
           $ref: "#/components/responses/Unexpected"
         503:
@@ -349,6 +365,14 @@ components:
         body is one line of plain text which names each such field, for example
         "The request is not valid: 'bpmnProcessId' is missing.". Where the id in the path and the
         id in the body name different records, the body is empty.
+    NeverStorable:
+      description: >-
+        The cockpit understood the report, but MongoDB refuses to store it, and it will refuse the
+        same report every time. Nothing of the report was stored. Do not send it again as it is.
+        The body is one line of plain text which names the record and the reason, for example
+        "The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes for one
+        document.". Other reasons are a validation rule which an operator set on the collection, and
+        a key of the business data with a dot in it.
     NotNow:
       description: >-
         The cockpit could not store the report right now, for example because MongoDB could not be
