@@ -408,7 +408,7 @@ aggregate with them. A detached JPA entity throws as soon as a provider touches 
 which is what reading a case usually comes down to. A rule which turns the ordinary use of the
 parameter into an error is worse than the leak it closes.
 
-### 18. The timestamp of the event decides which report the cockpit stores - the state a report carries superseded by decision 26
+### 18. The timestamp of the event decides which report the cockpit stores - the state a report carries superseded by decision 26, what waits for its creation changed by decision 45
 
 VanillaBP's outbox gives its entries no order. It dispatches them in parallel, and an entry whose
 dispatch failed comes back after entries planned later have gone through. So the reports about one
@@ -1416,7 +1416,7 @@ instead of two. It costs agreement between the two strands, and the platform has
 chain. The default is this script, for the four cockpit repositories, until the maintainer decides
 otherwise.
 
-### 36. A change of a case the cockpit never saw created creates the case
+### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45
 
 Measured on 2026-10-03 for story 1423. Nothing was changed, the entry writes down what the server
 already does.
@@ -1673,7 +1673,7 @@ Nothing is configurable. The pauses are short enough for a MongoDB which restart
 not to flood the log. The longest pause stays well below the five minutes Kafka allows between two
 polls by default, because the container waits in the thread which polls.
 
-### 41. A report MongoDB refuses every time is given up, and every other failed save comes again
+### 41. A report MongoDB refuses every time is given up, and every other failed save comes again - a key with a dot narrowed by decision 44
 
 Decided on 2026-10-04 for story 1437. Before, every failed save was repeated: over REST with 503,
 over Kafka without end.
@@ -1841,3 +1841,128 @@ They are implemented when a sender needs them.
 A sender which repeated a report answered with 501 gives it up now. It was never stored before
 either. A server which answers 501 for a moment, and would take the report later, loses it. No
 server of the cockpit does that.
+
+### 44. A key with a dot in the business data is stored once a replacement is configured
+
+Decided on 2026-10-04 for story 1442. Before, a report whose business data had a key with a dot in
+it was always given up.
+
+Related entries: 41 (a report MongoDB refuses every time is given up). This entry narrows 41. Its
+list of failures which come back every time names a key with a dot, and says that the cockpit
+configures no replacement for the dot. That stays true by default, and it stops being true where the
+new property is set. Whoever moves this entry into the log adds a note to the heading of 41, in the
+form the log uses already, like "- a key with a dot changed by decision <n>".
+
+A dot in a key is not forbidden. The business data, `details`, is a map the workflow module fills,
+and a key like `order.id` is a normal thing to put there. MongoDB reads a dot in a path as a step
+into a nested document, so Spring Data refuses such a key unless it is told what to write instead.
+
+Now the cockpit offers that as a property, `business-cockpit.mongodb.map-key-dot-replacement`. It is
+unset by default, so nothing changes for an installation which does not set it. Where it is set,
+`MongoDbConfiguration` hands it to the converter of the cockpit's `MongoTemplate`, and Spring Data
+writes the replacement instead of each dot. It turns the replacement back into a dot when it reads
+the record. Nested maps are handled the same way.
+
+#### What it costs
+
+Two things, and every text which offers the property names both:
+
+- Search and sorting see what is stored. A column or a filter has to name the key in its stored
+  form, like `details.order~id` for the replacement `~`. The path with the dot finds nothing.
+- The way back is not exact. A key which holds the replacement already comes back with a dot in its
+  place.
+
+The full-text search is not affected, because the workflow module fills `detailsFulltextSearch`
+itself. The changesets do not read `details`.
+
+#### Where the property is named
+
+A report with such a key is still given up where the property is not set, with `422` over REST and
+passed over on Kafka, as 41 says. The reason in the body and in the error of the log now names the
+key, the property, an example value and both costs. It stays one line, so the sender's log shows it.
+
+The description of `details` in both specifications of the BPMS API says the same, and so does
+`apis/bpms-api/README.md`. That changes nothing in the generated code but its Javadoc and its
+`@Schema` annotations.
+
+#### What a value has to be
+
+A value which cannot work stops the start, because somebody set it to have such reports stored, and
+a cockpit which ignored it would give them up without a word at the start. `StartupConfigurationCheck`
+checks it before the first bean is built, and a failure analyzer shows the reason, the property and
+a value to copy. These values are refused:
+
+- an empty value, or one of nothing but spaces. Every dot would be dropped or become a space.
+- a value with a dot. The stored key would have a dot again.
+- a value with a `$`. MongoDB reads a field name which starts with `$` as an operator.
+- a value with the character NUL, which MongoDB does not take in a field name.
+
+#### Why not keep the dot
+
+Spring Data can also write the key as it is (`preserveMapKeys`), and MongoDB takes that since
+version 5. But every path in the cockpit is a chain of dots: the search, the word suggestions, the
+sorting with its index, the user interface, and the columns a workflow module declares. None of them
+would reach such a key. Only `$getField` in an expression does, and the cockpit builds that nowhere.
+`AKeyWithADotInTheDetailsTest` measures both settings.
+
+### 45. An end which arrives alone gives the record a start, and says which start where it can
+
+Decided on 2026-10-04 for story 1429. Before, a user task or a case which the cockpit knew from its
+end alone had no `createdAt`, and the user interface got a record without the start its schema
+requires.
+
+Related entries: 18 (the timestamp of the event decides which report the cockpit stores), 36 (a
+change of a case the cockpit never saw created creates the case). This entry narrows 36 and changes
+one paragraph of 18. 36 says that only a case without `createdAt` waits for its creation, and 18
+says that a record held from an end alone is recognizable by its empty `createdAt`. Neither is true
+any longer: such a record has a start now, and a property of its own says that it waits. Whoever
+moves this entry into the log adds a note to the headings of 18 and 36, in the form the log uses
+already, like "- a record known from its end alone changed by decision <n>".
+
+The schema of the user interface, `apis/official-gui-api/openapi/v1.yaml`, requires `createdAt` on
+`UserTask` and on `Workflow`. Measured before the change against the running application: a
+completion which reached the cockpit alone left a task and a case whose answer of the GUI API had
+no `createdAt` at all, because the server leaves empty fields out. The generated client turns that
+into an invalid date. The schema stays as it is, and the server fills the field instead.
+
+#### The end may say when the record began
+
+The four ends of the BPMS API, `UserTaskCompletedEvent`, `UserTaskCancelledEvent`,
+`WorkflowCompletedEvent` and `WorkflowCancelledEvent`, have an optional `createdAt` now, in
+version 1 and version 1.1. The Kafka messages have `created_at`: the four messages of version 1,
+and the two created-or-updated messages version 1.1 sends ends with, where it is read only from an
+end. The field is additive. A sender which does not fill it is not affected, and the generated
+client and server only gain a property.
+
+Where an end creates the record (decision 18), the server sets `createdAt` from that field. Where the
+field is empty, it takes the timestamp of the end. The end is the earliest moment the cockpit knows
+of, and a record without a start would break the user interface. The last paragraph of decision 18
+said that guessing would make the same case look different depending on which report came first.
+That is still the cost, and it is now limited to an end which does not say when the record began.
+
+#### What still waits for its creation
+
+The empty `createdAt` used to be the mark of a record which waits for its creation. That mark is
+`knownFromItsEndAlone` now, a property of `UserTask` and `Workflow` which only an end that creates the
+record sets. The creation still fills in what the end could not report (decision 18), and its own
+start replaces the one of the end. Where the end reported the start, the two are the same, so a
+creation which arrives later changes nothing about the start. A change which creates a record
+(decision 36) does not set the property, so a creation after it still stores nothing.
+
+A changeset gives the records stored the old way their end as their start and sets the property, so
+they still take their creation. Where the end is missing too, it takes the latest event the cockpit
+knows of, and then the moment the cockpit stored the record.
+
+#### Who fills the field
+
+`extensions-commons` takes the start from the answer of the BPMS half: `UserTaskDetailsPrefill` and
+`WorkflowDetailsPrefill` have an optional `createdAt`, and only the report of an end sends it. Both
+keep their constructors without the field, so a half which does not fill it needs no change. A half
+fills it where the event it reports carries the start, and leaves it empty where it could only ask
+the engine, because a read at that moment is what decision 26 ruled out.
+
+#### What it costs
+
+A record known from its end alone, whose end does not say when it began, shows its end as its start
+until the creation arrives. If the creation never arrives, that stays so. Before, such a record
+broke the user interface.
