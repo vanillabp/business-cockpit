@@ -1501,7 +1501,7 @@ A client which sent different ids got `200 OK` before and gets `400 Bad Request`
 client did not get what it asked for before either, because its report was stored under the id it
 did not use for the next report.
 
-### 38. A report the cockpit could not store is answered with 503
+### 38. A report the cockpit could not store is answered with 503 - the Kafka way in changed by decision 40
 
 Decided on 2026-10-03 for story 1433. Before, the server answered such a report with `400 Bad
 Request`.
@@ -1607,3 +1607,68 @@ for the simulator under `development/simulator`, which uses the handler with the
 
 A client which read 500 as "invalid" reads 400 now, with a body which names the field instead of
 the message of an exception.
+
+### 40. A report from Kafka the cockpit could not store comes again until it is stored
+
+Decided on 2026-10-03 for story 1435. Before, such a report was lost.
+
+Related entries: 11 (what a sender repeats), 36 (a change of a case the cockpit never saw creates
+the case), 38 (a report the cockpit could not store is answered with 503). This entry does for the Kafka
+way in what 38 does for REST. The part of 38 headed "What is not changed" describes the Kafka way in
+as it was before this entry. Whoever moves this entry into the log decides whether that paragraph
+gets a note which points here.
+
+The Kafka listeners of the cockpit did not read the answer of the service. A save which failed was
+logged, the listener returned, and the offset of the record was committed. A read from MongoDB which
+threw went to the error handler Spring Kafka uses when nobody configures one. That handler tries a
+record ten times in a row, without a pause, and then passes over it. Either way, a MongoDB which was
+gone for a few seconds cost a report for good.
+
+Now a listener throws where the service answers that it could not store the report. The three
+listeners run in a listener container factory of their own, `businessCockpitKafkaListenerContainerFactory`.
+Its error handler, `RepeatUntilStored`, hands the same record to the listener again, after a pause
+which starts at one second, doubles each time and stops growing at one minute. There is no last
+attempt. The factory is built with the Kafka settings of Spring Boot, so `spring.kafka.*` applies to
+it as before. Other listeners of an application derived from the cockpit keep the factory and the
+error handler of Spring Boot.
+
+#### Why no dead-letter topic
+
+A workflow module sends every report about one task or one case with its id as the key. So all of
+them sit on one partition, in the order they were sent. A report parked on a topic of its own lets
+the reports behind it overtake it. Decision 36 shows what that costs: a change which overtakes the
+creation creates the case, and the creation which comes later stores nothing. The case then starts
+at the time of the change. Repeating the report in place keeps the order.
+
+The price is that one partition stops while MongoDB is gone. Nothing behind the record could be
+stored anyway, because all of it goes to the same MongoDB.
+
+#### What is repeated and what is passed over
+
+Only a failure of storing is repeated: the answer of the service that the save failed, and an
+exception of Spring's data access or of the MongoDB driver anywhere in the causes. Everything else
+is about the record itself. That is bytes which are not a protobuf message, an event type this
+cockpit does not know, or a field the mapping cannot take. Such a record fails the same way each
+time, and repeating it would stop the partition for good. So it is passed over at once, and the log
+gets an error which starts with `Passing over a Kafka record the cockpit cannot read` and names the
+topic, the partition, the offset and the key, so that somebody can find it on the topic.
+
+#### Why a report repeated does not count twice
+
+A report which was not stored left nothing behind. When it comes again it is weighed against what is
+stored, like any report (decision 18 and decision 26): a creation of a record the cockpit holds
+stores nothing, a change older than what is stored is dropped, and an end of a record which has
+ended changes nothing. A record which was stored and still comes again, because the commit of its
+offset was lost, is weighed the same way.
+
+#### What it costs
+
+The listener and the error handler log an error each time a report fails, so a MongoDB which is gone
+for an hour writes about sixty errors per listener. A record whose save fails for a reason which
+never goes away, like a document larger than MongoDB takes, stops its partition until somebody acts.
+The REST way in answers the same case with 503 and its sender repeats it as well, until its outbox
+blocks the entry.
+
+Nothing is configurable. The pauses are short enough for a MongoDB which restarts, and long enough
+not to flood the log. The longest pause stays well below the five minutes Kafka allows between two
+polls by default, because the container waits in the thread which polls.
