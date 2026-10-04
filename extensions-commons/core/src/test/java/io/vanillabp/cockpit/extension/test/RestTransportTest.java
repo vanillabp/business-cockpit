@@ -294,6 +294,9 @@ public class RestTransportTest {
     assertFalse(
         message.contains("credentials"),
         "a 400 is no answer to credentials, so the message must not send anybody there");
+    assertFalse(
+        message.contains("Something other than the cockpit server answered"),
+        "only a 501 points at something else answering instead of the cockpit server");
 
   }
 
@@ -385,6 +388,27 @@ public class RestTransportTest {
 
     assertTrue(PhaseTwoPermanentFailure.isPermanent(failure));
     assertTrue(failure.getMessage().contains("Check this:\n1. The workflow module"), failure.getMessage());
+
+  }
+
+  @Test
+  @DisplayName("A cockpit server which does not handle the report ends the entry and says why")
+  public void aReportTheServerDoesNotHandleIsGivenUp() {
+
+    status = 501;
+
+    final var failure = assertThrows(
+        RuntimeException.class,
+        () -> transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.UPDATED)));
+
+    assertTrue(
+        PhaseTwoPermanentFailure.isPermanent(failure),
+        "a report the server does not handle would have been repeated until the outbox blocked it");
+    final var message = failure.getMessage();
+    assertTrue(message.contains("was refused with 501"), message);
+    assertTrue(message.contains("\n1. The workflow module and the cockpit server speak"), message);
+    assertTrue(message.contains("\n2. Something other than the cockpit server answered"), message);
+    assertTrue(message.contains("'vanillabp.cockpit.rest.base-url'"), message);
 
   }
 

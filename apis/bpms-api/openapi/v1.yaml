@@ -104,6 +104,10 @@ paths:
       tags:
         - bpms
       summary: processes a user task SUSPENDED event
+      description: >-
+        Not implemented. The cockpit answers every such report with 501 and stores nothing of it.
+        No integration of the cockpit sends it. Do not send it again, because the answer stays the
+        same.
       operationId: userTaskSuspendedEvent
       parameters:
         - in: path
@@ -128,11 +132,17 @@ paths:
           description: Accessing the resource you were trying to reach is forbidden 
         500:
           $ref: "#/components/responses/Unexpected"
+        501:
+          $ref: "#/components/responses/NotImplemented"
   /usertask/{userTaskId}/activated:
     post:
       tags:
         - bpms
       summary: processes a user task ACTIVATED event
+      description: >-
+        Not implemented. The cockpit answers every such report with 501 and stores nothing of it.
+        No integration of the cockpit sends it. Do not send it again, because the answer stays the
+        same.
       operationId: userTaskActivatedEvent
       parameters:
         - in: path
@@ -157,6 +167,8 @@ paths:
           description: Accessing the resource you were trying to reach is forbidden 
         500:
           $ref: "#/components/responses/Unexpected"
+        501:
+          $ref: "#/components/responses/NotImplemented"
   /usertask/{userTaskId}/completed:
     post:
       tags:
@@ -384,6 +396,11 @@ components:
         Something went wrong which the cockpit did not expect, for example a read from MongoDB
         which failed before anything was stored. Send the same request again later. If it keeps
         failing, the body holds the message of the error, and the log of the cockpit has the rest.
+    NotImplemented:
+      description: >-
+        The cockpit knows the path of this report but does nothing with it. Nothing of the report
+        was stored. Do not send it again, because the cockpit answers the same report the same way
+        every time.
   schemas:
     UiUriType:
       type: string
