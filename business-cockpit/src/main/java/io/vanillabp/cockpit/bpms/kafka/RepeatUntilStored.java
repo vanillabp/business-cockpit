@@ -161,7 +161,7 @@ public final class RepeatUntilStored {
         if (cannotBeStored != null) {
             logger.error(
                     "Passing over a Kafka record the cockpit cannot store: topic '{}', partition {}, offset {}, key '{}'. "
-                            + "MongoDB refuses it every time. {}",
+                            + "Storing it fails the same way each time. {}",
                     record.topic(),
                     record.partition(),
                     record.offset(),
