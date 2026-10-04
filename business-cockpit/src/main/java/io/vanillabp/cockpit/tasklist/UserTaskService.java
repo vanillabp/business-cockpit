@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.tasklist;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
+import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
@@ -749,9 +750,10 @@ public class UserTaskService {
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the workflow module created the task, by its own clock
      * @param asReported The task as the report describes it
-     * @return Whether the cockpit is up to date about the task
+     * @return Whether the cockpit is up to date about the task, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportCreatedUserTask(
+    public OutcomeOfStoring reportCreatedUserTask(
             final String userTaskId,
             final OffsetDateTime eventTimestamp,
             final Supplier<UserTask> asReported) {
@@ -763,7 +765,7 @@ public class UserTaskService {
 
         if (stored.getCreatedAt() != null) {
             reportChangesNothing(userTaskId, "creation", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         final var task = asReported.get();
@@ -797,9 +799,10 @@ public class UserTaskService {
      * @param eventTimestamp When the change happened, by the workflow module's clock
      * @param asReported The task as the report describes it, for a task the cockpit does not hold
      * @param ontoStored Lays the report onto the task the cockpit holds
-     * @return Whether the cockpit is up to date about the task
+     * @return Whether the cockpit is up to date about the task, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportChangedUserTask(
+    public OutcomeOfStoring reportChangedUserTask(
             final String userTaskId,
             final OffsetDateTime eventTimestamp,
             final Supplier<UserTask> asReported,
@@ -814,7 +817,7 @@ public class UserTaskService {
 
         if (OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
             reportChangesNothing(userTaskId, "change", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         // a change never reopens a task: an end is mapped onto neither 'endedAt' nor 'endReason'
@@ -839,9 +842,10 @@ public class UserTaskService {
      * @param eventTimestamp When the task ended, by the workflow module's clock
      * @param endReason Whether the task was completed or cancelled
      * @param ontoStored Lays the report onto the task the cockpit holds, or onto an empty one
-     * @return Whether the cockpit is up to date about the task
+     * @return Whether the cockpit is up to date about the task, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportEndedUserTask(
+    public OutcomeOfStoring reportEndedUserTask(
             final String userTaskId,
             final OffsetDateTime eventTimestamp,
             final UserTaskEndReason endReason,
@@ -861,7 +865,7 @@ public class UserTaskService {
 
         if (stored.getEndedAt() != null) {
             reportChangesNothing(userTaskId, "end", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         if (!OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
@@ -925,7 +929,7 @@ public class UserTaskService {
     }
 
     /** A user task the cockpit stores for the first time. */
-    private boolean storeReportedUserTask(
+    private OutcomeOfStoring storeReportedUserTask(
             final UserTask userTask,
             final OffsetDateTime eventTimestamp) {
 
@@ -941,19 +945,18 @@ public class UserTaskService {
 
     }
 
-    private boolean save(
+    private OutcomeOfStoring save(
             final UserTask userTask) {
 
         keepSortableByDueDate(userTask);
 
         try {
             userTasks.save(userTask);
-            return true;
+            return OutcomeOfStoring.upToDate();
         } catch (Exception e) {
-            logger.error("Could not save user task '{}'!",
-                    userTask.getId(),
-                    e);
-            return false;
+            // not logged here: the way the report came in logs it once, with what it knows of the
+            // report besides, and says what happens to it next
+            return OutcomeOfStoring.saveFailed("user task '" + userTask.getId() + "'", e);
         }
 
     }

@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.workflowlist;
 import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
+import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
 import io.vanillabp.cockpit.util.SearchQuery;
@@ -126,9 +127,10 @@ public class WorkflowlistService {
      * @param workflowId The case the report is about
      * @param eventTimestamp When the workflow module started the case, by its own clock
      * @param asReported The case as the report describes it
-     * @return Whether the cockpit is up to date about the case
+     * @return Whether the cockpit is up to date about the case, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportCreatedWorkflow(
+    public OutcomeOfStoring reportCreatedWorkflow(
             final String workflowId,
             final OffsetDateTime eventTimestamp,
             final Supplier<Workflow> asReported) {
@@ -140,7 +142,7 @@ public class WorkflowlistService {
 
         if (stored.getCreatedAt() != null) {
             reportChangesNothing(workflowId, "creation", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         final var workflow = asReported.get();
@@ -170,9 +172,10 @@ public class WorkflowlistService {
      * @param eventTimestamp When the change happened, by the workflow module's clock
      * @param asReported The case as the report describes it, for a case the cockpit does not hold
      * @param ontoStored Lays the report onto the case the cockpit holds
-     * @return Whether the cockpit is up to date about the case
+     * @return Whether the cockpit is up to date about the case, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportChangedWorkflow(
+    public OutcomeOfStoring reportChangedWorkflow(
             final String workflowId,
             final OffsetDateTime eventTimestamp,
             final Supplier<Workflow> asReported,
@@ -187,7 +190,7 @@ public class WorkflowlistService {
 
         if (OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
             reportChangesNothing(workflowId, "change", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         // a change never reopens a case: an end is mapped onto 'endedAt' by neither mapper
@@ -211,9 +214,10 @@ public class WorkflowlistService {
      * @param workflowId The case the report is about
      * @param eventTimestamp When the case ended, by the workflow module's clock
      * @param ontoStored Lays the report onto the case the cockpit holds, or onto an empty one
-     * @return Whether the cockpit is up to date about the case
+     * @return Whether the cockpit is up to date about the case, and if not, whether the same
+     *         report can go through when it comes again
      */
-    public boolean reportEndedWorkflow(
+    public OutcomeOfStoring reportEndedWorkflow(
             final String workflowId,
             final OffsetDateTime eventTimestamp,
             final Consumer<Workflow> ontoStored) {
@@ -232,7 +236,7 @@ public class WorkflowlistService {
 
         if (stored.getEndedAt() != null) {
             reportChangesNothing(workflowId, "end", eventTimestamp, stored);
-            return true;
+            return OutcomeOfStoring.upToDate();
         }
 
         if (!OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
@@ -267,7 +271,7 @@ public class WorkflowlistService {
     }
 
     /** A case the cockpit stores for the first time. */
-    private boolean storeReportedWorkflow(
+    private OutcomeOfStoring storeReportedWorkflow(
             final Workflow workflow,
             final OffsetDateTime eventTimestamp) {
 
@@ -279,17 +283,16 @@ public class WorkflowlistService {
 
     }
 
-    private boolean save(
+    private OutcomeOfStoring save(
             final Workflow workflow) {
 
         try {
             workflowRepository.save(workflow);
-            return true;
+            return OutcomeOfStoring.upToDate();
         } catch (Exception e) {
-            logger.error("Could not save workflow '{}'!",
-                    workflow.getId(),
-                    e);
-            return false;
+            // not logged here: the way the report came in logs it once, with what it knows of the
+            // report besides, and says what happens to it next
+            return OutcomeOfStoring.saveFailed("workflow '" + workflow.getId() + "'", e);
         }
 
     }
