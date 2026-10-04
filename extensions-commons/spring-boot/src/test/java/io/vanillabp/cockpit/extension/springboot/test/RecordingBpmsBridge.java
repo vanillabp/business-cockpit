@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -51,6 +52,12 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   private final List<Boolean> tasksLookedUpInATransaction = new CopyOnWriteArrayList<>();
 
+  private final AtomicBoolean namesWorkflowsRightAway = new AtomicBoolean(true);
+
+  private final AtomicInteger workflowsStillUnwritten = new AtomicInteger();
+
+  private final AtomicInteger workflowLookups = new AtomicInteger();
+
   @Override
   public String adapterId() {
 
@@ -90,6 +97,39 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
+   * @param rightAway Whether this engine names the workflows of a changed aggregate in the
+   *          application's transaction. A test switches it off to play a BPMS which writes a
+   *          storage behind its engine, the way Camunda 8 does
+   */
+  public void namesWorkflowsRightAway(
+      final boolean rightAway) {
+
+    namesWorkflowsRightAway.set(rightAway);
+
+  }
+
+  /**
+   * @param lookups How many of the next lookups of the workflows of an aggregate answer nothing,
+   *          the way a storage answers while its exporter is behind
+   */
+  public void writesTheWorkflowAfter(
+      final int lookups) {
+
+    workflowsStillUnwritten.set(lookups);
+
+  }
+
+  /**
+   * @return How often the extension asked for the workflows of an aggregate since the last
+   *         {@link #forgetLookups()}
+   */
+  public int workflowLookups() {
+
+    return workflowLookups.get();
+
+  }
+
+  /**
    * @return Every task the extension asked about, in order
    */
   public List<UserTaskReference> userTasksRead() {
@@ -117,6 +157,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   public void forgetLookups() {
 
     tasksLookedUpInATransaction.clear();
+    workflowLookups.set(0);
 
   }
 
@@ -163,10 +204,28 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final String bpmnProcessId,
       final String workflowAggregateId) {
 
+    workflowLookups.incrementAndGet();
+    if (workflowsStillUnwritten.getAndUpdate(lookups -> Math.max(0, lookups - 1)) > 0) {
+      return List.of();
+    }
     return List
         .of(
             new WorkflowReference(
                 ADAPTER_ID, workflowModuleId, bpmnProcessId, PROCESS_VERSION, workflowAggregateId, WORKFLOW_ID));
+
+  }
+
+  @Override
+  public Optional<List<WorkflowReference>> workflowsOfAggregateRightAway(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String workflowAggregateId) {
+
+    if (!namesWorkflowsRightAway.get()) {
+      return Optional.empty();
+    }
+    return BusinessCockpitBpmsBridge.super.workflowsOfAggregateRightAway(workflowModuleId, bpmnProcessId,
+        workflowAggregateId);
 
   }
 

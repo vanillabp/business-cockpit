@@ -15,7 +15,7 @@ import java.util.Optional;
  * The neutral half owns the event model, the details providers, the templating and the
  * transports, and it knows no engine. This interface is everything it asks an engine for, and
  * it is kept small: five questions, each about one workflow or one user task named by
- * identifiers.
+ * identifiers, and a sixth with a default, {@link #workflowsOfAggregateRightAway}.
  * <p>
  * <b>When these methods run.</b> The two <code>prefilled…</code> methods are called at the
  * moment of the event, inside the transaction it arrived in, while the report is being put
@@ -31,7 +31,8 @@ import java.util.Optional;
  * <p>
  * The three <code>…OfAggregate</code> methods are called from
  * <code>io.vanillabp.spi.cockpit.BusinessCockpitService</code>. The two which serve a report
- * run inside the transaction the application was in. <code>userTaskOfAggregate</code> runs
+ * run inside the transaction the application was in, except for a change which is resolved
+ * when its entry is dispatched (see below). <code>userTaskOfAggregate</code> runs
  * inside that one, or inside a transaction the extension opened where the application brought
  * none. None of them may assume an engine transaction is open.
  * <p>
@@ -49,9 +50,21 @@ import java.util.Optional;
  * identifiers and without business data, because a report which never arrives leaves a task
  * the cockpit shows as open for good.</li>
  * </ol>
- * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> is no answer here any more.
- * It asked for an entry to be dispatched again, and at the moment of the event there is no
- * entry yet. A half throwing it reads a message saying so.
+ * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> is no answer at the moment of an
+ * event. It asks for an entry to be dispatched again, and at that moment there is no entry yet.
+ * A half throwing it there reads a message saying so. The one place where it is an answer is a
+ * change which is resolved when its entry is dispatched, see
+ * {@link #workflowsOfAggregateRightAway}.
+ * <p>
+ * <b>A change which is resolved later.</b> <code>aggregateChanged(aggregate)</code> runs in the
+ * transaction of the application. A half whose engine publishes what it holds through a storage
+ * written behind the engine cannot always name the workflows of a case there, because that
+ * storage may not hold them yet. Such a half says so through
+ * {@link #workflowsOfAggregateRightAway}. The extension then writes an entry without a report,
+ * and when the entry is dispatched it calls {@link #workflowsOfAggregate} and
+ * {@link #prefilledWorkflowDetails}. An empty answer there means "not yet", and the extension
+ * tries again for a while. See decision 26 in the repository's DECISIONS.md for where a report
+ * is built.
  * <p>
  * <b>What an empty answer of the three <code>…OfAggregate</code> methods means.</b> That this
  * BPMS says nothing about the task or the workflow which was asked about. It is silence and not
@@ -124,6 +137,43 @@ public interface BusinessCockpitBpmsBridge {
       String workflowModuleId,
       String bpmnProcessId,
       String workflowAggregateId);
+
+  /**
+   * The workflows of one workflow aggregate, as far as this half can name them in the
+   * application's transaction without reading anything which may not be written yet.
+   * <p>
+   * <code>BusinessCockpitService.aggregateChanged(aggregate)</code> asks this first. Where the
+   * answer is present, the report is built right away, as for every other event, and
+   * {@link #prefilledWorkflowDetails} is asked for each workflow in the same transaction. So a
+   * half which answers here also promises that <code>prefilledWorkflowDetails</code> needs no
+   * such read for these workflows.
+   * <p>
+   * Where the answer is empty, the extension writes an entry which carries no report. When that
+   * entry is dispatched, it calls {@link #workflowsOfAggregate} and
+   * <code>prefilledWorkflowDetails</code>, and the application's details provider runs in the
+   * transaction of the dispatch. An empty answer of either is read as "not written yet", and the
+   * entry is dispatched again a little later, for up to ten minutes. An exception travels on to
+   * the outbox, which tries again with its own backoff.
+   * <p>
+   * The default answers what {@link #workflowsOfAggregate} answers. That is right for an engine
+   * which answers inside the caller's transaction, and for a half which keeps what its own node
+   * was served.
+   *
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The primary BPMN process of the aggregate
+   * @param workflowAggregateId The aggregate's id, serialized
+   * @return The workflows, or {@link Optional#empty()} where this half needs a read which may not
+   *         be possible yet. A present but empty list is silence, as at
+   *         {@link #workflowsOfAggregate}
+   */
+  default Optional<List<WorkflowReference>> workflowsOfAggregateRightAway(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String workflowAggregateId) {
+
+    return Optional.of(workflowsOfAggregate(workflowModuleId, bpmnProcessId, workflowAggregateId));
+
+  }
 
   /**
    * The user tasks of one workflow aggregate this BPMS holds, which is what
