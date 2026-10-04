@@ -29,7 +29,8 @@ public class KafkaUserTaskController {
         this.userTaskService = userTaskService;
     }
 
-    @KafkaListener(topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.user-task}",
+    @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
+            topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.user-task}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
     public void consumeUserTaskEvent(ConsumerRecord<String, byte[]> record) {
@@ -87,10 +88,11 @@ public class KafkaUserTaskController {
     }
 
     private void handleUserTaskCreatedV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        userTaskService.reportCreatedUserTask(
+        final var upToDate = userTaskService.reportCreatedUserTask(
                 userTaskCreatedOrUpdated.getUserTaskId(),
                 ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
                 () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated));
+        storedOrThrow(userTaskCreatedOrUpdated.getUserTaskId(), upToDate);
     }
 
     private void handleUserTaskCreatedV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
@@ -98,12 +100,13 @@ public class KafkaUserTaskController {
     }
 
     private void handleUserTaskUpdateEventV1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
-        userTaskService.reportChangedUserTask(
+        final var upToDate = userTaskService.reportChangedUserTask(
                 userTaskCreatedOrUpdated.getUserTaskId(),
                 ProtobufHelper.map(userTaskCreatedOrUpdated.getTimestamp()),
                 // an update for a task the cockpit never saw creates it, mirroring the REST API
                 () -> protobufUserTaskMapper.toNewTask(userTaskCreatedOrUpdated),
                 task -> protobufUserTaskMapper.toUpdatedTask(userTaskCreatedOrUpdated, task));
+        storedOrThrow(userTaskCreatedOrUpdated.getUserTaskId(), upToDate);
     }
 
     private void handleUserTaskUpdateEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCreatedOrUpdated) {
@@ -121,7 +124,7 @@ public class KafkaUserTaskController {
      * task, whatever the reporting side leaves out.
      */
     private void handleUserTaskCompletedEventV1(UserTaskCompletedEvent userTaskCompleted) {
-        userTaskService.reportEndedUserTask(
+        final var upToDate = userTaskService.reportEndedUserTask(
                 userTaskCompleted.getUserTaskId(),
                 ProtobufHelper.map(userTaskCompleted.getTimestamp()),
                 UserTaskEndReason.COMPLETED,
@@ -129,21 +132,23 @@ public class KafkaUserTaskController {
                 // completed by the process); read by the notification poller
                 task -> task.setInitiator(
                         userTaskCompleted.hasInitiator() ? userTaskCompleted.getInitiator() : null));
+        storedOrThrow(userTaskCompleted.getUserTaskId(), upToDate);
     }
 
     private void handleUserTaskCompletedEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCompleted) {
 
-        userTaskService.reportEndedUserTask(
+        final var upToDate = userTaskService.reportEndedUserTask(
                 userTaskCompleted.getUserTaskId(),
                 ProtobufHelper.map(userTaskCompleted.getTimestamp()),
                 UserTaskEndReason.COMPLETED,
                 task -> protobufUserTaskMapper.toEndedTask(userTaskCompleted, task));
+        storedOrThrow(userTaskCompleted.getUserTaskId(), upToDate);
 
     }
 
     /** @see #handleUserTaskCompletedEventV1(UserTaskCompletedEvent) */
     private void handleUserTaskCancelledEventV1(UserTaskCancelledEvent userTaskCancelledEvent) {
-        userTaskService.reportEndedUserTask(
+        final var upToDate = userTaskService.reportEndedUserTask(
                 userTaskCancelledEvent.getUserTaskId(),
                 ProtobufHelper.map(userTaskCancelledEvent.getTimestamp()),
                 UserTaskEndReason.CANCELLED,
@@ -152,15 +157,31 @@ public class KafkaUserTaskController {
                             userTaskCancelledEvent.hasInitiator() ? userTaskCancelledEvent.getInitiator() : null);
                     task.setComment(userTaskCancelledEvent.getComment());
                 });
+        storedOrThrow(userTaskCancelledEvent.getUserTaskId(), upToDate);
     }
 
     private void handleUserTaskCancelledEventV1_1(UserTaskCreatedOrUpdatedEvent userTaskCancelled) {
 
-        userTaskService.reportEndedUserTask(
+        final var upToDate = userTaskService.reportEndedUserTask(
                 userTaskCancelled.getUserTaskId(),
                 ProtobufHelper.map(userTaskCancelled.getTimestamp()),
                 UserTaskEndReason.CANCELLED,
                 task -> protobufUserTaskMapper.toEndedTask(userTaskCancelled, task));
+        storedOrThrow(userTaskCancelled.getUserTaskId(), upToDate);
+
+    }
+
+    /**
+     * A record whose report could not be stored is not consumed. The exception makes the listener
+     * container hand it over again, see {@link RepeatUntilStored}.
+     */
+    private static void storedOrThrow(
+            final String id,
+            final boolean upToDate) {
+
+        if (!upToDate) {
+            throw new ReportNotStoredException("user task", id);
+        }
 
     }
 

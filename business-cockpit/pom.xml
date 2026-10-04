@@ -315,6 +315,15 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!--
+        What the listener containers do with a record whose listener threw needs a broker which hands
+        the record on again. The version comes from the testcontainers BOM, like the one above.
+      -->
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <!-- a change stream is polled, so what it delivers is awaited and not asserted right away -->
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>

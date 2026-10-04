@@ -27,7 +27,8 @@ public class KafkaWorkflowController {
         this.workflowMapper = workflowMapper;
     }
 
-    @KafkaListener(topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow}",
+    @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
+            topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",
             groupId = KAFKA_CONSUMER_PREFIX + "-${" + BpmsApiProperties.PREFIX + ".kafka.group-id-suffix}")
     public void consumeWorkflowEvent(ConsumerRecord<String, byte[]> record) {
@@ -84,10 +85,11 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowCreatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        workflowlistService.reportCreatedWorkflow(
+        final var upToDate = workflowlistService.reportCreatedWorkflow(
                 workflowCreatedOrUpdatedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
                 () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent));
+        storedOrThrow(workflowCreatedOrUpdatedEvent.getWorkflowId(), upToDate);
     }
 
     private void handleWorkflowCreatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
@@ -95,12 +97,13 @@ public class KafkaWorkflowController {
     }
 
     private void handleWorkflowUpdatedEventV1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
-        workflowlistService.reportChangedWorkflow(
+        final var upToDate = workflowlistService.reportChangedWorkflow(
                 workflowCreatedOrUpdatedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCreatedOrUpdatedEvent.getTimestamp()),
                 // an update for a workflow the cockpit never saw creates it, mirroring the REST API
                 () -> workflowMapper.toNewWorkflow(workflowCreatedOrUpdatedEvent),
                 workflow -> workflowMapper.toUpdatedWorkflow(workflowCreatedOrUpdatedEvent, workflow));
+        storedOrThrow(workflowCreatedOrUpdatedEvent.getWorkflowId(), upToDate);
     }
 
     private void handleWorkflowUpdatedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCreatedOrUpdatedEvent) {
@@ -113,36 +116,54 @@ public class KafkaWorkflowController {
      * still on its way and fills the rest in when it arrives.
      */
     private void handleWorkflowCompletedEventV1(WorkflowCompletedEvent workflowCompletedEvent) {
-        workflowlistService.reportEndedWorkflow(
+        final var upToDate = workflowlistService.reportEndedWorkflow(
                 workflowCompletedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
                 // version 1 reports nothing about a completed case but that it completed
                 workflow -> { });
+        storedOrThrow(workflowCompletedEvent.getWorkflowId(), upToDate);
     }
 
     private void handleWorkflowCompletedEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCompletedEvent) {
 
-        workflowlistService.reportEndedWorkflow(
+        final var upToDate = workflowlistService.reportEndedWorkflow(
                 workflowCompletedEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCompletedEvent.getTimestamp()),
                 workflow -> workflowMapper.toEndedWorkflow(workflowCompletedEvent, workflow));
+        storedOrThrow(workflowCompletedEvent.getWorkflowId(), upToDate);
 
     }
 
     /** @see #handleWorkflowCompletedEventV1(WorkflowCompletedEvent) */
     private void handleWorkflowCancelledEventV1(WorkflowCancelledEvent workflowCancelledEvent) {
-        workflowlistService.reportEndedWorkflow(
+        final var upToDate = workflowlistService.reportEndedWorkflow(
                 workflowCancelledEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
                 workflow -> workflow.setComment(workflowCancelledEvent.getComment()));
+        storedOrThrow(workflowCancelledEvent.getWorkflowId(), upToDate);
     }
 
     private void handleWorkflowCancelledEventV1_1(WorkflowCreatedOrUpdatedEvent workflowCancelledEvent) {
 
-        workflowlistService.reportEndedWorkflow(
+        final var upToDate = workflowlistService.reportEndedWorkflow(
                 workflowCancelledEvent.getWorkflowId(),
                 ProtobufHelper.map(workflowCancelledEvent.getTimestamp()),
                 workflow -> workflowMapper.toEndedWorkflow(workflowCancelledEvent, workflow));
+        storedOrThrow(workflowCancelledEvent.getWorkflowId(), upToDate);
+
+    }
+
+    /**
+     * A record whose report could not be stored is not consumed. The exception makes the listener
+     * container hand it over again, see {@link RepeatUntilStored}.
+     */
+    private static void storedOrThrow(
+            final String id,
+            final boolean upToDate) {
+
+        if (!upToDate) {
+            throw new ReportNotStoredException("workflow", id);
+        }
 
     }
 
