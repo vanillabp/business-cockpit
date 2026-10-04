@@ -7,11 +7,13 @@ import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.WriteConcernCheck;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.WriteResultChecking;
@@ -25,6 +27,9 @@ public class MongoDbConfiguration {
 
     @Autowired
     private MongoDbProperties properties;
+
+    @Autowired
+    private Environment environment;
     
     /**
      * Switches TLS on, which an integration environment needs.
@@ -62,12 +67,16 @@ public class MongoDbConfiguration {
      * The template everything of the cockpit writes through, and the earliest moment at which the
      * write concern of those writes exists. So this is where it is checked: before the database
      * migration runs, before the first repository is built and before anything has been written.
+     * <p>
+     * The converter gets the replacement of a dot in a key of the business data here, for the same
+     * reason: the template is what every record of the cockpit is written and read through.
      */
     @Bean
     public MongoTemplate mongoTemplate(
             final MongoDatabaseFactory mongoDbFactory,
             final MongoConverter converter) {
         
+        MapKeyDotReplacement.applyTo(environment, converter);
         final var template = new CockpitMongoTemplate(mongoDbFactory, converter);
         // throw an exception when a write concern is not met. Optimistic locking needs it too
         template.setWriteResultChecking(WriteResultChecking.EXCEPTION);

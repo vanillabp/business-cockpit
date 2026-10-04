@@ -94,6 +94,13 @@ reporting rather than out of a storage which runs behind the engine. `prefilledU
 serves a second moment as well, the read of `BusinessCockpitService.getUserTask`, and that one is
 about now.
 
+Both answers have an optional `createdAt`: when the BPMS created the task or started the workflow.
+Only the report of an end sends it. The cockpit reads it where the end is the first report about the
+record it gets, because the end overtook the creation, and the record then starts at that time.
+A half fills it where the event at hand tells it, and leaves it empty where it could only ask the
+engine. The cockpit then starts the record at its end. Both records keep their constructors without
+the field, so a half which does not fill it needs no change.
+
 Which answer a BPMS half gives decides whether a report happens at all. A half which cannot read
 what it was asked for throws, and the exception reaches the engine reporting the event, so its work
 fails and says so. An empty answer means the engine says nothing about the task or the workflow. A

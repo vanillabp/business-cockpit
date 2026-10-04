@@ -156,6 +156,53 @@ class BpmsApiWorkflowLifecycleTest extends ItestBase {
     }
 
     /**
+     * The end of a case which arrives without its creation and without a start of its own. The
+     * case then starts at its end, because the user interface needs a start for every case.
+     */
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheCaseAtItsEnd() {
+
+        final var workflowId = unique("workflow");
+        final var endedAt = OffsetDateTime.parse("2026-09-01T09:30:00Z");
+
+        assertThat(bpmsV1_1("/workflow/" + workflowId + "/completed",
+                workflowPayload(workflowId, endedAt.toString(), "")).statusCode()).isEqualTo(200);
+
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(workflow.read("$.createdAt", String.class))
+                .as("the user interface's schema requires a start")
+                .isNotNull();
+        assertThat(OffsetDateTime.parse(workflow.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(endedAt.toInstant());
+
+    }
+
+    /**
+     * The end of a case which arrives without its creation, but says when the case was started.
+     */
+    @Test
+    void aCompletionWhichArrivesAloneStartsTheCaseWhenItSays() {
+
+        final var workflowId = unique("workflow");
+        final var createdAt = OffsetDateTime.parse("2026-09-01T09:00:00Z");
+        final var endedAt = OffsetDateTime.parse("2026-09-01T09:30:00Z");
+
+        assertThat(bpmsV1_1("/workflow/" + workflowId + "/completed", workflowPayload(
+                workflowId,
+                endedAt.toString(),
+                """
+                "createdAt": "%s"
+                """.formatted(createdAt))).statusCode()).isEqualTo(200);
+
+        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
+        assertThat(OffsetDateTime.parse(workflow.read("$.createdAt", String.class)).toInstant())
+                .isEqualTo(createdAt.toInstant());
+        assertThat(OffsetDateTime.parse(workflow.read("$.endedAt", String.class)).toInstant())
+                .isEqualTo(endedAt.toInstant());
+
+    }
+
+    /**
      * Two changes of one case can reach the cockpit the other way round. The timestamp of the event
      * decides which of them the cockpit keeps, not the moment it arrived.
      */

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms;
 
 import com.mongodb.MongoServerException;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import org.bson.BsonMaximumSizeExceededException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.data.mapping.MappingException;
@@ -32,8 +33,8 @@ import org.springframework.data.mapping.MappingException;
  * {@code DataIntegrityViolationException}, so the causes are searched for it.</li>
  * <li>A {@link MappingException} of Spring Data, thrown while it turns the record into a document
  * and before anything is sent. The case known is a key of the business data with a dot in it, like
- * {@code order.id}: the cockpit configures no replacement for the dot, and Spring Data refuses
- * such a key.</li>
+ * {@code order.id}: unless {@link MapKeyDotReplacement} is configured, Spring Data refuses such a
+ * key, and the reason names the property and what it costs.</li>
  * </ul>
  */
 public final class OutcomeOfStoring {
@@ -137,8 +138,14 @@ public final class OutcomeOfStoring {
                     .formatted(record);
         }
         if (cause instanceof MappingException) {
-            return "The %s cannot be stored: it does not fit the form MongoDB stores it in. %s"
+            final var reason = "The %s cannot be stored: it does not fit the form MongoDB stores it in. %s"
                     .formatted(record, cause.getMessage());
+            // a key with a dot can be stored once the cockpit is told what to write instead, and
+            // the sender's log is where somebody looks first, so the answer says how and what it costs
+            return MapKeyDotReplacement
+                    .hintFor(cause.getMessage())
+                    .map(hint -> reason + " " + hint)
+                    .orElse(reason);
         }
         if (failsEveryTime) {
             return "The %s cannot be stored: MongoDB refuses it, because it breaks the validation rules of the collection."

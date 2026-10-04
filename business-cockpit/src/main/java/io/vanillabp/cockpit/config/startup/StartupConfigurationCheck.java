@@ -88,6 +88,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
             final ConfigurableEnvironment environment) {
 
         failOnMissingMandatoryValues(environment);
+        failOnAnUnusableMapKeyDotReplacement(environment);
         warnAboutTheBpmsApi(environment);
         generateAJwtKeyIfNoneIsConfigured(environment);
         warnAboutKafkaIngestion(environment);
@@ -141,6 +142,25 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
         if (!missing.isEmpty()) {
             throw new CockpitIsNotConfiguredException(List.copyOf(missing));
         }
+
+    }
+
+    /**
+     * The replacement is read only when the first record is written, which can be hours after the
+     * start. A value which cannot work is reported now instead.
+     */
+    private void failOnAnUnusableMapKeyDotReplacement(
+            final Environment environment) {
+
+        final var replacement = MapKeyDotReplacement.configuredIn(environment);
+        if (replacement.isEmpty()) {
+            return;
+        }
+        MapKeyDotReplacement
+                .whatIsWrongWith(replacement.get())
+                .ifPresent(reason -> {
+                    throw new MapKeyDotReplacementIsNotUsableException(replacement.get(), reason);
+                });
 
     }
 

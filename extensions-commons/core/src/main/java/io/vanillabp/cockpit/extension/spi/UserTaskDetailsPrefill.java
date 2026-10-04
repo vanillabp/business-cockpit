@@ -46,6 +46,10 @@ import io.vanillabp.integration.extension.spi.handler.HandlerMultiInstance;
  *          to nothing must not be forced to leave it out
  * @param multiInstances The multi-instance context of the task, keyed by BPMN element id and
  *          outermost first, empty where the BPMS reports none
+ * @param createdAt When the BPMS created the task. It travels only with the report of an end,
+ *          where the cockpit needs it if the end arrives before the creation. Leave it empty
+ *          where the BPMS could tell it only by being asked, and the cockpit then takes the time
+ *          of the end instead
  */
 public record UserTaskDetailsPrefill(
                                      String bpmnProcessVersion,
@@ -61,7 +65,48 @@ public record UserTaskDetailsPrefill(
                                      OffsetDateTime dueDate,
                                      OffsetDateTime followUpDate,
                                      Map<String, Object> variables,
-                                     Map<String, HandlerMultiInstance> multiInstances) {
+                                     Map<String, HandlerMultiInstance> multiInstances,
+                                     OffsetDateTime createdAt) {
+
+  /**
+   * The values without the time the task was created, which is how a BPMS half built them before
+   * that time was asked for. The time is then empty.
+   *
+   * @param bpmnProcessVersion See the record
+   * @param workflowId See the record
+   * @param subWorkflowId See the record
+   * @param businessId See the record
+   * @param bpmnTaskName See the record
+   * @param bpmnProcessName See the record
+   * @param initiator See the record
+   * @param assignee See the record
+   * @param candidateUsers See the record
+   * @param candidateGroups See the record
+   * @param dueDate See the record
+   * @param followUpDate See the record
+   * @param variables See the record
+   * @param multiInstances See the record
+   */
+  public UserTaskDetailsPrefill(
+      final String bpmnProcessVersion,
+      final String workflowId,
+      final String subWorkflowId,
+      final String businessId,
+      final String bpmnTaskName,
+      final String bpmnProcessName,
+      final String initiator,
+      final String assignee,
+      final List<String> candidateUsers,
+      final List<String> candidateGroups,
+      final OffsetDateTime dueDate,
+      final OffsetDateTime followUpDate,
+      final Map<String, Object> variables,
+      final Map<String, HandlerMultiInstance> multiInstances) {
+
+    this(
+        bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, null);
+
+  }
 
   public UserTaskDetailsPrefill {
     candidateUsers = candidateUsers == null ? List.of() : List.copyOf(candidateUsers);
@@ -114,6 +159,8 @@ public record UserTaskDetailsPrefill(
     private Map<String, Object> variables;
 
     private Map<String, HandlerMultiInstance> multiInstances;
+
+    private OffsetDateTime createdAt;
 
     private Builder() {
     }
@@ -236,10 +283,22 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * @param createdAt When the BPMS created the task, where the event at hand tells it
+     * @return The builder
+     */
+    public Builder createdAt(
+        final OffsetDateTime createdAt) {
+
+      this.createdAt = createdAt;
+      return this;
+
+    }
+
     public UserTaskDetailsPrefill build() {
 
       return new UserTaskDetailsPrefill(
-          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances);
+          bpmnProcessVersion, workflowId, subWorkflowId, businessId, bpmnTaskName, bpmnProcessName, initiator, assignee, candidateUsers, candidateGroups, dueDate, followUpDate, variables, multiInstances, createdAt);
 
     }
 

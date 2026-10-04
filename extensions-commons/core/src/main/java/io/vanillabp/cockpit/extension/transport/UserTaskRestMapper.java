@@ -126,6 +126,7 @@ public final class UserTaskRestMapper {
     dto.setUserTaskId(event.getUserTaskId());
     dto.setInitiator(event.getInitiator());
     dto.setTimestamp(event.getTimestamp());
+    dto.setCreatedAt(event.getCreatedAt());
     dto.setSource(event.getSource());
     dto.setWorkflowModuleId(event.getWorkflowModuleId());
     dto.setComment(event.getComment());
@@ -168,6 +169,7 @@ public final class UserTaskRestMapper {
     dto.setUserTaskId(event.getUserTaskId());
     dto.setInitiator(event.getInitiator());
     dto.setTimestamp(event.getTimestamp());
+    dto.setCreatedAt(event.getCreatedAt());
     dto.setSource(event.getSource());
     dto.setWorkflowModuleId(event.getWorkflowModuleId());
     dto.setComment(event.getComment());

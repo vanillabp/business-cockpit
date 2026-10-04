@@ -551,7 +551,14 @@ components:
           example: null
         details:
           type: object
-          description: Properties for individual searches
+          description: >-
+            Properties for individual searches. A key may contain a dot, like 'order.id', and
+            the cockpit stores such a key only if 'business-cockpit.mongodb.map-key-dot-replacement'
+            is set there. Without it the report is answered with 422 and is not stored. With it
+            every dot of a key is stored as the replacement and comes back as a dot. That costs
+            two things. Search and sorting find such a key only by its stored form, like
+            'details.order~id' for the replacement '~'. And a key which holds the replacement
+            already comes back with a dot in its place.
           additionalProperties: true
           example: '{ "customer": "passanger A" }'
         detailsFulltextSearch:
@@ -593,9 +600,33 @@ components:
     UserTaskCompletedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskUpdatedEvent"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              description: >-
+                When the user task was created, by the clock of the reporting system. It is
+                optional, and the cockpit reads it only where this end is the first report
+                about the task it gets. That happens when the end overtakes the creation. The
+                task then starts at this time. Without it, the task starts at the timestamp of
+                this end, and a creation which still arrives sets the start it reports.
+              example: 2019-05-21T13:10:00.000Z
     UserTaskCancelledEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskUpdatedEvent"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              description: >-
+                When the user task was created, by the clock of the reporting system. It is
+                optional, and the cockpit reads it only where this end is the first report
+                about the task it gets. That happens when the end overtakes the creation. The
+                task then starts at this time. Without it, the task starts at the timestamp of
+                this end, and a creation which still arrives sets the start it reports.
+              example: 2019-05-21T13:10:00.000Z
     UserTaskSuspendedEvent:
       allOf:
         - $ref: "#/components/schemas/UserTaskLifecycleEvent"
@@ -680,7 +711,14 @@ components:
           example: [ "drivers" ]
         details:
           type: object
-          description: Properties for individual searches
+          description: >-
+            Properties for individual searches. A key may contain a dot, like 'order.id', and
+            the cockpit stores such a key only if 'business-cockpit.mongodb.map-key-dot-replacement'
+            is set there. Without it the report is answered with 422 and is not stored. With it
+            every dot of a key is stored as the replacement and comes back as a dot. That costs
+            two things. Search and sorting find such a key only by its stored form, like
+            'details.order~id' for the replacement '~'. And a key which holds the replacement
+            already comes back with a dot in its place.
           additionalProperties: true
           example: '{ "ride-request": "4711" }'
         detailsFulltextSearch:
@@ -689,9 +727,35 @@ components:
     WorkflowCompletedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              description: >-
+                When the workflow was started, by the clock of the reporting system. It is
+                optional, and the cockpit reads it only where this end is the first report
+                about the workflow it gets. That happens when the end overtakes the creation.
+                The workflow then starts at this time. Without it, the workflow starts at the
+                timestamp of this end, and a creation which still arrives sets the start it
+                reports.
+              example: 2019-05-21T13:10:00.000Z
     WorkflowCancelledEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowUpdatedEvent"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              description: >-
+                When the workflow was started, by the clock of the reporting system. It is
+                optional, and the cockpit reads it only where this end is the first report
+                about the workflow it gets. That happens when the end overtakes the creation.
+                The workflow then starts at this time. Without it, the workflow starts at the
+                timestamp of this end, and a creation which still arrives sets the start it
+                reports.
+              example: 2019-05-21T13:10:00.000Z
     WorkflowCreatedEvent:
       allOf:
         - $ref: "#/components/schemas/WorkflowUpdatedEvent"

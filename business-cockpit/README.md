@@ -71,3 +71,28 @@ The cockpit knows this server through `mongodb.mode: AZURE_COSMOS_MONGO_4_2`, an
 reads that mode. Cosmos DB is not a replica set, so how durable a write is comes from the
 consistency level of the account and a message about failovers would describe a server such an
 installation does not have. What holds there instead is in the wiki section named above.
+
+## A key with a dot in the business data
+
+The business data of a user task or a workflow, `details`, is a map the workflow module fills.
+MongoDB reads a dot in a path as a step into a nested document, so Spring Data refuses a key like
+`order.id` unless it is told what to write instead. By default the cockpit tells it nothing. Such a
+report is given up, see decision 41 in the [decision log](../DECISIONS.md). Its `422` and its error
+in the log name the key and the property which changes that.
+
+The property is `business-cockpit.mongodb.map-key-dot-replacement`. `MongoDbConfiguration` hands it to
+the converter of the cockpit's `MongoTemplate`, which writes and reads every record. Spring Data then
+stores each dot as the replacement and turns it back into a dot on the way out. That has two costs:
+
+- Search and sorting see what is stored. A column or a filter has to name the key in its stored
+  form, like `details.order~id` for the replacement `~`. The path with the dot finds nothing.
+- The way back is not exact. A key which holds the replacement already comes back with a dot in its
+  place.
+
+The start ends where the value cannot work: an empty value, a dot, a `$` or the character NUL.
+`StartupConfigurationCheck` checks it before the first bean is built.
+
+Spring Data can also keep the dot as it is (`preserveMapKeys`). MongoDB takes that since version 5,
+but every path in the cockpit is a chain of dots: the search, the word suggestions, the sorting
+with its index, and the user interface. None of them would reach such a key.
+`AKeyWithADotInTheDetailsTest` measures both settings.

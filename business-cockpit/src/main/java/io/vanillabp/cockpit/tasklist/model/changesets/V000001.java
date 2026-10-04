@@ -10,6 +10,7 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import org.bson.types.BasicBSONList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort.Direction;
@@ -421,6 +422,46 @@ public class V000001 {
                                         Criteria.where("candidateGroups.0").exists(true))),
                         Update.update("dangling", Boolean.TRUE),
                         UserTask.class);
+
+        return null;
+
+    }
+
+    /**
+     * Gives a start to every task the cockpit knows from its end alone. Such a task used to be
+     * stored without {@code createdAt}, and that was how the cockpit knew that it still waited for
+     * its creation. The user interface needs a start for every task, so such a task now starts
+     * at its end, which is what the cockpit does today for an end which arrives alone.
+     * {@code knownFromItsEndAlone} says from now on that the task still waits for its creation.
+     * <p>
+     * Where the end is missing too, the latest event the cockpit knows of is taken, and then the
+     * moment the cockpit stored the task. A record with none of the three has nothing to tell and
+     * stays as it is.
+     *
+     * @see io.vanillabp.cockpit.tasklist.model.UserTask#isKnownFromItsEndAlone()
+     */
+    @DbChangeset(order = 15)
+    public String startWhatIsKnownFromItsEndAlone(
+            final MongoTemplate mongo) {
+
+        final var query = new Query(Criteria.where("createdAt").is(null));
+        query.fields().include("_id", "endedAt", "latestEventAt", "reportedAt");
+        mongo
+                .find(query, DBObject.class, UserTask.COLLECTION_NAME)
+                .forEach(document -> {
+                    final var start = Stream
+                            .of("endedAt", "latestEventAt", "reportedAt")
+                            .map(document::get)
+                            .filter(Objects::nonNull)
+                            .findFirst();
+                    start.ifPresent(value -> mongo
+                            .updateFirst(
+                                    new Query(Criteria.where("_id").is(document.get("_id"))),
+                                    new Update()
+                                            .set("createdAt", value)
+                                            .set("knownFromItsEndAlone", true),
+                                    UserTask.COLLECTION_NAME));
+                });
 
         return null;
 

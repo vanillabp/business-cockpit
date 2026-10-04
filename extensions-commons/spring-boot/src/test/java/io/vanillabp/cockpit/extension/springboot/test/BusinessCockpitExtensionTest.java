@@ -388,6 +388,8 @@ public class BusinessCockpitExtensionTest {
     // the details provider ran, and it was told which event it is running for
     assertTrue(request.body().contains("\"event\":\"COMPLETED\""), request.body());
     assertTrue(request.body().contains("Approve the order"), request.body());
+    // the end says when the task was created, for an end which reaches the cockpit first
+    assertTrue(request.body().contains("\"createdAt\":\"2026-10-01T08:00"), request.body());
 
   }
 
@@ -406,6 +408,7 @@ public class BusinessCockpitExtensionTest {
     final var request = CockpitServer.awaitRequest("/usertask/task-1/cancelled", "bpms-event-17");
     assertTrue(request.body().contains("\"event\":\"CANCELED\""), request.body());
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+    assertTrue(request.body().contains("\"createdAt\":\"2026-10-01T08:00"), request.body());
 
   }
 
@@ -449,6 +452,7 @@ public class BusinessCockpitExtensionTest {
         .awaitRequest("/workflow/workflow-1/completed", "bpms-event-19");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
     assertTrue(request.body().contains("workflow of Anna"), request.body());
+    assertTrue(request.body().contains("\"createdAt\":\"2026-10-01T08:00"), request.body());
 
   }
 

@@ -40,6 +40,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The initiator this engine prefills, the way Camunda 7 answers for a case it started. */
   public static final String ENGINE_INITIATOR = "the-engine";
 
+  /** When the engine created the task and started the workflow, as an end reports it. */
+  public static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-10-01T08:00:00Z");
+
   private final AtomicBoolean knowsTheTask = new AtomicBoolean(true);
 
   private final AtomicBoolean prefillsAnInitiator = new AtomicBoolean(true);
@@ -138,6 +141,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
                 .candidateUsers(List.of("bert"))
                 .dueDate(OffsetDateTime.now().plusDays(1))
                 .variables(Map.of("amount", 250))
+                .createdAt(CREATED_AT)
                 .build());
 
   }
@@ -149,7 +153,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
     return Optional
         .of(
             new WorkflowDetailsPrefill(
-                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR : null));
+                "1", "4711", "Order handling", prefillsAnInitiator.get() ? ENGINE_INITIATOR : null, CREATED_AT));
 
   }
 

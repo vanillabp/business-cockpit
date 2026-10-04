@@ -35,6 +35,12 @@ public final class CockpitConfiguration {
 
     public static final String MONGODB_WRITE_CONCERN_JOURNAL = "mongodb.write-concern-journal";
 
+    /**
+     * What the cockpit writes instead of a dot in a key of the business data. Unset by default,
+     * and {@link MapKeyDotReplacement} says what setting it costs.
+     */
+    public static final String MONGODB_MAP_KEY_DOT_REPLACEMENT = "business-cockpit.mongodb.map-key-dot-replacement";
+
     public static final String TITLE_SHORT = "business-cockpit.title-short";
 
     public static final String TITLE_LONG = "business-cockpit.title-long";

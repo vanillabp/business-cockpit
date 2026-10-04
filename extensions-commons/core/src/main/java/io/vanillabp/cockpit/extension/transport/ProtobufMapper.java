@@ -170,6 +170,12 @@ public final class ProtobufMapper {
         .ofNullable(event.getNotificationDelivery())
         .ifPresent(
             delivery -> builder.setNotificationDelivery(NotificationDelivery.valueOf(delivery.name())));
+    // the cockpit reads it only from an end, so it travels only with one
+    if ((event.getEventKind() == UserTaskEventKind.COMPLETED) || (event.getEventKind() == UserTaskEventKind.CANCELED)) {
+      Optional
+          .ofNullable(event.getCreatedAt())
+          .ifPresent(createdAt -> builder.setCreatedAt(timestampOf(createdAt)));
+    }
     return builder.build();
 
   }
@@ -183,6 +189,13 @@ public final class ProtobufMapper {
     builder.setWorkflowId(event.getWorkflowId());
     builder.setTimestamp(timestampOf(event.getTimestamp()));
     builder.setUpdated(event.getEventKind() != WorkflowEventKind.CREATED);
+    // the cockpit reads it only from an end, so it travels only with one
+    if ((event.getEventKind() == WorkflowEventKind.COMPLETED) || (event
+        .getEventKind() == WorkflowEventKind.CANCELLED)) {
+      Optional
+          .ofNullable(event.getCreatedAt())
+          .ifPresent(createdAt -> builder.setCreatedAt(timestampOf(createdAt)));
+    }
     Optional.ofNullable(event.getBpmnProcessId()).ifPresent(builder::setBpmnProcessId);
     Optional.ofNullable(event.getWorkflowModuleId()).ifPresent(builder::setWorkflowModuleId);
     Optional.ofNullable(event.getUiUriPath()).ifPresent(builder::setUiUriPath);

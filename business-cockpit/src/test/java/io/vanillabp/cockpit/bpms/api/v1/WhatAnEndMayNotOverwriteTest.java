@@ -52,16 +52,16 @@ class WhatAnEndMayNotOverwriteTest {
         endedWorkflow = storedWorkflow();
 
         final var userTaskService = mock(UserTaskService.class);
-        when(userTaskService.reportEndedUserTask(anyString(), any(), any(), any()))
+        when(userTaskService.reportEndedUserTask(anyString(), any(), any(), any(), any()))
                 .thenAnswer(invocation -> {
-                    ((Consumer<UserTask>) invocation.getArgument(3)).accept(endedTask);
+                    ((Consumer<UserTask>) invocation.getArgument(4)).accept(endedTask);
                     return OutcomeOfStoring.upToDate();
                 });
 
         final var workflowlistService = mock(WorkflowlistService.class);
-        when(workflowlistService.reportEndedWorkflow(anyString(), any(), any()))
+        when(workflowlistService.reportEndedWorkflow(anyString(), any(), any(), any()))
                 .thenAnswer(invocation -> {
-                    ((Consumer<Workflow>) invocation.getArgument(2)).accept(endedWorkflow);
+                    ((Consumer<Workflow>) invocation.getArgument(3)).accept(endedWorkflow);
                     return OutcomeOfStoring.upToDate();
                 });
 

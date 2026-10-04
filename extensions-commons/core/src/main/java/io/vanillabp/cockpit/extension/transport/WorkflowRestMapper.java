@@ -90,6 +90,7 @@ public final class WorkflowRestMapper {
     dto.setBusinessId(event.getBusinessId());
     dto.setInitiator(event.getInitiator());
     dto.setTimestamp(event.getTimestamp());
+    dto.setCreatedAt(event.getCreatedAt());
     dto.setSource(event.getSource());
     dto.setWorkflowModuleId(event.getWorkflowModuleId());
     dto.setTitle(copy(event.getTitle()));
@@ -120,6 +121,7 @@ public final class WorkflowRestMapper {
     dto.setBusinessId(event.getBusinessId());
     dto.setInitiator(event.getInitiator());
     dto.setTimestamp(event.getTimestamp());
+    dto.setCreatedAt(event.getCreatedAt());
     dto.setSource(event.getSource());
     dto.setWorkflowModuleId(event.getWorkflowModuleId());
     dto.setTitle(copy(event.getTitle()));

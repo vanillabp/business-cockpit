@@ -763,11 +763,13 @@ public class UserTaskService {
             return storeReportedUserTask(asReported.get(), eventTimestamp);
         }
 
-        if (stored.getCreatedAt() != null) {
+        if (!stored.isKnownFromItsEndAlone()) {
             reportChangesNothing(userTaskId, "creation", eventTimestamp, stored);
             return OutcomeOfStoring.upToDate();
         }
 
+        // the creation's own start replaces the one the end gave the task, which is the same
+        // where the end reported it, and the time of the end where it did not
         final var task = asReported.get();
         // the end is the younger report of the two and stays untouched, as does everything the
         // cockpit itself has recorded about the task since the end arrived
@@ -841,6 +843,8 @@ public class UserTaskService {
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the task ended, by the workflow module's clock
      * @param endReason Whether the task was completed or cancelled
+     * @param reportedStart When the task was created, as the end reports it, or {@code null}
+     *        where it does not. Read only where the end creates the task
      * @param ontoStored Lays the report onto the task the cockpit holds, or onto an empty one
      * @return Whether the cockpit is up to date about the task, and if not, whether the same
      *         report can go through when it comes again
@@ -849,6 +853,7 @@ public class UserTaskService {
             final String userTaskId,
             final OffsetDateTime eventTimestamp,
             final UserTaskEndReason endReason,
+            final OffsetDateTime reportedStart,
             final Consumer<UserTask> ontoStored) {
 
         final var stored = getUserTask(userTaskId);
@@ -856,9 +861,10 @@ public class UserTaskService {
             final var task = new UserTask();
             task.setId(userTaskId);
             ontoStored.accept(task);
-            // 'createdAt' stays empty on purpose: an end does not say when the task began, and a
-            // task without it is the one a creation arriving later still fills in
-            task.setCreatedAt(null);
+            // the user interface needs a start for every task. Where the end does not say when
+            // the task began, the end is the earliest moment the cockpit knows of
+            task.setCreatedAt(reportedStart != null ? reportedStart : eventTimestamp);
+            task.setKnownFromItsEndAlone(true);
             endUserTask(task, eventTimestamp, endReason);
             return storeReportedUserTask(task, eventTimestamp);
         }
