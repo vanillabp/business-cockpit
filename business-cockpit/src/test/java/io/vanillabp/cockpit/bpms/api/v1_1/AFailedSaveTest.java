@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.mapping.MappingException;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -64,6 +65,8 @@ class AFailedSaveTest {
     private boolean saveFails;
 
     private boolean documentTooLarge;
+
+    private boolean keyWithADot;
 
     private BpmsApiController bpmsApi;
 
@@ -124,6 +127,11 @@ class AFailedSaveTest {
         if (documentTooLarge) {
             // what the driver throws, unchanged by Spring
             throw new BsonMaximumSizeExceededException("Payload document size is larger than maximum of 16793600.");
+        }
+        if (keyWithADot) {
+            // what Spring Data throws where no replacement of the dot is configured
+            throw new MappingException("Map key order.id contains dots but no replacement was configured; Make"
+                    + " sure map keys don't contain dots in the first place or configure an appropriate replacement");
         }
 
     }
@@ -413,6 +421,38 @@ class AFailedSaveTest {
         assertEquals(1, errors.size(), String.join("\n", errors));
         assertTrue(errors.get(0).contains("Returning HTTP 422 Unprocessable Content: The user task 'task-1' cannot be stored"),
                 errors.get(0));
+
+    }
+
+    /**
+     * A key with a dot can be stored once the cockpit is told what to write instead. The answer
+     * says how, and what it costs, because the sender's log is where somebody looks first.
+     */
+    @Test
+    void aReportWithADotInAKeyIsAnsweredWith422WhichNamesTheProperty(
+            final CapturedOutput output) throws Exception {
+
+        keyWithADot = true;
+
+        final var answer = client
+                .perform(post(BpmsApiController.BPMS_API_URL_PREFIX + "/usertask/created")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(JSON.writeValueAsString(taskCreated("task-1"))))
+                .andReturn();
+
+        assertEquals(422, answer.getResponse().getStatus());
+        final var body = answer.getResponse().getContentAsString();
+        assertTrue(body.startsWith("The user task 'task-1' cannot be stored: it does not fit the form MongoDB stores it in. "
+                + "Map key order.id contains dots"), body);
+        assertTrue(body.contains("To store a key like 'order.id', set 'business-cockpit.mongodb.map-key-dot-replacement' "
+                + "in the cockpit, for example to '~'."), body);
+        assertTrue(body.contains("Search and sorting then find the key only by its stored form, 'order~id'"), body);
+        assertTrue(body.contains("a key which holds the replacement already comes back with a dot in its place."), body);
+        assertTrue(!body.contains("\n"), "one line, so the sender's log shows it");
+        assertEquals(Map.of(), userTasks);
+        final var errors = LoggedErrors.of(output);
+        assertEquals(1, errors.size(), String.join("\n", errors));
+        assertTrue(errors.get(0).contains("business-cockpit.mongodb.map-key-dot-replacement"), errors.get(0));
 
     }
 

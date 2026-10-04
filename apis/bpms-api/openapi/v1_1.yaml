@@ -551,7 +551,14 @@ components:
           example: null
         details:
           type: object
-          description: Properties for individual searches
+          description: >-
+            Properties for individual searches. A key may contain a dot, like 'order.id', and
+            the cockpit stores such a key only if 'business-cockpit.mongodb.map-key-dot-replacement'
+            is set there. Without it the report is answered with 422 and is not stored. With it
+            every dot of a key is stored as the replacement and comes back as a dot. That costs
+            two things. Search and sorting find such a key only by its stored form, like
+            'details.order~id' for the replacement '~'. And a key which holds the replacement
+            already comes back with a dot in its place.
           additionalProperties: true
           example: '{ "customer": "passanger A" }'
         detailsFulltextSearch:
@@ -680,7 +687,14 @@ components:
           example: [ "drivers" ]
         details:
           type: object
-          description: Properties for individual searches
+          description: >-
+            Properties for individual searches. A key may contain a dot, like 'order.id', and
+            the cockpit stores such a key only if 'business-cockpit.mongodb.map-key-dot-replacement'
+            is set there. Without it the report is answered with 422 and is not stored. With it
+            every dot of a key is stored as the replacement and comes back as a dot. That costs
+            two things. Search and sorting find such a key only by its stored form, like
+            'details.order~id' for the replacement '~'. And a key which holds the replacement
+            already comes back with a dot in its place.
           additionalProperties: true
           example: '{ "ride-request": "4711" }'
         detailsFulltextSearch:

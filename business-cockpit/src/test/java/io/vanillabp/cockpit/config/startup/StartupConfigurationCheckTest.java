@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.config.startup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -290,6 +293,65 @@ class StartupConfigurationCheckTest {
 
         assertThat(CockpitConfiguration.valueOf(environment, CockpitConfiguration.JWT_KEY))
                 .contains("a-key");
+
+    }
+
+    @Test
+    void noReplacementOfADotIsAccepted() {
+
+        assertThatCode(() -> check.checkConfigurationOf(configurationWithout()))
+                .doesNotThrowAnyException();
+
+    }
+
+    @Test
+    void aReplacementOfADotWhichCanWorkIsAccepted() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT, "~");
+
+        assertThatCode(() -> check.checkConfigurationOf(environment))
+                .doesNotThrowAnyException();
+        assertThat(MapKeyDotReplacement.configuredIn(environment)).contains("~");
+
+    }
+
+    /**
+     * A value which cannot work stops the start, and the message says why, which property to
+     * change, what it costs and which value to copy.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = { "", " ", ".", "_._", "$", "a$", "\u0000" })
+    void aReplacementOfADotWhichCannotWorkStopsTheStart(
+            final String replacement) {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT, replacement);
+
+        assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+                .isInstanceOf(MapKeyDotReplacementIsNotUsableException.class)
+                .hasMessageContaining("cannot use '" + replacement + "'")
+                .hasMessageContaining(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT)
+                .hasMessageContaining("Search and sorting then find such a key only by its stored form")
+                .hasMessageContaining("Example: " + CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT + ": \"~\"");
+
+    }
+
+    @Test
+    void aReplacementOfADotWhichCannotWorkIsShownAsTheFailureReport() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT, ".");
+        final var failure = catchThrowableOfType(
+                MapKeyDotReplacementIsNotUsableException.class,
+                () -> check.checkConfigurationOf(environment));
+
+        final var analysis = new MapKeyDotReplacementIsNotUsableFailureAnalyzer().analyze(failure);
+
+        assertThat(analysis.getDescription()).contains("It contains a dot.");
+        assertThat(analysis.getAction())
+                .contains("leave the property out")
+                .contains(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT);
 
     }
 

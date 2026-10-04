@@ -8,6 +8,8 @@ import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.BigDecimalWriteConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter;
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
+import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
@@ -37,6 +39,7 @@ import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.core.validation.Validator;
 import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.mongodb.MongoDBContainer;
 
@@ -86,6 +89,17 @@ class WhatMongoDbRefusesEveryTimeTest {
      */
     private static MongoTemplate cockpitLikeTemplate() {
 
+        return cockpitLikeTemplate(new MockEnvironment());
+
+    }
+
+    /**
+     * @param environment The configuration the cockpit's MongoDB configuration reads the
+     *        replacement of a dot from
+     */
+    private static MongoTemplate cockpitLikeTemplate(
+            final MockEnvironment environment) {
+
         final var factory = new SimpleMongoClientDatabaseFactory(mongoClient, "cockpit-" + UUID.randomUUID());
         final var conversions = new MongoCustomConversions(List.of(
                 new OffsetDateTimeReadConverter(),
@@ -98,6 +112,8 @@ class WhatMongoDbRefusesEveryTimeTest {
         final var converter = new MappingMongoConverter(new DefaultDbRefResolver(factory), mappingContext);
         converter.setCustomConversions(conversions);
         converter.afterPropertiesSet();
+        // what MongoDbConfiguration does with the converter before it builds the template
+        MapKeyDotReplacement.applyTo(environment, converter);
         return new MongoTemplate(factory, converter);
 
     }
@@ -233,7 +249,61 @@ class WhatMongoDbRefusesEveryTimeTest {
         assertThat(outcome.failsEveryTime()).isTrue();
         assertThat(outcome.reason())
                 .startsWith("The user task 'task-1' cannot be stored: it does not fit the form MongoDB stores it in. "
-                        + "Map key order.id contains dots");
+                        + "Map key order.id contains dots")
+                .as("the reason names the property which lets such a key be stored, and what it costs")
+                .contains("set '" + CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT + "' in the cockpit")
+                .contains("Search and sorting then find the key only by its stored form, 'order~id'")
+                .contains("a key which holds the replacement already comes back with a dot in its place.")
+                .doesNotContain("\n");
+
+    }
+
+    /**
+     * The positive twin of the test above. With a replacement configured the dot is stored as the
+     * replacement and comes back as a dot, also in a nested map.
+     */
+    @Test
+    void aTaskWhoseBusinessDataHasAKeyWithADotIsStoredWhereAReplacementIsConfigured() {
+
+        final var mongoTemplate = cockpitLikeTemplate(new MockEnvironment()
+                .withProperty(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT, "~"));
+        final var service = serviceOn(mongoTemplate);
+
+        final var outcome = service.reportCreatedUserTask(
+                "task-1",
+                CREATED_AT,
+                () -> reportedTask("task-1", Map.of(
+                        "order.id", "4711",
+                        "customer", Map.of("address.city", "Vienna"))));
+
+        assertThat(outcome.isUpToDate()).isTrue();
+        assertThat(service.getUserTask("task-1").getDetails())
+                .isEqualTo(Map.of(
+                        "order.id", "4711",
+                        "customer", Map.of("address.city", "Vienna")));
+        final var stored = mongoTemplate
+                .getCollection(UserTask.COLLECTION_NAME)
+                .find(new Document("_id", "task-1"))
+                .first()
+                .get("details", Document.class);
+        assertThat(stored)
+                .as("MongoDB holds the stored form, which is what search and sorting see")
+                .containsEntry("order~id", "4711")
+                .doesNotContainKey("order.id");
+        assertThat(stored.get("customer", Document.class)).containsEntry("address~city", "Vienna");
+
+    }
+
+    /** What the cost named in the reason means: a key which holds the replacement comes back with a dot. */
+    @Test
+    void aKeyWhichHoldsTheReplacementAlreadyComesBackWithADot() {
+
+        final var service = serviceOn(cockpitLikeTemplate(new MockEnvironment()
+                .withProperty(CockpitConfiguration.MONGODB_MAP_KEY_DOT_REPLACEMENT, "~")));
+
+        service.reportCreatedUserTask("task-1", CREATED_AT, () -> reportedTask("task-1", Map.of("size~large", "XL")));
+
+        assertThat(service.getUserTask("task-1").getDetails()).isEqualTo(Map.of("size.large", "XL"));
 
     }
 
