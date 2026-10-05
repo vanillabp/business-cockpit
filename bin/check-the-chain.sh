@@ -136,8 +136,8 @@ reads=(
 # Pins which look as if they belonged to the list above and do not. Printed in every
 # report, so whoever reads a quiet report sees what was left out on purpose.
 not_compared=(
-    "The Camunda 8 client pins of the release lines (camunda8.version.line-*), the Camunda 8 adapter per line and protobuf: they follow vanillabp/camunda8-adapter and are raised by hand, and the nightly matrix of businesscockpit-camunda8-adapter holds them against that repository."
-    "testcontainers.version: tests only. No jar of one of the four carries it into another, and only the Camunda 8 adapter names it, for the cluster that vanillabp/camunda8-adapter starts."
+    "The Camunda 8 client pins of the release lines (camunda8.version.line-*), the Camunda 8 adapter per line and protobuf: they follow camunda-community-hub/vanillabp-camunda8-adapter and are raised by hand, and the nightly matrix of businesscockpit-camunda8-adapter holds them against that repository."
+    "testcontainers.version: tests only. No jar of one of the four carries it into another, and only the Camunda 8 adapter names it, for the cluster that camunda-community-hub/vanillabp-camunda8-adapter starts."
     "lombok.version: it translates the source and is gone from the class files, so it never meets another repository's code."
 )
 
