@@ -81,6 +81,18 @@ public final class BusinessCockpitOperations {
   /** When the BPMS says the event happened, in ISO-8601. */
   public static final String ARG_TIMESTAMP = "timestamp";
 
+  /**
+   * Marks a workflow entry which carries no report on purpose: a change the BPMS half could not
+   * name in the application's transaction. The value is always <code>true</code>. The dispatch
+   * asks the BPMS half which workflows the aggregate has, builds the report then, and tries again
+   * a little later while the BPMS has not written them yet.
+   * <p>
+   * Such an entry is a row of the same operation, so a younger report of the same key still takes
+   * its place. That is what keeps a backlog of changes from becoming a flood of reports. See
+   * decision 26 in the repository's DECISIONS.md.
+   */
+  public static final String ARG_RESOLVED_WHEN_DISPATCHED = "resolvedWhenDispatched";
+
   private BusinessCockpitOperations() {
   }
 
@@ -113,8 +125,10 @@ public final class BusinessCockpitOperations {
         .extensionOperation(PUBLISH_WORKFLOW_EVENT)
         .idempotencyKey(BusinessCockpitOperations::workflowKey)
         .describedAs(
-            args -> "reporting workflow '%s' as %s to the Business Cockpit"
-                .formatted(args.get(ARG_WORKFLOW_ID), args.get(ARG_EVENT_KIND)))
+            args -> args.containsKey(ARG_WORKFLOW_ID)
+                ? "reporting workflow '%s' as %s to the Business Cockpit"
+                    .formatted(args.get(ARG_WORKFLOW_ID), args.get(ARG_EVENT_KIND))
+                : "reporting the change of a workflow aggregate to the Business Cockpit")
         .hintingWhenUnknown(
             """
                 The Business Cockpit adapter is not part of this application any more, so nobody \
@@ -170,6 +184,10 @@ public final class BusinessCockpitOperations {
 
   /**
    * The key of a workflow entry, built the same way and for the same reason.
+   * <p>
+   * An entry which is resolved when it is dispatched may not know its workflow yet. It is keyed
+   * by its aggregate then, so the changes of one case still collapse into one, and two cases never
+   * share a key. Every entry which names its workflow keeps the key it always had.
    *
    * @param call The entry being scheduled
    * @return The key
@@ -177,6 +195,15 @@ public final class BusinessCockpitOperations {
   private static Optional<String> workflowKey(
       final PhaseTwoCall call) {
 
+    if (!call.args().containsKey(ARG_WORKFLOW_ID)) {
+      return Optional
+          .of(
+              "%s|%s|aggregate %s|%s".formatted(
+                  PUBLISH_WORKFLOW_EVENT,
+                  call.adapterId(),
+                  call.workflowAggregateId(),
+                  call.args().get(ARG_EVENT_KIND)));
+    }
     return Optional
         .of(
             "%s|%s|%s|%s".formatted(

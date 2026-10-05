@@ -81,6 +81,8 @@ public class BusinessCockpitExtensionTest {
   public void forgetWhatArrivedBefore() {
 
     CockpitServer.forgetRequests();
+    bridge.namesWorkflowsRightAway(true);
+    bridge.writesTheWorkflowAfter(0);
     bridge.forgetLookups();
 
   }
@@ -296,6 +298,35 @@ public class BusinessCockpitExtensionTest {
 
     final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/updated");
     assertTrue(request.body().contains("\"updated\":true"), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A change the BPMS half cannot name right away is reported once the BPMS wrote the workflow")
+  public void aggregateChangedIsResolvedWhenItIsDispatched() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+    // a BPMS which writes a storage behind its engine: the change cannot be named in the
+    // application's transaction, and the first lookup at the dispatch still finds nothing
+    bridge.namesWorkflowsRightAway(false);
+    bridge.writesTheWorkflowAfter(1);
+    bridge.forgetLookups();
+
+    transaction.begin();
+    workflowService.businessCockpit().aggregateChanged(aggregate);
+    // nothing was asked of the BPMS in the application's transaction
+    assertEquals(0, bridge.workflowLookups());
+    transaction.commit();
+
+    // the empty first answer was tried again instead of being dropped. A report of an earlier
+    // test lands on the same path, so the second lookup is waited for before the path is read
+    final var deadline = System.currentTimeMillis() + 15_000;
+    while ((bridge.workflowLookups() < 2) && (System.currentTimeMillis() < deadline)) {
+      Thread.sleep(50);
+    }
+    assertEquals(2, bridge.workflowLookups());
+    final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/updated");
+    assertTrue(request.body().contains("workflow of Anna"), request.body());
 
   }
 

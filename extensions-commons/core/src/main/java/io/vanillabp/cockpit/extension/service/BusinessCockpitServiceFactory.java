@@ -9,6 +9,7 @@ import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
+import io.vanillabp.integration.extension.spi.election.WorkflowStart;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceContext;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
@@ -57,16 +58,46 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
         requireATransactionToReport(
             extension.reportsWorkflows(),
             "the change of workflow aggregate '%s'".formatted(aggregateIdOf(workflowAggregate)));
-        bridgeOf(workflowAggregate)
-            .workflowsOfAggregate(
+        // nothing here may wait for a BPMS or read a storage it writes behind its engine: this
+        // runs in the application's transaction. So the note VanillaBP wrote at the start names
+        // the adapter where it can, and a BPMS half which cannot name the workflows without such
+        // a read gets an entry which is resolved when it is dispatched
+        final var start = context
+            .getElection()
+            .workflowStartOf(
+                context.getWorkflowModuleId(),
+                context.getBpmnProcessId(),
+                context.getWorkflowAggregateId(workflowAggregate));
+        final var bridge = bridgeOfWorkflow(workflowAggregate, start);
+        final var timestamp = OffsetDateTime.now();
+        bridge
+            .workflowsOfAggregateRightAway(
                 context.getWorkflowModuleId(),
                 context.getBpmnProcessId(),
                 aggregateIdOf(workflowAggregate))
-            .forEach(
-                workflow -> extension
-                    .publishWorkflowEvent(
-                        workflow, WorkflowEventKind.UPDATED, null, OffsetDateTime.now(),
-                        EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
+            .ifPresentOrElse(
+                workflows -> workflows
+                    .forEach(
+                        workflow -> extension
+                            .publishWorkflowEvent(
+                                workflow, WorkflowEventKind.UPDATED, null, timestamp,
+                                EventTransaction.CURRENT, context.getWorkflowAggregateClass())),
+                () -> extension
+                    .publishWorkflowChangeResolvedWhenDispatched(
+                        bridge.adapterId(),
+                        context.getWorkflowModuleId(),
+                        context.getBpmnProcessId(),
+                        aggregateIdOf(workflowAggregate),
+                        start
+                            .filter(written -> writtenFor(bridge, written))
+                            .map(WorkflowStart::workflowId)
+                            .orElse(null),
+                        start
+                            .filter(written -> writtenFor(bridge, written))
+                            .map(WorkflowStart::processVersion)
+                            .orElse(null),
+                        timestamp,
+                        context.getWorkflowAggregateClass()));
 
       }
 
@@ -165,6 +196,41 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 '@Transactional' (BPMN process '%s' of workflow module '%s'). Reading through \
                 this service needs no transaction - only reporting does."""
                 .formatted(what, context.getBpmnProcessId(), context.getWorkflowModuleId()));
+
+      }
+
+      /**
+       * The BPMS half holding the workflows of an aggregate, found without asking a BPMS where
+       * that is possible.
+       * <p>
+       * The adapter the note of the start names comes first, because a workflow does not change
+       * its BPMS. The one adapter of an application with only one comes next. Only an
+       * application with several adapters and no note left is asked through the election, which
+       * may ask a BPMS.
+       */
+      private BusinessCockpitBpmsBridge bridgeOfWorkflow(
+          final Object workflowAggregate,
+          final Optional<WorkflowStart> start) {
+
+        return start
+            .map(WorkflowStart::adapterId)
+            .filter(extension::hasABridgeFor)
+            .map(extension::bridgeOf)
+            .or(extension::theOnlyBridge)
+            .orElseGet(() -> bridgeOf(workflowAggregate));
+
+      }
+
+      /**
+       * Whether a note of the start belongs to the BPMS this half serves. A note which names no
+       * adapter comes from VanillaBP's election cache, and it is taken as well: the half decides
+       * itself whether the id is one of its BPMS.
+       */
+      private static boolean writtenFor(
+          final BusinessCockpitBpmsBridge bridge,
+          final WorkflowStart start) {
+
+        return (start.adapterId() == null) || start.adapterId().equals(bridge.adapterId());
 
       }
 

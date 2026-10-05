@@ -86,6 +86,8 @@ public class BusinessCockpitExtensionTest {
 
     CockpitServer.forgetRequests();
     bridge.knowsTheTask(true);
+    bridge.namesWorkflowsRightAway(true);
+    bridge.writesTheWorkflowAfter(0);
     bridge.forgetLookups();
 
   }
@@ -492,6 +494,36 @@ public class BusinessCockpitExtensionTest {
 
     final var request = CockpitServer.awaitAnyRequest("/workflow/workflow-1/updated");
     assertTrue(request.body().contains("\"updated\":true"), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A change the BPMS half cannot name right away is reported once the BPMS wrote the workflow")
+  public void aggregateChangedIsResolvedWhenItIsDispatched() {
+
+    final var aggregate = aStartedWorkflow();
+    // a BPMS which writes a storage behind its engine: the change cannot be named in the
+    // application's transaction, and the first lookup at the dispatch still finds nothing
+    bridge.namesWorkflowsRightAway(false);
+    bridge.writesTheWorkflowAfter(1);
+    bridge.forgetLookups();
+
+    transactions
+        .executeWithoutResult(status -> {
+          final var attached = aggregates.findById(aggregate.getId()).orElseThrow();
+          attached.setCustomer("Berta");
+          workflowService.businessCockpit().aggregateChanged(attached);
+          // nothing was asked of the BPMS in the application's transaction
+          assertEquals(0, bridge.workflowLookups());
+        });
+
+    // the report is built at the dispatch. The details provider reads the aggregate as it was
+    // committed, and the empty first answer was tried again instead of being dropped
+    final var request = CockpitServer
+        .awaitRequest("/workflow/workflow-1/updated", "workflow of Berta");
+    assertTrue(request.body().contains("\"customer\":\"Berta\""), request.body());
+    assertTrue(request.body().contains("\"bpmnProcessVersion\":\"1\""), request.body());
+    assertEquals(2, bridge.workflowLookups());
 
   }
 

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.UserTaskDetailsPrefill;
@@ -46,6 +47,45 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
   private final AtomicBoolean prefillsAnInitiator = new AtomicBoolean(true);
 
+  private final AtomicBoolean namesWorkflowsRightAway = new AtomicBoolean(true);
+
+  private final AtomicInteger workflowsStillUnwritten = new AtomicInteger();
+
+  private final AtomicInteger workflowLookups = new AtomicInteger();
+
+  /**
+   * @param rightAway Whether this engine names the workflows of a changed aggregate in the
+   *          application's transaction. A test switches it off to play a BPMS which writes a
+   *          storage behind its engine, the way Camunda 8 does
+   */
+  public void namesWorkflowsRightAway(
+      final boolean rightAway) {
+
+    namesWorkflowsRightAway.set(rightAway);
+
+  }
+
+  /**
+   * @param lookups How many of the next lookups of the workflows of an aggregate answer nothing,
+   *          the way a storage answers while its exporter is behind
+   */
+  public void writesTheWorkflowAfter(
+      final int lookups) {
+
+    workflowsStillUnwritten.set(lookups);
+
+  }
+
+  /**
+   * @return How often the extension asked for the workflows of an aggregate since the last
+   *         {@link #forgetLookups()}
+   */
+  public int workflowLookups() {
+
+    return workflowLookups.get();
+
+  }
+
   /**
    * @param prefills Whether this engine names an initiator at all. Camunda 8 and the
    *          Process-Engine-API name none, so a test switches it off to run the way those two
@@ -77,6 +117,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   public void forgetLookups() {
 
     tasksLookedUpInATransaction.clear();
+    workflowLookups.set(0);
 
   }
 
@@ -132,10 +173,28 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
       final String bpmnProcessId,
       final String workflowAggregateId) {
 
+    workflowLookups.incrementAndGet();
+    if (workflowsStillUnwritten.getAndUpdate(lookups -> Math.max(0, lookups - 1)) > 0) {
+      return List.of();
+    }
     return List
         .of(
             new WorkflowReference(
                 ADAPTER_ID, workflowModuleId, bpmnProcessId, PROCESS_VERSION, workflowAggregateId, WORKFLOW_ID));
+
+  }
+
+  @Override
+  public Optional<List<WorkflowReference>> workflowsOfAggregateRightAway(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String workflowAggregateId) {
+
+    if (!namesWorkflowsRightAway.get()) {
+      return Optional.empty();
+    }
+    return BusinessCockpitBpmsBridge.super.workflowsOfAggregateRightAway(workflowModuleId, bpmnProcessId,
+        workflowAggregateId);
 
   }
 

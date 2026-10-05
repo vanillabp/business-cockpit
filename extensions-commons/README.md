@@ -80,7 +80,8 @@ Two interfaces in `io.vanillabp.cockpit.extension.spi`, and nothing else.
 configured adapter id, because during a migration each id holds workflows of its own. It answers
 five questions: what the BPMS knows about a user task, what it knows about a workflow, which
 workflows of a workflow aggregate it holds, which user tasks of one it holds, and whether one named
-task belongs to that aggregate.
+task belongs to that aggregate. A sixth one has a default and is asked by `aggregateChanged` only,
+see below.
 
 Every reference a BPMS half hands over or is asked about carries the version of the deployed BPMN
 process, spelled the way the engine reports it. It is what picks between details providers which
@@ -106,8 +107,26 @@ what it was asked for throws, and the exception reaches the engine reporting the
 fails and says so. An empty answer means the engine says nothing about the task or the workflow. A
 report about a task or a case which is still running is then dropped for good, and a report of an
 end is sent all the same, with its identifiers and without details: a completion which never
-arrives leaves a task the cockpit shows as open forever. `PhaseTwoRetryLater` is no answer here any
-more, because at the moment of the event there is no entry to dispatch again.
+arrives leaves a task the cockpit shows as open forever. `PhaseTwoRetryLater` is no answer at the
+moment of an event, because there is no entry to dispatch again yet.
+
+One way is the exception: `BusinessCockpitService.aggregateChanged(aggregate)`. It runs in the
+application's transaction, and a half whose engine writes a storage behind it cannot always name
+the workflows of the case there. So the half is asked `workflowsOfAggregateRightAway` first. The
+default answers what `workflowsOfAggregate` answers, and the report is built right away as on every
+other way. A half which answers nothing gets an outbox entry without a report instead. When that
+entry is dispatched, the half is asked `workflowsOfAggregate` and `prefilledWorkflowDetails`, and
+the details provider runs in a transaction of the dispatch. An empty answer there means "not yet",
+and the entry comes back after two seconds, with the distance growing by a tenth of the time it has
+waited so far. So a BPMS which stays behind for minutes is not asked every two seconds. The
+extension gives up after ten minutes, long before the outbox would block the entry on its own. A
+change which still has no workflow then is not dropped. Its entry is blocked, like an entry which
+used up its attempts, and the log says so at ERROR and names what to check in the BPMS. The outbox
+does not dispatch a blocked entry again by itself. A `PhaseTwoRetryLater` of
+the half is understood on this way, and any other exception goes to the outbox, which repeats the
+entry with its own backoff. The adapter of the change comes from VanillaBP's note of the start,
+or is the one adapter the application configured. Only an application with several adapters and no
+note asks the election, which may ask a BPMS.
 
 An empty answer is silence and never the end of a task. No BPMS can promise the stronger reading. A
 half whose engine publishes what it holds through a storage of its own writes that storage behind

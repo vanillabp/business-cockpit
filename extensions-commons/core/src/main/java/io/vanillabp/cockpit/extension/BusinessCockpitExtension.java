@@ -2,10 +2,13 @@ package io.vanillabp.cockpit.extension;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,10 +71,23 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * <p>
  * So a report says what was true when the event happened, and the dispatch asks nobody
  * anything. See decision 26 in the repository's DECISIONS.md.
+ * <p>
+ * One way is the exception. A changed workflow aggregate which the BPMS half cannot name in the
+ * application's transaction gets an entry without a report, and that entry is resolved when it
+ * is dispatched ({@link #publishWorkflowChangeResolvedWhenDispatched}).
  */
 public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitExtension.class);
+
+  /**
+   * How long a change which is resolved when its entry is dispatched is tried again, while its
+   * BPMS has not written the workflow yet. See {@link #tryTheChangeAgainLater}.
+   */
+  static final Duration CHANGE_RESOLUTION_WINDOW = Duration.ofMinutes(10);
+
+  /** The shortest distance between two attempts to resolve a change. */
+  static final Duration FIRST_DISTANCE_OF_A_CHANGE = Duration.ofSeconds(2);
 
   private final BusinessCockpitConfiguration configuration;
 
@@ -153,7 +169,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             BusinessCockpitOperations.publishWorkflowEvent(),
             (
                 call,
-                previouslyAttempted) -> dispatchWorkflowEvent(call));
+                previouslyAttempted) -> dispatchWorkflowEvent(call, previouslyAttempted));
     registry
         .register(
             BusinessCockpitOperations.registerWorkflowModule(),
@@ -425,6 +441,98 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 .bpmnProcessId(), workflow.adapterId(), workflowAggregateClass, () -> workflowCall(workflow, kind, args,
                     eventId, eventTimestamp)),
         transaction);
+
+  }
+
+  /**
+   * Plans the report of a changed workflow aggregate which the BPMS half could not name in the
+   * application's transaction.
+   * <p>
+   * The entry is written in the caller's transaction, like every report of
+   * <code>BusinessCockpitService</code>, and it carries what is known without the BPMS: the
+   * aggregate, its module and process, the adapter, the time of the change, and the workflow and
+   * its version where VanillaBP wrote them down at the start. It carries no report. The report is
+   * built when the entry is dispatched, and while the BPMS has not written the workflow yet the
+   * entry is dispatched again a little later. See decision 26 in the repository's DECISIONS.md
+   * for why this is the exception and not the rule.
+   *
+   * @param adapterId The adapter holding the workflows of the aggregate
+   * @param workflowModuleId The workflow module
+   * @param bpmnProcessId The primary BPMN process of the aggregate
+   * @param workflowAggregateId The aggregate's id, serialized
+   * @param workflowId The workflow VanillaBP wrote down at the start, or <code>null</code>
+   * @param processVersion The version VanillaBP wrote down at the start, or <code>null</code>
+   * @param timestamp When the change happened
+   * @param workflowAggregateClass The aggregate's class
+   * @return Whether an entry was written, <code>false</code> where the application reports no
+   *         workflows at all
+   */
+  public boolean publishWorkflowChangeResolvedWhenDispatched(
+      final String adapterId,
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String workflowAggregateId,
+      final String workflowId,
+      final String processVersion,
+      final OffsetDateTime timestamp,
+      final Class<?> workflowAggregateClass) {
+
+    if (!configuration.isWorkflowListEnabled()) {
+      return false;
+    }
+
+    final var args = new LinkedHashMap<String, String>();
+    put(args, BusinessCockpitOperations.ARG_EVENT_KIND, WorkflowEventKind.UPDATED.name());
+    put(args, BusinessCockpitOperations.ARG_WORKFLOW_ID, workflowId);
+    put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, processVersion);
+    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(null));
+    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
+    put(args, BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, Boolean.TRUE.toString());
+
+    return schedule(
+        new ReportBeingPlanned(
+            BusinessCockpitOperations.PUBLISH_WORKFLOW_EVENT, workflowModuleId, bpmnProcessId, adapterId, workflowAggregateClass, () -> PhaseTwoCall
+                .of(
+                    BusinessCockpitOperations.publishWorkflowEvent(),
+                    workflowModuleId,
+                    bpmnProcessId,
+                    workflowAggregateId,
+                    adapterId,
+                    args)
+                .replacingWhatIsStillWaiting()),
+        EventTransaction.CURRENT);
+
+  }
+
+  /**
+   * Whether a BPMS half serves this adapter id.
+   *
+   * @param adapterId The adapter id
+   * @return Whether {@link #bridgeOf(String)} answers it
+   */
+  public boolean hasABridgeFor(
+      final String adapterId) {
+
+    return (adapterId != null) && bridges.containsKey(adapterId);
+
+  }
+
+  /**
+   * The BPMS half of the one adapter this application configured.
+   * <p>
+   * With one adapter there is nothing to elect: every workflow of the application runs there.
+   * <code>BusinessCockpitService</code> asks this before it asks the election, because an
+   * election may ask the BPMS and wait for it inside the application's transaction.
+   *
+   * @return The half, or empty where the application configured more than one adapter
+   */
+  public Optional<BusinessCockpitBpmsBridge> theOnlyBridge() {
+
+    final var adapterIds = configuration.getConfiguredAdapterIds();
+    if (adapterIds.size() != 1) {
+      return Optional.empty();
+    }
+    return Optional.of(bridgeOf(adapterIds.iterator().next()));
 
   }
 
@@ -719,39 +827,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final String eventId,
       final OffsetDateTime timestamp) {
 
-    final var module = configuration.workflowModule(workflow.workflowModuleId());
-    final var event = buildWorkflowEvent(workflow, kind, eventId, timestamp);
-    final var described = described(workflow);
-    final var describedEvent = "the event "
-        + kind.name();
     final var prefill = prefilledWorkflowDetails(workflow);
-    if (prefill.isEmpty()) {
-      if (!ends(kind)) {
-        reportDropped(described, kind.name(), workflow.adapterId());
-        return null;
-      }
-      reportedWithoutDetails(described, kind.name(), workflow.adapterId());
-      event.setInitiator(Initiator.SYSTEM);
-    } else {
-      event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
-      event.setBusinessId(prefill.get().businessId());
-      event.setInitiator(prefill.get().initiator());
-      event.setCreatedAt(prefill.get().createdAt());
-      handlers
-          .invoke(
-              HandlerCall
-                  .of(
-                      WorkflowDetailsProvider.class, workflow.workflowModuleId(),
-                      workflow.bpmnProcessId())
-                  .processVersion(workflow.processVersion())
-                  .workflowAggregateId(workflow.workflowAggregateId())
-                  .payload(event)
-                  .build())
-          .map(WorkflowDetails.class::cast)
-          .ifPresent(event::applyReturnedDetails);
-      requireAnInitiator(
-          event, workflow.workflowModuleId(), workflow.bpmnProcessId(), null, describedEvent);
-      EventTitles.fill(event, module, templating, prefill.get().bpmnProcessName());
+    if (prefill.isEmpty() && !ends(kind)) {
+      reportDropped(described(workflow), kind.name(), workflow.adapterId());
+      return null;
     }
     return PhaseTwoCall
         .of(
@@ -761,8 +840,55 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             workflow.workflowAggregateId(),
             workflow.adapterId(),
             args,
-            ReportPayload.of(event))
+            ReportPayload.of(workflowReport(workflow, kind, eventId, timestamp, prefill)))
         .replacingWhatIsStillWaiting();
+
+  }
+
+  /**
+   * Builds the report of a workflow event out of what the BPMS half answered: the prefill, the
+   * application's details provider and the titles. It is the same at the moment of the event and
+   * at the dispatch of a change which is resolved then.
+   *
+   * @param prefill What the BPMS half answered. Empty only for an end, which is then reported
+   *          without details
+   * @return The report
+   */
+  private WorkflowEvent workflowReport(
+      final WorkflowReference workflow,
+      final WorkflowEventKind kind,
+      final String eventId,
+      final OffsetDateTime timestamp,
+      final Optional<WorkflowDetailsPrefill> prefill) {
+
+    final var module = configuration.workflowModule(workflow.workflowModuleId());
+    final var event = buildWorkflowEvent(workflow, kind, eventId, timestamp);
+    if (prefill.isEmpty()) {
+      reportedWithoutDetails(described(workflow), kind.name(), workflow.adapterId());
+      event.setInitiator(Initiator.SYSTEM);
+      return event;
+    }
+    event.setBpmnProcessVersion(prefill.get().bpmnProcessVersion());
+    event.setBusinessId(prefill.get().businessId());
+    event.setCreatedAt(prefill.get().createdAt());
+    event.setInitiator(prefill.get().initiator());
+    handlers
+        .invoke(
+            HandlerCall
+                .of(
+                    WorkflowDetailsProvider.class, workflow.workflowModuleId(),
+                    workflow.bpmnProcessId())
+                .processVersion(workflow.processVersion())
+                .workflowAggregateId(workflow.workflowAggregateId())
+                .payload(event)
+                .build())
+        .map(WorkflowDetails.class::cast)
+        .ifPresent(event::applyReturnedDetails);
+    requireAnInitiator(
+        event, workflow.workflowModuleId(), workflow.bpmnProcessId(), null, "the event "
+            + kind.name());
+    EventTitles.fill(event, module, templating, prefill.get().bpmnProcessName());
+    return event;
 
   }
 
@@ -817,13 +943,179 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   private void dispatchWorkflowEvent(
-      final PhaseTwoCall call) {
+      final PhaseTwoCall call,
+      final boolean previouslyAttempted) {
 
+    if (call.args().containsKey(BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED)) {
+      dispatchWorkflowChange(call, previouslyAttempted);
+      return;
+    }
     transport
         .publishWorkflowEvent(
             call.hasPayload()
                 ? ReportPayload.workflowEvent(call.payload())
                 : workflowEventWithoutItsReport(call));
+
+  }
+
+  /**
+   * Resolves a changed workflow aggregate the BPMS half could not name in the application's
+   * transaction, builds its reports and sends them.
+   * <p>
+   * The half is asked now which workflows the aggregate has and what it says about each of them,
+   * and the application's details provider runs in a transaction of this dispatch. That is the
+   * exception decision 26 in the repository's DECISIONS.md makes for this one way.
+   * <p>
+   * An empty answer of the half means that its BPMS has not written the workflow yet, so the entry
+   * is given back to the outbox and comes again a little later ({@link #tryTheChangeAgainLater}).
+   * An exception of the half travels on to the outbox, which repeats the entry with its own
+   * backoff, and a <code>PhaseTwoRetryLater</code> of the half is an answer the outbox
+   * understands.
+   * <p>
+   * Several workflows of one aggregate are sent one by one. Where a later one fails, the entry
+   * comes again and sends the earlier ones a second time, with the same event ids, which is the
+   * at-least-once the outbox promises anyway.
+   */
+  private void dispatchWorkflowChange(
+      final PhaseTwoCall call,
+      final boolean previouslyAttempted) {
+
+    final var args = call.args();
+    final var eventId = args.get(BusinessCockpitOperations.ARG_EVENT_ID);
+    final var timestamp = parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP));
+    final var bridge = bridgeOf(call.adapterId());
+    final var reports = readInOneTransaction(
+        aggregateOf(call.workflowModuleId(), call.bpmnProcessId(), null),
+        () -> {
+          final var workflows = bridge
+              .workflowsOfAggregate(
+                  call.workflowModuleId(), call.bpmnProcessId(), call.workflowAggregateId());
+          if (workflows.isEmpty()) {
+            return List.<WorkflowEvent>of();
+          }
+          final var built = new LinkedList<WorkflowEvent>();
+          for (final var workflow : workflows) {
+            final var prefill = bridge.prefilledWorkflowDetails(workflow);
+            if (prefill.isEmpty()) {
+              return List.<WorkflowEvent>of();
+            }
+            built
+                .add(
+                    workflowReport(
+                        workflow, WorkflowEventKind.UPDATED, eventIdOfOneOf(
+                            eventId, workflow, workflows.size()),
+                        timestamp, prefill));
+          }
+          return built;
+        });
+    if (reports.isEmpty()) {
+      tryTheChangeAgainLater(call, timestamp, previouslyAttempted);
+      return;
+    }
+    reports.forEach(transport::publishWorkflowEvent);
+
+  }
+
+  /**
+   * The event id of the report of one workflow of a changed aggregate. An aggregate with one
+   * workflow keeps the id of its entry. Where it has several, each of them gets an id of its own,
+   * derived from the entry's id, so that a repeated dispatch sends the same ids again.
+   */
+  private static String eventIdOfOneOf(
+      final String eventId,
+      final WorkflowReference workflow,
+      final int numberOfWorkflows) {
+
+    if (numberOfWorkflows == 1) {
+      return eventId;
+    }
+    return UUID
+        .nameUUIDFromBytes(
+            "%s|%s".formatted(eventId, workflow.workflowId()).getBytes(StandardCharsets.UTF_8))
+        .toString();
+
+  }
+
+  /**
+   * Gives a change back to the outbox while its BPMS has not written the workflow yet, or blocks
+   * its entry once it waited for {@link #CHANGE_RESOLUTION_WINDOW}.
+   * <p>
+   * The window is ten minutes, because that is how long an exporter of Camunda 8 may stand still
+   * without a report getting lost. The extension ends the window itself. The outbox does not count
+   * a <code>PhaseTwoRetryLater</code> as an attempt, and it blocks such an entry only after
+   * <code>vanillabp.outbox.wait-for-visibility-at-most</code>, which is hours by default.
+   * <p>
+   * The distance starts at two seconds and grows with the time the change has waited
+   * ({@link #distanceToTheNextAttempt}). While an exporter stands still for minutes, its BPMS is
+   * not asked every two seconds for every waiting change.
+   * <p>
+   * A change which waited the whole window is not dropped. Its entry is blocked with a
+   * <code>PhaseTwoPermanentFailure</code>, the same state the outbox gives an entry after
+   * <code>block-after-attempts</code>, and the log says so at ERROR. Ten minutes without the
+   * workflow mean that something is wrong: the aggregate has no workflow in that BPMS, or the
+   * BPMS stopped writing it. Somebody has to look, and a blocked entry stays where it can be
+   * seen. A dropped change would be gone.
+   *
+   * @param call The entry's call
+   * @param timestamp When the change happened
+   * @param previouslyAttempted Whether the outbox dispatched the entry before
+   * @throws PhaseTwoRetryLater While the window is open
+   * @throws PhaseTwoPermanentFailure Once the change waited the whole window
+   */
+  static void tryTheChangeAgainLater(
+      final PhaseTwoCall call,
+      final OffsetDateTime timestamp,
+      final boolean previouslyAttempted) {
+
+    final var waited = Duration.between(timestamp, OffsetDateTime.now());
+    final var what = "the change of aggregate '%s' of '%s/%s'"
+        .formatted(call.workflowAggregateId(), call.workflowModuleId(), call.bpmnProcessId());
+    if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
+      logger
+          .error(
+              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check that the aggregate has a workflow in adapter '{}' and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
+              what,
+              call.adapterId(),
+              CHANGE_RESOLUTION_WINDOW,
+              call.adapterId());
+      throw new PhaseTwoPermanentFailure(
+          "The BPMS half of adapter '%s' named no workflow of %s for %s"
+              .formatted(call.adapterId(), what, CHANGE_RESOLUTION_WINDOW), null);
+    }
+    if (!previouslyAttempted) {
+      logger
+          .info(
+              "Reporting {} to the Business Cockpit later: the BPMS half of adapter '{}' names no workflow of it yet, which is what a BPMS writing a storage behind its engine answers while it is behind. The report is tried again for up to {}.",
+              what,
+              call.adapterId(),
+              CHANGE_RESOLUTION_WINDOW);
+    }
+    throw new PhaseTwoRetryLater(
+        "The BPMS half of adapter '%s' names no workflow of %s yet"
+            .formatted(call.adapterId(), what), distanceToTheNextAttempt(waited));
+
+  }
+
+  /**
+   * How long a change waits before it is resolved again: two seconds, or a tenth of the time it
+   * has waited so far, whichever is longer.
+   * <p>
+   * Two seconds serve the usual case, an exporter a moment behind its engine. The tenth makes
+   * the distances grow by a tenth per attempt once the change waited twenty seconds. Ten attempts
+   * cover the first twenty seconds, and about thirty-six more reach the ten minutes. So a change
+   * whose BPMS stands still asks it about forty-six times in ten minutes instead of three hundred
+   * (see {@link #tryTheChangeAgainLater}).
+   *
+   * @param waited How long the change has waited since it happened
+   * @return The distance to the next attempt
+   */
+  static Duration distanceToTheNextAttempt(
+      final Duration waited) {
+
+    final var tenth = waited.dividedBy(10);
+    return tenth.compareTo(FIRST_DISTANCE_OF_A_CHANGE) > 0
+        ? tenth
+        : FIRST_DISTANCE_OF_A_CHANGE;
 
   }
 
@@ -1312,11 +1604,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Refuses a BPMS half which asks for a report to be repeated later.
+   * Refuses a BPMS half which asks for a report to be repeated later, at the moment of an event.
    * <p>
-   * That answer belonged to the time when a report was built while its entry was dispatched: an
-   * entry existed, and the outbox could bring it back. A report is built while the event is
-   * observed now, and there is no entry yet.
+   * That answer needs an entry the outbox can bring back. A report is built while the event is
+   * observed, and there is no entry yet. The one way where the answer is understood is a change
+   * which is resolved when its entry is dispatched, and that way asks the half directly
+   * ({@link #dispatchWorkflowChange}).
    */
   private static IllegalStateException nothingToTryAgain(
       final BusinessCockpitBpmsBridge bridge,
