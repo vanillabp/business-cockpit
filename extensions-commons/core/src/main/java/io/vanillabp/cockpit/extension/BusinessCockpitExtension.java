@@ -1041,19 +1041,20 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * its entry once it waited for {@link #CHANGE_RESOLUTION_WINDOW}.
    * <p>
    * The window is ten minutes, because that is how long an exporter of Camunda 8 may stand still
-   * without a report getting lost. The outbox counts every attempt and blocks an entry after
-   * <code>vanillabp.outbox.block-after-attempts</code> of them, fifty by default, and that number
-   * is the same for every entry of the application. Fifty attempts two seconds apart would last
-   * less than two minutes. So the distance starts at two seconds and grows with the time the
-   * change has waited ({@link #distanceToTheNextAttempt}), and fifty attempts last the ten
-   * minutes.
+   * without a report getting lost. The extension ends the window itself. The outbox does not count
+   * a <code>PhaseTwoRetryLater</code> as an attempt, and it blocks such an entry only after
+   * <code>vanillabp.outbox.wait-for-visibility-at-most</code>, which is hours by default.
+   * <p>
+   * The distance starts at two seconds and grows with the time the change has waited
+   * ({@link #distanceToTheNextAttempt}). While an exporter stands still for minutes, its BPMS is
+   * not asked every two seconds for every waiting change.
    * <p>
    * A change which waited the whole window is not dropped. Its entry is blocked with a
    * <code>PhaseTwoPermanentFailure</code>, the same state the outbox gives an entry after
    * <code>block-after-attempts</code>, and the log says so at ERROR. Ten minutes without the
    * workflow mean that something is wrong: the aggregate has no workflow in that BPMS, or the
-   * BPMS stopped writing it. Somebody has to look, and a blocked entry can be seen and set back
-   * to open once the cause is fixed. A dropped change would be gone.
+   * BPMS stopped writing it. Somebody has to look, and a blocked entry stays where it can be
+   * seen. A dropped change would be gone.
    *
    * @param call The entry's call
    * @param timestamp When the change happened
@@ -1072,7 +1073,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
       logger
           .error(
-              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check that the aggregate has a workflow in adapter '{}' and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). Then set the blocked entry back to open, and the change is reported.",
+              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check that the aggregate has a workflow in adapter '{}' and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
               what,
               call.adapterId(),
               CHANGE_RESOLUTION_WINDOW,
@@ -1101,8 +1102,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <p>
    * Two seconds serve the usual case, an exporter a moment behind its engine. The tenth makes
    * the distances grow by a tenth per attempt once the change waited twenty seconds. Ten attempts
-   * cover the first twenty seconds, and about thirty-six more reach the ten minutes, which keeps
-   * the default of fifty attempts out of reach (see {@link #tryTheChangeAgainLater}).
+   * cover the first twenty seconds, and about thirty-six more reach the ten minutes. So a change
+   * whose BPMS stands still asks it about forty-six times in ten minutes instead of three hundred
+   * (see {@link #tryTheChangeAgainLater}).
    *
    * @param waited How long the change has waited since it happened
    * @return The distance to the next attempt

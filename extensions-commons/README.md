@@ -118,10 +118,11 @@ other way. A half which answers nothing gets an outbox entry without a report in
 entry is dispatched, the half is asked `workflowsOfAggregate` and `prefilledWorkflowDetails`, and
 the details provider runs in a transaction of the dispatch. An empty answer there means "not yet",
 and the entry comes back after two seconds, with the distance growing by a tenth of the time it has
-waited so far. That way the fifty attempts the outbox allows by default last ten minutes. A change
-which still has no workflow after ten minutes is not dropped. Its entry is blocked, like an entry
-which used up its attempts, and the log says so at ERROR. Somebody checks the BPMS and then sets the
-entry back to open. A `PhaseTwoRetryLater` of
+waited so far. So a BPMS which stays behind for minutes is not asked every two seconds. The
+extension gives up after ten minutes, long before the outbox would block the entry on its own. A
+change which still has no workflow then is not dropped. Its entry is blocked, like an entry which
+used up its attempts, and the log says so at ERROR and names what to check in the BPMS. The outbox
+does not dispatch a blocked entry again by itself. A `PhaseTwoRetryLater` of
 the half is understood on this way, and any other exception goes to the outbox, which repeats the
 entry with its own backoff. The adapter of the change comes from VanillaBP's note of the start,
 or is the one adapter the application configured. Only an application with several adapters and no

@@ -28,8 +28,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 @ExtendWith(SuppressOutputExtension.class)
 public class ChangeResolvedWhenDispatchedTest {
 
-  /** What the outbox blocks an entry after, unless the application configured otherwise. */
-  private static final int DEFAULT_BLOCK_AFTER_ATTEMPTS = 50;
+  /** How many attempts ten minutes would take with two seconds between them. */
+  private static final int ATTEMPTS_TWO_SECONDS_APART = 300;
 
   @Test
   @DisplayName("The first attempts come two seconds apart")
@@ -46,20 +46,19 @@ public class ChangeResolvedWhenDispatchedTest {
   }
 
   @Test
-  @DisplayName("Ten minutes of a BPMS which has not written the workflow fit into the default number of attempts")
-  public void tenMinutesFitIntoTheDefaultAttempts() {
+  @DisplayName("A BPMS which stays behind for ten minutes is asked far less often than every two seconds")
+  public void tenMinutesTakeFarFewerAttemptsThanTwoSecondsApart() {
 
-    // the outbox counts every attempt, and the time it takes to pick a due entry up only makes
-    // the window shorter in attempts. So this counts the distances alone, which is the worst case
+    // counts the distances alone. The time the outbox takes to pick a due entry up only makes
+    // the number smaller
     var waited = Duration.ZERO;
-    var failedAttempts = 0;
+    var attempts = 0;
     while (waited.compareTo(BusinessCockpitExtension.CHANGE_RESOLUTION_WINDOW) < 0) {
       waited = waited.plus(BusinessCockpitExtension.distanceToTheNextAttempt(waited));
-      failedAttempts++;
+      attempts++;
     }
-    assertTrue(
-        failedAttempts < DEFAULT_BLOCK_AFTER_ATTEMPTS,
-        "%d failed attempts before the window ends".formatted(failedAttempts));
+    assertEquals(46, attempts, "attempts in the window");
+    assertTrue(attempts < ATTEMPTS_TWO_SECONDS_APART / 5);
 
   }
 
@@ -99,8 +98,8 @@ public class ChangeResolvedWhenDispatchedTest {
         logged.contains("ERROR") && logged.contains("The outbox entry is now blocked"),
         "the log says that the entry is blocked, at ERROR: %s".formatted(logged));
     assertTrue(
-        logged.contains("set the blocked entry back to open"),
-        "the log says what to do: %s".formatted(logged));
+        logged.contains("Check that the aggregate has a workflow in adapter 'camunda8'"),
+        "the log says what to check: %s".formatted(logged));
 
   }
 

@@ -1882,20 +1882,24 @@ which names its workflow keeps the key decision 4 gave it.
 An empty answer at the dispatch means "not written yet". The entry is given back to the outbox with
 `PhaseTwoRetryLater`, and a `PhaseTwoRetryLater` the half throws there is passed on as well. The
 first distance is two seconds. From then on it is a tenth of the time the change has waited, so it
-grows by a tenth per attempt after twenty seconds. The outbox counts every attempt and blocks an
-entry after `vanillabp.outbox.block-after-attempts` of them. That setting is one number for every
-entry of the application, fifty by default, and fifty attempts two seconds apart last less than two
-minutes. With the growing distance, about 46 attempts last ten minutes, which is how long an
-exporter may stand still without a report getting lost. Any other exception goes to the outbox,
-which repeats the entry with its own backoff.
+grows by a tenth per attempt after twenty seconds. So an exporter which stands still for minutes
+does not get its BPMS asked every two seconds for every waiting change: ten minutes take about 46
+attempts instead of 300. The maintainer chose to keep the distance growing. Any other exception goes
+to the outbox, which repeats the entry with its own backoff.
+
+The extension ends the window itself, after ten minutes, which is how long an exporter may stand
+still without a report getting lost. The outbox does not count a `PhaseTwoRetryLater` as an attempt.
+It blocks such an entry only after `vanillabp.outbox.wait-for-visibility-at-most`, which is hours by
+default, so the ten minutes always end first.
 
 A change which has no workflow after ten minutes is not dropped. The dispatch throws
 `PhaseTwoPermanentFailure`, so the outbox blocks the entry right away. That is the same state an entry
 gets after `block-after-attempts`. The extension logs at ERROR what it waited for and what to check:
 whether the aggregate has a workflow in that BPMS, and whether the BPMS writes what its engine does.
 Ten minutes without the workflow mean that something is wrong, and a dropped change could not be
-reported again. A blocked entry can be seen, and an operator sets it back to open once the cause is
-fixed. Decided on 2026-10-05.
+reported again. A blocked entry stays in the outbox where it can be seen. The outbox does not
+dispatch it again by itself, and VanillaBP has no command for that, so it waits for whoever repairs
+blocked outbox entries. Decided on 2026-10-05.
 
 The adapter of a change comes from VanillaBP's note of the start, or is the one adapter the
 application configured. Only an application with several adapters and no note still asks the
