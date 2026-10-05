@@ -42,7 +42,7 @@
       repositories call it 'quarkus.version'. Renovate reads both names. The value is a promise
       to those three repositories: their Quarkus half runs in the same application as this one,
       and bin/check-the-chain.sh compares the four every night. -->
-    <version.quarkus>3.40.0</version.quarkus>
+    <version.quarkus>3.40.1</version.quarkus>
   </properties>
 
   <dependencyManagement>
