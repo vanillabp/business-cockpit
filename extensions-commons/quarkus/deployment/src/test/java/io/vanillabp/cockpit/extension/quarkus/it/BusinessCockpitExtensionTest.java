@@ -83,6 +83,8 @@ public class BusinessCockpitExtensionTest {
     CockpitServer.forgetRequests();
     bridge.namesWorkflowsRightAway(true);
     bridge.writesTheWorkflowAfter(0);
+    bridge.reportsAChangedUserTaskRightAway(true);
+    bridge.writesTheTaskAfter(0);
     bridge.forgetLookups();
 
   }
@@ -340,6 +342,35 @@ public class BusinessCockpitExtensionTest {
     workflowService.businessCockpit().aggregateChanged(aggregate, TestBpmsBridge.USER_TASK_ID);
     transaction.commit();
 
+    final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/updated");
+    assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A changed user task the BPMS half cannot report right away is reported once the BPMS wrote the task")
+  public void aggregateChangedOfATaskIsResolvedWhenItIsDispatched() throws Exception {
+
+    final var aggregate = aStartedWorkflow();
+    // a BPMS which writes a storage behind its engine: the report cannot be built in the
+    // application's transaction, and the first read at the dispatch still finds nothing
+    bridge.reportsAChangedUserTaskRightAway(false);
+    bridge.writesTheTaskAfter(1);
+    bridge.forgetLookups();
+
+    transaction.begin();
+    workflowService.businessCockpit().aggregateChanged(aggregate, TestBpmsBridge.USER_TASK_ID);
+    // nothing was asked of the BPMS in the application's transaction
+    assertEquals(0, bridge.taskReads());
+    transaction.commit();
+
+    // the empty first answer was tried again instead of being dropped. A report of an earlier
+    // test lands on the same path, so the second read is waited for before the path is read
+    final var deadline = System.currentTimeMillis() + 15_000;
+    while ((bridge.taskReads() < 2) && (System.currentTimeMillis() < deadline)) {
+      Thread.sleep(50);
+    }
+    assertEquals(2, bridge.taskReads());
     final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/updated");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
 

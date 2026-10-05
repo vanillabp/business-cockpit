@@ -88,6 +88,8 @@ public class BusinessCockpitExtensionTest {
     bridge.knowsTheTask(true);
     bridge.namesWorkflowsRightAway(true);
     bridge.writesTheWorkflowAfter(0);
+    bridge.reportsAChangedUserTaskRightAway(true);
+    bridge.writesTheTaskAfter(0);
     bridge.forgetLookups();
 
   }
@@ -541,6 +543,36 @@ public class BusinessCockpitExtensionTest {
 
     final var request = CockpitServer.awaitAnyRequest("/usertask/task-1/updated");
     assertTrue(request.body().contains("\"customer\":\"Anna\""), request.body());
+
+  }
+
+  @Test
+  @DisplayName("A changed user task the BPMS half cannot report right away is reported once the BPMS wrote the task")
+  public void aggregateChangedOfATaskIsResolvedWhenItIsDispatched() {
+
+    final var aggregate = aStartedWorkflow();
+    // a BPMS which writes a storage behind its engine: the report cannot be built in the
+    // application's transaction, and the first read at the dispatch still finds nothing
+    bridge.reportsAChangedUserTaskRightAway(false);
+    bridge.writesTheTaskAfter(1);
+    bridge.forgetLookups();
+
+    transactions
+        .executeWithoutResult(status -> {
+          final var attached = aggregates.findById(aggregate.getId()).orElseThrow();
+          attached.setCustomer("Berta");
+          workflowService.businessCockpit().aggregateChanged(attached, RecordingBpmsBridge.USER_TASK_ID);
+          // nothing was asked of the BPMS in the application's transaction
+          assertEquals(0, bridge.taskReads());
+          assertTrue(bridge.tasksLookedUpInATransaction().isEmpty());
+        });
+
+    // the report is built at the dispatch. The details provider reads the aggregate as it was
+    // committed, and the empty first answer was tried again instead of being dropped
+    final var request = CockpitServer
+        .awaitRequest("/usertask/%s/updated".formatted(RecordingBpmsBridge.USER_TASK_ID), "\"customer\":\"Berta\"");
+    assertTrue(request.body().contains("\"assignee\":\"anna\""), request.body());
+    assertEquals(2, bridge.taskReads());
 
   }
 

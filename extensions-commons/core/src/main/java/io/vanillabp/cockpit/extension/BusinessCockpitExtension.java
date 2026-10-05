@@ -72,9 +72,11 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * So a report says what was true when the event happened, and the dispatch asks nobody
  * anything. See decision 26 in the repository's DECISIONS.md.
  * <p>
- * One way is the exception. A changed workflow aggregate which the BPMS half cannot name in the
+ * Two ways are the exception. A changed workflow aggregate which the BPMS half cannot name in the
  * application's transaction gets an entry without a report, and that entry is resolved when it
- * is dispatched ({@link #publishWorkflowChangeResolvedWhenDispatched}).
+ * is dispatched ({@link #publishWorkflowChangeResolvedWhenDispatched}). A changed user task
+ * whose report the BPMS half cannot build there is handled the same way
+ * ({@link #publishUserTaskChangeResolvedWhenDispatched}).
  */
 public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
@@ -163,7 +165,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             BusinessCockpitOperations.publishUserTaskEvent(),
             (
                 call,
-                previouslyAttempted) -> dispatchUserTaskEvent(call));
+                previouslyAttempted) -> dispatchUserTaskEvent(call, previouslyAttempted));
     registry
         .register(
             BusinessCockpitOperations.publishWorkflowEvent(),
@@ -505,6 +507,61 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
+   * Plans the report of a changed user task which the BPMS half cannot build in the application's
+   * transaction.
+   * <p>
+   * It is the counterpart of {@link #publishWorkflowChangeResolvedWhenDispatched} for a user
+   * task. The entry is written in the caller's transaction and carries no report, only what is
+   * known without the BPMS. The report is built when the entry is dispatched, and while the BPMS
+   * has not written the task yet the entry is dispatched again a little later.
+   *
+   * @param userTask The task as far as VanillaBP wrote it down when it delivered it. Where it
+   *          wrote nothing down, the reference names the id the application named and leaves
+   *          the workflow empty, so the dispatch looks the task up first. Where the application
+   *          named no task either, the id is empty as well, and the dispatch looks up every open
+   *          task of the aggregate
+   * @param timestamp When the change happened
+   * @param workflowAggregateClass The aggregate's class
+   * @return Whether an entry was written, <code>false</code> where the application reports no
+   *         user tasks at all
+   */
+  public boolean publishUserTaskChangeResolvedWhenDispatched(
+      final UserTaskReference userTask,
+      final OffsetDateTime timestamp,
+      final Class<?> workflowAggregateClass) {
+
+    if (!configuration.isUserTasksEnabled()) {
+      return false;
+    }
+
+    final var args = new LinkedHashMap<String, String>();
+    put(args, BusinessCockpitOperations.ARG_EVENT_KIND, UserTaskEventKind.UPDATED.name());
+    put(args, BusinessCockpitOperations.ARG_USER_TASK_ID, userTask.userTaskId());
+    put(args, BusinessCockpitOperations.ARG_WORKFLOW_ID, userTask.workflowId());
+    put(args, BusinessCockpitOperations.ARG_TASK_DEFINITION, userTask.taskDefinition());
+    put(args, BusinessCockpitOperations.ARG_BPMN_TASK_ID, userTask.bpmnTaskId());
+    put(args, BusinessCockpitOperations.ARG_PROCESS_VERSION, userTask.processVersion());
+    put(args, BusinessCockpitOperations.ARG_EVENT_ID, eventIdOf(null));
+    put(args, BusinessCockpitOperations.ARG_TIMESTAMP, timestampOf(timestamp).toString());
+    put(args, BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, Boolean.TRUE.toString());
+
+    return schedule(
+        new ReportBeingPlanned(
+            BusinessCockpitOperations.PUBLISH_USER_TASK_EVENT, userTask.workflowModuleId(), userTask
+                .bpmnProcessId(), userTask.adapterId(), workflowAggregateClass, () -> PhaseTwoCall
+                    .of(
+                        BusinessCockpitOperations.publishUserTaskEvent(),
+                        userTask.workflowModuleId(),
+                        userTask.bpmnProcessId(),
+                        userTask.workflowAggregateId(),
+                        userTask.adapterId(),
+                        args)
+                    .replacingWhatIsStillWaiting()),
+        EventTransaction.CURRENT);
+
+  }
+
+  /**
    * Whether a BPMS half serves this adapter id.
    *
    * @param adapterId The adapter id
@@ -781,25 +838,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final String eventId,
       final OffsetDateTime timestamp) {
 
-    final var event = buildUserTaskEvent(userTask, kind, eventId, timestamp);
-    final var described = described(userTask);
-    final var describedEvent = "the event "
-        + kind.name();
     final var prefill = prefilledUserTaskDetails(userTask);
-    if (prefill.isEmpty()) {
-      if (!ends(kind)) {
-        reportDropped(described, kind.name(), userTask.adapterId());
-        return null;
-      }
-      reportedWithoutDetails(described, kind.name(), userTask.adapterId());
-      event.setInitiator(Initiator.SYSTEM);
-    } else {
-      applyPrefill(event, prefill.get());
-      invokeUserTaskDetailsProvider(event, userTask, prefill.get());
-      requireAnInitiator(
-          event, userTask.workflowModuleId(), userTask.bpmnProcessId(),
-          userTask.taskDefinition(), describedEvent);
-      fillTitles(event, prefill.get());
+    if (prefill.isEmpty() && !ends(kind)) {
+      reportDropped(described(userTask), kind.name(), userTask.adapterId());
+      return null;
     }
     return PhaseTwoCall
         .of(
@@ -809,8 +851,41 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             userTask.workflowAggregateId(),
             userTask.adapterId(),
             args,
-            ReportPayload.of(event))
+            ReportPayload.of(userTaskReport(userTask, kind, eventId, timestamp, prefill)))
         .replacingWhatIsStillWaiting();
+
+  }
+
+  /**
+   * Builds the report of a user-task event out of what the BPMS half answered: the prefill, the
+   * application's details provider and the titles. It is the same at the moment of the event and
+   * at the dispatch of a change which is resolved then.
+   *
+   * @param prefill What the BPMS half answered. Empty only for an end, which is then reported
+   *          without details
+   * @return The report
+   */
+  private UserTaskEvent userTaskReport(
+      final UserTaskReference userTask,
+      final UserTaskEventKind kind,
+      final String eventId,
+      final OffsetDateTime timestamp,
+      final Optional<UserTaskDetailsPrefill> prefill) {
+
+    final var event = buildUserTaskEvent(userTask, kind, eventId, timestamp);
+    if (prefill.isEmpty()) {
+      reportedWithoutDetails(described(userTask), kind.name(), userTask.adapterId());
+      event.setInitiator(Initiator.SYSTEM);
+      return event;
+    }
+    applyPrefill(event, prefill.get());
+    invokeUserTaskDetailsProvider(event, userTask, prefill.get());
+    requireAnInitiator(
+        event, userTask.workflowModuleId(), userTask.bpmnProcessId(),
+        userTask.taskDefinition(), "the event "
+            + kind.name());
+    fillTitles(event, prefill.get());
+    return event;
 
   }
 
@@ -932,8 +1007,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   private void dispatchUserTaskEvent(
-      final PhaseTwoCall call) {
+      final PhaseTwoCall call,
+      final boolean previouslyAttempted) {
 
+    if (call.args().containsKey(BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED)) {
+      dispatchUserTaskChange(call, previouslyAttempted);
+      return;
+    }
     transport
         .publishUserTaskEvent(
             call.hasPayload()
@@ -1003,7 +1083,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                 .add(
                     workflowReport(
                         workflow, WorkflowEventKind.UPDATED, eventIdOfOneOf(
-                            eventId, workflow, workflows.size()),
+                            eventId, workflow.workflowId(), workflows.size()),
                         timestamp, prefill));
           }
           return built;
@@ -1017,21 +1097,139 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * The event id of the report of one workflow of a changed aggregate. An aggregate with one
-   * workflow keeps the id of its entry. Where it has several, each of them gets an id of its own,
-   * derived from the entry's id, so that a repeated dispatch sends the same ids again.
+   * Resolves a changed user task whose report the BPMS half could not build in the application's
+   * transaction, builds the report and sends it. It is the counterpart of
+   * {@link #dispatchWorkflowChange} for user tasks.
+   * <p>
+   * The entry names the task as VanillaBP wrote it down when it delivered the task. Where
+   * VanillaBP wrote nothing down, the entry names the id the application named, and the half is
+   * asked for that task first ({@link BusinessCockpitBpmsBridge#userTaskOfAggregate}). Where the
+   * application named no task either, the half is asked for every open task of the aggregate.
+   * <p>
+   * An empty answer about a named task means that its BPMS has not written the task yet, so the
+   * entry is given back to the outbox and comes again a little later. An empty answer of the
+   * search for every task is taken as it is: an aggregate without an open task is nothing
+   * unusual, and nothing is sent. An exception of the half travels on to the outbox, and a
+   * <code>PhaseTwoRetryLater</code> of the half is an answer the outbox understands.
+   */
+  private void dispatchUserTaskChange(
+      final PhaseTwoCall call,
+      final boolean previouslyAttempted) {
+
+    final var args = call.args();
+    final var eventId = args.get(BusinessCockpitOperations.ARG_EVENT_ID);
+    final var timestamp = parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP));
+    final var bridge = bridgeOf(call.adapterId());
+    final var named = userTaskOf(call);
+    final var reports = readInOneTransaction(
+        aggregateOf(call.workflowModuleId(), call.bpmnProcessId(), null),
+        () -> {
+          final var userTasks = userTasksOfTheChange(bridge, named);
+          if (userTasks.isEmpty()) {
+            return Optional.<List<UserTaskEvent>>empty();
+          }
+          final var built = new LinkedList<UserTaskEvent>();
+          for (final var userTask : userTasks.get()) {
+            final var prefill = bridge.prefilledUserTaskDetails(userTask);
+            if (prefill.isEmpty()) {
+              return Optional.<List<UserTaskEvent>>empty();
+            }
+            built
+                .add(
+                    userTaskReport(
+                        userTask, UserTaskEventKind.UPDATED, eventIdOfOneOf(
+                            eventId, userTask.userTaskId(), userTasks.get().size()),
+                        timestamp, prefill));
+          }
+          return Optional.<List<UserTaskEvent>>of(built);
+        });
+    if (reports.isEmpty()) {
+      tryTheChangeAgainLater(call, timestamp, previouslyAttempted, WaitingFor.userTask(named));
+      return;
+    }
+    if (reports.get().isEmpty()) {
+      logger
+          .debug(
+              "Not reporting the change of the user tasks of aggregate '{}' of '{}/{}' to the Business Cockpit: the BPMS half of adapter '{}' names no open user task of it",
+              call.workflowAggregateId(), call.workflowModuleId(), call.bpmnProcessId(), call
+                  .adapterId());
+      return;
+    }
+    reports.get().forEach(transport::publishUserTaskEvent);
+
+  }
+
+  /**
+   * The user tasks a changed user-task entry is about, as the BPMS half names them now.
+   *
+   * @param named The task the entry names
+   * @return The tasks, or empty where the half says nothing about a task the entry names. A
+   *         present but empty list means the entry names no task and the aggregate has no open
+   *         one
+   */
+  private static Optional<List<UserTaskReference>> userTasksOfTheChange(
+      final BusinessCockpitBpmsBridge bridge,
+      final UserTaskReference named) {
+
+    if (named.userTaskId() == null) {
+      return Optional
+          .of(
+              bridge
+                  .userTasksOfAggregate(
+                      named.workflowModuleId(), named.bpmnProcessId(), named
+                          .workflowAggregateId(),
+                      List.of()));
+    }
+    if (named.workflowId() == null) {
+      return bridge
+          .userTaskOfAggregate(
+              named.workflowModuleId(), named.bpmnProcessId(), named.workflowAggregateId(), named
+                  .userTaskId())
+          .map(List::of);
+    }
+    return Optional.of(List.of(named));
+
+  }
+
+  /**
+   * The user task an entry names, read back from its arguments. Fields the entry does not carry
+   * stay empty.
+   */
+  private static UserTaskReference userTaskOf(
+      final PhaseTwoCall call) {
+
+    final var args = call.args();
+    return new UserTaskReference(
+        call.adapterId(), call.workflowModuleId(), call.bpmnProcessId(), args.get(
+            BusinessCockpitOperations.ARG_PROCESS_VERSION), call.workflowAggregateId(), args.get(
+                BusinessCockpitOperations.ARG_WORKFLOW_ID), args.get(BusinessCockpitOperations.ARG_USER_TASK_ID), args
+                    .get(
+                        BusinessCockpitOperations.ARG_TASK_DEFINITION), args
+                            .get(BusinessCockpitOperations.ARG_BPMN_TASK_ID));
+
+  }
+
+  /**
+   * The event id of the report of one workflow or one task of a changed aggregate. An entry
+   * which ends up as one report keeps its own id. Where it ends up as several, each of them gets
+   * an id of its own, derived from the entry's id, so that a repeated dispatch sends the same ids
+   * again.
+   *
+   * @param eventId The id of the entry
+   * @param reportedId The id of the workflow or the task the report is about
+   * @param numberOfReports How many reports the entry ends up as
    */
   private static String eventIdOfOneOf(
       final String eventId,
-      final WorkflowReference workflow,
-      final int numberOfWorkflows) {
+      final String reportedId,
+      final int numberOfReports) {
 
-    if (numberOfWorkflows == 1) {
+    if (numberOfReports == 1) {
       return eventId;
     }
     return UUID
         .nameUUIDFromBytes(
-            "%s|%s".formatted(eventId, workflow.workflowId()).getBytes(StandardCharsets.UTF_8))
+            "%s|%s".formatted(eventId, reportedId).getBytes(StandardCharsets.UTF_8))
         .toString();
 
   }
@@ -1067,32 +1265,100 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final OffsetDateTime timestamp,
       final boolean previouslyAttempted) {
 
+    tryTheChangeAgainLater(call, timestamp, previouslyAttempted, WaitingFor.workflow(call));
+
+  }
+
+  /**
+   * Gives a change back to the outbox while its BPMS has not written what it is about, or blocks
+   * its entry once it waited for {@link #CHANGE_RESOLUTION_WINDOW}. The workflow way and the
+   * user-task way share the window and the distances, and the log names what was waited for.
+   *
+   * @param call The entry's call
+   * @param timestamp When the change happened
+   * @param previouslyAttempted Whether the outbox dispatched the entry before
+   * @param waitingFor What the change waits for, in the words of the log
+   * @throws PhaseTwoRetryLater While the window is open
+   * @throws PhaseTwoPermanentFailure Once the change waited the whole window
+   */
+  static void tryTheChangeAgainLater(
+      final PhaseTwoCall call,
+      final OffsetDateTime timestamp,
+      final boolean previouslyAttempted,
+      final WaitingFor waitingFor) {
+
     final var waited = Duration.between(timestamp, OffsetDateTime.now());
-    final var what = "the change of aggregate '%s' of '%s/%s'"
-        .formatted(call.workflowAggregateId(), call.workflowModuleId(), call.bpmnProcessId());
     if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
       logger
           .error(
-              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check that the aggregate has a workflow in adapter '{}' and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
-              what,
+              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named {} for {}. Either {}, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check {} and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
+              waitingFor.change(),
               call.adapterId(),
+              waitingFor.missing(),
               CHANGE_RESOLUTION_WINDOW,
-              call.adapterId());
+              waitingFor.otherReading(),
+              waitingFor.whatToCheck());
       throw new PhaseTwoPermanentFailure(
-          "The BPMS half of adapter '%s' named no workflow of %s for %s"
-              .formatted(call.adapterId(), what, CHANGE_RESOLUTION_WINDOW), null);
+          "The BPMS half of adapter '%s' named %s for %s, which is %s"
+              .formatted(
+                  call.adapterId(), waitingFor.missing(), CHANGE_RESOLUTION_WINDOW,
+                  waitingFor.change()), null);
     }
     if (!previouslyAttempted) {
       logger
           .info(
-              "Reporting {} to the Business Cockpit later: the BPMS half of adapter '{}' names no workflow of it yet, which is what a BPMS writing a storage behind its engine answers while it is behind. The report is tried again for up to {}.",
-              what,
+              "Reporting {} to the Business Cockpit later: the BPMS half of adapter '{}' names {} yet, which is what a BPMS writing a storage behind its engine answers while it is behind. The report is tried again for up to {}.",
+              waitingFor.change(),
               call.adapterId(),
+              waitingFor.missing(),
               CHANGE_RESOLUTION_WINDOW);
     }
     throw new PhaseTwoRetryLater(
-        "The BPMS half of adapter '%s' names no workflow of %s yet"
-            .formatted(call.adapterId(), what), distanceToTheNextAttempt(waited));
+        "The BPMS half of adapter '%s' names %s yet, which is %s"
+            .formatted(call.adapterId(), waitingFor.missing(), waitingFor.change()), distanceToTheNextAttempt(waited));
+
+  }
+
+  /**
+   * What a change resolved at its dispatch waits for, in the words its log lines use.
+   *
+   * @param change The change, for example "the change of aggregate 'A' of 'module/Process'"
+   * @param missing What the BPMS half did not name, fitting "the BPMS half has named ..."
+   * @param otherReading The reading of a silence which is no delay of the BPMS, fitting
+   *          "Either ..."
+   * @param whatToCheck What an operator checks, fitting "Check ..."
+   */
+  record WaitingFor(
+                    String change,
+                    String missing,
+                    String otherReading,
+                    String whatToCheck) {
+
+    static WaitingFor workflow(
+        final PhaseTwoCall call) {
+
+      return new WaitingFor(
+          "the change of aggregate '%s' of '%s/%s'"
+              .formatted(call.workflowAggregateId(), call.workflowModuleId(), call
+                  .bpmnProcessId()), "no workflow of it", "the aggregate has no workflow in that BPMS", "that the aggregate has a workflow in adapter '%s'"
+                      .formatted(call.adapterId()));
+
+    }
+
+    static WaitingFor userTask(
+        final UserTaskReference userTask) {
+
+      return new WaitingFor(
+          "the change of user task '%s' of aggregate '%s' of '%s/%s'"
+              .formatted(
+                  userTask.userTaskId(), userTask.workflowAggregateId(),
+                  userTask.workflowModuleId(),
+                  userTask
+                      .bpmnProcessId()), "nothing about that task", "the task is not one of that aggregate in that BPMS", "that user task '%s' belongs to aggregate '%s' in adapter '%s'"
+                          .formatted(
+                              userTask.userTaskId(), userTask.workflowAggregateId(), userTask.adapterId()));
+
+    }
 
   }
 
@@ -1609,7 +1875,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * That answer needs an entry the outbox can bring back. A report is built while the event is
    * observed, and there is no entry yet. The one way where the answer is understood is a change
    * which is resolved when its entry is dispatched, and that way asks the half directly
-   * ({@link #dispatchWorkflowChange}).
+   * ({@link #dispatchWorkflowChange} and {@link #dispatchUserTaskChange}).
    */
   private static IllegalStateException nothingToTryAgain(
       final BusinessCockpitBpmsBridge bridge,

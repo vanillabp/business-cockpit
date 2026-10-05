@@ -87,6 +87,10 @@ public final class BusinessCockpitOperations {
    * asks the BPMS half which workflows the aggregate has, builds the report then, and tries again
    * a little later while the BPMS has not written them yet.
    * <p>
+   * A user-task entry carries the same mark where the BPMS half cannot build the report of a
+   * changed task in the application's transaction. Its dispatch asks the half about the task it
+   * names, or looks the task up first where VanillaBP wrote nothing down about it.
+   * <p>
    * Such an entry is a row of the same operation, so a younger report of the same key still takes
    * its place. That is what keeps a backlog of changes from becoming a flood of reports. See
    * decision 26 in the repository's DECISIONS.md.
@@ -105,8 +109,10 @@ public final class BusinessCockpitOperations {
         .extensionOperation(PUBLISH_USER_TASK_EVENT)
         .idempotencyKey(BusinessCockpitOperations::userTaskKey)
         .describedAs(
-            args -> "reporting user task '%s' as %s to the Business Cockpit"
-                .formatted(args.get(ARG_USER_TASK_ID), args.get(ARG_EVENT_KIND)))
+            args -> args.containsKey(ARG_USER_TASK_ID)
+                ? "reporting user task '%s' as %s to the Business Cockpit"
+                    .formatted(args.get(ARG_USER_TASK_ID), args.get(ARG_EVENT_KIND))
+                : "reporting the change of the user tasks of a workflow aggregate to the Business Cockpit")
         .hintingWhenUnknown(
             """
                 The Business Cockpit adapter is not part of this application any more, so nobody \
@@ -165,6 +171,11 @@ public final class BusinessCockpitOperations {
    * Two pending updates of one task share a key on purpose. Only one of them survives, and it
    * is the youngest: every entry carries the report it was planned with, so the youngest is the
    * one which says what is true now.
+   * <p>
+   * An entry which is resolved when it is dispatched names no task where the application named
+   * none and VanillaBP knows of no open task of the aggregate. It is keyed by its aggregate then,
+   * the same way as such a workflow entry. Every entry which names its task keeps the key it
+   * always had.
    *
    * @param call The entry being scheduled
    * @return The key
@@ -172,6 +183,15 @@ public final class BusinessCockpitOperations {
   private static Optional<String> userTaskKey(
       final PhaseTwoCall call) {
 
+    if (!call.args().containsKey(ARG_USER_TASK_ID)) {
+      return Optional
+          .of(
+              "%s|%s|aggregate %s|%s".formatted(
+                  PUBLISH_USER_TASK_EVENT,
+                  call.adapterId(),
+                  call.workflowAggregateId(),
+                  call.args().get(ARG_EVENT_KIND)));
+    }
     return Optional
         .of(
             "%s|%s|%s|%s".formatted(

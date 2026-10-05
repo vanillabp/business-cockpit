@@ -80,8 +80,8 @@ Two interfaces in `io.vanillabp.cockpit.extension.spi`, and nothing else.
 configured adapter id, because during a migration each id holds workflows of its own. It answers
 five questions: what the BPMS knows about a user task, what it knows about a workflow, which
 workflows of a workflow aggregate it holds, which user tasks of one it holds, and whether one named
-task belongs to that aggregate. A sixth one has a default and is asked by `aggregateChanged` only,
-see below.
+task belongs to that aggregate. Two more have a default and are asked by `aggregateChanged`
+only, see below.
 
 Every reference a BPMS half hands over or is asked about carries the version of the deployed BPMN
 process, spelled the way the engine reports it. It is what picks between details providers which
@@ -127,6 +127,17 @@ the half is understood on this way, and any other exception goes to the outbox, 
 entry with its own backoff. The adapter of the change comes from VanillaBP's note of the start,
 or is the one adapter the application configured. Only an application with several adapters and no
 note asks the election, which may ask a BPMS.
+
+`aggregateChanged(aggregate, userTaskIds)` works the same way for user tasks. The half is asked
+`reportsAChangedUserTaskRightAway` first, and the default answers `true`, so the reports are built
+right away. A half which answers `false` is asked nothing in the application's transaction. The
+extension takes the open tasks from what VanillaBP wrote down when it delivered them, and writes
+an entry without a report for each of them, or for each task the application named. When the
+entry is dispatched, the half is asked `prefilledUserTaskDetails`. A task VanillaBP wrote nothing
+down about is looked up there with `userTaskOfAggregate` first. Where the application named no
+task and VanillaBP knows of no open one, the dispatch asks `userTasksOfAggregate` for every open
+task, and an empty answer of that search sends nothing. An empty answer about a task waits and
+blocks the same way as a workflow, and the log names the task.
 
 An empty answer is silence and never the end of a task. No BPMS can promise the stronger reading. A
 half whose engine publishes what it holds through a storage of its own writes that storage behind

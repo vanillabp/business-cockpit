@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.service;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,7 +9,9 @@ import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
+import io.vanillabp.cockpit.extension.spi.UserTaskReference;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
+import io.vanillabp.integration.extension.spi.election.OpenUserTask;
 import io.vanillabp.integration.extension.spi.election.WorkflowStart;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceContext;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
@@ -110,21 +113,186 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
             extension.reportsUserTasks(),
             "the change of the user tasks of workflow aggregate '%s'"
                 .formatted(aggregateIdOf(workflowAggregate)));
-        // a task the BPMS names none of is left out of the loop below, so no entry is written
-        // for it and the cockpit keeps the data it stored before. That is all an empty answer
-        // does here. It does not end the task, and it takes the task off no cockpit list: only
-        // the BPMS' own report of an end does that
-        bridgeOf(workflowAggregate)
-            .userTasksOfAggregate(
+        final var named = userTaskIds == null ? List.<String>of() : List.of(userTaskIds);
+        // nothing here may wait for a BPMS or read a storage it writes behind its engine, for
+        // the reason given at aggregateChanged(aggregate). The note of the start names the
+        // adapter where it can, and the open tasks VanillaBP wrote down name it otherwise
+        final var start = context
+            .getElection()
+            .workflowStartOf(
                 context.getWorkflowModuleId(),
                 context.getBpmnProcessId(),
-                aggregateIdOf(workflowAggregate),
-                userTaskIds == null ? List.of() : List.of(userTaskIds))
+                context.getWorkflowAggregateId(workflowAggregate));
+        final var openUserTasks = new OpenUserTasks(workflowAggregate);
+        final var bridge = bridgeOfUserTasks(workflowAggregate, start, openUserTasks);
+        final var timestamp = OffsetDateTime.now();
+        if (bridge.reportsAChangedUserTaskRightAway()) {
+          // a task the BPMS names none of is left out of the loop below, so no entry is written
+          // for it and the cockpit keeps the data it stored before. That is all an empty answer
+          // does here. It does not end the task, and it takes the task off no cockpit list:
+          // only the BPMS' own report of an end does that
+          bridge
+              .userTasksOfAggregate(
+                  context.getWorkflowModuleId(),
+                  context.getBpmnProcessId(),
+                  aggregateIdOf(workflowAggregate),
+                  named)
+              .forEach(
+                  userTask -> extension
+                      .publishUserTaskEvent(
+                          userTask, UserTaskEventKind.UPDATED, null, timestamp,
+                          EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
+          return;
+        }
+        userTasksResolvedWhenDispatched(workflowAggregate, bridge, named, openUserTasks.get())
             .forEach(
                 userTask -> extension
-                    .publishUserTaskEvent(
-                        userTask, UserTaskEventKind.UPDATED, null, OffsetDateTime.now(),
-                        EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
+                    .publishUserTaskChangeResolvedWhenDispatched(
+                        userTask, timestamp, context.getWorkflowAggregateClass()));
+
+      }
+
+      /**
+       * The tasks of a change whose reports are built when their entries are dispatched, as far
+       * as VanillaBP wrote them down when it delivered them.
+       * <p>
+       * A task VanillaBP wrote down with the workflow of its case gets a reference with all its
+       * identifiers. A named task it did not write down, or one whose case it cannot name, gets
+       * a reference with the task's id alone, and the dispatch looks it up. Where the application
+       * named no task and VanillaBP knows of no open one, a single reference without a task makes
+       * the dispatch look up every open task of the aggregate. That covers tasks delivered before
+       * VanillaBP wrote them down, and a delivery log which cannot be read.
+       */
+      private List<UserTaskReference> userTasksResolvedWhenDispatched(
+          final Object workflowAggregate,
+          final BusinessCockpitBpmsBridge bridge,
+          final List<String> named,
+          final List<OpenUserTask> openUserTasks) {
+
+        final var written = openUserTasks
+            .stream()
+            .filter(open -> bridge.adapterId().equals(open.adapterId()))
+            .filter(open -> named.isEmpty() || named.contains(open.userTaskId()))
+            .map(open -> referenceOf(workflowAggregate, bridge, open))
+            .toList();
+        if (named.isEmpty()) {
+          return written.isEmpty()
+              ? List.of(referenceOf(workflowAggregate, bridge, (String) null))
+              : written;
+        }
+        final var references = new LinkedList<>(written);
+        named
+            .stream()
+            .distinct()
+            .filter(userTaskId -> written.stream().noneMatch(open -> userTaskId.equals(open.userTaskId())))
+            .map(userTaskId -> referenceOf(workflowAggregate, bridge, userTaskId))
+            .forEach(references::add);
+        return references;
+
+      }
+
+      /**
+       * A task as VanillaBP wrote it down when it delivered it.
+       * <p>
+       * The workflow of a task is its case, which is the workflow of the aggregate. VanillaBP
+       * names it from the note of the start. Without that note, a task of the aggregate's own
+       * BPMN process runs in the case itself, so the instance it runs in is the case. A task of
+       * a called process without the note gets the id alone, and the dispatch asks the BPMS.
+       */
+      private UserTaskReference referenceOf(
+          final Object workflowAggregate,
+          final BusinessCockpitBpmsBridge bridge,
+          final OpenUserTask open) {
+
+        final var workflowId = open.workflowId() != null
+            ? open.workflowId()
+            : context.getBpmnProcessId().equals(open.bpmnProcessId())
+                ? open.subWorkflowId()
+                : null;
+        if (workflowId == null) {
+          return referenceOf(workflowAggregate, bridge, open.userTaskId());
+        }
+        return new UserTaskReference(
+            bridge.adapterId(), context.getWorkflowModuleId(), open.bpmnProcessId(), open
+                .processVersion(), aggregateIdOf(workflowAggregate), workflowId, open
+                    .userTaskId(), open.taskDefinition(), open.bpmnElementId());
+
+      }
+
+      /**
+       * A task named by its id alone, or no task at all, which the dispatch looks up in the
+       * aggregate's own BPMN process.
+       */
+      private UserTaskReference referenceOf(
+          final Object workflowAggregate,
+          final BusinessCockpitBpmsBridge bridge,
+          final String userTaskId) {
+
+        return new UserTaskReference(
+            bridge.adapterId(), context.getWorkflowModuleId(), context
+                .getBpmnProcessId(), null, aggregateIdOf(workflowAggregate), null, userTaskId, null, null);
+
+      }
+
+      /**
+       * The BPMS half holding the user tasks of an aggregate, found without asking a BPMS where
+       * that is possible. It is the half of the aggregate's workflows, found the same way, with
+       * one more source before the election: the adapter which delivered the aggregate's open
+       * tasks.
+       */
+      private BusinessCockpitBpmsBridge bridgeOfUserTasks(
+          final Object workflowAggregate,
+          final Optional<WorkflowStart> start,
+          final OpenUserTasks openUserTasks) {
+
+        return start
+            .map(WorkflowStart::adapterId)
+            .filter(extension::hasABridgeFor)
+            .map(extension::bridgeOf)
+            .or(extension::theOnlyBridge)
+            .or(
+                () -> openUserTasks
+                    .get()
+                    .stream()
+                    .map(OpenUserTask::adapterId)
+                    .filter(extension::hasABridgeFor)
+                    .findFirst()
+                    .map(extension::bridgeOf))
+            .orElseGet(() -> bridgeOf(workflowAggregate));
+
+      }
+
+      /**
+       * The open user tasks VanillaBP wrote down for one aggregate, read once and only where they
+       * are needed. A half which builds its reports right away needs them only where nothing
+       * else names its adapter.
+       */
+      private final class OpenUserTasks {
+
+        private final Object workflowAggregate;
+
+        private List<OpenUserTask> read;
+
+        private OpenUserTasks(
+            final Object workflowAggregate) {
+
+          this.workflowAggregate = workflowAggregate;
+
+        }
+
+        private List<OpenUserTask> get() {
+
+          if (read == null) {
+            read = context
+                .getElection()
+                .openUserTasksOf(
+                    context.getWorkflowModuleId(),
+                    context.getBpmnProcessId(),
+                    context.getWorkflowAggregateId(workflowAggregate));
+          }
+          return read;
+
+        }
 
       }
 

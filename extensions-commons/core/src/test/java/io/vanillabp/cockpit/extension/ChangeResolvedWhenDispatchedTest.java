@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
+import io.vanillabp.cockpit.extension.spi.UserTaskReference;
 import io.vanillabp.integration.spi.PhaseTwoCall;
 import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.spi.PhaseTwoRetryLater;
@@ -22,8 +23,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A changed workflow aggregate which the BPMS half could not name in the application's
- * transaction: how long its entry is tried again, what happens to it after that, and which key it
- * is planned under.
+ * transaction, and a changed user task whose report it could not build there: how long the entry
+ * is tried again, what happens to it after that, and which key it is planned under.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ChangeResolvedWhenDispatchedTest {
@@ -128,6 +129,93 @@ public class ChangeResolvedWhenDispatchedTest {
                     BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED",
                     BusinessCockpitOperations.ARG_WORKFLOW_ID, "4711",
                     BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, "true")));
+
+  }
+
+  @Test
+  @DisplayName("A changed user task which waited the whole window blocks its entry and names the task at ERROR")
+  public void aUserTaskChangeAfterTheWindowBlocksItsEntry(
+      final CapturedOutput output) {
+
+    final var happened = OffsetDateTime
+        .now()
+        .minus(BusinessCockpitExtension.CHANGE_RESOLUTION_WINDOW)
+        .minusSeconds(1);
+    final var userTask = new UserTaskReference(
+        "camunda8", "module", "Process", null, "aggregate-1", null, "4711", null, null);
+    final var call = PhaseTwoCall
+        .of(
+            BusinessCockpitOperations.publishUserTaskEvent(), "module", "Process", "aggregate-1", "camunda8",
+            Map
+                .of(
+                    BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED",
+                    BusinessCockpitOperations.ARG_USER_TASK_ID, "4711",
+                    BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, "true"));
+
+    assertThrows(
+        PhaseTwoPermanentFailure.class,
+        () -> BusinessCockpitExtension
+            .tryTheChangeAgainLater(
+                call, happened, true, BusinessCockpitExtension.WaitingFor.userTask(userTask)));
+
+    final var logged = output.getAllOfThisTest();
+    assertTrue(
+        logged.contains("ERROR") && logged.contains("the change of user task '4711'"),
+        "the log names the task at ERROR: %s".formatted(logged));
+    assertTrue(
+        logged.contains("Check that user task '4711' belongs to aggregate 'aggregate-1' in adapter 'camunda8'"),
+        "the log says what to check: %s".formatted(logged));
+
+  }
+
+  @Test
+  @DisplayName("A changed user task inside the window is given back to the outbox with the distance of a workflow")
+  public void aUserTaskChangeInsideTheWindowIsGivenBack() {
+
+    final var userTask = new UserTaskReference(
+        "camunda8", "module", "Process", null, "aggregate-1", null, "4711", null, null);
+
+    final var givenBack = assertThrows(
+        PhaseTwoRetryLater.class,
+        () -> BusinessCockpitExtension
+            .tryTheChangeAgainLater(
+                unnamedChange(), OffsetDateTime.now().minusMinutes(1), true,
+                BusinessCockpitExtension.WaitingFor.userTask(userTask)));
+
+    assertTrue(givenBack.getRetryAfter().compareTo(Duration.ofSeconds(6)) >= 0);
+
+  }
+
+  @Test
+  @DisplayName("A user-task entry which names no task is keyed by its aggregate, and one which names its task keeps its key")
+  public void aUserTaskEntryWithoutItsTaskIsKeyedByItsAggregate() {
+
+    final var first = userTaskKeyOf("aggregate-1", Map.of(BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED"));
+    final var second = userTaskKeyOf("aggregate-2", Map.of(BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED"));
+
+    assertNotEquals(first, second);
+    assertEquals(
+        "businesscockpit:PUBLISH_USER_TASK_EVENT|camunda8|4711|UPDATED",
+        userTaskKeyOf(
+            "aggregate-1",
+            Map
+                .of(
+                    BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED",
+                    BusinessCockpitOperations.ARG_USER_TASK_ID, "4711",
+                    BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, "true")));
+
+  }
+
+  private static String userTaskKeyOf(
+      final String workflowAggregateId,
+      final Map<String, String> args) {
+
+    return PhaseTwoCall
+        .of(
+            BusinessCockpitOperations.publishUserTaskEvent(), "module", "Process", workflowAggregateId, "camunda8",
+            args)
+        .idempotencyKey()
+        .orElseThrow();
 
   }
 
