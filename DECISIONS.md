@@ -1845,8 +1845,7 @@ server of the cockpit does that.
 ### 43. A change the BPMS half cannot name right away is built when its entry is dispatched
 
 This entry narrows decision 26 for one way: `BusinessCockpitService.aggregateChanged(aggregate)`.
-Once it has its number, the headline of decision 26 gets the addition "- narrowed by decision NN,
-which builds a change the BPMS half cannot name right away when its entry is dispatched".
+The headline of decision 26 says so.
 
 #### What was wrong
 
@@ -1887,9 +1886,16 @@ grows by a tenth per attempt after twenty seconds. The outbox counts every attem
 entry after `vanillabp.outbox.block-after-attempts` of them. That setting is one number for every
 entry of the application, fifty by default, and fifty attempts two seconds apart last less than two
 minutes. With the growing distance, about 46 attempts last ten minutes, which is how long an
-exporter may stand still without a report getting lost. A change which has no workflow after ten
-minutes is dropped with a warning and not left to be blocked. Any other exception goes to the outbox,
+exporter may stand still without a report getting lost. Any other exception goes to the outbox,
 which repeats the entry with its own backoff.
+
+A change which has no workflow after ten minutes is not dropped. The dispatch throws
+`PhaseTwoPermanentFailure`, so the outbox blocks the entry right away. That is the same state an entry
+gets after `block-after-attempts`. The extension logs at ERROR what it waited for and what to check:
+whether the aggregate has a workflow in that BPMS, and whether the BPMS writes what its engine does.
+Ten minutes without the workflow mean that something is wrong, and a dropped change could not be
+reported again. A blocked entry can be seen, and an operator sets it back to open once the cause is
+fixed. Decided on 2026-10-05.
 
 The adapter of a change comes from VanillaBP's note of the start, or is the one adapter the
 application configured. Only an application with several adapters and no note still asks the

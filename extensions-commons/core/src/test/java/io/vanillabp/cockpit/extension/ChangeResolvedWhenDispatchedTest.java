@@ -2,9 +2,11 @@ package io.vanillabp.cockpit.extension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
@@ -13,11 +15,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
 import io.vanillabp.integration.spi.PhaseTwoCall;
+import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
+import io.vanillabp.integration.spi.PhaseTwoRetryLater;
+import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A changed workflow aggregate which the BPMS half could not name in the application's
- * transaction: how long its entry is tried again, and which key it is planned under.
+ * transaction: how long its entry is tried again, what happens to it after that, and which key it
+ * is planned under.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ChangeResolvedWhenDispatchedTest {
@@ -58,6 +64,47 @@ public class ChangeResolvedWhenDispatchedTest {
   }
 
   @Test
+  @DisplayName("A change inside the window is given back to the outbox")
+  public void aChangeInsideTheWindowIsGivenBack() {
+
+    final var happened = OffsetDateTime.now().minusMinutes(1);
+
+    final var givenBack = assertThrows(
+        PhaseTwoRetryLater.class,
+        () -> BusinessCockpitExtension.tryTheChangeAgainLater(unnamedChange(), happened, true));
+
+    assertTrue(
+        givenBack.getRetryAfter().compareTo(Duration.ofSeconds(6)) >= 0,
+        "a change which waited a minute comes again in %s".formatted(givenBack.getRetryAfter()));
+
+  }
+
+  @Test
+  @DisplayName("A change which waited the whole window blocks its entry and says so at ERROR")
+  public void aChangeAfterTheWindowBlocksItsEntry(
+      final CapturedOutput output) {
+
+    final var happened = OffsetDateTime
+        .now()
+        .minus(BusinessCockpitExtension.CHANGE_RESOLUTION_WINDOW)
+        .minusSeconds(1);
+
+    final var blocked = assertThrows(
+        PhaseTwoPermanentFailure.class,
+        () -> BusinessCockpitExtension.tryTheChangeAgainLater(unnamedChange(), happened, true));
+
+    assertTrue(PhaseTwoPermanentFailure.isPermanent(blocked));
+    final var logged = output.getAllOfThisTest();
+    assertTrue(
+        logged.contains("ERROR") && logged.contains("The outbox entry is now blocked"),
+        "the log says that the entry is blocked, at ERROR: %s".formatted(logged));
+    assertTrue(
+        logged.contains("set the blocked entry back to open"),
+        "the log says what to do: %s".formatted(logged));
+
+  }
+
+  @Test
   @DisplayName("A change of a workflow not named yet is keyed by its aggregate, so two cases never share a key")
   public void aChangeWithoutItsWorkflowIsKeyedByItsAggregate() {
 
@@ -82,6 +129,18 @@ public class ChangeResolvedWhenDispatchedTest {
                     BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED",
                     BusinessCockpitOperations.ARG_WORKFLOW_ID, "4711",
                     BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, "true")));
+
+  }
+
+  private static PhaseTwoCall unnamedChange() {
+
+    return PhaseTwoCall
+        .of(
+            BusinessCockpitOperations.publishWorkflowEvent(), "module", "Process", "aggregate-1", "camunda8",
+            Map
+                .of(
+                    BusinessCockpitOperations.ARG_EVENT_KIND, "UPDATED",
+                    BusinessCockpitOperations.ARG_RESOLVED_WHEN_DISPATCHED, "true"));
 
   }
 

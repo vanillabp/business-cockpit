@@ -1037,8 +1037,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * Gives a change back to the outbox while its BPMS has not written the workflow yet, or drops
-   * it once it waited for {@link #CHANGE_RESOLUTION_WINDOW}.
+   * Gives a change back to the outbox while its BPMS has not written the workflow yet, or blocks
+   * its entry once it waited for {@link #CHANGE_RESOLUTION_WINDOW}.
    * <p>
    * The window is ten minutes, because that is how long an exporter of Camunda 8 may stand still
    * without a report getting lost. The outbox counts every attempt and blocks an entry after
@@ -1048,11 +1048,20 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * change has waited ({@link #distanceToTheNextAttempt}), and fifty attempts last the ten
    * minutes.
    * <p>
-   * A change which waited the whole window is dropped with a warning, the way a change the BPMS
-   * says nothing about was always dropped. The entry is not left to be blocked: a blocked entry
-   * waits for somebody, and a workflow which is not there at all would end up like that.
+   * A change which waited the whole window is not dropped. Its entry is blocked with a
+   * <code>PhaseTwoPermanentFailure</code>, the same state the outbox gives an entry after
+   * <code>block-after-attempts</code>, and the log says so at ERROR. Ten minutes without the
+   * workflow mean that something is wrong: the aggregate has no workflow in that BPMS, or the
+   * BPMS stopped writing it. Somebody has to look, and a blocked entry can be seen and set back
+   * to open once the cause is fixed. A dropped change would be gone.
+   *
+   * @param call The entry's call
+   * @param timestamp When the change happened
+   * @param previouslyAttempted Whether the outbox dispatched the entry before
+   * @throws PhaseTwoRetryLater While the window is open
+   * @throws PhaseTwoPermanentFailure Once the change waited the whole window
    */
-  private static void tryTheChangeAgainLater(
+  static void tryTheChangeAgainLater(
       final PhaseTwoCall call,
       final OffsetDateTime timestamp,
       final boolean previouslyAttempted) {
@@ -1062,12 +1071,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
         .formatted(call.workflowAggregateId(), call.workflowModuleId(), call.bpmnProcessId());
     if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
       logger
-          .warn(
-              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The cockpit keeps showing what it stored before.",
+          .error(
+              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named no workflow of it for {}. Either the aggregate has no workflow in that BPMS, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check that the aggregate has a workflow in adapter '{}' and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). Then set the blocked entry back to open, and the change is reported.",
               what,
               call.adapterId(),
-              CHANGE_RESOLUTION_WINDOW);
-      return;
+              CHANGE_RESOLUTION_WINDOW,
+              call.adapterId());
+      throw new PhaseTwoPermanentFailure(
+          "The BPMS half of adapter '%s' named no workflow of %s for %s"
+              .formatted(call.adapterId(), what, CHANGE_RESOLUTION_WINDOW), null);
     }
     if (!previouslyAttempted) {
       logger

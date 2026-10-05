@@ -152,8 +152,9 @@ public interface BusinessCockpitBpmsBridge {
    * entry is dispatched, it calls {@link #workflowsOfAggregate} and
    * <code>prefilledWorkflowDetails</code>, and the application's details provider runs in the
    * transaction of the dispatch. An empty answer of either is read as "not written yet", and the
-   * entry is dispatched again a little later, for up to ten minutes. An exception travels on to
-   * the outbox, which tries again with its own backoff.
+   * entry is dispatched again a little later, for up to ten minutes. After that the entry is
+   * blocked and waits for an operator. An exception travels on to the outbox, which tries again
+   * with its own backoff.
    * <p>
    * The default answers what {@link #workflowsOfAggregate} answers. That is right for an engine
    * which answers inside the caller's transaction, and for a half which keeps what its own node
