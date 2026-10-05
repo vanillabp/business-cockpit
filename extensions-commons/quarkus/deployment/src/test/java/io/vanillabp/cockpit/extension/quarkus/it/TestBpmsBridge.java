@@ -53,6 +53,51 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
   private final AtomicInteger workflowLookups = new AtomicInteger();
 
+  private final AtomicBoolean reportsAChangedUserTaskRightAway = new AtomicBoolean(true);
+
+  private final AtomicInteger tasksStillUnwritten = new AtomicInteger();
+
+  private final AtomicInteger taskReads = new AtomicInteger();
+
+  /**
+   * @param rightAway Whether this engine builds the report of a changed user task in the
+   *          application's transaction. A test switches it off to play a BPMS which writes a
+   *          storage behind its engine, the way Camunda 8 does
+   */
+  public void reportsAChangedUserTaskRightAway(
+      final boolean rightAway) {
+
+    reportsAChangedUserTaskRightAway.set(rightAway);
+
+  }
+
+  /**
+   * @param reads How many of the next reads of a user task answer nothing, the way a storage
+   *          answers while its exporter is behind
+   */
+  public void writesTheTaskAfter(
+      final int reads) {
+
+    tasksStillUnwritten.set(reads);
+
+  }
+
+  /**
+   * @return How often the extension read a user task since the last {@link #forgetLookups()}
+   */
+  public int taskReads() {
+
+    return taskReads.get();
+
+  }
+
+  @Override
+  public boolean reportsAChangedUserTaskRightAway() {
+
+    return reportsAChangedUserTaskRightAway.get();
+
+  }
+
   /**
    * @param rightAway Whether this engine names the workflows of a changed aggregate in the
    *          application's transaction. A test switches it off to play a BPMS which writes a
@@ -118,6 +163,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
     tasksLookedUpInATransaction.clear();
     workflowLookups.set(0);
+    taskReads.set(0);
 
   }
 
@@ -139,6 +185,10 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   public Optional<UserTaskDetailsPrefill> prefilledUserTaskDetails(
       final UserTaskReference userTask) {
 
+    taskReads.incrementAndGet();
+    if (tasksStillUnwritten.getAndUpdate(reads -> Math.max(0, reads - 1)) > 0) {
+      return Optional.empty();
+    }
     return Optional
         .of(
             UserTaskDetailsPrefill

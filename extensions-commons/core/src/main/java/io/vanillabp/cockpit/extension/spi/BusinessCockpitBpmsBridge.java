@@ -15,7 +15,8 @@ import java.util.Optional;
  * The neutral half owns the event model, the details providers, the templating and the
  * transports, and it knows no engine. This interface is everything it asks an engine for, and
  * it is kept small: five questions, each about one workflow or one user task named by
- * identifiers, and a sixth with a default, {@link #workflowsOfAggregateRightAway}.
+ * identifiers, and two more with a default, {@link #workflowsOfAggregateRightAway} and
+ * {@link #reportsAChangedUserTaskRightAway}.
  * <p>
  * <b>When these methods run.</b> The two <code>prefilled…</code> methods are called at the
  * moment of the event, inside the transaction it arrived in, while the report is being put
@@ -54,7 +55,7 @@ import java.util.Optional;
  * event. It asks for an entry to be dispatched again, and at that moment there is no entry yet.
  * A half throwing it there reads a message saying so. The one place where it is an answer is a
  * change which is resolved when its entry is dispatched, see
- * {@link #workflowsOfAggregateRightAway}.
+ * {@link #workflowsOfAggregateRightAway} and {@link #reportsAChangedUserTaskRightAway}.
  * <p>
  * <b>A change which is resolved later.</b> <code>aggregateChanged(aggregate)</code> runs in the
  * transaction of the application. A half whose engine publishes what it holds through a storage
@@ -64,7 +65,8 @@ import java.util.Optional;
  * and when the entry is dispatched it calls {@link #workflowsOfAggregate} and
  * {@link #prefilledWorkflowDetails}. An empty answer there means "not yet", and the extension
  * tries again for a while. See decision 26 in the repository's DECISIONS.md for where a report
- * is built.
+ * is built. <code>aggregateChanged(aggregate, userTaskIds)</code> works the same way for user
+ * tasks, see {@link #reportsAChangedUserTaskRightAway}.
  * <p>
  * <b>What an empty answer of the three <code>…OfAggregate</code> methods means.</b> That this
  * BPMS says nothing about the task or the workflow which was asked about. It is silence and not
@@ -173,6 +175,42 @@ public interface BusinessCockpitBpmsBridge {
       final String workflowAggregateId) {
 
     return Optional.of(workflowsOfAggregate(workflowModuleId, bpmnProcessId, workflowAggregateId));
+
+  }
+
+  /**
+   * Whether this half can build the report of a changed user task in the application's
+   * transaction.
+   * <p>
+   * <code>BusinessCockpitService.aggregateChanged(aggregate, userTaskIds)</code> asks this
+   * first. Where the answer is <code>true</code>, it asks {@link #userTasksOfAggregate} and
+   * {@link #prefilledUserTaskDetails} in the application's transaction and builds the reports
+   * right away, as for every other event.
+   * <p>
+   * Where the answer is <code>false</code>, the extension asks this half nothing in the
+   * application's transaction. It takes the open user tasks from what VanillaBP wrote down when
+   * it delivered them, and it writes an entry without a report for each of them. When such an
+   * entry is dispatched, the extension calls {@link #prefilledUserTaskDetails}, and the
+   * application's details provider runs in the transaction of the dispatch. A task VanillaBP
+   * wrote nothing down about is looked up there with {@link #userTaskOfAggregate}, or with
+   * {@link #userTasksOfAggregate} where the application named no task. An empty answer about a
+   * task is read as "not written yet", and the entry is dispatched again a little later, for up
+   * to ten minutes. After that the entry is blocked and waits for an operator. Only the search
+   * for every task of an aggregate takes an empty answer as it is, because an aggregate without
+   * an open task is nothing unusual.
+   * <p>
+   * The default answers <code>true</code>. That is right for an engine which answers inside the
+   * caller's transaction, and for a half which keeps what its own node was served. A half whose
+   * engine publishes the fields of a task through a storage written behind the engine answers
+   * <code>false</code>, because that storage may not hold a task created a moment ago, or any
+   * task while it stands still.
+   *
+   * @return Whether the report of a changed user task can be built in the application's
+   *         transaction
+   */
+  default boolean reportsAChangedUserTaskRightAway() {
+
+    return true;
 
   }
 
