@@ -1389,9 +1389,9 @@ per pin:
 Not compared, and the report says so every night:
 
 - The Camunda 8 client pins of the release lines, the Camunda 8 adapter per line and protobuf. The
-  Camunda 8 cockpit adapter takes them from `vanillabp/camunda8-adapter` and raises them by hand,
-  and its own nightly matrix holds them against that repository. Comparing them here would make
-  the check red every day.
+  Camunda 8 cockpit adapter takes them from `camunda-community-hub/vanillabp-camunda8-adapter` and
+  raises them by hand, and its own nightly matrix holds them against that repository. Comparing
+  them here would make the check red every day.
 - `testcontainers.version`. It is used in tests only, no jar of one of the four carries it into
   another, and only the Camunda 8 adapter names it.
 - `lombok.version`. It is gone once the class file exists, so it never meets another repository.
