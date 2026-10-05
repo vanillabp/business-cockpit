@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
@@ -26,6 +27,7 @@ import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.election.WorkflowStart;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceContext;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 
 /**
@@ -34,6 +36,7 @@ import io.vanillabp.spi.cockpit.BusinessCockpitService;
  * entries are planned out of what VanillaBP wrote down when it delivered the tasks, and that the
  * half is asked nothing.
  */
+@ExtendWith(SuppressOutputExtension.class)
 public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
 
   private static final String MODULE_ID = "module";
