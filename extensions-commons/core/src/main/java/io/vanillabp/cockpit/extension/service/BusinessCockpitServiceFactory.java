@@ -5,6 +5,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vanillabp.cockpit.extension.BusinessCockpitExtension;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 import io.vanillabp.cockpit.extension.spi.EventTransaction;
@@ -28,6 +31,8 @@ import io.vanillabp.spi.cockpit.usertask.UserTask;
  * service had to inject it whether it used it or not.
  */
 public class BusinessCockpitServiceFactory implements AggregateServiceFactory<BusinessCockpitService> {
+
+  private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitServiceFactory.class);
 
   private final BusinessCockpitExtension extension;
 
@@ -58,6 +63,9 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
       public void aggregateChanged(
           final Object workflowAggregate) {
 
+        if (isBuiltByTheRunningStart(workflowAggregate, "the change")) {
+          return;
+        }
         requireATransactionToReport(
             extension.reportsWorkflows(),
             "the change of workflow aggregate '%s'".formatted(aggregateIdOf(workflowAggregate)));
@@ -126,6 +134,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
           final Object workflowAggregate,
           final String... userTaskIds) {
 
+        // a new aggregate has no user task yet, so nothing is lost here either
+        if (isBuiltByTheRunningStart(workflowAggregate, "the change of the user tasks")) {
+          return;
+        }
         requireATransactionToReport(
             extension.reportsUserTasks(),
             "the change of the user tasks of workflow aggregate '%s'"
@@ -178,6 +190,41 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 userTask -> extension
                     .publishUserTaskChangeResolvedWhenDispatched(
                         userTask, timestamp, context.getWorkflowAggregateClass()));
+
+      }
+
+      /**
+       * Whether the aggregate is the new one a <code>&#64;WorkflowStartedByBpms</code> method
+       * builds right now, on this thread. A report about it does nothing then.
+       * <p>
+       * Such a method runs before anything can find the workflow it starts. VanillaBP writes
+       * its note of the start only after the method returned, and the BPMS does not know the
+       * workflow by its aggregate yet either. And the report is not needed: the BPMS half of the
+       * cockpit reports the new workflow as created once the start is done. On Camunda 8 that is
+       * the listener at the start event, which runs after VanillaBP's own one. On Camunda 7 it is
+       * the change which gives the process instance its business key.
+       * <p>
+       * VanillaBP decides what counts as the aggregate of the running start. An aggregate which
+       * exists already, and may have other workflows and open tasks, is not one of them, so its
+       * report runs as always.
+       *
+       * @param what The report, in a form fitting "... of workflow aggregate"
+       */
+      private boolean isBuiltByTheRunningStart(
+          final Object workflowAggregate,
+          final String what) {
+
+        if (!context.getElection().isInsideTheStartOf(workflowAggregate)) {
+          return false;
+        }
+        logger
+            .debug(
+                "Not reporting {} of workflow aggregate '{}' of '{}/{}': a @WorkflowStartedByBpms "
+                    + "method builds it right now, and the Business Cockpit reports the new "
+                    + "workflow as created once the start is done",
+                what, aggregateIdOf(workflowAggregate), context.getWorkflowModuleId(),
+                context.getBpmnProcessId());
+        return true;
 
       }
 
