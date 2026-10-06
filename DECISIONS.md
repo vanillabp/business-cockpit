@@ -1842,7 +1842,7 @@ A sender which repeated a report answered with 501 gives it up now. It was never
 either. A server which answers 501 for a moment, and would take the report later, loses it. No
 server of the cockpit does that.
 
-### 43. A change the BPMS half cannot name right away is built when its entry is dispatched
+### 43. A change the BPMS half cannot name right away is built when its entry is dispatched - the election moved to the dispatch by decision 47
 
 This entry narrows decision 26 for one way: `BusinessCockpitService.aggregateChanged(aggregate)`.
 The headline of decision 26 says so.
@@ -2048,7 +2048,7 @@ A record known from its end alone, whose end does not say when it began, shows i
 until the creation arrives. If the creation never arrives, that stays so. Before, such a record
 broke the user interface.
 
-### 46. A changed user task the BPMS half cannot report right away is built when its entry is dispatched
+### 46. A changed user task the BPMS half cannot report right away is built when its entry is dispatched - the election moved to the dispatch by decision 47
 
 Decided on 2026-10-05, while story 1443 was built.
 
@@ -2121,3 +2121,66 @@ entry with its identifiers alone. Where the entry names its task, the cockpit ge
 without details and keeps what it showed. Where it names no task, the server refuses the report
 and the entry is blocked, as decision 43 describes for workflows. This was read from the code and
 not tried.
+
+### 47. A report whose adapter nothing names is elected when its entry is dispatched
+
+Decided on 2026-10-06, while story 1447 was built.
+
+This entry changes the last paragraph of decision 43 and the last paragraph of "What is decided"
+in decision 46. Both said that an application with several adapters and no note of the start still
+asks the election in the application's transaction. Whoever moves this entry into the log adds to
+the headlines of 43 and 46, in the form the log uses already, "- the election moved to the dispatch
+by decision NN".
+
+#### What was wrong
+
+`BusinessCockpitService.aggregateChanged` runs in the application's transaction. It finds the
+adapter of the aggregate from what VanillaBP wrote down: the note of the start, the one adapter of
+an application with only one, the adapter which delivered the open tasks. Where none of these
+names it, it asked `WorkflowElection#adapterIdOfWorkflow`. Without the note, the election asks the
+BPMS, and on a BPMS which answers from a storage behind its engine it waits for up to ten seconds.
+That wait held the application's transaction and its database connection.
+
+It happens only to an application with several adapters, which means during a migration: in the
+moment after a first delivery which crashed, on Camunda 8 after a start by a message until the
+worker reports the id, and while an exporter stands still. No answer was wrong, but a report made
+somebody else's transaction wait.
+
+#### What is decided
+
+A report never waits in the application's transaction. A read may wait, so
+`BusinessCockpitService.getUserTask` still asks the election where nothing names the adapter.
+
+Where nothing VanillaBP wrote down names the adapter, both report ways write the entry of decision
+43 or 46 without an adapter. The workflow entry carries no workflow and no version then, because
+the note which could name them belongs to no known adapter. A user-task entry names the task the
+application named, or no task where it named none. No BPMS half is asked in the application's
+transaction.
+
+The dispatch asks the election first, outside the application's transaction, where the election may
+ask a BPMS and wait for it. With the adapter it names, the dispatch goes on as decisions 43 and 46
+say. That holds for a half which builds its reports right away as well, like Camunda 7: on this way
+its details provider runs in a transaction of the dispatch.
+
+Where the election names no adapter, it throws. On a BPMS with a storage behind its engine that is
+what a workflow started a moment ago looks like, so the entry gets the window of decision 43: it is
+given back to the outbox with the growing distance, and after ten minutes it is blocked with a line
+at ERROR which says what the election answered.
+
+The platform carries an entry without an adapter as it is. `PhaseTwoCall#adapterId` may be
+`null`, the outbox stores write `null`, and the dispatch of an extension's own operation hands the
+call to the extension and elects nothing.
+
+#### What it costs
+
+An entry without an adapter has "null" in its key where the adapter stands. It never takes the
+place of an entry which names its adapter, and the other way round. Two reports may then reach the
+cockpit for one change, and the timestamp keeps the older one back (decision 18).
+
+On this way the details provider of a Camunda 7 or Process-Engine-API application runs in the
+dispatch, as it does on Camunda 8 under decisions 43 and 46. It reads the aggregate as it was
+committed. This is paid only where nothing names the adapter.
+
+A node of an older version, while the deploy rolls, finds no half for the adapter "null". The
+dispatch fails, and the outbox repeats it with its own backoff until a newer node takes it or the
+entry is blocked. This was read from the code and not tried.
