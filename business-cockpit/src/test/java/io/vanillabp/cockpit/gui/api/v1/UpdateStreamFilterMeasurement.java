@@ -7,8 +7,6 @@ import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamFixtures.Person;
@@ -44,8 +42,9 @@ import org.springframework.scheduling.TaskScheduler;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * Measures what variant a) of the update stream filter costs: one query per stream and tick, when
- * something was collected. It is no test and runs only on request:
+ * Measures what the update stream filter costs: one query per tick and kind of entity, when
+ * something was collected, and a decision in memory for every open stream. It is no test and runs
+ * only on request:
  *
  * <pre>
  * mvn -pl business-cockpit -am test -Dsurefire.failIfNoSpecifiedTests=false \
@@ -85,7 +84,7 @@ class UpdateStreamFilterMeasurement {
     @Test
     void measure() throws Exception {
 
-        write("# Measurement of variant a), " + LocalDateTime.now());
+        write("# Measurement of the update stream filter, " + LocalDateTime.now());
         write("");
         measureTheMemory();
 
@@ -104,8 +103,8 @@ class UpdateStreamFilterMeasurement {
             final var users = users();
             write("| tasks | open | rate/s | tick ms | run s | ticks | ticks with changes | changes "
                     + "| queries/s | tick p50 ms | tick p95 ms | tick max ms | server CPU % | MongoDB CPU % "
-                    + "| b) probe p50 ms | b) probe max ms |");
-            write("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+                    + "| allocated per tick KB |");
+            write("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
             for (final var tasks : datasets) {
                 final var openIds = load(mongoTemplate, users, tasks, openTasks);
                 for (final var interval : intervals) {
@@ -223,13 +222,11 @@ class UpdateStreamFilterMeasurement {
         };
 
         final var tickMillis = Collections.synchronizedList(new ArrayList<Double>());
-        final var probeMillis = Collections.synchronizedList(new ArrayList<Double>());
+        final var allocatedKilobytes = Collections.synchronizedList(new ArrayList<Double>());
         final var ticks = new AtomicInteger();
         final var ticksWithChanges = new AtomicInteger();
         final var ticker = Executors.newSingleThreadScheduledExecutor();
-        final var probeCollection = mongoClient
-                .getDatabase(UpdateStreamFixtures.DATABASE)
-                .getCollection(userTasks());
+        final var threads = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
 
         final var findsBefore = findsOfUserTasks.get();
         final var mongoCpuBefore = cpuMicrosOf(mongodb);
@@ -238,13 +235,16 @@ class UpdateStreamFilterMeasurement {
         changer.schedule(nextChange[0], 0, TimeUnit.MILLISECONDS);
         ticker.scheduleWithFixedDelay(() -> {
             final var findsAtStart = findsOfUserTasks.get();
+            final var allocatedAtStart = threads.getCurrentThreadAllocatedBytes();
             final var tickStart = System.nanoTime();
             streams.filterCollectedChanges();
             final var tookMillis = (System.nanoTime() - tickStart) / 1_000_000.0;
+            final var allocated = threads.getCurrentThreadAllocatedBytes() - allocatedAtStart;
             ticks.incrementAndGet();
             if (findsOfUserTasks.get() > findsAtStart) {
                 ticksWithChanges.incrementAndGet();
                 tickMillis.add(tookMillis);
+                allocatedKilobytes.add(allocated / 1024.0);
             }
             streamList.forEach(UpdateEmitter::consumeEvents);
         }, interval, interval, TimeUnit.MILLISECONDS);
@@ -258,37 +258,14 @@ class UpdateStreamFilterMeasurement {
         final var mongoCpu = (cpuMicrosOf(mongodb) - mongoCpuBefore) / 1_000_000.0;
         final var queries = findsOfUserTasks.get() - findsBefore;
 
-        // variant b) is not built. As a probe for its cost, one query per tick reads the changed
-        // tasks with the fields the visibility depends on. It runs after the measurement, so it
-        // does not disturb it, for 20 ticks' worth of changes
-        final var perTick = Math.max(1, (int) Math.round(rate * interval / 1000.0));
-        final var visibilityFields = Projections.include(
-                "assignee", "candidateUsers", "candidateGroups", "admittedUsers",
-                "excludedCandidateUsers", "dangling", "endedAt");
-        for (var probe = 0; probe < 20; ++probe) {
-            final var ids = new ArrayList<String>();
-            for (var index = 0; index < perTick; ++index) {
-                ids.add(openIds.get(random.nextInt(openIds.size())));
-            }
-            final var probeStart = System.nanoTime();
-            final var found = probeCollection
-                    .find(Filters.in("_id", ids))
-                    .projection(visibilityFields)
-                    .into(new ArrayList<>());
-            probeMillis.add((System.nanoTime() - probeStart) / 1_000_000.0);
-            if (found.isEmpty()) {
-                throw new IllegalStateException("probe found nothing");
-            }
-        }
-
-        write("| %d | %d | %s | %d | %.0f | %d | %d (%.0f %%) | %d | %.0f | %.1f | %.1f | %.1f | %.0f | %.0f | %.1f | %.1f |"
+        write("| %d | %d | %s | %d | %.0f | %d | %d (%.0f %%) | %d | %.1f | %.1f | %.1f | %.1f | %.0f | %.0f | %.0f |"
                 .formatted(
                         tasks, openTasks, rate, interval, wallSeconds, ticks.get(),
                         ticksWithChanges.get(), 100.0 * ticksWithChanges.get() / Math.max(1, ticks.get()),
                         changes.get(), queries / wallSeconds,
                         percentile(tickMillis, 50), percentile(tickMillis, 95), percentile(tickMillis, 100),
                         100.0 * serverCpu / wallSeconds, 100.0 * mongoCpu / wallSeconds,
-                        percentile(probeMillis, 50), percentile(probeMillis, 100)));
+                        percentile(allocatedKilobytes, 50)));
         streams.closeUpdateStreams();
 
     }
