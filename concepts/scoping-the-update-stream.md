@@ -3,6 +3,10 @@
 Dieser Text ist bis zum Review deutsch, weil Stephan ihn selbst liest. Nach dem Review wird
 daraus die englische Beschreibung in der Wiki-Seite `Security`.
 
+Das Review ist am 2026-10-06 erfolgt, siehe [Stephans Review](#stephans-review-2026-10-06). Der
+Text bleibt trotzdem noch deutsch: Stephan entscheidet nach der Messung zwischen den Varianten a)
+und b), und erst danach entsteht die Wiki-Beschreibung.
+
 Konzept zu Story 1251, Arbeitspaket 1. Es beantwortet die Fragen aus dem Prompt gegen den
 gelesenen Code. Jede Aussage nennt Datei und Zeile, damit beim Umsetzen nachzulesen ist, worauf
 sie sich stützt. Zeilennummern stehen für den Stand von `origin/main` am 2026-10-02.
@@ -19,6 +23,8 @@ sie sich stützt. Zeilennummern stehen für den Stand von `origin/main` am 2026-
 - [Was ein Ereignis später noch tragen muss](#was-ein-ereignis-später-noch-tragen-muss)
 - [Was aus den Fragen des Prompts folgt](#was-aus-den-fragen-des-prompts-folgt)
 - [Offene Fragen mit Default](#offene-fragen-mit-default)
+- [Stephans Review, 2026-10-06](#stephans-review-2026-10-06)
+- [Variante a) und b)](#variante-a-und-b)
 
 ## Was heute passiert
 
@@ -138,6 +144,14 @@ werden.
    die `UserDetails` und baut daraus dieselbe Sicht, die die weiteste Liste benutzt, also
    `UserTaskVisibility.everythingTheUserMayWorkOn` und
    `WorkflowVisibility.workflowsAddressedTo`.
+
+   Nachtrag beim Umsetzen: dazu kommt jede Sicht, mit der eine Ansicht dieser Person tatsächlich
+   geantwortet hat. Der Grund ist die Workflow-Seite. `AbstractWorkflowListGuiApiController` sagt
+   selbst, dass ein Cockpit für ein Support-Team jeden Workflow in einer Liste zeigen darf, also mit
+   `WorkflowVisibility.everyWorkflow()`. Mit `workflowsAddressedTo` allein bekäme dieses Team für
+   neue Workflows nie einen Wecker, und seine Liste sähe aus wie hängengeblieben. Die Sicht kommt
+   an derselben Stelle zum Strom wie die Kennungen für das Gedächtnis, also ohne neue Regel: die
+   Ansicht hat sie ohnehin gerade benutzt.
 3. Gefiltert wird im Sammeltakt, nicht je Ereignis. Der Takt hat die Kennungen aller Ereignisse
    seit dem letzten Mal. Eine Abfrage je Strom und Takt, die nur Kennungen liest, sagt, welche
    davon die Person sehen darf. Die Abfrage ist dieselbe wie in `getUserTasksUpdated`
@@ -180,9 +194,33 @@ Kennung, die der Server dieser Person in einer Liste beantwortet hat, und nicht 
 selbst geweckt hat. Der Strom der Workflow-Seite bekommt dasselbe über
 `AbstractWorkflowListGuiApiController`.
 
-Das Gedächtnis gehört der angemeldeten Person und nicht einem einzelnen Tab: eine Liste in einem zweiten Tab zeigt dieselben Tasks, und der Strom ist einer je
-Anmeldung. Und es wird vom Nachladen auch dann gefüttert, wenn das Nachladen aus einem anderen
-Grund lief, etwa weil der Benutzer gesucht oder sortiert hat.
+Die erste Fassung hat hier gesagt, der Strom sei einer je Anmeldung. Das stimmt nicht. Jedes
+Abonnieren bekommt seinen eigenen `SseEmitter` (`gui/api/v1/LoginApiController.java`, Zeile 63),
+und jeder Tab abonniert für sich. Es gibt also einen Strom je Tab. Bei 250 bis 300 gleichzeitigen
+Benutzern sind das rund 450 Ströme.
+
+Damit stellt sich die Frage, wem das Gedächtnis gehört: dem Strom oder der Person. Entschieden ist:
+das Gedächtnis liegt am Strom, und es wird für alle Ströme derselben Person gefüttert.
+
+- Am Strom, weil es dann mit dem Strom stirbt und keine eigene Aufräumregel braucht. Die
+  Obergrenze gilt je Strom, also je Tab, und damit ist der Speicher je Tab begrenzt. Ein
+  Gedächtnis je Person bräuchte eine Lebensdauer über den letzten Strom hinaus, sonst verliert
+  es beim Wiederverbinden alles.
+- Für alle Ströme der Person gefüttert, weil die Anfrage einer Liste nicht sagt, aus welchem Tab
+  sie kommt. Das zu ändern hieße, die Kennung des Stroms in jede Anfrage der Oberfläche zu legen,
+  also API und Oberfläche anzufassen. Der Preis: ein Tab merkt sich auch, was ein anderer Tab
+  derselben Person zeigt, und bekommt dafür einen Entzug mit. Das verrät nichts, die Person hat die
+  Task ja gesehen. Es kostet ein Nachladen in einem Tab, das nichts ändert.
+
+Ein neuer Strom beginnt mit leerem Gedächtnis. Das passiert beim Laden der Seite, und dort kann die
+erste Liste schon beantwortet sein, bevor der Strom steht. Es passiert auch beim Wiederverbinden,
+und dann hält der Browser eine ganze Liste, von der der neue Strom nichts weiß. Deshalb schickt der
+Server direkt nach dem Abonnieren je Art ein Ereignis zum Neuladen, siehe Frage 1. Die Liste lädt
+nach, und dieses Nachladen füttert das Gedächtnis des neuen Stroms. Nebenbei holt es auch die
+Änderungen nach, die zwischen Abbruch und Wiederverbinden niemand zugestellt hat.
+
+Das Gedächtnis wird vom Nachladen auch dann gefüttert, wenn das Nachladen aus einem anderen Grund
+lief, etwa weil der Benutzer gesucht oder sortiert hat.
 
 Was bleibt, ist ein Fall, den dieser Weg nicht erreicht: ein Browser, dessen Liste aus einem
 Stand kommt, den ihm niemand mehr berichtigt, weil zwischen seinem letzten Nachladen und dem
@@ -263,9 +301,10 @@ heute schlechter, weil das Ereignis schon im Bau keine Zielgruppen bekommt.
    Sekunde, die nur Kennungen lesen und nur dann laufen, wenn für diesen Strom etwas gesammelt
    wurde. Ohne Änderungen läuft keine.
 4. Welche Sichtbarkeit trägt ein Strom, wenn ein Browser mehrere Ansichten offen hat?
-   Default: die weiteste der angemeldeten Person. Der Strom ist einer je Anmeldung, nicht einer je
-   Liste, und die Ansicht filtert beim Nachladen ohnehin selbst. Ein Wecker zu viel kostet ein
-   Nachladen, ein Wecker zu wenig lässt eine Liste veralten.
+   Default: die weiteste der angemeldeten Person. Der Strom ist einer je Tab, nicht einer je
+   Liste, und in einem Tab können mehrere Listen hängen. Die Ansicht filtert beim Nachladen ohnehin
+   selbst. Ein Wecker zu viel kostet ein Nachladen, ein Wecker zu wenig lässt eine Liste veralten.
+   (Korrigiert nach dem Review: die erste Fassung sagte "einer je Anmeldung".)
 5. Soll das Vorbild des Change-Streams eingeschaltet werden?
    Default: nein. Der Entzug braucht es nicht, sobald das Gedächtnis des Stroms von den Antworten
    des Servers gefüttert wird, und der Cosmos-Modus kann es nicht. Dazu kommt, dass eine Änderung
@@ -279,3 +318,115 @@ heute schlechter, weil das Ereignis schon im Bau keine Zielgruppen bekommt.
    Titel und Kennungen preisgibt, und niemand würde ihn umlegen. Die Story ist im Release-Gate
    genau deshalb geführt: nachträglich enger zu schneiden nimmt einer Anwendung etwas weg, das
    sie schon benutzt.
+
+## Stephans Review, 2026-10-06
+
+Stephan hat die offenen Fragen am 2026-10-06 beantwortet. Was hier steht, gilt vor den Defaults
+oben.
+
+### Frage 1: Obergrenze des Gedächtnisses
+
+2.000 Kennungen je Strom, konfigurierbar. Wer darüber kommt, bekommt ein Ereignis zum
+vollständigen Neuladen. Der Grund für die kleinere Zahl ist der Strom je Tab: bei 250 bis 300
+gleichzeitigen Benutzern sind es rund 450 Ströme. 10.000 Kennungen wären im schlimmsten Fall rund
+540 MB, 2.000 rund 110 MB, der Normalfall rund 25 bis 30 MB. Das waren Schätzungen; die Messung
+unten setzt Zahlen dagegen.
+
+Umgesetzt heißt das:
+
+- Der Schlüssel ist `business-cockpit.gui-sse.max-known-ids-per-stream`, Vorgabe 2.000. Er zählt
+  Task- und Workflow-Kennungen zusammen, weil beide im selben Strom hängen.
+- Das Ereignis zum Neuladen ist ein gewöhnlicher Wecker der Art (`UserTask` oder `Workflow`) mit
+  dem Typ `RELOAD` und einer leeren Kennung. Die Oberfläche braucht dafür nichts Neues. Jeder
+  Wecker lässt die Liste die ganze sichtbare Strecke nachladen
+  (`ui/bc-ui/src/components/SearchableAndSortableUpdatingList.tsx`, `reloadData`), und eine
+  leere Kennung nimmt keine Task davon aus.
+- Beim Überlauf behält der Strom die Kennungen der Antwort, die ihn ausgelöst hat, und vergisst
+  den Rest. Neu geladen wird nur, wenn dabei etwas verloren ging. Ohne diese Regel würde eine
+  einzelne Antwort über der Grenze ein Neuladen auslösen, dessen Antwort wieder über der Grenze
+  liegt, und so fort.
+
+Wie viele Kennungen hat ein Benutzer realistisch? Grundlage ist der Kunde, auf den die Zahlen
+zurückgehen: 400 Benutzer am Tag, 250 bis 300 gleichzeitig, rund 5.000 User-Tasks am Tag. Die
+Oberfläche lädt 30 Einträge auf einmal und beim Nachladen die gezeigte Strecke plus 60. Ein Tab,
+in dem niemand scrollt, hält also 30 bis 90 Kennungen je Liste. Das Gedächtnis wächst darüber
+hinaus, weil es jede Kennung behält, die eine Antwort je genannt hat. Nach oben begrenzt ist es durch
+die Tasks, die eine Person überhaupt sehen darf. Verteilt sich die Arbeit über Gruppen so, dass
+eine Person ein bis zehn Prozent der Tasks sieht, sind das 50 bis 500 neue Kennungen am Tag.
+2.000 erreicht damit ein Tab, der mehrere Tage offen bleibt, oder eine Person, die fast alles sieht
+und den ganzen Tag lädt. Für sie kostet das zwei bis drei Mal am Tag ein Nachladen. Das ist eine
+Schätzung aus den Zahlen des Kunden, nicht gemessen.
+
+### Frage 2: Vertretungen
+
+Die Kunden lösen Vertretungen auf zwei Arten: die Person bekommt mehr Rechte dazu, oder sie
+wechselt per JWT in die Rolle der vertretenen Person. Beide wirken beim Auflösen der Rechte, also
+dort, wo die `UserDetails` entstehen. Der Strom braucht dafür nichts Eigenes.
+
+Er braucht nur ein Ende. Ein Strom endet, wenn das Token abläuft, mit dem er abonniert wurde.
+Bisher lief er mit `NO_SSE_TIMEOUT` so lange wie der Tab, also mit den Rechten vom Zeitpunkt des
+Abonnierens. Der Browser verbindet neu und bekommt mit dem neuen Token die frisch aufgelösten
+Rechte. Was dabei im Code steht und was nicht, steht im Abschnitt
+[Variante a) und b)](#variante-a-und-b) unter "Ende mit dem Token".
+
+### Frage 3 und 5: Kosten der Abfrage, Vorbild des Change-Streams
+
+Abgefragt wird nur, wenn der Change-Stream im Takt etwas gemeldet hat. Das Vorbild bleibt aus.
+Zuerst wird Variante a) gebaut und mit 450 Strömen gemessen. Stephan ist unwohl mit einer Last,
+die linear mit den Benutzern wächst, und bevorzugt Variante b). Entschieden wird nach der Messung.
+
+### Fragen 4, 6 und 7
+
+Es gelten die Defaults.
+
+## Variante a) und b)
+
+Beide Varianten filtern im selben Takt und mit demselben Gedächtnis. Sie unterscheiden sich nur in
+der Frage, welche der gesammelten Kennungen ein Strom sehen darf.
+
+Variante a) stellt eine Abfrage je Strom und Art, wenn im Takt etwas gesammelt wurde. Die Abfrage
+nimmt die Sichten des Stroms, die gesammelten Kennungen als `_id in (…)` und liest nur `_id`.
+Die Regel ist die der Liste, `UserTaskService.buildUserTasksCriteria` und
+`WorkflowlistService.buildWorkflowlistCriteria`. Es gibt keine zweite. Die Last wächst mit der
+Zahl der Ströme: 450 Ströme sind 450 Abfragen je Art in jedem Takt, in dem etwas geschah.
+
+Variante b) stellt eine Abfrage je Takt und Art für alle Ströme. Sie liest die gesammelten
+Dokumente mit den Feldern, von denen die Sichtbarkeit abhängt. Je Strom wird dann im Speicher
+entschieden. Die Last auf MongoDB hängt nicht mehr an der Zahl der Ströme. Der Preis ist eine
+zweite Fassung der Regel in Java neben der Abfrage, und ein Test, der beide gegeneinander prüft.
+
+Gebaut ist Variante a). Die Entscheidung "welche Kennungen darf dieser Strom sehen" liegt hinter
+einer kleinen Schnittstelle, `UpdateStreamAudience`. Sie bekommt alle Ströme und die gesammelten
+Kennungen eines Takts auf einmal und antwortet je Strom. Variante a) fragt darin je Strom,
+Variante b) könnte darin einmal fragen und dann rechnen. Der Takt, das Gedächtnis und die
+Obergrenze bleiben in beiden Fällen dieselben.
+
+Der Takt des Filters hat ein eigenes Intervall, `business-cockpit.gui-sse.filtering-interval`,
+Vorgabe 1.000 Millisekunden. Der bisherige Takt, `collecting-interval`, stellt weiter zu, was
+gefiltert ist. Gefiltert wird je Takt nur einmal, nicht für jeden der vier Takte des Zustellens.
+
+### Ende mit dem Token
+
+Die Ablaufzeit liest der Strom beim Abonnieren aus der Anmeldung. Das Token des Cockpits ist ein
+`JwtAuthenticationToken`, das ein `Jwt` trägt; ein Spring-Security-Token für OAuth trägt seine
+Ablaufzeit ebenso. Wo keine Ablaufzeit zu finden ist, lebt der Strom wie bisher so lange wie der
+Tab. Die Lebensdauer des Cockpit-Tokens ist `business-cockpit.jwt.cookie.expires-duration`,
+Vorgabe zwölf Stunden. Das Cookie läuft zur selben Zeit ab wie das Token.
+
+Was der Browser dann tut, steht in `ui/bc-shared/src/components/SseProvider.tsx`. Schließt der
+Server den Strom, wirft `onclose`, und der Browser verbindet nach 15 Sekunden neu. Ein Aufruf der
+REST-API in dieser Zeit verbindet sofort neu (`wakeupSseCallback`). Das neue Abonnieren ist ein
+gewöhnlicher `fetch` an dieselbe Adresse, und der Browser legt das Cookie bei, das er in diesem
+Moment hat. Ein neues Token geht also mit, sobald es im Cookie steht. Wer es dort hineinschreibt,
+entscheidet die Anwendung:
+
+- Im Cockpit selbst gibt es keine Verlängerung. Das Cookie entsteht bei der Anmeldung per Basic
+  Auth (`WebSecurityConfiguration`, `httpBasic` mit `JwtSecurityContextRepository`), und nach
+  zwölf Stunden ist es weg. Der Browser verbindet dann ohne Cookie neu. Hat er die Zugangsdaten
+  der Basic Auth noch, schickt er sie mit, die Antwort trägt ein neues Cookie, und der nächste
+  Versuch gelingt. Sonst ist die ganze Oberfläche abgemeldet, nicht nur der Strom.
+- Eine abgeleitete Anwendung, die das Token per OAuth oder per Wechsel der Rolle erneuert, legt
+  das neue Token ins Cookie. Der nächste Versuch trägt es.
+
+Eine Lücke bleibt: die bis zu 15 Sekunden zwischen Ende und neuem Strom. Was in dieser Zeit
+geschieht, holt das Neuladen nach, das jeder neue Strom zuerst schickt.
