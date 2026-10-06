@@ -31,6 +31,7 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
 import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
+import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
@@ -139,6 +140,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolvers VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
+   * @param election VanillaBP's election, looked up only when an entry without an adapter is
+   *          dispatched
    * @param applicationContext Where a bean holding a list of BPMS halves is looked up
    * @return The extension
    */
@@ -151,13 +154,14 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
       final ExtensionHandlers handlers,
       final ObjectProvider<PhaseTwoOutboxResolver> outboxResolvers,
       final TransactionRunnerResolver transactionRunners,
+      final ObjectProvider<WorkflowElection> election,
       final ApplicationContext applicationContext) {
 
     extension = new BusinessCockpitExtension(
         configuration, transport, theBridges(
             bridges,
             applicationContext), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
-                .templatingOf(configuration), theOutbox(outboxResolvers), transactionRunners);
+                .templatingOf(configuration), theOutbox(outboxResolvers), transactionRunners, election::getObject);
     return extension;
 
   }
