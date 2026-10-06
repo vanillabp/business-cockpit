@@ -124,7 +124,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 context.getBpmnProcessId(),
                 context.getWorkflowAggregateId(workflowAggregate));
         final var openUserTasks = new OpenUserTasks(workflowAggregate);
-        final var bridge = bridgeOfUserTasks(workflowAggregate, start, openUserTasks);
+        final var bridge = bridgeOfUserTasks(workflowAggregate, start, openUserTasks, List.of());
         final var timestamp = OffsetDateTime.now();
         if (bridge.reportsAChangedUserTaskRightAway()) {
           // a task the BPMS names none of is left out of the loop below, so no entry is written
@@ -239,11 +239,15 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        * that is possible. It is the half of the aggregate's workflows, found the same way, with
        * one more source before the election: the adapter which delivered the aggregate's open
        * tasks.
+       *
+       * @param userTaskIds The tasks whose adapter counts, or empty where every open task of the
+       *          aggregate counts
        */
       private BusinessCockpitBpmsBridge bridgeOfUserTasks(
           final Object workflowAggregate,
           final Optional<WorkflowStart> start,
-          final OpenUserTasks openUserTasks) {
+          final OpenUserTasks openUserTasks,
+          final List<String> userTaskIds) {
 
         return start
             .map(WorkflowStart::adapterId)
@@ -254,6 +258,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 () -> openUserTasks
                     .get()
                     .stream()
+                    .filter(open -> userTaskIds.isEmpty() || userTaskIds.contains(open.userTaskId()))
                     .map(OpenUserTask::adapterId)
                     .filter(extension::hasABridgeFor)
                     .findFirst()
@@ -312,8 +317,22 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                   // says the BPMS said nothing about that task, which is not the same as the
                   // task being over, and the javadoc of getUserTask tells the caller so. The
                   // details are not read for it either, because flatMap has nothing to read
-                  // them for
-                  final var bridge = bridgeOf(workflowAggregate);
+                  // them for.
+                  // The half is found the way a report finds it, so the election, which may
+                  // wait for a BPMS, is asked only where nothing VanillaBP wrote down names
+                  // the adapter. Of the open tasks only the one asked about counts, because
+                  // its adapter is the one which holds it
+                  final var start = context
+                      .getElection()
+                      .workflowStartOf(
+                          context.getWorkflowModuleId(),
+                          context.getBpmnProcessId(),
+                          context.getWorkflowAggregateId(workflowAggregate));
+                  final var bridge = bridgeOfUserTasks(
+                      workflowAggregate,
+                      start,
+                      new OpenUserTasks(workflowAggregate),
+                      userTaskId == null ? List.of() : List.of(userTaskId));
                   return bridge
                       .userTaskOfAggregate(
                           context.getWorkflowModuleId(),
