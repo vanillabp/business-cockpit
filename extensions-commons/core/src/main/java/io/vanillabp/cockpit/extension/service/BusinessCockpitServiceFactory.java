@@ -71,8 +71,25 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 context.getWorkflowModuleId(),
                 context.getBpmnProcessId(),
                 context.getWorkflowAggregateId(workflowAggregate));
-        final var bridge = bridgeOfWorkflow(workflowAggregate, start);
         final var timestamp = OffsetDateTime.now();
+        final var found = bridgeOfWorkflow(start);
+        if (found.isEmpty()) {
+          // several adapters, and nothing VanillaBP wrote down names the one of this aggregate.
+          // Electing it here may ask a BPMS and wait for it in the application's transaction, so
+          // the entry is written without an adapter, and its dispatch elects it
+          extension
+              .publishWorkflowChangeResolvedWhenDispatched(
+                  null,
+                  context.getWorkflowModuleId(),
+                  context.getBpmnProcessId(),
+                  aggregateIdOf(workflowAggregate),
+                  null,
+                  null,
+                  timestamp,
+                  context.getWorkflowAggregateClass());
+          return;
+        }
+        final var bridge = found.get();
         bridge
             .workflowsOfAggregateRightAway(
                 context.getWorkflowModuleId(),
@@ -124,8 +141,20 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 context.getBpmnProcessId(),
                 context.getWorkflowAggregateId(workflowAggregate));
         final var openUserTasks = new OpenUserTasks(workflowAggregate);
-        final var bridge = bridgeOfUserTasks(workflowAggregate, start, openUserTasks, List.of());
+        final var found = bridgeOfUserTasks(start, openUserTasks, List.of());
         final var timestamp = OffsetDateTime.now();
+        if (found.isEmpty()) {
+          // several adapters, and nothing VanillaBP wrote down names the one of this aggregate.
+          // The entries are written without an adapter for the reason given at
+          // aggregateChanged(aggregate), and their dispatch elects it
+          userTasksResolvedWhenDispatched(workflowAggregate, null, named, List.of())
+              .forEach(
+                  userTask -> extension
+                      .publishUserTaskChangeResolvedWhenDispatched(
+                          userTask, timestamp, context.getWorkflowAggregateClass()));
+          return;
+        }
+        final var bridge = found.get();
         if (bridge.reportsAChangedUserTaskRightAway()) {
           // a task the BPMS names none of is left out of the loop below, so no entry is written
           // for it and the cockpit keeps the data it stored before. That is all an empty answer
@@ -144,7 +173,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                           EventTransaction.CURRENT, context.getWorkflowAggregateClass()));
           return;
         }
-        userTasksResolvedWhenDispatched(workflowAggregate, bridge, named, openUserTasks.get())
+        userTasksResolvedWhenDispatched(workflowAggregate, bridge.adapterId(), named, openUserTasks.get())
             .forEach(
                 userTask -> extension
                     .publishUserTaskChangeResolvedWhenDispatched(
@@ -162,22 +191,26 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        * named no task and VanillaBP knows of no open one, a single reference without a task makes
        * the dispatch look up every open task of the aggregate. That covers tasks delivered before
        * VanillaBP wrote them down, and a delivery log which cannot be read.
+       *
+       * @param adapterId The adapter of the tasks, or <code>null</code> where nothing VanillaBP
+       *          wrote down names it. The references carry no adapter then, and the dispatch
+       *          elects it
        */
       private List<UserTaskReference> userTasksResolvedWhenDispatched(
           final Object workflowAggregate,
-          final BusinessCockpitBpmsBridge bridge,
+          final String adapterId,
           final List<String> named,
           final List<OpenUserTask> openUserTasks) {
 
         final var written = openUserTasks
             .stream()
-            .filter(open -> bridge.adapterId().equals(open.adapterId()))
+            .filter(open -> (adapterId != null) && adapterId.equals(open.adapterId()))
             .filter(open -> named.isEmpty() || named.contains(open.userTaskId()))
-            .map(open -> referenceOf(workflowAggregate, bridge, open))
+            .map(open -> referenceOf(workflowAggregate, adapterId, open))
             .toList();
         if (named.isEmpty()) {
           return written.isEmpty()
-              ? List.of(referenceOf(workflowAggregate, bridge, (String) null))
+              ? List.of(referenceOf(workflowAggregate, adapterId, (String) null))
               : written;
         }
         final var references = new LinkedList<>(written);
@@ -185,7 +218,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
             .stream()
             .distinct()
             .filter(userTaskId -> written.stream().noneMatch(open -> userTaskId.equals(open.userTaskId())))
-            .map(userTaskId -> referenceOf(workflowAggregate, bridge, userTaskId))
+            .map(userTaskId -> referenceOf(workflowAggregate, adapterId, userTaskId))
             .forEach(references::add);
         return references;
 
@@ -201,7 +234,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        */
       private UserTaskReference referenceOf(
           final Object workflowAggregate,
-          final BusinessCockpitBpmsBridge bridge,
+          final String adapterId,
           final OpenUserTask open) {
 
         final var workflowId = open.workflowId() != null
@@ -210,10 +243,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                 ? open.subWorkflowId()
                 : null;
         if (workflowId == null) {
-          return referenceOf(workflowAggregate, bridge, open.userTaskId());
+          return referenceOf(workflowAggregate, adapterId, open.userTaskId());
         }
         return new UserTaskReference(
-            bridge.adapterId(), context.getWorkflowModuleId(), open.bpmnProcessId(), open
+            adapterId, context.getWorkflowModuleId(), open.bpmnProcessId(), open
                 .processVersion(), aggregateIdOf(workflowAggregate), workflowId, open
                     .userTaskId(), open.taskDefinition(), open.bpmnElementId());
 
@@ -225,11 +258,11 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        */
       private UserTaskReference referenceOf(
           final Object workflowAggregate,
-          final BusinessCockpitBpmsBridge bridge,
+          final String adapterId,
           final String userTaskId) {
 
         return new UserTaskReference(
-            bridge.adapterId(), context.getWorkflowModuleId(), context
+            adapterId, context.getWorkflowModuleId(), context
                 .getBpmnProcessId(), null, aggregateIdOf(workflowAggregate), null, userTaskId, null, null);
 
       }
@@ -242,9 +275,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        *
        * @param userTaskIds The tasks whose adapter counts, or empty where every open task of the
        *          aggregate counts
+       * @return The half, or empty where nothing VanillaBP wrote down names the adapter and the
+       *         application configured several. Only the election can answer then
        */
-      private BusinessCockpitBpmsBridge bridgeOfUserTasks(
-          final Object workflowAggregate,
+      private Optional<BusinessCockpitBpmsBridge> bridgeOfUserTasks(
           final Optional<WorkflowStart> start,
           final OpenUserTasks openUserTasks,
           final List<String> userTaskIds) {
@@ -262,8 +296,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                     .map(OpenUserTask::adapterId)
                     .filter(extension::hasABridgeFor)
                     .findFirst()
-                    .map(extension::bridgeOf))
-            .orElseGet(() -> bridgeOf(workflowAggregate));
+                    .map(extension::bridgeOf));
 
       }
 
@@ -329,10 +362,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
                           context.getBpmnProcessId(),
                           context.getWorkflowAggregateId(workflowAggregate));
                   final var bridge = bridgeOfUserTasks(
-                      workflowAggregate,
                       start,
                       new OpenUserTasks(workflowAggregate),
-                      userTaskId == null ? List.of() : List.of(userTaskId));
+                      userTaskId == null ? List.of() : List.of(userTaskId))
+                      .orElseGet(() -> bridgeOf(workflowAggregate));
                   return bridge
                       .userTaskOfAggregate(
                           context.getWorkflowModuleId(),
@@ -391,20 +424,20 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        * that is possible.
        * <p>
        * The adapter the note of the start names comes first, because a workflow does not change
-       * its BPMS. The one adapter of an application with only one comes next. Only an
-       * application with several adapters and no note left is asked through the election, which
-       * may ask a BPMS.
+       * its BPMS. The one adapter of an application with only one comes next. The election is not
+       * asked here, because it may ask a BPMS and wait for it.
+       *
+       * @return The half, or empty where the application configured several adapters and no note
+       *         is left. Only the election can answer then
        */
-      private BusinessCockpitBpmsBridge bridgeOfWorkflow(
-          final Object workflowAggregate,
+      private Optional<BusinessCockpitBpmsBridge> bridgeOfWorkflow(
           final Optional<WorkflowStart> start) {
 
         return start
             .map(WorkflowStart::adapterId)
             .filter(extension::hasABridgeFor)
             .map(extension::bridgeOf)
-            .or(extension::theOnlyBridge)
-            .orElseGet(() -> bridgeOf(workflowAggregate));
+            .or(extension::theOnlyBridge);
 
       }
 
@@ -421,6 +454,10 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
 
       }
 
+      /**
+       * The BPMS half the election names. Only a read asks this: a read may wait for a BPMS, a
+       * report never does.
+       */
       private BusinessCockpitBpmsBridge bridgeOf(
           final Object workflowAggregate) {
 

@@ -44,6 +44,7 @@ import io.vanillabp.cockpit.extension.templating.EventTitles;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
+import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerCall;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
@@ -107,6 +108,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   private final TransactionRunnerResolver transactionRunners;
 
+  /**
+   * VanillaBP's election, asked only by the dispatch of an entry which names no adapter. It is
+   * looked up when it is needed, because the platform builds it from beans which are made after
+   * this one.
+   */
+  private final Supplier<WorkflowElection> election;
+
   private final String source;
 
   private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
@@ -127,6 +135,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @param templating The renderer of the titles, {@link Templating#none()} without templates
    * @param outbox Which store an entry is written to
    * @param transactionRunners Which transaction an entry of a workflow aggregate is written in
+   * @param election VanillaBP's election, which names the adapter of an entry written without one
    */
   public BusinessCockpitExtension(
       final BusinessCockpitConfiguration configuration,
@@ -136,7 +145,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       final ExtensionHandlers handlers,
       final Templating templating,
       final BusinessCockpitOutbox outbox,
-      final TransactionRunnerResolver transactionRunners) {
+      final TransactionRunnerResolver transactionRunners,
+      final Supplier<WorkflowElection> election) {
 
     this.configuration = configuration;
     this.transport = transport;
@@ -144,6 +154,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     this.templating = templating;
     this.outbox = outbox;
     this.transactionRunners = transactionRunners;
+    this.election = election;
     this.source = sourceOfThisInstance();
     this.bridges = bridgesByAdapterId(bridges);
     this.workflowModuleDetailsProviders = detailsProvidersByWorkflowModule(
@@ -458,7 +469,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * entry is dispatched again a little later. See decision 26 in the repository's DECISIONS.md
    * for why this is the exception and not the rule.
    *
-   * @param adapterId The adapter holding the workflows of the aggregate
+   * @param adapterId The adapter holding the workflows of the aggregate, or <code>null</code> where
+   *          nothing VanillaBP wrote down names it. The dispatch elects it then, because the
+   *          election may ask a BPMS and wait for it, and a report never waits in the
+   *          application's transaction
    * @param workflowModuleId The workflow module
    * @param bpmnProcessId The primary BPMN process of the aggregate
    * @param workflowAggregateId The aggregate's id, serialized
@@ -517,7 +531,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    *
    * @param userTask The task as far as VanillaBP wrote it down when it delivered it. Where it
    *          wrote nothing down, the reference names the id the application named and leaves
-   *          the workflow empty, so the dispatch looks the task up first. Where the application
+   *          the workflow empty, so the dispatch looks the task up first. Where nothing names the
+   *          adapter, the reference leaves it empty as well, and the dispatch elects it. Where the application
    *          named no task either, the id is empty as well, and the dispatch looks up every open
    *          task of the aggregate
    * @param timestamp When the change happened
@@ -579,7 +594,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <p>
    * With one adapter there is nothing to elect: every workflow of the application runs there.
    * <code>BusinessCockpitService</code> asks this before it asks the election, because an
-   * election may ask the BPMS and wait for it inside the application's transaction.
+   * election may ask the BPMS and wait for it inside the application's transaction. A report does
+   * not ask the election at all. Its dispatch does.
    *
    * @return The half, or empty where the application configured more than one adapter
    */
@@ -1057,12 +1073,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * at-least-once the outbox promises anyway.
    */
   private void dispatchWorkflowChange(
-      final PhaseTwoCall call,
+      final PhaseTwoCall entry,
       final boolean previouslyAttempted) {
 
-    final var args = call.args();
+    final var args = entry.args();
     final var eventId = args.get(BusinessCockpitOperations.ARG_EVENT_ID);
     final var timestamp = parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP));
+    final var call = withItsAdapter(entry, timestamp, previouslyAttempted);
     final var bridge = bridgeOf(call.adapterId());
     final var reports = readInOneTransaction(
         aggregateOf(call.workflowModuleId(), call.bpmnProcessId(), null),
@@ -1113,12 +1130,13 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <code>PhaseTwoRetryLater</code> of the half is an answer the outbox understands.
    */
   private void dispatchUserTaskChange(
-      final PhaseTwoCall call,
+      final PhaseTwoCall entry,
       final boolean previouslyAttempted) {
 
-    final var args = call.args();
+    final var args = entry.args();
     final var eventId = args.get(BusinessCockpitOperations.ARG_EVENT_ID);
     final var timestamp = parseTimestamp(args.get(BusinessCockpitOperations.ARG_TIMESTAMP));
+    final var call = withItsAdapter(entry, timestamp, previouslyAttempted);
     final var bridge = bridgeOf(call.adapterId());
     final var named = userTaskOf(call);
     final var reports = readInOneTransaction(
@@ -1156,6 +1174,51 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       return;
     }
     reports.get().forEach(transport::publishUserTaskEvent);
+
+  }
+
+  /**
+   * The entry with the adapter of its aggregate. An entry written without one is the change of an
+   * application with several adapters, where nothing VanillaBP wrote down named the adapter. The
+   * election is asked now, outside the application's transaction, where it may ask a BPMS and wait
+   * for it. A report never waits in the application's transaction, a read may.
+   * <p>
+   * The election answers "no adapter" by throwing. On a BPMS which writes a storage behind its
+   * engine that is what a workflow started moments ago looks like, so the entry gets the window
+   * of every other change: given back to the outbox, and blocked after ten minutes.
+   *
+   * @param call The entry as the outbox read it
+   * @param timestamp When the change happened
+   * @param previouslyAttempted Whether the outbox dispatched the entry before
+   * @return The entry, naming its adapter
+   * @throws PhaseTwoRetryLater While the election names no adapter and the window is open
+   * @throws PhaseTwoPermanentFailure Once the election named no adapter for the whole window
+   */
+  private PhaseTwoCall withItsAdapter(
+      final PhaseTwoCall call,
+      final OffsetDateTime timestamp,
+      final boolean previouslyAttempted) {
+
+    if (call.adapterId() != null) {
+      return call;
+    }
+    final String adapterId;
+    try {
+      adapterId = election
+          .get()
+          .adapterIdOfWorkflow(call.workflowModuleId(), call.bpmnProcessId(), call.workflowAggregateId());
+    } catch (final IllegalStateException e) {
+      logger
+          .debug(
+              "The election names no adapter for aggregate '{}' of '{}/{}' yet",
+              call.workflowAggregateId(), call.workflowModuleId(), call.bpmnProcessId(), e);
+      tryTheChangeAgainLater(call, timestamp, previouslyAttempted, WaitingFor.adapter(call, e));
+      throw e;
+    }
+    return new PhaseTwoCall(
+        call.operation(), call.workflowModuleId(), call.bpmnProcessId(), call
+            .workflowAggregateId(), adapterId, call.args(), call.idempotencyKey(), call.payload(), call
+                .replacesWhatIsStillWaiting());
 
   }
 
@@ -1291,31 +1354,32 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
       logger
           .error(
-              "Not reporting {} to the Business Cockpit: the BPMS half of adapter '{}' has named {} for {}. Either {}, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check {} and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
+              "Not reporting {} to the Business Cockpit: {} has named {} for {}. Either {}, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check {} and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
               waitingFor.change(),
-              call.adapterId(),
+              waitingFor.asker(),
               waitingFor.missing(),
               CHANGE_RESOLUTION_WINDOW,
               waitingFor.otherReading(),
               waitingFor.whatToCheck());
       throw new PhaseTwoPermanentFailure(
-          "The BPMS half of adapter '%s' named %s for %s, which is %s"
+          "%s named %s for %s, which is %s"
               .formatted(
-                  call.adapterId(), waitingFor.missing(), CHANGE_RESOLUTION_WINDOW,
+                  waitingFor.askerAtTheStartOfASentence(), waitingFor.missing(), CHANGE_RESOLUTION_WINDOW,
                   waitingFor.change()), null);
     }
     if (!previouslyAttempted) {
       logger
           .info(
-              "Reporting {} to the Business Cockpit later: the BPMS half of adapter '{}' names {} yet, which is what a BPMS writing a storage behind its engine answers while it is behind. The report is tried again for up to {}.",
+              "Reporting {} to the Business Cockpit later: {} names {} yet, which is what a BPMS writing a storage behind its engine answers while it is behind. The report is tried again for up to {}.",
               waitingFor.change(),
-              call.adapterId(),
+              waitingFor.asker(),
               waitingFor.missing(),
               CHANGE_RESOLUTION_WINDOW);
     }
     throw new PhaseTwoRetryLater(
-        "The BPMS half of adapter '%s' names %s yet, which is %s"
-            .formatted(call.adapterId(), waitingFor.missing(), waitingFor.change()), distanceToTheNextAttempt(waited));
+        "%s names %s yet, which is %s"
+            .formatted(waitingFor.askerAtTheStartOfASentence(), waitingFor.missing(), waitingFor
+                .change()), distanceToTheNextAttempt(waited));
 
   }
 
@@ -1323,13 +1387,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * What a change resolved at its dispatch waits for, in the words its log lines use.
    *
    * @param change The change, for example "the change of aggregate 'A' of 'module/Process'"
-   * @param missing What the BPMS half did not name, fitting "the BPMS half has named ..."
+   * @param asker Who was asked and named nothing, for example "the BPMS half of adapter 'c8'"
+   * @param missing What the asker did not name, fitting "the BPMS half has named ..."
    * @param otherReading The reading of a silence which is no delay of the BPMS, fitting
    *          "Either ..."
    * @param whatToCheck What an operator checks, fitting "Check ..."
    */
   record WaitingFor(
                     String change,
+                    String asker,
                     String missing,
                     String otherReading,
                     String whatToCheck) {
@@ -1340,8 +1406,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       return new WaitingFor(
           "the change of aggregate '%s' of '%s/%s'"
               .formatted(call.workflowAggregateId(), call.workflowModuleId(), call
-                  .bpmnProcessId()), "no workflow of it", "the aggregate has no workflow in that BPMS", "that the aggregate has a workflow in adapter '%s'"
-                      .formatted(call.adapterId()));
+                  .bpmnProcessId()), halfOf(
+                      call.adapterId()), "no workflow of it", "the aggregate has no workflow in that BPMS", "that the aggregate has a workflow in adapter '%s'"
+                          .formatted(call.adapterId()));
 
     }
 
@@ -1354,9 +1421,42 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
                   userTask.userTaskId(), userTask.workflowAggregateId(),
                   userTask.workflowModuleId(),
                   userTask
-                      .bpmnProcessId()), "nothing about that task", "the task is not one of that aggregate in that BPMS", "that user task '%s' belongs to aggregate '%s' in adapter '%s'"
-                          .formatted(
-                              userTask.userTaskId(), userTask.workflowAggregateId(), userTask.adapterId()));
+                      .bpmnProcessId()), halfOf(
+                          userTask
+                              .adapterId()), "nothing about that task", "the task is not one of that aggregate in that BPMS", "that user task '%s' belongs to aggregate '%s' in adapter '%s'"
+                                  .formatted(
+                                      userTask.userTaskId(), userTask.workflowAggregateId(), userTask.adapterId()));
+
+    }
+
+    /**
+     * A change whose entry names no adapter, while the election names none either.
+     *
+     * @param call The entry's call
+     * @param answer What the election threw, whose message says why it named no adapter
+     */
+    static WaitingFor adapter(
+        final PhaseTwoCall call,
+        final RuntimeException answer) {
+
+      return new WaitingFor(
+          "the change of aggregate '%s' of '%s/%s'"
+              .formatted(call.workflowAggregateId(), call.workflowModuleId(), call
+                  .bpmnProcessId()), "VanillaBP's election", "no adapter holding it", "the aggregate has no workflow in any adapter configured for it", "that the aggregate has a workflow in one of its adapters (the election answered: %s)"
+                      .formatted(answer.getMessage()));
+
+    }
+
+    private static String halfOf(
+        final String adapterId) {
+
+      return "the BPMS half of adapter '%s'".formatted(adapterId);
+
+    }
+
+    String askerAtTheStartOfASentence() {
+
+      return Character.toUpperCase(asker.charAt(0)) + asker.substring(1);
 
     }
 

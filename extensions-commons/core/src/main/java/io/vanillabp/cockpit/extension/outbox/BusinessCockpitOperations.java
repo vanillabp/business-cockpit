@@ -91,6 +91,10 @@ public final class BusinessCockpitOperations {
    * changed task in the application's transaction. Its dispatch asks the half about the task it
    * names, or looks the task up first where VanillaBP wrote nothing down about it.
    * <p>
+   * Where the application configured several adapters and nothing VanillaBP wrote down names the
+   * adapter of the aggregate, such an entry carries no adapter either. Its dispatch elects it,
+   * because the election may ask a BPMS and wait for it.
+   * <p>
    * Such an entry is a row of the same operation, so a younger report of the same key still takes
    * its place. That is what keeps a backlog of changes from becoming a flood of reports. See
    * decision 26 in the repository's DECISIONS.md.
@@ -175,7 +179,8 @@ public final class BusinessCockpitOperations {
    * An entry which is resolved when it is dispatched names no task where the application named
    * none and VanillaBP knows of no open task of the aggregate. It is keyed by its aggregate then,
    * the same way as such a workflow entry. Every entry which names its task keeps the key it
-   * always had.
+   * always had. An entry which carries no adapter has "null" where the adapter stands, so it is
+   * never taken for an entry of an adapter.
    *
    * @param call The entry being scheduled
    * @return The key

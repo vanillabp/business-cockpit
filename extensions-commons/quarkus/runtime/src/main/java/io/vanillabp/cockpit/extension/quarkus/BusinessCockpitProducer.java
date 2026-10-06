@@ -24,6 +24,7 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
 import io.vanillabp.integration.adapter.migration.processservice.PhaseTwoOutboxResolver;
 import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.ExtensionWiringService;
+import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.service.AggregateServiceFactory;
 import io.vanillabp.integration.spi.PhaseOperationRegistry;
@@ -154,6 +155,8 @@ public class BusinessCockpitProducer {
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
    * @param transactionRunners VanillaBP's attribution of a transaction to a workflow aggregate
+   * @param election VanillaBP's election, looked up only when an entry without an adapter is
+   *          dispatched
    * @return The extension
    */
   @Produces
@@ -167,12 +170,13 @@ public class BusinessCockpitProducer {
       @Any final Instance<WorkflowModuleDetailsProvider> workflowModuleDetailsProviders,
       final ExtensionHandlers handlers,
       final PhaseTwoOutboxResolver outboxResolver,
-      final TransactionRunnerResolver transactionRunners) {
+      final TransactionRunnerResolver transactionRunners,
+      final Instance<WorkflowElection> election) {
 
     return new BusinessCockpitExtension(
         configuration, transport, theBridges(
             bridges, bridgeLists), workflowModuleDetailsProviders.stream().toList(), handlers, BusinessCockpitAssembly
-                .templatingOf(configuration), theOutbox(outboxResolver), transactionRunners);
+                .templatingOf(configuration), theOutbox(outboxResolver), transactionRunners, election::get);
 
   }
 

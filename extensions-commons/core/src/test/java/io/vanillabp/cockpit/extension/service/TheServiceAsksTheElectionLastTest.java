@@ -262,7 +262,7 @@ public class TheServiceAsksTheElectionLastTest {
     private Extension(
         final List<BusinessCockpitBpmsBridge> bridges) {
 
-      super(null, null, bridges, List.of(), null, null, null, null);
+      super(null, null, bridges, List.of(), null, null, null, null, null);
 
     }
 
