@@ -5,6 +5,7 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
+import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
@@ -15,6 +16,7 @@ import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -68,6 +70,9 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     @Autowired
     protected UserTaskService userTaskService;
 
+    @Autowired
+    protected UpdateStreams updateStreams;
+
     /**
      * The workflows this view lets the given user reach, which is the only thing a subclass has to
      * decide. It is asked once per request and used for the list as well as for everything naming a
@@ -116,8 +121,9 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
         final var currentUser = userContext.getUserLoggedInDetails();
 
+        final var visibility = workflowsVisibleTo(currentUser);
         final var workflows = getWorkflows(
-                workflowsVisibleTo(currentUser),
+                visibility,
                 workflowsRequest.getPageNumber(),
                 workflowsRequest.getPageSize(),
                 timestamp,
@@ -128,6 +134,8 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 workflowsRequest.getMode() != null
                         ? mapper.toModel(workflowsRequest.getMode())
                         : WorkflowlistService.RetrieveItemsMode.All);
+
+        tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
 
         return ResponseEntity.ok(mapper.toApi(workflows, timestamp, requestId));
 
@@ -167,8 +175,9 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
 
         final var currentUser = userContext.getUserLoggedInDetails();
 
+        final var visibility = workflowsVisibleTo(currentUser);
         final var workflows = getWorkflowsUpdated(
-                workflowsVisibleTo(currentUser),
+                visibility,
                 workflowsUpdateRequest.getSize(),
                 workflowsUpdateRequest.getKnownWorkflowsIds(),
                 timestamp,
@@ -179,7 +188,31 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                         ? mapper.toModel(workflowsUpdateRequest.getMode())
                         : WorkflowlistService.RetrieveItemsMode.Active);
 
+        tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
+
         return ResponseEntity.ok(mapper.toApi(workflows, timestamp, requestId));
+
+    }
+
+    /**
+     * The update streams of this person remember which workflows their browser shows now. That is
+     * how a stream learns to wake up a list for a workflow the person may no longer see, see
+     * {@link UpdateStreams}.
+     */
+    private void tellTheUpdateStreamsWhatIsShown(
+            final UserDetails currentUser,
+            final WorkflowVisibility visibility,
+            final Page<Workflow> workflows) {
+
+        updateStreams.listAnswered(
+                WorkflowStreamAudience.KIND_OF_ENTITY,
+                currentUser,
+                visibility,
+                workflows
+                        .getContent()
+                        .stream()
+                        .map(Workflow::getId)
+                        .toList());
 
     }
 
