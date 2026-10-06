@@ -3,9 +3,11 @@
 Dieser Text ist bis zum Review deutsch, weil Stephan ihn selbst liest. Nach dem Review wird
 daraus die englische Beschreibung in der Wiki-Seite `Security`.
 
-Das Review ist am 2026-10-06 erfolgt, siehe [Stephans Review](#stephans-review-2026-10-06). Der
-Text bleibt trotzdem noch deutsch: Stephan entscheidet nach der Messung zwischen den Varianten a)
-und b), und erst danach entsteht die Wiki-Beschreibung.
+Das Review ist am 2026-10-06 erfolgt, siehe [Stephans Review](#stephans-review-2026-10-06). Nach
+der Messung hat Stephan am selben Tag Variante b) gewählt, siehe
+[Entscheidung: Variante b)](#entscheidung-variante-b). Die englische Beschreibung steht seitdem in
+der Wiki-Seite `Security`, Abschnitt "Who gets which live update". Dieser Text bleibt deutsch, als
+Weg zur Entscheidung.
 
 Konzept zu Story 1251, Arbeitspaket 1. Es beantwortet die Fragen aus dem Prompt gegen den
 gelesenen Code. Jede Aussage nennt Datei und Zeile, damit beim Umsetzen nachzulesen ist, worauf
@@ -25,6 +27,9 @@ sie sich stützt. Zeilennummern stehen für den Stand von `origin/main` am 2026-
 - [Offene Fragen mit Default](#offene-fragen-mit-default)
 - [Stephans Review, 2026-10-06](#stephans-review-2026-10-06)
 - [Variante a) und b)](#variante-a-und-b)
+- [Messung Variante a)](#messung-variante-a)
+- [Entscheidung: Variante b)](#entscheidung-variante-b)
+- [Messung Variante b)](#messung-variante-b)
 
 ## Was heute passiert
 
@@ -395,14 +400,15 @@ Dokumente mit den Feldern, von denen die Sichtbarkeit abhängt. Je Strom wird da
 entschieden. Die Last auf MongoDB hängt nicht mehr an der Zahl der Ströme. Der Preis ist eine
 zweite Fassung der Regel in Java neben der Abfrage, und ein Test, der beide gegeneinander prüft.
 
-Gebaut ist Variante a). Die Entscheidung "welche Kennungen darf dieser Strom sehen" liegt hinter
-einer kleinen Schnittstelle, `UpdateStreamAudience`. Sie bekommt alle Ströme und die gesammelten
-Kennungen eines Takts auf einmal und antwortet je Strom. Variante a) fragt darin je Strom,
-Variante b) könnte darin einmal fragen und dann rechnen. Der Takt, das Gedächtnis und die
-Obergrenze bleiben in beiden Fällen dieselben.
+Zuerst gebaut und gemessen war Variante a). Gebaut ist heute Variante b), siehe
+[Entscheidung: Variante b)](#entscheidung-variante-b). Die Entscheidung "welche Kennungen darf
+dieser Strom sehen" liegt hinter einer kleinen Schnittstelle, `UpdateStreamAudience`. Sie bekommt
+alle Ströme und die gesammelten Kennungen eines Takts auf einmal und antwortet je Strom. Der Takt,
+das Gedächtnis und die Obergrenze sind in beiden Varianten dieselben.
 
-Der Takt des Filters hat ein eigenes Intervall, `business-cockpit.gui-sse.filtering-interval`,
-Vorgabe 1.000 Millisekunden. Der bisherige Takt, `collecting-interval`, stellt weiter zu, was
+Der Takt des Filters hat ein eigenes Intervall, `business-cockpit.gui-sse.filtering-interval`.
+Die Vorgabe war bei Variante a) 1.000 Millisekunden und ist seit Variante b) 250 Millisekunden,
+siehe [Messung Variante b)](#messung-variante-b). Der bisherige Takt, `collecting-interval`, stellt weiter zu, was
 gefiltert ist. Gefiltert wird je Takt nur einmal, nicht für jeden der vier Takte des Zustellens.
 
 ### Ende mit dem Token
@@ -537,7 +543,8 @@ Was die Zahlen sagen:
 
 ### Schätzung für Variante b)
 
-Variante b) ist nicht gebaut. Die Zahlen hier sind geschätzt und nicht gemessen.
+Diese Schätzung entstand, bevor Variante b) gebaut war. Gemessen ist sie inzwischen unter
+[Messung Variante b)](#messung-variante-b); die Schätzung bleibt als Vergleich stehen.
 
 Je Takt mit Änderung gibt es eine Abfrage statt 450: `_id in (…)` mit den Feldern, von denen die
 Sichtbarkeit abhängt. Die Messung hat diese Abfrage nach jeder Zeile 20-mal gestellt, mit so
@@ -554,3 +561,97 @@ Bereich von Mikrosekunden je Paar.
 
 Die Last auf MongoDB fällt bei b) um den Faktor der Ströme, also 450, und hängt nicht mehr an
 der Zahl der Benutzer. Was bleibt, ist die zweite Fassung der Regel in Java, siehe oben.
+
+## Entscheidung: Variante b)
+
+Stephan hat am 2026-10-06 nach der Messung Variante b) gewählt. Variante a) ist entfernt, einen
+Schalter zwischen beiden gibt es nicht.
+
+Die Gründe:
+
+- Bei a) wächst die Last linear mit den offenen Tabs. 450 Ströme sind 450 Abfragen in jedem Takt
+  mit Änderung. Ein Cockpit mit doppelt so vielen Benutzern hat doppelt so viel Last, ohne dass
+  sich an der Arbeit etwas geändert hat.
+- Ein Takt dauert bei a) schon ohne Netz rund 100 ms. Mit einem Netz zwischen Cockpit und MongoDB
+  kommt je Abfrage die Laufzeit dazu, bei 1 ms hin und zurück also rund 0,5 Sekunden je Takt.
+- b) fragt einmal je Takt und Art, egal wie viele Tabs offen sind. Der Preis ist die zweite
+  Fassung der Regel in Java.
+
+Die zweite Fassung steht neben der ersten. `UserTaskVisibility.letsThrough(TaskFacts)` und
+`WorkflowVisibility.letsThrough(WorkflowFacts)` sind die Regeln in Java. `TaskFacts` und
+`WorkflowFacts` sind genau die Felder, die die Regel liest, und genau die Felder, die die Abfrage
+des Takts holt. `dangling` kommt dabei aus dem Dokument und wird nicht neu berechnet, weil die
+Abfrage der Liste den gespeicherten Wert vergleicht. Das Zurückgeben einer Task ist ein `$unset`
+und lässt den gespeicherten Wert so stehen, wie er war.
+
+Zusammengehalten werden beide Fassungen von `TheVisibilityInMemoryAgreesWithTheQueryTest`:
+
+- Er schreibt Tasks in allen Kombinationen von Zuständigem, Kandidatenbenutzern,
+  Kandidatengruppen, ausgeschlossenen und zugelassenen Benutzern, je mit dem gespeicherten
+  `dangling` wie berechnet und umgekehrt (384 Tasks), dazu 32 Workflows.
+- Er fragt beide Fassungen für die benannten Sichten von drei Personen, für `everyUserTask` und
+  `everyWorkflow`, und für eine feste Stichprobe von 1.500 bzw. 1.000 Sichten. Die Sichten baut er
+  per Reflexion aus den Komponenten der Records. Eine neue Komponente wird damit ohne Zutun
+  variiert; hat sie einen Typ, den der Test nicht kennt, wird er rot und sagt, was zu tun ist.
+- Er prüft, dass die Abfrage keines Sichtbarkeits-Kriteriums ein Feld liest, das die Fakten nicht
+  tragen. Ein neues Kriterium in `buildUserTasksCriteria` auf ein neues Feld fällt damit auf.
+- Gegenprobe beim Bau: die Regel in Java ohne Ausschluss (Vier-Augen) macht den Test rot.
+
+## Messung Variante b)
+
+Gemessen am 2026-10-06 mit demselben Harness und derselben Matrix wie Variante a), auf demselben
+Rechner. Die Tabelle für a) oben bleibt als Vergleich stehen. Neu ist die Spalte
+"Allokation je Takt": was der Faden des Takts an Speicher belegt, gemessen mit
+`ThreadMXBean.getCurrentThreadAllocatedBytes`, Median der Takte mit Änderung.
+
+| Tasks   | Rate/s | Takt    | Takte mit Änderung | Abfragen/s | Takt p50 | p95   | max   | Server-CPU | MongoDB-CPU | Allokation je Takt |
+|---------|--------|---------|--------------------|------------|----------|-------|-------|------------|-------------|--------------------|
+| 20.000  | 0,3    | 250 ms  | 6 %                | 0,2        | 8,5 ms   | 12 ms | 68 ms | 2 %        | 1 %         | 1,8 MB             |
+| 20.000  | 3      | 250 ms  | 42 %               | 1,7        | 5,0 ms   | 11 ms | 12 ms | 3 %        | 1 %         | 1,8 MB             |
+| 20.000  | 5      | 250 ms  | 71 %               | 2,8        | 7,9 ms   | 12 ms | 17 ms | 4 %        | 1 %         | 1,8 MB             |
+| 20.000  | 20     | 250 ms  | 100 %              | 3,8        | 10 ms    | 15 ms | 19 ms | 6 %        | 1 %         | 5,0 MB             |
+| 20.000  | 50     | 250 ms  | 100 %              | 3,8        | 11 ms    | 21 ms | 24 ms | 9 %        | 1 %         | 11,4 MB            |
+| 20.000  | 0,3    | 1000 ms | 23 %               | 0,2        | 5,7 ms   | 10 ms | 10 ms | 0 %        | 1 %         | 1,8 MB             |
+| 20.000  | 3      | 1000 ms | 90 %               | 0,9        | 6,6 ms   | 12 ms | 14 ms | 1 %        | 1 %         | 3,4 MB             |
+| 20.000  | 5      | 1000 ms | 100 %              | 1,0        | 5,7 ms   | 10 ms | 13 ms | 1 %        | 1 %         | 5,0 MB             |
+| 20.000  | 20     | 1000 ms | 100 %              | 1,0        | 15 ms    | 25 ms | 26 ms | 3 %        | 1 %         | 16,1 MB            |
+| 20.000  | 50     | 1000 ms | 100 %              | 1,0        | 25 ms    | 34 ms | 38 ms | 5 %        | 1 %         | 41,3 MB            |
+| 500.000 | 0,3    | 250 ms  | 6 %                | 0,2        | 5,2 ms   | 9 ms  | 13 ms | 1 %        | 1 %         | 1,8 MB             |
+| 500.000 | 3      | 250 ms  | 45 %               | 1,8        | 3,6 ms   | 10 ms | 12 ms | 4 %        | 1 %         | 1,8 MB             |
+| 500.000 | 5      | 250 ms  | 69 %               | 2,7        | 4,3 ms   | 11 ms | 13 ms | 3 %        | 1 %         | 1,8 MB             |
+| 500.000 | 20     | 250 ms  | 100 %              | 3,9        | 4,5 ms   | 10 ms | 13 ms | 4 %        | 1 %         | 5,0 MB             |
+| 500.000 | 50     | 250 ms  | 100 %              | 3,8        | 8,3 ms   | 17 ms | 21 ms | 7 %        | 1 %         | 10,6 MB            |
+| 500.000 | 0,3    | 1000 ms | 23 %               | 0,2        | 4,4 ms   | 9 ms  | 11 ms | 0 %        | 1 %         | 1,8 MB             |
+| 500.000 | 3      | 1000 ms | 90 %               | 0,9        | 6,8 ms   | 11 ms | 14 ms | 2 %        | 1 %         | 3,4 MB             |
+| 500.000 | 5      | 1000 ms | 100 %              | 1,0        | 8,1 ms   | 14 ms | 17 ms | 1 %        | 1 %         | 4,2 MB             |
+| 500.000 | 20     | 1000 ms | 100 %              | 1,0        | 14 ms    | 21 ms | 24 ms | 3 %        | 1 %         | 16,1 MB            |
+| 500.000 | 50     | 1000 ms | 100 %              | 1,0        | 28 ms    | 39 ms | 44 ms | 6 %        | 1 %         | 40,5 MB            |
+
+Das Gedächtnis ist unverändert: 27,2 MB bei 500 Kennungen je Strom, 104,5 MB bei 2.000, für 450
+Ströme.
+
+Was die Zahlen sagen:
+
+- MongoDB sieht höchstens eine Abfrage je Takt, 0,2 bis 3,9 je Sekunde statt 97 bis 1.300. Seine
+  CPU bleibt bei 1 %, was der Grundlast des leeren Containers entspricht.
+- Ein Takt dauert 4 bis 28 ms statt rund 100 ms. Der größere Teil ist jetzt die Arbeit im
+  Speicher: 450 Ströme mal die Sichten mal die geänderten Dokumente. Er wächst mit den Änderungen
+  je Takt, nicht mit dem Bestand.
+- Die Allokation liegt bei 1,8 MB je Takt mit wenigen Änderungen, rund 4 KB je Strom für Mengen
+  und Listen, die sofort wieder frei sind. Bei 50 Änderungen je Takt sind es rund 40 MB. Das ist
+  kurzlebiger Müll, der in der jungen Generation stirbt; bei 50 Änderungen pro Sekunde wären das
+  40 MB je Sekunde, bei den 0,3/s des Kunden unter 1 MB je Sekunde.
+- Wie bei a) spielt die Größe des Bestands keine Rolle.
+
+### Vorgabe des Takts: 250 ms
+
+Bei a) war der 250-ms-Takt das Drei- bis Vierfache teurer als der 1-s-Takt, deshalb 1.000 ms.
+Bei b) kostet er in der Spitze des Kunden (3/s) 1,8 Abfragen je Sekunde und rund 4 % eines Kerns
+im Cockpit, im Schnitt (0,3/s) 0,2 Abfragen je Sekunde und 1 bis 2 %. Dafür kommt eine Änderung
+bis zu 750 ms früher im Browser an. Mit 250 ms läuft der Filter so oft wie das Zustellen
+(`collecting-interval`, auch 250 ms), und die Antwortzeit ist die von vor dieser Story. Deshalb ist
+die Vorgabe jetzt 250 ms. Wer Last sparen will, stellt 1.000 ms ein; die Tabelle sagt, was das
+bringt.
+
+Die Einschränkungen der Messung von a) gelten auch hier. Eine fällt bei b) weg: das Netz zwischen
+Cockpit und MongoDB kostet je Takt eine Laufzeit und nicht 450.
