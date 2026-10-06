@@ -7,6 +7,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.jupiter.api.Test;
@@ -14,8 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Subscribes to the server-sent-events stream the way the single-page app does, authenticated by
- * the JWT cookie. It checks the two things a client relies on, the confirmation ping shortly after
- * subscribing and an update event when a user task changes.
+ * the JWT cookie. It checks the things a client relies on: the confirmation ping shortly after
+ * subscribing, an update event when a user task changes, and no event about a task the person may
+ * not see.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -147,6 +149,132 @@ class SseUpdatesTest extends ItestBase {
             assertThat(lines)
                     .anyMatch(line -> line.startsWith("data:") && line.contains("UPDATE"));
         });
+
+    }
+
+    /**
+     * The task is offered to petra's group only. Martin's stream must not hear of it. Martin gets
+     * a task of his own afterwards, and once that one has arrived, the first one would have arrived
+     * before it: both go through the same ticks in the order they were reported.
+     */
+    @Test
+    void aChangeOfAForeignTaskReachesNoOtherStream() {
+
+        final var moduleId = unique("sse-foreign-module");
+        registerWorkflowModule(moduleId, "http://localhost:65000");
+        final var martin = openEventStream(loginToGui(USER_MARTIN));
+        final var petra = openEventStream(loginToGui(USER_PETRA));
+        await().untilAsserted(() -> {
+            assertThat(martin).anyMatch(line -> line.contains("ping"));
+            assertThat(petra).anyMatch(line -> line.contains("ping"));
+        });
+
+        final var petrasTask = unique("task");
+        reportCreated(moduleId, petrasTask, """
+                "candidateGroups": [ "%s" ]
+                """.formatted(GROUP_OF_PETRA));
+        await().untilAsserted(() -> assertThat(eventsAbout(petrasTask, petra)).isEqualTo(1));
+
+        final var martinsTask = unique("task");
+        reportCreated(moduleId, martinsTask, """
+                "assignee": "%s"
+                """.formatted(USER_MARTIN));
+        await().untilAsserted(() -> assertThat(eventsAbout(martinsTask, martin)).isEqualTo(1));
+
+        assertThat(eventsAbout(petrasTask, martin))
+                .as("martin's stream so far: %s", martin)
+                .isZero();
+        assertThat(eventsAbout(martinsTask, petra))
+                .as("petra's stream so far: %s", petra)
+                .isZero();
+
+    }
+
+    /**
+     * The workflow module gives martin's task to petra. Martin's browser shows the task, because
+     * his list was loaded with it, so his stream wakes his list, and the list loads without the
+     * task. Petra's stream wakes her list, which now loads with it. Neither of them reloads the page.
+     */
+    @Test
+    void aTaskGivenToSomebodyElseWakesBothLists() {
+
+        final var moduleId = unique("sse-reassign-module");
+        registerWorkflowModule(moduleId, "http://localhost:65000");
+        final var martinsCookie = loginToGui(USER_MARTIN);
+        final var petrasCookie = loginToGui(USER_PETRA);
+        final var martin = openEventStream(martinsCookie);
+        final var petra = openEventStream(petrasCookie);
+        await().untilAsserted(() -> {
+            assertThat(martin).anyMatch(line -> line.contains("ping"));
+            assertThat(petra).anyMatch(line -> line.contains("ping"));
+        });
+
+        final var token = unique("reassign");
+        final var userTaskId = unique("task");
+        reportCreated(moduleId, userTaskId, """
+                "assignee": "%s",
+                "detailsFulltextSearch": "%s"
+                """.formatted(USER_MARTIN, token));
+        await().untilAsserted(() -> assertThat(eventsAbout(userTaskId, martin)).isEqualTo(1));
+        assertThat(userTaskList(martinsCookie, token, "OpenTasks")
+                .read("$.userTasks[*].id", List.class))
+                .containsExactly(userTaskId);
+
+        final var updated = bpmsV1_1("/usertask/" + userTaskId + "/updated", """
+                {
+                  "id": "%s",
+                  "updated": true,
+                  "userTaskId": "%s",
+                  "timestamp": "%s",
+                  "workflowModuleId": "%s",
+                  "bpmnProcessId": "taxi-ride",
+                  "title": { "en": "Do ride" },
+                  "taskDefinition": "do-ride",
+                  "uiUriPath": "/remoteEntry.js",
+                  "uiUriType": "WEBPACK_MF_REACT",
+                  "assignee": "%s",
+                  "detailsFulltextSearch": "%s"
+                }
+                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, USER_PETRA, token));
+        assertThat(updated.statusCode()).isEqualTo(200);
+
+        await().untilAsserted(() -> {
+            assertThat(eventsAbout(userTaskId, martin))
+                    .as("martin is told to drop the task; stream so far: %s", martin)
+                    .isEqualTo(2);
+            assertThat(eventsAbout(userTaskId, petra))
+                    .as("petra is told to show the task; stream so far: %s", petra)
+                    .isEqualTo(1);
+        });
+        assertThat(userTaskList(martinsCookie, token, "OpenTasks")
+                .read("$.userTasks[*].id", List.class))
+                .isEmpty();
+        assertThat(userTaskList(petrasCookie, token, "OpenTasks")
+                .read("$.userTasks[*].id", List.class))
+                .containsExactly(userTaskId);
+
+    }
+
+    private void reportCreated(
+            final String moduleId,
+            final String userTaskId,
+            final String addressedTo) {
+
+        final var created = bpmsV1_1("/usertask/created", """
+                {
+                  "id": "%s",
+                  "userTaskId": "%s",
+                  "timestamp": "%s",
+                  "workflowModuleId": "%s",
+                  "bpmnProcessId": "taxi-ride",
+                  "title": { "en": "Do ride" },
+                  "taskDefinition": "do-ride",
+                  "uiUriPath": "/remoteEntry.js",
+                  "uiUriType": "WEBPACK_MF_REACT",
+                  %s
+                }
+                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, addressedTo));
+        assertThat(created.statusCode()).isEqualTo(200);
 
     }
 
