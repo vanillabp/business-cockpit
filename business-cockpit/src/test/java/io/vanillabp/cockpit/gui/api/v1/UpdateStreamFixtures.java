@@ -7,10 +7,8 @@ import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeReadConverter
 import io.vanillabp.cockpit.commons.mongo.converters.OffsetDateTimeWriteConverter;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
-import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
 import io.vanillabp.cockpit.workflowlist.api.WorkflowStreamAudience;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.util.Collection;
@@ -78,8 +76,8 @@ final class UpdateStreamFixtures {
                 properties,
                 taskScheduler,
                 List.of(
-                        new UserTaskStreamAudience(new UserTaskService(), mongoTemplate),
-                        new WorkflowStreamAudience(new WorkflowlistService(), mongoTemplate)));
+                        new UserTaskStreamAudience(mongoTemplate),
+                        new WorkflowStreamAudience(mongoTemplate)));
 
     }
 

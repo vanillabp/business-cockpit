@@ -8,7 +8,7 @@ public class GuiSseProperties {
 
     private int collectingInterval = 250;
 
-    private int filteringInterval = 1_000;
+    private int filteringInterval = 250;
 
     private int maxItemsPerUpdate = 100;
 
@@ -24,8 +24,8 @@ public class GuiSseProperties {
 
     /**
      * How often, in milliseconds, the changes collected since the last time are checked against
-     * the open streams. Each check asks the database once per stream and kind of entity, and only
-     * when something was collected.
+     * the open streams. Each check asks the database once per kind of entity, whatever the number
+     * of open streams, and only when something was collected.
      */
     public int getFilteringInterval() {
         return filteringInterval;

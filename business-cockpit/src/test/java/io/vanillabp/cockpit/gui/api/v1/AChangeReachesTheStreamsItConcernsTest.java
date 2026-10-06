@@ -46,8 +46,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * Which update stream a change reaches. The streams decide with the visibility of the lists and
- * ask a real MongoDB, so what is tested here is the query a stream asks, not a double of it.
+ * Which update stream a change reaches. The changed entities are read from a real MongoDB, and the
+ * streams decide with the visibility of the lists. That the decision in memory gives the same
+ * answer as the query of a list is what {@code TheVisibilityInMemoryAgreesWithTheQueryTest} shows.
  *
  * <p>The streams are driven by hand: a change is collected the way the event listener collects it,
  * the filtering tick is called, and what waits for delivery is read off the stream. Nothing is
@@ -213,12 +214,13 @@ class AChangeReachesTheStreamsItConcernsTest {
     }
 
     @Test
-    @DisplayName("The filter asks once per stream when something was collected, and never otherwise")
-    void theFilterAsksOnlyWhenSomethingWasCollected() {
+    @DisplayName("The filter asks once per tick, whatever the number of streams, and only after a change")
+    void theFilterAsksOncePerTickOnlyWhenSomethingWasCollected() {
 
         openedAndReloaded(MARTIN);
         openedAndReloaded(PETRA);
         openedAndReloaded(SUPPORT);
+        openedAndReloaded(MARTIN);
 
         final var findsBefore = FINDS_OF_USER_TASKS.get();
         streams.filterCollectedChanges();
@@ -227,15 +229,18 @@ class AChangeReachesTheStreamsItConcernsTest {
                 .isZero();
 
         final var task = newId();
+        final var anotherTask = newId();
         mongoTemplate.insert(userTask(task, null, List.of("sales")), userTasks());
+        mongoTemplate.insert(userTask(anotherTask, "martin", List.of()), userTasks());
         changed(UserTaskStreamAudience.KIND_OF_ENTITY, task);
         changed(UserTaskStreamAudience.KIND_OF_ENTITY, task);
+        changed(UserTaskStreamAudience.KIND_OF_ENTITY, anotherTask);
         final var workflowFindsBefore = FINDS_OF_WORKFLOWS.get();
         streams.filterCollectedChanges();
 
         assertThat(FINDS_OF_USER_TASKS.get() - findsBefore)
-                .as("one query per open stream, for two changes of the same task")
-                .isEqualTo(3);
+                .as("one query for four streams and three changes")
+                .isEqualTo(1);
         assertThat(FINDS_OF_WORKFLOWS.get() - workflowFindsBefore)
                 .as("no workflow changed")
                 .isZero();

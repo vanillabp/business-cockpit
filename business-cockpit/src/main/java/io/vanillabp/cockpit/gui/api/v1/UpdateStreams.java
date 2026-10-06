@@ -203,7 +203,7 @@ public class UpdateStreams {
      * <p>The placeholder spells the key the way the configuration spells it, see decision 30 in
      * the repository's DECISIONS.md.
      */
-    @Scheduled(fixedDelayString = "${business-cockpit.gui-sse.filtering-interval:1000}")
+    @Scheduled(fixedDelayString = "${business-cockpit.gui-sse.filtering-interval:250}")
     public void filterCollectedChanges() {
 
         final Map<String, List<GuiEvent>> changes;

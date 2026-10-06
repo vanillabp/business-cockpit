@@ -10,10 +10,10 @@ import java.util.Set;
  * with the visibility the lists of that kind use, so a stream gets a wake-up call only for what
  * its person could find in one of their lists.
  *
- * <p>It is asked once per filtering tick, for all streams at once. One way to answer is a query per
- * stream. Another one is a single query for all streams, with the decision made in memory. Both
- * fit behind this interface. The memory of what a browser already shows is not decided here, see
- * {@link UpdateStreams}.
+ * <p>It is asked once per filtering tick, for all streams at once. The cockpit's audiences read the
+ * changed entities with one query and decide for each stream in memory, so the database load does
+ * not grow with the number of open tabs. The memory of what a browser already shows is not decided
+ * here, see {@link UpdateStreams}.
  */
 public interface UpdateStreamAudience {
 

@@ -5,8 +5,8 @@ import io.vanillabp.cockpit.gui.api.v1.GuiEvent;
 import io.vanillabp.cockpit.gui.api.v1.UpdateEmitter;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreamAudience;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskEvent;
-import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility.TaskFacts;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,10 +19,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 /**
- * Decides which update streams learn about a changed user task. It asks MongoDB once per stream,
- * with the views of that stream and the ids collected in the tick, and reads nothing but the ids.
- * The criteria are the ones the task list is built from, so a stream gets exactly the tasks one of
- * its lists could show.
+ * Decides which update streams learn about a changed user task. Per filtering tick it reads the
+ * changed tasks once, with only the fields the visibility looks at, and then asks every stream's
+ * views in memory. So the database sees one query per tick, however many tabs are open.
  */
 public class UserTaskStreamAudience implements UpdateStreamAudience {
 
@@ -31,15 +30,11 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
     /** The type of the wake-up call which makes a task list load everything it shows again. */
     public static final String RELOAD = "RELOAD";
 
-    private final UserTaskService userTaskService;
-
     private final MongoTemplate mongoTemplate;
 
     public UserTaskStreamAudience(
-            final UserTaskService userTaskService,
             final MongoTemplate mongoTemplate) {
 
-        this.userTaskService = userTaskService;
         this.mongoTemplate = mongoTemplate;
 
     }
@@ -64,9 +59,23 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
             final Collection<UpdateEmitter> streams,
             final Set<String> changedIds) {
 
+        final var changedTasks = factsOf(changedIds);
         final var result = new HashMap<UpdateEmitter, Set<String>>();
+        if (changedTasks.isEmpty()) {
+            return result;
+        }
         streams.forEach(stream -> {
-            final var visible = visibleThroughAnyOf(stream.viewsOf(KIND_OF_ENTITY), changedIds);
+            final var views = stream
+                    .viewsOf(KIND_OF_ENTITY)
+                    .stream()
+                    .filter(UserTaskVisibility.class::isInstance)
+                    .map(UserTaskVisibility.class::cast)
+                    .toList();
+            final var visible = changedTasks
+                    .stream()
+                    .filter(task -> views.stream().anyMatch(view -> view.letsThrough(task)))
+                    .map(TaskFacts::id)
+                    .collect(Collectors.toSet());
             if (!visible.isEmpty()) {
                 result.put(stream, visible);
             }
@@ -76,37 +85,15 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
     }
 
     /**
-     * Of these ids, the ones at least one of the views lets through. Ended tasks count as well,
-     * because a list of ended tasks shows them.
+     * The changed tasks, with the fields the visibility reads. A task deleted in the meantime is
+     * missing, and only a stream whose browser shows it learns about it.
      */
-    public Set<String> visibleThroughAnyOf(
-            final Collection<Object> views,
+    public List<TaskFacts> factsOf(
             final Collection<String> ids) {
 
-        final var criteriaOfEachView = views
-                .stream()
-                .filter(UserTaskVisibility.class::isInstance)
-                .map(UserTaskVisibility.class::cast)
-                .map(visibility -> userTaskService.buildUserTasksCriteria(
-                        visibility,
-                        null,
-                        UserTaskService.RetrieveItemsMode.All,
-                        List.of(Criteria.where("id").in(ids))))
-                .toList();
-        if (criteriaOfEachView.isEmpty()) {
-            return Set.of();
-        }
-
-        final var query = new Query(criteriaOfEachView.size() == 1
-                ? criteriaOfEachView.getFirst()
-                : new Criteria().orOperator(criteriaOfEachView));
-        query.fields().include("_id");
-
-        return mongoTemplate
-                .find(query, UserTask.class)
-                .stream()
-                .map(UserTask::getId)
-                .collect(Collectors.toSet());
+        final var query = new Query(Criteria.where("id").in(ids));
+        TaskFacts.fieldNames().forEach(query.fields()::include);
+        return mongoTemplate.find(query, TaskFacts.class, UserTask.COLLECTION_NAME);
 
     }
 
