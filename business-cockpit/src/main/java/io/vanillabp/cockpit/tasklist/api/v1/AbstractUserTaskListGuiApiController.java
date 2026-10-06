@@ -8,6 +8,7 @@ import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
@@ -15,6 +16,7 @@ import io.vanillabp.cockpit.gui.api.v1.UserTasksUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskAlreadyCompletedException;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
+import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
@@ -67,6 +69,9 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 	@Autowired
 	protected UserTaskService userTaskService;
 
+	@Autowired
+	protected UpdateStreams updateStreams;
+
 	/**
 	 * The user tasks this view lets the given user reach, which is the only thing a subclass has to
 	 * decide. It is asked once per request and used for the list as well as for everything naming a
@@ -108,8 +113,9 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 		final var currentUser = userContext.getUserLoggedInDetails();
 
+		final var visibility = userTasksVisibleTo(currentUser);
 		final var userTasks = getUserTasks(
-				userTasksVisibleTo(currentUser),
+				visibility,
 				userTasksRequest.getPageNumber(),
 				userTasksRequest.getPageSize(),
 				timestamp,
@@ -119,6 +125,8 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 				userTasksRequest.getMode() != null
 						? mapper.toModel(userTasksRequest.getMode())
 						: UserTaskService.RetrieveItemsMode.All);
+
+		tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
 		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
 
@@ -157,8 +165,9 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 		final var currentUser = userContext.getUserLoggedInDetails();
 
+		final var visibility = userTasksVisibleTo(currentUser);
 		final var userTasks = getUserTasksUpdated(
-				userTasksVisibleTo(currentUser),
+				visibility,
 				userTasksUpdateRequest.getSize(),
 				userTasksUpdateRequest.getKnownUserTasksIds(),
 				timestamp,
@@ -169,7 +178,31 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 						? mapper.toModel(userTasksUpdateRequest.getMode())
 						: UserTaskService.RetrieveItemsMode.OpenTasks);
 
+		tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
+
 		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
+
+	}
+
+	/**
+	 * The update streams of this person remember which tasks their browser shows now. That is how a
+	 * stream learns to wake up a list for a task the person may no longer see, see
+	 * {@link UpdateStreams}.
+	 */
+	private void tellTheUpdateStreamsWhatIsShown(
+			final UserDetails currentUser,
+			final UserTaskVisibility visibility,
+			final Page<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks) {
+
+		updateStreams.listAnswered(
+				UserTaskStreamAudience.KIND_OF_ENTITY,
+				currentUser,
+				visibility,
+				userTasks
+						.getContent()
+						.stream()
+						.map(io.vanillabp.cockpit.tasklist.model.UserTask::getId)
+						.toList());
 
 	}
 

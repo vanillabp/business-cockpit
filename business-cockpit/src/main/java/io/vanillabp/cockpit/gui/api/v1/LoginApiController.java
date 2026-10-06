@@ -1,23 +1,20 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
+import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import java.time.Instant;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.AbstractOAuth2Token;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,16 +24,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping(path = "/gui/api/v1")
 public class LoginApiController implements LoginApi {
 
-    /**
-     * The stream stays open for as long as the browser keeps the tab open, which is far longer
-     * than the default asynchronous request timeout. Timing it out would close the stream under a
-     * client which is perfectly healthy.
-     */
-    private static final long NO_SSE_TIMEOUT = Long.MAX_VALUE;
-
-    @Autowired
-    private Logger logger;
-
     @Autowired
     private ApplicationProperties properties;
 
@@ -44,12 +31,10 @@ public class LoginApiController implements LoginApi {
     private UserContext userContext;
 
     @Autowired
-    private TaskScheduler taskScheduler;
+    private UpdateStreams updateStreams;
 
     @Autowired
     private PersonAndGroupApiMapper personAndGroupMapper;
-
-    private final Map<String, UpdateEmitter> updateEmitters = new ConcurrentHashMap<>();
 
     @RequestMapping(
             method = RequestMethod.GET,
@@ -57,143 +42,39 @@ public class LoginApiController implements LoginApi {
             produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter updatesSubscription() throws Exception {
 
-        final var id = UUID.randomUUID().toString();
         final var user = userContext.getUserLoggedInDetails();
-
-        final var sseEmitter = new SseEmitter(NO_SSE_TIMEOUT);
-        final var updateEmitter = UpdateEmitter
-                .withEmitter(sseEmitter)
-                .groups(user.getAuthorities())
-                .maxItemsPerUpdate(properties.getGuiSse().getMaxItemsPerUpdate())
-                .updateInterval(properties.getGuiSse().getUpdateInterval());
-
-        logger.debug("Register update emitter '{}': {}", id, user.getAuthorities());
-        updateEmitters.put(id, updateEmitter);
-
-        // whichever way the stream ends, the emitter must not be written to any more
-        sseEmitter.onCompletion(() -> updateEmitters.remove(id));
-        sseEmitter.onTimeout(() -> updateEmitters.remove(id));
-        sseEmitter.onError(error -> updateEmitters.remove(id));
-
-        // this ping makes the browser treat the text/event-stream request as closed. The lock
-        // fetchApi.ts created is then released, so the user interface does not hang after an
-        // error.
-        taskScheduler.schedule(
-                () -> {
-                    if (!pingUpdateEmitter(id, updateEmitter)) {
-                        logger.warn("Could not SSE send confirmation, client might stuck");
-                    }
-                }, Instant.now().plusMillis(300));
-
-        return sseEmitter;
-
-    }
-
-    /**
-     * Looks at every open stream and writes out what has been collected for it. A stream whose last
-     * flush is less than its update interval ago is skipped, see
-     * {@link UpdateEmitter#consumeEvents()}.
-     *
-     * <p>The placeholder spells the property key the way the configuration spells it. Spring's
-     * relaxed binding turns {@code business-cockpit.gui-sse.collecting-interval} into
-     * {@link GuiSseProperties#getCollectingInterval()}, but it does not help a placeholder in an
-     * annotation. That one is looked up by its exact name. A camel-case name found nothing, so the
-     * default of 250 milliseconds was the only value which ever counted.
-     */
-    @Scheduled(fixedDelayString = "${business-cockpit.gui-sse.collecting-interval:250}")
-    public void updateClients() {
-
-        final var toBeRemoved = new LinkedList<String>();
-        updateEmitters
-                .forEach((key, updateEmitter) -> updateEmitter
-                        .consumeEvents()
-                        .stream()
-                        .collect(Collectors.groupingBy(GuiEvent::getSource))
-                        .forEach((source, event) -> {
-                            try {
-                                if (!updateEmitter.send(source.toString(), event)) {
-                                    toBeRemoved.add(key);
-                                }
-                            } catch (Exception e) {
-                                logger.warn("Could not send update event", e);
-                            }
-                        }));
-        toBeRemoved.forEach(this::removeUpdateEmitter);
-
-    }
-
-    /**
-     * An update stream never ends by itself, so the clients have to be told when the application
-     * shuts down. This reacts to the context closing and not to the bean being destroyed. The web
-     * server refuses to shut down while requests are still in flight, and an open event stream is
-     * such a request.
-     */
-    @EventListener(classes = ContextClosedEvent.class)
-    public void closeUpdateStreams() {
-
-        updateEmitters
-                .keySet()
-                .stream()
-                .toList()
-                .forEach(this::removeUpdateEmitter);
-
-    }
-
-    @EventListener(classes = GuiEvent.class)
-    public void updateClients(
-            final GuiEvent guiEvent) {
-
-        updateEmitters
-                .values()
-                .stream()
-                // TODO: get affected users/groups (old doc, new doc) and also take mappings (user substitutes) into account
-                // .filter(emitter -> guiEvent.matchesTargetGroups(emitter.getGroups()))
-                .forEach(emitter -> emitter.collectEvent(guiEvent));
-
-    }
-
-    /**
-     * An idle server-sent-event channel is closed, so the client is pinged to keep it open.
-     */
-    @Scheduled(fixedDelayString = "PT27S")
-    public void cleanupUpdateEmitters() {
-
-        final var toBeDeleted = new LinkedList<String>();
-        updateEmitters
-                .forEach((key, updateEmitter) -> {
-                        if (!pingUpdateEmitter(key, updateEmitter)) {
-                            toBeDeleted.add(key);
-                        }
-                    });
-        toBeDeleted.forEach(this::removeUpdateEmitter);
-
-    }
-
-    private static final PingEvent pingEvent = new PingEvent();
-
-    private boolean pingUpdateEmitter(
-            final String id,
-            final UpdateEmitter updateEmitter) {
-
-        try {
-            return updateEmitter.send("ping", pingEvent);
-        } catch (Exception e) {
-            logger.warn(
-                    "Could not ping SSE emitter '{}'!",
-                    id,
-                    e);
-            return true; // the client may still be there
+        // a request signed in by basic authentication alone has no user yet. Its response carries
+        // the cookie, so the browser's next attempt to connect is the one which succeeds
+        if (user == null) {
+            throw new BcUnauthorizedException("No user signed in for the update stream");
         }
 
+        return updateStreams.subscribe(
+                user,
+                whenTheSignInExpires(SecurityContextHolder.getContext().getAuthentication()));
+
     }
 
-    private void removeUpdateEmitter(
-            final String id) {
+    /**
+     * When the token of this sign-in expires, if it says so. The cockpit's own token carries a
+     * {@link Jwt} as its details. A token of Spring Security's OAuth support carries it as its
+     * credentials or its principal. A sign-in which names no end gets a stream which lasts as long
+     * as the tab.
+     */
+    static Optional<Instant> whenTheSignInExpires(
+            final Authentication authentication) {
 
-        final var removed = updateEmitters.remove(id);
-        if (removed != null) {
-            removed.complete();
+        if (authentication == null) {
+            return Optional.empty();
         }
+        return Stream
+                .of(authentication.getDetails(), authentication.getCredentials(),
+                        authentication.getPrincipal())
+                .filter(AbstractOAuth2Token.class::isInstance)
+                .map(AbstractOAuth2Token.class::cast)
+                .map(AbstractOAuth2Token::getExpiresAt)
+                .filter(Objects::nonNull)
+                .findFirst();
 
     }
 

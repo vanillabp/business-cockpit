@@ -1,47 +1,55 @@
 package io.vanillabp.cockpit.gui.api.v1;
 
-import java.util.Collection;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.context.ApplicationEvent;
 
+/**
+ * A wake-up call for the lists in the browser. It says which kind of entity changed, its id and
+ * what happened to it, and nothing about who it concerns. Who it concerns is decided per update
+ * stream, by the same visibility the lists use, see {@link UpdateStreams}.
+ */
 public class GuiEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
-    
-    private Object event;
-    
-    private Collection<String> targetGroups;
 
+    private final String entityId;
+
+    private final Object event;
+
+    /**
+     * @param kindOfEntity The kind of entity which changed. It is also the name of the event in the
+     *        stream, so a list in the browser listens to the kind it shows
+     * @param entityId The id of the entity which changed, or {@code null} for an event which is
+     *        about no single entity and therefore reaches every stream
+     * @param event What the browser gets to read
+     */
     public GuiEvent(
-            final Object source,
-            final Collection<String> targetGroups,
+            final String kindOfEntity,
+            final String entityId,
             final Object event) {
-        
-        super(source);
+
+        super(kindOfEntity);
+        this.entityId = entityId;
         this.event = event;
-        this.targetGroups = targetGroups;
-        
+
     }
-    
+
     public Object getEvent() {
         return event;
     }
 
-    public Collection<String> getTargetGroups() {
-        return targetGroups;
+    /**
+     * The id the stream decides on. It is not written to the browser, which reads the id from
+     * {@link #getEvent()}.
+     */
+    @JsonIgnore
+    public String getEntityId() {
+        return entityId;
     }
-    
-    public boolean matchesTargetGroups(
-            final Collection<String> groups) {
-        
-        if (targetGroups == null) {
-            return true;
-        }
-        
-        return targetGroups
-                .stream()
-                .flatMap(targetGroup -> groups.stream().map(targetGroups::equals))
-                .anyMatch(hasMatchingGroup -> hasMatchingGroup);
-        
+
+    @JsonIgnore
+    public String getKindOfEntity() {
+        return (String) getSource();
     }
 
 }

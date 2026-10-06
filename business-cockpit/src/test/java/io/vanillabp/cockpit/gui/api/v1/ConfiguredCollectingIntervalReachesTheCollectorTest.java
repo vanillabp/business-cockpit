@@ -3,15 +3,13 @@ package io.vanillabp.cockpit.gui.api.v1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.config.properties.ApplicationProperties;
-import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -32,8 +30,9 @@ import org.springframework.scheduling.config.ScheduledTaskHolder;
  *
  * <p>What is asserted is the task the scheduler registered, not a number of ticks within a second,
  * so the test says the same thing on a loaded machine as on an idle one. The context holds the
- * controller and a double for everything it is wired to. Its scheduler is a double as well, which
- * is why no task ever runs here.
+ * update streams and the properties. Their scheduler is a double, and so no task ever runs here.
+ * The filtering interval is checked the same way, because its placeholder could go wrong in the
+ * same way.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ConfiguredCollectingIntervalReachesTheCollectorTest {
@@ -73,16 +72,47 @@ class ConfiguredCollectingIntervalReachesTheCollectorTest {
 
     }
 
-    /**
-     * The interval of the one scheduled task which runs {@code LoginApiController.updateClients}.
-     * The controller schedules a second task, the ping, which is why the task is looked up by its
-     * method and not by being the only one.
-     */
+    @Test
+    @DisplayName("A configured filtering interval is the interval the filter is scheduled at")
+    void configuredFilteringIntervalIsUsed() {
+
+        contextRunner
+                .withPropertyValues(
+                        "business-cockpit.gui-sse.filtering-interval=" + A_CONFIGURED_INTERVAL)
+                .run(context -> assertThat(intervalOf(context, "filterCollectedChanges"))
+                        .isEqualTo(Duration.ofMillis(A_CONFIGURED_INTERVAL)));
+
+    }
+
+    @Test
+    @DisplayName("Without configuration the filter runs at the default of GuiSseProperties")
+    void defaultFilteringIntervalOfThePropertiesIsUsed() {
+
+        contextRunner
+                .run(context -> assertThat(intervalOf(context, "filterCollectedChanges"))
+                        .isEqualTo(Duration.ofMillis(
+                                new GuiSseProperties().getFilteringInterval())));
+
+    }
+
     private Duration collectingIntervalOf(
             final ApplicationContext context) throws Exception {
 
-        final var collector = LoginApiController.class.getName()
-                + "." + LoginApiController.class.getMethod("updateClients").getName();
+        return intervalOf(context, "deliverMatchedChanges");
+
+    }
+
+    /**
+     * The interval of the one scheduled task which runs this method of {@code UpdateStreams}. The
+     * class schedules three tasks, the filter, the delivery and the ping, which is why the task is
+     * looked up by its method and not by being the only one.
+     */
+    private Duration intervalOf(
+            final ApplicationContext context,
+            final String method) throws Exception {
+
+        final var collector = UpdateStreams.class.getName()
+                + "." + UpdateStreams.class.getMethod(method).getName();
 
         return context
                 .getBeansOfType(ScheduledTaskHolder.class)
@@ -101,42 +131,23 @@ class ConfiguredCollectingIntervalReachesTheCollectorTest {
     }
 
     /**
-     * What the application does to make {@code @Scheduled} count, reduced to the one controller
-     * under test. Everything the controller is wired to is a double; none of it is reached,
-     * because the scheduler never runs a task.
+     * What the application does to make {@code @Scheduled} count, reduced to the update streams.
+     * The scheduler they are handed is a double, and the one Spring runs the annotations with
+     * never reaches a stream, because no stream is open.
      */
     @Configuration(proxyBeanMethods = false)
     @EnableScheduling
     static class SchedulingAsTheApplicationHasIt {
 
         @Bean
-        LoginApiController loginApiController() {
-            return new LoginApiController();
-        }
-
-        @Bean
-        Logger logger() {
-            return mock(Logger.class);
+        UpdateStreams updateStreams(
+                final ApplicationProperties properties) {
+            return new UpdateStreams(properties, mock(TaskScheduler.class), List.of());
         }
 
         @Bean
         ApplicationProperties applicationProperties() {
             return new ApplicationProperties();
-        }
-
-        @Bean
-        UserContext userContext() {
-            return mock(UserContext.class);
-        }
-
-        @Bean
-        TaskScheduler taskScheduler() {
-            return mock(TaskScheduler.class);
-        }
-
-        @Bean
-        PersonAndGroupApiMapper personAndGroupApiMapper() {
-            return mock(PersonAndGroupApiMapper.class);
         }
 
     }

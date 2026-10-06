@@ -20,8 +20,8 @@ public class GuiNotificationService {
 
         applicationEventPublisher.publishEvent(
                 new GuiEvent(
-                        notification.getSource(),
-                        notification.getTargetGroups(),
+                        notification.getSource().toString(),
+                        notification.getWorkflowId(),
                         new WorkflowEvent()
                                 .name("Workflow")
                                 .id(notification.getWorkflowId())

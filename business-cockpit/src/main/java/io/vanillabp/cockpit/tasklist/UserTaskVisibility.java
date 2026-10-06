@@ -1,8 +1,12 @@
 package io.vanillabp.cockpit.tasklist;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Which user tasks one view of the cockpit lets a user reach. The list of that view is built from
@@ -39,6 +43,13 @@ import java.util.List;
  *
  * <p>An application built on the cockpit picks one of the visibilities below or writes its own, and
  * the controller carrying it needs nothing else.
+ *
+ * <p>The rule exists twice. {@code UserTaskService.buildUserTasksCriteria} writes it as a MongoDB
+ * query, for the lists. {@link #letsThrough(TaskFacts)} writes it in Java, for the update streams,
+ * which decide for every open browser tab at once and would otherwise ask the database once per
+ * tab. {@code TheVisibilityInMemoryAgreesWithTheQueryTest} holds the two together: it asks both for
+ * many tasks and views and fails on the first difference, and it fails as well when the query
+ * reads a field {@link TaskFacts} does not carry.
  */
 public record UserTaskVisibility(
         boolean includeDanglingTasks,
@@ -113,6 +124,121 @@ public record UserTaskVisibility(
     public static UserTaskVisibility everyUserTask() {
 
         return new UserTaskVisibility(false, false, null, null, null, null, null);
+
+    }
+
+    /**
+     * Whether this visibility lets the task through. It is the rule of
+     * {@code UserTaskService.buildUserTasksCriteria}, for a list of every task, ended or not, and
+     * it has to give the same answer.
+     */
+    public boolean letsThrough(
+            final TaskFacts task) {
+
+        final var reasonsAnExclusionCancels = new java.util.ArrayList<Boolean>();
+        final var reasonsNoExclusionCancels = new java.util.ArrayList<Boolean>();
+        final var exclusions = new java.util.ArrayList<Boolean>();
+        final var restrictionsOnTheAssignee = new java.util.ArrayList<Boolean>();
+
+        if (isGiven(assignees)) {
+            final var assigneeMatches = (task.assignee() != null)
+                    && assignees.contains(task.assignee().getId());
+            if (notInAssignees) {
+                restrictionsOnTheAssignee.add(!assigneeMatches);
+            } else {
+                reasonsAnExclusionCancels.add(assigneeMatches);
+            }
+        } else if (notInAssignees) {
+            restrictionsOnTheAssignee.add(task.assignee() == null);
+        }
+        if (isGiven(candidateUsers)) {
+            reasonsAnExclusionCancels.add(namesOneOf(task.candidateUsers(), candidateUsers));
+        }
+        if (isGiven(candidateGroups)) {
+            reasonsAnExclusionCancels.add(
+                    idsOf(task.candidateGroups(), Group::getId).anyMatch(candidateGroups::contains));
+        }
+        if (isGiven(admittedUsers)) {
+            reasonsNoExclusionCancels.add(namesOneOf(task.admittedUsers(), admittedUsers));
+        }
+        if (isGiven(excludedCandidates)) {
+            exclusions.add(!namesOneOf(task.excludedCandidateUsers(), excludedCandidates));
+        }
+
+        if (restrictionsOnTheAssignee.isEmpty()
+                && reasonsAnExclusionCancels.isEmpty()
+                && reasonsNoExclusionCancels.isEmpty()
+                && exclusions.isEmpty()) {
+            return true;
+        }
+        if (includeDanglingTasks) {
+            reasonsAnExclusionCancels.add(Boolean.TRUE.equals(task.dangling()));
+        }
+
+        final var reasonsToBeVisible = new java.util.ArrayList<Boolean>();
+        if (!reasonsAnExclusionCancels.isEmpty() || !exclusions.isEmpty()) {
+            final var notCancelled = exclusions.stream().allMatch(Boolean::booleanValue);
+            final var aReason = reasonsAnExclusionCancels.isEmpty()
+                    || reasonsAnExclusionCancels.stream().anyMatch(Boolean::booleanValue);
+            reasonsToBeVisible.add(aReason && notCancelled);
+        }
+        reasonsToBeVisible.addAll(reasonsNoExclusionCancels);
+
+        final var visible = reasonsToBeVisible.isEmpty()
+                || reasonsToBeVisible.stream().anyMatch(Boolean::booleanValue);
+        return visible && restrictionsOnTheAssignee.stream().allMatch(Boolean::booleanValue);
+
+    }
+
+    private static boolean isGiven(
+            final Collection<String> values) {
+
+        return (values != null) && !values.isEmpty();
+
+    }
+
+    private static boolean namesOneOf(
+            final List<Person> people,
+            final Collection<String> ids) {
+
+        return idsOf(people, Person::getId).anyMatch(ids::contains);
+
+    }
+
+    private static <T> Stream<String> idsOf(
+            final List<T> entries,
+            final java.util.function.Function<T, String> id) {
+
+        return entries == null
+                ? Stream.empty()
+                : entries.stream().filter(Objects::nonNull).map(id);
+
+    }
+
+    /**
+     * What {@link #letsThrough(TaskFacts)} reads of a task, and nothing else. The update streams
+     * read exactly these fields of a changed task from the database. {@code dangling} is the value
+     * stored in the document, which is what the query compares, and not the one the task would
+     * compute from its fields now.
+     */
+    public record TaskFacts(
+            String id,
+            Person assignee,
+            List<Person> candidateUsers,
+            List<Group> candidateGroups,
+            List<Person> excludedCandidateUsers,
+            List<Person> admittedUsers,
+            Boolean dangling) {
+
+        /** The names of the fields, which are the fields the update streams read. */
+        public static List<String> fieldNames() {
+
+            return Stream
+                    .of(TaskFacts.class.getRecordComponents())
+                    .map(java.lang.reflect.RecordComponent::getName)
+                    .toList();
+
+        }
 
     }
 
