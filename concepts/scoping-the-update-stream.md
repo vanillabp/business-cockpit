@@ -430,3 +430,127 @@ entscheidet die Anwendung:
 
 Eine Lücke bleibt: die bis zu 15 Sekunden zwischen Ende und neuem Strom. Was in dieser Zeit
 geschieht, holt das Neuladen nach, das jeder neue Strom zuerst schickt.
+
+## Messung Variante a)
+
+Gemessen am 2026-10-06 im DevContainer (16 GB, 12 Kerne, Docker auf demselben Rechner) mit
+`UpdateStreamFilterMeasurement` (`business-cockpit/src/test/java/io/vanillabp/cockpit/gui/api/v1`).
+Die Messung läuft nicht im normalen Bau. Aufruf:
+
+```bash
+mvn -Pvanillabp-snapshots,java-install -pl business-cockpit -am test \
+    -Dsurefire.failIfNoSpecifiedTests=false -Dtest=UpdateStreamFilterMeasurement \
+    -Dmeasure.update-streams=true -Djacoco.skip=true
+```
+
+Das Ergebnis steht danach in `business-cockpit/target/update-stream-measurement.md`.
+Bestand, Raten und Takte lassen sich per Systemeigenschaft ändern (`measure.datasets`,
+`measure.open-tasks`, `measure.rates`, `measure.intervals`, `measure.seconds-per-run`).
+
+### Aufbau
+
+- MongoDB 8.2 (`ContainerImages.MONGODB`) mit 4 GB Speichergrenze, mit den Indizes, die die
+  Changesets des Cockpits an der Sammlung `usertask` anlegen.
+- 300 Personen in je zwei bis vier von 30 Gruppen, 450 Ströme (jede zweite Person hat zwei
+  Tabs). Jede Liste hat beim Start 90 offene Tasks geladen, und das Gedächtnis kennt sie.
+- Tasks mit ein oder zwei Kandidatengruppen, ein Drittel zugewiesen, rund 1,5 KB Details. 4.000
+  davon offen, der Rest beendet: einmal 20.000 Tasks, einmal 500.000 Tasks. 500.000 entsprechen
+  gut drei Monaten beim Kunden mit 5.000 Tasks am Tag, nicht einem Jahr (1,8 Mio.). Mehr hat
+  der Lauf nicht gebraucht, siehe unten.
+- Änderungen als Poisson-Prozess an zufälligen offenen Tasks, mit 0,3/s (Schnitt beim Kunden),
+  3/s (Spitze, etwa das Zehnfache) und 5, 20, 50/s als Belastungsprobe.
+- Der Filtertakt läuft mit `fixedDelay` wie im Cockpit. Jede Zeile lief 30 Sekunden, die mit
+  0,3/s 120 Sekunden.
+
+Gemessen sind die Abfragen an MongoDB (Zähler am Treiber), die Dauer eines Takts mit
+gesammelten Änderungen, die CPU-Zeit des Test-Prozesses und die CPU-Zeit des MongoDB-Containers
+(aus dessen cgroup), je als Anteil eines Kerns.
+
+### Gedächtnis
+
+| Kennungen je Strom | Ströme | Heap     | Bytes je Kennung |
+|--------------------|--------|----------|------------------|
+| 500                | 450    | 27,2 MB  | 127              |
+| 2.000              | 450    | 104,6 MB | 122              |
+
+Kennungen sind UUIDs mit 36 Zeichen. Die Schätzung im Review (110 MB bei 2.000) trifft.
+
+### Filtertakt
+
+| Tasks   | Rate/s | Takt    | Takte mit Änderung | Abfragen/s | Takt p50 | p95    | max    | Server-CPU | MongoDB-CPU |
+|---------|--------|---------|--------------------|------------|----------|--------|--------|------------|-------------|
+| 20.000  | 0,3    | 250 ms  | 6 %                | 101        | 109 ms   | 200 ms | 340 ms | 6 %        | 2 %         |
+| 20.000  | 3      | 250 ms  | 49 %               | 735        | 92 ms    | 105 ms | 107 ms | 13 %       | 8 %         |
+| 20.000  | 5      | 250 ms  | 78 %               | 1.080      | 91 ms    | 123 ms | 217 ms | 15 %       | 11 %        |
+| 20.000  | 20     | 250 ms  | 100 %              | 1.305      | 91 ms    | 107 ms | 115 ms | 18 %       | 13 %        |
+| 20.000  | 50     | 250 ms  | 100 %              | 1.245      | 108 ms   | 125 ms | 176 ms | 20 %       | 16 %        |
+| 20.000  | 0,3    | 1000 ms | 22 %               | 97         | 87 ms    | 104 ms | 104 ms | 2 %        | 2 %         |
+| 20.000  | 3      | 1000 ms | 93 %               | 375        | 99 ms    | 114 ms | 168 ms | 7 %        | 5 %         |
+| 20.000  | 5      | 1000 ms | 100 %              | 405        | 105 ms   | 114 ms | 115 ms | 7 %        | 5 %         |
+| 20.000  | 20     | 1000 ms | 100 %              | 404        | 115 ms   | 127 ms | 131 ms | 7 %        | 6 %         |
+| 20.000  | 50     | 1000 ms | 100 %              | 390        | 151 ms   | 168 ms | 185 ms | 8 %        | 9 %         |
+| 500.000 | 0,3    | 250 ms  | 6 %                | 101        | 94 ms    | 108 ms | 110 ms | 2 %        | 2 %         |
+| 500.000 | 3      | 250 ms  | 50 %               | 765        | 85 ms    | 102 ms | 102 ms | 10 %       | 7 %         |
+| 500.000 | 5      | 250 ms  | 78 %               | 1.080      | 95 ms    | 107 ms | 111 ms | 15 %       | 11 %        |
+| 500.000 | 20     | 250 ms  | 100 %              | 1.288      | 98 ms    | 111 ms | 114 ms | 18 %       | 14 %        |
+| 500.000 | 50     | 250 ms  | 100 %              | 1.273      | 102 ms   | 116 ms | 121 ms | 18 %       | 16 %        |
+| 500.000 | 0,3    | 1000 ms | 22 %               | 97         | 90 ms    | 105 ms | 106 ms | 2 %        | 2 %         |
+| 500.000 | 3      | 1000 ms | 93 %               | 375        | 102 ms   | 122 ms | 235 ms | 6 %        | 5 %         |
+| 500.000 | 5      | 1000 ms | 100 %              | 405        | 100 ms   | 112 ms | 115 ms | 7 %        | 5 %         |
+| 500.000 | 20     | 1000 ms | 100 %              | 390        | 123 ms   | 136 ms | 138 ms | 7 %        | 7 %         |
+| 500.000 | 50     | 1000 ms | 100 %              | 375        | 161 ms   | 187 ms | 202 ms | 7 %        | 9 %         |
+
+Was die Zahlen sagen:
+
+- Ein Takt mit Änderung kostet 450 Abfragen und rund 100 ms, also gut 0,2 ms je Abfrage. Die
+  Abfragen laufen nacheinander auf einem Faden.
+- Die Größe des Bestands spielt keine Rolle. Die Abfrage beginnt mit `_id in (…)`, MongoDB nimmt
+  den Index auf `_id` und prüft die Sichtbarkeit nur an den wenigen gefundenen Dokumenten. 20.000
+  und 500.000 Tasks liefern dieselben Zahlen. Das gilt deshalb auch für 1,8 Mio.
+- Die Last hängt an der Zahl der Takte mit Änderung, nicht an der Zahl der Änderungen. Ab etwa
+  3/s hat beim 1-s-Takt fast jeder Takt etwas, und dann bleibt es bei rund 400 Abfragen/s, ob 5
+  oder 50 Änderungen je Sekunde kommen. Beim 250-ms-Takt sind es bis zu 1.300 Abfragen/s.
+- Beim Schnitt des Kunden (0,3/s) hat nur jeder fünfte 1-s-Takt etwas, das sind rund 100
+  Abfragen/s und 2 % eines Kerns auf beiden Seiten. In der Spitze (3/s) sind es 375 Abfragen/s,
+  rund 6 % eines Kerns für das Cockpit und 5 % für MongoDB.
+- Der 250-ms-Takt wird nicht eingehalten. Mit `fixedDelay` und 100 ms je Takt kommt er alle
+  rund 340 ms. Er kostet das Drei- bis Vierfache des 1-s-Takts und bringt eine Antwort, die
+  höchstens 0,7 Sekunden früher kommt.
+- Die Dauer eines Takts wächst linear mit den Strömen. Bei 450 Strömen sind das 100 ms. Ein
+  Cockpit mit dreimal so vielen Tabs käme in die Nähe eines 1-s-Takts.
+
+### Einschränkungen
+
+- Cockpit und MongoDB liefen auf demselben Rechner, ohne Netz dazwischen. Im Betrieb kommt je
+  Abfrage die Laufzeit über das Netz dazu. Bei 0,5 ms je Weg wären das 450 × 1 ms, also ein
+  Takt von rund einer halben Sekunde statt 100 ms, und der Faden des Takts wäre den größten Teil
+  der Sekunde belegt. Die Last auf MongoDB bliebe gleich.
+- Die Server-CPU ist die CPU-Zeit des ganzen Test-Prozesses, also auch des Erzeugers der
+  Änderungen und des Abholens der Ereignisse. Sie liegt damit eher zu hoch.
+- Keine Browser, kein Schreiben in echte Ströme, keine Last durch das Laden von Listen und durch
+  die Schreibzugriffe des Cockpits neben der Messung.
+- Die Verteilung auf Gruppen ist ausgedacht: jede Task hat ein oder zwei von 30 Gruppen, jede
+  Person zwei bis vier. Ob eine Abfrage etwas findet, ändert an ihrer Dauer kaum etwas, weil der
+  Index auf `_id` sie trägt.
+- Eine einzige Messung je Zeile, ohne Wiederholung. Ausreißer wie die 340 ms im ersten Lauf
+  (Aufwärmen der JVM) sind nicht herausgerechnet.
+
+### Schätzung für Variante b)
+
+Variante b) ist nicht gebaut. Die Zahlen hier sind geschätzt und nicht gemessen.
+
+Je Takt mit Änderung gibt es eine Abfrage statt 450: `_id in (…)` mit den Feldern, von denen die
+Sichtbarkeit abhängt. Die Messung hat diese Abfrage nach jeder Zeile 20-mal gestellt, mit so
+vielen Kennungen, wie ein Takt der Zeile sammelt. Sie dauerte im Mittel 0,1 bis 0,4 ms, höchstens
+1,8 ms. Danach entscheidet das Cockpit im Speicher, für 450 Ströme und eine Handvoll Dokumente, im
+Bereich von Mikrosekunden je Paar.
+
+| Rate/s | Takt    | Abfragen/s a) | Abfragen/s b), geschätzt | Takt a) p50 | Takt b), geschätzt |
+|--------|---------|---------------|--------------------------|-------------|--------------------|
+| 0,3    | 1000 ms | 97            | 0,2                      | 87 ms       | unter 5 ms         |
+| 3      | 1000 ms | 375           | 0,9                      | 99 ms       | unter 5 ms         |
+| 50     | 1000 ms | 390           | 1                        | 151 ms      | unter 10 ms        |
+| 50     | 250 ms  | 1.245         | 3                        | 108 ms      | unter 10 ms        |
+
+Die Last auf MongoDB fällt bei b) um den Faktor der Ströme, also 450, und hängt nicht mehr an
+der Zahl der Benutzer. Was bleibt, ist die zweite Fassung der Regel in Java, siehe oben.
