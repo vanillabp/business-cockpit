@@ -90,12 +90,6 @@ Die Bedingungen einer Abfrage werden mit UND verknüpft, aber zwei Bedingungen a
 nimmt die Abfrage nicht an. Setze beim Filtern also immer den alten Eintrag für diesen Pfad zurück,
 bevor du den neuen hinzufügst. So macht es das mitgelieferte UI.
 
-## `query` ist tot
-
-`UserTasksRequest` und `UserTasksUpdateRequest` haben ein Feld `query`. Der Server liest es nicht.
-Benutze `searchQueries`, auch für die Volltextsuche: eine `SearchQuery` ohne `path` ist die
-Volltextsuche.
-
 ## `businessIds` verschwindet bei der Aktualisierung
 
 `businessIds` wirkt nur auf `POST /workflow`. `WorkflowsUpdateRequest` hat das Feld nicht, und die

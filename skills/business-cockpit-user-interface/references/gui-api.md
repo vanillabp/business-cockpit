@@ -184,13 +184,9 @@ demselben `path` sind keine zwei Bedingungen auf einem Feld, sondern ein Fehlerf
 mitgelieferte UI hält sich daran, indem es beim Setzen eines Filters den alten Eintrag für diesen
 Pfad vorher entfernt. Mach es genauso.
 
-Zwei Felder, die danach aussehen und es nicht sind:
-
-`query` von `UserTasksRequest` liest der Server nicht. Es steht in der Beschreibung und in keinem
-Code. Benutze `searchQueries`.
-
-`businessIds` von `WorkflowsRequest` ist ein genauer Vergleich auf dem Feld `businessId` und kein
-Suchmuster. Es wirkt nur auf `POST /workflow` und nicht auf die Aktualisierung mit `PUT`, siehe
+Ein Feld, das danach aussieht und es nicht ist: `businessIds` von `WorkflowsRequest` ist ein
+genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. Es wirkt nur auf `POST /workflow`
+und nicht auf die Aktualisierung mit `PUT`, siehe
 [rough-edges.md](rough-edges.md#businessids-verschwindet-bei-der-aktualisierung).
 
 ## Vorschläge für ein Suchfeld

@@ -1060,8 +1060,6 @@ components:
           format: int32
           minimum: 1
           description: The number of user tasks per page. 'POST /usertask' answers 400 without it. 'POST /workflow/{workflowId}/usertasks' takes 100 if it is missing.
-        query:
-          type: string
         searchQueries:
           type: array
           items:
@@ -1100,8 +1098,6 @@ components:
           type: integer
           format: int32
           minimum: 1
-        query:
-          type: string
         searchQueries:
           type: array
           items:
