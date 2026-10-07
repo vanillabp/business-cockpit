@@ -35,12 +35,51 @@ public interface UserTaskDetails {
 
     Map<String, String> getTaskDefinitionTitle();
     
+    /**
+     * The user the task is assigned to.
+     *
+     * <p>The cockpit reads this when it stores the task for the first time. A later report does
+     * not change it, so set it to what is true when the task begins. To hand the work to other
+     * people, end the task, for instance with a boundary event, and enter it again.
+     * Taking over the task in the cockpit still changes the assignee.
+     *
+     * @return The user id of the assignee, or <code>null</code>
+     */
     String getAssignee();
-    
+
+    /**
+     * The users who may work on the task.
+     *
+     * <p>The cockpit reads this when it stores the task for the first time. A later report does
+     * not change it, so set it to what is true when the task begins. To hand the work to other
+     * people, end the task, for instance with a boundary event, and enter it again.
+     * Assigning the task to somebody in the cockpit still adds a candidate user.
+     *
+     * @return The user ids of the candidates
+     */
     List<String> getCandidateUsers();
-    
+
+    /**
+     * The groups whose members may work on the task.
+     *
+     * <p>The cockpit reads this when it stores the task for the first time. A later report does
+     * not change it, so set it to what is true when the task begins. To hand the work to other
+     * people, end the task, for instance with a boundary event, and enter it again.
+     *
+     * @return The group ids of the candidates
+     */
     List<String> getCandidateGroups();
 
+    /**
+     * Users who must not work on the task, although they are candidates, for instance to make sure
+     * four eyes look at a case.
+     *
+     * <p>The cockpit reads this when it stores the task for the first time. A later report does
+     * not change it, so set it to what is true when the task begins. To hand the work to other
+     * people, end the task, for instance with a boundary event, and enter it again.
+     *
+     * @return The user ids left out
+     */
     List<String> getExcludedCandidateUsers();
 
     /**
@@ -52,6 +91,9 @@ public interface UserTaskDetails {
      * <p>This list is the stronger word of the two: a user named here sees the task even when
      * {@link #getExcludedCandidateUsers()} names them as well. What such a reader gets to see is
      * then up to the workflow module, because the cockpit only opens the module's own form.
+     *
+     * <p>Unlike the assignee and the candidates, this list is read from every report. A later
+     * report may admit other users.
      *
      * @return The user ids admitted to this task
      */

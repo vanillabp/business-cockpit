@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
@@ -129,7 +130,10 @@ class EndedEventDetailsTest {
     @DisplayName("A completed task keeps who it belonged to")
     void aCompletionKeepsTheAssigneeAndCandidates() {
 
-        final var result = userTaskMapper.toEndedTask(completedTask(), storedTask());
+        // the service lays an end onto a stored task this way
+        final var result = storedTask();
+        WhoSeesAUserTask.keepWhoSeesTheStoredTask(
+                result, "end", task -> userTaskMapper.toEndedTask(completedTask(), task));
 
         assertEquals("anna", result.getAssignee().getId());
         assertEquals(

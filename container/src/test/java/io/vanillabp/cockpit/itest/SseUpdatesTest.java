@@ -191,12 +191,12 @@ class SseUpdatesTest extends ItestBase {
     }
 
     /**
-     * The workflow module gives martin's task to petra. Martin's browser shows the task, because
-     * his list was loaded with it, so his stream wakes his list, and the list loads without the
-     * task. Petra's stream wakes her list, which now loads with it. Neither of them reloads the page.
+     * The workflow module reports martin's task again and names petra as its assignee. The report
+     * which created the task decides who sees it, so the task stays martin's. His stream tells his
+     * list about the change, and petra's stream hears nothing of it.
      */
     @Test
-    void aTaskGivenToSomebodyElseWakesBothLists() {
+    void aChangeNamingSomebodyElseKeepsTheTaskWhereItWas() {
 
         final var moduleId = unique("sse-reassign-module");
         registerWorkflowModule(moduleId, "http://localhost:65000");
@@ -238,20 +238,19 @@ class SseUpdatesTest extends ItestBase {
                 """.formatted(unique("event"), userTaskId, isoNow(), moduleId, USER_PETRA, token));
         assertThat(updated.statusCode()).isEqualTo(200);
 
-        await().untilAsserted(() -> {
-            assertThat(eventsAbout(userTaskId, martin))
-                    .as("martin is told to drop the task; stream so far: %s", martin)
-                    .isEqualTo(2);
-            assertThat(eventsAbout(userTaskId, petra))
-                    .as("petra is told to show the task; stream so far: %s", petra)
-                    .isEqualTo(1);
-        });
+        await().untilAsserted(() -> assertThat(eventsAbout(userTaskId, martin))
+                .as("martin is told about the change; stream so far: %s", martin)
+                .isEqualTo(2));
+        // both streams go through the same ticks, so a word to petra would have arrived by now
+        assertThat(eventsAbout(userTaskId, petra))
+                .as("petra's stream so far: %s", petra)
+                .isZero();
         assertThat(userTaskList(martinsCookie, token, "OpenTasks")
                 .read("$.userTasks[*].id", List.class))
-                .isEmpty();
+                .containsExactly(userTaskId);
         assertThat(userTaskList(petrasCookie, token, "OpenTasks")
                 .read("$.userTasks[*].id", List.class))
-                .containsExactly(userTaskId);
+                .isEmpty();
 
     }
 

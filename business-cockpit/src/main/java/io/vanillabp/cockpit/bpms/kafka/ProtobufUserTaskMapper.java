@@ -88,19 +88,10 @@ public abstract class ProtobufUserTaskMapper {
     /**
      * Maps an update event onto the stored user task.
      * <p>
-     * The assignee is kept if the event does not report one. A task is taken over in the cockpit,
-     * so the assignment belongs to the cockpit and no workflow system knows about it. Without
-     * {@link NullValuePropertyMappingStrategy#IGNORE}, an event which leaves the assignee out would
-     * drop the takeover without a word, and with it the recipient of the completion notification.
-     * <p>
-     * The candidate users are kept for the same reason. Assigning a task in the cockpit adds a
-     * personal candidate which the workflow system does not know. A repeated protobuf field says
-     * nothing about presence, so an empty list cannot be told apart from a field which was left
-     * out. Events do report the candidates the engine knows, and mapping them would drop the
-     * candidate the cockpit added. This has a price we accept: candidate users are taken from the
-     * create event only, so later changes by the process do not reach the cockpit. Candidate
-     * groups, excluded candidates and admitted users stay mapped, because the cockpit never writes
-     * any of them.
+     * Who sees the task is mapped like everything else. For a task the cockpit holds already,
+     * {@link io.vanillabp.cockpit.bpms.WhoSeesAUserTask} puts the stored assignee and candidates
+     * back, because only the report which created the task says who sees it. The admitted users
+     * are the exception: every report may set them.
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
@@ -122,9 +113,8 @@ public abstract class ProtobufUserTaskMapper {
     @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "targetGroups", ignore = true)
     @Mapping(target = "followUpDate", ignore = true)
-    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING,
-            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "candidateUsers", ignore = true)
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
@@ -137,12 +127,10 @@ public abstract class ProtobufUserTaskMapper {
     /**
      * Maps a completed or cancelled event onto the stored user task.
      * <p>
-     * The assignee and the candidates are left alone. The event of an ended task does not carry
-     * them, because the Camunda adapters do not fill them. Mapping the missing values would wipe
-     * just what the notification poller needs to tell the former assignee that somebody else
-     * completed the task or that the process cancelled it. A repeated protobuf field says nothing
-     * about presence, so an empty list cannot be told apart from a field which was left out. That
-     * is why these fields are ignored here instead of being mapped with a null-value strategy.
+     * Who sees the task is mapped, so that an end which creates the task says who sees it. For a
+     * task the cockpit holds already, {@link io.vanillabp.cockpit.bpms.WhoSeesAUserTask} keeps the
+     * stored assignee and candidates. The notification poller needs the former assignee to tell
+     * them that somebody else completed the task or that the process cancelled it.
      */
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
     // decision 19 in the repository's DECISIONS.md. A field the sender left out is declared
@@ -182,11 +170,15 @@ public abstract class ProtobufUserTaskMapper {
     // the follow-up date arrives with the creation and belongs to the cockpit afterwards. A user
     // sets it there and no workflow system hears about it
     @Mapping(target = "followUpDate", ignore = true)
-    @Mapping(target = "assignee", ignore = true)
-    @Mapping(target = "candidateUsers", ignore = true)
-    @Mapping(target = "candidateGroups", ignore = true)
-    @Mapping(target = "excludedCandidateUsers", ignore = true)
-    @Mapping(target = "admittedUsers", ignore = true)
+    // who sees the task is mapped, because an end which arrives before the creation creates the
+    // task and has to say who sees it. For a task the cockpit holds already, WhoSeesAUserTask puts
+    // the stored values back. The admitted users may change with every report. Like any list of
+    // an end, an empty one counts as not reported, and toEndedTask says so
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateGroups", source = "candidateGroupsList", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsersList", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsersList", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "title", source = "titleMap")
     @Mapping(target = "workflowTitle", source = "workflowTitleMap")
     @Mapping(target = "taskDefinitionTitle", source = "taskDefinitionTitleMap")
@@ -216,7 +208,9 @@ public abstract class ProtobufUserTaskMapper {
         final var storedTitle = WhatAnEndReports.before(result.getTitle());
         final var storedWorkflowTitle = WhatAnEndReports.before(result.getWorkflowTitle());
         final var storedTaskDefinitionTitle = WhatAnEndReports.before(result.getTaskDefinitionTitle());
+        final var storedAdmittedUsers = WhatAnEndReports.before(result.getAdmittedUsers());
         final var task = mapEndedTask(event, result);
+        task.setAdmittedUsers(WhatAnEndReports.whatToStore(task.getAdmittedUsers(), storedAdmittedUsers));
         task.setDetails(WhatAnEndReports.whatToStore(task.getDetails(), storedDetails));
         task.setDetailsFulltextSearch(
                 WhatAnEndReports.whatToStore(task.getDetailsFulltextSearch(), storedFulltextSearch));

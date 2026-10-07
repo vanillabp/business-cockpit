@@ -4,6 +4,7 @@ import com.mongodb.client.model.changestream.ChangeStreamDocument;
 import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
+import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
@@ -747,7 +748,8 @@ public class UserTaskService {
      * it, and that it has ended. Its start is stored where it is earlier than the one the cockpit
      * holds, which a change that created the task set to the time of that change. There is one
      * exception: a task the cockpit learned about from its end alone has been waiting for exactly
-     * this report.
+     * this report. It takes everything the creation reports, except who sees the task where the end
+     * said it ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the workflow module created the task, by its own clock
@@ -766,6 +768,9 @@ public class UserTaskService {
         }
 
         if (!stored.isKnownFromItsEndAlone()) {
+            // the change which created the task said who sees it, so nothing of that is taken
+            // from here either
+            WhoSeesAUserTask.logIfOtherPeopleAreNamed(stored, "creation", asReported);
             // a creation's timestamp is the moment the task began. A change which arrived first
             // and created the task gave it the time of that change as its start instead
             if (OrderOfReports.isEarlierThanTheStoredStart(eventTimestamp, stored.getCreatedAt())) {
@@ -794,6 +799,8 @@ public class UserTaskService {
                 WhatAnEndReports.whatToStore(stored.getDetails(), task.getDetails()));
         task.setDetailsFulltextSearch(
                 WhatAnEndReports.whatToStore(stored.getDetailsFulltextSearch(), task.getDetailsFulltextSearch()));
+        // the end created the task, so who sees it is what the end said, where it said anything
+        WhoSeesAUserTask.keepWhatTheEndSaid(stored, task);
         // the cockpit reported this task when the end arrived, so its own clock reading stands
         task.setReportedAt(stored.getReportedAt());
         // the candidates this report brings along become known to the cockpit now
@@ -804,6 +811,9 @@ public class UserTaskService {
 
     /**
      * Stores what a workflow module reports about a change of a user task.
+     * <p>
+     * A change of a task the cockpit holds keeps who sees the task. Only a change which creates the
+     * task says who sees it ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the change happened, by the workflow module's clock
@@ -830,8 +840,9 @@ public class UserTaskService {
             return OutcomeOfStoring.upToDate();
         }
 
-        // a change never reopens a task: an end is mapped onto neither 'endedAt' nor 'endReason'
-        ontoStored.accept(stored);
+        // a change never reopens a task: an end is mapped onto neither 'endedAt' nor 'endReason'.
+        // And it never changes who sees the task
+        WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "change", ontoStored);
         stored.setLatestEventAt(eventTimestamp);
         return save(stored);
 
@@ -847,6 +858,9 @@ public class UserTaskService {
      * An end is recorded even where the cockpit holds something younger, because nothing which
      * comes after it undoes it. Whatever such an end reports besides the end itself is older than
      * what is stored, and it is left out.
+     * <p>
+     * An end of a task the cockpit holds keeps who sees the task. Only an end which creates the task
+     * says who sees it ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the task ended, by the workflow module's clock
@@ -883,7 +897,7 @@ public class UserTaskService {
         }
 
         if (!OrderOfReports.isOlderThanWhatIsStored(eventTimestamp, stored.getLatestEventAt())) {
-            ontoStored.accept(stored);
+            WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "end", ontoStored);
             stored.setLatestEventAt(eventTimestamp);
         }
         endUserTask(stored, eventTimestamp, endReason);

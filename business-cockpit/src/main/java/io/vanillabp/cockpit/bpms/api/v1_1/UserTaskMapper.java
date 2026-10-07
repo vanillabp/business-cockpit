@@ -120,15 +120,11 @@ public abstract class UserTaskMapper {
     @Mapping(target = "forced", ignore = true)
     @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "followUpDate", ignore = true)
-    // the assignee is kept if the event reports none. A task is taken over in the cockpit, so no
-    // workflow system can report that assignment
-    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING,
-            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    // candidate users belong to the cockpit too. Assigning a task there adds a personal candidate
-    // which no event reports back, so an update must not replace the stored list. Candidate users
-    // are therefore taken from the create event only. Groups, exclusions and admitted users stay
-    // mapped.
-    @Mapping(target = "candidateUsers", ignore = true)
+    // who sees the task is mapped like everything else. For a task the cockpit holds already,
+    // WhoSeesAUserTask puts the stored values back, because only the report which created the task
+    // says who sees it
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
@@ -168,14 +164,15 @@ public abstract class UserTaskMapper {
     // the follow-up date arrives with the creation and belongs to the cockpit afterwards. A user
     // sets it there and no workflow system hears about it
     @Mapping(target = "followUpDate", ignore = true)
-    // who the task belonged to belongs to the cockpit. A task is taken over there, and the
-    // notification poller needs the former assignee to tell them that somebody else finished the
-    // task. An end reports none of this, so none of it is mapped.
-    @Mapping(target = "assignee", ignore = true)
-    @Mapping(target = "candidateUsers", ignore = true)
-    @Mapping(target = "candidateGroups", ignore = true)
-    @Mapping(target = "excludedCandidateUsers", ignore = true)
-    @Mapping(target = "admittedUsers", ignore = true)
+    // who sees the task is mapped, because an end which arrives before the creation creates the
+    // task and has to say who sees it. For a task the cockpit holds already, WhoSeesAUserTask puts
+    // the stored values back. The admitted users may change with every report. Like any list of
+    // an end, an empty one counts as not reported, and keepingWhatTheEndDoesNotReport says so
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     protected abstract UserTask mapEndedTask(UserTaskCompletedEvent event, @MappingTarget UserTask result);
 
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
@@ -212,14 +209,15 @@ public abstract class UserTaskMapper {
     // the follow-up date arrives with the creation and belongs to the cockpit afterwards. A user
     // sets it there and no workflow system hears about it
     @Mapping(target = "followUpDate", ignore = true)
-    // who the task belonged to belongs to the cockpit. A task is taken over there, and the
-    // notification poller needs the former assignee to tell them that somebody else finished the
-    // task. An end reports none of this, so none of it is mapped.
-    @Mapping(target = "assignee", ignore = true)
-    @Mapping(target = "candidateUsers", ignore = true)
-    @Mapping(target = "candidateGroups", ignore = true)
-    @Mapping(target = "excludedCandidateUsers", ignore = true)
-    @Mapping(target = "admittedUsers", ignore = true)
+    // who sees the task is mapped, because an end which arrives before the creation creates the
+    // task and has to say who sees it. For a task the cockpit holds already, WhoSeesAUserTask puts
+    // the stored values back. The admitted users may change with every report. Like any list of
+    // an end, an empty one counts as not reported, and keepingWhatTheEndDoesNotReport says so
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
+    @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     protected abstract UserTask mapEndedTask(UserTaskCancelledEvent event, @MappingTarget UserTask result);
 
     /**
@@ -238,9 +236,13 @@ public abstract class UserTaskMapper {
      * the fulltext search reads. And it covers the due date and how the workflow module wants
      * notifications delivered.
      * <p>
-     * An end may not replace what it cannot know. The assignee and the candidates belong to the
-     * cockpit: a task is taken over there, and the notification poller needs the former assignee.
-     * A user sets the follow-up date in the cockpit as well. Who read the task, when the cockpit
+     * An end may set the admitted users, as every report may. It sets who sees the task only where
+     * it creates the task; for a task the cockpit holds already, {@link
+     * io.vanillabp.cockpit.bpms.WhoSeesAUserTask} keeps the stored assignee and candidates. That is
+     * also what the notification poller needs: it tells the former assignee that somebody else
+     * finished the task.
+     * <p>
+     * An end may not replace what it cannot know. A user sets the follow-up date in the cockpit. Who read the task, when the cockpit
      * stored it, since when somebody is a candidate and how often the record was saved is the
      * cockpit's own record-keeping. When the task began is something an end does not say. That the
      * task has ended, why, and who ended it are set by the service and the controller and not
@@ -285,7 +287,9 @@ public abstract class UserTaskMapper {
         final var storedTitle = WhatAnEndReports.before(stored.getTitle());
         final var storedWorkflowTitle = WhatAnEndReports.before(stored.getWorkflowTitle());
         final var storedTaskDefinitionTitle = WhatAnEndReports.before(stored.getTaskDefinitionTitle());
+        final var storedAdmittedUsers = WhatAnEndReports.before(stored.getAdmittedUsers());
         final var task = mapping.get();
+        task.setAdmittedUsers(WhatAnEndReports.whatToStore(task.getAdmittedUsers(), storedAdmittedUsers));
         task.setDetails(WhatAnEndReports.whatToStore(task.getDetails(), storedDetails));
         task.setDetailsFulltextSearch(
                 WhatAnEndReports.whatToStore(task.getDetailsFulltextSearch(), storedFulltextSearch));
