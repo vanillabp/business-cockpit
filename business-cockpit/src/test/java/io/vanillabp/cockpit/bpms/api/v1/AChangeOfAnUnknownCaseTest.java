@@ -115,11 +115,30 @@ class AChangeOfAnUnknownCaseTest {
 
     }
 
+    /**
+     * The change gave the case the time of the change as its start. A creation which was only late
+     * knows when the case began, so it corrects the start. The rest stays as the younger change
+     * stored it.
+     */
     @Test
-    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseChangesNothing() {
+    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseCorrectsItsStart() {
 
         bpmsApi.workflowUpdatedEvent("workflow-1", workflowReported(CHANGED_AT, "Berta"));
         bpmsApi.workflowCreatedEvent(workflowReported(CREATED_AT, "Anna"));
+
+        final var stored = workflows.get("workflow-1");
+        assertEquals(CREATED_AT, stored.getCreatedAt());
+        assertEquals(CHANGED_AT, stored.getLatestEventAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    /** A creation whose start is not earlier than the stored one changes nothing. */
+    @Test
+    void aCreationNoEarlierThanTheChangeWhichCreatedTheCaseChangesNothing() {
+
+        bpmsApi.workflowUpdatedEvent("workflow-1", workflowReported(CHANGED_AT, "Berta"));
+        bpmsApi.workflowCreatedEvent(workflowReported(CHANGED_AT, "Anna"));
 
         final var stored = workflows.get("workflow-1");
         assertEquals(CHANGED_AT, stored.getCreatedAt());

@@ -7,6 +7,7 @@ import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationToken;
 import io.vanillabp.cockpit.commons.security.jwt.JwtAuthenticationTokenMapper;
 import io.vanillabp.cockpit.commons.security.jwt.JwtLogoutSuccessHandler;
 import io.vanillabp.cockpit.commons.security.jwt.JwtMapper;
+import io.vanillabp.cockpit.commons.security.jwt.JwtRenewalFilter;
 import io.vanillabp.cockpit.commons.security.jwt.JwtSecurityContextRepository;
 import io.vanillabp.cockpit.commons.security.jwt.JwtUserDetailsProvider;
 import io.vanillabp.cockpit.commons.security.jwt.PassiveJwtSecurityFilter;
@@ -42,6 +43,13 @@ public class WebSecurityConfiguration {
     public static final RequestMatcher currentUserRequestMatcher = pathPattern(
             "/gui/api/v1/app/current-user");
 
+    /**
+     * The update stream of a browser tab. It connects again by itself, so it is no sign of somebody
+     * using the cockpit and does not renew the login.
+     */
+    public static final RequestMatcher updatesRequestMatcher = pathPattern(
+            "/gui/api/v1/updates");
+
     public static final RequestMatcher assetsRequestMatcher = pathPattern(
             "/assets/**");
 
@@ -63,6 +71,17 @@ public class WebSecurityConfiguration {
             final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {
 
         return new PassiveJwtSecurityFilter(properties.getJwt(), jwtMapper);
+
+    }
+
+    /**
+     * Renews the token of a login which is in use. It sits behind {@link #jwtSecurityFilter}, whose
+     * authentication it reads.
+     */
+    private JwtRenewalFilter jwtRenewalFilter(
+            final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {
+
+        return new JwtRenewalFilter(properties.getJwt(), jwtMapper, updatesRequestMatcher);
 
     }
 
@@ -121,7 +140,8 @@ public class WebSecurityConfiguration {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(jwtLogoutSuccessHandler()))
-                .addFilterAfter(jwtSecurityFilter(jwtMapper), BasicAuthenticationFilter.class);
+                .addFilterAfter(jwtSecurityFilter(jwtMapper), BasicAuthenticationFilter.class)
+                .addFilterAfter(jwtRenewalFilter(jwtMapper), PassiveJwtSecurityFilter.class);
 
         return http.build();
 

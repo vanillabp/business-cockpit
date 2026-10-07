@@ -312,6 +312,8 @@ class AFailedSaveTest {
     @Test
     void aReportOlderThanWhatIsStoredIsTakenAndChangesNothing() {
 
+        // the task starts with its creation, so a second one has no earlier start to correct
+        bpmsApi.userTaskCreatedEvent(taskCreated("task-1"));
         bpmsApi.userTaskUpdatedEvent("task-1", taskChanged("task-1", CHANGED_LATER));
         bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged("workflow-1", CHANGED_LATER));
         bpmsApi.userTaskCompletedEvent("task-1", taskCompleted("task-1"));
@@ -332,6 +334,27 @@ class AFailedSaveTest {
                 HttpStatus.OK,
                 bpmsApi.workflowCancelledEvent("workflow-1", workflowCancelled("workflow-1")).getStatusCode());
         assertEquals(HttpStatus.OK, bpmsApi.userTaskCreatedEvent(taskCreated("task-1")).getStatusCode());
+
+    }
+
+    /**
+     * A creation which arrives after the change that created the record brings an earlier start, and
+     * the cockpit stores it. That is a save like any other, so a failing MongoDB answers it with
+     * {@code 503}, and the workflow module sends it again.
+     */
+    @Test
+    void aCreationWhichCorrectsTheStartIsToBeSentAgainWhenItCannotBeStored() {
+
+        bpmsApi.userTaskUpdatedEvent("task-1", taskChanged("task-1", CHANGED_LATER));
+        bpmsApi.workflowUpdatedEvent("workflow-1", workflowChanged("workflow-1", CHANGED_LATER));
+
+        saveFails = true;
+        assertEquals(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                bpmsApi.userTaskCreatedEvent(taskCreated("task-1")).getStatusCode());
+        assertEquals(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                bpmsApi.workflowCreatedEvent(workflowCreated("workflow-1")).getStatusCode());
 
     }
 

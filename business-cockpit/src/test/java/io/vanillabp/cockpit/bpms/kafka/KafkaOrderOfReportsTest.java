@@ -298,6 +298,48 @@ class KafkaOrderOfReportsTest {
 
     }
 
+    /**
+     * A change which created the task gave it the time of the change as its start. The creation
+     * arrives late and corrects it, and leaves the rest as the younger change stored it.
+     */
+    @Test
+    void aCreationArrivingAfterTheChangeWhichCreatedTheTaskCorrectsItsStart() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskUpdatedV11(reportedTask(CHANGED_AT, "Berta").setUpdated(true))
+                .build());
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskCreatedV11(reportedTask(CREATED_AT, "Anna"))
+                .build());
+
+        final var stored = storedTasks.get("task-1");
+        assertSameMoment(CREATED_AT, stored.getCreatedAt());
+        assertSameMoment(CHANGED_AT, stored.getLatestEventAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    @Test
+    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseCorrectsItsStart() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setWorkflowUpdatedV11(reportedWorkflow(CHANGED_AT, "Berta").setUpdated(true))
+                .build());
+        consume(BcEvent
+                .newBuilder()
+                .setWorkflowCreatedV11(reportedWorkflow(CREATED_AT, "Anna"))
+                .build());
+
+        final var stored = storedWorkflows.get("workflow-1");
+        assertSameMoment(CREATED_AT, stored.getCreatedAt());
+        assertSameMoment(CHANGED_AT, stored.getLatestEventAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
     @Test
     void aCompletionArrivingBeforeTheCreationLeavesTheCaseEnded() {
 

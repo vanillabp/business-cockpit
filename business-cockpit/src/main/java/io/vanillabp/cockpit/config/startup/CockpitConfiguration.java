@@ -51,6 +51,18 @@ public final class CockpitConfiguration {
 
     public static final String JWT_KEY = "business-cockpit.jwt.hmacSHA256-base64";
 
+    /**
+     * How long a login token lives after its last renewal. Unset means the default of the
+     * properties, twelve hours.
+     */
+    public static final String JWT_EXPIRES_DURATION = "business-cockpit.jwt.cookie.expires-duration";
+
+    /**
+     * How long a login lasts at most, however often its token is renewed. Unset means the default
+     * of the properties, seven days.
+     */
+    public static final String JWT_MAX_LOGIN_DURATION = "business-cockpit.jwt.cookie.max-login-duration";
+
     public static final String BPMS_API_REALM_NAME = "bpms-api.realm-name";
 
     public static final String BPMS_API_USERNAME = "bpms-api.username";
