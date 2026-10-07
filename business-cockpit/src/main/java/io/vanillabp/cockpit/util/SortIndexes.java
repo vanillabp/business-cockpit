@@ -1,11 +1,8 @@
 package io.vanillabp.cockpit.util;
 
-import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -13,18 +10,16 @@ import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 
 /**
- * The paths a list may be sorted by, and the MongoDB indexes which make that sorting fast. There is
- * one instance per collection: one for user tasks and one for workflows.
+ * The MongoDB indexes which make sorting a list fast. There is one instance per collection: one for
+ * user tasks and one for workflows.
  * <p>
  * The field {@code sort} of a list request comes from the client. Every combination of paths the
  * server had not seen before used to get an index of its own, without any check and without any
  * limit. So every logged-in user could create indexes until MongoDB refused any more, at 64 per
  * collection, and every index makes each write a little slower. Two rules stop that:
  * <ul>
- * <li>A path names a field of the list, like {@code dueDate} or {@code title.de}, or a key of the
- * business data, like {@code details.customer.name}. Each part of a path holds letters, digits and
- * {@code _} only, and below {@code details.} the {@code -} as well, because a workflow module may
- * report a key like {@code order-id}. Anything else is answered with {@code 400 Bad Request}.</li>
+ * <li>A path follows the rule of {@link ListPaths}. Anything else is answered with
+ * {@code 400 Bad Request}.</li>
  * <li>At most {@code limit} sort indexes exist per collection. Once they are there, a new
  * combination is sorted without an index of its own, and the server warns once per combination.</li>
  * </ul>
@@ -37,19 +32,11 @@ public class SortIndexes {
 
     public static final String INDEX_PREFIX = "_sort_";
 
-    /** Where the business data of a user task or a workflow is stored. */
-    public static final String BUSINESS_DATA = "details";
-
-    /** One part of a path: letters and digits of any language, and the underscore. */
-    private static final Pattern PATH = Pattern.compile("[\\p{L}\\p{N}_]+(\\.[\\p{L}\\p{N}_]+)*");
-
     private final String collectionName;
 
-    private final Set<String> fieldsOfTheList;
+    private final ListPaths listPaths;
 
     private final int limit;
-
-    private final Optional<String> mapKeyDotReplacement;
 
     private final String limitProperty;
 
@@ -65,27 +52,22 @@ public class SortIndexes {
 
     /**
      * @param collectionName The collection the list reads
-     * @param fieldsOfTheList The top-level fields a path may start with, besides {@value #BUSINESS_DATA}
+     * @param listPaths The paths the list may be sorted by
      * @param limit How many sort indexes the collection may have at most
      * @param limitProperty The configuration key of the limit, for the warning
-     * @param mapKeyDotReplacement What the cockpit stores instead of a dot in a key of the business
-     *        data, if anything. A path names such a key in its stored form, so the replacement is
-     *        allowed in a path below {@value #BUSINESS_DATA}
      */
     public SortIndexes(
             final String collectionName,
-            final Set<String> fieldsOfTheList,
+            final ListPaths listPaths,
             final int limit,
             final String limitProperty,
-            final Optional<String> mapKeyDotReplacement,
             final MongoTemplate mongoTemplate,
             final Logger logger) {
 
         this.collectionName = collectionName;
-        this.fieldsOfTheList = Set.copyOf(fieldsOfTheList);
+        this.listPaths = listPaths;
         this.limit = limit;
         this.limitProperty = limitProperty;
-        this.mapKeyDotReplacement = mapKeyDotReplacement;
         this.mongoTemplate = mongoTemplate;
         this.logger = logger;
 
@@ -105,34 +87,13 @@ public class SortIndexes {
 
     /**
      * @param path One path of the field {@code sort}
-     * @throws BcInvalidRequestException if the list cannot be sorted by it
+     * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if the list cannot
+     *         be sorted by it
      */
     public void checkPath(
             final String path) {
 
-        if (isAllowed(path)) {
-            return;
-        }
-        throw new BcInvalidRequestException(
-                "'sort' may only name fields of the list or keys below '%s.'. A part of a path holds letters, digits and '_', and below '%s.' also '-'"
-                        .formatted(BUSINESS_DATA, BUSINESS_DATA));
-
-    }
-
-    private boolean isAllowed(
-            final String path) {
-
-        final var firstDot = path.indexOf('.');
-        final var field = firstDot == -1 ? path : path.substring(0, firstDot);
-        if (field.equals(BUSINESS_DATA)) {
-            // the replacement of a dot and a dash are allowed in a key, so both count as '_' here
-            final var storedForm = mapKeyDotReplacement
-                    .map(replacement -> path.replace(replacement, "_"))
-                    .orElse(path)
-                    .replace('-', '_');
-            return (firstDot != -1) && PATH.matcher(storedForm).matches();
-        }
-        return fieldsOfTheList.contains(field) && PATH.matcher(path).matches();
+        listPaths.check("sort", path);
 
     }
 

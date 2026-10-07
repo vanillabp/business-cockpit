@@ -2599,3 +2599,13 @@ report it as `order_id`, or mark the column as not sortable.
 `StartupConfigurationCheckTest` holds the startup check of the limit. `SortPathsTest` in `container`
 holds both lists through HTTP, including a hundred new paths which leave 30 sort indexes per
 collection.
+
+#### Filters follow the same rule
+
+The path of a filter (`SearchQuery.path`) and the parameter `path` of the suggestions for a search
+field went into the database query unchecked as well. They create no index, but a client could
+filter on a field the GUI API never shows and guess its values from what the list answers. Since
+2026-10-07 (story 1463) both follow the rule above, for both lists, and anything else is answered
+with 400, naming `searchQueries.path` or `path`. A filter without a path is the full-text search
+and stays allowed. The rule lives in one class, `io.vanillabp.cockpit.util.ListPaths`, which
+`SortIndexes` uses as well. `ListPathsTest` and `FilterPathsTest` in `container` hold it.

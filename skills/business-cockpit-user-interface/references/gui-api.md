@@ -187,6 +187,12 @@ selbst zusammengestellt hat, siehe
 [Reporting workflows and user tasks](https://github.com/vanillabp/business-cockpit/wiki/Reporting-workflows-and-user-tasks).
 Ein Volltextfeld und nichts darüber hinaus: wer nicht gemeldet hat, ist nicht zu finden.
 
+Für `path` gilt dieselbe Regel wie für einen Sortierpfad, siehe [Sortieren](#sortieren): ein Feld der
+Liste oder ein Schlüssel unter `details.`. Jeden anderen Pfad lehnt der Server mit 400 ab, zum
+Beispiel `The request is not valid: 'searchQueries.path' may only name fields of the list or keys
+below 'details.'. A part of a path holds letters, digits and '_', and below 'details.' also '-'.`
+Ein Feld, das die API nicht zeigt, ist also auch als Filter nicht zu erreichen.
+
 `query` ist ein regulärer Ausdruck, kein Text. Er ist nicht verankert, trifft also auch mitten im
 Wert. Ein `.` oder ein `*` aus der Eingabe des Benutzers wird als Sonderzeichen gelesen. Wenn dein
 UI eine Eingabe durchreicht, maskiere sie.
@@ -210,7 +216,8 @@ context", kurz KWIC. Ein UI benutzt sie für die Vorschläge unter einem Suchfel
 
 Die Abfrage nimmt `query` und wahlweise `path` als Parameter und die bereits gesetzten
 `searchQueries` im Körper. Sie antwortet mit ganzen Wörtern, die `query` enthalten, je Wort eine
-Anzahl.
+Anzahl. `path` und die Pfade in `searchQueries` folgen derselben Regel wie ein Sortierpfad, sonst
+antwortet der Server mit 400. Bei `path` nennt die Meldung `'path'`.
 
 Was du dabei wissen musst:
 

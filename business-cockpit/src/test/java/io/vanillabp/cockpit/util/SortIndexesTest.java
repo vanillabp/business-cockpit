@@ -86,7 +86,7 @@ class SortIndexesTest {
             final Optional<String> mapKeyDotReplacement) {
 
         final var sortIndexes = new SortIndexes(
-                COLLECTION, FIELDS, limit, LIMIT_PROPERTY, mapKeyDotReplacement, mongoTemplate, logger);
+                COLLECTION, new ListPaths(FIELDS, mapKeyDotReplacement), limit, LIMIT_PROPERTY, mongoTemplate, logger);
         sortIndexes.learnExistingIndexes();
         return sortIndexes;
 

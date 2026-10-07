@@ -248,6 +248,9 @@ paths:
             format: date-time
         - in: query
           name: path
+          description: >-
+            The path to suggest words from, with the rule of 'sort'. Any other path is answered with
+            400. Without it the suggestions come from the full text the workflow module reported.
           schema:
             type: string
         - in: query
@@ -389,6 +392,9 @@ paths:
             format: date-time
         - in: query
           name: path
+          description: >-
+            The path to suggest words from, with the rule of 'sort'. Any other path is answered with
+            400. Without it the suggestions come from the full text the workflow module reported.
           schema:
             type: string
         - in: query
@@ -730,6 +736,11 @@ components:
       properties:
         path:
           type: string
+          description: >-
+            The path to filter on, with the rule of 'sort': a field of the list or a key of the
+            business data below 'details.'. Each part of a path holds letters, digits and '_', and
+            below 'details.' also '-'. Any other path is answered with 400. Without it the filter
+            searches the full text the workflow module reported.
         query:
           type: string
         caseInsensitive:

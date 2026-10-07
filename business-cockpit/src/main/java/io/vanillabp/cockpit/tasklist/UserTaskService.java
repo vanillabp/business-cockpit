@@ -17,6 +17,7 @@ import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
+import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
@@ -49,6 +50,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -90,11 +92,11 @@ public class UserTaskService {
             );
 
     /**
-     * The top-level fields a list of user tasks may be sorted by: every field of {@code UserTask} in
-     * the GUI API which is stored under the same name. Keys of the business data are allowed as well,
-     * see {@link SortIndexes}.
+     * The top-level fields a list of user tasks may be sorted and filtered by: every field of
+     * {@code UserTask} in the GUI API which is stored under the same name. Keys of the business data
+     * are allowed as well, see {@link ListPaths}.
      */
-    public static final Set<String> SORTABLE_FIELDS = Set.of(
+    public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
             "id", "version", "initiator", "createdAt", "updatedAt", "endedAt", "workflowModuleId",
             "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
             "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
@@ -124,6 +126,8 @@ public class UserTaskService {
 
     @Autowired
     private Environment environment;
+
+    private ListPaths listPaths;
 
     private SortIndexes sortIndexes;
 
@@ -177,12 +181,14 @@ public class UserTaskService {
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
+        listPaths = new ListPaths(
+                FIELDS_OF_THE_LIST,
+                MapKeyDotReplacement.configuredIn(environment));
         sortIndexes = new SortIndexes(
                 UserTask.COLLECTION_NAME,
-                SORTABLE_FIELDS,
+                listPaths,
                 SortIndexLimit.configuredIn(environment),
                 CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION,
-                MapKeyDotReplacement.configuredIn(environment),
                 mongoTemplate,
                 logger);
         sortIndexes.learnExistingIndexes();
@@ -576,7 +582,7 @@ public class UserTaskService {
 
         // build query
         final var query = new Query();
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         query.addCriteria(
                 buildUserTasksCriteria(
                         visibility,
@@ -609,6 +615,8 @@ public class UserTaskService {
             final String path,
             final String query) {
 
+        listPaths.check("path", path);
+        listPaths.checkFilters(searchQueries);
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
             return List.of();
@@ -678,7 +686,7 @@ public class UserTaskService {
                         initialTimestamp,
                         effectiveMode,
                         null));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
@@ -1133,6 +1141,20 @@ public class UserTaskService {
         }
 
         return new Criteria().andOperator(subCriterias);
+
+    }
+
+    /**
+     * The conditions of the filters of a list request, after their paths are checked.
+     *
+     * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+     *         the rule of {@link ListPaths}
+     */
+    private List<? extends CriteriaDefinition> filterCriteria(
+            final Collection<SearchQuery> searchQueries) {
+
+        listPaths.checkFilters(searchQueries);
+        return SearchCriteriaHelper.buildSearchCriteria(searchQueries);
 
     }
 

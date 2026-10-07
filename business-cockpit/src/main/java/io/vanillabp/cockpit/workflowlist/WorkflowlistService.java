@@ -9,6 +9,7 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
+import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
@@ -72,11 +73,11 @@ public class WorkflowlistService {
     );
 
     /**
-     * The top-level fields a list of workflows may be sorted by: every field of {@code Workflow} in
-     * the GUI API which is stored under the same name. Keys of the business data are allowed as well,
-     * see {@link SortIndexes}.
+     * The top-level fields a list of workflows may be sorted and filtered by: every field of
+     * {@code Workflow} in the GUI API which is stored under the same name. Keys of the business data
+     * are allowed as well, see {@link ListPaths}.
      */
-    public static final Set<String> SORTABLE_FIELDS = Set.of(
+    public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
             PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
             "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
             "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch");
@@ -102,6 +103,8 @@ public class WorkflowlistService {
     @Autowired
     private Environment environment;
 
+    private ListPaths listPaths;
+
     private SortIndexes sortIndexes;
 
     private Subscription dbChangesSubscription;
@@ -109,12 +112,14 @@ public class WorkflowlistService {
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
+        listPaths = new ListPaths(
+                FIELDS_OF_THE_LIST,
+                MapKeyDotReplacement.configuredIn(environment));
         sortIndexes = new SortIndexes(
                 Workflow.COLLECTION_NAME,
-                SORTABLE_FIELDS,
+                listPaths,
                 SortIndexLimit.configuredIn(environment),
                 CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION,
-                MapKeyDotReplacement.configuredIn(environment),
                 mongoTemplate,
                 logger);
         sortIndexes.learnExistingIndexes();
@@ -378,7 +383,7 @@ public class WorkflowlistService {
                         mode,
                         null,
                         businessIds));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
@@ -469,7 +474,7 @@ public class WorkflowlistService {
                         effectiveMode,
                         null,
 			null));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
@@ -525,6 +530,8 @@ public class WorkflowlistService {
             final String path,
             final String query) {
 
+        listPaths.check("path", path);
+        listPaths.checkFilters(searchQueries);
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
             return List.of();
@@ -622,6 +629,20 @@ public class WorkflowlistService {
         if (dbChangesSubscription != null) {
             changeStreamUtils.unsubscribe(dbChangesSubscription);
         }
+
+    }
+
+    /**
+     * The conditions of the filters of a list request, after their paths are checked.
+     *
+     * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+     *         the rule of {@link ListPaths}
+     */
+    private List<? extends CriteriaDefinition> filterCriteria(
+            final Collection<SearchQuery> searchQueries) {
+
+        listPaths.checkFilters(searchQueries);
+        return SearchCriteriaHelper.buildSearchCriteria(searchQueries);
 
     }
 
