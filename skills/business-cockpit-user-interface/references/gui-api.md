@@ -138,10 +138,23 @@ also eine Gesamtzahl anzeigen, und sie kostet eine Zählung je Seite.
 `sort` ist eine Liste von Pfaden im gespeicherten Dokument, mit Komma getrennt. `sortAscending` gilt
 für alle davon.
 
-Es gibt keine erlaubte Liste. Was du schickst, wird sortiert, auch ein Pfad, den es nicht gibt. Der
-Server legt zu jeder neuen Zeichenkette in `sort` einen Index in der Datenbank an und merkt sich,
-dass er es getan hat. Darum gilt: schicke nur Pfade, die aus einer Spalte kommen, und baue kein
-Suchfeld, aus dem ein Benutzer frei einen Sortierpfad eingeben kann.
+Ein Pfad nennt entweder ein Feld der Liste oder einen Schlüssel der gemeldeten Geschäftsdaten unter
+`details.`. Die Felder der Liste sind die Felder von `UserTask` bzw. `Workflow` in der Beschreibung,
+die der Server unter demselben Namen speichert, also zum Beispiel `dueDate`, `title.de` oder
+`assignee.sort`. `uiUri`, `workflowModuleUri` und `read` gehören nicht dazu, weil der Server sie
+erst beim Antworten berechnet. Jeder Teil eines Pfads besteht aus Buchstaben, Ziffern und `_`. Ein
+Bindestrich, ein Leerzeichen oder ein `$` sind also nicht erlaubt. Ist für die Geschäftsdaten ein
+Ersatz für den Punkt eingestellt, darf er unter `details.` vorkommen.
+
+Jeden anderen Pfad lehnt der Server mit 400 ab:
+`The request is not valid: 'sort' may only name fields of the list or keys below 'details.', and
+each part of a path may hold letters, digits and '_' only.` Das gilt für die Liste und für die
+Aktualisierung.
+
+Zu jeder neuen Kombination von Pfaden legt der Server einen Index in der Datenbank an, aber höchstens
+30 je Sammlung (`business-cockpit.mongodb.sort-indexes-per-collection`). Danach sortiert er ohne
+eigenen Index und warnt einmal je Kombination im Log. Das Ergebnis ist dasselbe, nur auf einer großen
+Sammlung langsamer. Schicke also weiter am besten Pfade, die aus einer Spalte kommen.
 
 An das, was du schickst, hängt der Server seine eigene Ordnung an, damit das Blättern stabil
 bleibt. Bei Aufgaben ist das `dueDate`, `createdAt`, `id`, bei Fällen `createdAt`, `id`. Ein Feld,

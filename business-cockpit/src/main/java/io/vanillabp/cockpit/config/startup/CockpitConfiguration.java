@@ -41,6 +41,13 @@ public final class CockpitConfiguration {
      */
     public static final String MONGODB_MAP_KEY_DOT_REPLACEMENT = "business-cockpit.mongodb.map-key-dot-replacement";
 
+    /**
+     * How many indexes for sorting a list the cockpit creates per collection at most. Read by
+     * {@link SortIndexLimit}.
+     */
+    public static final String MONGODB_SORT_INDEXES_PER_COLLECTION =
+            "business-cockpit.mongodb.sort-indexes-per-collection";
+
     public static final String TITLE_SHORT = "business-cockpit.title-short";
 
     public static final String TITLE_LONG = "business-cockpit.title-long";

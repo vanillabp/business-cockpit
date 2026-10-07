@@ -356,6 +356,64 @@ class StartupConfigurationCheckTest {
     }
 
 
+    @ParameterizedTest
+    @ValueSource(strings = { "0", "30", " 45 ", "60" })
+    void aLimitOfSortIndexesWhichCanWorkIsAccepted(
+            final String limit) {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, limit);
+
+        assertThatCode(() -> check.checkConfigurationOf(environment))
+                .doesNotThrowAnyException();
+        assertThat(SortIndexLimit.configuredIn(environment)).isEqualTo(Integer.parseInt(limit.trim()));
+
+    }
+
+    @Test
+    void withoutALimitOfSortIndexesTheDefaultHolds() {
+
+        assertThat(SortIndexLimit.configuredIn(configurationWithout())).isEqualTo(30);
+
+    }
+
+    /**
+     * The limit is read only when a list is sorted by a new path. A value which cannot work stops
+     * the start instead, and the message names the property and a value to copy.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = { "-1", "61", "thirty", "1.5" })
+    void aLimitOfSortIndexesWhichCannotWorkStopsTheStart(
+            final String limit) {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, limit);
+
+        assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+                .isInstanceOf(SortIndexLimitIsNotUsableException.class)
+                .hasMessageContaining("The value '" + limit + "'")
+                .hasMessageContaining("Example: " + CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION + ": 30");
+
+    }
+
+    @Test
+    void aLimitOfSortIndexesWhichCannotWorkIsShownAsTheFailureReport() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION, "100");
+        final var failure = catchThrowableOfType(
+                SortIndexLimitIsNotUsableException.class,
+                () -> check.checkConfigurationOf(environment));
+
+        final var analysis = new SortIndexLimitIsNotUsableFailureAnalyzer().analyze(failure);
+
+        assertThat(analysis.getDescription())
+                .contains(CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION)
+                .contains("not between 0 and 60");
+        assertThat(analysis.getAction()).contains("leave the property out");
+
+    }
+
     /**
      * A lifetime of the login token is read only when somebody logs in. One which cannot be read
      * stops the start instead, and the message names the property and a value to copy.

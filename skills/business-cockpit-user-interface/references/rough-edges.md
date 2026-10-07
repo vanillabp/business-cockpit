@@ -69,14 +69,13 @@ nochmal probieren, bekommt aber nie einen. Das ist ein Haken für ein eigenes Co
 eigenen Identity-Provider und kein Verhalten, auf das du bauen kannst. Was ein Server mit dem
 Kopffeld tun soll, steht nirgends.
 
-## Jeder neue Sortierpfad legt einen Index an
+## Ein Sortierpfad mit Bindestrich wird abgelehnt
 
-Der Server legt für jede bisher ungesehene Zeichenkette in `sort` einen Index in der Datenbank an und
-merkt sich in der laufenden Anwendung, dass er es getan hat. Eine Obergrenze gibt es nicht, und die
-Zeichenkette kommt aus der Anfrage.
-
-Für dein UI heißt das: sortiere nur nach Pfaden, die aus einer Spalte kommen. Lass einen Benutzer
-keinen Sortierpfad eintippen, und baue keine Sortierung, deren Pfad sich aus Eingaben zusammensetzt.
+`sort` nimmt nur Felder der Liste und Schlüssel unter `details.`, und jeder Teil eines Pfads besteht
+aus Buchstaben, Ziffern und `_`. Ein Workflow-Modul darf aber Geschäftsdaten mit einem Schlüssel wie
+`order-id` melden. Nach so einer Spalte kann dein UI nicht sortieren: der Server antwortet mit 400.
+Biete für so eine Spalte keine Sortierung an. Die Regeln stehen in
+[gui-api.md](gui-api.md#sortieren).
 
 ## Ein Suchmuster kommt ungefiltert in die Datenbank
 
