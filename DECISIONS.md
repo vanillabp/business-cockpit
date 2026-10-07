@@ -2609,3 +2609,31 @@ filter on a field the GUI API never shows and guess its values from what the lis
 with 400, naming `searchQueries.path` or `path`. A filter without a path is the full-text search
 and stays allowed. The rule lives in one class, `io.vanillabp.cockpit.util.ListPaths`, which
 `SortIndexes` uses as well. `ListPathsTest` and `FilterPathsTest` in `container` hold it.
+
+### 58. `OpenTasksWithFollowUp` is another name for `OpenTasks`
+
+#### What was found
+
+A list of user tasks has six modes. `UserTaskService.buildUserTasksCriteria` treats four of them as
+open tasks: no `endedAt`, or one after the time the list was first read. Two of them then add a
+condition on `followUpDate`:
+
+- `OpenTasksWithoutFollowUp` keeps tasks without a follow-up date or with one which is due.
+- `OpenTaskOnlyFollowUp` keeps tasks with a follow-up date in the future.
+
+`OpenTasks` and `OpenTasksWithFollowUp` add nothing. So both show every open task, with or without
+a follow-up date. The name `OpenTasksWithFollowUp` sounds like a filter, but no code ever had one,
+and no comment said what it was meant to be.
+
+#### What the cockpit does now
+
+Nothing changes in what a list shows. `OpenTasksWithFollowUp` stays in the GUI API as another name
+for `OpenTasks`. The OpenAPI document describes all six modes, and so do the comments of the enum
+`UserTaskService.RetrieveItemsMode`.
+
+Changing `OpenTasks` to hide tasks with a follow-up date in the future was the other choice. It was
+rejected because `OpenTasks` is the default of `PUT /usertask` and of the suggestions of a search
+field, and because `OpenTasksWithoutFollowUp` already shows exactly that list.
+
+The dev-shell simulator in `development/dev-shell-simulator` answered `OpenTasksWithFollowUp` with
+every task, ended ones included. It now answers it like `OpenTasks`, the same as the cockpit.

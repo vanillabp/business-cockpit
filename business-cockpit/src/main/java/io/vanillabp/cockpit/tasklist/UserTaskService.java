@@ -73,7 +73,8 @@ public class UserTaskService {
         OpenTasksWithoutFollowUp,
         /**
          * Another name for {@link #OpenTasks}, which shows the same tasks. The name sounds like a
-         * filter, but there is none. It stays because the GUI API offers it.
+         * filter, but there is none. It stays because the GUI API offers it. See decision 58 in
+         * the repository's DECISIONS.md.
          */
         OpenTasksWithFollowUp,
         OpenTaskOnlyFollowUp,
