@@ -5,7 +5,9 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.APPLICATI
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_PASSWORD;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_REALM_NAME;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.BPMS_API_USERNAME;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_EXPIRES_DURATION;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_KEY;
+import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.JWT_MAX_LOGIN_DURATION;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_GROUP_ID_SUFFIX;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_USER_TASK;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.KAFKA_TOPIC_WORKFLOW;
@@ -18,10 +20,14 @@ import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.TITLE_LON
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.TITLE_SHORT;
 import static io.vanillabp.cockpit.config.startup.CockpitConfiguration.WORKER_ID;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtCookie;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.crypto.KeyGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +68,11 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
     private static final String GENERATED_JWT_KEY_SOURCE = "business-cockpit-generated-jwt-key";
 
+    /**
+     * Holds the defaults of the two lifetimes of the login token, so they are written down once.
+     */
+    private static final JwtCookie DEFAULT_JWT_COOKIE = new JwtCookie();
+
     private ConfigurableEnvironment environment;
 
     @Override
@@ -89,8 +100,10 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
         failOnMissingMandatoryValues(environment);
         failOnAnUnusableMapKeyDotReplacement(environment);
+        failOnAnUnusableJwtLifetime(environment);
         warnAboutTheBpmsApi(environment);
         generateAJwtKeyIfNoneIsConfigured(environment);
+        warnAboutALoginWhichIsNeverRenewed(environment);
         warnAboutKafkaIngestion(environment);
         warnAboutTheRemainingValues(environment);
 
@@ -161,6 +174,96 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
                 .ifPresent(reason -> {
                     throw new MapKeyDotReplacementIsNotUsableException(replacement.get(), reason);
                 });
+
+    }
+
+    /**
+     * Both lifetimes are read only when somebody logs in, which can be long after the start. A value
+     * which cannot be read is reported now instead.
+     */
+    private void failOnAnUnusableJwtLifetime(
+            final Environment environment) {
+
+        final var unusable = new ArrayList<MissingConfiguration>();
+        if (expiresDurationOf(environment).isEmpty()) {
+            unusable.add(new MissingConfiguration(
+                    JWT_EXPIRES_DURATION,
+                    "How long a login token lives after its last renewal. The value '"
+                            + CockpitConfiguration.valueOf(environment, JWT_EXPIRES_DURATION).orElse("")
+                            + "' is no duration greater than zero.",
+                    JWT_EXPIRES_DURATION + ": " + DEFAULT_JWT_COOKIE.getExpiresDuration()));
+        }
+        if (maxLoginDurationOf(environment).isEmpty()) {
+            unusable.add(new MissingConfiguration(
+                    JWT_MAX_LOGIN_DURATION,
+                    "How long a login lasts at most, however often its token is renewed. The value '"
+                            + CockpitConfiguration.valueOf(environment, JWT_MAX_LOGIN_DURATION).orElse("")
+                            + "' is no duration greater than zero.",
+                    JWT_MAX_LOGIN_DURATION + ": " + DEFAULT_JWT_COOKIE.getMaxLoginDuration()));
+        }
+
+        if (!unusable.isEmpty()) {
+            throw new JwtLifetimeIsNotUsableException(List.copyOf(unusable));
+        }
+
+    }
+
+    /**
+     * A maximum shorter than the lifetime of one token is allowed, it just switches the renewal off.
+     * That is worth a word, because it does not look like it.
+     */
+    private void warnAboutALoginWhichIsNeverRenewed(
+            final Environment environment) {
+
+        final var expiresDuration = expiresDurationOf(environment).orElseThrow();
+        final var maxLoginDuration = maxLoginDurationOf(environment).orElseThrow();
+        if (maxLoginDuration.compareTo(expiresDuration) >= 0) {
+            return;
+        }
+
+        logger.warn("""
+                Logins are never renewed, because '{}' ({}) is shorter than '{}' ({}). Every login \
+                ends {} after it was made, whether the user is working or not. Set '{}' to a longer \
+                value to keep a working user logged in, for example:
+
+                  {}: {}""",
+                JWT_MAX_LOGIN_DURATION, maxLoginDuration, JWT_EXPIRES_DURATION, expiresDuration,
+                maxLoginDuration, JWT_MAX_LOGIN_DURATION,
+                JWT_MAX_LOGIN_DURATION, DEFAULT_JWT_COOKIE.getMaxLoginDuration());
+
+    }
+
+    private static Optional<Duration> expiresDurationOf(
+            final Environment environment) {
+
+        return durationOf(environment, JWT_EXPIRES_DURATION, DEFAULT_JWT_COOKIE.getExpiresDuration());
+
+    }
+
+    private static Optional<Duration> maxLoginDurationOf(
+            final Environment environment) {
+
+        return durationOf(environment, JWT_MAX_LOGIN_DURATION, DEFAULT_JWT_COOKIE.getMaxLoginDuration());
+
+    }
+
+    /**
+     * The configured duration, the default if none is configured, or empty if the configured value
+     * is no duration greater than zero.
+     */
+    private static Optional<Duration> durationOf(
+            final Environment environment,
+            final String propertyName,
+            final String defaultValue) {
+
+        try {
+            final var duration = Duration.parse(CockpitConfiguration
+                    .valueOf(environment, propertyName)
+                    .orElse(defaultValue));
+            return duration.isPositive() ? Optional.of(duration) : Optional.empty();
+        } catch (DateTimeParseException e) {
+            return Optional.empty();
+        }
 
     }
 

@@ -431,6 +431,9 @@ entscheidet die Anwendung:
   zwölf Stunden ist es weg. Der Browser verbindet dann ohne Cookie neu. Hat er die Zugangsdaten
   der Basic Auth noch, schickt er sie mit, die Antwort trägt ein neues Cookie, und der nächste
   Versuch gelingt. Sonst ist die ganze Oberfläche abgemeldet, nicht nur der Strom.
+  Nachtrag: seit Story `1450` verlängert das Cockpit das Token, solange jemand arbeitet, bis
+  höchstens `business-cockpit.jwt.cookie.max-login-duration` nach der Anmeldung. Der Strom selbst
+  verlängert nicht.
 - Eine abgeleitete Anwendung, die das Token per OAuth oder per Wechsel der Rolle erneuert, legt
   das neue Token ins Cookie. Der nächste Versuch trägt es.
 

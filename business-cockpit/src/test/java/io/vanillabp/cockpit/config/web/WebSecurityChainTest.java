@@ -173,6 +173,39 @@ class WebSecurityChainTest {
     }
 
     /**
+     * The renewal reads the authentication the JWT filter restored from the cookie, so it has to
+     * run after it, and before authorization, which may answer the request.
+     */
+    @Test
+    void theRenewalFilterSitsBehindTheJwtFilter() throws Exception {
+
+        final var filters = filterClassNames(guiChain());
+
+        assertThat(filters).contains("JwtRenewalFilter");
+        assertThat(filters.indexOf("JwtRenewalFilter"))
+                .as("filters: %s", filters)
+                .isGreaterThan(filters.indexOf("PassiveJwtSecurityFilter"))
+                .isLessThan(filters.indexOf("AuthorizationFilter"));
+
+    }
+
+    /**
+     * The update stream connects again by itself. It must not keep a login alive which nobody
+     * uses.
+     */
+    @Test
+    void theUpdateStreamDoesNotRenewTheLogin() {
+
+        assertThat(WebSecurityConfiguration.updatesRequestMatcher
+                .matches(new MockHttpServletRequest("GET", "/gui/api/v1/updates")))
+                .isTrue();
+        assertThat(WebSecurityConfiguration.updatesRequestMatcher
+                .matches(new MockHttpServletRequest("GET", "/gui/api/v1/app/current-user")))
+                .isFalse();
+
+    }
+
+    /**
      * Anonymous access is switched off in the GUI chain, so the chain must carry no anonymous filter.
      * Otherwise an unauthenticated request would get an anonymous principal instead of a 401, and
      * nothing would say so.

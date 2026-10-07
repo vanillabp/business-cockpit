@@ -355,4 +355,93 @@ class StartupConfigurationCheckTest {
 
     }
 
+
+    /**
+     * A lifetime of the login token is read only when somebody logs in. One which cannot be read
+     * stops the start instead, and the message names the property and a value to copy.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = { "12h", "PT0S", "-PT1H", "P1X" })
+    void aTokenLifetimeWhichIsNoDurationStopsTheStart(
+            final String lifetime) {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.JWT_EXPIRES_DURATION, lifetime);
+
+        assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+                .isInstanceOf(JwtLifetimeIsNotUsableException.class)
+                .hasMessageContaining("The value '" + lifetime + "' is no duration greater than zero")
+                .hasMessageContaining("Example: " + CockpitConfiguration.JWT_EXPIRES_DURATION + ": PT12H")
+                .hasMessageNotContaining(CockpitConfiguration.JWT_MAX_LOGIN_DURATION);
+
+    }
+
+    @Test
+    void bothTokenLifetimesAreReportedInOneMessage() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.JWT_EXPIRES_DURATION, "twelve hours")
+                .withProperty(CockpitConfiguration.JWT_MAX_LOGIN_DURATION, "a week");
+
+        assertThatThrownBy(() -> check.checkConfigurationOf(environment))
+                .isInstanceOf(JwtLifetimeIsNotUsableException.class)
+                .hasMessageContaining("Example: " + CockpitConfiguration.JWT_EXPIRES_DURATION + ": PT12H")
+                .hasMessageContaining("Example: " + CockpitConfiguration.JWT_MAX_LOGIN_DURATION + ": P7D");
+
+    }
+
+    @Test
+    void aTokenLifetimeWhichIsNoDurationIsShownAsTheFailureReport() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.JWT_MAX_LOGIN_DURATION, "7d");
+        final var failure = catchThrowableOfType(
+                JwtLifetimeIsNotUsableException.class,
+                () -> check.checkConfigurationOf(environment));
+
+        final var analysis = new JwtLifetimeIsNotUsableFailureAnalyzer().analyze(failure);
+
+        assertThat(analysis.getDescription()).contains(CockpitConfiguration.JWT_MAX_LOGIN_DURATION);
+        assertThat(analysis.getAction())
+                .contains("ISO-8601 duration")
+                .contains("leave the property out");
+
+    }
+
+    /**
+     * Configured token lifetimes which work are accepted under the spelling used in YAML, too.
+     */
+    @Test
+    void tokenLifetimesWhichWorkAreAccepted() {
+
+        final var environment = configurationWithout()
+                .withProperty("business-cockpit.jwt.cookie.expiresDuration", "PT8H")
+                .withProperty("business-cockpit.jwt.cookie.maxLoginDuration", "P1D");
+
+        check.checkConfigurationOf(environment);
+
+        assertThat(warnings()).isEmpty();
+
+    }
+
+    /**
+     * A maximum shorter than one token switches the renewal off. That boots, with a word about it.
+     * {@link #aFullyConfiguredApplicationIsToldNothing()} and
+     * {@link #tokenLifetimesWhichWorkAreAccepted()} hold that the default and a longer maximum say
+     * nothing.
+     */
+    @Test
+    void aMaximumShorterThanOneTokenIsAWarning() {
+
+        final var environment = configurationWithout()
+                .withProperty(CockpitConfiguration.JWT_MAX_LOGIN_DURATION, "PT8H");
+
+        check.checkConfigurationOf(environment);
+
+        assertThat(warnings())
+                .contains("Logins are never renewed")
+                .contains(CockpitConfiguration.JWT_MAX_LOGIN_DURATION + ": P7D");
+
+    }
+
 }
