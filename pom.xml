@@ -55,6 +55,20 @@
       it.
     -->
     <skip.npm.update>${skip.npm}</skip.npm.update>
+    <!--
+      The packages 'npm update' may lift: the ones this repository publishes itself. Every other
+      npm dependency stays at the version in package-lock.json and gets newer through Renovate
+      only. See decision 49 in the repository's
+      DECISIONS.md.
+
+      They have to be named. 'npm update' takes no filter. Its option 'scope' looks like one, but
+      only 'init', 'publish', 'search' and 'login' read it, so the old call with 'scope @vanillabp'
+      lifted every package of the module. One list serves every module, also one which uses none
+      of these names: npm skips a name it does not find, still fills node_modules from
+      package-lock.json and leaves the file as it is. Whoever adds a package to this repository
+      adds its name here.
+    -->
+    <npm.own-packages>@vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared @vanillabp/bc-ui @vanillabp/bc-dev-shell-react @vanillabp/bc-dev-shell-angular @vanillabp/bc-dev-shell-vue</npm.own-packages>
     <skip.npm.publish-snapshot>${skip.npm}</skip.npm.publish-snapshot>
     <skip.npm.publish-release>true</skip.npm.publish-release>
     <!--
@@ -174,7 +188,7 @@
               </goals>
               <configuration>
                 <skip>${skip.npm.update}</skip>
-                <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/**</arguments>
+                <arguments>--@vanillabp:registry=${npm.registry} update ${npm.own-packages}</arguments>
               </configuration>
             </execution>
             <execution>

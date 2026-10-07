@@ -1,4 +1,5 @@
 org.springframework.boot.diagnostics.FailureAnalyzer=\
 io.vanillabp.cockpit.config.startup.CockpitIsNotConfiguredFailureAnalyzer,\
 io.vanillabp.cockpit.config.startup.WritesAreNotAcknowledgedFailureAnalyzer,\
-io.vanillabp.cockpit.config.startup.MapKeyDotReplacementIsNotUsableFailureAnalyzer
+io.vanillabp.cockpit.config.startup.MapKeyDotReplacementIsNotUsableFailureAnalyzer,\
+io.vanillabp.cockpit.config.startup.JwtLifetimeIsNotUsableFailureAnalyzer

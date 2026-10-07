@@ -741,11 +741,13 @@ public class UserTaskService {
     /**
      * Stores what a workflow module reports about a user task it has just created.
      * <p>
-     * A creation of a task the cockpit already holds stores nothing. It is the oldest report
-     * there is, so everything it says has been said again since. Storing it would throw away what
-     * the cockpit itself knows about the task: who took it over, who read it, and that it has
-     * ended. There is one exception: a task the cockpit learned about from its end alone has been
-     * waiting for exactly this report.
+     * A creation of a task the cockpit already holds stores nothing but its start. It is the
+     * oldest report there is, so everything else it says has been said again since. Storing it
+     * would throw away what the cockpit itself knows about the task: who took it over, who read
+     * it, and that it has ended. Its start is stored where it is earlier than the one the cockpit
+     * holds, which a change that created the task set to the time of that change. There is one
+     * exception: a task the cockpit learned about from its end alone has been waiting for exactly
+     * this report.
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the workflow module created the task, by its own clock
@@ -764,6 +766,12 @@ public class UserTaskService {
         }
 
         if (!stored.isKnownFromItsEndAlone()) {
+            // a creation's timestamp is the moment the task began. A change which arrived first
+            // and created the task gave it the time of that change as its start instead
+            if (OrderOfReports.isEarlierThanTheStoredStart(eventTimestamp, stored.getCreatedAt())) {
+                stored.setCreatedAt(eventTimestamp);
+                return save(stored);
+            }
             reportChangesNothing(userTaskId, "creation", eventTimestamp, stored);
             return OutcomeOfStoring.upToDate();
         }

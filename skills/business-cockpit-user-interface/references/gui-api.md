@@ -47,6 +47,18 @@ Der Grund für die leere Antwort ist die Anmeldung selbst: die Anfrage, die sich
 authentifiziert, aber erst ihre Antwort trägt das Cookie. Das Cockpit liest den Benutzer aus dem
 Cookie, also hat gerade diese Anfrage noch keinen, und der Client fragt mit dem Cookie nochmal.
 
+Das Cookie verlängert der Server selbst. Hat das Token weniger als die Hälfte seiner Laufzeit übrig
+(`business-cockpit.jwt.cookie.expires-duration`, standardmäßig zwölf Stunden), trägt die Antwort auf
+eine gewöhnliche Anfrage ein neues Cookie. Der Browser übernimmt es von allein, dein UI tut dafür
+nichts. Zwei Dinge musst du trotzdem einplanen:
+
+- Der Ereignisstrom zählt nicht. Ein Tab, in dem niemand etwas tut, ist nach zwölf Stunden
+  abgemeldet. Frag deshalb nichts im Hintergrund nach, nur um angemeldet zu bleiben. Genau das soll
+  nicht passieren.
+- Jede Anmeldung endet nach `business-cockpit.jwt.cookie.max-login-duration`, standardmäßig sieben
+  Tage, auch mitten in der Arbeit. Danach antwortet jede Anfrage mit 401, und der Benutzer muss
+  sich neu anmelden. Dein UI muss eine 401 also jederzeit verkraften, nicht nur beim Start.
+
 `/logout` löscht das Cookie und schickt den Browser auf die Startseite.
 
 Das mitgelieferte UI hat dazu noch ein zweites Verfahren, einen Refresh-Token. Es legt den Wert des
@@ -296,8 +308,11 @@ Anzahl der gelieferten Zeilen, und `businessIds` gibt es nicht.
 
 ## Live-Aktualisierung über Server-Sent-Events
 
-`GET /gui/api/v1/updates` ist ein `text/event-stream`, der offen bleibt, solange der Browser den
-Tab offen hat. Ein Zeitlimit hat er nicht.
+`GET /gui/api/v1/updates` ist ein `text/event-stream`. Er bleibt offen, bis das Token abläuft, mit
+dem er geöffnet wurde. Dann schließt der Server ihn, und der Browser verbindet mit dem Cookie neu,
+das er in diesem Moment hat. Hat der Benutzer inzwischen gearbeitet, ist das ein verlängertes, und
+der neue Strom läuft weiter. Sonst antwortet der Server mit 401. Der Strom selbst verlängert die
+Anmeldung nicht.
 
 Was darüber kommt:
 

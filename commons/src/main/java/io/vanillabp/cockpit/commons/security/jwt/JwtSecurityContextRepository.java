@@ -83,8 +83,7 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
 
         jwtMapper
                 .toToken(context)
-                .ifPresent(token -> response.addCookie(
-                        buildCookie(token.getKey(), Duration.between(Instant.now(), token.getValue()))));
+                .ifPresent(token -> addCookie(properties, response, token.getKey(), token.getValue()));
 
     }
 
@@ -116,7 +115,22 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
 
     }
 
-    private Cookie buildCookie(
+    /**
+     * Writes the JWT cookie, which lives as long as the token in it. Used on login and whenever a
+     * token is renewed, see {@link JwtRenewalFilter}.
+     */
+    public static void addCookie(
+            final JwtProperties properties,
+            final HttpServletResponse response,
+            final String token,
+            final Instant expiresAt) {
+
+        response.addCookie(buildCookie(properties, token, Duration.between(Instant.now(), expiresAt)));
+
+    }
+
+    private static Cookie buildCookie(
+            final JwtProperties properties,
             final String token,
             final Duration maxAge) {
 

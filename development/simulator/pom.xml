@@ -100,7 +100,7 @@
             <configuration>
               <workingDirectory>${project.basedir}/src/main/webapp-angular</workingDirectory>
               <skip>${skip.npm.update}</skip>
-              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --force</arguments>
+              <arguments>--@vanillabp:registry=${npm.registry} update ${npm.own-packages} --force</arguments>
             </configuration>
           </execution>
           <execution>

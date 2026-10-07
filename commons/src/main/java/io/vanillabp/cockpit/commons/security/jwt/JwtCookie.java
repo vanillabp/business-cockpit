@@ -14,7 +14,17 @@ public class JwtCookie {
     
     private boolean secure;
     
+    /**
+     * How long a token lives after its last renewal. A request made in the second half of that time
+     * gets a new token, see {@link JwtRenewalFilter}.
+     */
     private String expiresDuration = "PT12H";
+
+    /**
+     * How long a login lasts at most, however often its token is renewed. It counts from the
+     * login, so a stolen cookie does not stay valid forever.
+     */
+    private String maxLoginDuration = "P7D";
 
     public String getDomain() {
         return domain;
@@ -62,6 +72,14 @@ public class JwtCookie {
     
     public void setExpiresDuration(String expiresDuration) {
         this.expiresDuration = expiresDuration;
+    }
+
+    public String getMaxLoginDuration() {
+        return maxLoginDuration;
+    }
+
+    public void setMaxLoginDuration(String maxLoginDuration) {
+        this.maxLoginDuration = maxLoginDuration;
     }
     
 }
