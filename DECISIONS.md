@@ -1416,7 +1416,7 @@ instead of two. It costs agreement between the two strands, and the platform has
 chain. The default is this script, for the four cockpit repositories, until the maintainer decides
 otherwise.
 
-### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45, and corrected by a late creation in decision 50
+### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45, and corrected by a late creation in decision 50, and who sees a user task changed by decision 54
 
 Measured on 2026-10-03 for story 1423. Nothing was changed, the entry writes down what the server
 already does.
@@ -1897,9 +1897,17 @@ A change which has no workflow after ten minutes is not dropped. The dispatch th
 gets after `block-after-attempts`. The extension logs at ERROR what it waited for and what to check:
 whether the aggregate has a workflow in that BPMS, and whether the BPMS writes what its engine does.
 Ten minutes without the workflow mean that something is wrong, and a dropped change could not be
-reported again. A blocked entry stays in the outbox where it can be seen. The outbox does not
-dispatch it again by itself, and VanillaBP has no command for that, so it waits for whoever repairs
-blocked outbox entries. Decided on 2026-10-05.
+reported again. A blocked entry stays in the outbox where it can be seen. The outbox does not dispatch it again by itself. Decided on 2026-10-05.
+
+Since 2026-10-07 the ERROR line also says how to get the entry out again. It names the place
+where the entry keeps its reason: the column `LAST_FAILURE`, on MongoDB the field `lastFailure`
+(decision 118 of the platform). It ends with the address of the platform's wiki page
+[Blocked outbox entries](https://github.com/vanillabp/adapter-platform-integration/wiki/Blocked-outbox-entries),
+which shows per store how to find a blocked entry and open it again or delete it. The address
+is taken from `PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE`, the constant the platform's own
+ERROR lines use (decision 115 of the platform), so both lines always name the same page. The
+outbox writes its own ERROR about the entry next to ours, with the row and the stack trace. Both
+lines stay. A command or a user interface for the repair is still missing. Decided on 2026-10-07.
 
 The adapter of a change comes from VanillaBP's note of the start, or is the one adapter the
 application configured. Only an application with several adapters and no note still asks the
@@ -1986,7 +1994,7 @@ sorting with its index, the user interface, and the columns a workflow module de
 would reach such a key. Only `$getField` in an expression does, and the cockpit builds that nowhere.
 `AKeyWithADotInTheDetailsTest` measures both settings.
 
-### 45. An end which arrives alone gives the record a start, and says which start where it can - a late creation of any record changed by decision 50
+### 45. An end which arrives alone gives the record a start, and says which start where it can - a late creation of any record changed by decision 50, and who sees a user task changed by decision 54
 
 Decided on 2026-10-04 for story 1429. Before, a user task or a case which the cockpit knew from its
 end alone had no `createdAt`, and the user interface got a record without the start its schema
@@ -2093,7 +2101,7 @@ details provider runs in a transaction of the dispatch. An entry with the id alo
 `userTaskOfAggregate` first, and an entry without a task asks `userTasksOfAggregate` for every
 open task. An empty answer about a task means "not written yet". The entry goes back to the outbox
 with the window, the growing distance and the block of decision 43: ten minutes, then
-`PhaseTwoPermanentFailure` and a line at ERROR which names the task and what to check. An empty
+`PhaseTwoPermanentFailure` and a line at ERROR which names the task and what to check. Like the line of decision 43, it names the field with the reason and links to the platform's page on blocked outbox entries. An empty
 answer of the search for every open task is taken as it is, because an aggregate without an open
 task is nothing unusual. Nothing is sent then.
 
@@ -2367,3 +2375,103 @@ of work.
   browser keeps the last one.
 - A login by standard OAuth would bring its own renewal, by refresh tokens. If the cockpit moves to
   it, this decision goes away together with today's login.
+
+### 53. The SPI only promises what reaches the cockpit
+
+A method of the SPI for Java has to change what the cockpit shows or does. A method which gets lost
+on the way to the cockpit does not belong in the SPI.
+
+#### What was removed
+
+`WorkflowDetails#getDetailsCharacteristics()` and the interface `DetailCharacteristics` it returned.
+For each key of `details`, it said whether the value was sortable and whether it was filterable.
+
+The one implementation, `WorkflowEvent` in `extensions-commons/core`, always returned an empty map.
+The BPMS API of the cockpit has no field for it, so no value could ever reach the server. No adapter
+and no API description used the name. Somebody who set it would see no effect and still believe
+the cockpit followed it.
+
+#### Removed, not deprecated
+
+Version 1.0 is the first version on VanillaBP 2. A method which never did anything needs no time
+to phase out. After 1.0 the same change would break the SPI.
+
+#### If it comes back
+
+Sorting and filtering by a detail needs a field in the BPMS API and a viewer which reads it. Once
+both exist, the SPI can get a method for it again.
+
+### 54. The report which creates a user task says who sees it
+
+Related entries: 19 (an end overwrites what it reports), 36 (a change of a record the cockpit never
+saw creates it), 45 (an end which arrives alone gives the record a start) and 50 (a creation which
+arrives late corrects the start). This entry changes the sentence of 36 which lists what a second
+change writes, for user tasks, and the sentence of 45 "The creation still fills in what the end
+could not report", for who sees a task.
+
+#### What was wrong
+
+A change of a user task replaced its candidate groups and its excluded candidate users. It replaced
+the assignee too, where it named one. So a workflow module could give an open task to other people
+by reporting it again. That undid a takeover in the cockpit without anybody noticing. It also made
+it hard to tell later why a person worked on a task.
+
+#### What the cockpit does now
+
+Four fields say who sees a user task: `assignee`, `candidateUsers`, `candidateGroups` and
+`excludedCandidateUsers`. The report which creates the task in the cockpit sets them. After that no
+report changes them: no change, no end, and no creation which arrives late. Only the cockpit itself
+still changes the assignee and the candidate users, when somebody claims the task or assigns it to
+somebody.
+
+`admittedUsers` is not part of this. Every report may set it, because it only adds readers. An end
+which admits nobody leaves the stored list alone, as decision 19 says for every list of an end.
+
+The report which creates the task is usually the creation. A change or an end can arrive first and
+create the task (decisions 36 and 45). Then that report says who sees the task, and the creation
+which arrives later changes nothing about it. So a change and an end carry the four fields as well,
+and the server decides: if it does not hold the task yet, it uses them, and if it does, it ignores
+them.
+
+One case is different: a dangling task. A task which names no assignee, no candidate user and no
+candidate group is dangling, and the cockpit shows it to everybody. `UserTask.isDangling()` is the
+existing definition, and the cockpit stores the flag from the fields every time it saves the task.
+A dangling task takes who sees it from the first later report which names somebody: a change, an
+end, or a creation which arrives late. After that it is no longer dangling, and the rule above
+holds.
+
+Version 1 of the API is deprecated. In version 1.1 every report carries all values, so a task which
+a report of version 1.1 created is dangling only if it really names nobody. The exception covers
+what is left: ends of version 1, which carry none of the four fields, and ends of a BPMS which could
+no longer describe the task when the end was reported.
+
+The rule holds on every way in: REST version 1, REST version 1.1 and Kafka. It lives in one class,
+`io.vanillabp.cockpit.bpms.WhoSeesAUserTask`, next to `OrderOfReports`. `UserTaskService` calls it
+for every change and end of a task it holds, and for every creation of a task it holds. The
+mappers map the four fields like any other field. The old special case, where an update kept the
+assignee if it named none, is gone, because the rule covers it.
+
+A report which names other people than the cockpit holds is no mistake: the workflow module cannot
+know whether the cockpit already holds the task. So the cockpit writes a DEBUG line about it and no
+warning.
+
+Cases are not part of this. `accessibleToUsers` and `accessibleToGroups` of a workflow stay
+changeable, because the group of people who may read a case can grow for a business reason.
+
+#### How a workflow module hands work to other people
+
+It ends the task and enters it again, for instance with a boundary event which leads back into the
+same user task. The new task is a new record in the cockpit, and its creation says who sees it.
+
+#### What was rejected
+
+- A provider type per point in the life of a task. It would be clean, but it breaks the SPI and
+  puts the topic in front of every developer.
+- Setters which do nothing once the task exists. The extension cannot know for sure whether the
+  cockpit holds the task, because the reports arrive in no fixed order.
+
+#### What it costs
+
+A module which used to reassign tasks by reporting them again has to model that in BPMN. A creation
+which arrives late after an end that named people cannot correct them, even where the end was
+reported from an older state.

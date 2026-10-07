@@ -47,6 +47,8 @@ import org.slf4j.LoggerFactory;
  * The cockpit does not warn about a report which names other people. A workflow module cannot
  * know whether the cockpit already holds the task, so such a report is no mistake. A DEBUG line
  * says that it happened.
+ * <p>
+ * See decision 54 in the repository's DECISIONS.md.
  */
 public final class WhoSeesAUserTask {
 
