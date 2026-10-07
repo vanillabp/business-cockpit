@@ -248,6 +248,9 @@ paths:
             format: date-time
         - in: query
           name: path
+          description: >-
+            The path to suggest words from, with the rule of 'sort'. Any other path is answered with
+            400. Without it the suggestions come from the full text the workflow module reported.
           schema:
             type: string
         - in: query
@@ -389,6 +392,9 @@ paths:
             format: date-time
         - in: query
           name: path
+          description: >-
+            The path to suggest words from, with the rule of 'sort'. Any other path is answered with
+            400. Without it the suggestions come from the full text the workflow module reported.
           schema:
             type: string
         - in: query
@@ -730,6 +736,11 @@ components:
       properties:
         path:
           type: string
+          description: >-
+            The path to filter on, with the rule of 'sort': a field of the list or a key of the
+            business data below 'details.'. Each part of a path holds letters, digits and '_', and
+            below 'details.' also '-'. Any other path is answered with 400. Without it the filter
+            searches the full text the workflow module reported.
         query:
           type: string
         caseInsensitive:
@@ -1039,6 +1050,12 @@ components:
         - Inactive
     UserTaskRetrieveMode:
       type: string
+      description: >-
+        Which user tasks a list shows. 'All' shows open and ended tasks. 'OpenTasks' shows every
+        task which has not ended, with or without a follow-up date. 'OpenTasksWithFollowUp' is
+        another name for 'OpenTasks' and shows the same tasks. 'OpenTasksWithoutFollowUp' shows open
+        tasks without a follow-up date or with one which is due. 'OpenTaskOnlyFollowUp' shows open
+        tasks with a follow-up date in the future. 'ClosedTasksOnly' shows ended tasks.
       enum:
         - All
         - OpenTasks
@@ -1052,19 +1069,30 @@ components:
         pageNumber:
           type: integer
           format: int32
+          minimum: 0
+          default: 0
+          description: The page to answer, counted from 0. Without it the server answers the first page.
         pageSize:
           type: integer
           format: int32
-        query:
-          type: string
+          minimum: 1
+          description: The number of user tasks per page. 'POST /usertask' answers 400 without it. 'POST /workflow/{workflowId}/usertasks' takes 100 if it is missing.
         searchQueries:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
+          description: >-
+            Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
+            or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
+            sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
     UserTasks:
@@ -1092,16 +1120,23 @@ components:
         size:
           type: integer
           format: int32
-        query:
-          type: string
+          minimum: 1
         searchQueries:
           type: array
           items:
             $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
+          description: >-
+            Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
+            or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
+            sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         knownUserTasksIds:
           type: array
           items:
@@ -1114,9 +1149,14 @@ components:
         pageNumber:
           type: integer
           format: int32
+          minimum: 0
+          default: 0
+          description: The page to answer, counted from 0. Without it the server answers the first page.
         pageSize:
           type: integer
           format: int32
+          minimum: 1
+          description: The number of workflows per page. The server answers 400 without it.
         searchQueries:
           type: array
           items:
@@ -1128,8 +1168,16 @@ components:
           description: Filters the response to include only entries associated with the specified business IDs
         sort:
           type: string
+          description: >-
+            Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
+            or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
+            sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
     Workflows:
@@ -1159,6 +1207,7 @@ components:
         size:
           type: integer
           format: int32
+          minimum: 1
         knownWorkflowsIds:
           type: array
           items:
@@ -1169,8 +1218,16 @@ components:
             $ref: '#/components/schemas/SearchQuery'
         sort:
           type: string
+          description: >-
+            Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
+            or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
+            sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
     KwicRequest:

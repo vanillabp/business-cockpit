@@ -101,6 +101,7 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
         failOnMissingMandatoryValues(environment);
         failOnAnUnusableMapKeyDotReplacement(environment);
         failOnAnUnusableJwtLifetime(environment);
+        failOnAnUnusableSortIndexLimit(environment);
         warnAboutTheBpmsApi(environment);
         generateAJwtKeyIfNoneIsConfigured(environment);
         warnAboutALoginWhichIsNeverRenewed(environment);
@@ -173,6 +174,21 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
                 .whatIsWrongWith(replacement.get())
                 .ifPresent(reason -> {
                     throw new MapKeyDotReplacementIsNotUsableException(replacement.get(), reason);
+                });
+
+    }
+
+    /**
+     * The limit is read only when a list is sorted by a new path, which can be days after the
+     * start. A value which cannot work is reported now instead.
+     */
+    private void failOnAnUnusableSortIndexLimit(
+            final Environment environment) {
+
+        SortIndexLimit
+                .whatIsWrongWith(environment)
+                .ifPresent(reason -> {
+                    throw new SortIndexLimitIsNotUsableException(reason);
                 });
 
     }

@@ -9,12 +9,17 @@ import io.vanillabp.cockpit.commons.exceptions.BcUnauthorizedException;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
 import io.vanillabp.cockpit.commons.mongo.updateinfo.UpdateInformationAware;
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
+import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
+import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.util.kwic.KwicService;
 import jakarta.annotation.PostConstruct;
@@ -22,14 +27,10 @@ import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.bson.Document;
@@ -38,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -45,10 +47,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.support.PageableExecutionUtils;
@@ -58,15 +60,22 @@ import org.springframework.util.StringUtils;
 @Service
 public class UserTaskService {
 
-    public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
+    public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
     public static final String PROPERTY_DUEDATE = "dueDate";
     public static final String PROPERTY_CREATEDAT = "createdAt";
     public static final String PROPERTY_ID = "id";
 
     public static enum RetrieveItemsMode {
         All,
+        /** Every task which has not ended, whatever its follow-up date says. */
         OpenTasks,
+        /** Open tasks without a follow-up date, or with one which is due. */
         OpenTasksWithoutFollowUp,
+        /**
+         * Another name for {@link #OpenTasks}, which shows the same tasks. The name sounds like a
+         * filter, but there is none. It stays because the GUI API offers it. See decision 58 in
+         * the repository's DECISIONS.md.
+         */
         OpenTasksWithFollowUp,
         OpenTaskOnlyFollowUp,
         ClosedTasksOnly
@@ -83,10 +92,17 @@ public class UserTaskService {
                     Order.desc(PROPERTY_ID)
             );
 
-    private static final Set<String> sortAndFilterIndexes = new HashSet<>();
-    private static final ReadWriteLock sortAndFilterIndexesLock = new ReentrantReadWriteLock();
-    private static final Lock sortAndFilterIndexWriteLock = sortAndFilterIndexesLock.writeLock();
-    private static final Lock sortAndFilterIndexReadLock = sortAndFilterIndexesLock.readLock();
+    /**
+     * The top-level fields a list of user tasks may be sorted and filtered by: every field of
+     * {@code UserTask} in the GUI API which is stored under the same name. Keys of the business data
+     * are allowed as well, see {@link ListPaths}.
+     */
+    public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
+            "id", "version", "initiator", "createdAt", "updatedAt", "endedAt", "workflowModuleId",
+            "comment", "bpmnProcessId", "bpmnProcessVersion", "workflowTitle", "workflowId",
+            "businessId", "title", "bpmnTaskId", "taskDefinition", "taskDefinitionTitle", "uiUriType",
+            "assignee", "candidateUsers", "candidateGroups", PROPERTY_DUEDATE, "followUpDate",
+            "detailsFulltextSearch");
 
     @Autowired
     private Logger logger;
@@ -108,6 +124,13 @@ public class UserTaskService {
 
     @Autowired
     private UserContext currentUserContext;
+
+    @Autowired
+    private Environment environment;
+
+    private ListPaths listPaths;
+
+    private SortIndexes sortIndexes;
 
     private Subscription dbChangesSubscription;
 
@@ -159,21 +182,17 @@ public class UserTaskService {
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
-        final var knownSorts = mongoTemplate
-                .indexOps(UserTask.COLLECTION_NAME)
-                .getIndexInfo()
-                .stream()
-                .map(indexInfo -> indexInfo.getName())
-                .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                .map(name -> name.substring(INDEX_CUSTOM_SORT_PREFIX.length()))
-                .toList();
-
-        try {
-            sortAndFilterIndexWriteLock.lock();
-            sortAndFilterIndexes.addAll(knownSorts);
-        } finally {
-            sortAndFilterIndexWriteLock.unlock();
-        }
+        listPaths = new ListPaths(
+                FIELDS_OF_THE_LIST,
+                MapKeyDotReplacement.configuredIn(environment));
+        sortIndexes = new SortIndexes(
+                UserTask.COLLECTION_NAME,
+                listPaths,
+                SortIndexLimit.configuredIn(environment),
+                CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION,
+                mongoTemplate,
+                logger);
+        sortIndexes.learnExistingIndexes();
 
     }
 
@@ -494,6 +513,7 @@ public class UserTaskService {
         Arrays
                 .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
                 .filter(StringUtils::hasText)
+                .peek(sortIndexes::checkPath)
                 .peek(languageBasedSort -> {
                     indexProps.add(languageBasedSort);
                     final var defaultOrder = defaultOrdering
@@ -563,7 +583,7 @@ public class UserTaskService {
 
         // build query
         final var query = new Query();
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         query.addCriteria(
                 buildUserTasksCriteria(
                         visibility,
@@ -575,10 +595,7 @@ public class UserTaskService {
         }
 
         // build index before retrieving data if necessary
-        ensureSortAndFilterIndex(
-                orderBySort,
-                UserTask.COLLECTION_NAME,
-                "Could not create Mongo-DB index for sorting and filtering of tasklist");
+        sortIndexes.ensureIndex(orderBySort.indexName(), orderBySort.toBeIndexed());
 
         final var numberOfUserTasksFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), UserTask.class);
@@ -592,50 +609,6 @@ public class UserTaskService {
 
     }
 
-    /**
-     * Sorting and filtering by arbitrary properties needs an index per combination. An index is
-     * created the first time its combination is asked for and is remembered afterwards. A creation
-     * which failed is remembered as well. The query still works without the index, and trying
-     * again on every request would only cost time.
-     */
-    private void ensureSortAndFilterIndex(
-            final UserTaskListOrder orderBySort,
-            final String collectionName,
-            final String errorMessage) {
-
-        try {
-            sortAndFilterIndexReadLock.lock();
-            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return;
-            }
-        } finally {
-            sortAndFilterIndexReadLock.unlock();
-        }
-
-        try {
-            sortAndFilterIndexWriteLock.lock();
-            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return;
-            }
-            final var newIndex = new Index();
-            orderBySort
-                    .toBeIndexed()
-                    .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
-            newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
-            try {
-                mongoTemplate
-                        .indexOps(collectionName)
-                        .createIndex(newIndex);
-            } catch (Exception e) {
-                logger.error(errorMessage, e);
-            }
-            sortAndFilterIndexes.add(orderBySort.indexName);
-        } finally {
-            sortAndFilterIndexWriteLock.unlock();
-        }
-
-    }
-
     public List<KwicResult> kwic(
             final UserTaskVisibility visibility,
             final OffsetDateTime initialTimestamp,
@@ -643,6 +616,8 @@ public class UserTaskService {
             final String path,
             final String query) {
 
+        listPaths.check("path", path);
+        listPaths.checkFilters(searchQueries);
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
             return List.of();
@@ -712,7 +687,7 @@ public class UserTaskService {
                         initialTimestamp,
                         effectiveMode,
                         null));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
@@ -1167,6 +1142,20 @@ public class UserTaskService {
         }
 
         return new Criteria().andOperator(subCriterias);
+
+    }
+
+    /**
+     * The conditions of the filters of a list request, after their paths are checked.
+     *
+     * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+     *         the rule of {@link ListPaths}
+     */
+    private List<? extends CriteriaDefinition> filterCriteria(
+            final Collection<SearchQuery> searchQueries) {
+
+        listPaths.checkFilters(searchQueries);
+        return SearchCriteriaHelper.buildSearchCriteria(searchQueries);
 
     }
 

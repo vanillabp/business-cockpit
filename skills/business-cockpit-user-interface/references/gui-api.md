@@ -116,14 +116,16 @@ führt.
 ## Seitenweise lesen
 
 `pageNumber` und `pageSize` in `POST /usertask` und `POST /workflow` gehen unverändert an die
-Datenbank. Es gibt keinen Standardwert und keine Obergrenze. Das heißt zwei Dinge für dein UI:
+Datenbank. Fehlt `pageNumber`, kommt die erste Seite, also `0`. Fehlt `sortAscending`, sortiert der
+Server aufsteigend. Das gilt auch für die Aktualisierung mit `PUT`.
 
-Setze beide Felder immer. Ohne sie antwortet der Server mit einem Fehler, denn die Werte sind in der
-Beschreibung optional und im Code nicht.
+`pageSize` hat keinen Standardwert. Fehlt es, antwortet der Server mit 400 und nennt das Feld:
+`The request is not valid: 'pageSize' is missing.` Eine Seitengröße unter 1 und eine Seite unter 0
+lehnt er genauso mit 400 ab. Setze `pageSize` also immer.
 
-Wähle die Seitengröße selbst mit Bedacht. Das mitgelieferte UI lädt in Blöcken von 30 Zeilen und
-hängt den nächsten Block an, wenn der Benutzer nach unten kommt. Der Server hält dich von nichts ab,
-auch nicht von 100000 Zeilen in einer Anfrage.
+Eine Obergrenze gibt es nicht. Wähle die Seitengröße selbst mit Bedacht. Das mitgelieferte UI lädt
+in Blöcken von 30 Zeilen und hängt den nächsten Block an, wenn der Benutzer nach unten kommt. Der
+Server hält dich von nichts ab, auch nicht von 100000 Zeilen in einer Anfrage.
 
 Die Antwort trägt ein `page` mit `number`, `size`, `totalPages` und `totalElements`.
 `totalElements` ist genau gezählt, in einer zweiten Abfrage über dieselben Bedingungen. Du kannst
@@ -136,10 +138,24 @@ also eine Gesamtzahl anzeigen, und sie kostet eine Zählung je Seite.
 `sort` ist eine Liste von Pfaden im gespeicherten Dokument, mit Komma getrennt. `sortAscending` gilt
 für alle davon.
 
-Es gibt keine erlaubte Liste. Was du schickst, wird sortiert, auch ein Pfad, den es nicht gibt. Der
-Server legt zu jeder neuen Zeichenkette in `sort` einen Index in der Datenbank an und merkt sich,
-dass er es getan hat. Darum gilt: schicke nur Pfade, die aus einer Spalte kommen, und baue kein
-Suchfeld, aus dem ein Benutzer frei einen Sortierpfad eingeben kann.
+Ein Pfad nennt entweder ein Feld der Liste oder einen Schlüssel der gemeldeten Geschäftsdaten unter
+`details.`. Die Felder der Liste sind die Felder von `UserTask` bzw. `Workflow` in der Beschreibung,
+die der Server unter demselben Namen speichert, also zum Beispiel `dueDate`, `title.de` oder
+`assignee.sort`. `uiUri`, `workflowModuleUri` und `read` gehören nicht dazu, weil der Server sie
+erst beim Antworten berechnet. Jeder Teil eines Pfads besteht aus Buchstaben, Ziffern und `_`. Unter
+`details.` ist auch der Bindestrich erlaubt, weil ein Workflow-Modul einen Schlüssel wie `order-id`
+melden darf. Ein Leerzeichen oder ein `$` ist nirgends erlaubt. Ist für die Geschäftsdaten ein
+Ersatz für den Punkt eingestellt, darf er unter `details.` vorkommen.
+
+Jeden anderen Pfad lehnt der Server mit 400 ab:
+`The request is not valid: 'sort' may only name fields of the list or keys below 'details.'. A part
+of a path holds letters, digits and '_', and below 'details.' also '-'.` Das gilt für die Liste und
+für die Aktualisierung.
+
+Zu jeder neuen Kombination von Pfaden legt der Server einen Index in der Datenbank an, aber höchstens
+30 je Sammlung (`business-cockpit.mongodb.sort-indexes-per-collection`). Danach sortiert er ohne
+eigenen Index und warnt einmal je Kombination im Log. Das Ergebnis ist dasselbe, nur auf einer großen
+Sammlung langsamer. Schicke also weiter am besten Pfade, die aus einer Spalte kommen.
 
 An das, was du schickst, hängt der Server seine eigene Ordnung an, damit das Blättern stabil
 bleibt. Bei Aufgaben ist das `dueDate`, `createdAt`, `id`, bei Fällen `createdAt`, `id`. Ein Feld,
@@ -171,6 +187,12 @@ selbst zusammengestellt hat, siehe
 [Reporting workflows and user tasks](https://github.com/vanillabp/business-cockpit/wiki/Reporting-workflows-and-user-tasks).
 Ein Volltextfeld und nichts darüber hinaus: wer nicht gemeldet hat, ist nicht zu finden.
 
+Für `path` gilt dieselbe Regel wie für einen Sortierpfad, siehe [Sortieren](#sortieren): ein Feld der
+Liste oder ein Schlüssel unter `details.`. Jeden anderen Pfad lehnt der Server mit 400 ab, zum
+Beispiel `The request is not valid: 'searchQueries.path' may only name fields of the list or keys
+below 'details.'. A part of a path holds letters, digits and '_', and below 'details.' also '-'.`
+Ein Feld, das die API nicht zeigt, ist also auch als Filter nicht zu erreichen.
+
 `query` ist ein regulärer Ausdruck, kein Text. Er ist nicht verankert, trifft also auch mitten im
 Wert. Ein `.` oder ein `*` aus der Eingabe des Benutzers wird als Sonderzeichen gelesen. Wenn dein
 UI eine Eingabe durchreicht, maskiere sie.
@@ -182,13 +204,9 @@ demselben `path` sind keine zwei Bedingungen auf einem Feld, sondern ein Fehlerf
 mitgelieferte UI hält sich daran, indem es beim Setzen eines Filters den alten Eintrag für diesen
 Pfad vorher entfernt. Mach es genauso.
 
-Zwei Felder, die danach aussehen und es nicht sind:
-
-`query` von `UserTasksRequest` liest der Server nicht. Es steht in der Beschreibung und in keinem
-Code. Benutze `searchQueries`.
-
-`businessIds` von `WorkflowsRequest` ist ein genauer Vergleich auf dem Feld `businessId` und kein
-Suchmuster. Es wirkt nur auf `POST /workflow` und nicht auf die Aktualisierung mit `PUT`, siehe
+Ein Feld, das danach aussieht und es nicht ist: `businessIds` von `WorkflowsRequest` ist ein
+genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. Es wirkt nur auf `POST /workflow`
+und nicht auf die Aktualisierung mit `PUT`, siehe
 [rough-edges.md](rough-edges.md#businessids-verschwindet-bei-der-aktualisierung).
 
 ## Vorschläge für ein Suchfeld
@@ -198,7 +216,8 @@ context", kurz KWIC. Ein UI benutzt sie für die Vorschläge unter einem Suchfel
 
 Die Abfrage nimmt `query` und wahlweise `path` als Parameter und die bereits gesetzten
 `searchQueries` im Körper. Sie antwortet mit ganzen Wörtern, die `query` enthalten, je Wort eine
-Anzahl.
+Anzahl. `path` und die Pfade in `searchQueries` folgen derselben Regel wie ein Sortierpfad, sonst
+antwortet der Server mit 400. Bei `path` nennt die Meldung `'path'`.
 
 Was du dabei wissen musst:
 
@@ -233,7 +252,7 @@ Der Modus:
 | `OpenTasks` | was kein Ende hat |
 | `OpenTasksWithoutFollowUp` | offen, ohne Wiedervorlage oder mit einer, die fällig ist |
 | `OpenTaskOnlyFollowUp` | offen, mit einer Wiedervorlage in der Zukunft |
-| `OpenTasksWithFollowUp` | heute dasselbe wie `OpenTasks`, siehe [rough-edges.md](rough-edges.md#opentaskswithfollowup-filtert-nichts) |
+| `OpenTasksWithFollowUp` | ein anderer Name für `OpenTasks`: dieselben Zeilen, mit und ohne Wiedervorlage |
 | `ClosedTasksOnly` | nur was ein Ende hat |
 
 | `mode` einer Fallliste | Was kommt |

@@ -20,6 +20,7 @@ public class TaskService {
         ALL,
         OPENTASKS,
         OPENTASKSWITHOUTFOLLOWUP,
+        /** Another name for OPENTASKS, the same as in the cockpit. */
         OPENTASKSWITHFOLLOWUP,
         CLOSEDTASKSONLY
     };
@@ -89,7 +90,7 @@ public class TaskService {
         final Sort sort = resolveSort(sortField, sortAscending);
 
         final var allTasks = switch (retrieveMode) {
-            case OPENTASKS -> userTasks.findByEndedAtIsNull(sort);
+            case OPENTASKS, OPENTASKSWITHFOLLOWUP -> userTasks.findByEndedAtIsNull(sort);
             case CLOSEDTASKSONLY ->  userTasks.findByEndedAtIsNotNull(sort);
             default -> userTasks.findAll(sort);
         };
@@ -132,7 +133,7 @@ public class TaskService {
         final Sort sort = resolveSort(sortField, sortAscending);
 
         final var allTasks = switch (retrieveMode) {
-            case OPENTASKS -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId, sort);
+            case OPENTASKS, OPENTASKSWITHFOLLOWUP -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId, sort);
             case CLOSEDTASKSONLY ->  userTasks.findByWorkflowIdAndEndedAtIsNotNull(workflowId, sort);
             default -> userTasks.findByWorkflowId(workflowId, sort);
         };

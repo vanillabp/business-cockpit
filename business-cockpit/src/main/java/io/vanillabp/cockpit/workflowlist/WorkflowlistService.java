@@ -5,8 +5,13 @@ import io.vanillabp.cockpit.bpms.WhatAnEndReports;
 import io.vanillabp.cockpit.bpms.OrderOfReports;
 import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
 import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
+import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
+import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.util.SearchCriteriaHelper;
+import io.vanillabp.cockpit.util.ListPaths;
 import io.vanillabp.cockpit.util.SearchQuery;
+import io.vanillabp.cockpit.util.SortIndexes;
 import io.vanillabp.cockpit.util.kwic.KwicResult;
 import io.vanillabp.cockpit.util.kwic.KwicService;
 import io.vanillabp.cockpit.workflowlist.model.Workflow;
@@ -16,14 +21,10 @@ import jakarta.annotation.PreDestroy;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.bson.Document;
@@ -32,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -39,7 +41,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -58,7 +59,7 @@ public class WorkflowlistService {
         Inactive
     }
 
-    public static final String INDEX_CUSTOM_SORT_PREFIX = "_sort_";
+    public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
     public static final String PROPERTY_CREATEDAT = "createdAt";
     public static final String PROPERTY_ID = "id";
 
@@ -71,10 +72,15 @@ public class WorkflowlistService {
             Order.desc(PROPERTY_ID)
     );
 
-    private static final Set<String> sortAndFilterIndexes = new HashSet<>();
-    private static final ReadWriteLock sortAndFilterIndexesLock = new ReentrantReadWriteLock();
-    private static final Lock sortAndFilterIndexWriteLock = sortAndFilterIndexesLock.writeLock();
-    private static final Lock sortAndFilterIndexReadLock = sortAndFilterIndexesLock.readLock();
+    /**
+     * The top-level fields a list of workflows may be sorted and filtered by: every field of
+     * {@code Workflow} in the GUI API which is stored under the same name. Keys of the business data
+     * are allowed as well, see {@link ListPaths}.
+     */
+    public static final Set<String> FIELDS_OF_THE_LIST = Set.of(
+            PROPERTY_ID, "version", "initiator", PROPERTY_CREATEDAT, "updatedAt", "endedAt",
+            "workflowModuleId", "comment", "bpmnProcessId", "bpmnProcessVersion", "businessId", "title",
+            "uiUriType", "accessibleToUsers", "accessibleToGroups", "detailsFulltextSearch");
 
     @Autowired
     private Logger logger;
@@ -94,26 +100,29 @@ public class WorkflowlistService {
     @Autowired
     private KwicService kwicService;
 
+    @Autowired
+    private Environment environment;
+
+    private ListPaths listPaths;
+
+    private SortIndexes sortIndexes;
+
     private Subscription dbChangesSubscription;
 
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
-        final var knownSorts = mongoTemplate
-                .indexOps(Workflow.COLLECTION_NAME)
-                .getIndexInfo()
-                .stream()
-                .map(indexInfo -> indexInfo.getName())
-                .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
-                .map(name -> name.substring(INDEX_CUSTOM_SORT_PREFIX.length()))
-                .toList();
-
-        try {
-            sortAndFilterIndexWriteLock.lock();
-            sortAndFilterIndexes.addAll(knownSorts);
-        } finally {
-            sortAndFilterIndexWriteLock.unlock();
-        }
+        listPaths = new ListPaths(
+                FIELDS_OF_THE_LIST,
+                MapKeyDotReplacement.configuredIn(environment));
+        sortIndexes = new SortIndexes(
+                Workflow.COLLECTION_NAME,
+                listPaths,
+                SortIndexLimit.configuredIn(environment),
+                CockpitConfiguration.MONGODB_SORT_INDEXES_PER_COLLECTION,
+                mongoTemplate,
+                logger);
+        sortIndexes.learnExistingIndexes();
 
     }
 
@@ -374,15 +383,13 @@ public class WorkflowlistService {
                         mode,
                         null,
                         businessIds));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
 
         // build index before retrieving data if necessary
-        if (orderBySort.toBeIndexed() != null) {
-            ensureSortAndFilterIndex(orderBySort);
-        }
+        sortIndexes.ensureIndex(orderBySort.indexName(), orderBySort.toBeIndexed());
 
         final var numberOfWorkflowsFound = mongoTemplate
                 .count(Query.of(query).limit(-1).skip(-1), Workflow.class);
@@ -393,48 +400,6 @@ public class WorkflowlistService {
                 workflowsFound,
                 pageRequest,
                 () -> numberOfWorkflowsFound);
-
-    }
-
-    /**
-     * Sorting and filtering by arbitrary properties needs an index per combination. An index is
-     * created the first time its combination is asked for and is remembered afterwards. A creation
-     * which failed is remembered as well. The query still works without the index, and trying
-     * again on every request would only cost time.
-     */
-    private void ensureSortAndFilterIndex(
-            final WorkflowListOrder orderBySort) {
-
-        try {
-            sortAndFilterIndexReadLock.lock();
-            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return;
-            }
-        } finally {
-            sortAndFilterIndexReadLock.unlock();
-        }
-
-        try {
-            sortAndFilterIndexWriteLock.lock();
-            if (sortAndFilterIndexes.contains(orderBySort.indexName)) {
-                return;
-            }
-            final var newIndex = new Index();
-            orderBySort
-                    .toBeIndexed()
-                    .forEach(languageSort -> newIndex.on(languageSort, Sort.Direction.ASC));
-            newIndex.named(INDEX_CUSTOM_SORT_PREFIX + orderBySort.indexName);
-            try {
-                mongoTemplate
-                        .indexOps(Workflow.COLLECTION_NAME)
-                        .createIndex(newIndex);
-            } catch (Exception e) {
-                logger.error("Could not create Mongo-DB index for sorting and filtering of workflowlist", e);
-            }
-            sortAndFilterIndexes.add(orderBySort.indexName);
-        } finally {
-            sortAndFilterIndexWriteLock.unlock();
-        }
 
     }
 
@@ -454,6 +419,7 @@ public class WorkflowlistService {
         Arrays
                 .stream(sort.split(",")) // maybe something like 'title.de,title.en' or just simply 'assignee'
                 .filter(StringUtils::hasText)
+                .peek(sortIndexes::checkPath)
                 .peek(languageBasedSort -> {
                     indexProps.add(languageBasedSort);
                     final var defaultOrder = defaultOrdering
@@ -508,7 +474,7 @@ public class WorkflowlistService {
                         effectiveMode,
                         null,
 			null));
-        final var searchCriteria = SearchCriteriaHelper.buildSearchCriteria(searchQueries);
+        final var searchCriteria = filterCriteria(searchQueries);
         if (searchCriteria != null) {
             searchCriteria.forEach(query::addCriteria);
         }
@@ -564,6 +530,8 @@ public class WorkflowlistService {
             final String path,
             final String query) {
 
+        listPaths.check("path", path);
+        listPaths.checkFilters(searchQueries);
         if (!StringUtils.hasText(query)
                 || (query.length() < 3)) {
             return List.of();
@@ -661,6 +629,20 @@ public class WorkflowlistService {
         if (dbChangesSubscription != null) {
             changeStreamUtils.unsubscribe(dbChangesSubscription);
         }
+
+    }
+
+    /**
+     * The conditions of the filters of a list request, after their paths are checked.
+     *
+     * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if a path breaks
+     *         the rule of {@link ListPaths}
+     */
+    private List<? extends CriteriaDefinition> filterCriteria(
+            final Collection<SearchQuery> searchQueries) {
+
+        listPaths.checkFilters(searchQueries);
+        return SearchCriteriaHelper.buildSearchCriteria(searchQueries);
 
     }
 

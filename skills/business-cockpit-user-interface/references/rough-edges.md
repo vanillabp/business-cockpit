@@ -69,15 +69,6 @@ nochmal probieren, bekommt aber nie einen. Das ist ein Haken für ein eigenes Co
 eigenen Identity-Provider und kein Verhalten, auf das du bauen kannst. Was ein Server mit dem
 Kopffeld tun soll, steht nirgends.
 
-## Jeder neue Sortierpfad legt einen Index an
-
-Der Server legt für jede bisher ungesehene Zeichenkette in `sort` einen Index in der Datenbank an und
-merkt sich in der laufenden Anwendung, dass er es getan hat. Eine Obergrenze gibt es nicht, und die
-Zeichenkette kommt aus der Anfrage.
-
-Für dein UI heißt das: sortiere nur nach Pfaden, die aus einer Spalte kommen. Lass einen Benutzer
-keinen Sortierpfad eintippen, und baue keine Sortierung, deren Pfad sich aus Eingaben zusammensetzt.
-
 ## Ein Suchmuster kommt ungefiltert in die Datenbank
 
 `query` einer `SearchQuery` wird als regulärer Ausdruck verwendet, ohne Maskierung und ohne
@@ -90,12 +81,6 @@ Die Bedingungen einer Abfrage werden mit UND verknüpft, aber zwei Bedingungen a
 nimmt die Abfrage nicht an. Setze beim Filtern also immer den alten Eintrag für diesen Pfad zurück,
 bevor du den neuen hinzufügst. So macht es das mitgelieferte UI.
 
-## `query` ist tot
-
-`UserTasksRequest` und `UserTasksUpdateRequest` haben ein Feld `query`. Der Server liest es nicht.
-Benutze `searchQueries`, auch für die Volltextsuche: eine `SearchQuery` ohne `path` ist die
-Volltextsuche.
-
 ## `businessIds` verschwindet bei der Aktualisierung
 
 `businessIds` wirkt nur auf `POST /workflow`. `WorkflowsUpdateRequest` hat das Feld nicht, und die
@@ -103,17 +88,14 @@ Aktualisierung übergibt an dieser Stelle nichts. Eine Liste, die nach Geschäft
 ist, bekommt bei der Aktualisierung also auch Fälle, die nicht dazugehören. Filtere danach selbst
 nach, wenn du diesen Filter benutzt.
 
-## `OpenTasksWithFollowUp` filtert nichts
+## `OpenTasksWithFollowUp` ist nur ein anderer Name
 
-Von den sechs Modi einer Aufgabenliste setzt dieser keine Bedingung auf die Wiedervorlage. Er wirkt
-heute wie `OpenTasks`. Der Name verspricht mehr, als der Code tut.
+Der Name klingt nach einem Filter auf die Wiedervorlage. Es gibt keinen: der Modus ist ein anderer
+Name für `OpenTasks` und liefert alle offenen Aufgaben, mit und ohne Wiedervorlage. So ist es
+entschieden, und so bleibt es.
 
 Wer offene Aufgaben mit einer Wiedervorlage in der Zukunft will, nimmt `OpenTaskOnlyFollowUp`. Wer
 die ohne Wiedervorlage oder mit einer fälligen will, nimmt `OpenTasksWithoutFollowUp`.
-
-Lücke in dieser Beschreibung: ob der Modus so gemeint ist, sagt niemand. Er steht in der
-OpenAPI-Beschreibung, im Enum des Servers und in keinem einzigen `if`, und kein Kommentar nennt die
-Bedingung, die gemeint war. Nimm ihn also nicht, bevor das entschieden ist.
 
 ## Die Vorschläge sind nicht die häufigsten
 
