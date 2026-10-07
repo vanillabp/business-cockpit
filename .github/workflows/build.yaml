@@ -3,6 +3,9 @@ name: Build
 on:
   pull_request:
   workflow_dispatch:
+  # The nightly build calls this workflow as it is, so the night proves what a pull request
+  # proves. See nightly-build.yaml.
+  workflow_call:
 
 # A group per pull request. GitHub keeps at most one waiting run per group, and a
 # newer run takes the place of the one that waits. The replaced run ends as

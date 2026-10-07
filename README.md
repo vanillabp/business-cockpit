@@ -68,6 +68,14 @@ next night is a comment on that issue. Run the script locally to get the same re
 the GitHub CLI, logged in, and for the snapshot question a token with `read:packages` in
 `PACKAGES_TOKEN`.
 
+The chain check builds nothing, so it cannot see a main which a new platform snapshot breaks while
+nobody pushes here. The workflow `Nightly build` does that. Once a night it runs the pull-request
+build on main, with `--update-snapshots`, so it builds against the snapshots published since the
+last run. It publishes nothing. It waits for a publish of main which is running or waiting, and then
+joins the publish's group, so the two never run at the same time. A red night becomes one issue with
+the label `nightly-build`, and a night which is still red is a comment on that issue. The two
+adapter repositories for Camunda 7 and the Process Engine API have the same workflow.
+
 The application runs on Spring Boot 4.1 and Java 21, on Spring MVC with virtual threads. There is no
 dual build. The Spring Boot 3 code paths are gone, and applications still on Spring Boot 3.5 stay on
 the 0.3.x line. The consequences for somebody deriving an application from the cockpit are in the
