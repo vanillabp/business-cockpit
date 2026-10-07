@@ -41,14 +41,61 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
     
     void setTaskDefinitionTitle(Map<String, String> taskDefinitionTitle);
     
+    /**
+     * Sets the user the task is assigned to.
+     *
+     * <p>The cockpit uses this value when it stores the task for the first time. A value set for a
+     * later report is not used. The provider is still called for every report, so it may simply
+     * set the same value each time.
+     *
+     * @param assignee The user id of the assignee
+     * @see UserTaskDetails#getAssignee()
+     */
     void setAssignee(String assignee);
-    
+
+    /**
+     * Sets the users who may work on the task.
+     *
+     * <p>The cockpit uses this value when it stores the task for the first time. A value set for a
+     * later report is not used. The provider is still called for every report, so it may simply
+     * set the same value each time.
+     *
+     * @param candidateUsers The user ids of the candidates
+     * @see UserTaskDetails#getCandidateUsers()
+     */
     void setCandidateUsers(List<String> candidateUsers);
-    
+
+    /**
+     * Sets the groups whose members may work on the task.
+     *
+     * <p>The cockpit uses this value when it stores the task for the first time. A value set for a
+     * later report is not used. The provider is still called for every report, so it may simply
+     * set the same value each time.
+     *
+     * @param candidateGroups The group ids of the candidates
+     * @see UserTaskDetails#getCandidateGroups()
+     */
     void setCandidateGroups(List<String> candidateGroups);
 
+    /**
+     * Sets the users who must not work on the task, although they are candidates.
+     *
+     * <p>The cockpit uses this value when it stores the task for the first time. A value set for a
+     * later report is not used. The provider is still called for every report, so it may simply
+     * set the same value each time.
+     *
+     * @param candidateUsers The user ids left out
+     * @see UserTaskDetails#getExcludedCandidateUsers()
+     */
     void setExcludedCandidateUsers(List<String> candidateUsers);
 
+    /**
+     * Sets the users who may see the task although they are no candidate for it. Unlike the
+     * assignee and the candidates, this value is used for every report.
+     *
+     * @param admittedUsers The user ids admitted to this task
+     * @see UserTaskDetails#getAdmittedUsers()
+     */
     void setAdmittedUsers(List<String> admittedUsers);
 
     void setDetails(Map<String, Object> details);

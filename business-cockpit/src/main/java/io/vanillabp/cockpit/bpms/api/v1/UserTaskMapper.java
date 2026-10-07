@@ -9,7 +9,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
-import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Mapper(implementationName = "UserTaskMapperV1Impl")
@@ -93,14 +92,11 @@ public abstract class UserTaskMapper {
     @Mapping(target = "endReason", ignore = true)
     @Mapping(target = "notificationDelivery", ignore = true)
     @Mapping(target = "followUpDate", ignore = true)
-    // the assignee is kept if the event reports none. A task is taken over in the cockpit, so no
-    // workflow system can report that assignment
-    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING,
-            nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    // candidate users belong to the cockpit too. Assigning a task there adds a personal candidate
-    // which no event reports back, so an update must not replace the stored list. Candidate users
-    // are therefore taken from the create event only. Groups and exclusions stay mapped.
-    @Mapping(target = "candidateUsers", ignore = true)
+    // who sees the task is mapped like everything else. For a task the cockpit holds already,
+    // WhoSeesAUserTask puts the stored values back, because only the report which created the task
+    // says who sees it
+    @Mapping(target = "assignee", source = "assignee", qualifiedByName = PERSON_MAPPING)
+    @Mapping(target = "candidateUsers", source = "candidateUsers", qualifiedByName = PERSON_MAPPING)
     @Mapping(target = "candidateGroups", source = "candidateGroups", qualifiedByName = GROUP_MAPPING)
     @Mapping(target = "excludedCandidateUsers", source = "excludedCandidateUsers", qualifiedByName = PERSON_MAPPING)
     // version 1 of the API has no admitted users, so a report through it leaves them as they are

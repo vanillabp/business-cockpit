@@ -519,25 +519,56 @@ components:
           $ref: '#/components/schemas/UiUriType'
         assignee:
           type: string
+          description: >-
+            The user the task is assigned to.
+            Read only from the report which creates the user task in the cockpit. That is
+            usually the creation, but an update or an end which arrives first creates the task
+            as well. Later reports do not change who sees the task. Only the cockpit itself
+            changes the assignee and the candidate users, when somebody claims the task or
+            assigns it to somebody.
           example: driverA
         candidateUsers:
           type: array
+          description: >-
+            The users who may work on the task.
+            Read only from the report which creates the user task in the cockpit. That is
+            usually the creation, but an update or an end which arrives first creates the task
+            as well. Later reports do not change who sees the task. Only the cockpit itself
+            changes the assignee and the candidate users, when somebody claims the task or
+            assigns it to somebody.
           items:
             type: string
           example: []
         candidateGroups:
           type: array
+          description: >-
+            The groups whose members may work on the task.
+            Read only from the report which creates the user task in the cockpit. That is
+            usually the creation, but an update or an end which arrives first creates the task
+            as well. Later reports do not change who sees the task. Only the cockpit itself
+            changes the assignee and the candidate users, when somebody claims the task or
+            assigns it to somebody.
           items:
             type: string
           example: [ "drivers" ]
         excludedCandidateUsers:
           type: array
+          description: >-
+            The users who must not work on the task, although they are candidates.
+            Read only from the report which creates the user task in the cockpit. That is
+            usually the creation, but an update or an end which arrives first creates the task
+            as well. Later reports do not change who sees the task. Only the cockpit itself
+            changes the assignee and the candidate users, when somebody claims the task or
+            assigns it to somebody.
           items:
             type: string
           example: []
         admittedUsers:
           type: array
-          description: Users who may see this user-task although they are no candidate for it
+          description: >-
+            Users who may see this user-task although they are no candidate for it. Unlike the
+            assignee and the candidates, this list is read from every report, so a later report
+            may admit other users. An end which admits nobody leaves the stored list as it is.
           items:
             type: string
           example: []

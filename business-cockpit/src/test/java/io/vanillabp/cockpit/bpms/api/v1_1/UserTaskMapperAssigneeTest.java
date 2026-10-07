@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -79,8 +80,11 @@ class UserTaskMapperAssigneeTest {
         assignee.setId("takenOverInTheCockpit");
         stored.setAssignee(assignee);
 
-        assertEquals("takenOverInTheCockpit",
-                mapper.toUpdatedTask(updatedEvent(), stored).getAssignee().getId());
+        // the mapper maps who sees the task, and the service puts the stored values back
+        WhoSeesAUserTask.keepWhoSeesTheStoredTask(
+                stored, "change", task -> mapper.toUpdatedTask(updatedEvent(), task));
+
+        assertEquals("takenOverInTheCockpit", stored.getAssignee().getId());
     }
 
 }

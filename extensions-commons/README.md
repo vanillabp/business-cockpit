@@ -122,7 +122,10 @@ waited so far. So a BPMS which stays behind for minutes is not asked every two s
 extension gives up after ten minutes, long before the outbox would block the entry on its own. A
 change which still has no workflow then is not dropped. Its entry is blocked, like an entry which
 used up its attempts, and the log says so at ERROR and names what to check in the BPMS. The outbox
-does not dispatch a blocked entry again by itself. A `PhaseTwoRetryLater` of
+does not dispatch a blocked entry again by itself. The entry keeps the reason in the column
+`LAST_FAILURE`, on MongoDB in the field `lastFailure`. The ERROR links to
+[Blocked outbox entries](https://github.com/vanillabp/adapter-platform-integration/wiki/Blocked-outbox-entries),
+which shows how to find such an entry and open it again or delete it. A `PhaseTwoRetryLater` of
 the half is understood on this way, and any other exception goes to the outbox, which repeats the
 entry with its own backoff. The adapter of the change comes from VanillaBP's note of the start,
 or is the one adapter the application configured. Only an application with several adapters and no

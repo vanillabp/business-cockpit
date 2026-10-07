@@ -189,3 +189,17 @@ address, at the moment it answered, so nothing in the database has to be unpicke
 Entries whose type is `EXTERNAL` must be left alone. Their path is the whole address already, the
 cockpit never prefixed it, and prefixing it now would send the browser to a route of the cockpit
 which does not exist. So an update in one block has to ask for the type first.
+
+### A report no longer changes who sees a user task
+
+The report which creates a user task in the cockpit sets its assignee, its candidate users, its
+candidate groups and its excluded candidate users. Later reports, an update or an end, do not change
+them any more. Before, an update replaced the candidate groups and the excluded users, and an update
+which named an assignee replaced the assignee. Only taking a task over and assigning it in the
+cockpit still change the assignee and the candidate users. `admittedUsers` is still read from every
+report. A task which names nobody is shown to everybody, and it takes the names from the first later
+report which has some.
+
+A workflow module which handed a task to other people by reporting it again has to end the task and
+enter it again, for instance with a boundary event. The new task gets the new values. Nothing else
+needs to change: the details provider may keep setting the values for every report.

@@ -140,8 +140,12 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
 
     }
 
+    /**
+     * The report which creates a task says who sees it. An update changes the title and the due
+     * date, but it does not hand the task over to somebody else.
+     */
     @Test
-    void updateEventChangesTitleAssigneeAndDueDate() {
+    void updateEventChangesTitleAndDueDateButNotTheAssignee() {
 
         final var userTaskId = unique("task");
         bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
@@ -149,7 +153,51 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
                 """));
 
         final var newDueDate = OffsetDateTime.parse("2026-10-01T08:00:00Z");
-        final var updated = bpmsV1_1("/usertask/" + userTaskId + "/updated", """
+        final var updated = bpmsV1_1("/usertask/" + userTaskId + "/updated",
+                userTaskUpdatedPayload(userTaskId, newDueDate, "petra"));
+        assertThat(updated.statusCode()).isEqualTo(200);
+
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
+        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
+        assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
+                .isEqualTo(newDueDate.toInstant());
+        assertThat(guiGet(loginToGui(USER_PETRA), "/usertask/" + userTaskId).statusCode())
+                .as("the update did not hand the task over to petra")
+                .isEqualTo(404);
+
+    }
+
+    /**
+     * Taking over a task is done in the cockpit, and no workflow module reports it back. An update
+     * which names somebody else, or nobody, leaves the takeover as it is.
+     */
+    @Test
+    void aTakeoverInTheCockpitSurvivesAnUpdate() {
+
+        final var userTaskId = unique("task");
+        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+                "candidateGroups": [ "%s" ]
+                """.formatted(GROUP_OF_MARTIN)));
+        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim", null).statusCode())
+                .isEqualTo(200);
+
+        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/updated",
+                userTaskUpdatedPayload(userTaskId, OffsetDateTime.parse("2026-10-01T08:00:00Z"), "petra"))
+                .statusCode()).isEqualTo(200);
+
+        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
+        assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
+        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
+
+    }
+
+    private String userTaskUpdatedPayload(
+            final String userTaskId,
+            final OffsetDateTime dueDate,
+            final String assignee) {
+
+        return """
                 {
                   "id": "%s",
                   "updated": true,
@@ -161,20 +209,11 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
                   "taskDefinition": "do-ride",
                   "uiUriPath": "/remoteEntry.js",
                   "uiUriType": "WEBPACK_MF_REACT",
-                  "assignee": "petra",
+                  "assignee": "%s",
                   "dueDate": "%s",
                   "detailsFulltextSearch": "%s"
                 }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, newDueDate, token));
-        assertThat(updated.statusCode()).isEqualTo(200);
-
-        // the update handed the task over to petra, and a task page follows the list it hangs
-        // below, so martin's cookie no longer opens it and petra's does
-        final var task = json(guiGet(loginToGui(USER_PETRA), "/usertask/" + userTaskId));
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
-        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("petra");
-        assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
-                .isEqualTo(newDueDate.toInstant());
+                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, assignee, dueDate, token);
 
     }
 

@@ -77,6 +77,11 @@ message UserTaskCreatedOrUpdatedEvent {
   optional string business_id = 21;
   optional string bpmn_task_id = 22;
   map<string, string> task_definition_title = 23;
+  // who sees the task: the assignee, the candidate users, the candidate groups and the excluded
+  // candidate users. They are read only from the report which creates the user task in the
+  // cockpit. That is usually the creation, but an update or an end which arrives first creates the
+  // task as well. Later reports do not change who sees the task. Only the cockpit itself changes
+  // the assignee and the candidate users, when somebody claims the task or assigns it to somebody
   optional string assignee = 25;
   repeated string candidate_users = 26;
   repeated string candidate_groups = 27;
@@ -84,9 +89,12 @@ message UserTaskCreatedOrUpdatedEvent {
   optional google.protobuf.Timestamp follow_up_date = 29;
   optional DetailsMap details = 30;
   optional string details_fulltext_search = 31;
+  // see assignee: read only from the report which creates the user task
   repeated string excluded_candidate_users = 32;
   optional NotificationDelivery notification_delivery = 33;
-  // users who may see the task although they are no candidate for it
+  // users who may see the task although they are no candidate for it. Unlike the assignee and
+  // the candidates, this list is read from every report. An end which admits nobody leaves the
+  // stored list as it is
   repeated string admitted_users = 34;
   // when the user task was created, read only where the message is an end (userTaskCompletedV1_1,
   // userTaskCancelledV1_1) and the first report about the task the cockpit gets. Without it the

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Group;
@@ -23,6 +24,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * system reports it. These tests pin down that an incoming event never wipes it. The defect it had
  * silenced the notification of the former assignee, because the notification poller cannot work out
  * a recipient without an assignee.
+ * <p>
+ * The mapper maps who sees the task, and {@link WhoSeesAUserTask} puts the stored values back for a
+ * task the cockpit holds already. So the tests about the stored task go through both, as the
+ * service does.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class ProtobufUserTaskMapperAssigneeTest {
@@ -64,6 +69,20 @@ class ProtobufUserTaskMapperAssigneeTest {
         return task;
     }
 
+    private UserTask changed(
+            final UserTaskCreatedOrUpdatedEvent event,
+            final UserTask stored) {
+        WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "change", task -> mapper.toUpdatedTask(event, task));
+        return stored;
+    }
+
+    private UserTask ended(
+            final UserTaskCreatedOrUpdatedEvent event,
+            final UserTask stored) {
+        WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "end", task -> mapper.toEndedTask(event, task));
+        return stored;
+    }
+
     private static UserTaskCreatedOrUpdatedEvent.Builder event() {
         return UserTaskCreatedOrUpdatedEvent
                 .newBuilder()
@@ -77,7 +96,7 @@ class ProtobufUserTaskMapperAssigneeTest {
     void toEndedTask_keepsAssigneeAndCandidates() {
         final var task = takenOverTask();
 
-        final var result = mapper.toEndedTask(event().build(), task);
+        final var result = ended(event().build(), task);
 
         assertEquals("taskOwner", result.getAssignee().getId());
         assertEquals(List.of("candidate"),
@@ -111,23 +130,24 @@ class ProtobufUserTaskMapperAssigneeTest {
 
     @Test
     void toUpdatedTask_withoutAssignee_keepsTheTakeover() {
-        final var result = mapper.toUpdatedTask(event().build(), takenOverTask());
+        final var result = changed(event().build(), takenOverTask());
 
         assertEquals("taskOwner", result.getAssignee().getId());
     }
 
     @Test
-    void toUpdatedTask_withAssignee_overwritesIt() {
-        final var result = mapper.toUpdatedTask(
+    void toUpdatedTask_withAssignee_keepsTheTakeoverAsWell() {
+        // only the report which created the task says who sees it
+        final var result = changed(
                 event().setAssignee("otherUser").build(), takenOverTask());
 
-        assertEquals("otherUser", result.getAssignee().getId());
+        assertEquals("taskOwner", result.getAssignee().getId());
     }
 
     @Test
     void toUpdatedTask_keepsCandidateUsersReportedByNobody() {
         // an assignment made in the cockpit is not part of any event
-        final var result = mapper.toUpdatedTask(event().build(), takenOverTask());
+        final var result = changed(event().build(), takenOverTask());
 
         assertEquals(List.of("candidate"),
                 result.getCandidateUsers().stream().map(Person::getId).toList());
@@ -136,7 +156,7 @@ class ProtobufUserTaskMapperAssigneeTest {
     @Test
     void toUpdatedTask_keepsCandidateUsersEvenIfTheEventReportsOthers() {
         // the event carries the candidates known to the engine, never the cockpit-side assignment
-        final var result = mapper.toUpdatedTask(
+        final var result = changed(
                 event().addCandidateUsers("someoneFromTheEngine").build(), takenOverTask());
 
         assertEquals(List.of("candidate"),
@@ -144,12 +164,12 @@ class ProtobufUserTaskMapperAssigneeTest {
     }
 
     @Test
-    void toUpdatedTask_stillReplacesCandidateGroups() {
-        // groups are never written on the cockpit side, so the event stays authoritative
-        final var result = mapper.toUpdatedTask(
+    void toUpdatedTask_keepsTheCandidateGroupsAsWell() {
+        // only the report which created the task says who sees it
+        final var result = changed(
                 event().addCandidateGroups("newGroup").build(), takenOverTask());
 
-        assertEquals(List.of("newGroup"),
+        assertEquals(List.of("engineGroup"),
                 result.getCandidateGroups().stream().map(Group::getId).toList());
     }
 
