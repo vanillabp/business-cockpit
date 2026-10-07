@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
 import io.vanillabp.cockpit.extension.spi.UserTaskReference;
+import io.vanillabp.integration.adapter.migration.config.PhaseTwoOutboxProperties;
 import io.vanillabp.integration.spi.PhaseTwoCall;
 import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.spi.PhaseTwoRetryLater;
@@ -101,6 +102,12 @@ public class ChangeResolvedWhenDispatchedTest {
     assertTrue(
         logged.contains("Check that the aggregate has a workflow in adapter 'camunda8'"),
         "the log says what to check: %s".formatted(logged));
+    assertTrue(
+        logged.contains("LAST_FAILURE") && logged.contains("lastFailure"),
+        "the log names where the entry keeps its reason: %s".formatted(logged));
+    assertTrue(
+        logged.contains(PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE),
+        "the log links to how to open a blocked entry again: %s".formatted(logged));
 
   }
 

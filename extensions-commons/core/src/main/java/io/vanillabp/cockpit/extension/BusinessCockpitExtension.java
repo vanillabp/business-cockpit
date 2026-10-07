@@ -43,6 +43,7 @@ import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import io.vanillabp.cockpit.extension.templating.EventTitles;
 import io.vanillabp.cockpit.extension.templating.Templating;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
+import io.vanillabp.integration.adapter.migration.config.PhaseTwoOutboxProperties;
 import io.vanillabp.integration.adapter.migration.processservice.TransactionRunnerResolver;
 import io.vanillabp.integration.extension.spi.election.WorkflowElection;
 import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
@@ -1315,7 +1316,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * <code>block-after-attempts</code>, and the log says so at ERROR. Ten minutes without the
    * workflow mean that something is wrong: the aggregate has no workflow in that BPMS, or the
    * BPMS stopped writing it. Somebody has to look, and a blocked entry stays where it can be
-   * seen. A dropped change would be gone.
+   * seen. A dropped change would be gone. The line links to the platform's page on blocked outbox
+   * entries, which shows how to find the entry and open it again, and it names the column the
+   * entry keeps its reason in.
    *
    * @param call The entry's call
    * @param timestamp When the change happened
@@ -1354,13 +1357,14 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     if (waited.compareTo(CHANGE_RESOLUTION_WINDOW) >= 0) {
       logger
           .error(
-              "Not reporting {} to the Business Cockpit: {} has named {} for {}. Either {}, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check {} and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself, and VanillaBP has no command for that, so the entry waits for whoever repairs blocked outbox entries.",
+              "Not reporting {} to the Business Cockpit: {} has named {} for {}. Either {}, or the BPMS has not written it for that long. The outbox entry is now blocked, and the outbox names it in a line of its own. Check {} and that its BPMS writes what its engine does (on Camunda 8, that the exporter runs). The outbox keeps the blocked entry and does not dispatch it again by itself. The entry keeps the reason in the column LAST_FAILURE, on MongoDB in the field lastFailure. How to find the entry and open it again or delete it: {}",
               waitingFor.change(),
               waitingFor.asker(),
               waitingFor.missing(),
               CHANGE_RESOLUTION_WINDOW,
               waitingFor.otherReading(),
-              waitingFor.whatToCheck());
+              waitingFor.whatToCheck(),
+              PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE);
       throw new PhaseTwoPermanentFailure(
           "%s named %s for %s, which is %s"
               .formatted(
