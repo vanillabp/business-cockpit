@@ -55,6 +55,12 @@ public class OneProviderForEveryUserTaskTest {
               // the test class runs in the application's class loader, so what it talks to the
               // cockpit server with has to be reachable from there as well
               .addClass(CockpitServer.class))
+      // the BPMN folder holds 'TestProcess' too, and no workflow service of this application
+      // claims it. Without this line the start would end. It is set here and not in the shared
+      // YAML, because the other tests claim 'TestProcess'
+      .overrideConfigKey(
+          "vanillabp.workflow-modules.test-module.workflows.TestProcess.implemented-externally",
+          "true")
       .overrideRuntimeConfigKey(
           "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl());
 

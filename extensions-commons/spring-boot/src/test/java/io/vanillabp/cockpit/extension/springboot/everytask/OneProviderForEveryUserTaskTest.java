@@ -35,7 +35,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
     properties = {
         // an outbox store of its own. The contexts of the other test classes stay cached with
         // their pollers running, and on a shared store one of them takes the entry away
-        "spring.datasource.url=jdbc:h2:mem:cockpit-every-task;DB_CLOSE_DELAY=-1"
+        "spring.datasource.url=jdbc:h2:mem:cockpit-every-task;DB_CLOSE_DELAY=-1",
+        // the shared BPMN folder holds 'TestProcess' too, and no workflow service of this
+        // application claims it. Without this line the start would end. It is set here and not
+        // in the shared YAML, because the other tests claim 'TestProcess'
+        "vanillabp.workflow-modules.test-module.workflows.TestProcess.implemented-externally=true"
     })
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
