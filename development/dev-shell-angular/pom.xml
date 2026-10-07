@@ -65,7 +65,7 @@
             <id>npm install</id>
             <configuration>
               <skip>${skip.npm.update}</skip>
-              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --legacy-peer-deps</arguments>
+              <arguments>--@vanillabp:registry=${npm.registry} update ${npm.own-packages} --legacy-peer-deps</arguments>
             </configuration>
           </execution>
         </executions>
