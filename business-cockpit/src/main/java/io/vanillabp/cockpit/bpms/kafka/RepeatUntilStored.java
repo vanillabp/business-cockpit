@@ -24,8 +24,9 @@ import org.springframework.util.backoff.ExponentialBackOff;
  * repository's DECISIONS.md.
  * <p>
  * Repeating a report does not make it count twice. Nothing of it was stored, so it is weighed again
- * against what is stored, like any report: a creation of a record the cockpit holds stores nothing,
- * a change older than what is stored is dropped, an end of a record which has ended changes nothing.
+ * against what is stored, like any report: a creation of a record the cockpit holds stores at most
+ * an earlier start, a change older than what is stored is dropped, an end of a record which has
+ * ended changes nothing.
  * <p>
  * Only a failure of storing is repeated, and only one which can go away. Everything else is about the
  * record itself: bytes which are no protobuf message, an event type this cockpit does not know, a

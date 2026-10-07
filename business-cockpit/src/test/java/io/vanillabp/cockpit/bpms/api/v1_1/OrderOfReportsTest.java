@@ -540,11 +540,12 @@ class OrderOfReportsTest {
     }
 
     /**
-     * A case created by a change is no longer waiting for its creation. So a creation which
-     * arrives later stores nothing, and the case keeps the time of the change as its start.
+     * A change which created the case gave it the time of the change as its start. The creation
+     * may only have been late, and it knows when the case began. So it corrects the start, and
+     * leaves the rest of the case as the younger change stored it.
      */
     @Test
-    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseChangesNothing() {
+    void aCreationArrivingAfterTheChangeWhichCreatedTheCaseCorrectsItsStart() {
 
         final var cockpit = cockpitWhichWasSent(api -> {
             api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
@@ -552,6 +553,51 @@ class OrderOfReportsTest {
         });
 
         final var stored = cockpit.storedWorkflow();
+        assertEquals(CREATED_AT, stored.getCreatedAt());
+        assertEquals(CHANGED_AT, stored.getLatestEventAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    /** A start later than the stored one corrects nothing, because the earlier start is known. */
+    @Test
+    void aCreationLaterThanTheStoredStartOfACaseChangesNothing() {
+
+        final var cockpit = cockpitWhichWasSent(api -> {
+            api.workflowUpdatedEvent("workflow-1", workflowChanged(CHANGED_AT, "Berta"));
+            api.workflowCreatedEvent(workflowCreated().timestamp(CHANGED_AFTER_THE_END));
+        });
+
+        final var stored = cockpit.storedWorkflow();
+        assertEquals(CHANGED_AT, stored.getCreatedAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    @Test
+    void aCreationArrivingAfterTheChangeWhichCreatedTheTaskCorrectsItsStart() {
+
+        final var cockpit = cockpitWhichWasSent(api -> {
+            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
+            api.userTaskCreatedEvent(taskCreated());
+        });
+
+        final var stored = cockpit.storedTask();
+        assertEquals(CREATED_AT, stored.getCreatedAt());
+        assertEquals(CHANGED_AT, stored.getLatestEventAt());
+        assertEquals(Map.of("customer", "Berta"), stored.getDetails());
+
+    }
+
+    @Test
+    void aCreationLaterThanTheStoredStartOfATaskChangesNothing() {
+
+        final var cockpit = cockpitWhichWasSent(api -> {
+            api.userTaskUpdatedEvent("task-1", taskChanged(CHANGED_AT, "Berta"));
+            api.userTaskCreatedEvent(taskCreated().timestamp(CHANGED_AFTER_THE_END));
+        });
+
+        final var stored = cockpit.storedTask();
         assertEquals(CHANGED_AT, stored.getCreatedAt());
         assertEquals(Map.of("customer", "Berta"), stored.getDetails());
 
