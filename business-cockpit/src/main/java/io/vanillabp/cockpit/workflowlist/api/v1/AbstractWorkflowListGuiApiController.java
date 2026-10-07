@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
 import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
@@ -124,13 +125,13 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         final var visibility = workflowsVisibleTo(currentUser);
         final var workflows = getWorkflows(
                 visibility,
-                workflowsRequest.getPageNumber(),
-                workflowsRequest.getPageSize(),
+                ListPaging.pageNumber(workflowsRequest.getPageNumber()),
+                ListPaging.pageSize(workflowsRequest.getPageSize()),
                 timestamp,
                 workflowsRequest.getBusinessIds(),
                 mapper.toModel(workflowsRequest.getSearchQueries()),
                 workflowsRequest.getSort(),
-                workflowsRequest.getSortAscending(),
+                ListPaging.sortAscending(workflowsRequest.getSortAscending()),
                 workflowsRequest.getMode() != null
                         ? mapper.toModel(workflowsRequest.getMode())
                         : WorkflowlistService.RetrieveItemsMode.All);
@@ -183,7 +184,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 timestamp,
                 mapper.toModel(workflowsUpdateRequest.getSearchQueries()),
                 workflowsUpdateRequest.getSort(),
-                workflowsUpdateRequest.getSortAscending(),
+                ListPaging.sortAscending(workflowsUpdateRequest.getSortAscending()),
                 workflowsUpdateRequest.getMode() != null
                         ? mapper.toModel(workflowsUpdateRequest.getMode())
                         : WorkflowlistService.RetrieveItemsMode.Active);
@@ -284,7 +285,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
                 currentUser,
                 userTasksRequest.getPageSize() == null ? 100 : userTasksRequest.getPageSize(),
                 userTasksRequest.getSort(),
-                userTasksRequest.getSortAscending() == null || userTasksRequest.getSortAscending())
+                ListPaging.sortAscending(userTasksRequest.getSortAscending()))
                 .stream()
                 .map(userTask -> userTaskMapper.toApi(userTask, currentUser.getId()))
                 .toList();

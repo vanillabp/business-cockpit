@@ -116,14 +116,16 @@ führt.
 ## Seitenweise lesen
 
 `pageNumber` und `pageSize` in `POST /usertask` und `POST /workflow` gehen unverändert an die
-Datenbank. Es gibt keinen Standardwert und keine Obergrenze. Das heißt zwei Dinge für dein UI:
+Datenbank. Fehlt `pageNumber`, kommt die erste Seite, also `0`. Fehlt `sortAscending`, sortiert der
+Server aufsteigend. Das gilt auch für die Aktualisierung mit `PUT`.
 
-Setze beide Felder immer. Ohne sie antwortet der Server mit einem Fehler, denn die Werte sind in der
-Beschreibung optional und im Code nicht.
+`pageSize` hat keinen Standardwert. Fehlt es, antwortet der Server mit 400 und nennt das Feld:
+`The request is not valid: 'pageSize' is missing.` Eine Seitengröße unter 1 und eine Seite unter 0
+lehnt er genauso mit 400 ab. Setze `pageSize` also immer.
 
-Wähle die Seitengröße selbst mit Bedacht. Das mitgelieferte UI lädt in Blöcken von 30 Zeilen und
-hängt den nächsten Block an, wenn der Benutzer nach unten kommt. Der Server hält dich von nichts ab,
-auch nicht von 100000 Zeilen in einer Anfrage.
+Eine Obergrenze gibt es nicht. Wähle die Seitengröße selbst mit Bedacht. Das mitgelieferte UI lädt
+in Blöcken von 30 Zeilen und hängt den nächsten Block an, wenn der Benutzer nach unten kommt. Der
+Server hält dich von nichts ab, auch nicht von 100000 Zeilen in einer Anfrage.
 
 Die Antwort trägt ein `page` mit `number`, `size`, `totalPages` und `totalElements`.
 `totalElements` ist genau gezählt, in einer zweiten Abfrage über dieselben Bedingungen. Du kannst

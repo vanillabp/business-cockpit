@@ -135,6 +135,19 @@ public class RestfulExceptionHandlerTest {
     }
 
     @Test
+    public void aMistakeAControllerFoundIsAnsweredLikeABrokenSchema() {
+
+        final var response = handler.handleInvalidRequest(
+                new BcInvalidRequestException("'pageSize' is missing", "'details' is not valid"));
+
+        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+        Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+        Assertions.assertThat(response.getBody()).isEqualTo(
+                "The request is not valid: 'details' is not valid, 'pageSize' is missing.");
+
+    }
+
+    @Test
     public void testAnythingElseIsAnInternalServerError() {
 
         final var response = handler.handleUnexpectedException(new RuntimeException("boom"));

@@ -20,6 +20,7 @@ import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -116,12 +117,12 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 		final var visibility = userTasksVisibleTo(currentUser);
 		final var userTasks = getUserTasks(
 				visibility,
-				userTasksRequest.getPageNumber(),
-				userTasksRequest.getPageSize(),
+				ListPaging.pageNumber(userTasksRequest.getPageNumber()),
+				ListPaging.pageSize(userTasksRequest.getPageSize()),
 				timestamp,
 				mapper.toModel(userTasksRequest.getSearchQueries()),
 				userTasksRequest.getSort(),
-				userTasksRequest.getSortAscending(),
+				ListPaging.sortAscending(userTasksRequest.getSortAscending()),
 				userTasksRequest.getMode() != null
 						? mapper.toModel(userTasksRequest.getMode())
 						: UserTaskService.RetrieveItemsMode.All);
@@ -173,7 +174,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 				timestamp,
 				mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
 				userTasksUpdateRequest.getSort(),
-				userTasksUpdateRequest.getSortAscending(),
+				ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
 				userTasksUpdateRequest.getMode() != null
 						? mapper.toModel(userTasksUpdateRequest.getMode())
 						: UserTaskService.RetrieveItemsMode.OpenTasks);

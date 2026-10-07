@@ -129,6 +129,17 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * The same answer for a mistake the schema cannot express, which a controller found itself.
+     */
+    @ExceptionHandler(BcInvalidRequestException.class)
+    public ResponseEntity<String> handleInvalidRequest(
+            final BcInvalidRequestException exception) {
+
+        return invalidRequest(exception.getViolations().stream());
+
+    }
+
     private ResponseEntity<String> invalidRequest(
             final Stream<String> violations) {
 

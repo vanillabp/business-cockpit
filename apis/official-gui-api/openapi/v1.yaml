@@ -1052,9 +1052,14 @@ components:
         pageNumber:
           type: integer
           format: int32
+          minimum: 0
+          default: 0
+          description: The page to answer, counted from 0. Without it the server answers the first page.
         pageSize:
           type: integer
           format: int32
+          minimum: 1
+          description: The number of user tasks per page. 'POST /usertask' answers 400 without it. 'POST /workflow/{workflowId}/usertasks' takes 100 if it is missing.
         query:
           type: string
         searchQueries:
@@ -1065,6 +1070,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/UserTaskRetrieveMode'
     UserTasks:
@@ -1092,6 +1099,7 @@ components:
         size:
           type: integer
           format: int32
+          minimum: 1
         query:
           type: string
         searchQueries:
@@ -1102,6 +1110,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         knownUserTasksIds:
           type: array
           items:
@@ -1114,9 +1124,14 @@ components:
         pageNumber:
           type: integer
           format: int32
+          minimum: 0
+          default: 0
+          description: The page to answer, counted from 0. Without it the server answers the first page.
         pageSize:
           type: integer
           format: int32
+          minimum: 1
+          description: The number of workflows per page. The server answers 400 without it.
         searchQueries:
           type: array
           items:
@@ -1130,6 +1145,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
     Workflows:
@@ -1159,6 +1176,7 @@ components:
         size:
           type: integer
           format: int32
+          minimum: 1
         knownWorkflowsIds:
           type: array
           items:
@@ -1171,6 +1189,8 @@ components:
           type: string
         sortAscending:
           type: boolean
+          default: true
+          description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
     KwicRequest:
