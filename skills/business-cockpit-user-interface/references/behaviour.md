@@ -216,7 +216,9 @@ Was diese Aktionen ändern, bleibt. Wer eine Aufgabe sieht, legt die Meldung fes
 die Aufgabe anlegt: Bearbeiter, Kandidaten, Kandidatengruppen und ausgeschlossene Kandidaten. Danach
 ändert keine Meldung des Workflow-Moduls diese Felder mehr. Nur Übernehmen, Zurückgeben, Zuweisen und
 Entziehen im Cockpit ändern Bearbeiter und Kandidaten. Eine Aufgabe verschwindet also nicht aus der
-Liste eines Benutzers, weil das Workflow-Modul sie jemand anderem gibt. Die zugelassenen Benutzer
+Liste eines Benutzers, weil das Workflow-Modul sie jemand anderem gibt. Ausnahme ist eine Aufgabe,
+die niemanden nennt und deshalb allen angezeigt wird: sie übernimmt die Namen aus der ersten
+späteren Meldung, die welche hat. Die zugelassenen Benutzer
 (`admittedUsers`) sind die Ausnahme: jede Meldung darf sie setzen.
 
 Das mitgelieferte UI geht bei "als gelesen markieren" optimistisch vor: es setzt die Markierung

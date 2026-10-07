@@ -749,7 +749,8 @@ public class UserTaskService {
      * holds, which a change that created the task set to the time of that change. There is one
      * exception: a task the cockpit learned about from its end alone has been waiting for exactly
      * this report. It takes everything the creation reports, except who sees the task where the end
-     * said it ({@link WhoSeesAUserTask}).
+     * said it. A task which names nobody, because the report which created it did not say who
+     * sees it, takes that from the creation as well ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the workflow module created the task, by its own clock
@@ -768,13 +769,16 @@ public class UserTaskService {
         }
 
         if (!stored.isKnownFromItsEndAlone()) {
-            // the change which created the task said who sees it, so nothing of that is taken
-            // from here either
-            WhoSeesAUserTask.logIfOtherPeopleAreNamed(stored, "creation", asReported);
+            // the change which created the task said who sees it, unless it named nobody
+            final var tookWhoSeesTheTask = WhoSeesAUserTask.takeFromALateCreation(stored, asReported);
             // a creation's timestamp is the moment the task began. A change which arrived first
             // and created the task gave it the time of that change as its start instead
-            if (OrderOfReports.isEarlierThanTheStoredStart(eventTimestamp, stored.getCreatedAt())) {
+            final var tookTheStart = OrderOfReports.isEarlierThanTheStoredStart(
+                    eventTimestamp, stored.getCreatedAt());
+            if (tookTheStart) {
                 stored.setCreatedAt(eventTimestamp);
+            }
+            if (tookWhoSeesTheTask || tookTheStart) {
                 return save(stored);
             }
             reportChangesNothing(userTaskId, "creation", eventTimestamp, stored);
@@ -813,7 +817,7 @@ public class UserTaskService {
      * Stores what a workflow module reports about a change of a user task.
      * <p>
      * A change of a task the cockpit holds keeps who sees the task. Only a change which creates the
-     * task says who sees it ({@link WhoSeesAUserTask}).
+     * task says who sees it, or a change of a task which names nobody ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the change happened, by the workflow module's clock
@@ -860,7 +864,7 @@ public class UserTaskService {
      * what is stored, and it is left out.
      * <p>
      * An end of a task the cockpit holds keeps who sees the task. Only an end which creates the task
-     * says who sees it ({@link WhoSeesAUserTask}).
+     * says who sees it, or an end of a task which names nobody ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the task ended, by the workflow module's clock

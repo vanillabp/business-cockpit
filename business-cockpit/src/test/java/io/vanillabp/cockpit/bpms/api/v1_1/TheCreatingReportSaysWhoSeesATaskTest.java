@@ -1,7 +1,10 @@
 package io.vanillabp.cockpit.bpms.api.v1_1;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -327,7 +330,7 @@ class TheCreatingReportSaysWhoSeesATaskTest {
 
     /**
      * A BPMS which no longer knows the task reports its end with little more than the identifiers.
-     * Such an end said nothing about who sees the task, so the creation fills it in, as it fills in
+     * Such an end leaves the task dangling, so the creation says who sees it, as it fills in
      * everything else the end could not report.
      */
     @Test
@@ -343,6 +346,87 @@ class TheCreatingReportSaysWhoSeesATaskTest {
         bpmsApi.userTaskCreatedEvent(createdForAnna());
 
         assertSeenAsCreatedForAnna(storedTask());
+
+    }
+
+
+    // --- a task which names nobody ------------------------------------------------------------
+
+    private static UserTaskCreatedEvent createdForNobody() {
+
+        return createdForAnna()
+                .assignee(null)
+                .candidateUsers(List.of())
+                .candidateGroups(List.of())
+                .excludedCandidateUsers(List.of());
+
+    }
+
+    /**
+     * A dangling task is shown to everybody, so the first report which names somebody says who
+     * sees it, and the task stops being dangling.
+     */
+    @Test
+    void aDanglingTaskTakesWhoSeesItFromAChange() {
+
+        bpmsApi.userTaskCreatedEvent(createdForNobody());
+        assertTrue(storedTask().isDangling());
+
+        bpmsApi.userTaskUpdatedEvent("task-1", changedForEve());
+
+        assertSeenAsReportedForEve(storedTask());
+        assertFalse(storedTask().isDangling());
+        assertNotNull(storedTask().getCandidateSince("frank"));
+
+    }
+
+    @Test
+    void aDanglingTaskTakesWhoSeesItFromAnEnd() {
+
+        bpmsApi.userTaskCreatedEvent(createdForNobody());
+        bpmsApi.userTaskCompletedEvent("task-1", completedForEve());
+
+        assertSeenAsReportedForEve(storedTask());
+
+    }
+
+    @Test
+    void aDanglingTaskTakesWhoSeesItFromALateCreation() {
+
+        bpmsApi.userTaskUpdatedEvent("task-1", changedForEve()
+                .assignee(null)
+                .candidateUsers(List.of())
+                .candidateGroups(List.of())
+                .excludedCandidateUsers(List.of()));
+        bpmsApi.userTaskCreatedEvent(createdForAnna());
+
+        assertSeenAsCreatedForAnna(storedTask());
+        assertEquals(CREATED_AT, storedTask().getCreatedAt());
+
+    }
+
+    @Test
+    void aTaskWhichOnlyExcludesSomebodyIsDanglingAsWell() {
+
+        bpmsApi.userTaskCreatedEvent(createdForNobody().excludedCandidateUsers(List.of("carl")));
+        bpmsApi.userTaskUpdatedEvent("task-1", changedForEve());
+
+        assertSeenAsReportedForEve(storedTask());
+
+    }
+
+    @Test
+    void aChangeWhichNamesNobodyLeavesATaskDangling() {
+
+        bpmsApi.userTaskCreatedEvent(createdForNobody().excludedCandidateUsers(List.of("carl")));
+        bpmsApi.userTaskUpdatedEvent("task-1", changedForEve()
+                .assignee(null)
+                .candidateUsers(List.of())
+                .candidateGroups(List.of())
+                .excludedCandidateUsers(List.of()));
+
+        assertTrue(storedTask().isDangling());
+        assertEquals(List.of("carl"), storedTask().getExcludedCandidateUsers().stream().map(Person::getId).toList());
 
     }
 

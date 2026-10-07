@@ -3,6 +3,7 @@ package io.vanillabp.cockpit.bpms;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,14 @@ import org.slf4j.LoggerFactory;
  * the task (see decision 36 and decision 45 in the repository's DECISIONS.md). That is why a change
  * and an end carry the four fields as well. The cockpit uses them only where the report creates
  * the task.
+ * <p>
+ * There is one exception. A task which names no assignee, no candidate user and no candidate group
+ * is dangling ({@link UserTask#isDangling()}), and the cockpit shows it to everybody. Such a task
+ * takes who sees it from the first later report which names somebody. Version 1.1 of the API
+ * carries all values in every report, so this happens with reports of version 1, which carry none of
+ * the four fields in an end, and with ends of a BPMS which could no longer describe the task. The
+ * task stops being dangling then, because the cockpit reads that flag from the fields whenever it
+ * stores the task.
  * <p>
  * The cockpit does not warn about a report which names other people. A workflow module cannot
  * know whether the cockpit already holds the task, so such a report is no mistake. A DEBUG line
@@ -81,20 +90,6 @@ public final class WhoSeesAUserTask {
         }
 
         /**
-         * @return Whether any of the four fields names somebody. A report which names nobody has
-         *         nothing to say about who sees the task, see decision 19 in the repository's
-         *         DECISIONS.md.
-         */
-        boolean namesSomebody() {
-
-            return (assignee != null)
-                    || isFilled(candidateUsers)
-                    || isFilled(candidateGroups)
-                    || isFilled(excludedCandidateUsers);
-
-        }
-
-        /**
          * Compares the fields a report fills with the stored ones. A field the report leaves
          * empty is not compared: a claim in the cockpit sets an assignee which no workflow module
          * reports back, and that is no difference worth a line in the log.
@@ -133,7 +128,8 @@ public final class WhoSeesAUserTask {
 
     /**
      * Lays a change or an end onto a task the cockpit already holds, and keeps who sees the task as
-     * it is. Whatever else the report says is stored as the mapping stores it.
+     * it is. Whatever else the report says is stored as the mapping stores it. A dangling task takes
+     * who sees it from the report, where the report names somebody.
      *
      * @param stored The task the cockpit holds, changed in place
      * @param kindOfReport What the report is, for the log, like "change" or "end"
@@ -144,8 +140,13 @@ public final class WhoSeesAUserTask {
             final String kindOfReport,
             final Consumer<UserTask> report) {
 
+        final var wasDangling = stored.isDangling();
         final var asStored = Visibility.of(stored);
         report.accept(stored);
+        if (wasDangling && !stored.isDangling()) {
+            tookWhoSeesTheTask(stored, kindOfReport);
+            return;
+        }
         final var asReported = Visibility.of(stored);
         asStored.putBackOnto(stored);
         if (asReported.namesOtherPeopleThan(asStored)) {
@@ -155,11 +156,39 @@ public final class WhoSeesAUserTask {
     }
 
     /**
+     * Decides who sees a task once its creation arrives late, after a change or an end created the
+     * task. The task keeps who sees it, unless it is dangling and the creation names somebody.
+     *
+     * @param stored The task the cockpit holds, changed in place
+     * @param asReported Builds the task as the creation describes it
+     * @return Whether the stored task took who sees it from the creation, and has to be saved
+     */
+    public static boolean takeFromALateCreation(
+            final UserTask stored,
+            final Supplier<UserTask> asReported) {
+
+        if (!stored.isDangling()) {
+            if (logger.isDebugEnabled()
+                    && Visibility.of(asReported.get()).namesOtherPeopleThan(Visibility.of(stored))) {
+                logDifference(stored.getId(), "creation");
+            }
+            return false;
+        }
+        final var creation = asReported.get();
+        if (creation.isDangling()) {
+            return false;
+        }
+        Visibility.of(creation).putBackOnto(stored);
+        tookWhoSeesTheTask(stored, "creation");
+        return true;
+
+    }
+
+    /**
      * Decides who sees a task the cockpit knew from its end alone, once the creation arrives. The
-     * end created the task, so where it said who sees the task, that stays. An end which names
-     * nobody said nothing about it. That happens where the BPMS could no longer describe the task
-     * when it reported the end. Then the creation fills it in, as it fills in everything else
-     * such an end could not report.
+     * end created the task, so who sees it stays as the end said. A dangling task is the exception
+     * here as well: then the creation says who sees it, as it fills in everything else the end
+     * could not report.
      *
      * @param knownFromItsEnd The task as the end stored it
      * @param creation The task as the creation reports it, changed in place
@@ -168,37 +197,29 @@ public final class WhoSeesAUserTask {
             final UserTask knownFromItsEnd,
             final UserTask creation) {
 
-        final var asTheEndSaid = Visibility.of(knownFromItsEnd);
-        if (!asTheEndSaid.namesSomebody()) {
+        if (knownFromItsEnd.isDangling()) {
             return;
         }
-        if (Visibility.of(creation).namesOtherPeopleThan(asTheEndSaid)) {
+        if (Visibility.of(creation).namesOtherPeopleThan(Visibility.of(knownFromItsEnd))) {
             logDifference(creation.getId(), "creation");
         }
-        asTheEndSaid.putBackOnto(creation);
+        Visibility.of(knownFromItsEnd).putBackOnto(creation);
 
     }
 
     /**
-     * Says in the log that a report about a stored task names other people than the task has. The
-     * report is only built where the log would show the line, because a creation which arrives
-     * late is otherwise never mapped.
-     *
-     * @param stored The task the cockpit holds
-     * @param kindOfReport What the report is, for the log
-     * @param asReported Builds the task as the report describes it
+     * The candidate users of a dangling task are new to the cockpit, so they are stamped as known
+     * from now on. That is what a notification about a new candidate reads.
      */
-    public static void logIfOtherPeopleAreNamed(
-            final UserTask stored,
-            final String kindOfReport,
-            final Supplier<UserTask> asReported) {
+    private static void tookWhoSeesTheTask(
+            final UserTask task,
+            final String kindOfReport) {
 
-        if (!logger.isDebugEnabled()) {
-            return;
-        }
-        if (Visibility.of(asReported.get()).namesOtherPeopleThan(Visibility.of(stored))) {
-            logDifference(stored.getId(), kindOfReport);
-        }
+        task.stampCandidatesSince(OffsetDateTime.now());
+        logger.debug(
+                "User task '{}' named nobody, so the {} says who sees it",
+                task.getId(),
+                kindOfReport);
 
     }
 

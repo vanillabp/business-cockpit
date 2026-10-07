@@ -197,7 +197,8 @@ candidate groups and its excluded candidate users. Later reports, an update or a
 them any more. Before, an update replaced the candidate groups and the excluded users, and an update
 which named an assignee replaced the assignee. Only taking a task over and assigning it in the
 cockpit still change the assignee and the candidate users. `admittedUsers` is still read from every
-report.
+report. A task which names nobody is shown to everybody, and it takes the names from the first later
+report which has some.
 
 A workflow module which handed a task to other people by reporting it again has to end the task and
 enter it again, for instance with a boundary event. The new task gets the new values. Nothing else

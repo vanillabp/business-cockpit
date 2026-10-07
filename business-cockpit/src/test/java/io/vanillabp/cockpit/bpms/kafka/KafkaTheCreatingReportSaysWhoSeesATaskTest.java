@@ -1,6 +1,8 @@
 package io.vanillabp.cockpit.bpms.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -331,6 +333,58 @@ class KafkaTheCreatingReportSaysWhoSeesATaskTest {
         consume(createdForAnna());
 
         assertSeenAsReportedForEve(storedTask());
+
+    }
+
+
+    // --- a task which names nobody ------------------------------------------------------------
+
+    private static BcEvent createdForNobody() {
+
+        return BcEvent
+                .newBuilder()
+                .setUserTaskCreatedV11(reported(CREATED_AT))
+                .build();
+
+    }
+
+    /**
+     * A dangling task is shown to everybody, so the first report which names somebody says who
+     * sees it, and the task stops being dangling.
+     */
+    @Test
+    void aDanglingTaskTakesWhoSeesItFromAChange() {
+
+        consume(createdForNobody());
+        assertTrue(storedTask().isDangling());
+
+        consume(changedForEve());
+
+        assertSeenAsReportedForEve(storedTask());
+        assertFalse(storedTask().isDangling());
+
+    }
+
+    @Test
+    void aDanglingTaskTakesWhoSeesItFromAnEnd() {
+
+        consume(createdForNobody());
+        consume(cancelledForEve());
+
+        assertSeenAsReportedForEve(storedTask());
+
+    }
+
+    @Test
+    void anEndWhichNamesNobodyLeavesItToTheLateCreation() {
+
+        consume(BcEvent
+                .newBuilder()
+                .setUserTaskCompletedV11(reported(ENDED_AT).setUpdated(true))
+                .build());
+        consume(createdForAnna());
+
+        assertSeenAsCreatedForAnna(storedTask());
 
     }
 

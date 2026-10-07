@@ -250,4 +250,22 @@ class TheCreatingReportSaysWhoSeesATaskTest {
 
     }
 
+
+    /**
+     * An end of version 1 carries none of the four fields, so a task it created is dangling. The
+     * creation which arrives later says who sees it.
+     */
+    @Test
+    void aTaskCreatedByAnEndTakesWhoSeesItFromTheCreation() {
+
+        bpmsApi.userTaskCompletedEvent("task-1", new UserTaskCompletedEvent()
+                .id("event-completed")
+                .userTaskId("task-1")
+                .timestamp(ENDED_AT));
+        bpmsApi.userTaskCreatedEvent(createdForAnna());
+
+        assertSeenAsCreatedForAnna(storedTask());
+
+    }
+
 }
