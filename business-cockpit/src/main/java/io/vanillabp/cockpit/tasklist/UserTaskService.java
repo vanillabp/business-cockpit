@@ -65,8 +65,14 @@ public class UserTaskService {
 
     public static enum RetrieveItemsMode {
         All,
+        /** Every task which has not ended, whatever its follow-up date says. */
         OpenTasks,
+        /** Open tasks without a follow-up date, or with one which is due. */
         OpenTasksWithoutFollowUp,
+        /**
+         * Another name for {@link #OpenTasks}, which shows the same tasks. The name sounds like a
+         * filter, but there is none. It stays because the GUI API offers it.
+         */
         OpenTasksWithFollowUp,
         OpenTaskOnlyFollowUp,
         ClosedTasksOnly

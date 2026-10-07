@@ -1039,6 +1039,12 @@ components:
         - Inactive
     UserTaskRetrieveMode:
       type: string
+      description: >-
+        Which user tasks a list shows. 'All' shows open and ended tasks. 'OpenTasks' shows every
+        task which has not ended, with or without a follow-up date. 'OpenTasksWithFollowUp' is
+        another name for 'OpenTasks' and shows the same tasks. 'OpenTasksWithoutFollowUp' shows open
+        tasks without a follow-up date or with one which is due. 'OpenTaskOnlyFollowUp' shows open
+        tasks with a follow-up date in the future. 'ClosedTasksOnly' shows ended tasks.
       enum:
         - All
         - OpenTasks

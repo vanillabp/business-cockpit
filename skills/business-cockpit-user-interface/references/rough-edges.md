@@ -88,17 +88,14 @@ Aktualisierung übergibt an dieser Stelle nichts. Eine Liste, die nach Geschäft
 ist, bekommt bei der Aktualisierung also auch Fälle, die nicht dazugehören. Filtere danach selbst
 nach, wenn du diesen Filter benutzt.
 
-## `OpenTasksWithFollowUp` filtert nichts
+## `OpenTasksWithFollowUp` ist nur ein anderer Name
 
-Von den sechs Modi einer Aufgabenliste setzt dieser keine Bedingung auf die Wiedervorlage. Er wirkt
-heute wie `OpenTasks`. Der Name verspricht mehr, als der Code tut.
+Der Name klingt nach einem Filter auf die Wiedervorlage. Es gibt keinen: der Modus ist ein anderer
+Name für `OpenTasks` und liefert alle offenen Aufgaben, mit und ohne Wiedervorlage. So ist es
+entschieden, und so bleibt es.
 
 Wer offene Aufgaben mit einer Wiedervorlage in der Zukunft will, nimmt `OpenTaskOnlyFollowUp`. Wer
 die ohne Wiedervorlage oder mit einer fälligen will, nimmt `OpenTasksWithoutFollowUp`.
-
-Lücke in dieser Beschreibung: ob der Modus so gemeint ist, sagt niemand. Er steht in der
-OpenAPI-Beschreibung, im Enum des Servers und in keinem einzigen `if`, und kein Kommentar nennt die
-Bedingung, die gemeint war. Nimm ihn also nicht, bevor das entschieden ist.
 
 ## Die Vorschläge sind nicht die häufigsten
 

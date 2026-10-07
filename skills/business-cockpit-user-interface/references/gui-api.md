@@ -245,7 +245,7 @@ Der Modus:
 | `OpenTasks` | was kein Ende hat |
 | `OpenTasksWithoutFollowUp` | offen, ohne Wiedervorlage oder mit einer, die fällig ist |
 | `OpenTaskOnlyFollowUp` | offen, mit einer Wiedervorlage in der Zukunft |
-| `OpenTasksWithFollowUp` | heute dasselbe wie `OpenTasks`, siehe [rough-edges.md](rough-edges.md#opentaskswithfollowup-filtert-nichts) |
+| `OpenTasksWithFollowUp` | ein anderer Name für `OpenTasks`: dieselben Zeilen, mit und ohne Wiedervorlage |
 | `ClosedTasksOnly` | nur was ein Ende hat |
 
 | `mode` einer Fallliste | Was kommt |
