@@ -2475,3 +2475,126 @@ same user task. The new task is a new record in the cockpit, and its creation sa
 A module which used to reassign tasks by reporting them again has to model that in BPMN. A creation
 which arrives late after an end that named people cannot correct them, even where the end was
 reported from an older state.
+
+### 55. A list request without paging values gets defaults
+
+#### What was wrong
+
+The OpenAPI document of the GUI API calls `pageNumber`, `pageSize` and `sortAscending` optional.
+The controllers of the task list and the case list passed them on as `int` and `boolean`. So a
+request which left one of them out ended in a `NullPointerException` and HTTP 500, for
+`POST /usertask`, `POST /workflow` and both updates with `PUT`. The answer even carried the text of
+the exception. A client which kept to the document got a server error for nothing.
+
+#### What the cockpit does now
+
+- `pageNumber` defaults to 0, the first page.
+- `sortAscending` defaults to `true`, in the list requests and in the update requests.
+- `pageSize` has no default. A missing page size is answered with 400 and the body
+  `The request is not valid: 'pageSize' is missing.` How many rows a page holds is up to the user
+  interface. A value the server picked would only hide that the client forgot it.
+- A page size below 1, an update size below 1 and a page number below 0 are refused with 400 by
+  the schema itself, which now carries `minimum` for them.
+
+The defaults are written into the OpenAPI document, and the class `io.vanillabp.cockpit.util.ListPaging`
+applies them. The generated model sets the same defaults when a field is left out, but a client can
+still send `null`, so the controllers do not rely on that.
+
+`POST /workflow/{workflowId}/usertasks` keeps its own default of 100 for `pageSize`. It shares the
+request type with the task list, which is why `pageSize` is not `required` in the schema.
+
+#### How the 400 is built
+
+A controller which finds a mistake throws `BcInvalidRequestException` from `commons`.
+`RestfulExceptionHandler` answers it in the same words as a request which breaks its schema. So a
+client reads one kind of answer, whichever check found the mistake.
+
+#### Tests
+
+`AListWithoutPagingValuesTest` in `business-cockpit` sends the requests through Spring MVC, with
+the real bean validation and the real exception handler.
+`RestfulExceptionHandlerTest#aMistakeAControllerFoundIsAnsweredLikeABrokenSchema` holds the wording.
+
+### 56. The unused field `query` leaves the GUI API
+
+#### What was wrong
+
+`UserTasksRequest` and `UserTasksUpdateRequest` of the GUI API had a field `query`. No code read
+it. The task list searches by `searchQueries` only, and a `SearchQuery` without a `path` is the
+full-text search. A client which set `query` got every row and no error. `WorkflowsRequest` and
+`WorkflowsUpdateRequest` never had the field.
+
+#### What the cockpit does now
+
+The field is gone from the OpenAPI document, and so from the generated Java model and the
+generated TypeScript client. No caller in this repository set it: not the user interface in `ui`,
+not the development shells and simulators in `development`, not the tests.
+
+Implementing it instead was the other choice. It was rejected because `searchQueries` already does
+the job, and because removing it before version 1.0 breaks nobody who used it, since it never did
+anything.
+
+#### What it does not change
+
+The server still ignores fields it does not know, as Spring Boot's JSON reader does by default. So
+an old client which still sends `query` gets the same answer as before: every row and no error. It
+only stops being promised by the API document. Refusing unknown fields would be a change for every
+endpoint and is not part of this decision.
+
+### 57. A sort path cannot create indexes without limit
+
+#### What was wrong
+
+The lists of user tasks and of workflows are sorted by the paths in the field `sort` of a request.
+The server created a MongoDB index for every combination of paths it had not seen before. It did
+not check the paths, and it had no limit. So every logged-in user could create indexes. Measured on
+2026-10-07 against the cockpit of this repository: a hundred requests with a hundred unknown paths
+all answered 200, and the collection `usertask` went from 0 to 61 sort indexes. That is 64 indexes
+with the cockpit's own, which is all MongoDB takes. After that no new index could be created by
+anybody, and every index makes each write a little slower.
+
+Since every application can build its own user interface, the one which ships with the cockpit and
+sends column paths only does not protect the server any more.
+
+#### What the cockpit does now
+
+A path in `sort` names one of two things:
+
+- a field of the list: a field of `UserTask` or `Workflow` in the GUI API which the server stores
+  under the same name, like `dueDate`, `title.de` or `assignee.sort`;
+- a key of the business data below `details.`, like `details.customer.name`.
+
+Each part of a path holds letters, digits and `_` only. Where
+`business-cockpit.mongodb.map-key-dot-replacement` is set, the replacement may appear below
+`details.` too, because a column names such a key in its stored form. Any other path is answered
+with 400, for the list and for its update, and no index is created.
+
+At most `business-cockpit.mongodb.sort-indexes-per-collection` sort indexes exist per collection,
+30 by default. A sort index is an index whose name starts with `_sort_`. The cockpit counts them in
+the database, so several instances share the limit. Once it is reached, a new combination is
+sorted without an index of its own, and the server warns once per combination. The warning names
+the key and says how to free a place. The value is checked at startup: a whole number from 0 to 60.
+60 leaves room for the cockpit's own indexes below MongoDB's 64.
+
+Both lists use one class, `io.vanillabp.cockpit.util.SortIndexes`. It replaces two copies of the
+same code, which kept their state in static fields.
+
+#### What was rejected
+
+- An allowed list of paths per workflow module, taken from the columns a module declares. The
+  columns live in the user interface of the module, and the server never sees them.
+- Refusing a new combination once the limit is reached. The list would break for a user who only
+  clicked a column, while sorting without an index still gives the right answer.
+
+#### What it costs
+
+A key of the business data with a `-` or a space, like `order-id`, can be shown in a column but no
+longer sorted by. Before, it was sorted and got an index. The module can report it as `order_id`, or
+mark the column as not sortable.
+
+#### Tests
+
+`SortIndexesTest` in `business-cockpit` holds the rules against a real MongoDB.
+`StartupConfigurationCheckTest` holds the startup check of the limit. `SortPathsTest` in `container`
+holds both lists through HTTP, including a hundred new paths which leave 30 sort indexes per
+collection.

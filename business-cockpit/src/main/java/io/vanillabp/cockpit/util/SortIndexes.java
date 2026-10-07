@@ -29,6 +29,8 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
  * </ul>
  * A sort index is recognised by the prefix {@value #INDEX_PREFIX} of its name. The limit is counted
  * in the database, so several instances of the cockpit share it.
+ * <p>
+ * See decision 57 in the repository's DECISIONS.md.
  */
 public class SortIndexes {
 

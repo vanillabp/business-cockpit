@@ -10,6 +10,8 @@ import io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException;
  * The page size has no default. How many rows a page holds is up to the user interface, and a
  * value the server picked would only hide that the client forgot it. So a missing page size is
  * answered with {@code 400 Bad Request}, which names the field.
+ * <p>
+ * See decision 55 in the repository's DECISIONS.md.
  */
 public final class ListPaging {
 
