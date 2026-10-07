@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
-import io.vanillabp.spi.cockpit.usertask.DetailCharacteristics;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 
 /**
@@ -322,18 +321,6 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
       final Map<String, Object> details) {
 
     this.details = details;
-
-  }
-
-  /**
-   * The cockpit's BPMS API has no field for these, so nothing is transported and an empty map
-   * is the honest answer. The SPI declares them for a viewer which can sort and filter by a
-   * detail; that viewer does not exist yet.
-   */
-  @Override
-  public Map<String, ? extends DetailCharacteristics> getDetailsCharacteristics() {
-
-    return Map.of();
 
   }
 

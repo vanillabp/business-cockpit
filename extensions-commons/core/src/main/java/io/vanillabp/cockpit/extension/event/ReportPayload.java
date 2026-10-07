@@ -174,12 +174,12 @@ public final class ReportPayload {
    * that the event stays the object a details provider works with.
    * <p>
    * The kind of event is final and is set when the report is built, so it is read through the
-   * constructor. The three properties left out are read from another field, are always empty or
-   * hold whatever an application handed the templating; the titles are rendered at the event,
-   * so the context which rendered them has nothing left to do at the dispatch.
+   * constructor. The properties left out are either read from another field or hold whatever an
+   * application handed the templating; the titles are rendered at the event, so the context
+   * which rendered them has nothing left to do at the dispatch.
    */
   @JsonIgnoreProperties({
-      "id", "eventTimestamp", "detailsCharacteristics", "templateContext"
+      "id", "eventTimestamp", "templateContext"
   })
   private abstract static class UserTaskEventShape {
 
@@ -192,7 +192,7 @@ public final class ReportPayload {
 
   /** What Jackson has to be told about a workflow report, for the reasons above. */
   @JsonIgnoreProperties({
-      "eventTimestamp", "detailsCharacteristics", "templateContext"
+      "eventTimestamp", "templateContext"
   })
   private abstract static class WorkflowEventShape {
 
