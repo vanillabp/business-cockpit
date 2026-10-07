@@ -1,0 +1,199 @@
+name: Nightly build
+# Once a night, main is built and tested again against the newest published snapshots of the
+# VanillaBP platform and of everything else this repository reads as a snapshot.
+#
+# The chain check asks whether the newest run on main was green, and builds nothing. So a
+# main which a new snapshot from upstream breaks, without anybody pushing here, still looks
+# green to it. That happened at the end of September 2026: a commit of the platform broke a
+# test, and main stayed red for five days without anybody seeing it. This workflow is what
+# sees it. The chain check reads the result of this workflow too, as the newest run on main.
+#
+# The build is the pull-request build, called as it is. So the night proves what a pull
+# request opened tonight would prove, and the two cannot drift apart. That build passes '--
+# update-snapshots', which is what makes it read the snapshots published since the last run,
+# and not what the cache of the runner restored.
+#
+# Nothing is published, and nothing is pushed. This workflow has no push trigger, so a push
+# to a branch costs no CI time here.
+#
+# A red night becomes an issue with the label 'nightly-build'. A night which is still red
+# gets a comment on that issue, never a second issue. A green night after a red one gets a
+# comment too, and the issue stays open until somebody closes it. The same pattern as the
+# nightly release-line matrix of businesscockpit-camunda8-adapter.
+"on":
+  schedule:
+    # A crooked minute, because GitHub's queue is longest on the hour, and not the minute of
+    # the release-line matrix of the Camunda 8 adapter (23:47 UTC) or of the two other
+    # cockpit adapters, so the four do not ask at the same moment. It asks before the chain
+    # check (02:13 UTC), so the chain check usually reads tonight's result. GitHub starts a
+    # scheduled run hours late at times, and the result is still there in the morning.
+    - cron: "29 0 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  # The build below joins the group of the publish of main, so a build and a publish never
+  # run at the same time. But GitHub keeps only one waiting run per group, and a new one
+  # takes the place of the one that waits. If the night arrived while one publish of main
+  # runs and the next one waits, the waiting publish would be cancelled, and the head of
+  # main would stay unpublished. So this job waits until no publish of main is running or
+  # waiting, and the build only then joins the group.
+  publish-is-quiet:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Wait until no publish of main runs or waits
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GH_REPO: "${{ github.repository }}"
+        # Over the last thirty publish runs of main the longest took 15 minutes. An hour
+        # leaves room for one which runs, one which waits behind it and a slow runner.
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + 60 * 60 ))
+          while :; do
+            busy=$(gh run list --workflow deploy-to-github-packages.yaml --branch main \
+              --limit 20 --json status --jq '[.[] | select(.status != "completed")] | length')
+            if [ "$busy" -eq 0 ]; then
+              echo "No publish of main runs or waits."
+              exit 0
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "A publish of main has been running or waiting for an hour. The build does" >&2
+              echo "not join its group, so it cannot take the place of a waiting publish." >&2
+              exit 1
+            fi
+            echo "$busy publish runs of main are not done yet."
+            sleep 30
+          done
+
+  build:
+    needs: publish-is-quiet
+    # The group of the publish of main, see deploy-to-github-packages.yaml. The publish
+    # names its group with an expression on the ref, and on main that expression reads
+    # 'main'.
+    concurrency:
+      group: business-cockpit-publish-main
+      cancel-in-progress: false
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+
+  # Opens the issue, comments on it, or says nothing. A job of this workflow rather than a
+  # workflow of its own: nothing else calls this workflow, so it can ask for 'issues: write'
+  # itself, and with 'always()' it also runs after a green night, which has to be reported
+  # where an issue is open.
+  report:
+    if: always()
+    needs: [publish-is-quiet, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # the jobs of this run and their logs
+      actions: read
+      issues: write
+    steps:
+      - name: Open or update the issue
+        # Only for main: a dispatch on a branch says nothing about main.
+        if: github.ref_name == 'main'
+        env:
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GH_REPO: "${{ github.repository }}"
+          RUN_ID: "${{ github.run_id }}"
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          HEAD_SHA: "${{ github.sha }}"
+          SERVER_URL: "${{ github.server_url }}"
+          QUIET: "${{ needs.publish-is-quiet.result }}"
+          BUILD: "${{ needs.build.result }}"
+        run: |
+          set -euo pipefail
+
+          # A cancelled build is somebody stopping the run, or a push to main which took
+          # the waiting place in the group. The publish of that push builds and tests main
+          # anyway. Neither says anything about main, so nothing is reported.
+          if [ "$QUIET" = "success" ] && [ "$BUILD" = "success" ]; then
+            state=green
+          elif [ "$QUIET" = "cancelled" ] || [ "$BUILD" = "cancelled" ]; then
+            echo "The run was cancelled, so this night says nothing about main."
+            exit 0
+          else
+            state=red
+          fi
+
+          label=nightly-build
+          title="Nightly build: main is red"
+
+          # The label is how the open issue is found again. Creating a label which is
+          # already there is an error, and that is the normal case here.
+          gh label create "$label" --color B60205 \
+            --description "Main did not build in the night against the newest snapshots" \
+            >/dev/null 2>&1 || true
+
+          number=$(gh issue list --state open --label "$label" --limit 100 \
+            --json number,title \
+            | jq -r --arg t "$title" 'map(select(.title == $t)) | .[0].number // empty')
+
+          body="$RUNNER_TEMP/body.md"
+
+          if [ "$state" = "red" ]; then
+            {
+              echo "Main did not build in the night against the newest snapshots."
+              echo
+              echo "- run: $RUN_URL"
+              echo "- commit: $SERVER_URL/$GH_REPO/commit/$HEAD_SHA"
+              # Every job which failed, with Maven's own summary out of its log. The six
+              # lines Maven prints after every failure about running it again are left out.
+              gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/jobs" \
+                --jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out")
+                      | [.id, .name, .html_url] | @tsv' \
+                | while IFS=$'\t' read -r id name url; do
+                    echo
+                    echo "Job \`$name\` failed: $url"
+                    echo
+                    echo '```'
+                    gh api "repos/$GH_REPO/actions/jobs/$id/logs" 2>/dev/null \
+                      | sed -E 's/^[^ ]+ //' \
+                      | grep -aE '^\[ERROR\]' \
+                      | grep -avE '^\[ERROR\][[:space:]]*$|-> \[Help|\[Help [0-9]+\] http|To see the full stack trace|Re-run Maven using|For more information about the errors|After correcting the problems|mvn <args> -rf|See dump files|See /home/runner/' \
+                      | head -30 || true
+                    echo '```'
+                  done \
+                || echo "The jobs of this run could not be read, see the run above."
+              echo
+              echo "If the commit above is the one main had the night before, nothing in this"
+              echo "repository changed, and a new snapshot from upstream is the first suspect."
+              echo "The test reports are attached to the run, and GitHub keeps them for seven days."
+              echo
+              echo "<!-- nightly-build-state: red -->"
+            } > "$body"
+            if [ -n "$number" ]; then
+              gh issue comment "$number" --body-file "$body"
+            else
+              gh issue create --title "$title" --label "$label" --body-file "$body"
+            fi
+            exit 0
+          fi
+
+          # Green. Only worth saying where an issue is open and the last thing it was told
+          # was red, otherwise every quiet night would add a comment.
+          [ -n "$number" ] || exit 0
+          last=$(gh issue view "$number" --json body,comments \
+            | jq -r '[.body] + [.comments[].body] | last' \
+            | sed -n 's/.*nightly-build-state: \([a-z]*\).*/\1/p' | tail -1)
+          [ "$last" = "red" ] || exit 0
+          {
+            echo "Main built in the night against the newest snapshots."
+            echo
+            echo "- run: $RUN_URL"
+            echo "- commit: $SERVER_URL/$GH_REPO/commit/$HEAD_SHA"
+            echo
+            echo "This issue is not closed by that, on purpose. One green night does not prove"
+            echo "a fix, a flaky test can be green one night and red the next. Whoever fixed"
+            echo "what it reported knows that it is fixed, and closes it."
+            echo
+            echo "<!-- nightly-build-state: green -->"
+          } > "$body"
+          gh issue comment "$number" --body-file "$body"
