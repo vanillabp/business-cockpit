@@ -1416,7 +1416,7 @@ instead of two. It costs agreement between the two strands, and the platform has
 chain. The default is this script, for the four cockpit repositories, until the maintainer decides
 otherwise.
 
-### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45
+### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45, and corrected by a late creation in decision 50
 
 Measured on 2026-10-03 for story 1423. Nothing was changed, the entry writes down what the server
 already does.
@@ -1986,7 +1986,7 @@ sorting with its index, the user interface, and the columns a workflow module de
 would reach such a key. Only `$getField` in an expression does, and the cockpit builds that nowhere.
 `AKeyWithADotInTheDetailsTest` measures both settings.
 
-### 45. An end which arrives alone gives the record a start, and says which start where it can
+### 45. An end which arrives alone gives the record a start, and says which start where it can - a late creation of any record changed by decision 50
 
 Decided on 2026-10-04 for story 1429. Before, a user task or a case which the cockpit knew from its
 end alone had no `createdAt`, and the user interface got a record without the start its schema
@@ -2253,3 +2253,117 @@ A stream ends when the sign-in it was opened with expires. The browser connects 
 stream with the rights of its new sign-in. That is how a change of rights reaches the stream, a
 substitute for example, without a second mechanism for substitutes. A sign-in which names no end
 keeps its stream for as long as the tab is open.
+
+### 49. 'npm update' lifts our own packages only
+
+#### What was wrong
+
+The build step 'npm install' of the root POM, of `development/simulator` and of
+`development/dev-shell-angular` ran `npm update --scope @vanillabp/**`. The plan was to fetch the
+newest builds of our own packages. But `npm update` has no filter. Only `init`, `publish`,
+`search` and `login` read `--scope`. So the step lifted every npm dependency of the module to the
+newest version its range allows, and wrote that into the checked-in `package-lock.json`. A build
+of `apis/official-gui-api/client`, which needs none of our packages, changed 103 lines of
+`@rollup/*` entries there. The release commits what its build changes, so every release also
+shipped whatever npm had published that day.
+
+#### What is decided
+
+The step names the packages it may lift: the ones this repository publishes itself. The list is
+the property `npm.own-packages` in the root POM. All three POMs call
+`npm update ${npm.own-packages}`. npm skips a name the module does not use, still fills
+`node_modules` from `package-lock.json`, and leaves the file alone. So one list serves every
+module. Whoever adds a package to the repository adds its name to the list.
+
+Updates of every other npm dependency come from Renovate, as they do for Maven, Docker and the
+GitHub actions. A release no longer lifts them.
+
+Today Renovate does not look at npm in this repository. `renovate.json` switches the npm manager
+off until there is a reference interface to keep current. Until then the versions of other npm
+packages stay as `package-lock.json` has them. This is wanted: the code which uses them will be
+rewritten or dropped.
+
+### 50. A creation which arrives late corrects the start, if its start is earlier
+
+Related entries: 36 (a change of a case the cockpit never saw created creates the case) and 45 (an
+end which arrives alone gives the record a start). This entry changes the section "What comes after
+it" of 36, and the last sentence of the section "What still waits for its creation" of 45.
+
+#### What was wrong
+
+A change of a case the cockpit does not hold creates the case (decision 36). The case gets the time
+of the change as its `createdAt`. A creation which arrived later stored nothing, because only a
+record known from its end alone waits for its creation. A creation which was only late, and not
+missing, could not correct the start. The case kept the time of its first change as its start for
+good. User tasks had the same rule and the same gap.
+
+#### What the cockpit does now
+
+A creation of a case or a user task the cockpit already holds compares its timestamp with the
+stored `createdAt`:
+
+- If the creation is earlier, its timestamp becomes the new `createdAt`. Nothing else is taken from
+  the creation. The change which created the record is younger, so the rest of the record stays as
+  the change stored it. `latestEventAt` stays as well.
+- If the creation is at the same time or later, nothing is stored, as before. The log says so, as
+  for any report which changes nothing.
+
+There is no new field and no new mark. The rule only compares two timestamps, so it holds for every
+record the cockpit already holds, however it got its start. The rule is in
+`OrderOfReports.isEarlierThanTheStoredStart` and is used by `WorkflowlistService.reportCreatedWorkflow`
+and `UserTaskService.reportCreatedUserTask`. Both ways in, REST and Kafka, go through these two
+methods.
+
+#### What stays as it is
+
+A record known from its end alone (decision 45) still takes everything the creation reports and the
+start of the creation, as 45 says. Where the end reported the start, the two are the same. Where it
+did not, the end is later than the creation. So such a record gets the same start under both rules.
+
+`createdAt` is still never empty (decision 45). The user interface still shows the time of the first
+change until the creation arrives.
+
+#### What it costs
+
+A creation now writes to a record it used to leave alone, when its start is earlier. A record whose
+start changes shows up again in the update stream of a browser that shows it. If the creation never
+arrives, the case keeps the time of the change as its start, as before.
+
+### 51. A login is renewed while it is used, up to a maximum counted from the login
+
+The cockpit's own token lived twelve hours and was never renewed. Since the update stream ends with
+the token (decision 48), the whole user interface logged out after twelve hours, even in the middle
+of work.
+
+#### What is decided
+
+- A request whose token has less than half of `business-cockpit.jwt.cookie.expires-duration` left
+  gets a new cookie. The new token lives `expires-duration` again. `JwtRenewalFilter` does this. It
+  runs right after `PassiveJwtSecurityFilter` and reads the authentication that filter restored.
+- A login never lasts longer than `business-cockpit.jwt.cookie.max-login-duration`, seven days by
+  default, counted from the login. The first token is cut to it as well. When the limit leaves no
+  more time than the old token has, nothing is renewed.
+- The time of the login travels in the claim `auth_time`, the name OpenID Connect uses for it. A
+  renewal keeps it. A token without it counts from its `iat`. Such a token was issued before this
+  change, or by an application of its own, and was never renewed, so `iat` is its login time.
+- A renewal copies all claims of the old token. Only `iat`, `exp` and `jti` are new. So the user and
+  the groups stay as they were at the login. A group somebody gets or loses reaches the cockpit at
+  the next login, and `max-login-duration` is now the longest that can take, no longer
+  `expires-duration`.
+- The update stream does not renew (`WebSecurityConfiguration.updatesRequestMatcher`). It connects
+  again by itself, so a tab nobody looks at would otherwise stay logged in for the whole maximum.
+  Every other request with a valid token renews, including `current-user` and the proxy to the
+  workflow modules.
+- Both durations are checked when the application starts. A value which is no ISO-8601 duration
+  greater than zero stops the start (`JwtLifetimeIsNotUsableException`). A maximum shorter than
+  `expires-duration` boots with a warning, because it switches renewal off.
+
+#### What it costs
+
+- An open stream still ends when the token it was opened with expires. With renewal that happens
+  once per token lifetime while somebody works, and the browser connects again with the new
+  cookie.
+- Several requests in the second half of a token each get a new cookie. That is harmless: the
+  browser keeps the last one.
+- A login by standard OAuth would bring its own renewal, by refresh tokens. If the cockpit moves to
+  it, this decision goes away together with today's login.
