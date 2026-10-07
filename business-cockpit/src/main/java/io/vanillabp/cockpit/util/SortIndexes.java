@@ -23,7 +23,8 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
  * <ul>
  * <li>A path names a field of the list, like {@code dueDate} or {@code title.de}, or a key of the
  * business data, like {@code details.customer.name}. Each part of a path holds letters, digits and
- * {@code _} only. Anything else is answered with {@code 400 Bad Request}.</li>
+ * {@code _} only, and below {@code details.} the {@code -} as well, because a workflow module may
+ * report a key like {@code order-id}. Anything else is answered with {@code 400 Bad Request}.</li>
  * <li>At most {@code limit} sort indexes exist per collection. Once they are there, a new
  * combination is sorted without an index of its own, and the server warns once per combination.</li>
  * </ul>
@@ -113,8 +114,8 @@ public class SortIndexes {
             return;
         }
         throw new BcInvalidRequestException(
-                "'sort' may only name fields of the list or keys below '%s.', and each part of a path may hold letters, digits and '_' only"
-                        .formatted(BUSINESS_DATA));
+                "'sort' may only name fields of the list or keys below '%s.'. A part of a path holds letters, digits and '_', and below '%s.' also '-'"
+                        .formatted(BUSINESS_DATA, BUSINESS_DATA));
 
     }
 
@@ -124,9 +125,11 @@ public class SortIndexes {
         final var firstDot = path.indexOf('.');
         final var field = firstDot == -1 ? path : path.substring(0, firstDot);
         if (field.equals(BUSINESS_DATA)) {
+            // the replacement of a dot and a dash are allowed in a key, so both count as '_' here
             final var storedForm = mapKeyDotReplacement
                     .map(replacement -> path.replace(replacement, "_"))
-                    .orElse(path);
+                    .orElse(path)
+                    .replace('-', '_');
             return (firstDot != -1) && PATH.matcher(storedForm).matches();
         }
         return fieldsOfTheList.contains(field) && PATH.matcher(path).matches();

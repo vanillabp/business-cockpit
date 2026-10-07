@@ -107,7 +107,7 @@ class SortIndexesTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "dueDate", "title.de", "assignee.sort", "details.customer", "details.customer.name",
-            "details.order_id", "details.straße", "details.position2" })
+            "details.order_id", "details.order-id", "details.straße", "details.position2" })
     void aFieldOfTheListOrAKeyOfTheBusinessDataIsAllowed(
             final String path) {
 
@@ -119,14 +119,14 @@ class SortIndexesTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "noSuchField", "details", "details.", "details..name", "details.a b", "details.$where",
-            "details.a-b", "title.$de", " dueDate", "dueDate ", "details.order~id", "_id", "$natural" })
+            "title.en-GB", "assignee-id", "title.$de", " dueDate", "dueDate ", "details.order~id", "_id", "$natural" })
     void anythingElseIsRefusedWithAMessageWhichSaysWhatIsAllowed(
             final String path) {
 
         assertThatThrownBy(() -> sortIndexes(30, Optional.empty()).checkPath(path))
                 .isInstanceOf(BcInvalidRequestException.class)
-                .hasMessage("'sort' may only name fields of the list or keys below 'details.', and each "
-                        + "part of a path may hold letters, digits and '_' only");
+                .hasMessage("'sort' may only name fields of the list or keys below 'details.'. A part of a "
+                        + "path holds letters, digits and '_', and below 'details.' also '-'");
 
     }
 

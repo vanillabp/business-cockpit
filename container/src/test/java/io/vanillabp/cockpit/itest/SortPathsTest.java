@@ -61,6 +61,7 @@ class SortPathsTest extends ItestBase {
         assertThat(listSortedBy("usertask", "title.en")).isEqualTo(200);
         assertThat(listSortedBy("usertask", "assignee.sort,assignee.id")).isEqualTo(200);
         assertThat(listSortedBy("usertask", "details.customer.name")).isEqualTo(200);
+        assertThat(listSortedBy("usertask", "details.order-id")).isEqualTo(200);
 
     }
 
@@ -84,8 +85,8 @@ class SortPathsTest extends ItestBase {
 
         assertThat(answer.statusCode()).isEqualTo(400);
         assertThat(answer.body()).isEqualTo("The request is not valid: 'sort' may only name fields of "
-                + "the list or keys below 'details.', and each part of a path may hold letters, digits "
-                + "and '_' only.");
+                + "the list or keys below 'details.'. A part of a path holds letters, digits and '_', "
+                + "and below 'details.' also '-'.");
         assertThat(sortIndexesOf(UserTask.COLLECTION_NAME)).isEqualTo(before);
 
     }

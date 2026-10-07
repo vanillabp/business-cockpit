@@ -2564,10 +2564,11 @@ A path in `sort` names one of two things:
   under the same name, like `dueDate`, `title.de` or `assignee.sort`;
 - a key of the business data below `details.`, like `details.customer.name`.
 
-Each part of a path holds letters, digits and `_` only. Where
-`business-cockpit.mongodb.map-key-dot-replacement` is set, the replacement may appear below
-`details.` too, because a column names such a key in its stored form. Any other path is answered
-with 400, for the list and for its update, and no index is created.
+Each part of a path holds letters, digits and `_` only, and below `details.` the `-` as well. A
+workflow module may report a key like `order-id`, and its column stays sortable (the maintainer,
+2026-10-07). Where `business-cockpit.mongodb.map-key-dot-replacement` is set, the replacement may
+appear below `details.` too, because a column names such a key in its stored form. Any other path
+is answered with 400, for the list and for its update, and no index is created.
 
 At most `business-cockpit.mongodb.sort-indexes-per-collection` sort indexes exist per collection,
 30 by default. A sort index is an index whose name starts with `_sort_`. The cockpit counts them in
@@ -2588,9 +2589,9 @@ same code, which kept their state in static fields.
 
 #### What it costs
 
-A key of the business data with a `-` or a space, like `order-id`, can be shown in a column but no
-longer sorted by. Before, it was sorted and got an index. The module can report it as `order_id`, or
-mark the column as not sortable.
+A key of the business data with a space or another character outside the rule, like `order id`, can
+be shown in a column but no longer sorted by. Before, it was sorted and got an index. The module can
+report it as `order_id`, or mark the column as not sortable.
 
 #### Tests
 

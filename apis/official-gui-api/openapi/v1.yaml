@@ -1069,7 +1069,8 @@ components:
           description: >-
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
-            letters, digits and '_' only. Any other path is answered with 400. Without it the server
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
@@ -1112,7 +1113,8 @@ components:
           description: >-
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
-            letters, digits and '_' only. Any other path is answered with 400. Without it the server
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
@@ -1152,7 +1154,8 @@ components:
           description: >-
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
-            letters, digits and '_' only. Any other path is answered with 400. Without it the server
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean
@@ -1201,7 +1204,8 @@ components:
           description: >-
             Paths to sort by, separated by commas. A path names a field of the list, like 'dueDate'
             or 'title.de', or a key of the business data below 'details.'. Each part of a path holds
-            letters, digits and '_' only. Any other path is answered with 400. Without it the server
+            letters, digits and '_', and below 'details.' also '-'. Any other path is answered with
+            400. Without it the server
             sorts user tasks by 'dueDate' and workflows by 'createdAt'.
         sortAscending:
           type: boolean

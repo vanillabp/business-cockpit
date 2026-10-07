@@ -142,14 +142,15 @@ Ein Pfad nennt entweder ein Feld der Liste oder einen Schlüssel der gemeldeten 
 `details.`. Die Felder der Liste sind die Felder von `UserTask` bzw. `Workflow` in der Beschreibung,
 die der Server unter demselben Namen speichert, also zum Beispiel `dueDate`, `title.de` oder
 `assignee.sort`. `uiUri`, `workflowModuleUri` und `read` gehören nicht dazu, weil der Server sie
-erst beim Antworten berechnet. Jeder Teil eines Pfads besteht aus Buchstaben, Ziffern und `_`. Ein
-Bindestrich, ein Leerzeichen oder ein `$` sind also nicht erlaubt. Ist für die Geschäftsdaten ein
+erst beim Antworten berechnet. Jeder Teil eines Pfads besteht aus Buchstaben, Ziffern und `_`. Unter
+`details.` ist auch der Bindestrich erlaubt, weil ein Workflow-Modul einen Schlüssel wie `order-id`
+melden darf. Ein Leerzeichen oder ein `$` ist nirgends erlaubt. Ist für die Geschäftsdaten ein
 Ersatz für den Punkt eingestellt, darf er unter `details.` vorkommen.
 
 Jeden anderen Pfad lehnt der Server mit 400 ab:
-`The request is not valid: 'sort' may only name fields of the list or keys below 'details.', and
-each part of a path may hold letters, digits and '_' only.` Das gilt für die Liste und für die
-Aktualisierung.
+`The request is not valid: 'sort' may only name fields of the list or keys below 'details.'. A part
+of a path holds letters, digits and '_', and below 'details.' also '-'.` Das gilt für die Liste und
+für die Aktualisierung.
 
 Zu jeder neuen Kombination von Pfaden legt der Server einen Index in der Datenbank an, aber höchstens
 30 je Sammlung (`business-cockpit.mongodb.sort-indexes-per-collection`). Danach sortiert er ohne
