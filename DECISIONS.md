@@ -1608,7 +1608,7 @@ for the simulator under `development/simulator`, which uses the handler with the
 A client which read 500 as "invalid" reads 400 now, with a body which names the field instead of
 the message of an exception.
 
-### 40. A report from Kafka the cockpit could not store comes again until it is stored - a save which fails every time and what an attempt logs changed by decision 41
+### 40. A report from Kafka the cockpit could not store comes again until it is stored - a save which fails every time and what an attempt logs changed by decision 41, and the start of a case created by a change narrowed by decision 50
 
 Decided on 2026-10-03 for story 1435. Before, such a report was lost.
 
