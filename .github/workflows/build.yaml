@@ -113,8 +113,11 @@ jobs:
         # both are git-ignored, so a fresh checkout has neither: the package
         # apis/official-gui-api/client, and the web application's own client under
         # src/client/gui. The generator runs with a helper of this repository, which is why that
-        # one is installed first. 'generate-sources' and not 'install' for the rest: the Java
-        # side is built by the job beside this one, and nothing here needs a jar.
+        # one is installed first. 'compile' and not 'install' for the rest: the Java side is
+        # built by the job beside this one. 'generate-sources' is not enough, because at that
+        # phase Maven cannot hand a module of this build to the next one and looks for its jar
+        # in the snapshot repository instead. That only worked while an earlier snapshot was
+        # published there, and it broke when the snapshots moved to Maven Central.
         # '-Pjava-install' keeps every npm step of the reactor out of this; npm is run below.
         run: |
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
@@ -122,7 +125,7 @@ jobs:
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Pjava-install -DskipTests \
           -pl apis/official-gui-api/client,business-cockpit -am \
-          generate-sources
+          compile
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
