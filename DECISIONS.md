@@ -2637,3 +2637,32 @@ field, and because `OpenTasksWithoutFollowUp` already shows exactly that list.
 
 The dev-shell simulator in `development/dev-shell-simulator` answered `OpenTasksWithFollowUp` with
 every task, ended ones included. It now answers it like `OpenTasks`, the same as the cockpit.
+
+### 59. The extension knows which variables its details providers read
+
+A `@UserTaskDetailsProvider` method may take a process variable with `@TaskParam`. Camunda 7 hands a
+BPMS half every variable of a task, so the value is there. A Camunda 8 job carries only the
+variables its worker asked for, so the Camunda 8 half has to know the names before the first task
+arrives. Stephan decided on 2026-10-09 that `@TaskParam` stays and gets its value on Camunda 8 as
+well.
+
+The extension now notes the names. `DetailsProviderTaskParams` reads the `@TaskParam` parameters of
+each provider in the annotation check of the `@UserTaskDetailsProvider` contract. VanillaBP runs that
+check for every method it scans and binds, so the extension reads the same methods and walks no class
+a second time. The names are kept by lookup key: the element id, the task definition, the method's
+name where the annotation names neither, and `*` for a provider of every task.
+
+A BPMS half asks with `BusinessCockpitEventPublisher.variablesTheDetailsProvidersRead(taskDefinition,
+bpmnTaskId)`. It is a default method which answers an empty list, so a half which does not ask is
+not affected. The answer is empty too where the application reports no user tasks.
+
+The names are not kept per workflow module or per BPMN process. The annotation check shows a method
+and its annotation, but not the process the method was registered for. So the answer for a task is
+the union over every provider of the application serving a key of the same spelling. A half may
+therefore fetch a variable which a provider of another process reads. It never misses one.
+
+The platform would be the better place for the question. It knows each method together with its
+module and process, and it answers the same question for `@WorkflowTask` methods with
+`WorkflowTaskWiring.taskParameterNames`. `ExtensionHandlers` has no such method yet. Once it has
+one, `DetailsProviderTaskParams` can ask it and drop its own list, and the answer gets as narrow as
+the one for workflow tasks.

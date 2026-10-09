@@ -52,13 +52,22 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * @return The contract of <code>&#64;UserTaskDetailsProvider</code>
+   * The contract of <code>&#64;UserTaskDetailsProvider</code>.
+   * <p>
+   * While VanillaBP scans a provider, the contract notes which process variables its
+   * <code>&#64;TaskParam</code> parameters read. A BPMS half whose engine hands out only the
+   * variables it asked for needs those names before the first task arrives.
+   *
+   * @param taskParams Where the names the providers read are noted
+   * @return The contract
    */
-  public static HandlerContract userTaskContract() {
+  public static HandlerContract userTaskContract(
+      final DetailsProviderTaskParams taskParams) {
 
     return HandlerContract
         .of(ConfigurationKeys.EXTENSION_ID, UserTaskDetailsProvider.class)
         .lookupKeys(BusinessCockpitHandlers::userTaskLookupKeys)
+        .validatingAnnotation(taskParams::note)
         .versions(annotation -> versionsOf(((UserTaskDetailsProvider) annotation).version()))
         .callsCarryTheProcessVersion()
         .coreParameters(
@@ -97,7 +106,7 @@ public final class BusinessCockpitHandlers {
    * @param annotation The occurrence
    * @return The element id and the task definition it names, empty for "the method's own name"
    */
-  private static List<String> userTaskLookupKeys(
+  static List<String> userTaskLookupKeys(
       final Annotation annotation) {
 
     final var provider = (UserTaskDetailsProvider) annotation;
