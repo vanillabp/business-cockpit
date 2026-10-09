@@ -157,6 +157,14 @@ BPMS half calls it when its engine reported something, saying which transaction 
 - the current one for an embedded engine invoking its listeners inside the engine's transaction, a
 new one for a remote engine's worker thread.
 
+The publisher also says which process variables the application's user-task details providers read
+with `@TaskParam` (`variablesTheDetailsProvidersRead`). Some engines hand out only the variables a
+half asked for. A Camunda 8 worker is one of them. Such a half asks for these names and passes on
+what the engine sent as `UserTaskDetailsPrefill.variables`. The names are noted while VanillaBP
+scans the providers, through the annotation check of their contract, and they are kept by element
+id and task definition. A half whose engine hands out every variable of a task does not need to
+ask.
+
 Both are published contracts. A change to them is a change three repositories have to follow.
 
 A BPMS half hands over nothing else. Which of the application's outbox stores an entry is written

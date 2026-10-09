@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.extension.spi;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 /**
  * What a BPMS half calls when its engine reported something the Business Cockpit has to learn
@@ -94,6 +95,32 @@ public interface BusinessCockpitEventPublisher {
   default boolean reportsWorkflows() {
 
     return true;
+
+  }
+
+  /**
+   * The process variables the application's details providers read with
+   * <code>&#64;TaskParam</code> when they are asked about one user task.
+   * <p>
+   * A BPMS half asks this where its engine hands out only the variables it was asked for, such
+   * as a Camunda 8 worker. It asks for these names, the engine puts their values on the event,
+   * and the half passes them on as {@link UserTaskDetailsPrefill#variables()}. A half whose
+   * engine hands out every variable of the task anyway does not need to ask.
+   * <p>
+   * The names are known once VanillaBP scanned the application's workflow services, which is
+   * before any workflow module starts processing. Ask while a module starts, not while its
+   * models are wired.
+   *
+   * @param taskDefinition The task's task definition, may be <code>null</code>
+   * @param bpmnTaskId The task's BPMN element id, may be <code>null</code>
+   * @return The names, sorted. Empty where no provider of that task reads a variable, and
+   *         empty where the application reports no user tasks
+   */
+  default List<String> variablesTheDetailsProvidersRead(
+      final String taskDefinition,
+      final String bpmnTaskId) {
+
+    return List.of();
 
   }
 
