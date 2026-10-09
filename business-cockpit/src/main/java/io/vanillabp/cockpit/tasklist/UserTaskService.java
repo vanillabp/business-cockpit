@@ -13,6 +13,7 @@ import io.vanillabp.cockpit.config.startup.CockpitConfiguration;
 import io.vanillabp.cockpit.config.startup.MapKeyDotReplacement;
 import io.vanillabp.cockpit.config.startup.SortIndexLimit;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
 import io.vanillabp.cockpit.tasklist.model.UserTaskRepository;
 import io.vanillabp.cockpit.users.model.Person;
@@ -47,6 +48,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.ArrayOperators;
+import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
+import org.springframework.data.mongodb.core.aggregation.ConditionalOperators;
 import org.springframework.data.mongodb.core.messaging.Message;
 import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -969,10 +974,19 @@ public class UserTaskService {
     }
 
     /**
-     * The workflows the given user has visible tasks for, each one once. A workflow here is a
-     * workflow module and a BPMN process, together with the title of the workflow, and the
+     * The workflows the given user has visible tasks for, each one once. A workflow here is the
+     * workflow module and the BPMN process of a business case, together with a title, and the
      * visibility is the one the user task list uses. The page for configuring notifications reads
      * it to offer an exception per workflow.
+     * <p>
+     * A task counts for the process of its case, not for the process it sits in. A task of a
+     * process the case started by a call activity is a step of that case, so it adds no workflow
+     * of its own. The case is the workflow stored under the task's {@code workflowId}, and a task
+     * whose workflow the cockpit does not hold counts for its own process. That is the rule of
+     * {@link io.vanillabp.cockpit.notification.CaseProcess}, written here as a query.
+     * <p>
+     * The title is the {@code workflowTitle} of a task which sits in the case's own process. Only
+     * where the user sees no such task, it is the title of a task of a called process.
      */
     public List<UserTask> getVisibleWorkflows(
             final UserTaskVisibility visibility) {
@@ -980,16 +994,36 @@ public class UserTaskService {
         final var criteria = buildUserTasksCriteria(
                 visibility, null, RetrieveItemsMode.All, List.of());
 
-        final var aggregation = org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation(
-                org.springframework.data.mongodb.core.aggregation.Aggregation.match(criteria),
-                org.springframework.data.mongodb.core.aggregation.Aggregation
-                        .group("workflowModuleId", "bpmnProcessId")
-                        .first("workflowModuleId").as("workflowModuleId")
-                        .first("bpmnProcessId").as("bpmnProcessId")
+        final var caseModule = ConditionalOperators
+                .ifNull(ArrayOperators.ArrayElemAt.arrayOf("theCase.workflowModuleId").elementAt(0))
+                .thenValueOf("workflowModuleId");
+        final var caseProcess = ConditionalOperators
+                .ifNull(ArrayOperators.ArrayElemAt.arrayOf("theCase.bpmnProcessId").elementAt(0))
+                .thenValueOf("bpmnProcessId");
+        // typed, so that the criteria are mapped the way the list of user tasks maps them. A
+        // nested 'id', the one of a candidate group for example, is stored as '_id'
+        final var aggregation = Aggregation.newAggregation(
+                UserTask.class,
+                Aggregation.match(criteria),
+                Aggregation.lookup(Workflow.COLLECTION_NAME, "workflowId", "_id", "theCase"),
+                Aggregation.addFields()
+                        .addField("caseModuleId").withValueOf(caseModule)
+                        .addField("caseBpmnProcessId").withValueOf(caseProcess)
+                        .build(),
+                Aggregation.addFields()
+                        .addField("sitsInTheCaseProcess")
+                        .withValueOf(ComparisonOperators.Eq.valueOf("bpmnProcessId").equalTo("caseBpmnProcessId"))
+                        .build(),
+                // a task of the case's own process first, so that its title names the group
+                Aggregation.sort(Sort.by(Sort.Direction.DESC, "sitsInTheCaseProcess")),
+                Aggregation
+                        .group("caseModuleId", "caseBpmnProcessId")
+                        .first("caseModuleId").as("workflowModuleId")
+                        .first("caseBpmnProcessId").as("bpmnProcessId")
                         .first("workflowTitle").as("workflowTitle"));
 
         return mongoTemplate
-                .aggregate(aggregation, UserTask.COLLECTION_NAME, UserTask.class)
+                .aggregate(aggregation, UserTask.class)
                 .getMappedResults();
 
     }

@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.notification.poller;
 
+import io.vanillabp.cockpit.notification.CaseProcess;
 import io.vanillabp.cockpit.notification.NotificationConfigurationResolver;
 import io.vanillabp.cockpit.notification.NotificationType;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
@@ -36,12 +37,15 @@ public class NotificationScanner {
 
     /**
      * @param task   a user task changed since the cursor
+     * @param caseProcess the process of the case the task belongs to, which picks the user's
+     *               setting. For a task of a called process it is not the process of the task
      * @param cursor the previous scan timestamp (to tell a newly created task from an updated one)
      * @param dir    the recipient directory for this cycle
      * @return the notifications to enqueue (idempotency is handled downstream by the outbox)
      */
     public List<PlannedNotification> scan(
             final UserTask task,
+            final CaseProcess caseProcess,
             final OffsetDateTime cursor,
             final RecipientDirectory dir) {
 
@@ -50,17 +54,17 @@ public class NotificationScanner {
         if (task.getEndedAt() != null) {
             // deliberately no CREATED for a task reported and ended within the same cycle: there is
             // nothing left to work on, so only the end of the task is worth a notification
-            planEndOfTask(task, dir, planned);
+            planEndOfTask(task, caseProcess, dir, planned);
             return planned;
         }
 
-        planCandidateUsers(task, cursor, dir, planned);
+        planCandidateUsers(task, caseProcess, cursor, dir, planned);
         // 'reportedAt' and not 'createdAt'. The cursor moves with the cockpit's clock, while
         // 'createdAt' is the timestamp of the reporting workflow system. Comparing the two drops
         // the notification of a task whose event arrived late, or was stamped by a clock which
         // runs behind
         if (task.getReportedAt() != null && task.getReportedAt().isAfter(cursor)) {
-            planCreated(task, dir, planned);
+            planCreated(task, caseProcess, dir, planned);
         }
         return planned;
 
@@ -68,6 +72,7 @@ public class NotificationScanner {
 
     private void planEndOfTask(
             final UserTask task,
+            final CaseProcess caseProcess,
             final RecipientDirectory dir,
             final List<PlannedNotification> planned) {
 
@@ -78,17 +83,18 @@ public class NotificationScanner {
         if (task.getEndReason() == UserTaskEndReason.COMPLETED) {
             // notify only where somebody else completed it
             if (!Objects.equals(assignee, task.getInitiator())) {
-                planForRecipient(task, assignee, NotificationType.COMPLETED, dir, planned);
+                planForRecipient(task, caseProcess, assignee, NotificationType.COMPLETED, dir, planned);
             }
         } else if (task.getEndReason() == UserTaskEndReason.CANCELLED) {
             // the process cancelled it
-            planForRecipient(task, assignee, NotificationType.CANCELED, dir, planned);
+            planForRecipient(task, caseProcess, assignee, NotificationType.CANCELED, dir, planned);
         }
 
     }
 
     private void planCandidateUsers(
             final UserTask task,
+            final CaseProcess caseProcess,
             final OffsetDateTime cursor,
             final RecipientDirectory dir,
             final List<PlannedNotification> planned) {
@@ -107,7 +113,7 @@ public class NotificationScanner {
             }
             // leave out the user who caused the change
             if (dir.isLoggedIn(candidate) && !Objects.equals(candidate, task.getInitiator())) {
-                planForRecipient(task, candidate, NotificationType.CANDIDATE_USER, dir, planned);
+                planForRecipient(task, caseProcess, candidate, NotificationType.CANDIDATE_USER, dir, planned);
             }
         }
 
@@ -115,6 +121,7 @@ public class NotificationScanner {
 
     private void planCreated(
             final UserTask task,
+            final CaseProcess caseProcess,
             final RecipientDirectory dir,
             final List<PlannedNotification> planned) {
 
@@ -131,7 +138,7 @@ public class NotificationScanner {
             }
             if (isAddressedPersonally(task, userId, assignee)
                     || isVisibleTo(task, targetGroups, dir.authoritiesOf(userId))) {
-                planForRecipient(task, userId, NotificationType.CREATED, dir, planned);
+                planForRecipient(task, caseProcess, userId, NotificationType.CREATED, dir, planned);
             }
         }
 
@@ -176,6 +183,7 @@ public class NotificationScanner {
 
     private void planForRecipient(
             final UserTask task,
+            final CaseProcess caseProcess,
             final String userId,
             final NotificationType type,
             final RecipientDirectory dir,
@@ -190,8 +198,8 @@ public class NotificationScanner {
             if (forced
                     || NotificationConfigurationResolver.shouldNotify(
                             dir.configOf(userId),
-                            task.getWorkflowModuleId(),
-                            task.getBpmnProcessId(),
+                            caseProcess.workflowModuleId(),
+                            caseProcess.bpmnProcessId(),
                             medium)) {
                 planned.add(new PlannedNotification(task.getId(), type, medium, userId, forced));
             }

@@ -25,8 +25,9 @@ public final class NotificationConfigurationResolver {
 
     /**
      * @param configuration    the user's configuration (may be {@code null})
-     * @param workflowModuleId the workflow module of the user task
-     * @param bpmnProcessId    the BPMN process id of the user task
+     * @param workflowModuleId the workflow module of the case the user task belongs to
+     * @param bpmnProcessId    the BPMN process of that case, which for a task of a called process
+     *                         is not the process of the task. See {@link CaseProcess}
      * @param mediumType       the medium type (e.g. {@code "email"})
      * @return {@code true} if the user wants to be notified for this workflow via this medium
      */

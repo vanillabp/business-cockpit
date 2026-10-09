@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.notification.poller;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.notification.CaseProcess;
 import io.vanillabp.cockpit.notification.NotificationDeliveryException;
 import io.vanillabp.cockpit.notification.NotificationService;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
@@ -168,8 +169,11 @@ public class NotificationPoller {
         }
 
         final var directory = buildDirectory();
+        // a setting is chosen by the process of the case, which for a task of a called process
+        // is not the process of the task. One query reads the cases of the whole cycle
+        final var caseProcesses = CaseProcess.of(mongoTemplate, changed);
         for (final var task : changed) {
-            for (final var planned : scanner.scan(task, cursor, directory)) {
+            for (final var planned : scanner.scan(task, caseProcesses.apply(task), cursor, directory)) {
                 insertOutbox(planned, now);
             }
         }
