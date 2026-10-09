@@ -48,8 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # the npm snapshots still go to GitHub Packages, and the last step deletes old ones there
-      packages: write
+      # read only. This job no longer writes npm packages to GitHub Packages, see decision 62
+      # in the repository's DECISIONS.md
+      packages: read
       pages: write
       id-token: write
     steps:
@@ -74,38 +75,17 @@ jobs:
           server-id: vanillabp-central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
-      - name: Configure npm authentication for GitHub Packages
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-          echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
-          echo "always-auth=true" >> ~/.npmrc
-      - id: get-version
-        name: Read Maven pom.xml version
-        uses: jactions/maven-version@v1.2.0
-      - id: get-package-id
-        name: Retrieve last package ID of NPM package bc-official-gui-client for calculating next ID
-        # use first NPM package published as part of this pipeline (bc-official-gui-client) to determine new NPM prerelease id
-        run: |
-          VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L 'https://api.github.com/orgs/vanillabp/packages/npm/bc-official-gui-client/versions?per_page=100')
-          ID=$(echo $VERSIONS | jq --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) | .name["${{ steps.get-version.outputs.version }}." | length:]][0] // "-1" | tonumber ) +1 ')
-          echo "PACKAGE_ID=${ID:-not-found}" >> $GITHUB_ENV
-          echo "Next NPM prerelease version: $ID"
-
       - name: Publish package
-        # '-Pjava-install' leaves the npm modules out of the reactor, so this run builds and
-        # publishes the Java artifacts only. That is where the build time is won back, and while
-        # the backend is being refactored no repository outside this one reads the frontend
-        # packages; the ones published so far stay where they are. Remove the profile again as
-        # soon as the frontend is worked on.
+        # This run publishes Java artifacts only. The Maven build does not build the user
+        # interfaces any more, so no npm package goes out. The npm snapshots published before stay
+        # where they are. See decision 62 in the repository's DECISIONS.md.
         #
         # The profile 'central-portal' sends a version ending in -SNAPSHOT straight to the
         # snapshot repository of Maven Central. The settings file is there for the MongoDB
         # changeset library alone, whose snapshot is still on GitHub Packages.
         run: |
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
-          ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
-          -Dnpm.registry=https://npm.pkg.github.com/ \
-          deploy -P build-runnable-jars,java-install,central-portal
+          deploy -P build-runnable-jars,central-portal
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
@@ -125,17 +105,6 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: coverage
-      - id: cleanup-outdated-npm-packages
-        name: Delete outdated NPM packages
-        run: |
-          packages="bc-official-gui-client bc-shared bc-dev-shell-angular bc-dev-shell-react bc-ui"
-          for p in $packages; do
-            VERSIONS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L "https://api.github.com/orgs/vanillabp/packages/npm/${p}/versions?per_page=100")
-            TOBEDELETED=$(echo $VERSIONS | jq -r --exit-status ' ( [.[] | select(.name | startswith("${{ steps.get-version.outputs.version }}.") ) ] | sort_by(.id) )[:-5] | map(.id) | join(" ") ')
-            for v in ${TOBEDELETED}; do
-              curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" -L "https://api.github.com/orgs/vanillabp/packages/npm/${p}/versions/$v"
-            done
-          done
 
   deploy-coverage-report:
     # publishes what the job above collected to https://vanillabp.github.io/business-cockpit/,

@@ -203,3 +203,15 @@ report which has some.
 A workflow module which handed a task to other people by reporting it again has to end the task and
 enter it again, for instance with a boundary event. The new task gets the new values. Nothing else
 needs to change: the details provider may keep setting the values for every report.
+
+### The cockpit jar carries no user interface
+
+`io.vanillabp.businesscockpit:business-cockpit` and the runnable jar of `container` no longer
+contain the React user interface. The Maven build does not build it any more, and no npm package
+of the cockpit is released with 0.9.0. The user interfaces move to repositories of their own.
+Until then an application of yours which depends on `business-cockpit` serves no user interface,
+and a path no API knows gets 404 instead of the single-page application.
+
+If your application brings a user interface of its own, nothing changes. Put its `index.html` at
+`classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths
+get it as before. Decision 62 in [DECISIONS.md](./DECISIONS.md) has the details.

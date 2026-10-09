@@ -27,15 +27,14 @@ What an application has to change when it moves to a new version of the cockpit 
 
 ## Building it
 
-You need Java 21 and Maven. A build of the user interface needs a local NPM registry as well,
-because it publishes the user interface packages before it consumes them.
-[development/README.md](./development/README.md) sets that up and is the place to start. It also
-holds the MongoDB, the Kafka broker and the mail catcher which the tests and a local run need.
+You need Java 21 and Maven. The build is a Java build only: it runs no npm step and needs neither
+node nor an npm registry. [development/README.md](./development/README.md) holds the MongoDB, the
+Kafka broker and the mail catcher which the tests and a local run need.
 
-To build the Java side alone, pass `-Pjava-install` and you need neither the registry nor a node
-toolchain. That is the switch for a container or a machine which serves no registry, and it is
-also what the three modules owning a user interface need: `business-cockpit`, `container` and
-`development/simulator`.
+The user interfaces are no longer built here. Their sources still sit in this repository, under
+`ui`, `development` and `business-cockpit/src/main/webapp`, until they move to repositories of their
+own. So the jar of `business-cockpit` carries no user interface, and neither does the runnable jar
+of `container`. Decision 62 in [DECISIONS.md](./DECISIONS.md) says why and what it costs.
 
 The build reads two kinds of snapshot. The snapshots of the VanillaBP platform come from the
 snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`.
@@ -50,18 +49,10 @@ Every push to `main` publishes the snapshot of this repository to the same snaps
 Maven Central.
 
 ```sh
-mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
+mvn install
 ```
 
-A pull request is checked by two jobs which run beside each other. One builds and tests the Java
-side, with `-Pjava-install`, so no npm step runs and the frontend costs it no build time.
-The other runs `bin/frontend-checks.sh`. It type-checks every TypeScript package and runs every Jest
-test of this repository. It builds each package against the one below it instead of against the
-published snapshot, because otherwise a change which splits two packages apart would still be green.
-It bundles nothing. A bundle is what a release needs, and a type error does not wait for it.
-Storybook, the development shells and the simulator are left out as well, and the script says why.
-
-Run the same script locally. It needs the same local registry the build needs.
+A pull request is checked by one job. It builds and tests the whole reactor with `install`.
 
 Once a night, the workflow `Chain check` runs `bin/check-the-chain.sh`. It looks at the main
 branches of this repository and the three adapter repositories, and at the MongoDB changeset
@@ -117,9 +108,6 @@ In the order they build on each other:
 1. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what the user interface reads,
    `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
-1. **[ui](./ui)**:<br>The NPM packages: `bc-types` for the TypeScript types, `bc-shared` for what a
-   workflow module's user interface and the cockpit both use, `bc-ui` for what a cockpit user
-   interface is built from.
 1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
    code is written with to report business data about its user tasks and workflows.
 1. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
@@ -130,13 +118,12 @@ In the order they build on each other:
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
 1. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
-   API, security extension points, ingestion of what workflow modules report, and the React
-   application. It builds no runnable jar.
+   API, security extension points and ingestion of what workflow modules report. It builds no
+   runnable jar.
 1. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
 1. **[development](./development)**:<br>The local development environment, and the tools which support
-   developing a workflow module: the dev shells for React and Angular, the dev shell simulator and the
-   simulator.
+   developing a workflow module: the dev shell simulator and the simulator.
 1. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
    gate which judges them. A build writes each report to `report` below its own directory here, and
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The

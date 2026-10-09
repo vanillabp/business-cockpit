@@ -447,7 +447,7 @@ Gemessen am 2026-10-06 im DevContainer (16 GB, 12 Kerne, Docker auf demselben Re
 Die Messung läuft nicht im normalen Bau. Aufruf:
 
 ```bash
-mvn -Pvanillabp-snapshots,java-install -pl business-cockpit -am test \
+mvn -Pvanillabp-snapshots -pl business-cockpit -am test \
     -Dsurefire.failIfNoSpecifiedTests=false -Dtest=UpdateStreamFilterMeasurement \
     -Dmeasure.update-streams=true -Djacoco.skip=true
 ```

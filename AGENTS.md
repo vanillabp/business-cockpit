@@ -243,8 +243,9 @@ something quickly. Somebody else is building against those coordinates while you
 
 ## Building
 
-The reactor contains an NPM build, so a full `mvn install` at the root is slow and needs a node
-toolchain. Build the modules you touched instead:
+The Maven build is a Java build and nothing else. No module runs npm, so you need neither node nor
+an npm registry, also in a dev container. A full `mvn install` at the root still takes a while, so
+build the modules you touched instead:
 
 ```bash
 mvn --batch-mode -pl extensions-commons/core,extensions-commons/spring-boot -am install
@@ -252,33 +253,7 @@ mvn --batch-mode -pl extensions-commons/core,extensions-commons/spring-boot -am 
 
 Quarkus tests load the extension from `~/.m2`, so they need `install`, never `package`.
 
-Pass `-Pjava-install` whenever you are not working on the user interface. It is the switch for a
-build without npm, and it is the one you want in a dev container:
-
-```bash
-mvn --batch-mode -Pjava-install -DskipTests install
-```
-
-Pass it for a single module as well. A root build is not the only one which needs it: three
-modules own a user interface, and each runs npm in the middle of its own build: `business-cockpit`,
-`container`, which gets the bundle along with that dependency, and `development/simulator`. So
-`-pl business-cockpit -am` needs the profile as much as a root build does.
-
-Without the profile those builds want a local npm registry at `http://localhost:4873/`, and a dev
-container serves none. The build then dies with `ECONNREFUSED`, or in `development/simulator` with
-a bare exit code 254 from `npm link`, and both look like your own mistake. The pull request build
-passes the same profile, see `.github/workflows/build.yaml`.
-
-One property carries the switch, `skip.npm`, which the npm plugin reads itself. Every other npm
-skip in the root POM derives from it, so the profile sets that one value and all the npm steps
-follow. Give a new npm execution no `skip` of its own, or it steps out of the switch and a dev
-container build dies in it.
-
-The npm steps also change files which are checked in. The root POM has a step called
-`npm install`, and that step runs `npm update`. So it raises each dependency to the newest
-version its range allows and writes the result into the `package-lock.json` of the module.
-A release wants that and commits it. Your branch does not, so never stage a lock file you did
-not set out to change. Under `-Pjava-install` the step does not run at all.
-
-A build without the profile is a frontend build, and it needs the local npm registry from
-`development/README.md`. A pull request checks the frontend with `bin/frontend-checks.sh`.
+The npm sources under `ui`, `development` and `business-cockpit/src/main/webapp` stay in the
+repository until they move to repositories of their own. Maven does not build them, and no
+workflow checks them. Do not add a `frontend-maven-plugin` back, and do not add an npm step to a
+workflow. See decision 62 in [`DECISIONS.md`](./DECISIONS.md).

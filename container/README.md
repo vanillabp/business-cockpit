@@ -75,11 +75,13 @@ java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 ```
 
 It wants the MongoDB of the compose file in [development](../development), and
-[development/README.md](../development/README.md) is what starts that. The user interface is at
-[http://localhost:8080/](http://localhost:8080/), with `test` and `test` as the login.
+[development/README.md](../development/README.md) is what starts that. The APIs answer at
+[http://localhost:8080/](http://localhost:8080/), with `test` and `test` as the login. The jar
+carries no user interface, see decision 62 in the repository's [DECISIONS.md](../DECISIONS.md), so
+a path no API knows gets 404.
 
-Backend changes usually belong in `business-cockpit`; the user interface always does. Only the four
-things listed above are changed here.
+Backend changes usually belong in `business-cockpit`. Only the four things listed above are changed
+here.
 
 ## Why it is not reactive
 

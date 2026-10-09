@@ -6,9 +6,6 @@ on:
       release_version:
         description: 'Version to release (e.g. 1.2.3)'
         required: true
-      npm-bypass-2fa-token:
-        description: 'NPM temporary bypass 2FA token. Use this to create one: https://www.npmjs.com/settings/vanillabp/tokens/granular-access-tokens/new'
-        required: true
 concurrency:
   # One release of this repository at a time. Two releases at once would deploy the same
   # coordinates to Maven Central, write the same tag and work on the same release branch.
@@ -20,9 +17,9 @@ concurrency:
   # and neither of those survives being cut in half.
   #
   # The publish keeps its own two groups, so a release and a publish can run at the same
-  # time. They write different things. The release deploys fixed versions to Maven Central
-  # and to npmjs.com, and the snapshot it publishes to Maven Central at the end carries
-  # the next version, which no branch holds yet. Its own pushes trigger no publish either,
+  # time. They write different things. The release deploys fixed versions to Maven Central,
+  # and the snapshot it publishes there at the end carries the next version, which no branch
+  # holds yet. Its own pushes trigger no publish either,
   # because publish-snapshots.yaml ignores 'release/**'. What stays open is a
   # release of a version older than the snapshot main carries: the next version is then
   # main's version, and the two snapshot deploys meet. A run has one group and the publish
@@ -33,13 +30,9 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      # Enables the `postpublish` hook in each published @vanillabp/* package.json
-      # to wait until the freshly published version is queryable on the registry.
-      # Set only here so that local `npm publish` (e.g. against Verdaccio) skips
-      # the wait and the hook is a no-op on developer machines / Windows.
-      WAIT_FOR_NPM_PUBLISH: "1"
-
+    # No npm package is released. The Maven build does not build the user interfaces any more,
+    # and the package.json files keep their versions. See decision 62 in the repository's
+    # DECISIONS.md.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -92,17 +85,6 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: GPG_PASSPHRASE
 
-      - name: Configure npm authentication for npmjs.com
-        run: |
-          echo "//registry.npmjs.com/:_authToken=${{ github.event.inputs.npm-bypass-2fa-token }}" > ~/.npmrc
-          echo "registry=https://registry.npmjs.com/" >> ~/.npmrc
-          echo "always-auth=true" >> ~/.npmrc
-          # Retries against CDN replication lag after publishing a dependency
-          echo "fetch-retries=10" >> ~/.npmrc
-          echo "fetch-retry-mintimeout=20000" >> ~/.npmrc
-          echo "fetch-retry-maxtimeout=120000" >> ~/.npmrc
-          echo "fetch-retry-factor=2" >> ~/.npmrc
-
       - name: Create release branch
         run: |
           git checkout -b release/${{ github.event.inputs.release_version }} origin/main
@@ -112,66 +94,25 @@ jobs:
           mvn --no-transfer-progress versions:set -DnewVersion=${{ github.event.inputs.release_version }}
           find . -name pom.xml.versionsBackup -delete
 
-      - name: Update npm package.json versions
-        run: |
-          find . -name package.json | while read file; do
-            echo "🔧 Updating $file"
-            tmp=$(mktemp)
-            jq --arg v "${{ github.event.inputs.release_version }}" '
-             .version = $v
-             | if .dependencies then
-                 .dependencies |= with_entries(
-                   if (.key | startswith("@vanillabp/")) 
-                   then .value = $v else . end
-                 )
-               else . end
-             | if .devDependencies then
-                 .devDependencies |= with_entries(
-                   if (.key | startswith("@vanillabp/")) 
-                   then .value = $v else . end
-                 )
-               else . end
-             | if .peerDependencies then
-                 .peerDependencies |= with_entries(
-                   if (.key | startswith("@vanillabp/")) 
-                   then .value = $v else . end
-                 )
-               else . end
-            ' "$file" > "$tmp" && mv "$tmp" "$file"
-          done
-
       - name: Check for SNAPSHOT dependencies
         run: |
           SNAPSHOT_POMS=$(grep -R "<.*>.*SNAPSHOT<\/.*>" . --include=pom.xml || true)
-          SNAPSHOT_PKGS=$(grep -R "\".*SNAPSHOT\"" . --include=package.json || true)
       
-          if [ -n "$SNAPSHOT_POMS" ] || [ -n "$SNAPSHOT_PKGS" ]; then
+          if [ -n "$SNAPSHOT_POMS" ]; then
             echo "::warning::Found SNAPSHOT dependencies in the project:"
-            [ -n "$SNAPSHOT_POMS" ] && echo "$SNAPSHOT_POMS"
-            [ -n "$SNAPSHOT_PKGS" ] && echo "$SNAPSHOT_PKGS"
+            echo "$SNAPSHOT_POMS"
           else
             echo "✅ No SNAPSHOT dependencies found."
           fi
           # Always exit successfully
           exit 0
           
-      - name: Hacky workaround to avoid npm DNS replication delay between publish and consume
-        run: |
-          IP=$(getent ahostsv4 registry.npmjs.com | awk '{print $1; exit}')
-          if [ -z "$IP" ]; then
-            echo "Failed to resolve registry.npmjs.com" >&2
-            exit 1
-          fi
-          echo "Pinning registry.npmjs.com -> $IP"
-          echo "$IP registry.npmjs.com" | sudo tee -a /etc/hosts
-
-      - name: Build & deploy to Maven Central and npm
+      - name: Build & deploy to Maven Central
         run: |
           mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs \
             -DaltDeploymentRepository=local::default::file:target/staging \
-            -Dnpm.registry=https://registry.npmjs.com \
             -Dgpg.passphrase=$GPG_PASSPHRASE \
-            clean deploy -Prelease,central-portal,release-npm
+            clean deploy -Prelease,central-portal
         env:
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
@@ -184,44 +125,11 @@ jobs:
           git add -A
           git commit -m "Prepare release v${{ github.event.inputs.release_version }}"
 
-      - name: Wait for all @vanillabp/* npm packages to be available on registry
-        run: |
-          VERSION=${{ github.event.inputs.release_version }}
-          # Collect all @vanillabp/* package names whose package.json is NOT
-          # marked "private": true. Private packages (e.g. internal workspace
-          # roots) are never published and must be skipped.
-          NAMES=$(find . -name node_modules -prune -o -name package.json -print | \
-            while read -r pkg; do
-              jq -r 'select((.private // false) != true)
-                     | .name // ""
-                     | select(startswith("@vanillabp/"))' "$pkg" 2>/dev/null
-            done | sort -u)
-          if [ -z "$NAMES" ]; then
-            echo "No publishable @vanillabp/* packages found, skipping."
-            exit 0
-          fi
-          for name in $NAMES; do
-            echo ">>> Verifying ${name}@${VERSION}..."
-            ok=false
-            for i in $(seq 1 60); do
-              if npm view "${name}@${VERSION}" version >/dev/null 2>&1; then
-                echo "  ✓ available (attempt ${i})"
-                ok=true
-                break
-              fi
-              sleep 5
-            done
-            if [ "$ok" = false ]; then
-              echo "::error::${name}@${VERSION} did not appear on the registry within timeout"
-              exit 1
-            fi
-          done
-
       - name: Build runnable JARs
         run: |
-          cd container && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd development/simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ..
-          cd dev-shell-simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs -Dnpm.registry=https://registry.npmjs.com package spring-boot:repackage -Pskip-release-npm && cd ../..
+          cd container && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs package spring-boot:repackage && cd ..
+          cd development/simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs package spring-boot:repackage && cd ..
+          cd dev-shell-simulator && mvn --batch-mode --no-transfer-progress -DskipTests -DskipITs package spring-boot:repackage && cd ../..
 
       - name: Create Git tag
         run: |
@@ -253,51 +161,12 @@ jobs:
           mvn --no-transfer-progress versions:set -DnewVersion=${{ env.NEXT_SNAPSHOT }}
           find . -name pom.xml.versionsBackup -delete
 
-          SNAP_BASE=$(echo "${{ env.NEXT_SNAPSHOT }}" | sed 's/-SNAPSHOT//')
-          NEXT_PATCH=$(echo $SNAP_BASE | awk -F. '{$NF++; print}' OFS=.)
-
-          # Update all package.json files using jq excluding node_modules
-          find . -name node_modules -prune -o -name package.json -print | while read file; do
-            echo "🔧 Updating $file"
-            tmp=$(mktemp)
-
-            jq --arg v "${{ env.NEXT_SNAPSHOT }}" \
-               --arg range ">=${{ env.NEXT_SNAPSHOT }} <${NEXT_PATCH}" '
-              .version = $v
-              | if .dependencies then
-                  .dependencies |= with_entries(
-                    if (.key | startswith("@vanillabp/"))
-                    then .value = $range else . end
-                  )
-                else . end
-              | if .devDependencies then
-                  .devDependencies |= with_entries(
-                    if (.key | startswith("@vanillabp/"))
-                    then .value = $range else . end
-                  )
-                else . end
-              | if .peerDependencies then
-                  .peerDependencies |= with_entries(
-                    if (.key | startswith("@vanillabp/"))
-                    then .value = $range else . end
-                  )
-                else . end
-            ' "$file" > "$tmp" && mv "$tmp" "$file"
-          done
-
-      - name: Configure npm authentication for GitHub Packages
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-          echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
-          echo "always-auth=true" >> ~/.npmrc
       # The Java snapshot goes to the snapshot repository of Maven Central through the profile
-      # 'central-portal', the npm snapshot packages to GitHub Packages. The settings file is
-      # there for the MongoDB changeset library, whose snapshot is still on GitHub Packages.
+      # 'central-portal'. The settings file is there for the MongoDB changeset library, whose
+      # snapshot is still on GitHub Packages.
       - name: Build & publish new snapshot packages
         run: |
           mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
-          -Dnpm.prerelease=0 \
-          -Dnpm.registry=https://npm.pkg.github.com/ \
           deploy -P central-portal
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}

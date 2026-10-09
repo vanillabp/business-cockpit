@@ -12,9 +12,9 @@
 
   <artifactId>business-cockpit</artifactId>
   <name>The business cockpit as a library: everything a cockpit application is built from.</name>
-  <description>Services, persistence, GUI API, security extension points and the single-page
-    application of the VanillaBP Business Cockpit. Meant to be used as a dependency; the runnable
-    reference application is the module 'container'.</description>
+  <description>Services, persistence, GUI API and security extension points of the VanillaBP
+    Business Cockpit. Meant to be used as a dependency; the runnable reference application is the
+    module 'container'. The jar carries no user interface.</description>
 
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
@@ -37,27 +37,13 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-clean-plugin</artifactId>
-        <configuration>
-          <filesets>
-            <fileset>
-              <directory>${project.basedir}/src/main/webapp/node_modules</directory>
-              <includes>
-                <include>**/*</include>
-              </includes>
-              <followSymlinks>false</followSymlinks>
-            </fileset>
-          </filesets>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.4.0</version>
-        <!-- Stays on 6.4.0 because this single plugin declaration serves two executions, one of them
-             typescript-fetch, and 7.x output does not compile under the webapp's TypeScript 4.8.4. The
-             spring execution here already sets useSpringBoot3, so it emits jakarta code either way. -->
+        <!-- Still on 6.4.0, the version which also generated the TypeScript client of the webapp.
+             That client is no longer generated here, see decision 62 in the repository's
+             DECISIONS.md, so nothing holds this version back any more. The spring execution sets
+             useSpringBoot3, so it emits jakarta code. -->
         <executions>
           <execution>
             <id>generate-gui-api</id>
@@ -83,45 +69,6 @@
                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
               </configOptions>
               <addCompileSourceRoot>true</addCompileSourceRoot>
-            </configuration>
-          </execution>
-          <execution>
-            <id>generate-client-gui-api</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/api/gui/v1.yaml</inputSpec>
-              <output>${project.basedir}/src/main/webapp/src/client/gui</output>
-              <generatorName>typescript-fetch</generatorName>
-              <configOptions>
-                <typescriptThreePlus>true</typescriptThreePlus>
-                <withInterfaces>true</withInterfaces>
-                <supportsES6>false</supportsES6>
-              </configOptions>
-              <addCompileSourceRoot>false</addCompileSourceRoot>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <!-- builds the single-page application into target/classes/static, from where every cockpit
-             application serves it: the reference container as well as a derived one, which gets the
-             user interface along with this dependency -->
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <configuration>
-          <workingDirectory>${project.basedir}/src/main/webapp</workingDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>link-dependent-packages</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>npm</goal>
-            </goals>
-            <configuration>
-              <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-shared @vanillabp/bc-ui</arguments>
             </configuration>
           </execution>
         </executions>
