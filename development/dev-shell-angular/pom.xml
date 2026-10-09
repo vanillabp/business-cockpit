@@ -46,6 +46,9 @@
       <plugin>
         <groupId>com.github.eirslett</groupId>
         <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <workingDirectory>${project.basedir}</workingDirectory>
+        </configuration>
         <executions>
           <execution>
             <id>link-dependent-packages</id>
@@ -58,15 +61,6 @@
               <arguments>link @vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared --legacy-peer-deps</arguments>
             </configuration>
           </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <configuration>
-          <workingDirectory>${project.basedir}</workingDirectory>
-        </configuration>
-        <executions>
           <execution>
             <id>npm install</id>
             <configuration>
