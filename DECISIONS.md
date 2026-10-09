@@ -2638,7 +2638,7 @@ field, and because `OpenTasksWithoutFollowUp` already shows exactly that list.
 The dev-shell simulator in `development/dev-shell-simulator` answered `OpenTasksWithFollowUp` with
 every task, ended ones included. It now answers it like `OpenTasks`, the same as the cockpit.
 
-### 59. The extension knows which variables its details providers read
+### 59. The extension knows which variables its details providers read - replaced by decision 60
 
 A `@UserTaskDetailsProvider` method may take a process variable with `@TaskParam`. Camunda 7 hands a
 BPMS half every variable of a task, so the value is there. A Camunda 8 job carries only the
@@ -2666,3 +2666,35 @@ module and process, and it answers the same question for `@WorkflowTask` methods
 `WorkflowTaskWiring.taskParameterNames`. `ExtensionHandlers` has no such method yet. Once it has
 one, `DetailsProviderTaskParams` can ask it and drop its own list, and the answer gets as narrow as
 the one for workflow tasks.
+
+Since 2026-10-09 the platform has that method. Decision 60 says what the extension does now.
+
+### 60. VanillaBP says which variables the details providers of a task read
+
+Decision 59 kept its own list of the names, and the list knew nothing of workflow modules or BPMN
+processes. VanillaBP now answers the question itself, with
+`ExtensionHandlers#taskParameterNames(annotationType, workflowModuleId, bpmnProcessId, lookupKeys)`.
+It resolves the keys the same way it binds a provider for that place, per workflow module and BPMN
+process. It returns only the `@TaskParam` names it binds, sorted and without duplicates.
+
+So the extension keeps no list any more. `DetailsProviderTaskParams` is gone, and so is the
+annotation check which filled it. `BusinessCockpitHandlers.userTaskContract()` takes no parameter
+again.
+
+`BusinessCockpitEventPublisher.variablesTheDetailsProvidersRead` now takes four values:
+`workflowModuleId`, `bpmnProcessId`, `taskDefinition` and `bpmnTaskId`. The extension builds the
+keys with `BusinessCockpitHandlers.lookupKeysOf`, element id first, and passes the question on with
+`UserTaskDetailsProvider` as the annotation. Where the application reports no user tasks, the answer
+is still empty and VanillaBP is not asked.
+
+The old method with two values is removed, not kept beside the new one. Only the Camunda 8 half
+called it, and it moves to the new method in the same change. A half which never asked is not
+affected: the method is still a default method which answers an empty list.
+
+The answer can still name a variable too many, but now for a different reason. Where several
+providers of one key split the versions of a process between them, VanillaBP also counts the
+provider for every task (`*`), although it may never run in this process. A provider of another
+process no longer counts. A worker which serves a task in several BPMN processes asks once for each
+process and fetches all the names it gets.
+
+`VariablesTheDetailsProvidersReadTest` holds what the extension passes on.

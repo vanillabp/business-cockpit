@@ -160,10 +160,10 @@ new one for a remote engine's worker thread.
 The publisher also says which process variables the application's user-task details providers read
 with `@TaskParam` (`variablesTheDetailsProvidersRead`). Some engines hand out only the variables a
 half asked for. A Camunda 8 worker is one of them. Such a half asks for these names and passes on
-what the engine sent as `UserTaskDetailsPrefill.variables`. The names are noted while VanillaBP
-scans the providers, through the annotation check of their contract, and they are kept by element
-id and task definition. A half whose engine hands out every variable of a task does not need to
-ask.
+what the engine sent as `UserTaskDetailsPrefill.variables`. The half names the workflow module, the
+BPMN process, the element id and the task definition, and VanillaBP answers from the providers it
+bound there (`ExtensionHandlers#taskParameterNames`). A half whose engine hands out every variable of
+a task does not need to ask.
 
 Both are published contracts. A change to them is a change three repositories have to follow.
 
