@@ -53,11 +53,14 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <!-- newer than the 2.5 pinned by release-parent, which has no 'skipIfEmpty' yet -->
+        <!-- newer than the 2.5 pinned by release-parent -->
         <version>3.5.1</version>
         <configuration>
-          <!-- this module has test sources only, so there is nothing to package -->
-          <skipIfEmpty>true</skipIfEmpty>
+          <!-- This module has test sources only, so its jar is empty. It is built anyway: the
+               Maven Central plugin publishes the bundle from the last module of the reactor,
+               which is this one, and it fails there when the module assigned no file to its
+               artifact, even with 'skip.central.release' set. -->
+          <skipIfEmpty>false</skipIfEmpty>
         </configuration>
       </plugin>
       <plugin>
