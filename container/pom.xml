@@ -11,7 +11,7 @@
   </parent>
 
   <artifactId>container</artifactId>
-  <name>A Spring Boot / React based application to operate workflows and process user tasks.</name>
+  <name>A Spring Boot application to operate workflows and process user tasks.</name>
   <description>The runnable business cockpit: the library 'business-cockpit' plus a main class, the
     concrete GUI API controllers, the demo users of the profile 'local' and the application defaults
     of a standalone deployment.</description>

@@ -1181,7 +1181,7 @@ Each of these says it in its own words, so none of them has to cite a number:
   `references/module-federation.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
 
-### 33. One property turns the whole npm side of the build off, and no registry runs beside it
+### 33. One property turns the whole npm side of the build off, and no registry runs beside it - superseded by decision 62
 
 Decided on 2026-10-03.
 
@@ -2262,7 +2262,7 @@ stream with the rights of its new sign-in. That is how a change of rights reache
 substitute for example, without a second mechanism for substitutes. A sign-in which names no end
 keeps its stream for as long as the tab is open.
 
-### 49. 'npm update' lifts our own packages only
+### 49. 'npm update' lifts our own packages only - superseded by decision 62
 
 #### What was wrong
 
@@ -2698,3 +2698,58 @@ process no longer counts. A worker which serves a task in several BPMN processes
 process and fetches all the names it gets.
 
 `VariablesTheDetailsProvidersReadTest` holds what the extension passes on.
+
+### 62. The Maven build builds no user interface
+
+Decided on 2026-10-09.
+
+No module of this repository runs npm any more. The `frontend-maven-plugin` is gone from every POM,
+and so are the `skip.npm*` properties, `npm.registry`, `npm.own-packages` and the profiles
+`java-install`, `local-install`, `unpublish-npm`, `prerelease-npm`, `release-npm` and
+`skip-release-npm`. The workflows run no npm step either. This replaces decision 33, which switched
+the npm side off, and decision 49, which said what the npm step 'npm install' may update.
+
+#### Why
+
+The user interfaces are moving to repositories of their own. Until they do, keeping their build
+alive here costs work and buys nothing. The pull request build left the npm side out anyway, with
+`-Pjava-install`, and so did the publish of main. Only the job `frontend` still checked the
+packages, and it failed on the pull request which moved the snapshots to Maven Central. The
+duplicate `frontend-maven-plugin` entries, which Maven 3.10 refuses, go away with this as well.
+
+#### What changes
+
+The npm sources stay where they are: `ui`, `development/dev-shell-react`, `-angular` and `-vue`,
+`apis/official-gui-api/client`, `business-cockpit/src/main/webapp` and the two web applications of
+`development/simulator`. Their `package.json` files and their sources are untouched.
+
+The modules which did nothing but run npm are no longer part of the reactor, and their POMs are
+deleted: `ui`, `ui/bc-types`, `ui/bc-shared`, `ui/bc-ui`, `apis/official-gui-api/client` and the
+three dev shells for React, Angular and Vue. Without npm they would build empty artifacts, and
+`bc-types` and `bc-ui` would publish an empty jar.
+
+`business-cockpit` no longer generates the TypeScript client of its web application. It still
+generates the Spring server of the GUI API from the same specification. The Renovate rule which
+held the OpenAPI generator below 7.0 for the TypeScript clients is gone as well.
+
+So the jar of `business-cockpit` carries no user interface, and neither does the runnable jar of
+`container` or of `development/simulator`. Nothing in `target/classes/static` comes from a build
+any more. A path which no controller answers used to get the shell of the single-page application.
+Now `SpaNoHandlerFoundExceptionHandler` answers it with 404 when the application has no shell. An
+application which brings its own shell at `application.spa-default-file` still gets it.
+
+A release publishes no npm package, to npmjs.com or anywhere else. The release workflow has no
+input `npm-bypass-2fa-token` any more, and it leaves the versions in the `package.json` files as
+they are. The npm packages published so far stay where they are. The publish of main no longer
+deletes old npm snapshots on GitHub Packages.
+
+#### What points at this
+
+| place                                                                   | what it says |
+|-------------------------------------------------------------------------|--------------|
+| `pom.xml`, above the modules                                            | no module runs npm |
+| `business-cockpit/pom.xml`, the OpenAPI generator                       | the TypeScript client is no longer generated |
+| `SpaNoHandlerFoundExceptionHandler`                                     | 404 when the application has no shell |
+| `.github/workflows/build.yaml`, `publish-snapshots.yaml`, `release.yml` | no npm step |
+| `renovate.json`                                                         | no pin of the OpenAPI generator |
+| `README.md`, `AGENTS.md`, `development/README.md`                       | building without npm |

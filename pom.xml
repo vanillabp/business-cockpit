@@ -29,49 +29,6 @@
     <version.mongodb-changesets>1.0.0-SNAPSHOT</version.mongodb-changesets>
     <version.org.mapstruct>1.6.3</version.org.mapstruct>
     <version.protobuf>4.31.1</version.protobuf>
-    <npm.registry>http://localhost:4873/</npm.registry>
-    <!--
-      The one switch for the whole npm side of this build. 'skip.npm' and 'skip.installnodenpm' are
-      the properties the frontend plugin reads itself, so setting them here reaches every npm
-      execution which carries no 'skip' of its own, in this POM and in every module. The executions
-      which do carry one read the properties below, and those derive from this switch, so one value
-      moves all of them. Set it to true and the build needs neither a node toolchain nor a registry,
-      which is what the profile 'java-install' does and what AGENTS.md tells you to pass. False here
-      is the plugin's own default, so a build which leaves the switch alone runs as it always did.
-
-      Keep the derived properties derived. A new npm execution with a hard-coded 'skip' escapes the
-      switch, and then a dev container build dies in that step and nothing says why. A derived value
-      is only a default though: a profile which sets one of them back to false beats it, so the
-      profile 'java-install' names all of them itself.
-    -->
-    <skip.npm>false</skip.npm>
-    <skip.installnodenpm>${skip.npm}</skip.installnodenpm>
-    <skip.npm.unpublish>true</skip.npm.unpublish>
-    <skip.npm.prerelease>true</skip.npm.prerelease>
-    <!--
-      This switches the execution named 'npm install', which runs 'npm update'. That step fills
-      node_modules, so a clean clone which skips it fails in the next step, 'npm run build'.
-      It also rewrites the checked-in package-lock.json of its module. A release wants that and
-      commits it, a branch does not, but switching the step off here would take the install with
-      it.
-    -->
-    <skip.npm.update>${skip.npm}</skip.npm.update>
-    <!--
-      The packages 'npm update' may lift: the ones this repository publishes itself. Every other
-      npm dependency stays at the version in package-lock.json and gets newer through Renovate
-      only. See decision 49 in the repository's
-      DECISIONS.md.
-
-      They have to be named. 'npm update' takes no filter. Its option 'scope' looks like one, but
-      only 'init', 'publish', 'search' and 'login' read it, so the old call with 'scope @vanillabp'
-      lifted every package of the module. One list serves every module, also one which uses none
-      of these names: npm skips a name it does not find, still fills node_modules from
-      package-lock.json and leaves the file as it is. Whoever adds a package to this repository
-      adds its name here.
-    -->
-    <npm.own-packages>@vanillabp/bc-official-gui-client @vanillabp/bc-types @vanillabp/bc-shared @vanillabp/bc-ui @vanillabp/bc-dev-shell-react @vanillabp/bc-dev-shell-angular @vanillabp/bc-dev-shell-vue</npm.own-packages>
-    <skip.npm.publish-snapshot>${skip.npm}</skip.npm.publish-snapshot>
-    <skip.npm.publish-release>true</skip.npm.publish-release>
     <!--
       One property for the whole JUnit family, used by the BOM import below and by the Surefire
       plugin, which reads its dependencies outside of dependency management.
@@ -92,11 +49,15 @@
     <coverage.rule>90</coverage.rule>
   </properties>
 
+  <!--
+    Maven builds the Java side only. The npm packages under 'ui', 'development' and
+    'apis/official-gui-api/client' are no modules of this build, and no module runs npm. See
+    decision 62 in the repository's DECISIONS.md.
+  -->
   <modules>
     <module>commons</module>
     <module>openapi-generator-fixes</module>
     <module>apis</module>
-    <module>ui</module>
     <module>business-cockpit</module>
     <module>container</module>
     <module>development</module>
@@ -167,93 +128,6 @@
               <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
               <arg>-Amapstruct.unmappedSourcePolicy=IGNORE</arg>
             </compilerArgs>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>com.github.eirslett</groupId>
-          <artifactId>frontend-maven-plugin</artifactId>
-          <version>1.15.4</version>
-          <executions>
-            <execution>
-              <id>install node and npm install</id>
-              <phase>generate-resources</phase>
-              <goals>
-                <goal>install-node-and-npm</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>npm install</id>
-              <phase>generate-resources</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <skip>${skip.npm.update}</skip>
-                <arguments>--@vanillabp:registry=${npm.registry} update ${npm.own-packages}</arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm build</id>
-              <phase>compile</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run build</arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm prerelease snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>--newVersion=${project.version}.${npm.prerelease} run-script version:snapshot</arguments>
-                <skip>${skip.npm.prerelease}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm unpublish snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <environmentVariables>
-                  <NPM_REGISTRY>${npm.registry}</NPM_REGISTRY>
-                </environmentVariables>
-                <arguments>run unpublish:snapshot</arguments>
-                <skip>${skip.npm.unpublish}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm publish snapshot</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run publish:snapshot -- --@vanillabp:registry=${npm.registry}</arguments>
-                <skip>${skip.npm.publish-snapshot}</skip>
-              </configuration>
-            </execution>
-            <execution>
-              <id>npm publish release</id>
-              <phase>package</phase>
-              <goals>
-                <goal>npm</goal>
-              </goals>
-              <configuration>
-                <arguments>run publish:release -- --@vanillabp:registry=${npm.registry}</arguments>
-                <skip>${skip.npm.publish-release}</skip>
-              </configuration>
-            </execution>
-          </executions>
-          <configuration>
-            <nodeVersion>v22.22.0</nodeVersion>
-            <npmVersion>10.9.4</npmVersion>
-            <installDirectory>${java.io.tmpdir}/frontend-maven-plugin</installDirectory>
           </configuration>
         </plugin>
       </plugins>
@@ -415,67 +289,4 @@
     <url>http://github.com/vanillabp/business-cockpit/tree/main</url>
   </scm>
 
-  <profiles>
-    <profile>
-      <id>unpublish-npm</id>
-      <properties>
-        <skip.npm.unpublish>false</skip.npm.unpublish>
-      </properties>
-    </profile>
-    <profile>
-      <id>prerelease-npm</id>
-      <activation>
-        <property>
-          <name>npm.prerelease</name>
-        </property>
-      </activation>
-      <properties>
-        <skip.npm.prerelease>false</skip.npm.prerelease>
-      </properties>
-    </profile>
-    <!--
-      Build the Java side only. Pass this and no npm step runs, so the three modules which own a
-      user interface, 'business-cockpit', 'container' and 'development/simulator', build in a dev
-      container, where nobody serves the local npm registry. The publish run passes it too.
-
-      It names every skip although they derive from 'skip.npm' at the top of this POM. A derived
-      value is a default, and another active profile which turns one step back on wins over it: the
-      publish run is handed '-Dnpm.prerelease', which activates 'prerelease-npm', and that profile
-      alone brought the npm step back while no node was installed. Whoever adds a profile which
-      turns an npm step on adds the step's skip here as well.
-    -->
-    <profile>
-      <id>java-install</id>
-      <properties>
-        <skip.npm>true</skip.npm>
-        <skip.installnodenpm>true</skip.installnodenpm>
-        <skip.npm.update>true</skip.npm.update>
-        <skip.npm.unpublish>true</skip.npm.unpublish>
-        <skip.npm.prerelease>true</skip.npm.prerelease>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
-        <skip.npm.publish-release>true</skip.npm.publish-release>
-      </properties>
-    </profile>
-    <profile>
-      <id>local-install</id>
-      <properties>
-        <skip.npm.update>true</skip.npm.update>
-        <skip.npm.unpublish>false</skip.npm.unpublish>
-      </properties>
-    </profile>
-    <profile>
-      <id>release-npm</id>
-      <properties>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
-        <skip.npm.publish-release>false</skip.npm.publish-release>
-      </properties>
-    </profile>
-    <profile>
-      <id>skip-release-npm</id>
-      <properties>
-        <skip.npm.publish-snapshot>true</skip.npm.publish-snapshot>
-        <skip.npm.publish-release>true</skip.npm.publish-release>
-      </properties>
-    </profile>
-  </profiles>
 </project>

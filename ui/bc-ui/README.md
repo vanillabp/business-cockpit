@@ -11,5 +11,7 @@ npm start          # the same, in watch mode
 npm run storybook  # the components on their own
 ```
 
-A reactor build publishes this package to the NPM registry given by `-Dnpm.registry`, which
-[development/README.md](../../development/README.md#local-npm-registry) sets up for local work.
+Maven does not build or publish this package any more, see decision 62 in the repository's
+[DECISIONS.md](../../DECISIONS.md). To try a change in another package, publish it by hand to the
+local NPM registry which [development/README.md](../../development/README.md#local-npm-registry) sets up:
+`npm run publish:snapshot -- --@vanillabp:registry=http://localhost:4873`.

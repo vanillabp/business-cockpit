@@ -3,7 +3,9 @@
 # Development
 
 The local development environment of this repository, and the tools which support developing a
-workflow module: the dev shells for React and Angular, the dev shell simulator and the simulator.
+workflow module: the dev shell simulator and the simulator. The dev shells for React, Angular and
+Vue are npm packages. They sit here until they move to repositories of their own, and Maven does
+not build them.
 
 Building a workflow module, developing its user task forms and deriving an application from the
 Business Cockpit are described in the
@@ -23,9 +25,9 @@ This file is about working on the cockpit itself.
 1. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
 1. [Simulation Service](#simulation-service)
 
-The Business Cockpit is a Java Spring Boot application with a React user interface. Two things have
-to be running before it builds and starts: a [MongoDB cluster](#mongodb) and a
-[local NPM registry](#local-npm-registry). The provided compose configuration also brings two
+The Business Cockpit is a Java Spring Boot application. Its React user interface is no longer built
+by Maven, see decision 62 in [DECISIONS.md](../DECISIONS.md). One thing has to be running before it
+starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings two
 services which are not needed to run the cockpit but to develop and test particular features,
 [Mailpit](#notification-e-mails-mailpit) for notification e-mails and a
 [single-node Kafka](#kafka) for reporting BPMS events over Kafka rather than over REST. The latter is
@@ -35,9 +37,6 @@ only needed with a real business service, since the simulation service brings it
 cd development
 docker-compose up -d
 ```
-
-*Hint:* Building the cockpit also establishes npm links between the packages of this repository,
-which is what makes a local build use the versions next to it.
 
 
 ## MongoDB
@@ -66,7 +65,11 @@ The container itself does not need that entry: the profile `local` connects to `
 
 ## Local NPM registry
 
-As part of the build NPM packages are published which has to be used by BPMS software which wants to integrate to the VanillaBP business cockpit. Additionally, the business cockpit itself uses those packages as dependencies. To make this work for local development as well as for publishing builds one has to use a local NPM registry. For this the tool [Verdaccio](https://www.verdaccio.org/) is used which is also part of the provided `docker-compose.yaml`.
+The Maven build does not need this registry any more. It is for somebody who works on the npm
+packages of this repository by hand, until they move to repositories of their own. The packages
+depend on each other, so they are published to a local registry first and read from there. The
+registry is [Verdaccio](https://www.verdaccio.org/), which is part of the provided
+`docker-compose.yaml`.
 
 To use this registry one has to create a file `.npmrc` in your home folder:
 
@@ -82,8 +85,6 @@ To connect to the registry UI use these parameters:
 * *URL:* [http://localhost:4873/](http://localhost:4873/)
 * *username:* admin
 * *password:* admin
-
-*Hint:* If you do repeating builds for testing then you have to use the Maven profile `unpublish-npm` which removes previously published packages from the local registry.
 
 ## Notification e-mails (Mailpit)
 
@@ -176,14 +177,12 @@ one off as well - useful for a broker which is not at `localhost:9092`.
 
 ## Build and Run the Business Cockpit
 
-The business cockpit is developed by using Java 21 and Spring Boot 4 (Spring MVC on virtual threads). To build the business cockpit Maven is used:
+The business cockpit is developed with Java 21 and Spring Boot 4 (Spring MVC on virtual threads).
+Build it with Maven, from the root of the repository:
 
 ```sh
-cd business-cockpit
-mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
+mvn install
 ```
-
-(`-P unpublish-npm` is a Maven profile which forces to unpublish NPM components previously published to Verdaccio. You might need to skip this profile for the very first build since there was no packages published before.)
 
 After the build succeeded the service can be started:
 
@@ -195,50 +194,23 @@ java -Dspring.profiles.active=local -jar target/container-*-runnable.jar
 The runnable jar is built from `container`, the business cockpit as an application. The module next
 to it, `business-cockpit`, is the same functionality as a library, and it is what a custom cockpit
 application depends on. It produces no runnable jar. Backend changes usually land in
-`business-cockpit`; the user interface always does.
+`business-cockpit`.
 
-To connect to the business cockpit UI use these parameters:
+Neither jar carries a user interface. The service answers its APIs at
+[http://localhost:8080/](http://localhost:8080/), and a path no API knows gets 404. The login for a
+local run is user `test` with password `test`.
 
-* *URL:* [http://localhost:8080/](http://localhost:8080/)
-* *username:* test
-* *password:* test
-
-This should show up an empty business cockpit since no user tasks or workflows were reported yet. To test this before connecting your business service one can use the [simulation service](#simulation-service).
-
-### Repeating builds
-
-During developing the Business Cockpit itself one might change only backend code and whishes to test that changes without doing a full build.
-This can be easily achieved by this Maven command:
+To build again after a change, build the modules you touched and what they depend on:
 
 ```sh
-mvn install -Plocal-install
-```
-
-If you do some UI development one can run
-
-```sh
-npm start
-```
-
-in every UI source directory to get a continuous build.
-
-Since the first build links all npm packages, changes in one packages are active immediately using this technique.
-There is one exception: The `webapp-angular`-UI in `simulator` uses the package `dev-shell-angular` and Angular does not support NPM linking. So extending `dev-shell-angular` implies the need to publish the package to the local registry after every change and update the `webapp-angular` afterward to use that change:
-
-```sh
-cd development/dev-shell-angular
-mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
-cd -
-cd development/simulator/src/main/webapp
-npm update --scope '@vanillabp/*'
+mvn -pl business-cockpit,container -am install
 ```
 
 ## Simulation Service
 
 The simulator is a standalone Spring Boot application which stands in for a business service: it
-reports user tasks and workflows to the cockpit the way a workflow module does, and it serves a user
-interface for them, so cockpit features can be developed without a BPMS and without a real
-application.
+reports user tasks and workflows to the cockpit the way a workflow module does, so cockpit features
+can be developed without a BPMS and without a real application.
 
 ```sh
 cd development/simulator
@@ -249,6 +221,7 @@ Its [test data form](http://localhost:8079/testdata/usertask/form) generates use
 press of `Generate`, and they appear in the cockpit as they are generated. The tasks it makes belong
 to no process instance, which is what makes them cheap to make.
 
-Its user interface, `development/simulator/src/main/webapp-react`, is also the worked example a
-workflow module's user interface is copied from. What to do with it is in the wiki, under
+Its user interface, `development/simulator/src/main/webapp-react`, is not built by Maven any more,
+so the runnable jar does not serve it. The sources are still the worked example a workflow
+module's user interface is copied from. What to do with it is in the wiki, under
 [User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites).

@@ -9,11 +9,10 @@ support `npm link`. Every change has to be published to the local NPM registry a
 application using it again, which here is the [simulator](../simulator), standing in for a workflow
 module.
 
-1. In `development/dev-shell-angular`:
-   ```sh
-   mvn -U -Dnpm.registry=http://localhost:4873 install -P unpublish-npm
-   ```
-2. In `development/simulator/src/main/webapp-angular`:
-   ```sh
-   cd ../../..;  mvn -U -Dnpm.registry=http://localhost:4873 install -P unpublish-npm ; cd -; rm -fR .angular/cache; npm start
-   ```
+Maven does not build or publish this library any more, see decision 62 in the repository's
+[DECISIONS.md](../../DECISIONS.md). So both steps are npm steps now:
+
+1. In `development/dev-shell-angular`, build the library and publish it to the local NPM registry
+   with the npm scripts `build`, `unpublish:snapshot` and `publish:snapshot`.
+2. In `development/simulator/src/main/webapp-angular`, run `npm update @vanillabp/bc-dev-shell-angular`,
+   then `rm -fR .angular/cache; npm start`.

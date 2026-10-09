@@ -13,4 +13,5 @@ generated into a client and a server:
 The generators are configured per module, with the templates of
 [openapi-generator-fixes](../openapi-generator-fixes) where their output had to be corrected. Built
 as part of the reactor build described in the [root README](../README.md#building-it), and published
-under `io.vanillabp.businesscockpit`, the TypeScript clients under `@vanillabp`.
+under `io.vanillabp.businesscockpit`. The TypeScript client of the official GUI API is no longer
+generated, see decision 62 in the repository's [DECISIONS.md](../DECISIONS.md).
