@@ -29,7 +29,6 @@ import io.vanillabp.cockpit.extension.event.ReportPayload;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 import io.vanillabp.cockpit.extension.handler.BusinessCockpitHandlers;
-import io.vanillabp.cockpit.extension.handler.DetailsProviderTaskParams;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOperations;
 import io.vanillabp.cockpit.extension.outbox.BusinessCockpitOutbox;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
@@ -122,12 +121,6 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final Set<String> startedWorkflowModules = ConcurrentHashMap.newKeySet();
 
   /**
-   * The process variables the application's user-task details providers read, noted while
-   * VanillaBP scans them.
-   */
-  private final DetailsProviderTaskParams detailsProviderTaskParams = new DetailsProviderTaskParams();
-
-  /**
    * The BPMN processes each workflow module deployed, in the order VanillaBP wired them. They
    * tell the registration of a module which store to go to: one belonging to an aggregate of
    * that module, and not one of another module.
@@ -207,7 +200,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    */
   public void registerHandlerContracts() {
 
-    handlers.register(BusinessCockpitHandlers.userTaskContract(detailsProviderTaskParams));
+    handlers.register(BusinessCockpitHandlers.userTaskContract());
     handlers.register(BusinessCockpitHandlers.workflowContract());
 
   }
@@ -348,6 +341,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   @Override
   public List<String> variablesTheDetailsProvidersRead(
+      final String workflowModuleId,
+      final String bpmnProcessId,
       final String taskDefinition,
       final String bpmnTaskId) {
 
@@ -355,8 +350,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
       // no user task is reported, so no provider of one is ever called
       return List.of();
     }
-    return detailsProviderTaskParams
-        .namesReadBy(BusinessCockpitHandlers.lookupKeysOf(taskDefinition, bpmnTaskId));
+    return List
+        .copyOf(
+            handlers
+                .taskParameterNames(
+                    UserTaskDetailsProvider.class, workflowModuleId, bpmnProcessId,
+                    BusinessCockpitHandlers.lookupKeysOf(taskDefinition, bpmnTaskId)));
 
   }
 

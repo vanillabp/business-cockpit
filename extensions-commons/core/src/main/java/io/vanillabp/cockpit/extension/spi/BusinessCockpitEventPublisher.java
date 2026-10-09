@@ -107,16 +107,25 @@ public interface BusinessCockpitEventPublisher {
    * and the half passes them on as {@link UserTaskDetailsPrefill#variables()}. A half whose
    * engine hands out every variable of the task anyway does not need to ask.
    * <p>
+   * VanillaBP answers the question, per workflow module and BPMN process, from the providers it
+   * bound for that task. The answer may name a variable too many, but it never misses one a
+   * provider of this task reads. A worker serving the task in several BPMN processes asks once
+   * for each of them and fetches all names it got.
+   * <p>
    * The names are known once VanillaBP scanned the application's workflow services, which is
    * before any workflow module starts processing. Ask while a module starts, not while its
    * models are wired.
    *
+   * @param workflowModuleId The workflow module the task belongs to
+   * @param bpmnProcessId The BPMN process the task belongs to
    * @param taskDefinition The task's task definition, may be <code>null</code>
    * @param bpmnTaskId The task's BPMN element id, may be <code>null</code>
    * @return The names, sorted. Empty where no provider of that task reads a variable, and
    *         empty where the application reports no user tasks
    */
   default List<String> variablesTheDetailsProvidersRead(
+      final String workflowModuleId,
+      final String bpmnProcessId,
       final String taskDefinition,
       final String bpmnTaskId) {
 
