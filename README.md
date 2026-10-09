@@ -37,12 +37,17 @@ toolchain. That is the switch for a container or a machine which serves no regis
 also what the three modules owning a user interface need: `business-cockpit`, `container` and
 `development/simulator`.
 
-The build reads two kinds of artifact which Maven Central does not have: the snapshots of the
-VanillaBP platform, and the MongoDB changeset library `com.phactum.mongodb:mongodb-changesets`. Both
-come from GitHub Packages, which asks for a token even for a public repository. The build of a pull
-request uses [.github/workflows/github-packages-settings.xml](./.github/workflows/github-packages-settings.xml),
-and a local build needs the same repositories in `~/.m2/settings.xml`, with a GitHub token which has
-the scope `read:packages`.
+The build reads two kinds of snapshot. The snapshots of the VanillaBP platform come from the
+snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`.
+The parent `io.vanillabp:release-parent` names that repository, and reading it needs no login. The
+snapshot of the MongoDB changeset library `com.phactum.mongodb:mongodb-changesets` still comes from
+GitHub Packages, which asks for a token even for a public repository. The build of a pull request
+uses [.github/workflows/github-packages-settings.xml](./.github/workflows/github-packages-settings.xml)
+for it, and a local build needs the same repository in `~/.m2/settings.xml`, with a GitHub token
+which has the scope `read:packages`.
+
+Every push to `main` publishes the snapshot of this repository to the same snapshot repository of
+Maven Central.
 
 ```sh
 mvn -Dnpm.registry=http://localhost:4873 package -P unpublish-npm
@@ -65,8 +70,9 @@ whether a version stayed behind without a pull request or a reason, whether the 
 was green, and whether the published snapshot belongs to the head of main. It builds nothing. A
 finding becomes one issue with the label `chain-check`, and a finding which is still there the
 next night is a comment on that issue. Run the script locally to get the same report. It needs
-the GitHub CLI, logged in, and for the snapshot question a token with `read:packages` in
-`PACKAGES_TOKEN`.
+the GitHub CLI, logged in. For the snapshot of the MongoDB changeset library it also needs a token
+with `read:packages` in `PACKAGES_TOKEN`. The snapshots of the four cockpit repositories need no
+token.
 
 The chain check builds nothing, so it cannot see a main which a new platform snapshot breaks while
 nobody pushes here. The workflow `Nightly build` does that. Once a night it runs the pull-request

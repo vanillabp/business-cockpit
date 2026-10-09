@@ -21,9 +21,9 @@ concurrency:
   #
   # The publish keeps its own two groups, so a release and a publish can run at the same
   # time. They write different things. The release deploys fixed versions to Maven Central
-  # and to npmjs.com, and the snapshot it publishes to GitHub Packages at the end carries
+  # and to npmjs.com, and the snapshot it publishes to Maven Central at the end carries
   # the next version, which no branch holds yet. Its own pushes trigger no publish either,
-  # because deploy-to-github-packages.yaml ignores 'release/**'. What stays open is a
+  # because publish-snapshots.yaml ignores 'release/**'. What stays open is a
   # release of a version older than the snapshot main carries: the next version is then
   # main's version, and the two snapshot deploys meet. A run has one group and the publish
   # has two, so that case cannot be wired away here, and the release version is what keeps
@@ -45,6 +45,17 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      # Maven 3.10 writes 'maven-metadata-local.xml' and '_remote.repositories' into the
+      # staging directory of central-publishing-maven-plugin, and the Central Portal refuses
+      # the bundle: "Bundle has content that does NOT have a .pom file". The runner image
+      # ships 3.10 now, so the release brings its own 3.9. Remove this step once a plugin
+      # version stages a clean bundle under Maven 3.10.
+      - name: Use Maven 3.9
+        run: |
+          curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
 
       - name: Extract last released version
         run: |
@@ -279,16 +290,20 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
           echo "@vanillabp:registry=https://npm.pkg.github.com/" >> ~/.npmrc
           echo "always-auth=true" >> ~/.npmrc
+      # The Java snapshot goes to the snapshot repository of Maven Central through the profile
+      # 'central-portal', the npm snapshot packages to GitHub Packages. The settings file is
+      # there for the MongoDB changeset library, whose snapshot is still on GitHub Packages.
       - name: Build & publish new snapshot packages
         run: |
           mvn --batch-mode --no-transfer-progress -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Dnpm.prerelease=0 \
           -Dnpm.registry=https://npm.pkg.github.com/ \
-          deploy
+          deploy -P central-portal
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_PW }}
 
       - name: Commit next snapshot version
         run: |

@@ -6,4 +6,5 @@ converters, and a REST client adapter with its bearer, OAuth, TLS and versioning
 module or another service may depend on it for the same reasons.
 
 Built as part of the reactor build described in the [root README](../README.md#building-it), and
-published as `io.vanillabp.businesscockpit:commons` to Maven Central, snapshots to GitHub Packages.
+published as `io.vanillabp.businesscockpit:commons` to Maven Central, snapshots to its snapshot
+repository.

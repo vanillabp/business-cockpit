@@ -229,16 +229,16 @@ reason of that shape.
 
 ## Where a snapshot comes from
 
-Only a push to `main` publishes to GitHub Packages. A snapshot has the same coordinates on every
-branch, so a branch which published handed every consumer a version of this repository which no
-pull request had agreed to yet. On 2026-09-22 a branch did exactly that, and the main branch of all
+Only a push to `main` publishes a snapshot, to the snapshot repository of Maven Central. A
+snapshot has the same coordinates on every branch, so a branch which published handed every
+consumer a version of this repository which no pull request had agreed to yet. On 2026-09-22 a branch did exactly that, and the main branch of all
 three adapter repositories stayed red until the change was merged here.
 
 If you need a snapshot of your branch, to try it in another repository before it is merged, run
-the workflow `Publish to GitHub Packages` by hand on that branch. Then you know that you overwrote
+the workflow `Publish snapshots` by hand on that branch. Then you know that you overwrote
 the shared coordinates, and so does everybody who reads the run.
 
-Do not add a branch trigger back to `.github/workflows/deploy-to-github-packages.yaml` to test
+Do not add a branch trigger back to `.github/workflows/publish-snapshots.yaml` to test
 something quickly. Somebody else is building against those coordinates while you do it.
 
 ## Building

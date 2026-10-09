@@ -1,4 +1,4 @@
-name: Publish to GitHub Packages
+name: Publish snapshots
 on:
   push:
     branches:
@@ -15,6 +15,10 @@ on:
 # Somebody who needs a snapshot from a branch, to try a change in another repository before
 # it is merged, runs this workflow by hand on that branch. Then the overwrite is a decision
 # and not a side effect of a push.
+#
+# The snapshots go to the snapshot repository of Maven Central. Anybody can read them there
+# without a login. Writing needs the Central Portal token, which the pull-request build never
+# gets.
 #
 # Two concurrency groups: one for main, one shared by the runs started by hand. GitHub keeps
 # at most one waiting run per group, and a newer run of the same group takes the waiting one
@@ -44,16 +48,32 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # the npm snapshots still go to GitHub Packages, and the last step deletes old ones there
       packages: write
       pages: write
       id-token: write
     steps:
       - uses: actions/checkout@v7
+      # Maven 3.10 writes 'maven-metadata-local.xml' and '_remote.repositories' into the
+      # staging directory of central-publishing-maven-plugin, and the Central Portal refuses
+      # a release bundle with them: "Bundle has content that does NOT have a .pom file". The
+      # runner image ships 3.10 now, so this job brings its own 3.9, like the release does.
+      # Remove this step once a plugin version stages a clean bundle under Maven 3.10.
+      - name: Use Maven 3.9
+        run: |
+          curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-java@v6
         with:
           java-version: 25.0.4+101.0.LTS
           distribution: temurin
           cache: maven
+          # the server of the profile 'central-portal' in io.vanillabp:release-parent. The
+          # two names are environment variables, and only the step which publishes sets them
+          server-id: vanillabp-central
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Configure npm authentication for GitHub Packages
         run: |
           echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
@@ -77,15 +97,20 @@ jobs:
         # the backend is being refactored no repository outside this one reads the frontend
         # packages; the ones published so far stay where they are. Remove the profile again as
         # soon as the frontend is worked on.
+        #
+        # The profile 'central-portal' sends a version ending in -SNAPSHOT straight to the
+        # snapshot repository of Maven Central. The settings file is there for the MongoDB
+        # changeset library alone, whose snapshot is still on GitHub Packages.
         run: |
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           ${{ contains(steps.get-version.outputs.version, '-SNAPSHOT') && '' || format('-Dnpm.prerelease={0}', env.PACKAGE_ID) }} \
           -Dnpm.registry=https://npm.pkg.github.com/ \
-          deploy -P build-runnable-jars,java-install
+          deploy -P build-runnable-jars,java-install,central-portal
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_USER }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PORTAL_TOKEN_PW }}
       - name: Collect the coverage reports for GitHub Pages
         # only from the default branch: the badges of the README read the published reports, so
         # a build of any other branch would let them show a number nobody released

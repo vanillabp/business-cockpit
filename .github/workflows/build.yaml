@@ -33,6 +33,13 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v7
+      # the Maven the publish of main runs with, see publish-snapshots.yaml for why it is not
+      # the 3.10 of the runner image
+      - name: Use Maven 3.9
+        run: |
+          curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz \
+            | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-java@v6
         with:
           java-version: 25.0.4+101.0.LTS
@@ -59,6 +66,10 @@ jobs:
         # build time goes, and nothing outside this repository reads the frontend packages while
         # the backend is being refactored. What the frontend still owes a pull request is checked
         # beside this job, see 'frontend' below.
+        #
+        # The VanillaBP snapshots come from the snapshot repository of Maven Central, without a
+        # login. The settings file and the two secrets are there for the MongoDB changeset
+        # library alone, whose snapshot is still on GitHub Packages.
         run: |
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Dnpm.registry=https://npm.pkg.github.com/ \
@@ -68,7 +79,6 @@ jobs:
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
@@ -103,8 +113,11 @@ jobs:
         # both are git-ignored, so a fresh checkout has neither: the package
         # apis/official-gui-api/client, and the web application's own client under
         # src/client/gui. The generator runs with a helper of this repository, which is why that
-        # one is installed first. 'generate-sources' and not 'install' for the rest: the Java
-        # side is built by the job beside this one, and nothing here needs a jar.
+        # one is installed first. 'compile' and not 'install' for the rest: the Java side is
+        # built by the job beside this one. 'generate-sources' is not enough, because at that
+        # phase Maven cannot hand a module of this build to the next one and looks for its jar
+        # in the snapshot repository instead. That only worked while an earlier snapshot was
+        # published there, and it broke when the snapshots moved to Maven Central.
         # '-Pjava-install' keeps every npm step of the reactor out of this; npm is run below.
         run: |
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
@@ -112,11 +125,10 @@ jobs:
           mvn --batch-mode --no-transfer-progress --update-snapshots -s $GITHUB_WORKSPACE/.github/workflows/github-packages-settings.xml \
           -Pjava-install -DskipTests \
           -pl apis/official-gui-api/client,business-cockpit -am \
-          generate-sources
+          compile
         env:
           USER_NAME: ${{ secrets.VANILLABP_USER_NAME }}
           USER_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Start the local npm registry
         # The packages of this repository depend on each other through a registry, so the check
         # brings the one the build already uses: Verdaccio, configured in development/verdaccio
