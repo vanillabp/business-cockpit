@@ -3,7 +3,9 @@ package io.vanillabp.cockpit.notification.poller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.vanillabp.cockpit.notification.CaseProcess;
 import io.vanillabp.cockpit.notification.NotificationType;
+import io.vanillabp.cockpit.notification.model.WorkflowNotificationConfiguration;
 import io.vanillabp.cockpit.notification.model.NotificationConfiguration;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
 import io.vanillabp.cockpit.tasklist.model.UserTaskEndReason;
@@ -96,13 +98,53 @@ class NotificationScannerTest {
         task.stampCandidatesSince(since);
     }
 
+    /**
+     * A task of a process the case started by a call activity. The user switched notifications
+     * off for the case's process, which is one process to them, only split into several models.
+     * So the setting of the case holds for the task, although the task names another process.
+     * See decision 61 in the repository's DECISIONS.md.
+     */
+    @Test
+    void aTaskOfACalledProcessFollowsTheSettingOfItsCase() {
+        final var task = openTask();
+        task.setBpmnProcessId("called");
+        task.setCandidateGroups(List.of(group("g1")));
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
+        dir.configs.put("u1", new NotificationConfiguration(
+                Map.of(EMAIL, true),
+                Map.of(NotificationConfiguration.workflowKey("wfm", "proc"),
+                        new WorkflowNotificationConfiguration(true, null))));
+
+        assertTrue(scanner.scan(task, new CaseProcess("wfm", "proc"), CURSOR, dir).isEmpty());
+        // and the task's own process names no group a setting could be made for
+        assertEquals(1, scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).size());
+    }
+
+    /**
+     * A setting the user made for a called process does not reach its tasks any longer, because
+     * the page for notification settings offers the case's process only.
+     */
+    @Test
+    void aSettingOfTheCalledProcessItselfIsNotAsked() {
+        final var task = openTask();
+        task.setBpmnProcessId("called");
+        task.setCandidateGroups(List.of(group("g1")));
+        final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
+        dir.configs.put("u1", new NotificationConfiguration(
+                Map.of(EMAIL, true),
+                Map.of(NotificationConfiguration.workflowKey("wfm", "called"),
+                        new WorkflowNotificationConfiguration(true, null))));
+
+        assertEquals(1, scanner.scan(task, new CaseProcess("wfm", "proc"), CURSOR, dir).size());
+    }
+
     @Test
     void created_notifiesVisibleLoggedInUser_viaGroup() {
         final var task = openTask();
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.CREATED, planned.get(0).notificationType());
         assertEquals("u1", planned.get(0).recipientUserId());
@@ -114,7 +156,7 @@ class NotificationScannerTest {
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), false);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -123,7 +165,7 @@ class NotificationScannerTest {
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("otherGroup"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -134,7 +176,7 @@ class NotificationScannerTest {
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -144,7 +186,7 @@ class NotificationScannerTest {
                 .loggedIn("u1", List.of(), true)
                 .loggedIn("u2", List.of(), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(2, planned.size());
         assertTrue(planned.stream().allMatch(p -> p.notificationType() == NotificationType.CREATED));
     }
@@ -159,7 +201,7 @@ class NotificationScannerTest {
                 .loggedIn("u1", List.of("USER_u1"), true) // personal candidate
                 .loggedIn("u2", List.of("g1"), true);      // visible via group
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         final var byUser = planned.stream().collect(
                 java.util.stream.Collectors.toMap(PlannedNotification::recipientUserId, p -> p.notificationType()));
         assertEquals(NotificationType.CANDIDATE_USER, byUser.get("u1"));
@@ -174,7 +216,7 @@ class NotificationScannerTest {
         task.setInitiator("u1"); // the user caused the change himself
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -186,7 +228,7 @@ class NotificationScannerTest {
         task.setInitiator("u2"); // completed by someone else
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.COMPLETED, planned.get(0).notificationType());
         assertEquals("u1", planned.get(0).recipientUserId());
@@ -201,7 +243,7 @@ class NotificationScannerTest {
         task.setInitiator("u1"); // assignee completed their own task
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -213,7 +255,7 @@ class NotificationScannerTest {
         task.setInitiator("theProcess");
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.CANCELED, planned.get(0).notificationType());
     }
@@ -225,7 +267,7 @@ class NotificationScannerTest {
         task.setNotificationDelivery(NotificationDelivery.FORCE);
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), false); // config none
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertTrue(planned.get(0).forced());
     }
@@ -237,7 +279,7 @@ class NotificationScannerTest {
         task.setNotificationDelivery(NotificationDelivery.SUPPRESS);
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true); // config notify
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -248,7 +290,7 @@ class NotificationScannerTest {
         dir.authorities.put("u1", null); // logged in but no directory authorities
         dir.configs.put("u1", new NotificationConfiguration(Map.of(EMAIL, true), Map.of()));
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -258,7 +300,7 @@ class NotificationScannerTest {
         task.setInitiator("x");
         final var dir = new FakeDirectory(); // nobody logged in
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -268,7 +310,7 @@ class NotificationScannerTest {
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
         dir.media.add("sms");
         // u1 config only enables email globally -> only email planned
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(Set.of(EMAIL), planned.stream().map(PlannedNotification::medium).collect(java.util.stream.Collectors.toSet()));
     }
 
@@ -282,7 +324,7 @@ class NotificationScannerTest {
         task.setUpdatedBy("system");     // audit field written by the save callback
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -295,7 +337,7 @@ class NotificationScannerTest {
         task.setUpdatedBy("u1");
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.COMPLETED, planned.get(0).notificationType());
     }
@@ -308,7 +350,7 @@ class NotificationScannerTest {
         task.setUpdatedBy("u1");         // audit field of a cockpit-side save
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.CANDIDATE_USER, planned.get(0).notificationType());
     }
@@ -323,7 +365,7 @@ class NotificationScannerTest {
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.CREATED, planned.get(0).notificationType());
     }
@@ -335,7 +377,7 @@ class NotificationScannerTest {
         task.setCandidateGroups(List.of(group("g1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of("g1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -347,7 +389,7 @@ class NotificationScannerTest {
         task.setInitiator("someoneElse");
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -358,7 +400,7 @@ class NotificationScannerTest {
         task.setInitiator("someoneElse");
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals(NotificationType.CANDIDATE_USER, planned.get(0).notificationType());
     }
@@ -374,7 +416,7 @@ class NotificationScannerTest {
                 .loggedIn("old", List.of("USER_old"), true)
                 .loggedIn("fresh", List.of("USER_fresh"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals("fresh", planned.get(0).recipientUserId());
     }
@@ -386,7 +428,7 @@ class NotificationScannerTest {
         task.setInitiator("someoneElse");
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -397,7 +439,7 @@ class NotificationScannerTest {
         task.setInitiator("someoneElse");
         final var dir = new FakeDirectory().loggedIn("u1", List.of("USER_u1"), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -409,7 +451,7 @@ class NotificationScannerTest {
                 .loggedIn("u1", List.of("g1"), true)
                 .loggedIn("u2", List.of("g1"), true); // in the group, but excluded
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals("u1", planned.get(0).recipientUserId());
     }
@@ -424,7 +466,7 @@ class NotificationScannerTest {
                 .loggedIn("u3", List.of(), true);
 
         // not dangling (it has an assignee), so 'no target groups' must not mean 'everybody'
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals("u1", planned.get(0).recipientUserId());
         assertEquals(NotificationType.CREATED, planned.get(0).notificationType());
@@ -438,7 +480,7 @@ class NotificationScannerTest {
         // a user directory reporting group memberships only, i.e. no 'USER_u2' authority
         final var dir = new FakeDirectory().loggedIn("u2", List.of("g2"), true);
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals("u2", planned.get(0).recipientUserId());
     }
@@ -450,7 +492,7 @@ class NotificationScannerTest {
         task.setInitiator("u1");
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -459,7 +501,7 @@ class NotificationScannerTest {
         task.setAssignee(person("ghost"));
         final var dir = new FakeDirectory(); // nobody logged in
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -469,7 +511,7 @@ class NotificationScannerTest {
         task.setExcludedCandidateUsers(List.of(person("u1")));
         final var dir = new FakeDirectory().loggedIn("u1", List.of(), true);
 
-        assertTrue(scanner.scan(task, CURSOR, dir).isEmpty());
+        assertTrue(scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir).isEmpty());
     }
 
     @Test
@@ -480,7 +522,7 @@ class NotificationScannerTest {
         final var dir = new FakeDirectory()
                 .loggedIn("u2", List.of("USER_u2"), true); // authority of the assignee himself
 
-        final var planned = scanner.scan(task, CURSOR, dir);
+        final var planned = scanner.scan(task, CaseProcess.ofTheTaskItself(task), CURSOR, dir);
         assertEquals(1, planned.size());
         assertEquals("u2", planned.get(0).recipientUserId());
     }

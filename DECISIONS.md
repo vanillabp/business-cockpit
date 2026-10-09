@@ -2699,6 +2699,48 @@ process and fetches all the names it gets.
 
 `VariablesTheDetailsProvidersReadTest` holds what the extension passes on.
 
+### 61. Notifications form one group per business case
+
+A user sets notifications for all workflows and, as an exception, per workflow. Until now a workflow
+here was the workflow module and the BPMN process of the user task. A task of a process which the
+case started by a call activity therefore formed a group of its own, named after the called
+process. To the user that is one process, only split into several models to keep them readable. So
+the group is now the process of the case. A called process with a workflow aggregate of its own is a
+case of its own and keeps its own group. This holds for every BPMS.
+
+The server cannot tell the two kinds of called process apart. It follows the case the workflow
+module names: the `workflowId` of the task. So a called process with an aggregate of its own gets a
+group of its own wherever its module files its tasks under a workflow of its own.
+
+The cockpit learns the case of a task from the task's `workflowId`. That is the case the workflow
+module files the task under, so the process of the case is the process of the workflow stored under
+that id. Where the cockpit holds no such workflow, the task counts for its own process. That happens
+while the report of the workflow has not arrived yet, and for a module which reports no workflows.
+The rule is read when it is needed and not stored on the task:
+
+- `CaseProcess.of` reads the workflows of all tasks of one poll cycle with one query. The
+  notification poller passes the result to `NotificationScanner`, which looks the user's setting up
+  by it.
+- `UserTaskService#getVisibleWorkflows` lists the groups for the settings page. It joins the
+  workflows in the same query (`$lookup`) and groups by the case's process. The title of a group is
+  the `workflowTitle` of a task of the case's own process, and only where the user sees none, the
+  title of a task of a called process.
+
+So nothing stored has to change. A task stored before this change counts for its case as soon as
+the case is stored as well.
+
+A setting a user made for a called process before this change is no longer asked. Its key stays in
+the user's configuration, and the settings page offers the case's process instead. Copying it
+over was left out: one called process may belong to several cases, and its setting may contradict
+the one the user made for the case.
+
+`getVisibleWorkflows` now runs as a typed aggregation. Untyped, its criteria were not mapped:
+`candidateGroups.id` and the other nested ids are stored as `_id`, so a user whose tasks reach them
+through a group or as a candidate saw no workflow on the settings page.
+
+`NotificationScannerTest` and `ATaskOfACalledProcessCountsForItsCaseTest` hold the rule, the second
+one against a real MongoDB.
+
 ### 62. The Maven build builds no user interface
 
 Decided on 2026-10-09.
