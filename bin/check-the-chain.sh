@@ -11,8 +11,8 @@
 #   3. Was the newest run of every workflow on main green?
 #   4. Does the published snapshot belong to the head of main?
 #
-# Nothing is built and no test is run again. Everything is read from the GitHub API and
-# from Maven Central. A green state and a state nobody has looked at for days look the
+# Nothing is built and no test is run again. Everything is read from the GitHub API, from
+# Maven Central and from its snapshot repository. A green state and a state nobody has looked at for days look the
 # same from outside, so the answer always starts and ends with the time it was asked.
 #
 # It changes nothing. It prints a report in Markdown and exits with
@@ -22,10 +22,11 @@
 # A question which could not be answered is never green.
 #
 # Needs bash, curl, jq, perl, sort -V, GNU date and the GitHub CLI (gh), logged in.
-# Question 4 also reads GitHub Packages, which asks for a token even for a public
-# package. Pass one with the scope read:packages in PACKAGES_TOKEN, and its user in
-# PACKAGES_USER. Without it question 4 is answered from the publish runs alone, and the
-# report says so.
+# Question 4 reads the snapshots of the four from the snapshot repository of Maven Central,
+# which needs no login. The MongoDB changeset library still publishes to GitHub Packages,
+# which asks for a token even for a public package. Pass one with the scope read:packages
+# in PACKAGES_TOKEN, and its user in PACKAGES_USER. Without it question 4 is answered for
+# that library from its publish runs alone, and the report says so.
 #
 # Run it from anywhere:
 #
@@ -64,15 +65,17 @@ repos=(
 # there reaches us first. Its pins are not compared, because none of its versions ends up
 # next to an extension in a workflow module.
 #
-# Per repository: the coordinate of one published artifact, group and artifact, and the
-# POM which names its version. The artifact is the one the next repository of the chain
-# reads, or the core of an adapter.
+# Per repository: the coordinate of one published artifact, group and artifact, where its
+# snapshot is published ('central' for the snapshot repository of Maven Central, 'packages'
+# for GitHub Packages), and the name of the workflow which publishes it. The artifact is
+# the one the next repository of the chain reads, or the core of an adapter. The version
+# is the one of the repository's root POM.
 watched=(
-    "vanillabp/business-cockpit io.vanillabp.businesscockpit extensions-commons"
-    "vanillabp/businesscockpit-camunda7-adapter io.vanillabp.businesscockpit businesscockpit-camunda7-adapter"
-    "vanillabp/businesscockpit-camunda8-adapter io.vanillabp.businesscockpit businesscockpit-camunda8-adapter"
-    "vanillabp/businesscockpit-process-engine-api-adapter io.vanillabp.businesscockpit businesscockpit-process-engine-api-adapter"
-    "Phactum/mongodb-changesets com.phactum.mongodb mongodb-changesets"
+    "vanillabp/business-cockpit io.vanillabp.businesscockpit extensions-commons central Publish snapshots"
+    "vanillabp/businesscockpit-camunda7-adapter io.vanillabp.businesscockpit businesscockpit-camunda7-adapter central Publish snapshots"
+    "vanillabp/businesscockpit-camunda8-adapter io.vanillabp.businesscockpit businesscockpit-camunda8-adapter central Publish snapshots"
+    "vanillabp/businesscockpit-process-engine-api-adapter io.vanillabp.businesscockpit businesscockpit-process-engine-api-adapter central Publish snapshots"
+    "Phactum/mongodb-changesets com.phactum.mongodb mongodb-changesets packages Publish to GitHub Packages"
 )
 
 # The pins which are a promise between the four repositories, one sentence each on why.
@@ -528,10 +531,11 @@ say
 say "## 4. Does the published snapshot belong to the head of main?"
 say
 if [ -z "${PACKAGES_TOKEN:-}" ]; then
-    not_answered "PACKAGES_TOKEN is not set, so the snapshots themselves were not read. What follows is answered from the publish runs alone."
+    not_answered "PACKAGES_TOKEN is not set, so the snapshots on GitHub Packages were not read. For those, what follows is answered from the publish runs alone."
 fi
 for line in "${watched[@]}"; do
-    read -r repo group artifact <<< "$line"
+    # the name of the workflow has blanks in it, so it is the last field and takes the rest
+    read -r repo group artifact source workflow <<< "$line"
     head=$(gh api "repos/$repo/commits/main" --jq '[.sha, .commit.committer.date] | @tsv' 2>/dev/null)
     if [ -z "$head" ]; then
         not_answered "$repo: the head of main could not be read."
@@ -552,8 +556,8 @@ for line in "${watched[@]}"; do
     # the run of the publish workflow for exactly this commit
     runs_file="$out/runs-${repo//\//_}"
     publish=""
-    [ ! -f "$runs_file" ] || publish=$(jq -c --arg s "$head_sha" \
-        '[.[] | select(.name == "Publish to GitHub Packages" and .head_sha == $s)] | .[0] // empty' \
+    [ ! -f "$runs_file" ] || publish=$(jq -c --arg s "$head_sha" --arg w "$workflow" \
+        '[.[] | select(.name == $w and .head_sha == $s)] | .[0] // empty' \
         "$runs_file")
     if [ -z "$publish" ]; then
         found "$repo: the head of main, ${head_sha:0:8} of $head_at, has no publish run. The snapshot $version is older than main."
@@ -571,17 +575,23 @@ for line in "${watched[@]}"; do
         found "$repo: the publish run of ${head_sha:0:8} ended with $p_conclusion, so $version is older than main. $p_url"
         continue
     fi
-    if [ -z "${PACKAGES_TOKEN:-}" ]; then
+    if [ "$source" = packages ] && [ -z "${PACKAGES_TOKEN:-}" ]; then
         fine "$repo: ${head_sha:0:8} of $head_at was published by the run of $p_created"
         continue
     fi
 
     # The snapshot itself. The metadata of the version says when it was last written.
-    account=${repo%%/*}
-    url="https://maven.pkg.github.com/$repo/${group//.//}/$artifact/$version/maven-metadata.xml"
-    metadata=$(curl --silent --fail --max-time 30 \
-        --user "${PACKAGES_USER:-token}:$PACKAGES_TOKEN" "$url") || {
-        not_answered "$repo: $group:$artifact:$version could not be read from GitHub Packages of $account."
+    path="${group//.//}/$artifact/$version/maven-metadata.xml"
+    if [ "$source" = central ]; then
+        place="the snapshot repository of Maven Central"
+        metadata=$(curl --silent --fail --max-time 30 \
+            "https://central.sonatype.com/repository/maven-snapshots/$path")
+    else
+        place="GitHub Packages of ${repo%%/*}"
+        metadata=$(curl --silent --fail --max-time 30 \
+            --user "${PACKAGES_USER:-token}:$PACKAGES_TOKEN" "https://maven.pkg.github.com/$repo/$path")
+    fi || {
+        not_answered "$repo: $group:$artifact:$version could not be read from $place."
         continue
     }
     stamp=$(printf '%s' "$metadata" | sed -n 's|.*<lastUpdated>\([0-9]\{14\}\)</lastUpdated>.*|\1|p' | tail -1)

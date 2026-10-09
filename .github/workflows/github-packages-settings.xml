@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Where CI reads the one artifact this build needs from GitHub Packages: the snapshot of the
+  MongoDB changeset library, com.phactum.mongodb:mongodb-changesets. GitHub Packages asks for a
+  token even for a public package, so the server below carries the repository secrets
+  VANILLABP_USER_NAME and VANILLABP_USER_TOKEN, a token with 'read:packages'.
+
+  The VanillaBP snapshots are not read from here. They come from the snapshot repository of Maven
+  Central, which the parent io.vanillabp:release-parent names and which needs no login. Delete
+  this file once the changeset library publishes its snapshots there as well.
+-->
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
@@ -32,30 +42,6 @@
                         <enabled>false</enabled>
                     </snapshots>
                 </repository>
-                <!-- every io.vanillabp artifact of the platform reactor, which is the integration and
-                     extension SPI, the Spring Boot and Quarkus integrations, vanillabp-spring-boot-support,
-                     the BPMS doubles and test-utils of the tests here -->
-                <repository>
-                    <id>vanillabp-adapter-platform-integration</id>
-                    <url>https://maven.pkg.github.com/vanillabp/adapter-platform-integration</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                  </releases>
-                </repository>
-                <!-- io.vanillabp:spi-for-java, the SPI an application writes against -->
-                <repository>
-                    <id>vanillabp-spi-for-java</id>
-                    <url>https://maven.pkg.github.com/vanillabp/spi-for-java</url>
-                    <snapshots>
-                        <enabled>true</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>false</enabled>
-                  </releases>
-                </repository>
                 <!-- the MongoDB changeset mechanism, which this repository used to carry itself.
                      Only its snapshots come from here; a release of it goes to Maven Central. -->
                 <repository>
@@ -73,21 +59,6 @@
     </profiles>
 
     <servers>
-        <server>
-            <id>github</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.GITHUB_TOKEN}</password>
-        </server>
-        <server>
-            <id>vanillabp-adapter-platform-integration</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
-        <server>
-            <id>vanillabp-spi-for-java</id>
-            <username>${env.USER_NAME}</username>
-            <password>${env.USER_TOKEN}</password>
-        </server>
         <server>
             <id>phactum-mongodb-changesets</id>
             <username>${env.USER_NAME}</username>

@@ -4,7 +4,7 @@ name: Chain check
 # four share are the same, whether a pin stayed behind without a pull request or a reason,
 # whether the newest run on main was green, and whether the published snapshot belongs to
 # the head of main. Nothing is built and no test runs again; the script reads the GitHub
-# API, Maven Central and GitHub Packages.
+# API, Maven Central with its snapshot repository, and GitHub Packages.
 #
 # None of this is a pull-request check. A pin which drifts apart, a main which nobody
 # pushed to for days and a snapshot which stayed old all come from something which did NOT
@@ -45,9 +45,12 @@ jobs:
         name: Ask the four questions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GitHub Packages asks for a token even for a public package, and the token of the
-          # workflow cannot read the packages of another repository. The builds read them
-          # with the same pair, see github-packages-settings.xml.
+          # for the snapshot of the MongoDB changeset library, the one which is still on
+          # GitHub Packages. GitHub Packages asks for a token even for a public package, and
+          # the token of the workflow cannot read the packages of another repository. The
+          # builds read it with the same pair, see github-packages-settings.xml. The four
+          # cockpit repositories publish to the snapshot repository of Maven Central, which
+          # needs no login.
           PACKAGES_USER: ${{ secrets.VANILLABP_USER_NAME }}
           PACKAGES_TOKEN: ${{ secrets.VANILLABP_USER_TOKEN }}
         run: |
