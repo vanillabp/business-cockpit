@@ -59,6 +59,14 @@
     </profiles>
 
     <servers>
+        <!-- The publish runs with this file, and a file given with '-s' replaces the one
+             actions/setup-java writes. So the Central server of the profile 'central-portal'
+             is named here again, with the same two environment variables. -->
+        <server>
+            <id>vanillabp-central</id>
+            <username>${env.MAVEN_USERNAME}</username>
+            <password>${env.MAVEN_PASSWORD}</password>
+        </server>
         <server>
             <id>phactum-mongodb-changesets</id>
             <username>${env.USER_NAME}</username>
