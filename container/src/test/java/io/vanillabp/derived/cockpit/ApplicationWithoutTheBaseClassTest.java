@@ -123,22 +123,16 @@ class ApplicationWithoutTheBaseClassTest {
     }
 
     /**
-     * The shell of the single-page application, which the library carries in its own jar. The one
-     * answered here is the stand-in in {@code src/test/resources/static/index.html}, because this
-     * build does not run the webapp build.
+     * The library carries no user interface, see decision 63 in the repository's DECISIONS.md. So
+     * the root and a deep link get 404, and not the 500 of the catch-all error handler.
      */
     @Test
-    void theUserInterfaceIsServedAtTheRoot() {
+    void anUnknownPathIsNotFound() {
 
         final var cookie = login(DerivedCockpitApplication.USER);
 
-        final var root = get("/", cookie);
-        assertThat(root.statusCode()).isEqualTo(200);
-        assertThat(root.body()).contains("id=\"root\"");
-
-        final var deepLink = get("/tasklist/some-task-id", cookie);
-        assertThat(deepLink.statusCode()).isEqualTo(200);
-        assertThat(deepLink.body()).contains("id=\"root\"");
+        assertThat(get("/", cookie).statusCode()).isEqualTo(404);
+        assertThat(get("/tasklist/some-task-id", cookie).statusCode()).isEqualTo(404);
 
     }
 

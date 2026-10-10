@@ -48,8 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # read only. This job no longer writes npm packages to GitHub Packages, see decision 62
-      # in the repository's DECISIONS.md
+      # read only, for the MongoDB changeset library
       packages: read
       pages: write
       id-token: write
@@ -76,9 +75,8 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
       - name: Publish package
-        # This run publishes Java artifacts only. The Maven build does not build the user
-        # interfaces any more, so no npm package goes out. The npm snapshots published before stay
-        # where they are. See decision 62 in the repository's DECISIONS.md.
+        # This run publishes Java artifacts only. The repository holds no user interface, see
+        # decision 63 in the repository's DECISIONS.md.
         #
         # The profile 'central-portal' sends a version ending in -SNAPSHOT straight to the
         # snapshot repository of Maven Central. The settings file is there for the MongoDB

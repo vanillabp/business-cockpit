@@ -50,13 +50,11 @@
   </properties>
 
   <!--
-    Maven builds the Java side only. The npm packages under 'ui', 'development' and
-    'apis/official-gui-api/client' are no modules of this build, and no module runs npm. See
-    decision 62 in the repository's DECISIONS.md.
+    The repository holds the Java side only. No user interface and no npm package lives here.
+    See decision 63 in the repository's DECISIONS.md.
   -->
   <modules>
     <module>commons</module>
-    <module>openapi-generator-fixes</module>
     <module>apis</module>
     <module>business-cockpit</module>
     <module>container</module>

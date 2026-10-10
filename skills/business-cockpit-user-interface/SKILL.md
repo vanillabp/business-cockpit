@@ -110,9 +110,10 @@ es für dein UI nicht.
 ## Wie dein UI in das Cockpit kommt
 
 Ein Cockpit ist eine Spring-Boot-Anwendung, und das UI liegt in ihr. Die Bibliothek
-`io.vanillabp.businesscockpit:business-cockpit` baut die mitgelieferte React-Anwendung nach
-`target/classes/static`, und von dort liefert jede Cockpit-Anwendung sie aus, auch eine eigene, die
-die Bibliothek nur als Abhängigkeit hat. Wie so eine eigene Anwendung entsteht, steht im Wiki unter
+`io.vanillabp.businesscockpit:business-cockpit` und das Jar von `container` bringen kein UI mit,
+siehe Entscheidung 63 in der `DECISIONS.md` des Repositorys. Jede Cockpit-Anwendung liefert aus, was
+auf ihrem Klassenpfad unter `static` liegt, auch eine eigene, die die Bibliothek nur als Abhängigkeit
+hat. Wie so eine eigene Anwendung entsteht, steht im Wiki unter
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
 
 Dein UI tritt an diese Stelle. Was du dafür wissen musst:

@@ -1,7 +1,7 @@
 # Contributing
 
 This repository is the VanillaBP Business Cockpit: the application business people work in, its
-APIs and UI libraries, and the platform neutral half of the Business Cockpit extension for VanillaBP
+APIs, and the platform neutral half of the Business Cockpit extension for VanillaBP
 Version 2. How to run and use the cockpit is in the
 [wiki](https://github.com/vanillabp/business-cockpit/wiki). This file is for somebody who changes
 the code.

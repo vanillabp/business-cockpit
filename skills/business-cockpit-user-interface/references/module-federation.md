@@ -8,8 +8,8 @@ seine eigenen Seiten. Der Mechanismus heißt Module Federation.
 
 Die Seite [User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites)
 des Wikis beschreibt diesen Vertrag von der Seite des Workflow-Moduls: was es exportiert und wie es
-baut. Hier steht die andere Seite, nämlich was der Gastgeber tut. Die Beispiel-Implementierung ist
-`ui/bc-ui/src/utils/module-federation.ts`.
+baut. Hier steht die andere Seite, nämlich was der Gastgeber tut. Die Beispiel-Implementierung war
+`ui/bc-ui/src/utils/module-federation.ts` und steht seit Entscheidung 63 nur noch in der Git-Historie.
 
 ## Die vier Teile
 

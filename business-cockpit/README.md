@@ -2,9 +2,8 @@
 
 The Business Cockpit as a library: the services and the persistence behind the two lists, the GUI
 API, the security extension points, the part which takes in what workflow modules report, the
-notification feature and the proxy to workflow modules. The React application under
-`src/main/webapp` waits there for a repository of its own. Maven does not build it, so the jar
-carries no user interface, see decision 62 in the repository's [DECISIONS.md](../DECISIONS.md).
+notification feature and the proxy to workflow modules. The jar carries no user interface, see
+decision 63 in the repository's [DECISIONS.md](../DECISIONS.md).
 
 It has no main class and builds no runnable jar. What makes it start is [container](../container),
 and that split is explained in [its README](../container/README.md#why-the-library-and-the-application-are-two-modules).

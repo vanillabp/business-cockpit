@@ -2763,7 +2763,8 @@ duplicate `frontend-maven-plugin` entries, which Maven 3.10 refuses, go away wit
 
 The npm sources stay where they are: `ui`, `development/dev-shell-react`, `-angular` and `-vue`,
 `apis/official-gui-api/client`, `business-cockpit/src/main/webapp` and the two web applications of
-`development/simulator`. Their `package.json` files and their sources are untouched.
+`development/simulator`. Their `package.json` files and their sources are untouched. Decision 63
+removed them a day later.
 
 The modules which did nothing but run npm are no longer part of the reactor, and their POMs are
 deleted: `ui`, `ui/bc-types`, `ui/bc-shared`, `ui/bc-ui`, `apis/official-gui-api/client` and the
@@ -2795,3 +2796,54 @@ deletes old npm snapshots on GitHub Packages.
 | `.github/workflows/build.yaml`, `publish-snapshots.yaml`, `release.yml` | no npm step |
 | `renovate.json`                                                         | no pin of the OpenAPI generator |
 | `README.md`, `AGENTS.md`, `development/README.md`                       | building without npm |
+
+### 63. The repository holds no user interface and no npm package
+
+Decided on 2026-10-10.
+
+Everything with a `package.json` is gone from this repository:
+
+- the React application in `business-cockpit/src/main/webapp`
+- the packages `ui/bc-ui`, `ui/bc-shared` and `ui/bc-types`
+- the TypeScript client in `apis/official-gui-api/client`
+- the dev shells `development/dev-shell-react`, `-angular` and `-vue`
+- the two web applications of the simulator, `development/simulator/src/main/webapp-react` and
+  `webapp-angular`
+
+With them went what only served them: `openapi-generator-fixes`, whose templates were for the
+TypeScript client alone, the local npm registry in `development/verdaccio` and its service in
+`docker-compose.yaml`, the npm scripts in `.github/scripts`, and the Renovate rule which switched
+npm updates off. Decision 62 had left the sources in place. This one removes them.
+
+#### Why
+
+Stephan, on 2026-10-10: no npm builds in this repository any more, and the dev shell user
+interfaces leave as well. A dev shell has to fit the user interface it stands in for, so it belongs
+in that interface's repository. No new repository is made now. The Git history holds the sources,
+and Stephan picks later what he keeps.
+
+#### What stays
+
+`simulator` and `dev-shell-simulator` stay as Java modules. Both answer the server side and need no
+user interface for that. The simulator reports user tasks and workflows to a cockpit and has its
+test data form as a server page. The dev shell simulator answers what a dev shell asks, and the
+local user directory of `container` loads its users from it. A task the simulator reports still names
+`/remoteEntry.js` as its form, which nothing serves now.
+
+`container` builds a jar without a user interface. `SpaNoHandlerFoundExceptionHandler` stays. An
+application which puts a shell at `application.spa-default-file` still gets it for every unknown
+path, and one without a shell answers 404. The container tests used a stand-in `index.html` to
+show the shell. That stand-in is gone, and the tests now check the 404.
+
+The npm packages published so far stay on npmjs.com and on GitHub Packages. No new version comes
+from here.
+
+#### What points at this
+
+| place                                                                 | what it says |
+|-----------------------------------------------------------------------|--------------|
+| `pom.xml`, above the modules                                          | no user interface and no npm package here |
+| `business-cockpit/pom.xml`, the OpenAPI generator                     | the TypeScript client is gone |
+| `.github/workflows/publish-snapshots.yaml`, `release.yml`             | Java artifacts only |
+| `UnknownPathsTest`, `ApplicationWithoutTheBaseClassTest`              | 404 for an unknown path |
+| `README.md`, `AGENTS.md`, `UPGRADE.md`, the module READMEs, the skill | no user interface here |

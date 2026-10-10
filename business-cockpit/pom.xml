@@ -40,9 +40,9 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>6.4.0</version>
-        <!-- Still on 6.4.0, the version which also generated the TypeScript client of the webapp.
-             That client is no longer generated here, see decision 62 in the repository's
-             DECISIONS.md, so nothing holds this version back any more. The spring execution sets
+        <!-- Still on 6.4.0, the version which once also generated the TypeScript client of the
+             webapp. Neither lives here any more, see decision 63 in the repository's DECISIONS.md,
+             so nothing holds this version back. The spring execution sets
              useSpringBoot3, so it emits jakarta code. -->
         <executions>
           <execution>

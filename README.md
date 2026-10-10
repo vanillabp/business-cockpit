@@ -27,14 +27,14 @@ What an application has to change when it moves to a new version of the cockpit 
 
 ## Building it
 
-You need Java 21 and Maven. The build is a Java build only: it runs no npm step and needs neither
-node nor an npm registry. [development/README.md](./development/README.md) holds the MongoDB, the
-Kafka broker and the mail catcher which the tests and a local run need.
+You need Java 21 and Maven. The build is a Java build only, and it needs neither node nor npm.
+[development/README.md](./development/README.md) holds the MongoDB, the Kafka broker and the mail
+catcher which the tests and a local run need.
 
-The user interfaces are no longer built here. Their sources still sit in this repository, under
-`ui`, `development` and `business-cockpit/src/main/webapp`, until they move to repositories of their
-own. So the jar of `business-cockpit` carries no user interface, and neither does the runnable jar
-of `container`. Decision 62 in [DECISIONS.md](./DECISIONS.md) says why and what it costs.
+This repository holds no user interface. The jar of `business-cockpit` carries none, and neither
+does the runnable jar of `container`. The React application, the npm packages and the dev shells
+which used to be here are in the Git history. Decision 63 in [DECISIONS.md](./DECISIONS.md) says
+why.
 
 The build reads two kinds of snapshot. The snapshots of the VanillaBP platform come from the
 snapshot repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`.
@@ -103,10 +103,8 @@ In the order they build on each other:
 
 1. **[commons](./commons)**:<br>Spring Boot functionality used by the cockpit, and usable next to it:
    the JWT handling, the Kafka settings and the small utilities several modules share.
-1. **[openapi-generator-fixes](./openapi-generator-fixes)**:<br>Patches applied while the API clients
-   and servers below `apis` are generated.
 1. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
-   `bpms-api` for what workflow modules report, `official-gui-api` for what the user interface reads,
+   `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,
    `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
 1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
    code is written with to report business data about its user tasks and workflows.

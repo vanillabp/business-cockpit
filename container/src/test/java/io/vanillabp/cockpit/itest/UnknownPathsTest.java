@@ -9,16 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * A deep link into the single-page application is a path only the browser-side router knows. The
- * server has to answer it with the application shell instead of an error, otherwise reloading the
- * page or opening a bookmark lands on a 404.
- *
- * <p>The shell used here is the stand-in in {@code src/test/resources/static/index.html}. The real
- * one is produced by the webapp build, and this build does not run it.
+ * The container carries no user interface, see decision 63 in the repository's DECISIONS.md. So a
+ * path which no API knows, a deep link of a user interface included, gets 404 and not the 500 of
+ * the catch-all error handler. An application which puts a shell on its class path gets that shell
+ * instead, which {@code SpaNoHandlerFoundExceptionHandlerTest} shows.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
-class SpaFallbackTest extends ItestBase {
+class UnknownPathsTest extends ItestBase {
 
     private java.net.http.HttpResponse<String> get(
             final String path,
@@ -33,26 +31,21 @@ class SpaFallbackTest extends ItestBase {
     }
 
     @Test
-    void deepLinksAreAnsweredWithTheApplicationShell() {
+    void anUnknownPathIsNotFound() {
 
         final var cookie = loginToGui(USER_MARTIN);
 
-        final var deepLink = get("/tasklist/some-task-id", cookie);
-        assertThat(deepLink.statusCode()).isEqualTo(200);
-        assertThat(deepLink.body()).contains("id=\"root\"");
-
-        final var root = get("/", cookie);
-        assertThat(root.statusCode()).isEqualTo(200);
-        assertThat(root.body()).contains("id=\"root\"");
+        assertThat(get("/tasklist/some-task-id", cookie).statusCode()).isEqualTo(404);
+        assertThat(get("/", cookie).statusCode()).isEqualTo(404);
 
     }
 
     /**
-     * Everything except a handful of endpoints needs a login, deep links included. The browser is
-     * expected to authenticate and ask again.
+     * Everything except a handful of endpoints needs a login, unknown paths included. The browser
+     * is expected to authenticate and ask again.
      */
     @Test
-    void deepLinksWithoutAuthenticationAreRejected() {
+    void anUnknownPathWithoutAuthenticationIsRejected() {
 
         assertThat(get("/tasklist/some-task-id", null).statusCode()).isEqualTo(401);
 
