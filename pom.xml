@@ -286,7 +286,7 @@
   <scm>
     <connection>scm:git:https://github.com/vanillabp/business-cockpit.git</connection>
     <developerConnection>scm:git:https://github.com/vanillabp/business-cockpit.git</developerConnection>
-    <url>http://github.com/vanillabp/business-cockpit/tree/main</url>
+    <url>https://github.com/vanillabp/business-cockpit/tree/main</url>
   </scm>
 
 </project>
