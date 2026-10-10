@@ -10,8 +10,7 @@ generated into a client and a server:
 * **[workflow-provider-api](./workflow-provider-api)**: what a workflow module may implement so that
   the cockpit can ask it something.
 
-The generators are configured per module, with the templates of
-[openapi-generator-fixes](../openapi-generator-fixes) where their output had to be corrected. Built
-as part of the reactor build described in the [root README](../README.md#building-it), and published
-under `io.vanillabp.businesscockpit`. The TypeScript client of the official GUI API is no longer
-generated, see decision 62 in the repository's [DECISIONS.md](../DECISIONS.md).
+The generators are configured per module. Built as part of the reactor build described in the
+[root README](../README.md#building-it), and published under `io.vanillabp.businesscockpit`. The
+TypeScript client of the official GUI API is no longer generated, see decisions 62 and 63 in the
+repository's [DECISIONS.md](../DECISIONS.md).

@@ -11,8 +11,9 @@ Die Dev Shell ist der Ausweg. Sie ist eine kleine Webanwendung, die die Teile de
 importiert, sodass der Dev-Server sie beim Tippen austauschen kann. Hinter ihr steht der Dev Shell
 Simulator, eine Java-Anwendung, die die Fragen beantwortet, die sonst das Cockpit beantwortet.
 
-Es gibt sie heute dreimal, in `development/dev-shell-react`, `development/dev-shell-vue` und
-`development/dev-shell-angular`. Diese drei sind Belege und Beispiele. Der Vertrag ist, was unten
+Es gab sie dreimal, in `development/dev-shell-react`, `development/dev-shell-vue` und
+`development/dev-shell-angular`. Seit Entscheidung 63 in der `DECISIONS.md` des Repositorys stehen
+sie nur noch in der Git-Historie. Diese drei sind Belege und Beispiele. Der Vertrag ist, was unten
 steht, und wo die drei auseinandergehen, steht es dabei.
 
 1. [Was eine Dev Shell leisten muss](#was-eine-dev-shell-leisten-muss)
@@ -76,7 +77,7 @@ Adresse, das Formular, die Fallseite und die weiteren Teile.
 Die Form ist also nicht gleich, und das muss sie auch nicht sein. Nimm die Form, die in deinem
 Framework natürlich ist. Gleich ist, was übergeben wird.
 
-Ein Hinweis zum Beispiel im Repository: `development/simulator/src/main/webapp-react/test/index.tsx`
+Ein Hinweis zum Beispiel in der Git-Historie: `development/simulator/src/main/webapp-react/test/index.tsx`
 ruft `bootstrapDevShell` noch mit der alten Reihenfolge auf, ohne `workflowModule` und ohne `theme`.
 Nimm die Form aus `development/dev-shell-react/src/dev-shell-react/index.tsx` und nicht aus dem
 Beispiel.

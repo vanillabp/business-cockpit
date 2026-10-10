@@ -2,10 +2,11 @@
 
 # Dev shell simulator
 
-The server behind the [dev shell](../dev-shell-react): it takes the reports a workflow module sends
+The server behind a dev shell: it takes the reports a workflow module sends
 and serves them back to the components the dev shell renders, and it supplies the users those
 components are looked at as. So a workflow module's user interface can be built without a cockpit
-and without a BPMS.
+and without a BPMS. The dev shells live in the repositories of the user interfaces they fit, see
+decision 63 in the repository's [DECISIONS.md](../../DECISIONS.md).
 
 Running it, giving it users and pointing an application at it is in the wiki, under
 [Developing UI components locally](https://github.com/vanillabp/business-cockpit/wiki/Developing-UI-components-locally#the-dev-shell-simulator).

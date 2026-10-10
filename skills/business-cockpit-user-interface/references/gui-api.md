@@ -385,8 +385,8 @@ Ursprung des Cockpits: das Bundle eines Moduls und jede Anfrage, die ein Formula
 Backend stellt. Das Session-Cookie reist dabei mit. Die Routen ändern sich, während die Anwendung
 läuft, denn ein Modul registriert sich im Betrieb.
 
-Unter `/` liegt das UI selbst. Das mitgelieferte UI ist eine Single-Page-Anwendung, und ihre
-statischen Dateien liegen im Jar der Bibliothek. Ein eigenes UI tritt an diese Stelle, siehe
+Unter `/` liegt das UI selbst, als Single-Page-Anwendung. Das Jar der Bibliothek bringt keines mit,
+dein UI legt seine statischen Dateien dorthin, siehe
 [../SKILL.md](../SKILL.md#wie-dein-ui-in-das-cockpit-kommt).
 
 In `uiUri` einer Aufgabe oder eines Falls steht der Pfad, den das Workflow-Modul gemeldet hat,

@@ -3,9 +3,8 @@
 # Development
 
 The local development environment of this repository, and the tools which support developing a
-workflow module: the dev shell simulator and the simulator. The dev shells for React, Angular and
-Vue are npm packages. They sit here until they move to repositories of their own, and Maven does
-not build them.
+workflow module: the dev shell simulator and the simulator. The dev shells which go with them are
+part of each user interface's own repository, see decision 63 in [DECISIONS.md](../DECISIONS.md).
 
 Building a workflow module, developing its user task forms and deriving an application from the
 Business Cockpit are described in the
@@ -19,14 +18,12 @@ This file is about working on the cockpit itself.
 **Contents:**
 
 1. [MongoDB](#mongodb)
-1. [Local NPM registry](#local-npm-registry)
 1. [Notification e-mails (Mailpit)](#notification-e-mails-mailpit)
 1. [Kafka](#kafka)
 1. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
 1. [Simulation Service](#simulation-service)
 
-The Business Cockpit is a Java Spring Boot application. Its React user interface is no longer built
-by Maven, see decision 62 in [DECISIONS.md](../DECISIONS.md). One thing has to be running before it
+The Business Cockpit is a Java Spring Boot application without a user interface. One thing has to be running before it
 starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings two
 services which are not needed to run the cockpit but to develop and test particular features,
 [Mailpit](#notification-e-mails-mailpit) for notification e-mails and a
@@ -62,29 +59,6 @@ to resolve. Add it to `/etc/hosts`, or to `C:\Windows\System32\drivers\etc\hosts
 
 The container itself does not need that entry: the profile `local` connects to `localhost` with
 `?directConnection=true`, which skips the member discovery the name comes from.
-
-## Local NPM registry
-
-The Maven build does not need this registry any more. It is for somebody who works on the npm
-packages of this repository by hand, until they move to repositories of their own. The packages
-depend on each other, so they are published to a local registry first and read from there. The
-registry is [Verdaccio](https://www.verdaccio.org/), which is part of the provided
-`docker-compose.yaml`.
-
-To use this registry one has to create a file `.npmrc` in your home folder:
-
-```
-@vanillabp:registry=http://localhost:4873
-//localhost:4873/:_authToken="fake"
-```
-
-*Hint:* Verdaccio is preconfigured to accept unauthorized attempts of publishing NPM packages. Therefore, as you can see, the content of the authentication token `fake` is not taken into account - it just has to be filled.
-
-To connect to the registry UI use these parameters:
-
-* *URL:* [http://localhost:4873/](http://localhost:4873/)
-* *username:* admin
-* *password:* admin
 
 ## Notification e-mails (Mailpit)
 
@@ -221,7 +195,6 @@ Its [test data form](http://localhost:8079/testdata/usertask/form) generates use
 press of `Generate`, and they appear in the cockpit as they are generated. The tasks it makes belong
 to no process instance, which is what makes them cheap to make.
 
-Its user interface, `development/simulator/src/main/webapp-react`, is not built by Maven any more,
-so the runnable jar does not serve it. The sources are still the worked example a workflow
-module's user interface is copied from. What to do with it is in the wiki, under
-[User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites).
+The forms of the tasks it reports were its React and Angular user interface, which is gone, see
+decision 63 in [DECISIONS.md](../DECISIONS.md). So a task it reports points at `/remoteEntry.js`,
+which nothing answers. The test data form is a page of the server and still works.

@@ -1,6 +1,6 @@
 # Working on business-cockpit
 
-The VanillaBP Business Cockpit: the cockpit application itself, its APIs and UI libraries, and the
+The VanillaBP Business Cockpit: the cockpit application itself, its APIs, and the
 platform-neutral half of the Business Cockpit extension for VanillaBP Version 2.
 
 Read [`README.md`](./README.md) first. It says what each module is, how coverage is measured and
@@ -243,8 +243,8 @@ something quickly. Somebody else is building against those coordinates while you
 
 ## Building
 
-The Maven build is a Java build and nothing else. No module runs npm, so you need neither node nor
-an npm registry, also in a dev container. A full `mvn install` at the root still takes a while, so
+The Maven build is a Java build and nothing else. You need neither node nor npm, also in a dev
+container. A full `mvn install` at the root still takes a while, so
 build the modules you touched instead:
 
 ```bash
@@ -253,7 +253,7 @@ mvn --batch-mode -pl extensions-commons/core,extensions-commons/spring-boot -am 
 
 Quarkus tests load the extension from `~/.m2`, so they need `install`, never `package`.
 
-The npm sources under `ui`, `development` and `business-cockpit/src/main/webapp` stay in the
-repository until they move to repositories of their own. Maven does not build them, and no
-workflow checks them. Do not add a `frontend-maven-plugin` back, and do not add an npm step to a
-workflow. See decision 62 in [`DECISIONS.md`](./DECISIONS.md).
+This repository holds no user interface and no npm package. Each user interface, and the dev shell
+which goes with it, lives in a repository of its own. Do not add a `package.json`, a
+`frontend-maven-plugin` or an npm step to a workflow. See decisions 62 and 63 in
+[`DECISIONS.md`](./DECISIONS.md).

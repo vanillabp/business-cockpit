@@ -30,9 +30,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # No npm package is released. The Maven build does not build the user interfaces any more,
-    # and the package.json files keep their versions. See decision 62 in the repository's
-    # DECISIONS.md.
+    # No npm package is released. The repository holds no user interface, see decision 63 in
+    # the repository's DECISIONS.md.
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

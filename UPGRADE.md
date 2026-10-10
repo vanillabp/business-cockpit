@@ -207,11 +207,11 @@ needs to change: the details provider may keep setting the values for every repo
 ### The cockpit jar carries no user interface
 
 `io.vanillabp.businesscockpit:business-cockpit` and the runnable jar of `container` no longer
-contain the React user interface. The Maven build does not build it any more, and no npm package
-of the cockpit is released with 0.9.0. The user interfaces move to repositories of their own.
-Until then an application of yours which depends on `business-cockpit` serves no user interface,
-and a path no API knows gets 404 instead of the single-page application.
+contain the React user interface. The repository holds no user interface any more, and no npm
+package of the cockpit is released with 0.9.0. An
+application of yours which depends on `business-cockpit` serves no user interface, and a path no
+API knows gets 404 instead of the single-page application.
 
 If your application brings a user interface of its own, nothing changes. Put its `index.html` at
 `classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths
-get it as before. Decision 62 in [DECISIONS.md](./DECISIONS.md) has the details.
+get it as before. Decisions 62 and 63 in [DECISIONS.md](./DECISIONS.md) have the details.
