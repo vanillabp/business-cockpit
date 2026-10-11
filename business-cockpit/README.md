@@ -29,16 +29,16 @@ So a stereotype annotation alone does not make a bean here any more. A class add
 ## The write concern the cockpit needs
 
 A write concern says when MongoDB counts a write as stored. The cockpit needs one which survives a
-failover of the primary, it is configured in `mongodb.write-concern`, and the cockpit says on every
-start what it is really writing with. What each value costs an installation, and what the warning
-on a start means, is in the wiki under
+failover of the primary. It is configured in `mongodb.write-concern`, and on every start the cockpit
+logs which write concern it really uses. What each value costs an installation, and what the
+warning on a start means, is in the wiki under
 [The write concern](https://github.com/vanillabp/business-cockpit/wiki/Running-the-Business-Cockpit#the-write-concern).
 This section is about why the value has to stand there and nowhere else.
 
-Nobody had written this down until now. The MongoDB changeset mechanism set `JOURNALED` on the
-application's template while it migrated and never took it back, so the cockpit ran with that value
-by accident for years. The migration is a library of its own today, and it gives the template back
-the way it found it. What the cockpit writes with is therefore what the cockpit asks for.
+Nobody had written this down before. The MongoDB changeset mechanism set `JOURNALED` on the
+application's template while it migrated, and never set it back. So the cockpit ran with that value
+by accident for years. Today the migration is a library of its own, and it leaves the template as it
+found it. So the cockpit now writes with the write concern it asks for.
 
 ### Where the value has to be written
 
@@ -47,30 +47,30 @@ string, and not on the `MongoClient`.
 
 The template checks the result of every write, because that is how Spring Data notices that
 somebody else changed the same document first. A template which does that never reads the write
-concern of its connection. `MongoTemplate.prepareWriteConcern` asks the template, and where the
-template has nothing to say it writes `ACKNOWLEDGED`, which is one node. So a `?w=majority` in
-`spring.mongodb.uri` is understood by the driver, thrown away by every write of the cockpit, and
-nothing would say so. The startup check names it where it finds one.
+concern of its connection. `MongoTemplate.prepareWriteConcern` asks the template. If the template
+has no write concern set, it writes with `ACKNOWLEDGED`, which waits for one node only. So the driver
+understands a `?w=majority` in `spring.mongodb.uri`, but every write of the cockpit ignores it, and
+nothing would tell you. That is why the startup check names such a value when it finds one.
 
-The same rule swallows the driver's own `WriteConcern.JOURNALED`. That value says `j: true` and
-leaves the `w` open, and `prepareWriteConcern` replaces anything with an open `w` by a plain
-acknowledged write, journal flag included. This is why `mongodb.write-concern-journal` is only read
+The same rule drops the driver's own `WriteConcern.JOURNALED`. That value says `j: true` and leaves
+`w` open. `prepareWriteConcern` replaces every write concern with an open `w` by a plain
+acknowledged write, and the journal flag is lost with it. This is why `mongodb.write-concern-journal` is only read
 together with `mongodb.write-concern`.
 
 ### Why `0` ends the start
 
-Every document of the cockpit which carries `@Version` is saved by comparing the version, and
-Spring Data does that by reading how many documents the write changed. An unacknowledged write
-answers that question with an exception. The start ends even though Spring Data would quietly raise
-the value to one acknowledgement, because an installation which asked for `0` would otherwise run
-on a promise it never made.
+Every document of the cockpit which carries `@Version` is saved by comparing the version. Spring
+Data does that by reading how many documents the write changed, and an unacknowledged write answers
+that question with an exception. Spring Data would quietly raise the value to one acknowledgement.
+The start ends anyway, because otherwise an installation which asked for `0` would silently get
+something else.
 
 ### Azure Cosmos DB for MongoDB
 
 The cockpit knows this server through `mongodb.mode: AZURE_COSMOS_MONGO_4_2`, and the startup check
-reads that mode. Cosmos DB is not a replica set, so how durable a write is comes from the
-consistency level of the account and a message about failovers would describe a server such an
-installation does not have. What holds there instead is in the wiki section named above.
+reads that mode. Cosmos DB is not a replica set. How durable a write is depends on the consistency
+level of the account, and a message about failovers would talk about a server such an installation
+does not have. What holds there instead is in the wiki section named above.
 
 ## A key with a dot in the business data
 
@@ -92,7 +92,7 @@ stores each dot as the replacement and turns it back into a dot on the way out. 
 The start ends where the value cannot work: an empty value, a dot, a `$` or the character NUL.
 `StartupConfigurationCheck` checks it before the first bean is built.
 
-Spring Data can also keep the dot as it is (`preserveMapKeys`). MongoDB takes that since version 5,
-but every path in the cockpit is a chain of dots: the search, the word suggestions, the sorting
-with its index, and the user interface. None of them would reach such a key.
+Spring Data can also keep the dot as it is (`preserveMapKeys`). MongoDB accepts that since version
+5. But every path in the cockpit is a chain of dots: in the search, the word suggestions, the
+sorting with its index, and the user interface. None of them would find such a key.
 `AKeyWithADotInTheDetailsTest` measures both settings.

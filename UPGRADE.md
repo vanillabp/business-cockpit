@@ -25,8 +25,8 @@ a second time.
 
 The changeset mechanism used to set `WriteConcern.JOURNALED` on the application's `MongoTemplate`
 while it migrated and never took it back. Every application built on the cockpit ran with that
-value without asking for it. The library gives the template back the way it found it now, so the
-write concern is the one the application configures.
+value without asking for it. Now the library leaves the template as it found it, so the write
+concern is the one the application configures.
 
 The delivered `container` configures it. A custom cockpit adds:
 
@@ -86,10 +86,11 @@ undoes what they did.
 
 ### A bean which waits for the migration asks for another type
 
-Taking a parameter of the auto-configuration used to be how a bean said "build me after the
-migration". It has to be `com.phactum.mongodb.changesets.ChangesetApplier` now. The
+A bean used to take a parameter of the auto-configuration to say "build me after the migration".
+Now the parameter has to be `com.phactum.mongodb.changesets.ChangesetApplier`. The
 auto-configuration only does the wiring, and a configuration class is built before the beans it
-declares, so a parameter of that type compiles, starts and guarantees nothing.
+declares. So a parameter of the auto-configuration's type compiles and starts, but it guarantees
+nothing.
 
 ### `ChangesetInformation.timestamp` is an `Instant`
 
@@ -140,10 +141,9 @@ engine's work with it, because the report is built in the transaction of the eve
 is also how you drop a value Camunda 7 prefilled: calling `setInitiator(null)` looks exactly like a
 provider which did nothing.
 
-Your existing cases keep what they have. Nothing is filled in afterwards, because nobody can work
+Your existing cases keep what they have. Nothing is filled in afterwards, because nobody can find
 out later who started a case which ran without an initiator. That is also why the key has no
-default. A field nobody can catch up on later is worth one line of configuration, and one question
-you answer once.
+default: a value which cannot be filled in later is worth one line of configuration.
 
 ### `uiUriType` is a string, and the address is the user interface's business
 
@@ -153,9 +153,9 @@ you answer once.
 change. `workflow-provider-api` called the schema `UiComponentsType` and showed `WEBPACK_REACT` as
 its example. Both are gone, and all four schemas now name the same thing the same way.
 
-The field stays required. Leaving it out looks tempting for a module whose user interface is
-federated anyway, but it would fill the database with entries that say nothing, and the day a second
-value shows up nobody could tell what an empty one was supposed to mean. One line of configuration
+The field stays required. For a module whose user interface is federated anyway, leaving it out
+looks tempting. But then the database fills up with entries that say nothing. On the day a second
+value shows up, nobody could tell what an empty one was meant to say. One line of configuration
 answers that question once.
 
 The start of an application still checks `ui-uri-type`, and it only checks that a value is there.
@@ -163,9 +163,9 @@ Any string passes. The message where nothing is configured offers `EXTERNAL` and
 as a hint, because those are the two the shipped user interface knows.
 
 What changes for a user interface is `uiUri` in the GUI API. Until 0.9.0 the cockpit built the whole
-address: `/wm/<workflowModuleId>` plus the path the workflow module reported, unless the type was
-`EXTERNAL`, in which case the reported value was handed out as it was. Now the reported path is
-handed out in every case. The shipped user interface puts the proxy route in front of it itself, and
+address: `/wm/<workflowModuleId>` plus the path the workflow module reported. Only for the type
+`EXTERNAL` it handed out the reported value unchanged. Now the reported path is handed out in every
+case. The shipped user interface puts the proxy route in front of it itself, and
 a user interface of your own has to do the same. `workflowModuleId` and `workflowModuleUri` are in
 the same answer, so nothing has to be looked up for it.
 
@@ -183,8 +183,8 @@ that.
 The field exists twice. A user task has one and a workflow has one, so two MongoDB collections carry
 it, `UserTask` and `Workflow`.
 
-What is stored is the reported path and never the computed address. Only `GuiApiMapper` built the
-address, at the moment it answered, so nothing in the database has to be unpicked.
+The database holds the reported path, never the computed address. Only `GuiApiMapper` built the
+address, at the moment it answered, so nothing in the database has to be taken apart.
 
 Entries whose type is `EXTERNAL` must be left alone. Their path is the whole address already, the
 cockpit never prefixed it, and prefixing it now would send the browser to a route of the cockpit
@@ -208,9 +208,9 @@ needs to change: the details provider may keep setting the values for every repo
 
 `io.vanillabp.businesscockpit:business-cockpit` and the runnable jar of `container` no longer
 contain the React user interface. The repository holds no user interface any more, and no npm
-package of the cockpit is released with 0.9.0. An
-application of yours which depends on `business-cockpit` serves no user interface, and a path no
-API knows gets 404 instead of the single-page application.
+package of the cockpit is released with 0.9.0. If your application depends on `business-cockpit`,
+it serves no user interface, and a path no API knows gets 404 instead of the single-page
+application.
 
 If your application brings a user interface of its own, nothing changes. Put its `index.html` at
 `classpath:/static/index.html`, or name it with `application.spa-default-file`, and unknown paths

@@ -230,12 +230,13 @@ reason of that shape.
 ## Where a snapshot comes from
 
 Only a push to `main` publishes a snapshot, to the snapshot repository of Maven Central. A
-snapshot has the same coordinates on every branch, so a branch which published handed every
-consumer a version of this repository which no pull request had agreed to yet. On 2026-09-22 a branch did exactly that, and the main branch of all
-three adapter repositories stayed red until the change was merged here.
+snapshot has the same coordinates on every branch. A branch which publishes one gives every
+consumer a version of this repository that no pull request has agreed to yet. On 2026-09-22 a
+branch did exactly that, and the main branch of all three adapter repositories stayed red until
+the change was merged here.
 
-If you need a snapshot of your branch, to try it in another repository before it is merged, run
-the workflow `Publish snapshots` by hand on that branch. Then you know that you overwrote
+Do you need a snapshot of your branch, to try it in another repository before the merge? Then
+run the workflow `Publish snapshots` by hand on that branch. This way you know that you overwrote
 the shared coordinates, and so does everybody who reads the run.
 
 Do not add a branch trigger back to `.github/workflows/publish-snapshots.yaml` to test
@@ -243,9 +244,9 @@ something quickly. Somebody else is building against those coordinates while you
 
 ## Building
 
-The Maven build is a Java build and nothing else. You need neither node nor npm, also in a dev
-container. A full `mvn install` at the root still takes a while, so
-build the modules you touched instead:
+The Maven build is a Java build and nothing else. You need neither node nor npm, not even in a
+dev container. A full `mvn install` at the root still takes a while, so build only the modules you
+touched:
 
 ```bash
 mvn --batch-mode -pl extensions-commons/core,extensions-commons/spring-boot -am install
