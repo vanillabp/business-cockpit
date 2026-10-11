@@ -15,10 +15,10 @@ import io.vanillabp.integration.extension.spi.ExtensionWiringService;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * An application whose BPMS says which version it gave the model of this start. Each test adds
- * the workflow service it is about, so the start ends for that reason or runs, and for no other.
+ * An application whose BPMS says which version the model got in this boot. Each test adds only
+ * the workflow service it tests. So if the boot fails, it fails because of that service.
  * <p>
- * The BPMS holds versions 1 and 2. This start deployed version 2 of {@link #BPMN_PROCESS} and
+ * The BPMS holds versions 1 and 2. This boot deployed version 2 of {@link #BPMN_PROCESS} and
  * version 1 of {@link #CALLED_PROCESS}.
  */
 @SpringBootApplication
@@ -46,7 +46,7 @@ public class DeployedVersionApplication {
   public static final String AUDIT = "audit";
 
   /**
-   * @return What the BPMS holds, and which version it gave the model of this start
+   * @return What the BPMS holds, and which version the model got in this boot
    */
   @Bean
   public DummyProcessVersionSource processVersions() {

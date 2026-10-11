@@ -26,8 +26,8 @@ import jakarta.transaction.UserTransaction;
  * naming a task reports what only that task has. Where two methods name the same task, one by
  * its task definition and one by its BPMN element id, the element id decides.
  * <p>
- * It asserts the same thing as the Spring Boot test of this name, because a neutral core being
- * right says nothing about a platform's glue ever calling it.
+ * It checks the same thing as the Spring Boot test of this name, because a correct core says
+ * nothing about whether the glue code of a platform ever calls it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class OneProviderForEveryUserTaskTest {
@@ -52,11 +52,11 @@ public class OneProviderForEveryUserTaskTest {
               .addClass(TestBpmsBridge.class)
               .addClass(TestWorkflowAwareness.class)
               .addClass(TestWorkflowModuleDetails.class)
-              // the test class runs in the application's class loader, so what it talks to the
-              // cockpit server with has to be reachable from there as well
+              // the test class runs in the application's class loader, so the class it uses to
+              // talk to the cockpit server has to be reachable from there as well
               .addClass(CockpitServer.class))
       // the BPMN folder holds 'TestProcess' too, and no workflow service of this application
-      // claims it. Without this line the start would end. It is set here and not in the shared
+      // claims it. Without this line the start would fail. It is set here and not in the shared
       // YAML, because the other tests claim 'TestProcess'
       .overrideConfigKey(
           "vanillabp.workflow-modules.test-module.workflows.TestProcess.implemented-externally",
@@ -93,13 +93,13 @@ public class OneProviderForEveryUserTaskTest {
   }
 
   /**
-   * Raises one user task event and answers with what the cockpit server got for it.
+   * Raises one user task event and returns what the cockpit server got for it.
    *
    * @param bpmnProcessId Which of the two processes of the workflow service the task is in
    * @param taskDefinition The task definition, whose element id is 'Activity_' plus this text
-   * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind. Tasks of
-   *          their own are what lets these events stand next to each other
+   * @param eventId What tells the request of this event apart from those of the other tests. It
+   *          is the task's id as well, because the outbox keeps one entry per task and kind. So
+   *          each event needs a task of its own
    * @return The body of the request the cockpit server received
    * @throws Exception If the transaction around the event fails
    */
@@ -157,7 +157,7 @@ public class OneProviderForEveryUserTaskTest {
     final var body = reported(PRIMARY_PROCESS, "somethingNobodyNames", "every-task-1");
 
     assertTrue(body.contains(EveryUserTaskService.BY_EVERY_TASK), body);
-    // it is a details provider like any other. It reads the workflow aggregate
+    // it is a details provider like any other, so it can read the workflow aggregate
     assertTrue(body.contains("\"customer\":\"Anna\""), body);
 
   }

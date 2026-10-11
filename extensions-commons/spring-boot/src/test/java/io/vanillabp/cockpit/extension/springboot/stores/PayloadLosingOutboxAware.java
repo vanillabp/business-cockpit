@@ -6,12 +6,12 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
 import io.vanillabp.integration.spi.PhaseTwoOutboxAware;
 
 /**
- * VanillaBP's own store, with the report of every entry thrown away on the way in.
+ * VanillaBP's own store, but it throws away the report of every entry on the way in.
  * <p>
- * It is how a test reaches the entry which outlived its own report. In a running application
- * that happens when an entry waits longer than the outbox keeps a report, or when a crash
- * splits the two writes. Here the entry is written with the reference of a report which was
- * never stored, which is the same thing for whoever dispatches it.
+ * This is how a test gets an entry which outlived its report. In a running application this
+ * happens when an entry waits longer than the outbox keeps a report, or when a crash happens
+ * between the two writes. Here the entry is written with the reference of a report which was
+ * never stored. For whoever dispatches it, that is the same thing.
  */
 public class PayloadLosingOutboxAware implements PhaseTwoOutboxAware<TestAggregate> {
 

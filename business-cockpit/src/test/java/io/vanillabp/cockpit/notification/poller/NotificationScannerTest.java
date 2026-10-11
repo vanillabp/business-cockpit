@@ -358,8 +358,8 @@ class NotificationScannerTest {
     @Test
     void created_reportedAtDecides_notTheReportingSystemsClock() {
         final var task = openTask();
-        // the workflow system's clock lags behind (or the event was delivered late), so 'createdAt'
-        // is older than the cursor - yet the cockpit reported the task within this window
+        // the workflow system's clock lags behind, or the event was delivered late. So 'createdAt'
+        // is older than the cursor, but the task reached the cockpit within this window
         task.setCreatedAt(CURSOR.minusHours(3));
         task.setReportedAt(AFTER);
         task.setCandidateGroups(List.of(group("g1")));

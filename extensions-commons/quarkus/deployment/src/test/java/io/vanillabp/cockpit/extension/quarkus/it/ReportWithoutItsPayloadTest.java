@@ -20,10 +20,10 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * What the cockpit is told about an entry which outlived the report it was to carry.
+ * What the cockpit is told about an entry which outlived the report it was meant to carry.
  * <p>
- * A report is written beside its entry and is removed once the entry was dispatched, so an
- * entry meets this after waiting longer than the outbox keeps a report, or after a crash
+ * A report is written next to its entry and is removed once the entry was dispatched. So this
+ * happens to an entry which waited longer than the outbox keeps a report, or after a crash
  * between the two writes. The store of this application throws every report away, which is the
  * same thing for whoever dispatches the entry.
  */

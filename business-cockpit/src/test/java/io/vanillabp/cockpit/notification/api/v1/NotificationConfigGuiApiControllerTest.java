@@ -64,7 +64,6 @@ class NotificationConfigGuiApiControllerTest {
         };
     }
 
-    /** Minimal email medium. */
     private static NotificationService emailMedium() {
         return new NotificationService() {
             public String getType() {

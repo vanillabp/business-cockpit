@@ -11,11 +11,11 @@ import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * The BPMS half of the versioned application, played by the test. It answers about a task and a
- * workflow whatever the reference asked for, and it reports the version the reference carried.
+ * The BPMS half of the versioned application, played by the test. For a task and a workflow it
+ * answers whatever the reference asked for, and it reports the version the reference carried.
  * <p>
- * That is what a real BPMS half does too: the version travels with the event the engine sent,
- * so the version a prefill reports and the version a details provider is picked by are the same
+ * A real BPMS half does the same: the version travels with the event the engine sent. So the
+ * version a prefill reports and the version which picks a details provider belong to the same
  * deployment.
  */
 @ApplicationScoped

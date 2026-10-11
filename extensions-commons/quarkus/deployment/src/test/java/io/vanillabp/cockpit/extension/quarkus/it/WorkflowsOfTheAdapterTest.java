@@ -15,13 +15,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
 /**
- * A workflow module which says nothing about the Business Cockpit and configures a workflow of
- * its BPMS starts, and reports nothing.
+ * A workflow module which sets nothing for the Business Cockpit, but configures a workflow of its
+ * BPMS, starts and reports nothing.
  * <p>
- * The workflows below a module are the platform's, and this platform hands the cockpit's mapping
- * an entry for every one of them, whatever stands inside. Reading such an entry as a workflow of
- * the cockpit would turn a module which opted out into a module missing its settings, and the
- * boot would end asking for an address nobody wants to give.
+ * The workflows below a module belong to the platform. This platform hands the cockpit's mapping
+ * an entry for every one of them, whatever it contains. If the cockpit read such an entry as one
+ * of its own workflows, a module which opted out would look like a module with missing settings.
+ * The boot would then end and ask for an address nobody wants to give.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class WorkflowsOfTheAdapterTest {

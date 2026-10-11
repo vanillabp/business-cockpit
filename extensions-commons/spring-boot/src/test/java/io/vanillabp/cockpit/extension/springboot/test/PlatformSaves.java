@@ -8,13 +8,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * JPA writes a change to a managed object whether anybody asked for it or not, so the row in the
  * database does not say who wrote it. This record does. {@link TestAggregateRepository} notes
- * every call of <code>save</code> here, which is the call VanillaBP makes after a handler method
- * it saves for. A test which wants to know whether the platform saved reads this and not the
- * database.
+ * every call of <code>save</code> here. That is the call VanillaBP makes after a handler method
+ * when it saves the aggregate. A test which wants to know whether the platform saved reads this
+ * record and not the database.
  * <p>
- * Aggregates are told apart by their token and not by their id. The record is one per JVM, while
- * every test class of this module boots a context with a database of its own, and the generated
- * ids start at one in each of them.
+ * Aggregates are told apart by their token and not by their id. There is one record per JVM, but
+ * every test class of this module boots a context with its own database, and the generated ids
+ * start at one in each of them.
  */
 public final class PlatformSaves {
 
@@ -36,8 +36,8 @@ public final class PlatformSaves {
   }
 
   /**
-   * Starts a fresh record, so that the save of a test's setup is not mistaken for one of the
-   * run under test.
+   * Clears the record, so that a save in the setup of a test does not count as part of the
+   * test.
    */
   public static void forget() {
 

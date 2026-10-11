@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * Where the test application keeps its workflow aggregates. It is in memory and not in a
- * database, because the extension is under test and not a persistence.
+ * database, because the test is about the extension, not about a persistence.
  */
 @ApplicationScoped
 public class TestAggregatePersistence implements AggregatePersistenceAware<TestAggregate> {
@@ -42,8 +42,8 @@ public class TestAggregatePersistence implements AggregatePersistenceAware<TestA
   }
 
   /**
-   * Starts a fresh record of the saves, so that the save of a test's setup is not mistaken for
-   * one of the run under test.
+   * Starts a new record of the saves, so that a save during the setup of a test is not mistaken
+   * for one of the run under test.
    */
   public void forgetSaves() {
 

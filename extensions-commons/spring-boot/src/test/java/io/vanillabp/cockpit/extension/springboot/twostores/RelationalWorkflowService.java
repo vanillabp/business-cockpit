@@ -6,9 +6,8 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * What ties the BPMN process 'TestProcess' to the aggregate living in the first store. An event
- * a BPMS observed names this process and no class, and this annotation is what turns the one
- * into the other.
+ * Ties the BPMN process 'TestProcess' to the aggregate in the first store. An event a BPMS
+ * observed names this process but no class, and this annotation turns the one into the other.
  */
 @Service
 @WorkflowService(workflowAggregateClass = RelationalAggregate.class,

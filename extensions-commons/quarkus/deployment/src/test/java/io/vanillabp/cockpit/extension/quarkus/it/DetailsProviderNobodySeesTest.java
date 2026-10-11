@@ -17,12 +17,12 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * A <code>&#64;UserTaskDetailsProvider</code> which is not public is named while the
  * application boots.
  * <p>
- * The scan reads the PUBLIC methods of a workflow service class, so such a method is invoked by
- * nobody. Nothing else would ever say so, because a user task without a provider is reported
- * with whatever the BPMS carried. The report is VanillaBP's, written over the handler contracts
- * an extension registered as well as over its own three annotations. The Spring Boot half of
- * this extension asserts the same thing. Only a booted application shows whether the platform's
- * glue registers the contract at all.
+ * The scan reads the PUBLIC methods of a workflow service class, so nobody calls such a method.
+ * Nothing else would ever say so, because a user task without a provider is reported with
+ * whatever the BPMS sent. VanillaBP writes the report. It covers the handler contracts an
+ * extension registered, as well as VanillaBP's own three annotations. The Spring Boot half of
+ * this extension checks the same thing. Only a booted application shows whether the glue code of
+ * the platform registers the contract at all.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DetailsProviderNobodySeesTest {

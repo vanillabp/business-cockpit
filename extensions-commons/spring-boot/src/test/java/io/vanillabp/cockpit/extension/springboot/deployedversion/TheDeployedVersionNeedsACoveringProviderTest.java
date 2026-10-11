@@ -24,8 +24,8 @@ import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The version a start deployed needs a details provider which covers it, wherever an element of
- * that model has providers at all. It is the rule VanillaBP follows for a
+ * The version deployed in this boot needs a details provider which covers it, wherever an
+ * element of that model has providers at all. VanillaBP follows the same rule for a
  * <code>&#64;WorkflowTask</code> method, see decision 64 in the repository's DECISIONS.md.
  * <p>
  * The BPMS double deployed version 2 of the process. Each test boots the application with one

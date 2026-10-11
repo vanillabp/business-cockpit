@@ -256,8 +256,8 @@ class JwtSecurityContextRepositoryTest {
     }
 
     /**
-     * Counts how often the cookies of a request are looked at, which is what "deferred" comes down
-     * to from the outside.
+     * Counts how often the cookies of a request are read. Seen from outside, that is all
+     * "deferred" means.
      */
     private static final class CookieReadCountingRequest extends MockHttpServletRequest {
 

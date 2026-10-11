@@ -16,8 +16,8 @@ import jakarta.inject.Inject;
  * A workflow module starts although the cockpit server does not answer.
  * <p>
  * The registration of the module is an outbox entry like every report, so nothing is sent while
- * the application boots and a server which is down delays the registration rather than the
- * workflow module. The address below points at a port nobody listens on.
+ * the application boots. A server which is down delays the registration, not the workflow
+ * module. The address below points at a port nobody listens on.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class CockpitDownAtBootTest {

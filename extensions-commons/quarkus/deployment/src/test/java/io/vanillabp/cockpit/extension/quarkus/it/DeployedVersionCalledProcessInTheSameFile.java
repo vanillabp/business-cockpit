@@ -17,7 +17,7 @@ public class DeployedVersionCalledProcessInTheSameFile implements DummyTaskWirin
       final String workflowModuleId,
       final String bpmnProcessId) {
 
-    // the user tasks are no @WorkflowTask, so VanillaBP's wiring has nothing to check
+    // the user tasks are not @WorkflowTask methods, so VanillaBP's wiring has nothing to check
     return List.of();
 
   }

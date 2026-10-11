@@ -22,10 +22,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the cockpit is told about an entry which outlived the report it was to carry.
  * <p>
- * A report is written beside its entry and is removed once the entry was dispatched, so an
- * entry meets this after waiting longer than the outbox keeps a report, or after a crash
- * between the two writes. The store of this application throws every report away, which is the
- * same thing for whoever dispatches the entry.
+ * A report is written next to its entry and removed once the entry was dispatched. So an entry
+ * only meets this case after it waited longer than the outbox keeps a report, or after a crash
+ * between the two writes. The store of this application throws every report away, which looks
+ * the same to whoever dispatches the entry.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -35,8 +35,8 @@ public class ReportWithoutItsPayloadTest {
   @DisplayName("An entry which lost its report is sent with the identifiers of its event")
   public void anEntryWhichLostItsReportIsSentAnyway() {
 
-    // the two settings arrive as command-line arguments, because what a builder is handed as
-    // properties is a default and the application.yaml of this module would win over it
+    // the two settings arrive as command line arguments. The properties given to a builder are
+    // defaults, and the application.yaml of this module would win over them
     try (var application = new SpringApplicationBuilder(
         TestApplication.class, PayloadLosingOutboxAware.class)
         .web(WebApplicationType.NONE)

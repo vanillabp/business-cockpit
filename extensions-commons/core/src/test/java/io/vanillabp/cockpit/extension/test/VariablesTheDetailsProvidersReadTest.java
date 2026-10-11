@@ -70,8 +70,8 @@ public class VariablesTheDetailsProvidersReadTest {
   }
 
   /**
-   * VanillaBP as far as this question goes: it notes what it was asked and answers two names.
-   * Every other method of the interface is not used here.
+   * Stands in for VanillaBP for this one question. It notes what it was asked and answers two
+   * names. The tests use no other method of the interface.
    */
   private ExtensionHandlers handlers() {
 

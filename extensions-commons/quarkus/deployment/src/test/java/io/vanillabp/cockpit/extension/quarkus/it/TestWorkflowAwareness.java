@@ -5,8 +5,8 @@ import io.vanillabp.integration.adapter.spi.WorkflowAwareness;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * The BPMS double holds every workflow the test starts, which is what the election reads when
- * the application asks which BPMS a workflow aggregate's workflow lives in.
+ * The BPMS double holds every workflow the test starts. The election reads this when the
+ * application asks which BPMS runs the workflow of a workflow aggregate.
  */
 @ApplicationScoped
 public class TestWorkflowAwareness implements DummyTaskAwarenessSource {

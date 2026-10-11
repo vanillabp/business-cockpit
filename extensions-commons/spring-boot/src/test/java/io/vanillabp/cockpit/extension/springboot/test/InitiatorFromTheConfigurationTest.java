@@ -25,7 +25,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.Initiator;
 
 /**
- * The other of the two answers: a workflow module which knows no action a user causes.
+ * The second of the two answers: a workflow module in which no user starts an action.
  * <p>
  * Nothing fails here. What a provider leaves empty is reported as the system, and what the
  * engine or a provider did name is left alone, so a module which switches to this setting does
@@ -35,7 +35,7 @@ import io.vanillabp.spi.cockpit.Initiator;
     properties = {
         // an outbox store of its own, for the reason given in BusinessCockpitExtensionTest
         "spring.datasource.url=jdbc:h2:mem:cockpit-initiator-system;DB_CLOSE_DELAY=-1",
-        // an inlined test property outranks the module's application.yaml
+        // an inlined test property wins over the module's application.yaml
         "vanillabp.cockpit.initiator-source=system"
     })
 @ExtendWith(SuppressOutputExtension.class)

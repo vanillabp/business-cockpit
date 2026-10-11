@@ -58,8 +58,8 @@ class ConfiguredCollectingIntervalReachesTheCollectorTest {
     }
 
     /**
-     * The default lives twice, in the annotation and in {@link GuiSseProperties}. Whoever changes
-     * one of them is sent here by this test.
+     * The default lives twice, in the annotation and in {@link GuiSseProperties}. If somebody
+     * changes only one of them, this test fails.
      */
     @Test
     @DisplayName("Without configuration the collector runs at the default of GuiSseProperties")
@@ -131,9 +131,9 @@ class ConfiguredCollectingIntervalReachesTheCollectorTest {
     }
 
     /**
-     * What the application does to make {@code @Scheduled} count, reduced to the update streams.
-     * The scheduler they are handed is a double, and the one Spring runs the annotations with
-     * never reaches a stream, because no stream is open.
+     * What the application does to make {@code @Scheduled} work, cut down to the update streams.
+     * The streams get a scheduler double. The scheduler Spring runs the annotations with never
+     * reaches a stream, because no stream is open.
      */
     @Configuration(proxyBeanMethods = false)
     @EnableScheduling

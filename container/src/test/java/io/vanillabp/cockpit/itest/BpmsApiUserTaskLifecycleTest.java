@@ -466,7 +466,7 @@ class BpmsApiUserTaskLifecycleTest extends ItestBase {
     /**
      * The v1.1 API declares endpoints to suspend and to activate, but the container does not
      * implement them. The generated fallback answers 501. This test pins the current behavior down,
-     * so the migration cannot change it without a word.
+     * so that nobody changes it without noticing.
      */
     @Test
     void suspendAndActivateAreNotImplemented() {

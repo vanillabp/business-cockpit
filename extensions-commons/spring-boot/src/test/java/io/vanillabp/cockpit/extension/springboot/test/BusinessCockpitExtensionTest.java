@@ -41,9 +41,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
-        // an outbox store of its own. Each test class of this module boots a context of its
-        // own properties, Spring keeps all of them cached and polling, and on a store they
-        // share the poller of a foreign context takes away the entry this test waits for
+        // an outbox store of its own. Each test class of this module boots a context with its
+        // own properties. Spring keeps all these contexts cached, and all of them keep polling.
+        // On a shared store, the poller of another context could take the entry this test
+        // waits for
         "spring.datasource.url=jdbc:h2:mem:cockpit-reported-events;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)
@@ -202,10 +203,10 @@ public class BusinessCockpitExtensionTest {
     assertFalse(
         PlatformSaves.sawSaveOf(aggregate.getToken()),
         "the platform saved the aggregate a details provider was handed");
-    // and the note the provider wrote is in the database all the same. The aggregate is a
-    // managed JPA object inside the dispatch's transaction, so Hibernate writes what changed on
-    // it when that transaction commits, asked for or not. This is what the test found, not a
-    // promise anybody makes. On this persistence a change in a provider still lands.
+    // but the note the provider wrote is in the database anyway. The aggregate is a managed JPA
+    // object inside the transaction of the dispatch, so Hibernate writes its changes when that
+    // transaction commits, whether anybody asked for it or not. The test found this, nobody
+    // promises it. With this persistence, a change made in a provider is still saved.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE,
         aggregates.findById(aggregate.getId()).orElseThrow().getNote());
@@ -310,8 +311,8 @@ public class BusinessCockpitExtensionTest {
   public void aReportCarriesTheStateOfItsEvent() {
 
     final var aggregate = aStartedWorkflow();
-    // the first attempt is refused, so the report leaves this application after the case below
-    // was changed. Whichever moment the outbox gets to it, the report was written at the event
+    // the first attempt is refused, so the report leaves this application only after the case
+    // below was changed. No matter when the outbox sends it, the report was written at the event
     CockpitServer.refuseRequestsAbout("bpms-event-22", 1);
 
     transactions
@@ -392,7 +393,7 @@ public class BusinessCockpitExtensionTest {
     // the details provider ran, and it was told which event it is running for
     assertTrue(request.body().contains("\"event\":\"COMPLETED\""), request.body());
     assertTrue(request.body().contains("Approve the order"), request.body());
-    // the end says when the task was created, for an end which reaches the cockpit first
+    // the end report says when the task was created, in case the end reaches the cockpit first
     assertTrue(request.body().contains("\"createdAt\":\"2026-10-01T08:00"), request.body());
 
   }
@@ -429,8 +430,8 @@ public class BusinessCockpitExtensionTest {
                 userTaskOf(aggregate, "approve"), UserTaskEventKind.COMPLETED, "bpms-event-18",
                 OffsetDateTime.now(), EventTransaction.CURRENT));
 
-    // a completion which never arrives leaves a task the cockpit shows as open forever, so the
-    // end goes out with what the entry itself carried
+    // if a completion never arrives, the cockpit shows the task as open forever. So the end is
+    // sent with what the entry itself carried
     final var request = CockpitServer.awaitRequest("/usertask/task-1/completed", "bpms-event-18");
     assertFalse(request.body().contains("\"customer\":\"Anna\""), request.body());
 
@@ -504,8 +505,8 @@ public class BusinessCockpitExtensionTest {
   public void aggregateChangedIsResolvedWhenItIsDispatched() {
 
     final var aggregate = aStartedWorkflow();
-    // a BPMS which writes a storage behind its engine: the change cannot be named in the
-    // application's transaction, and the first lookup at the dispatch still finds nothing
+    // a BPMS whose searchable storage is written after the engine: the change cannot be named in
+    // the application's transaction, and the first lookup at the dispatch still finds nothing
     bridge.namesWorkflowsRightAway(false);
     bridge.writesTheWorkflowAfter(1);
     bridge.forgetLookups();
@@ -551,8 +552,8 @@ public class BusinessCockpitExtensionTest {
   public void aggregateChangedOfATaskIsResolvedWhenItIsDispatched() {
 
     final var aggregate = aStartedWorkflow();
-    // a BPMS which writes a storage behind its engine: the report cannot be built in the
-    // application's transaction, and the first read at the dispatch still finds nothing
+    // a BPMS whose searchable storage is written after the engine: the report cannot be built in
+    // the application's transaction, and the first read at the dispatch still finds nothing
     bridge.reportsAChangedUserTaskRightAway(false);
     bridge.writesTheTaskAfter(1);
     bridge.forgetLookups();
@@ -581,8 +582,8 @@ public class BusinessCockpitExtensionTest {
   public void aggregateChangedOfASilentBpmsEndsNothing() {
 
     final var aggregate = aStartedWorkflow();
-    // the search of this engine names no task, which is what a storage written behind the engine
-    // answers for a task it has not got yet
+    // the search of this engine names no task. A storage which lags behind the engine answers
+    // the same way for a task it does not have yet
     bridge.knowsTheTask(false);
 
     transactions
@@ -592,8 +593,8 @@ public class BusinessCockpitExtensionTest {
                 RecordingBpmsBridge.USER_TASK_ID));
 
     CockpitServer.awaitQuiet();
-    // nothing at all about that task. Not an update, and above all not an end: a task leaves a
-    // cockpit list when the BPMS reports an end, never because a search found nothing
+    // nothing at all about that task. No update, and above all no end: a task leaves a cockpit
+    // list when the BPMS reports an end, never because a search found nothing
     assertTrue(
         CockpitServer.received().stream().noneMatch(request -> request.path().contains("usertask")),
         "an empty answer of the BPMS was reported to the cockpit");
@@ -613,8 +614,8 @@ public class BusinessCockpitExtensionTest {
                 aggregates.findById(aggregate.getId()).orElseThrow(),
                 RecordingBpmsBridge.USER_TASK_ID));
 
-    // the empty answer travels on to the application, which the javadoc tells to read it as "no
-    // details right now" and not as "there is no such task"
+    // the empty answer goes on to the application. The Javadoc tells the application to read it
+    // as "no details right now" and not as "there is no such task"
     assertNotNull(userTask);
     assertTrue(userTask.isEmpty());
     CockpitServer.awaitQuiet();
@@ -686,8 +687,8 @@ public class BusinessCockpitExtensionTest {
     assertNotNull(userTask);
     assertTrue(userTask.isPresent());
     assertEquals("Anna", userTask.get().getDetails().get("customer"));
-    // the read opened one of its own, so the engine and the aggregate were asked in one unit of
-    // work here as well
+    // the read opened a transaction of its own, so the engine and the aggregate were asked in
+    // one transaction here as well
     assertEquals(List.of(Boolean.TRUE), bridge.tasksLookedUpInATransaction());
 
   }
@@ -705,8 +706,8 @@ public class BusinessCockpitExtensionTest {
     assertTrue(failure.getMessage().contains("needs a transaction"), failure.getMessage());
     assertTrue(failure.getMessage().contains("@Transactional"), failure.getMessage());
     assertTrue(failure.getMessage().contains(BPMN_PROCESS), failure.getMessage());
-    // the sentence about a BPMS half reporting from a worker thread belongs to an adapter and
-    // would send an application looking in the wrong place
+    // the hint about a BPMS half which reports from a worker thread is meant for an adapter. It
+    // would send the developer of an application looking in the wrong place
     assertFalse(failure.getMessage().contains("EventTransaction"), failure.getMessage());
 
   }
@@ -791,9 +792,9 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // the runner the workflow aggregate's writes go through demands the transaction rather
-    // than opening one behind the caller's back, and the extension says what that means for a
-    // BPMS half in front of the platform's own wording
+    // the runner which writes the workflow aggregate requires a transaction. It does not open
+    // one behind the caller's back. The extension explains what this means for a BPMS half,
+    // before the message of the platform
     final var failure = assertThrows(
         IllegalStateException.class,
         () -> publisher
@@ -817,9 +818,8 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // which class serves a BPMN process is VanillaBP's answer, and it stays the answer where a
-    // caller names another one. The entry belongs into the store and the transaction of the
-    // class the workflow's own writes go through
+    // VanillaBP decides which class serves a BPMN process, even if a caller names another one.
+    // The entry belongs in the store and the transaction which the workflow's own writes use
     extension
         .publishUserTaskEvent(
             userTaskOf(aggregate, "approve"), UserTaskEventKind.CREATED, "bpms-event-15",
@@ -840,8 +840,8 @@ public class BusinessCockpitExtensionTest {
             .getId()
             .toString(), RecordingBpmsBridge.WORKFLOW_ID, "task-9", "approve", "Activity_approve");
 
-    // the report is put together where it is made, so the message reaches the code which
-    // reported the event instead of a dispatcher thread nobody is watching
+    // the report is built where the event is published. So the message reaches the code which
+    // reported the event, and not a dispatcher thread which nobody watches
     final var refused = assertThrows(
         IllegalStateException.class,
         () -> transactions

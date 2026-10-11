@@ -10,9 +10,9 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A called process is held against the providers of its user tasks only, in its own version. The
- * provider of the workflow is not held against it, because it never gets a workflow report of its
- * own.
+ * A called process is checked only against the providers of its user tasks, in its own version.
+ * It is not checked against the provider of the workflow, because it never gets a workflow report
+ * of its own.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DeployedVersionOfACalledProcessCoveredTest {

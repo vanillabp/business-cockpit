@@ -23,17 +23,17 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What a single workflow, and a single user task of it, said about the Business Cockpit.
  * <p>
- * The two levels stand inside the module's own section, because that is the location the core
- * reserves for an extension and hands over as written. This test states them the way a developer
- * writes them, boots an application and reads which language the title arrived in. How a platform
- * flattens a nested key into that section is exactly what goes unnoticed otherwise.
+ * The two levels are inside the module's own section, because the core reserves that place for
+ * an extension and hands it over as written. This test writes them the way a developer does,
+ * boots an application and reads in which language the title arrived. Otherwise nobody would
+ * notice how a platform flattens a nested key into that section.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
         "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.bpmn-description-language=fr", "vanillabp.workflow-modules.test-module.workflows.TestProcess.cockpit.i18n-languages=fr",
-        // an outbox store of its own. A context of another configuration stays cached and
-        // running between the test classes, and it would dispatch an entry of this one with
-        // the languages it was configured with rather than the ones written above
+        // an outbox store of its own. A context with another configuration stays cached and
+        // running between the test classes. It would dispatch an entry of this class with its own
+        // languages instead of the ones written above
         "spring.datasource.url=jdbc:h2:mem:cockpit-per-workflow;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)

@@ -59,9 +59,9 @@ import org.testcontainers.kafka.KafkaContainer;
  * <p>
  * A report which is not stored has to come again, like a report over REST answered with 503. A
  * record which can never be read, or whose report MongoDB refuses every time, must not hold up the
- * records behind it. Each attempt which failed is logged as one error. Both are about what the
- * listener container does once the listener threw, and that is what a broker and a real container
- * show and a call of the listener method does not.
+ * records behind it. Each attempt which failed is logged as one error. Both depend on what the
+ * listener container does after the listener threw. A broker and a real container show that, and a
+ * direct call of the listener method does not.
  * <p>
  * MongoDB is a double here, because what is tested is a save which fails on purpose. The repository
  * keeps what it stores in a map and fails the first saves or reads, as a MongoDB which is gone for
@@ -293,8 +293,9 @@ class KafkaReportWhichCouldNotBeStoredTest {
     }
 
     /**
-     * The save of the creation fails twice. Before, the creation was lost, and the change after it
-     * created the task as if it had never had a creation: with the time of the change as its start.
+     * The save of the creation fails twice. Before the fix the creation was lost, and the change
+     * after it created the task as if there had never been a creation, with the time of the change
+     * as its start.
      */
     @Test
     void aCreationWhichCouldNotBeStoredComesAgainBeforeTheChangeBehindIt(
@@ -412,7 +413,7 @@ class KafkaReportWhichCouldNotBeStoredTest {
 
             assertThat(context).hasNotFailed();
 
-            // a field of 127 bytes which ends after none of them
+            // a field which announces 127 bytes and ends before the first one
             produce("broken", new byte[] { 0x0A, 0x7F });
             produceCreation("task-1", "Assign a driver");
 

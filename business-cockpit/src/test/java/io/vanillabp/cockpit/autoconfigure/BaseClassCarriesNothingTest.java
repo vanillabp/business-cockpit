@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * An application which still extends {@code BusinessCockpitApplication} has to behave exactly like
- * one which does not, and this is what makes it so. The class carries nothing.
+ * one which does not. That holds because the class carries nothing.
  *
  * <p>Spring reads the annotations of a superclass while parsing the subclass, which is how extending
  * the class used to wire the cockpit. Anything left on it would therefore be wired twice, once from

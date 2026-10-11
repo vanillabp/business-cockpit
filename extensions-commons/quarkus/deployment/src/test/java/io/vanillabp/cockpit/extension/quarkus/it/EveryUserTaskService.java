@@ -12,12 +12,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 /**
- * A workflow service reporting the same thing for every user task it has, plus a method for
+ * A workflow service which reports the same thing for every user task it has, plus a method for
  * each task which needs more than that. It declares a second BPMN process as well, because
- * "every user task of this workflow service" means the tasks of that one too.
+ * "every user task of this workflow service" includes the tasks of that process.
  * <p>
  * Two of its user tasks are named twice, once by their task definition and once by their
- * element id, which is what the order between the two keys is read from.
+ * element id. The tests read from them which of the two keys wins.
  */
 @ApplicationScoped
 @WorkflowService(workflowAggregateClass = TestAggregate.class,
@@ -50,8 +50,8 @@ public class EveryUserTaskService {
   }
 
   /**
-   * The one method this story is about. It reports the same columns for every user task of both
-   * BPMN processes, and it steps aside wherever a method below names the task.
+   * The method for every user task. It reports the same columns for every user task of both BPMN
+   * processes, and it steps aside wherever a method below names the task.
    *
    * @param aggregate The workflow aggregate, loaded by VanillaBP
    * @param prefilled What the BPMS reported
@@ -94,8 +94,8 @@ public class EveryUserTaskService {
   }
 
   /**
-   * Names a task the method below names as well, by the other key. The element id is the
-   * stronger of the two, so the method below is the one which runs.
+   * Names a task which the method below names as well, by the other key. The element id is the
+   * stronger key, so the method below runs.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -123,9 +123,8 @@ public class EveryUserTaskService {
   }
 
   /**
-   * The same pair once more, written the other way round. The scan reads the methods of this
-   * class in an order nobody promises, so a test which only ever saw one order would not say
-   * much.
+   * The same pair once more, in the other order. Nobody promises the order in which the scan
+   * reads the methods of this class, so a test which only ever saw one order would not say much.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -153,8 +152,8 @@ public class EveryUserTaskService {
   }
 
   /**
-   * The convention this story leaves untouched. An annotation which names nothing stands for the
-   * task called like the method.
+   * The old convention, which still holds: an annotation which names nothing stands for the task
+   * with the same name as the method.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details

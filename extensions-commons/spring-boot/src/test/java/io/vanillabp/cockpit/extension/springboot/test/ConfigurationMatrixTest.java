@@ -27,22 +27,22 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The configuration in the shape version 1 of the Business Cockpit had, written the way an
- * application which upgrades already has it. There is a list as a list and a group hierarchy as
- * a map of lists. A workflow and one of its user tasks have sections of their own. A timeout is
- * written as a number of milliseconds next to one written with a unit, and a workflow module's
- * own defaults file says something the application did not.
+ * The configuration in the shape it had in version 1 of the Business Cockpit, written the way an
+ * application which upgrades already has it. A list is written as a list, and a group hierarchy
+ * as a map of lists. A workflow and one of its user tasks have sections of their own. One timeout
+ * is a number of milliseconds and another one has a unit. The defaults file of the workflow
+ * module says something the application does not.
  * <p>
- * This asserts what only a booted application shows, that this platform's binding carries every
- * one of those shapes into the extension. The Quarkus twin of this test asserts the same tree,
- * because a binding is exactly the part a neutral core cannot be right about on its own.
+ * Only a booted application shows that the binding of this platform carries each of these shapes
+ * into the extension, and this test asserts it. The Quarkus twin of this test asserts the same
+ * tree, because the binding is exactly the part a neutral core cannot get right on its own.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
         "spring.config.additional-location=classpath:/matrix/",
         // an outbox store of its own. The contexts of the other test classes stay cached
-        // with their pollers running, so a shared store lets one of them dispatch an entry
-        // written here, with the configuration it was booted with instead of this one
+        // with their pollers running. On a shared store, one of them could dispatch an entry
+        // written here, with its own configuration instead of this one
         "spring.datasource.url=jdbc:h2:mem:cockpit-configuration-matrix;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)
@@ -75,8 +75,8 @@ public class ConfigurationMatrixTest {
   @DisplayName("A report which is switched off asks the caller for no transaction")
   public void aReportWhichIsSwitchedOffAsksForNoTransaction() {
 
-    // both lists are off in this application, so aggregateChanged writes nothing at all and has
-    // no reason to demand the transaction a report would have needed
+    // both lists are off in this application, so aggregateChanged writes nothing at all. It has
+    // no reason to require the transaction a report would need
     workflowService.businessCockpit().aggregateChanged(new TestAggregate());
     workflowService.businessCockpit().aggregateChanged(new TestAggregate(), "task-1");
 

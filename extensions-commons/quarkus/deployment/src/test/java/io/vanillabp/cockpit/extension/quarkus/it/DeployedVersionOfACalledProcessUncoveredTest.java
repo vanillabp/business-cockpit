@@ -12,8 +12,8 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A user task of a called process is held against the version of the called process, not against
- * the version of the process at the top.
+ * A user task of a called process is checked against the version of the called process, not
+ * against the version of the process at the top.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DeployedVersionOfACalledProcessUncoveredTest {

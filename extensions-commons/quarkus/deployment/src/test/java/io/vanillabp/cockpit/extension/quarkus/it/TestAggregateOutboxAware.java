@@ -7,7 +7,7 @@ import jakarta.inject.Inject;
 
 /**
  * What an application writes when it wants a store of its own for one workflow aggregate. The
- * extension has to follow it, because VanillaBP's own entries of that aggregate follow it too.
+ * extension has to use that store, because VanillaBP's own entries of that aggregate use it too.
  */
 @ApplicationScoped
 public class TestAggregateOutboxAware implements PhaseTwoOutboxAware<TestAggregate> {

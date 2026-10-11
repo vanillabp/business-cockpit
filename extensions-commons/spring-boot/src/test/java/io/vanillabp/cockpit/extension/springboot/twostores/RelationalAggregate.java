@@ -6,7 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** The workflow aggregate whose reports belong into the first of the application's two stores. */
+/** The workflow aggregate whose reports belong in the first of the application's two stores. */
 @Entity
 @Table(name = "COCKPIT_RELATIONAL_AGGREGATE")
 public class RelationalAggregate {

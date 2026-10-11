@@ -128,7 +128,7 @@ class UserLoginUpsertServiceTest {
         Mockito.doThrow(new RuntimeException("mongo down"))
                 .when(mongoTemplate).upsert(any(Query.class), any(Update.class), eq(User.class));
 
-        // must not throw (error swallowed) so the request is never broken
+        // must not throw. The error is swallowed, so a login never fails because of it
         service.upsertOnLogin(userDetails("u1", "a@b.c"));
     }
 

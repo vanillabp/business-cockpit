@@ -18,8 +18,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 /**
- * The application under test. It is a workflow service which reports business data to the
- * Business Cockpit, the Quarkus twin of the Spring Boot module's test application.
+ * The application under test: a workflow service which reports business data to the Business
+ * Cockpit. It is the Quarkus twin of the test application of the Spring Boot module.
  */
 @ApplicationScoped
 @WorkflowService(workflowAggregateClass = TestAggregate.class,
@@ -76,11 +76,11 @@ public class TestWorkflowService {
   }
 
   /**
-   * A details provider which is not public, the way a developer writes one who assumes the
-   * annotation is enough. The scan reads the PUBLIC methods of a workflow service class, so
-   * this method is invoked by nobody. Unlike an unserved <code>&#64;WorkflowTask</code>, nothing
-   * else would ever say so, because a user task without a provider is reported with the details
-   * the BPMS carried. VanillaBP names it while the application boots.
+   * A details provider which is not public, as written by a developer who thinks the annotation
+   * is enough. The scan reads the PUBLIC methods of a workflow service class, so nobody calls
+   * this method. For a <code>&#64;WorkflowTask</code> without a method something complains, but
+   * here nothing else would, because a user task without a provider is reported with the details
+   * the BPMS sent. VanillaBP names the method while the application boots.
    *
    * @param prefilled What the BPMS reported
    * @return The details nobody asks this method for

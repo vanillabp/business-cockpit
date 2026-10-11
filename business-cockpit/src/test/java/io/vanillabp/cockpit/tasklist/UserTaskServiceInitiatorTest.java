@@ -33,8 +33,8 @@ import org.springframework.data.mongodb.core.query.Query;
 class UserTaskServiceInitiatorTest {
 
     /**
-     * Every change goes through a visibility now, and which tasks it lets through is the subject of
-     * the permission tests rather than of this one.
+     * Every change goes through a visibility now. Which tasks it lets through is tested by the
+     * permission tests, not here.
      */
     private static final UserTaskVisibility EVERY_USER_TASK = UserTaskVisibility.everyUserTask();
 

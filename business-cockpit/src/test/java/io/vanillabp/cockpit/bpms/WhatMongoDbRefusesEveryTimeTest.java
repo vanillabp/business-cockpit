@@ -44,8 +44,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * Which failures of a save {@link OutcomeOfStoring} takes as failing every time, measured against
- * a real MongoDB and the repository Spring Data builds.
+ * Which failed saves {@link OutcomeOfStoring} treats as failing every time. Measured against a
+ * real MongoDB and the repository Spring Data builds.
  * <p>
  * A double cannot answer this. What matters is the exception which arrives at the service: whether
  * Spring translates it, and what it wraps. Each test stores one user task through the real

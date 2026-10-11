@@ -12,11 +12,11 @@ import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * An application which configured no transport and brought none either does not start, and the
- * message names the three ways it has, the two keys and the bean.
+ * An application which configured no transport and brought none either does not start. The
+ * message names the three ways out: the two keys and the bean.
  * <p>
- * This is what an application without a transport of its own still reads, which the story about
- * the own transport must not change.
+ * An application without a transport of its own still gets this message. The story about an own
+ * transport must not change that.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class NoTransportRefusedTest {

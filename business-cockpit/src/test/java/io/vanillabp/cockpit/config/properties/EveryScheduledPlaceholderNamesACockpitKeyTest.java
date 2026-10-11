@@ -23,7 +23,7 @@ import org.springframework.scheduling.annotation.Scheduled;
  * <p>Both mistakes were in the tree. The collector of the update stream asked for
  * {@code businessCockpit.guiSse.collectingInterval}, the follow-up scheduler for
  * {@code businesscockpit.follow-up.check-rate}, while the keys of this application live under
- * {@code business-cockpit}. This test is what notices the next one.
+ * {@code business-cockpit}. This test catches the next one.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class EveryScheduledPlaceholderNamesACockpitKeyTest {

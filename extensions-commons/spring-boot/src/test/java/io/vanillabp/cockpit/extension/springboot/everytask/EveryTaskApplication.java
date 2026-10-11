@@ -11,9 +11,9 @@ import io.vanillabp.integration.adapter.spi.WorkflowAwareness;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * An application of its own for the workflow service whose one provider serves every user
- * task. It is kept apart from the other test application because a method claiming every task
- * is exactly what those tests must not have.
+ * A separate application for the workflow service whose one provider serves every user task. It
+ * is kept apart from the other test application, because the other tests must not have a method
+ * which claims every task.
  */
 @SpringBootApplication
 public class EveryTaskApplication {

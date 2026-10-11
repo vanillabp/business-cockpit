@@ -235,7 +235,7 @@ class WorkflowModulePermissionsTest extends ItestBase {
     }
 
     /**
-     * Names the reach of accessibleToGroups, which is narrower than the name suggests. It decides
+     * Shows how far accessibleToGroups reaches, which is less than the name suggests. It decides
      * the module list and nothing else. A user task is visible by its own assignee and candidates,
      * so a user who is kept out of the module still finds that module's tasks in their task list.
      */

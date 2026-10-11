@@ -13,9 +13,9 @@ import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
 
 /**
- * The second shape a BPMS half may be registered in. One bean holds the bridges of every adapter
- * id it serves. A half which serves several configured adapter ids cannot say at build time how
- * many that is, so on Quarkus this is the only shape it has.
+ * The second way to register a BPMS half: one bean holds the bridges of every adapter id it
+ * serves. A half which serves several configured adapter ids cannot know at build time how many
+ * there are, so on Quarkus this is the only way it has.
  */
 @ApplicationScoped
 public class BridgesOfASecondBpms {
@@ -31,7 +31,7 @@ public class BridgesOfASecondBpms {
 
   }
 
-  /** A BPMS half which knows nothing. The test asks which bridge serves an adapter, no more. */
+  /** A BPMS half which knows nothing. The test only asks which bridge serves an adapter. */
   public static class SecondBpmsBridge implements BusinessCockpitBpmsBridge {
 
     @Override

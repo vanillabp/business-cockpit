@@ -10,9 +10,9 @@ import io.vanillabp.integration.adapter.spi.WorkflowAwareness;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * An application which is complete but for the one thing a test wants refused. Each of those
- * tests adds the workflow service carrying the defect, so that the boot fails for that reason
- * and for no other.
+ * An application which is complete except for the one thing a test wants refused. Each of these
+ * tests adds the workflow service with the defect, so the boot fails for that reason and for no
+ * other.
  */
 @SpringBootApplication
 public class BrokenApplication {

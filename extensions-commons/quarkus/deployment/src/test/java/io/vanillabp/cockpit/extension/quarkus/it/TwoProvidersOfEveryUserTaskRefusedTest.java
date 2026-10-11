@@ -12,8 +12,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * An application whose two details providers claim every user task does not start, and the
- * refusal names both methods. Which of them would run is decided by the order the methods are
- * found in, and that order is decided by nothing.
+ * refusal names both methods. Which of them runs would depend on the order in which the methods
+ * are found, and nothing decides that order.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TwoProvidersOfEveryUserTaskRefusedTest {

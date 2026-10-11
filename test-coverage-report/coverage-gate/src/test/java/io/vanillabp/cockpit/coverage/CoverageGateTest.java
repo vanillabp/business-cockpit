@@ -16,8 +16,8 @@ import io.vanillabp.integration.test.utils.PrintsWhenPassing;
 /**
  * The coverage gate. It breaks the build when a measurement's aggregated coverage drops
  * below the threshold, so a drop is noticed while it happens and not a year later. The
- * rule is 90 in every VanillaBP repository while the threshold sits below it, which keeps
- * one repository's bad week from being answered by editing the number.
+ * rule is 90 in every VanillaBP repository. The threshold sits below it, so a bad week in
+ * one repository is not answered by editing the number.
  * <p>
  * JaCoCo's own <code>check</code> goal cannot do this. It judges ONE module's classes
  * against ONE execution-data file, while both numbers of this repository come from

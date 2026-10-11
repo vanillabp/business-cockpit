@@ -11,13 +11,13 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A key nobody reads inside a workflow module's own defaults file keeps the application from
- * starting, and Quarkus is what refuses it.
+ * A key which nobody reads, inside a workflow module's own defaults file, stops the application
+ * from starting. Quarkus is what refuses it.
  * <p>
- * The extension's own check runs while the application is built and sees the configuration of the
- * build. A module's defaults file is a configuration source of the running application, so it
- * reaches the startup instead. This test asserts that such a key does not slip through. The
- * message names it, without guessing which key was meant.
+ * The extension's own check runs while the application is built and sees the configuration of
+ * the build. A module's defaults file is a configuration source of the running application, so it
+ * is only read at startup. This test checks that such a key does not slip through. The message
+ * names the key, without guessing which key was meant.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class MisspelledKeyInAModuleFileTest {

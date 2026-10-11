@@ -43,7 +43,7 @@ import tools.jackson.databind.json.JsonMapper;
  * The sender treats {@code 400 Bad Request} as a report which can never go through and gives it up.
  * A save which failed because MongoDB was gone for a moment is no such report. Sent again, it goes
  * through. So the cockpit answers {@code 503 Service Unavailable}, which the sender repeats. A save
- * MongoDB refuses every time, like one of a document larger than 16 MB, is answered with
+ * MongoDB refuses every time, like the save of a document over 16 MB, is answered with
  * {@code 422 Unprocessable Content} and the reason, which the sender gives up. The tests drive the
  * REST ingress with the generated mappers and the real services, and keep the records in memory. A
  * switch lets every save fail, the way MongoDB does when it cannot be reached, and another one lets
@@ -384,7 +384,7 @@ class AFailedSaveTest {
 
     }
 
-    /** A report the cockpit refuses for what it says stays refused, whatever MongoDB does. */
+    /** A report the cockpit refuses for its content stays refused, whatever MongoDB does. */
     @Test
     void aRefusedReportIsStillRefusedWhileSavingFails() {
 

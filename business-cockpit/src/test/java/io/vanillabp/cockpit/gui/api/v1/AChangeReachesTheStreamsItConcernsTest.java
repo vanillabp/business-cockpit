@@ -47,8 +47,9 @@ import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
  * Which update stream a change reaches. The changed entities are read from a real MongoDB, and the
- * streams decide with the visibility of the lists. That the decision in memory gives the same
- * answer as the query of a list is what {@code TheVisibilityInMemoryAgreesWithTheQueryTest} shows.
+ * streams decide with the visibility of the lists.
+ * {@code TheVisibilityInMemoryAgreesWithTheQueryTest} shows that the decision in memory gives the
+ * same answer as the query of a list.
  *
  * <p>The streams are driven by hand: a change is collected the way the event listener collects it,
  * the filtering tick is called, and what waits for delivery is read off the stream. Nothing is
@@ -166,7 +167,7 @@ class AChangeReachesTheStreamsItConcernsTest {
     }
 
     /**
-     * The case the memory of a stream exists for. The task came with the list, so no stream ever
+     * The case a stream keeps its memory for. The task came with the list, so no stream ever
      * delivered it, and the database no longer lets martin see it. Only the memory knows that his
      * browser still shows it. Both of martin's tabs are told, because a list request does not say
      * which tab it comes from.

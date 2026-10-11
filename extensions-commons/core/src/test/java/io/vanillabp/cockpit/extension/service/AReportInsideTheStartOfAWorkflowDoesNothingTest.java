@@ -32,11 +32,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 
 /**
- * A <code>&#64;WorkflowStartedByBpms</code> method which reports the change of the aggregate it
- * builds. Nothing can find the new workflow at that moment, and the start listener of the cockpit
- * reports it right after the start. So the report does nothing: it asks no election, no BPMS half
- * and writes no entry into the outbox. An aggregate which exists already is reported as always,
- * and VanillaBP's election says which one is which.
+ * A <code>&#64;WorkflowStartedByBpms</code> method reports the change of the aggregate it builds.
+ * At that moment nothing can find the new workflow yet, and the start listener of the cockpit
+ * reports it right after the start anyway. So the report does nothing: it asks neither the
+ * election nor a BPMS half, and it writes no entry into the outbox. An aggregate which exists
+ * already is reported as always. VanillaBP's election tells the two cases apart.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class AReportInsideTheStartOfAWorkflowDoesNothingTest {
@@ -130,8 +130,7 @@ public class AReportInsideTheStartOfAWorkflowDoesNothingTest {
 
   /**
    * VanillaBP's election while a <code>&#64;WorkflowStartedByBpms</code> method builds
-   * {@link #NEW_AGGREGATE}. It wrote down nothing about either aggregate, and it counts every
-   * question.
+   * {@link #NEW_AGGREGATE}. It has no notes about either aggregate, and it counts every question.
    */
   private static final class Election implements WorkflowElection {
 
@@ -252,9 +251,8 @@ public class AReportInsideTheStartOfAWorkflowDoesNothingTest {
   }
 
   /**
-   * Knows the two halves, of which none is the only one, and records what would be written into
-   * the outbox. Reports are taken as switched off, which keeps the transaction check out of this
-   * test.
+   * Knows two halves, so neither of them is the only one. It records what would be written into
+   * the outbox. Reports count as switched off, which keeps the transaction check out of this test.
    */
   private static final class Extension extends BusinessCockpitExtension {
 

@@ -5,7 +5,7 @@ import java.util.List;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 
-/** What the test application says about the groups allowed to see its cases. */
+/** Which groups the test application allows to see its cases. */
 @ApplicationScoped
 public class TestWorkflowModuleDetails implements WorkflowModuleDetailsProvider {
 

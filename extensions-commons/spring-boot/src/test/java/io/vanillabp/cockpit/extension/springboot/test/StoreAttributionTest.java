@@ -23,11 +23,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * Which of an application's outbox stores the extension writes into.
  * <p>
- * Both applications below hold two stores. One is what VanillaBP brings for the relational
- * database of the test, the other belongs to the application. VanillaBP answers which of them
- * serves the workflow aggregate, and the extension asks instead of guessing. The guess produced
- * an extension which refused an application the platform serves, or which picked a store the
- * aggregate's transaction never reaches.
+ * Both applications below hold two stores. One is the store VanillaBP brings for the relational
+ * database of the test, the other belongs to the application. VanillaBP knows which of them
+ * serves the workflow aggregate, and the extension asks instead of guessing. Guessing led to an
+ * extension which refused an application the platform serves, or which picked a store the
+ * transaction of the aggregate never reaches.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -47,11 +47,11 @@ public class StoreAttributionTest {
   }
 
   /**
-   * Reports what a BPMS observed. That is the entry which names no workflow aggregate class, and
-   * the extension writes it into the store all aggregates of the application share.
+   * Reports what a BPMS observed. This entry names no workflow aggregate class, and the extension
+   * writes it into the store which all aggregates of the application share.
    * <p>
-   * The aggregate is started first, because the report is put together where it is made: the
-   * details provider of the application runs, and it is handed the case the event is about.
+   * The aggregate is started first, because the report is built where the event is published:
+   * the details provider of the application runs and gets the case the event is about.
    */
   private static void reportAWorkflowOfTheBpms(
       final ConfigurableApplicationContext application) {

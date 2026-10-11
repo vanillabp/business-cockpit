@@ -7,8 +7,8 @@ import io.vanillabp.integration.adapter.spi.version.DeployedProcessVersion;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * A BPMS which holds versions 1 and 2, and which says which version it gave the model of this
- * start: version 2 of the process at the top and version 1 of the called process.
+ * A BPMS which holds versions 1 and 2. It says which version the model of this start got:
+ * version 2 of the process at the top and version 1 of the called process.
  */
 @ApplicationScoped
 public class DeployedVersionProcessVersions implements DummyProcessVersionSource {

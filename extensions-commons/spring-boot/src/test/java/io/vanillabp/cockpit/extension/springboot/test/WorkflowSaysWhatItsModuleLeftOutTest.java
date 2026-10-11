@@ -17,18 +17,18 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * A workflow module which says neither which language its BPMN names are in nor which languages
- * it reports in starts, because its one workflow says both.
+ * it reports in still starts, because its one workflow says both.
  * <p>
- * That is what version 1 did, and it asked at the first event of a workflow. This asks while the
- * application starts, once VanillaBP has said which processes the module holds, so the boot of
- * this application is half of the assertion. The Quarkus twin asserts the same tree.
+ * Version 1 did the same, but it checked at the first event of a workflow. The extension checks
+ * while the application starts, once VanillaBP has said which processes the module holds. So the
+ * boot of this application is half of the assertion. The Quarkus twin asserts the same tree.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
         "spring.config.additional-location=classpath:/left-to-the-workflows/",
-        // an outbox store of its own. This context outlives its test in Spring's cache and
-        // keeps polling, and on a store it shares it would dispatch what another test class
-        // wrote, reporting it with the configuration read here
+        // an outbox store of its own. This context stays in Spring's cache after its test and
+        // keeps polling. On a shared store it would dispatch what another test class wrote, and
+        // report it with the configuration read here
         "spring.datasource.url=jdbc:h2:mem:cockpit-left-to-the-workflows;DB_CLOSE_DELAY=-1"
     })
 @ExtendWith(SuppressOutputExtension.class)

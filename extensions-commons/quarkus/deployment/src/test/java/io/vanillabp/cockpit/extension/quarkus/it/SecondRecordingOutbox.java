@@ -23,8 +23,8 @@ public class SecondRecordingOutbox implements PhaseTwoOutbox {
   }
 
   /**
-   * A report of the extension is planned this way, so a store of an application answers it.
-   * Inheriting the default would write a warning and discard what the extension wanted.
+   * The extension plans its reports this way, so a store of an application has to implement it.
+   * The inherited default would log a warning and drop what the extension wanted.
    */
   @Override
   public boolean scheduleReplacingWhatIsStillWaiting(

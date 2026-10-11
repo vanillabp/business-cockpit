@@ -21,9 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The assignment of a user task belongs to the cockpit. A task is taken over there, so no workflow
- * system reports it. These tests pin down that an incoming event never wipes it. The defect it had
- * silenced the notification of the former assignee, because the notification poller cannot work out
- * a recipient without an assignee.
+ * system reports it. These tests make sure that an incoming event never wipes it. While an event
+ * did wipe it, the former assignee got no notification, because the notification poller cannot
+ * find a recipient without an assignee.
  * <p>
  * The mapper maps who sees the task, and {@link WhoSeesAUserTask} puts the stored values back for a
  * task the cockpit holds already. So the tests about the stored task go through both, as the

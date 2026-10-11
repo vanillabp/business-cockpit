@@ -38,10 +38,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 
 /**
- * An application with several adapters, where nothing VanillaBP wrote down names the adapter of an
- * aggregate: no note of the start and no open task. A report of a change does not ask the election
- * then, because the election may ask a BPMS and wait for it in the application's transaction. The
- * entry is written without an adapter, and its dispatch asks the election.
+ * An application with several adapters, where VanillaBP's notes do not name the adapter of an
+ * aggregate: there is no note of the start and no open task. In this case a reported change does
+ * not ask the election, because the election may ask a BPMS and wait for it inside the
+ * application's transaction. The entry is written without an adapter, and its dispatch asks the
+ * election later.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class AReportWithNoKnownAdapterIsResolvedWhenDispatchedTest {
@@ -224,8 +225,8 @@ public class AReportWithNoKnownAdapterIsResolvedWhenDispatchedTest {
   }
 
   /**
-   * VanillaBP wrote down nothing about the aggregate: no note of the start, no open task. Its
-   * election answers "other", or throws where it knows nothing either.
+   * VanillaBP has no notes about the aggregate: no note of the start, no open task. The election
+   * answers "other", or throws if it is set to know nothing either.
    */
   private static final class Election implements WorkflowElection {
 
@@ -334,9 +335,9 @@ public class AReportWithNoKnownAdapterIsResolvedWhenDispatchedTest {
   }
 
   /**
-   * Knows the two halves, of which none is the only one, and records what would be written into
-   * the outbox. Reports are taken as switched off, which keeps the transaction check out of this
-   * test, and a read runs without a transaction.
+   * Knows two halves, so neither of them is the only one. It records what would be written into
+   * the outbox. Reports count as switched off, which keeps the transaction check out of this test,
+   * and a read runs without a transaction.
    */
   private static final class Extension extends BusinessCockpitExtension {
 
@@ -352,7 +353,7 @@ public class AReportWithNoKnownAdapterIsResolvedWhenDispatchedTest {
 
     }
 
-    /** VanillaBP's handlers, of which the dispatch only asks for the aggregate class. */
+    /** VanillaBP's handlers. The dispatch only asks them for the aggregate class. */
     private static ExtensionHandlers noAggregateClasses() {
 
       return (ExtensionHandlers) Proxy
@@ -462,7 +463,7 @@ public class AReportWithNoKnownAdapterIsResolvedWhenDispatchedTest {
     public boolean reportsAChangedUserTaskRightAway() {
 
       // a half which builds a task report in the application's transaction, like Camunda 7.
-      // Without a known adapter its change is still resolved when it is dispatched
+      // Without a known adapter, its change is still resolved only when it is dispatched
       return true;
 
     }

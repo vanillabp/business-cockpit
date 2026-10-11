@@ -54,8 +54,8 @@ public class TestWorkflowService {
   }
 
   /**
-   * @return The service injected the same way <code>ProcessService</code> is, which is what a
-   *         test asserting the optional injection reads
+   * @return The service, injected the same way as <code>ProcessService</code>. The test of the
+   *         optional injection reads it
    */
   public BusinessCockpitService<TestAggregate> businessCockpit() {
 
@@ -96,7 +96,8 @@ public class TestWorkflowService {
 
   /**
    * Matched by its own name, because the annotation names neither an element nor a task
-   * definition. It answers with an object of its own, the other case a copy-back has to serve.
+   * definition. It returns an object of its own. That is the second case the copy-back has to
+   * handle.
    *
    * @param prefilled What the BPMS reported
    * @return A details object built by the application
@@ -110,8 +111,8 @@ public class TestWorkflowService {
   }
 
   /**
-   * Matched by the BPMN element id, which is the other of the two ways an annotation names what
-   * a method serves.
+   * Matched by the BPMN element id. This is the second way an annotation can name the task a
+   * method serves.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -126,9 +127,9 @@ public class TestWorkflowService {
   }
 
   /**
-   * A provider for a task which is worked on somewhere else. It says per task where that is,
-   * which is what a module of UI URI type EXTERNAL needs. That is the address of one ticket, not
-   * the address of the ticket system.
+   * A provider for a task which people work on in another system. It gives the address for each
+   * task, which a module with UI URI type EXTERNAL needs. The address points to one ticket, not
+   * to the ticket system.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -143,9 +144,9 @@ public class TestWorkflowService {
   }
 
   /**
-   * A provider for a task no user ever causes, so it names the constant instead of a user. It is
-   * the second of the two answers an application may give, and the one which lets a module
-   * answer for itself and still report a task of its own making.
+   * A provider for a task which no user starts, so it sets the constant instead of a user. This
+   * is the second of the two answers an application may give. With it, a module can answer for
+   * itself and still report a task it created on its own.
    *
    * @param prefilled What the BPMS reported
    * @return The details, with the initiator said out loud
@@ -160,11 +161,11 @@ public class TestWorkflowService {
   }
 
   /**
-   * A details provider which is not public, the way a developer writes one who assumes the
-   * annotation is enough. The scan reads the PUBLIC methods of a workflow service class, so
-   * this method is invoked by nobody. Unlike an unserved <code>&#64;WorkflowTask</code>, nothing
-   * else would ever say so, because a user task without a provider is reported with the details
-   * the BPMS carried. VanillaBP names it while the application boots.
+   * A details provider which is not public. A developer writes it like this when they think the
+   * annotation is enough. The scan only reads the PUBLIC methods of a workflow service class, so
+   * nobody calls this method. For an unserved <code>&#64;WorkflowTask</code> something else
+   * complains, but here nothing would: a user task without a provider is reported with the
+   * details the BPMS sent. So VanillaBP names this method when the application boots.
    *
    * @param prefilled What the BPMS reported
    * @return The details nobody asks this method for
@@ -178,9 +179,9 @@ public class TestWorkflowService {
   }
 
   /**
-   * A handler of the second extension of this test module, the one whose methods may write. Only
-   * a boot which registers that extension's contract makes a handler out of it, and everywhere
-   * else it is an ordinary method nobody calls.
+   * A handler of the second extension of this test module, the one whose methods may write. It
+   * only becomes a handler when the boot registers the contract of that extension. Everywhere
+   * else it is a plain method which nobody calls.
    *
    * @param aggregate The workflow aggregate, loaded by VanillaBP
    */

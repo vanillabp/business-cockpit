@@ -24,10 +24,11 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * Every report names an initiator here as well, and this application answers for it itself.
+ * Every report names an initiator on this platform as well, and this application provides it
+ * itself.
  * <p>
- * It runs the same way through as the Spring Boot test of the same name, and it exists because a
- * neutral core being right says nothing about a platform's glue ever calling it.
+ * It runs through the same steps as the Spring Boot test of the same name. It exists because a
+ * correct core says nothing about whether the glue code of a platform ever calls it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class InitiatorIsAlwaysSetTest {

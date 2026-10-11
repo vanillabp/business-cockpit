@@ -7,12 +7,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 /**
- * VanillaBP's own store, with the report of every entry thrown away on the way in.
+ * VanillaBP's own store, which throws away the report of every entry it is given.
  * <p>
- * It is how a test reaches the entry which outlived its own report. In a running application
- * that happens when an entry waits longer than the outbox keeps a report, or when a crash
- * splits the two writes. Here the entry is written with the reference of a report which was
- * never stored, which is the same thing for whoever dispatches it.
+ * This lets a test produce an entry which outlived its own report. In a running application that
+ * happens when an entry waits longer than the outbox keeps a report, or when a crash comes
+ * between the two writes. Here the entry is written with the reference of a report which was
+ * never stored. For whoever dispatches it, that is the same thing.
  */
 @ApplicationScoped
 public class PayloadLosingOutboxAware implements PhaseTwoOutboxAware<TestAggregate> {
@@ -55,7 +55,7 @@ public class PayloadLosingOutboxAware implements PhaseTwoOutboxAware<TestAggrega
 
   /**
    * The same call without its bytes. The arguments keep the reference of the report, so the
-   * entry names one and the payload store holds nothing under it.
+   * entry names a report, but the payload store holds nothing under that name.
    */
   private static PhaseTwoCall withoutItsReport(
       final PhaseTwoCall call) {

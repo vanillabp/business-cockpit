@@ -8,10 +8,10 @@ import org.springframework.context.annotation.Configuration;
 import io.vanillabp.cockpit.extension.spi.BusinessCockpitBpmsBridge;
 
 /**
- * The second shape a BPMS half may be registered in. One bean holds the bridges of every adapter
- * id it serves. A half which builds one bridge per configured adapter id cannot say at build time
- * how many that is, which is why Quarkus needs this shape. What is accepted on one platform has
- * to be accepted on the other.
+ * The second shape in which a BPMS half may be registered: one bean holds the bridges of every
+ * adapter id it serves. A half which builds one bridge per configured adapter id cannot know at
+ * build time how many there are, so Quarkus needs this shape. What one platform accepts, the
+ * other has to accept too.
  */
 @Configuration
 public class BridgesOfASecondBpms {

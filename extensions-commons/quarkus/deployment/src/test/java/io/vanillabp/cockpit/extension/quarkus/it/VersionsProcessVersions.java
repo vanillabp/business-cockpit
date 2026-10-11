@@ -7,8 +7,8 @@ import io.vanillabp.integration.adapter.spi.version.DeployedProcessVersion;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /**
- * What the BPMS holds of the versioned process, oldest first. It stands in for the query a real
- * adapter runs against its engine, and it is what a version tag is resolved against.
+ * The versions of the versioned process the BPMS holds, oldest first. It stands in for the query
+ * a real adapter runs against its engine, and a version tag is resolved against it.
  */
 @ApplicationScoped
 public class VersionsProcessVersions implements DummyProcessVersionSource {

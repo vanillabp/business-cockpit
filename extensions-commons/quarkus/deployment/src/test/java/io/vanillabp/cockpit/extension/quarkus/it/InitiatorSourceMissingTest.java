@@ -11,11 +11,11 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A workflow module which reports to the cockpit and says nowhere who answers its initiator does
- * not start, on this platform as well.
+ * A workflow module which reports to the cockpit, but does not say anywhere where its initiator
+ * comes from, does not start on this platform either.
  * <p>
- * The message is the point of the key. Somebody meets this question once, at the first start, and
- * has to be able to answer it from the log alone.
+ * The message is the point of the key. Somebody meets this question once, at the first start,
+ * and has to be able to answer it from the log alone.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class InitiatorSourceMissingTest {
@@ -43,7 +43,7 @@ public class InitiatorSourceMissingTest {
         assertTrue(message.contains("vanillabp.cockpit.initiator-source"), message);
         assertTrue(message.contains("by-application"), message);
         assertTrue(message.contains("system"), message);
-        // why a boot ends over a missing value: it cannot be added to a case afterwards
+        // why a missing value ends the boot: it cannot be added to a case later
         assertTrue(message.contains("for good"), message);
       });
 

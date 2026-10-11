@@ -13,8 +13,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 /**
  * A workflow service which calls a process on its own aggregate. This start deployed version 2 of
  * the process at the top and version 1 of the called one. The provider of the called process'
- * user task serves version 2 only. That is the version of the process at the top, and it does
- * not count for a task of the called process, so the start ends.
+ * user task serves version 2 only. That is the version of the process at the top. It does not
+ * count for a task of the called process, so the start ends.
  */
 @ApplicationScoped
 @WorkflowService(workflowAggregateClass = TestAggregate.class,
