@@ -28,15 +28,15 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
 /**
- * The configuration in the shape version 1 of the Business Cockpit had, written the way an
- * application which upgrades already has it. There is a list as a list and a group hierarchy as
- * a map of lists. A workflow and one of its user tasks have sections of their own. A timeout is
- * written as a number of milliseconds next to one written with a unit, and a workflow module's
- * own defaults file says something the application did not.
+ * The configuration in the shape of version 1 of the Business Cockpit, written the way an
+ * application which upgrades already has it. It has a list written as a list and a group
+ * hierarchy written as a map of lists. A workflow and one of its user tasks have sections of
+ * their own. One timeout is a number of milliseconds, another one has a unit. The workflow
+ * module's own defaults file sets something the application does not set.
  * <p>
- * This is the twin of the Spring Boot test which asserts the same tree. On this platform a
- * section the mapping does not declare ends the startup instead of being ignored, so a test which
- * only read the values would not notice that half the tree never arrived.
+ * This is the twin of the Spring Boot test which checks the same tree. On this platform a
+ * section which the mapping does not declare ends the startup instead of being ignored. A test
+ * which only read the values would not notice that half of the tree never arrived.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ConfigurationMatrixTest {
@@ -83,8 +83,8 @@ public class ConfigurationMatrixTest {
   @DisplayName("A report which is switched off asks the caller for no transaction")
   public void aReportWhichIsSwitchedOffAsksForNoTransaction() {
 
-    // both lists are off in this application, so aggregateChanged writes nothing at all and has
-    // no reason to demand the transaction a report would have needed
+    // both lists are off in this application, so aggregateChanged writes nothing at all. So it
+    // does not demand the transaction a report would need
     workflowService.businessCockpit().aggregateChanged(new TestAggregate());
     workflowService.businessCockpit().aggregateChanged(new TestAggregate(), "task-1");
 

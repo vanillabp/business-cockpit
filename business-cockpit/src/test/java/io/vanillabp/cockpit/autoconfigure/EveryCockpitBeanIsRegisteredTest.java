@@ -24,19 +24,19 @@ import org.springframework.core.type.classreading.MetadataReaderFactory;
 
 /**
  * The cockpit is wired by explicit imports and no longer by a component scan, so a class carrying a
- * stereotype annotation is not a bean until somebody names it. This test is what notices when
- * somebody did not.
+ * stereotype annotation is not a bean until an import names it. This test notices a class which
+ * nobody named.
  *
- * <p>Without it the failure arrives much later and reads like something else. A service nobody
- * registered is missing from the context of an application built on the library, while the delivered
- * application keeps working. That one lives in {@code io.vanillabp.cockpit} itself, so its own
- * component scan finds the library's classes and hides the gap for exactly the one application the
- * suite boots most often.
+ * <p>Without the test the failure shows up much later and looks like something else. An
+ * application built on the library misses the service, while the delivered application keeps
+ * working. The delivered application lives in {@code io.vanillabp.cockpit} itself, so its own
+ * component scan finds the library's classes and hides the gap. And it is the application the
+ * tests start most often.
  *
- * <p>Both sides are read from the classpath rather than listed here. On one side every concrete class
- * below {@code io.vanillabp.cockpit} which is a component, on the other everything the
- * auto-configurations of this jar reach, following {@code @Import} as far as it goes and counting what
- * {@code @Bean} methods produce.
+ * <p>Both sides are read from the classpath and not listed here. One side is every concrete
+ * component class below {@code io.vanillabp.cockpit}. The other side is everything the
+ * auto-configurations of this jar reach. The test follows {@code @Import} as far as it goes and
+ * counts what {@code @Bean} methods produce.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class EveryCockpitBeanIsRegisteredTest {

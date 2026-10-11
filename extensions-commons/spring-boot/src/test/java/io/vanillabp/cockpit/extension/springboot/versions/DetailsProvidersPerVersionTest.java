@@ -25,22 +25,22 @@ import io.vanillabp.cockpit.extension.test.support.CockpitServer;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * The version of the deployed BPMN process picks the details provider, for a user task and for
- * a workflow alike. Two methods share a task, two share the workflow, and each pair is told
- * apart by the versions its methods name.
+ * The version of the deployed BPMN process picks the details provider, for user tasks and for
+ * workflows. Two methods share a task and two share the workflow. The versions the methods name
+ * tell each pair apart.
  * <p>
- * Everything is asserted where a user sees it, in the request the cockpit server receives. A
- * version no method serves is asserted there as well: what arrives is then what the BPMS
- * reported, which is the same answer a process without any provider gets.
+ * Everything is asserted where a user sees it, in the request the cockpit server receives. This
+ * also holds for a version which no method serves. Then the request carries what the BPMS
+ * reported, the same as for a process without any provider.
  */
 @SpringBootTest(classes = VersionsApplication.class,
     properties = {
         // an outbox store of its own. The contexts of the other test classes stay cached with
         // their pollers running, and on a shared store one of them takes the entry away
         "spring.datasource.url=jdbc:h2:mem:cockpit-versions;DB_CLOSE_DELAY=-1",
-        // this application is about which method serves which version, and its engine names no
-        // initiator. So it answers the initiator by configuration, which is the other of the two
-        // ways and the one a module without user-triggered actions takes
+        // this application tests which method serves which version, and its engine names no
+        // initiator. So the initiator comes from the configuration. That is the second of the
+        // two ways, the one a module without actions started by users takes
         "vanillabp.cockpit.initiator-source=system"
     })
 @ExtendWith(SuppressOutputExtension.class)
@@ -82,13 +82,13 @@ public class DetailsProvidersPerVersionTest {
   }
 
   /**
-   * Raises one user task event of the given version and answers with what the cockpit server
-   * got for it.
+   * Raises one user task event of the given version and returns what the cockpit server
+   * received for it.
    *
    * @param taskDefinition The task definition, whose element id is 'Activity_' plus this text
    * @param processVersion The version of the deployed process the event comes from
-   * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind
+   * @param eventId Tells the request of this event apart from those of the other tests. It is
+   *          also the id of the task, because the outbox keeps one entry per task and kind
    * @return The body of the request the cockpit server received
    */
   private String reportedTask(
@@ -114,11 +114,11 @@ public class DetailsProvidersPerVersionTest {
   }
 
   /**
-   * Raises one workflow event of the given version and answers with what the cockpit server got
+   * Raises one workflow event of the given version and returns what the cockpit server received
    * for it.
    *
    * @param processVersion The version of the deployed process the event comes from
-   * @param eventId What tells this event's request from the ones of the other tests
+   * @param eventId Tells the request of this event apart from those of the other tests
    * @return The body of the request the cockpit server received
    */
   private String reportedWorkflow(

@@ -8,12 +8,12 @@ import io.vanillabp.integration.extension.spi.handler.ExtensionHandlers;
 import io.vanillabp.integration.extension.spi.handler.HandlerContract;
 
 /**
- * A second extension next to the Business Cockpit, added to a boot which wants a handler that
+ * A second extension next to the Business Cockpit. A boot adds it when it wants a handler which
  * may write.
  * <p>
- * Its contract says nothing about saving, which is the normal case. VanillaBP saves the workflow
- * aggregate after such a method ran. So a boot warns about it, and that is what the test reads,
- * next to the silence about the cockpit's own providers.
+ * Its contract says nothing about saving, which is the normal case, so VanillaBP saves the
+ * workflow aggregate after such a method ran. So the boot warns about it. The test reads this
+ * warning, and checks that the cockpit's own providers cause none.
  */
 @Configuration
 public class ExtensionWithAWritingHandler implements InitializingBean {

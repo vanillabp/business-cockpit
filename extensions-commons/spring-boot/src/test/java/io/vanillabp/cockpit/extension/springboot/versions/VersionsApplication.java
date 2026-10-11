@@ -12,9 +12,9 @@ import io.vanillabp.integration.adapter.spi.version.DeployedProcessVersion;
 import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
 
 /**
- * An application of its own for the workflow service whose providers serve one generation of
- * the model each. It is kept apart from the other test applications because it is the only one
- * whose BPMS reports more than one deployed version.
+ * A separate application for the workflow service whose providers each serve one generation of
+ * the model. It is kept apart from the other test applications because it is the only one whose
+ * BPMS reports more than one deployed version.
  */
 @SpringBootApplication
 public class VersionsApplication {

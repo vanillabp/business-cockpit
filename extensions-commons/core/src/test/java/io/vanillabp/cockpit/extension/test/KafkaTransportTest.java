@@ -31,12 +31,11 @@ import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * What lands on the Kafka topics. It asserts which topic, which key and which slot of the
- * envelope the cockpit server reads the message out of.
+ * What lands on the Kafka topics: which topic, which key, and which slot of the envelope the
+ * cockpit server reads the message from.
  * <p>
- * The producer is Kafka's own test double rather than a broker in a container. What is worth
- * asserting here is the message, and a broker would only carry the same bytes back at the price
- * of a container per run.
+ * The producer is Kafka's own test double, not a broker in a container. What matters here is the
+ * message. A broker would only carry the same bytes back, and it would cost a container per run.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class KafkaTransportTest {

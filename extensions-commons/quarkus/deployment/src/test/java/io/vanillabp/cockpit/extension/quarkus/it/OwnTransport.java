@@ -12,13 +12,13 @@ import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import jakarta.inject.Singleton;
 
 /**
- * The way to the cockpit a workflow module brings itself, which version 1 of the Business Cockpit
- * allowed and version 2 allows again. It keeps what it was asked to send so that a test can say
- * the report took this way and no other.
+ * A transport to the cockpit which the workflow module brings itself. Version 1 of the Business
+ * Cockpit allowed this, and version 2 allows it again. It keeps what it was asked to send, so a
+ * test can tell that the report took this way and no other.
  * <p>
- * A bean of the type is all it takes. ArC lets it win over the transport the extension ships,
- * which is declared as its default bean, and the Spring Boot half of this test does the same with
- * a bean of its own.
+ * A bean of the type is all it takes. ArC prefers it to the transport the extension ships,
+ * because that one is declared as the default bean. The Spring Boot half of this test does the
+ * same with a bean of its own.
  */
 @Singleton
 public class OwnTransport implements BusinessCockpitTransport {

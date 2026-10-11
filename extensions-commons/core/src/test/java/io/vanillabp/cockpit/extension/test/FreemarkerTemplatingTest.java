@@ -20,9 +20,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * Where templates are loaded from.
  * <p>
- * A workflow module ships its templates inside its jar as often as it points at a directory of
- * the file system, and version 1 accepted both spellings. Both are asserted here, because a
- * location which silently loads nothing looks exactly like a workflow module without templates.
+ * A workflow module may ship its templates inside its jar, or point at a directory in the file
+ * system. Version 1 accepted both spellings. The tests check both, because a location which
+ * silently loads nothing looks exactly like a workflow module without templates.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class FreemarkerTemplatingTest {

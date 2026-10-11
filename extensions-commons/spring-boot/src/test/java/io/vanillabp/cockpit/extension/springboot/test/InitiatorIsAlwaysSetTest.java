@@ -26,12 +26,12 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.Initiator;
 
 /**
- * Every report names an initiator, and this application answers for it itself.
+ * Every report names an initiator, and this application is responsible for it.
  * <p>
- * The engine of this test prefills one, the way Camunda 7 does for a case. Switching that off is
- * how the other two workflow systems report, and it is what shows the rule: a report which names
- * nobody fails the work the event belongs to, instead of arriving without the one field a reader
- * sorts and recognizes cases by.
+ * The engine of this test prefills one, the way Camunda 7 does for a case. With that switched
+ * off, the engine reports like the other two workflow systems, and the rule shows: a report
+ * which names nobody fails the work the event belongs to. It does not arrive without the one
+ * field readers use to sort and recognize cases.
  */
 @SpringBootTest(classes = TestApplication.class,
     properties = {
@@ -125,7 +125,7 @@ public class InitiatorIsAlwaysSetTest {
     assertTrue(failure.contains(BPMN_PROCESS), failure);
     assertTrue(failure.contains("no-provider-at-all"), failure);
     assertTrue(failure.contains(UserTaskEventKind.CREATED.name()), failure);
-    // both ways on, and the key which says why this is refused at all
+    // both ways out, and the key which explains why this is refused at all
     assertTrue(failure.contains("@UserTaskDetailsProvider"), failure);
     assertTrue(failure.contains("Initiator.SYSTEM"), failure);
     assertTrue(
@@ -170,8 +170,8 @@ public class InitiatorIsAlwaysSetTest {
                 .getUserTask(aggregate, RecordingBpmsBridge.USER_TASK_ID)))
         .getMessage();
 
-    // the task the engine answers with for a read is 'approve', whose provider enriches the
-    // details and says nothing about the initiator
+    // on a read the engine answers with the task 'approve'. Its provider enriches the details
+    // but says nothing about the initiator
     assertTrue(failure.contains("approve"), failure);
     assertTrue(failure.contains("Initiator.SYSTEM"), failure);
 

@@ -12,12 +12,12 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * A workflow service reporting the same thing for every user task it has, plus a method for
- * each task which needs more than that. It declares a second BPMN process as well, because
- * "every user task of this workflow service" means the tasks of that one too.
+ * A workflow service which reports the same details for every user task it has, plus a method
+ * for each task which needs more. It also declares a second BPMN process, because "every user
+ * task of this workflow service" includes the tasks of that process too.
  * <p>
  * Two of its user tasks are named twice, once by their task definition and once by their
- * element id, which is what the order between the two keys is read from.
+ * element id. The test reads from them which of the two keys wins.
  */
 @Service
 @WorkflowService(workflowAggregateClass = OrderAggregate.class,
@@ -56,8 +56,8 @@ public class OrderService {
   }
 
   /**
-   * The one method this story is about. It reports the same columns for every user task of both
-   * BPMN processes, and it steps aside wherever a method below names the task.
+   * The catch-all method. It reports the same columns for every user task of both BPMN
+   * processes. Where a method below names the task, that method runs instead.
    *
    * @param aggregate The workflow aggregate, loaded by VanillaBP
    * @param prefilled What the BPMS reported
@@ -100,8 +100,8 @@ public class OrderService {
   }
 
   /**
-   * Names a task the method below names as well, by the other key. The element id is the
-   * stronger of the two, so the method below is the one which runs.
+   * Names a task which the method below names as well, but by the other key. The element id
+   * wins over the task definition, so the method below runs.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -129,9 +129,8 @@ public class OrderService {
   }
 
   /**
-   * The same pair once more, written the other way round. The scan reads the methods of this
-   * class in an order nobody promises, so a test which only ever saw one order would not say
-   * much.
+   * The same pair again, in the other order. Nobody promises the order in which the scan reads
+   * the methods of this class, so a test which only ever saw one order would prove little.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -159,8 +158,8 @@ public class OrderService {
   }
 
   /**
-   * The convention this story leaves untouched. An annotation which names nothing stands for the
-   * task called like the method.
+   * The older convention, which still holds. An annotation which names nothing stands for the
+   * task with the same name as the method.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details

@@ -13,10 +13,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
 /**
- * A BPMS half producing its bridges as one list, next to one registered as a bean of its own.
- * Both shapes reach the extension, and a dispatch finds the half of the adapter it names. The
- * Spring Boot module asserts the same, because what is accepted on one platform has to be
- * accepted on the other.
+ * A BPMS half which produces its bridges as one list, next to a bridge registered as a bean of
+ * its own. Both shapes reach the extension, and a dispatch finds the half of the adapter it
+ * names. The Spring Boot module checks the same, because what one platform accepts the other has
+ * to accept as well.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BridgesAsAListTest {

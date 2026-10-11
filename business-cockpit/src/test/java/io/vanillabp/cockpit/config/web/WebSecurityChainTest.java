@@ -43,10 +43,11 @@ import org.springframework.web.context.support.GenericWebApplicationContext;
  * rewritten from WebFlux to Spring MVC, so the assertions below exist to show that the rewrite kept the
  * semantics.
  *
- * <p>The configurations are exercised directly and not through a Spring context, because the container's
- * context needs MongoDB, Kafka and a workflow module to come up. {@link #httpSecurity()} builds the same
- * {@code HttpSecurity} Spring Boot would inject, including the configurers it applies by default. Without
- * them the filter list would be missing exactly the filters these assertions are about.
+ * <p>The test calls the configurations directly and not through a Spring context, because the
+ * container's context needs MongoDB, Kafka and a workflow module to come up.
+ * {@link #httpSecurity()} builds the same {@code HttpSecurity} Spring Boot would inject, including
+ * the configurers it applies by default. Without them the filter list would be missing exactly the
+ * filters these assertions are about.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class WebSecurityChainTest {

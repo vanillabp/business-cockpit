@@ -25,11 +25,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * What an application is told about its configuration, and when.
  * <p>
  * Every defect is reported while the application starts, all of them in one message, and every
- * line names the property key which fixes it. These assertions are about a developer who
- * reaches a working setup from the log and not from the documentation.
+ * line names the property key which fixes it. The tests make sure that a developer gets to a
+ * working setup from the log, without reading the documentation.
  * <p>
- * The keys are the ones version 1 of the Business Cockpit read, so the tests are written in the
- * spelling an application which upgrades already has.
+ * The tests use the keys which version 1 of the Business Cockpit read. An application which
+ * upgrades already has them in this spelling.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitConfigurationTest {
@@ -453,7 +453,7 @@ public class BusinessCockpitConfigurationTest {
             .validateWhatTheWorkflowsHaveToSay(
                 ConfigurationFixture.WORKFLOW_MODULE, List.of("TaxiRide")));
 
-    // the module holds a second process, and that one says nothing
+    // the module holds a second process, and that one sets nothing
     final var deployed = assertThrows(
         IllegalStateException.class,
         () -> configuration
@@ -466,7 +466,7 @@ public class BusinessCockpitConfigurationTest {
                 "vanillabp.workflow-modules.test-module.workflows.Delivery.cockpit.i18n-languages"),
         deployed);
 
-    // a workflow which says one of the two leaves the other one to the module
+    // a workflow which sets one of the two leaves the other one to the module
     final var oneWorkflowIsSilent = defectsOf(
         ConfigurationFixture
             .aConfiguredApplication()

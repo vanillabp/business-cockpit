@@ -8,8 +8,8 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 /**
- * What a BPMS half does while it wires a model: it names the user tasks of the model to the
- * extension. The BPMS double reads no model, so this stands in for it. The process at the top
+ * Does what a BPMS half does while it wires a model: it tells the extension the user tasks of the
+ * model. The BPMS double reads no model, so this class does it instead. The process at the top
  * has the user task 'approve', the called process has the user task 'check'.
  */
 @ApplicationScoped

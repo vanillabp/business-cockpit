@@ -18,9 +18,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the configuration says about the initiator of a report.
  * <p>
- * The key has no default, so a workflow module which reports to the cockpit and answers nowhere
- * ends the boot. These assertions are about that message, because it is the whole point of the
- * key: a developer reads it once, at the first start, and answers it for good.
+ * The key has no default. If a workflow module reports to the cockpit and the key is set
+ * nowhere, the boot ends. The tests check that message, because the message is the whole point
+ * of the key: a developer reads it once, at the first start, and answers it for good.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class InitiatorSourceTest {
@@ -63,11 +63,11 @@ public class InitiatorSourceTest {
         defects.contains(ConfigurationKeys.globalKey(ConfigurationKeys.INITIATOR_SOURCE)),
         defects);
     assertTrue(defects.contains(ConfigurationFixture.WORKFLOW_MODULE), defects);
-    // what the initiator is, and that it is gone for good once a case ran without it. Both
-    // belong in the message: they are why somebody answers the question instead of silencing it
+    // the message says what the initiator is, and that it is lost for good once a case ran
+    // without it. These two facts make somebody answer the question instead of silencing it
     assertTrue(defects.contains("the user who caused"), defects);
     assertTrue(defects.contains("for good"), defects);
-    // and both answers, so that nothing has to be looked up
+    // it also names both answers, so nobody has to look them up
     assertTrue(defects.contains(InitiatorSource.BY_APPLICATION.configuredAs()), defects);
     assertTrue(defects.contains(InitiatorSource.SYSTEM.configuredAs()), defects);
     assertTrue(defects.contains("@UserTaskDetailsProvider"), defects);

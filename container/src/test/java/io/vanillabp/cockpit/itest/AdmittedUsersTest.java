@@ -296,7 +296,7 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * An admission holds against an exclusion. Four eyes do not suffer from that. The person who
+     * An admission wins over an exclusion. That does not weaken the four-eyes rule. The person who
      * did the first step should never be shown the second task at all. If the task did reach them,
      * the workflow module's own security keeps the form shut. So a module which admits somebody has
      * said what it wants, and the cockpit lets them read the task.
@@ -358,8 +358,8 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * There is no retrofit for a task reported before the module filled the list. Reporting the task
-     * again is what carries the admission, and nothing else does.
+     * Nothing fixes up a task which was reported before the module filled the list. Only reporting
+     * the task again carries the admission.
      */
     @Test
     void aLaterReportIsWhatAdmitsSomebody() {

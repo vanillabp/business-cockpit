@@ -35,9 +35,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * Notifications form one group per business case, against a real MongoDB. A task of a process the
- * case started by a call activity counts for the case's process. A process with a workflow
- * aggregate of its own is a case of its own and keeps its own group. See decision 61 in the repository's DECISIONS.md.
+ * Notifications are grouped per business case, checked against a real MongoDB. A task of a
+ * process the case started by a call activity counts for the case's process. A process with a
+ * workflow aggregate of its own is a case of its own and keeps its own group. See decision 61 in
+ * the repository's DECISIONS.md.
  * <p>
  * Two places answer that question: {@link CaseProcess#of}, which the notification poller asks, and
  * {@link UserTaskService#getVisibleWorkflows}, which lists the groups on the page for notification

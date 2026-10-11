@@ -23,10 +23,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * An application whose workflow aggregates live in two outbox stores.
  * <p>
- * Each report has to reach the store of its own workflow, because an entry which is not
- * committed with what it reports reports something that may never have happened. The event a
- * BPMS observed names a BPMN process and no class, and the workflow service serving that
- * process is where the class comes from. See decision 13 of the repository's decision log.
+ * Each report has to reach the store of its own workflow. An entry which is not committed
+ * together with what it reports may report something that never happened. The event a BPMS
+ * observed names a BPMN process but no class. The class comes from the workflow service which
+ * serves that process. See decision 13 of the repository's decision log.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -34,8 +34,8 @@ public class TwoStoresAttributionTest {
 
   /**
    * @param store One of the application's two stores
-   * @return The reports of workflows it was handed. The registration of the workflow module
-   *         lands in one of the two as well, and which one is not what this test is about
+   * @return The reports of workflows it got. The registration of the workflow module also lands
+   *         in one of the two stores, but which one does not matter for this test
    */
   private static List<PhaseTwoCall> workflowReportsOf(
       final RecordingOutbox store) {

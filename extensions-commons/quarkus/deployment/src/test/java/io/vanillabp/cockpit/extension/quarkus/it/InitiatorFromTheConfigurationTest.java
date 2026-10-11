@@ -22,8 +22,8 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * The other of the two answers on this platform: a workflow module which knows no action a user
- * causes reports the system instead of failing.
+ * The second of the two answers on this platform: a workflow module without actions caused by a
+ * user reports the system as initiator instead of failing.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class InitiatorFromTheConfigurationTest {

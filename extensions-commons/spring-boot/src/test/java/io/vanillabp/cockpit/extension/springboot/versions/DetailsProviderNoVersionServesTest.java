@@ -15,11 +15,11 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * A details provider whose version the BPMS does not hold is named while the application boots.
  * <p>
- * Nothing else would ever say so. A user task without a provider is reported with what the BPMS
- * carried, so a method which never runs looks exactly like a task nobody wrote a provider for,
- * and the developer would wait for an event which does not arrive. The boot keeps running, as
- * it does for a <code>&#64;WorkflowTask</code> method in the same position: a version which is
- * not deployed yet is a normal state during a rolling deployment.
+ * Nothing else would point this out. A user task without a provider is reported with what the
+ * BPMS sent. So a method which never runs looks exactly like a missing provider, and the
+ * developer would wait for an event which never arrives. The boot keeps running, as it does for
+ * a <code>&#64;WorkflowTask</code> method in the same position: during a rolling deployment, a
+ * version which is not deployed yet is normal.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

@@ -27,10 +27,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the client talking to the cockpit server is built with.
  * <p>
- * The assertions are about the pieces and not about a connection. What a certificate check does
- * is only visible against a server which presents a certificate, and a test cannot issue one
- * itself. What a test can say is which stack a configuration leads to, and that a deployment
- * which configures nothing keeps the one the generated client brings.
+ * The tests check the parts the client is built from, not a connection. A certificate check
+ * only shows against a server which presents a certificate, and a test cannot issue one itself.
+ * A test can say which stack a configuration leads to, and that a deployment which configures
+ * nothing keeps the stack of the generated client.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RestClientSetupTest {

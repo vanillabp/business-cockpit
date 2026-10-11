@@ -8,9 +8,9 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * Two providers of one user task whose version ranges overlap. Versions of their own are what
- * lets two methods name the same task, so ranges which share a version leave nothing to decide
- * by. Version three is served by both of these.
+ * Two providers of one user task whose version ranges overlap. Two methods may only name the
+ * same task if their versions differ, so ranges which share a version leave nothing to decide
+ * by. Both of these serve version three.
  */
 @WorkflowService(workflowAggregateClass = BrokenAggregate.class,
     bpmnProcess = @BpmnProcess(bpmnProcessId = "TestProcess"))

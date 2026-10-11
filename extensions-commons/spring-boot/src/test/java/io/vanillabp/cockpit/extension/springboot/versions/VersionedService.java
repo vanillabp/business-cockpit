@@ -15,12 +15,12 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * A workflow service which reports one generation of its model at a time. Two methods share a
- * user task and two share the workflow, and what tells each pair apart is the version of the
- * deployed BPMN process the event came from.
+ * A workflow service with details providers for different generations of its model. Two methods
+ * share a user task and two share the workflow. In each pair, the version of the deployed BPMN
+ * process the event came from decides which method runs.
  * <p>
- * It has no method for every user task on purpose. A task no method serves in the version at
- * hand has to fall back to what the BPMS reported, and a catch-all would hide that.
+ * On purpose, it has no catch-all method for every user task. A task which no method serves in
+ * the current version falls back to what the BPMS reported, and a catch-all would hide that.
  */
 @Service
 @WorkflowService(workflowAggregateClass = VersionedAggregate.class,
@@ -54,7 +54,7 @@ public class VersionedService {
   /** The task definition the provider matched by a version tag serves. */
   public static final String ESCALATE = "escalate";
 
-  /** The task definition only a version nobody deploys is served for. */
+  /** The task definition which is only served for a version nobody deploys. */
   public static final String AUDIT = "audit";
 
   private final ProcessService<VersionedAggregate> processService;
@@ -107,8 +107,8 @@ public class VersionedService {
   }
 
   /**
-   * A method named for a version TAG rather than for a counted version. Which deployment
-   * carries that tag is what the BPMS is asked, and the answer decides whether this method runs.
+   * A method for a version TAG instead of a version number. The BPMS is asked which deployment
+   * carries that tag, and the answer decides whether this method runs.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -123,9 +123,9 @@ public class VersionedService {
   }
 
   /**
-   * A method for a version this application will never see. Nothing about a details provider
-   * would ever say so by itself, because a task without a provider is reported with what the
-   * BPMS carried, so VanillaBP names it while the application boots.
+   * A method for a version this application never sees. Nothing else would point this out,
+   * because a task without a provider is reported with what the BPMS sent. So VanillaBP names
+   * the method when the application boots.
    *
    * @param prefilled What the BPMS reported
    * @return The details nobody asks this method for

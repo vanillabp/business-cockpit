@@ -15,9 +15,9 @@ import jakarta.enterprise.context.ApplicationScoped;
  * the process at the top and version 1 of the called one.
  * <p>
  * The provider of the workflow serves version 2. The called process never gets a workflow report
- * of its own, so that provider is not held against version 1. The provider of the called
- * process' user task serves version 1 only. It belongs to the model of the called process, so
- * version 1 is the one it is held against, and the start runs.
+ * of its own, so that provider is not checked against version 1. The provider of the called
+ * process' user task serves version 1 only. The task belongs to the model of the called process,
+ * so it is checked against version 1, and the start runs.
  */
 @ApplicationScoped
 @WorkflowService(workflowAggregateClass = TestAggregate.class,

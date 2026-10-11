@@ -10,12 +10,11 @@ import io.vanillabp.cockpit.extension.spi.WorkflowDetailsPrefill;
 import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 
 /**
- * The BPMS half of this application, played by the test. It answers about a task and a workflow
- * whatever the reference asked for, and it reports the version the reference carried.
+ * The BPMS half of this application, played by the test. It answers about any task and workflow
+ * the reference asks for, and it reports the version the reference carried.
  * <p>
- * That is what a real BPMS half does too: the version travels with the event the engine sent,
- * so the version a prefill reports and the version a details provider is picked by are the same
- * deployment.
+ * A real BPMS half does the same: the version travels with the event the engine sent. So the
+ * prefill reports the same deployment by which the details provider is picked.
  */
 public class VersionsBpmsBridge implements BusinessCockpitBpmsBridge {
 

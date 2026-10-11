@@ -42,10 +42,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 /**
  * The same guard as on the REST way in, over Kafka.
  * <p>
- * Both ways in go through the same two services, which is where the order of reports is decided, so
- * these tests prove that instead of being a second set of cases. They cover a completion which
- * arrives before the creation it completes, and a change which arrives after the change which
- * followed it.
+ * Both ways in go through the same two services, and these services decide the order of reports.
+ * So these tests only show that Kafka reaches them too, and they are not a second full set of
+ * cases. They cover a completion which arrives before the creation it completes, and a change which
+ * arrives after the change which followed it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class KafkaOrderOfReportsTest {

@@ -30,8 +30,8 @@ import jakarta.transaction.UserTransaction;
  * The Business Cockpit extension inside a booted Quarkus application, from the event a BPMS
  * reported to the request the cockpit server receives.
  * <p>
- * It runs the same way through as the Spring Boot test of this extension, and it exists
- * because a neutral core being right says nothing about a platform's glue ever calling it.
+ * It runs through the same steps as the Spring Boot test of this extension. It exists because a
+ * correct core says nothing about whether the glue code of a platform ever calls it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class BusinessCockpitExtensionTest {
@@ -54,10 +54,10 @@ public class BusinessCockpitExtensionTest {
               .addClass(TestBpmsBridge.class)
               .addClass(TestWorkflowAwareness.class)
               .addClass(TestWorkflowModuleDetails.class)
-              // the test class runs in the application's class loader, so what it talks to the
-              // cockpit server with has to be reachable from there as well. A second copy of the
-              // class is the consequence, and asking the running server over HTTP is what makes
-              // the two copies agree on what arrived.
+              // the test class runs in the application's class loader, so the class it uses to
+              // talk to the cockpit server has to be reachable from there as well. This leads to a
+              // second copy of the class. The two copies agree on what arrived because both ask
+              // the running server over HTTP.
               .addClass(CockpitServer.class))
       .overrideRuntimeConfigKey(
           "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl());
@@ -153,11 +153,11 @@ public class BusinessCockpitExtensionTest {
     assertFalse(
         aggregates.sawSaveOf(aggregate.getId()),
         "the platform saved the aggregate a details provider was handed");
-    // and the note the provider wrote is readable from the store all the same. This
-    // application keeps its aggregates in a map and hands out the very object it holds, so a
-    // change to it is the stored state by the time it is made. This is what the test found,
-    // not a promise anybody makes. What an unsaved change costs is a question to the
-    // persistence, and every persistence answers it differently.
+    // and the note the provider wrote can be read from the store anyway. This application keeps
+    // its aggregates in a map and hands out the very object it holds, so a change to it is
+    // stored the moment it is made. This is what the test found, not a promise anybody makes.
+    // What happens to an unsaved change depends on the persistence, and every persistence
+    // handles it differently.
     assertEquals(
         TestWorkflowService.APPROVE_NOTE, aggregates.byId(aggregate.getId()).getNote());
 
@@ -217,7 +217,7 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
     // the first attempt is refused, so the report leaves this application after the case below
-    // was changed. Whichever moment the outbox gets to it, the report was written at the event
+    // was changed. Whenever the outbox gets to it, the report holds what was true at the event
     CockpitServer.refuseRequestsAbout("bpms-event-22", 1);
 
     transaction.begin();
@@ -308,8 +308,9 @@ public class BusinessCockpitExtensionTest {
   public void aggregateChangedIsResolvedWhenItIsDispatched() throws Exception {
 
     final var aggregate = aStartedWorkflow();
-    // a BPMS which writes a storage behind its engine: the change cannot be named in the
-    // application's transaction, and the first lookup at the dispatch still finds nothing
+    // a BPMS which writes a storage behind its engine: the workflow of the change cannot be
+    // found in the application's transaction, and the first lookup at the dispatch still finds
+    // nothing
     bridge.namesWorkflowsRightAway(false);
     bridge.writesTheWorkflowAfter(1);
     bridge.forgetLookups();
@@ -321,7 +322,8 @@ public class BusinessCockpitExtensionTest {
     transaction.commit();
 
     // the empty first answer was tried again instead of being dropped. A report of an earlier
-    // test lands on the same path, so the second lookup is waited for before the path is read
+    // test lands on the same path, so the test waits for the second lookup before it reads the
+    // path
     final var deadline = System.currentTimeMillis() + 15_000;
     while ((bridge.workflowLookups() < 2) && (System.currentTimeMillis() < deadline)) {
       Thread.sleep(50);
@@ -365,7 +367,8 @@ public class BusinessCockpitExtensionTest {
     transaction.commit();
 
     // the empty first answer was tried again instead of being dropped. A report of an earlier
-    // test lands on the same path, so the second read is waited for before the path is read
+    // test lands on the same path, so the test waits for the second read before it reads the
+    // path
     final var deadline = System.currentTimeMillis() + 15_000;
     while ((bridge.taskReads() < 2) && (System.currentTimeMillis() < deadline)) {
       Thread.sleep(50);
@@ -430,7 +433,7 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // this is what a REST endpoint does. It asks about a task and has opened nothing
+    // this is what a REST endpoint does: it asks about a task without opening a transaction
     final var userTask = workflowService
         .businessCockpit()
         .getUserTask(aggregate, TestBpmsBridge.USER_TASK_ID);
@@ -438,8 +441,8 @@ public class BusinessCockpitExtensionTest {
     assertNotNull(userTask);
     assertTrue(userTask.isPresent());
     assertEquals("Anna", userTask.get().getDetails().get("customer"));
-    // the read opened one of its own, so the engine and the aggregate were asked in one unit of
-    // work here as well
+    // the read opened a transaction of its own, so the engine and the aggregate were asked in
+    // one unit of work here as well
     assertEquals(List.of(Boolean.TRUE), bridge.tasksLookedUpInATransaction());
 
   }
@@ -457,8 +460,8 @@ public class BusinessCockpitExtensionTest {
     assertTrue(failure.getMessage().contains("needs a transaction"), failure.getMessage());
     assertTrue(failure.getMessage().contains("@Transactional"), failure.getMessage());
     assertTrue(failure.getMessage().contains(BPMN_PROCESS), failure.getMessage());
-    // the sentence about a BPMS half reporting from a worker thread belongs to an adapter and
-    // would send an application looking in the wrong place
+    // the sentence about a BPMS half which reports from a worker thread is meant for an
+    // adapter. It would send an application to look in the wrong place
     assertFalse(failure.getMessage().contains("EventTransaction"), failure.getMessage());
 
   }
@@ -469,9 +472,9 @@ public class BusinessCockpitExtensionTest {
 
     final var aggregate = aStartedWorkflow();
 
-    // the runner the workflow aggregate's writes go through demands the transaction rather
-    // than opening one behind the caller's back, and the extension says what that means for a
-    // BPMS half in front of the platform's own wording
+    // the writes of the workflow aggregate go through a runner which demands a transaction
+    // instead of opening one behind the caller's back. The extension explains what that means
+    // for a BPMS half, before the platform's own wording
     final var failure = assertThrows(
         IllegalStateException.class,
         () -> publisher

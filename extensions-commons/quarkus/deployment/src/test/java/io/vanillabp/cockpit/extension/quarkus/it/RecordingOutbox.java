@@ -9,8 +9,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * A store of the application, next to the one VanillaBP brings for the datasource of the test.
- * It writes nowhere. The tests of the attribution ask which store was handed the entry, and an
- * entry which is never dispatched answers that as well as one which is.
+ * It writes nowhere. The attribution tests only ask which store got the entry, and an entry which
+ * is never dispatched answers that just as well as one which is.
  */
 @ApplicationScoped
 public class RecordingOutbox implements PhaseTwoOutbox {
@@ -27,8 +27,8 @@ public class RecordingOutbox implements PhaseTwoOutbox {
   }
 
   /**
-   * A report of the extension is planned this way, so a store of an application answers it.
-   * Inheriting the default would write a warning and discard what the extension wanted.
+   * The extension plans its reports this way, so a store of an application has to implement it.
+   * The inherited default would log a warning and drop what the extension wanted.
    */
   @Override
   public boolean scheduleReplacingWhatIsStillWaiting(

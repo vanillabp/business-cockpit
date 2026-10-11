@@ -18,11 +18,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * What a wait for a report may and may not be satisfied by. The server is driven by hand here,
- * without an application, because the question is about the wait and not about what reports.
+ * Which reports may end a wait for a report, and which may not. The tests send requests to the
+ * server by hand, without an application, because the question is about the wait and not about
+ * what sends the reports.
  * <p>
- * The waits of this class are short: the module names a wait of a second for its own tests, where
- * a report arrives in the same thread which sent it.
+ * The waits of this class are short. The module sets a wait of one second for its own tests,
+ * where a report arrives in the same thread which sent it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class WaitMarkTest {
@@ -90,8 +91,8 @@ public class WaitMarkTest {
         () -> CockpitServer.awaitRequests("/workflow/created", 2));
 
     // the module waits a second for a report. A refusal which took that second would be a wait
-    // which ran and then complained, and the message would reach a developer who had already
-    // started looking for the report
+    // which ran first and complained afterwards. Its message would reach a developer who had
+    // already started to look for the report
     assertTrue(
         (System.currentTimeMillis() - startedAt) < 500,
         "the refusal waited for the report it refuses to wait for");
@@ -134,15 +135,15 @@ public class WaitMarkTest {
         AssertionError.class,
         () -> CockpitServer.awaitRequestOf("/usertask/created", "\"userTaskId\":\"task-2\""));
 
-    // the report which did arrive is named as well, because a developer reading this cannot
-    // otherwise tell a report which never came from one which came with another content
+    // the message also names the report which did arrive. Otherwise a developer cannot tell a
+    // report which never came from one which came with other content
     assertTrue(fell.getMessage().contains("task-1"), fell.getMessage());
 
   }
 
   /**
-   * Sends a report from another thread while a wait for it is running, so that the wait is
-   * satisfied by something which arrives after it started and not by what was already there.
+   * Sends a report from another thread while a wait for it is running. So the wait ends with a
+   * report which arrived after the wait started, not with one which was already there.
    *
    * @param path Where the report goes
    * @param body What it carries

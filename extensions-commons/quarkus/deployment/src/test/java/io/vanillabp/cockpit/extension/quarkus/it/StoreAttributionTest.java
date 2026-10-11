@@ -23,9 +23,9 @@ import jakarta.transaction.UserTransaction;
  * brings for the datasource of the test. The other belongs to the application and is named for
  * the workflow aggregate.
  * <p>
- * The extension used to work this out itself, which is what <code>QuarkusStoreAttributionTest</code>
- * of the platform shows cannot be done from outside the Quarkus integration. It asks the
- * platform's resolver now, and this test is the application in which the two answers would
+ * The extension used to work this out itself. <code>QuarkusStoreAttributionTest</code> of the
+ * platform shows that this cannot be done from outside the Quarkus integration. Now the extension
+ * asks the platform's resolver, and this test is an application in which the two answers would
  * differ.
  */
 @ExtendWith(SuppressOutputExtension.class)
@@ -66,8 +66,8 @@ public class StoreAttributionTest {
   @DisplayName("A store the application named for its aggregate is the one written into")
   public void theNamedStoreCarriesTheEntries() throws Exception {
 
-    // the case is saved first, because the report is put together where it is made and the
-    // details provider of the application is handed the case the event is about
+    // the case is saved first, because the report is built at the event, and the details
+    // provider of the application gets the case the event is about
     final var aggregate = new TestAggregate();
     aggregate.setCustomer("Anna");
     aggregates.save(aggregate);

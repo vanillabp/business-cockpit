@@ -12,10 +12,10 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * A workflow service which calls a process on its own aggregate. This start deployed version 2 of
- * the process at the top and version 1 of the called one. The provider of the called process'
- * user task serves version 2 only. That is the version of the process at the top, and it does
- * not count for a task of the called process, so the start ends.
+ * A workflow service which calls a process on its own aggregate. In this boot, the top process
+ * was deployed as version 2 and the called process as version 1. The provider of the user task
+ * of the called process serves version 2 only. That is the version of the top process, and it
+ * does not count for a task of the called process. So the boot fails.
  */
 @WorkflowService(workflowAggregateClass = DeployedVersionAggregate.class,
     bpmnProcess = @BpmnProcess(bpmnProcessId = DeployedVersionApplication.BPMN_PROCESS),

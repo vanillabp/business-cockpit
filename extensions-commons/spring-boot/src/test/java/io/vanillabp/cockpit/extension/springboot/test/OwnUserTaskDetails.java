@@ -10,8 +10,8 @@ import io.vanillabp.spi.cockpit.usertask.UserTaskDetails;
 
 /**
  * The details a provider builds itself instead of enriching what it was given. Everything the
- * SPI lets business code set is answered from here; everything else is answered from the
- * prefilled object, the way an application would do it.
+ * SPI lets business code set comes from here. Everything else comes from the prefilled object,
+ * the way an application would do it.
  */
 public class OwnUserTaskDetails implements UserTaskDetails {
 

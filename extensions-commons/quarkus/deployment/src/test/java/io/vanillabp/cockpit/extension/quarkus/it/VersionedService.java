@@ -16,11 +16,11 @@ import jakarta.inject.Inject;
 
 /**
  * A workflow service which reports one generation of its model at a time. Two methods share a
- * user task and two share the workflow, and what tells each pair apart is the version of the
- * deployed BPMN process the event came from.
+ * user task and two share the workflow. The version of the deployed BPMN process the event came
+ * from tells each pair apart.
  * <p>
- * It has no method for every user task on purpose. A task no method serves in the version at
- * hand has to fall back to what the BPMS reported, and a catch-all would hide that.
+ * On purpose it has no method for every user task. A task which no method serves in the current
+ * version has to fall back to what the BPMS reported, and a catch-all method would hide that.
  */
 @ApplicationScoped
 @WorkflowService(workflowAggregateClass = TestAggregate.class,
@@ -86,7 +86,7 @@ public class VersionedService {
 
   /**
    * The same task as every model deployed after the first asks for it. The two ranges do not
-   * overlap, which is what lets both methods name the same task.
+   * overlap, and that is why both methods may name the same task.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -101,8 +101,8 @@ public class VersionedService {
   }
 
   /**
-   * A method named for a version TAG rather than for a counted version. Which deployment
-   * carries that tag is what the BPMS is asked, and the answer decides whether this method runs.
+   * A method for a version TAG instead of a counted version. The BPMS is asked which deployment
+   * carries that tag, and the answer decides whether this method runs.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details
@@ -118,9 +118,9 @@ public class VersionedService {
   }
 
   /**
-   * A method for a version this application will never see. Nothing about a details provider
-   * would ever say so by itself, because a task without a provider is reported with what the
-   * BPMS carried, so VanillaBP names it while the application boots.
+   * A method for a version this application will never see. Nothing else would ever point this
+   * out, because a task without a provider is reported with what the BPMS sent. So VanillaBP
+   * names the method while the application boots.
    *
    * @param prefilled What the BPMS reported
    * @return The details nobody asks this method for
@@ -150,7 +150,7 @@ public class VersionedService {
 
   /**
    * The workflow as the second deployed model asks for it. A workflow provider stands for the
-   * whole BPMN process, so the version is the only thing telling these two apart.
+   * whole BPMN process, so only the version tells these two apart.
    *
    * @param prefilled What the BPMS reported
    * @return The enriched details

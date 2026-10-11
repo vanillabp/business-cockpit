@@ -11,8 +11,8 @@ import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * The same defect as {@link OverlappingVersionsProviderService}, in a service Spring hands out
- * as a JDK proxy. It implements an interface and its methods are transactional, which is the
- * everyday way into a proxy. What VanillaBP reads off these methods has to survive that.
+ * as a JDK proxy. It implements an interface and its methods are transactional, the usual way to
+ * end up with a proxy. What VanillaBP reads from these methods has to survive that.
  */
 @WorkflowService(workflowAggregateClass = BrokenAggregate.class,
     bpmnProcess = @BpmnProcess(bpmnProcessId = "TestProcess"))

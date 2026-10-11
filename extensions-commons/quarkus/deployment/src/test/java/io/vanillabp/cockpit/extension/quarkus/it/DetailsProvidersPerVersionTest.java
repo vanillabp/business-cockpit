@@ -31,8 +31,8 @@ import jakarta.transaction.UserTransaction;
  * a workflow alike. A provider which serves a version this application never deploys is named
  * while it boots.
  * <p>
- * It asserts the same thing as the Spring Boot test of this name, because a neutral core being
- * right says nothing about a platform's glue ever calling it.
+ * It checks the same thing as the Spring Boot test of this name, because a correct core says
+ * nothing about whether the glue code of a platform ever calls it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DetailsProvidersPerVersionTest {
@@ -54,14 +54,14 @@ public class DetailsProvidersPerVersionTest {
               .addClass(VersionsProcessVersions.class)
               .addClass(TestWorkflowAwareness.class)
               .addClass(TestWorkflowModuleDetails.class)
-              // the test class runs in the application's class loader, so what it talks to the
-              // cockpit server with has to be reachable from there as well
+              // the test class runs in the application's class loader, so the class it uses to
+              // talk to the cockpit server has to be reachable from there as well
               .addClass(CockpitServer.class))
       .overrideRuntimeConfigKey(
           "vanillabp.cockpit.rest.base-url", CockpitServer.baseUrl())
       // this application is about which method serves which version, and its engine names no
-      // initiator. So it answers the initiator by configuration, which is the other of the two
-      // ways and the one a module without user-triggered actions takes
+      // initiator. So the initiator comes from the configuration. That is the second of the two
+      // ways, the one a module takes if no user triggers its actions
       .overrideRuntimeConfigKey("vanillabp.cockpit.initiator-source", "system")
       .setLogRecordPredicate(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
       .assertLogRecords(records -> {
@@ -77,14 +77,14 @@ public class DetailsProvidersPerVersionTest {
 
         assertTrue(report.contains(ConfigurationKeys.EXTENSION_ID), report);
         assertTrue(report.contains("the method never runs"), report);
-        // the versions the BPMS does hold belong in the message: without them the developer
-        // cannot tell a typo in the range from a deployment which never happened
+        // the message names the versions the BPMS does hold. Without them the developer cannot
+        // tell a typo in the range from a deployment which never happened
         assertTrue(report.contains("held: 1, 2, 3"), report);
       });
 
   /**
-   * One log record as a reader sees it. A record may arrive with its values already in the text
-   * or with them beside it, and a test which only read the text would assert against '{}'.
+   * One log record as a reader sees it. A record may arrive with its values already in the text,
+   * or with the values next to it. A test which only read the text would check against '{}'.
    *
    * @param record The record
    * @return Its message with the values of the record in it
@@ -135,13 +135,13 @@ public class DetailsProvidersPerVersionTest {
   }
 
   /**
-   * Raises one user task event of the given version and answers with what the cockpit server
-   * got for it.
+   * Raises one user task event of the given version and returns what the cockpit server got for
+   * it.
    *
    * @param taskDefinition The task definition, whose element id is 'Activity_' plus this text
    * @param processVersion The version of the deployed process the event comes from
-   * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind
+   * @param eventId What tells the request of this event apart from those of the other tests. It
+   *          is the task's id as well, because the outbox keeps one entry per task and kind
    * @return The body of the request the cockpit server received
    * @throws Exception If the transaction around the event fails
    */
@@ -168,11 +168,11 @@ public class DetailsProvidersPerVersionTest {
   }
 
   /**
-   * Raises one workflow event of the given version and answers with what the cockpit server got
-   * for it.
+   * Raises one workflow event of the given version and returns what the cockpit server got for
+   * it.
    *
    * @param processVersion The version of the deployed process the event comes from
-   * @param eventId What tells this event's request from the ones of the other tests
+   * @param eventId What tells the request of this event apart from those of the other tests
    * @return The body of the request the cockpit server received
    * @throws Exception If the transaction around the event fails
    */

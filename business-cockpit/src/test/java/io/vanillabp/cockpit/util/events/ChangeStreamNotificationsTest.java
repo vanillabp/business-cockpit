@@ -58,8 +58,8 @@ import org.testcontainers.mongodb.MongoDBContainer;
  * writes a document, and so decides whether an open browser learns about a change at all.
  *
  * <p>The three writes are not interchangeable, and that is the point of this test. An insert and a
- * replace carry the new document in the change event whatever the stream was subscribed with; an
- * update carries only the key of the document unless the stream asks for a lookup, which this one
+ * replace carry the new document in the change event, whatever the stream was subscribed with. An
+ * update carries only the key of the document, unless the stream asks for a lookup, and this one
  * deliberately does not. Spring Data decides between replace and update by what it has to send:
  * {@code save()} of a versioned document is a {@code replaceOne}, while
  * {@code UserTaskService.unclaimTask} sends a {@code $unset} and is an {@code updateOne}. So giving

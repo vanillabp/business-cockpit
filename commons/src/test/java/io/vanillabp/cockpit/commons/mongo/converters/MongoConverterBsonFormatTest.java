@@ -110,9 +110,9 @@ class MongoConverterBsonFormatTest {
     }
 
     /**
-     * {@code OffsetDateTime.MAX} is the cockpit's "no end" marker, e.g. for follow-up dates. It cannot be
-     * expressed as a date, so it is stored as {@code Long.MAX_VALUE} milliseconds. Any change here turns
-     * "open end" into a date in the year 292278994, and nothing says so.
+     * {@code OffsetDateTime.MAX} is the cockpit's "no end" marker, for example for follow-up dates.
+     * It cannot be expressed as a date, so it is stored as {@code Long.MAX_VALUE} milliseconds. Any
+     * change here turns "open end" into a date in the year 292278994, and nothing says so.
      */
     @Test
     void theOpenEndSentinelIsStoredAsMaxMillis() {

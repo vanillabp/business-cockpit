@@ -63,9 +63,9 @@ public class BusinessCockpitBootTest {
             .properties(properties)
             .run()
             .close());
-    // every message of the chain. What an extension refuses is refused by VanillaBP's own scan
-    // now, which names the annotation, the class and the method in front of what the extension
-    // said. So the two halves of the answer stand in two exceptions
+    // every message of the chain. VanillaBP's own scan refuses what an extension refuses. It
+    // names the annotation, the class and the method before what the extension said. So the two
+    // parts of the answer are in two exceptions
     final var messages = new StringBuilder();
     for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
       messages.append(cause.getMessage()).append('\n');
@@ -90,11 +90,11 @@ public class BusinessCockpitBootTest {
   /**
    * What the boot said, cut into blocks.
    * <p>
-   * VanillaBP writes a startup finding as a subject line with an indented body below it, so the
-   * extension it names and the aggregate it names are not on the same line. A block here is a
-   * line together with every line indented deeper below it, joined into one string. That is
-   * enough to read a finding as a whole, and it leaves the platform free to indent the body
-   * differently, to add lines to it or to write the finding on a single line again.
+   * VanillaBP writes a startup finding as a subject line with an indented body below it. So the
+   * extension and the aggregate the finding names are not on the same line. A block here is a
+   * line plus every line below it which is indented deeper, joined into one string. That is
+   * enough to read a finding as a whole. The platform may still indent the body differently, add
+   * lines to it or write the finding on a single line again.
    *
    * @param reported Everything the boot wrote
    * @return One block per line of the output, the first line of each block included
@@ -160,8 +160,8 @@ public class BusinessCockpitBootTest {
     final var message = failureOfBooting(
         "cockpit-broken-proxied",
         new String[]{
-            // the everyday way into a JDK proxy is an interface plus @Transactional. What the
-            // bean's TYPE is then says nothing about the class the application wrote
+            // the usual way to get a JDK proxy is an interface plus @Transactional. The TYPE of
+            // the bean then says nothing about the class the application wrote
             "spring.aop.proxy-target-class=false"
         },
         BrokenApplication.class, ProxiedOverlappingVersionsService.class);
@@ -245,9 +245,9 @@ public class BusinessCockpitBootTest {
                   "nothing was said about the second writer that extension brings: "
                       + output.getAll()));
 
-      // the way out is what a developer needs from the finding, and it is a version attribute
-      // on the case. See decision 20 in the repository's DECISIONS.md for why this warning is
-      // VanillaBP's and not one of ours
+      // a developer needs the way out from the finding, and the way out is a version attribute
+      // on the case. See decision 20 in the repository's DECISIONS.md for why this warning comes
+      // from VanillaBP and not from this extension
       assertTrue(reported.contains("version attribute"), reported);
 
     }
@@ -314,8 +314,8 @@ public class BusinessCockpitBootTest {
     final var message = failureOfBooting(
         "cockpit-without-a-transport",
         new String[]{
-            // the properties of the builder are default properties, which the module's own
-            // application.yaml outranks, so the key it sets is emptied by a file of its own
+            // the properties of the builder are default properties, and the module's own
+            // application.yaml wins over them. So an extra file empties the key this yaml sets
             "spring.config.additional-location=classpath:/without-a-transport/"
         },
         TestApplication.class);
@@ -349,8 +349,8 @@ public class BusinessCockpitBootTest {
     final var message = failureOfBooting(
         "cockpit-without-an-initiator-source",
         new String[]{
-            // the properties of the builder are default properties, which the module's own
-            // application.yaml outranks, so the key it sets is emptied by a file of its own
+            // the properties of the builder are default properties, and the module's own
+            // application.yaml wins over them. So an extra file empties the key this yaml sets
             "spring.config.additional-location=classpath:/without-an-initiator-source/"
         },
         TestApplication.class);

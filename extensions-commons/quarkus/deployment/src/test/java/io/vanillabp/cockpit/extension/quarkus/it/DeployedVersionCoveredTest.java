@@ -15,9 +15,9 @@ import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * Providers which cover the version this start deployed let the start run. A provider of a
- * version the BPMS does not hold stays a warning. The Spring Boot test
- * <code>TheDeployedVersionNeedsACoveringProviderTest</code> asserts the same, see decision 64 in
+ * If the providers cover the version this start deployed, the start runs. A provider of a version
+ * the BPMS does not hold only causes a warning. The Spring Boot test
+ * <code>TheDeployedVersionNeedsACoveringProviderTest</code> checks the same, see decision 64 in
  * the repository's DECISIONS.md.
  */
 @ExtendWith(SuppressOutputExtension.class)

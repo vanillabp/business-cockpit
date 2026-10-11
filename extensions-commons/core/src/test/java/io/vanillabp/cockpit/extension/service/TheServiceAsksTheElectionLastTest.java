@@ -26,11 +26,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.spi.cockpit.BusinessCockpitService;
 
 /**
- * <code>BusinessCockpitService.aggregateChanged(aggregate)</code> and
- * <code>getUserTask</code> find the BPMS half without the election where VanillaBP already
- * knows the adapter: from the note of the start, from the only adapter of the application, or
- * from the open task asked about. The election may wait for a BPMS inside the caller's
- * transaction, so it comes last.
+ * <code>BusinessCockpitService.aggregateChanged(aggregate)</code> and <code>getUserTask</code>
+ * find the BPMS half without the election if VanillaBP already knows the adapter. It knows it from
+ * the note of the start, from the only adapter of the application, or from the open task asked
+ * about. The election may wait for a BPMS inside the caller's transaction, so it is asked last.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TheServiceAsksTheElectionLastTest {
@@ -145,7 +144,7 @@ public class TheServiceAsksTheElectionLastTest {
 
   }
 
-  /** What VanillaBP wrote down about the workflow and its tasks. Its election answers "c8". */
+  /** VanillaBP's notes about the workflow and its tasks. Its election answers "c8". */
   private static final class Election implements WorkflowElection {
 
     private Optional<WorkflowStart> start = Optional.empty();
@@ -252,7 +251,7 @@ public class TheServiceAsksTheElectionLastTest {
   }
 
   /**
-   * Knows the two halves and nothing else. Reports are switched off, which keeps the
+   * Knows the two halves and nothing else. Workflow reports are switched off, which keeps the
    * transaction check out of this test, and a read runs without a transaction.
    */
   private static final class Extension extends BusinessCockpitExtension {

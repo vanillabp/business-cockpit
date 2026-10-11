@@ -23,9 +23,10 @@ import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * A changed workflow aggregate which the BPMS half could not name in the application's
- * transaction, and a changed user task whose report it could not build there: how long the entry
- * is tried again, what happens to it after that, and which key it is planned under.
+ * Changes which the BPMS half could not resolve in the application's transaction. That is a
+ * changed workflow aggregate it could not find the workflow of, and a changed user task it could
+ * not build the report of. The tests check how long such an entry is tried again, what happens to
+ * it after that, and which key it is planned under.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ChangeResolvedWhenDispatchedTest {
@@ -51,8 +52,8 @@ public class ChangeResolvedWhenDispatchedTest {
   @DisplayName("A BPMS which stays behind for ten minutes is asked far less often than every two seconds")
   public void tenMinutesTakeFarFewerAttemptsThanTwoSecondsApart() {
 
-    // counts the distances alone. The time the outbox takes to pick a due entry up only makes
-    // the number smaller
+    // counts only the distances. The time the outbox needs to pick up a due entry would make
+    // the number even smaller
     var waited = Duration.ZERO;
     var attempts = 0;
     while (waited.compareTo(BusinessCockpitExtension.CHANGE_RESOLUTION_WINDOW) < 0) {

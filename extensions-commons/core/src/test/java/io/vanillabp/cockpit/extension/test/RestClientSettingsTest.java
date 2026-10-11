@@ -32,11 +32,10 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * What a deployment configures about the connection to the cockpit server, asserted against a
  * server of the test's own.
  * <p>
- * Every one of these settings existed in version 1 of the Business Cockpit, and each of them is
- * something a deployment cannot arrange any other way. That is the proxy in front of it, the
- * authorization server which issues its tokens, and how long it is willing to wait. What is
- * asserted is what arrives on the wire, because a header which is built but never sent looks
- * exactly like one which is.
+ * All of these settings existed in version 1 of the Business Cockpit, and a deployment cannot
+ * arrange any of them in another way: the proxy in front of the server, the authorization server
+ * which issues the tokens, and how long the client waits. The tests check what arrives on the
+ * wire, because a header which is built but never sent looks exactly like one which is sent.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RestClientSettingsTest {
@@ -101,8 +100,8 @@ public class RestClientSettingsTest {
 
   /**
    * @param path What the token was asked for under
-   * @return What an authorization server answers. That is the usual answer and the two answers
-   *         a server may give which the extension has to survive
+   * @return What an authorization server answers: the usual answer, or one of the two answers
+   *         which the extension has to survive
    */
   private static String answerOf(
       final String path) {

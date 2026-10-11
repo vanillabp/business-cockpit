@@ -84,8 +84,8 @@ class AbstractTemplatingNotificationServiceTest {
         final var properties = new NotificationProperties();
         properties.setTemplates(Map.of("test-medium", templateDirectory));
         final var service = new TestNotificationService(properties);
-        // outside Spring nobody calls the annotated method, and what it refuses is what these
-        // tests are about
+        // outside Spring nobody calls the annotated method, and these tests are about what it
+        // refuses
         service.checkTheTemplateDirectory();
         return service;
     }

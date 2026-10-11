@@ -21,11 +21,11 @@ import io.vanillabp.integration.spi.PhaseTwoPermanentFailure;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * What a report survives on its way through the outbox entry it travels with.
+ * Which parts of a report survive the outbox entry it travels in.
  * <p>
  * The report is built at the event and sent when the entry is dispatched, so everything the
- * cockpit is told passes through these bytes. A field which does not survive them is a field
- * the cockpit never hears about.
+ * cockpit is told passes through these bytes. A field which gets lost there never reaches the
+ * cockpit.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class ReportPayloadTest {

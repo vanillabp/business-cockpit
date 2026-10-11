@@ -17,11 +17,11 @@ import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * Which level answers a setting a workflow may say something about.
+ * Which level a setting comes from, for settings which a single workflow may set, too.
  * <p>
- * The order of the levels is the platform's and is tested there. What is tested here is that this
- * extension asks through it. The sections it hands over are its own records, and a value of a
- * workflow has to beat the value of its workflow module.
+ * The platform defines the order of the levels and tests it. This test checks that the extension
+ * uses that order with its own records as the sections, and that the value of a workflow beats
+ * the value of its workflow module.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class WorkflowModuleSettingsTest {
@@ -72,7 +72,7 @@ public class WorkflowModuleSettingsTest {
 
     assertEquals(List.of("fr"), module.i18nLanguages(PROCESS_ID));
     assertEquals("fr", module.bpmnDescriptionLanguage(PROCESS_ID));
-    // and it says it for itself alone
+    // and the value holds for that workflow alone
     assertEquals(List.of("en"), module.i18nLanguages("SomeOtherProcess"));
 
   }

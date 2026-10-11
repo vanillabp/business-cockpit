@@ -17,13 +17,13 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import jakarta.inject.Inject;
 
 /**
- * A workflow module which says neither which language its BPMN names are in nor which languages
- * it reports in starts, because its one workflow says both.
+ * A workflow module starts although it sets neither the language of its BPMN names nor the
+ * languages it reports in, because its one workflow sets both.
  * <p>
- * That is what version 1 did, and it asked at the first event of a workflow. This asks while the
- * application starts, once VanillaBP has said which processes the module holds. The boot of this
- * application is the assertion that the check accepts a module whose workflows carry what it
- * left out.
+ * Version 1 allowed this too, but it checked at the first event of a workflow. This version
+ * checks while the application starts, once VanillaBP has said which processes the module holds.
+ * The boot of this application is the assertion: the check accepts a module whose workflows set
+ * what the module left out.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class WorkflowSaysWhatItsModuleLeftOutTest {

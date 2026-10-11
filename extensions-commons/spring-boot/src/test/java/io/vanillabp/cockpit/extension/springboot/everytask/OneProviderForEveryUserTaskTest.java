@@ -37,7 +37,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
         // their pollers running, and on a shared store one of them takes the entry away
         "spring.datasource.url=jdbc:h2:mem:cockpit-every-task;DB_CLOSE_DELAY=-1",
         // the shared BPMN folder holds 'TestProcess' too, and no workflow service of this
-        // application claims it. Without this line the start would end. It is set here and not
+        // application claims it. Without this line the boot would fail. It is set here and not
         // in the shared YAML, because the other tests claim 'TestProcess'
         "vanillabp.workflow-modules.test-module.workflows.TestProcess.implemented-externally=true"
     })
@@ -84,14 +84,14 @@ public class OneProviderForEveryUserTaskTest {
   }
 
   /**
-   * Raises one user task event and answers with what the cockpit server got for it.
+   * Raises one user task event and returns what the cockpit server received for it.
    *
    * @param bpmnProcessId Which of the two processes of the workflow service the task is in
    * @param taskDefinition The task definition, which the BPMS double turns into the element
    *          id 'Activity_' plus this text
-   * @param eventId What tells this event's request from the ones of the other tests. It is the
-   *          task's id as well, because the outbox keeps one entry per task and kind. Tasks of
-   *          their own are what lets these events stand next to each other
+   * @param eventId Tells the request of this event apart from those of the other tests. It is
+   *          also the id of the task, because the outbox keeps one entry per task and kind. As
+   *          each event has a task of its own, the events do not replace each other
    * @return The body of the request the cockpit server received
    */
   private String reported(

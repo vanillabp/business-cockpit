@@ -19,15 +19,15 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * An application whose only handlers are details providers hears nothing about a second writer
  * while it boots.
  * <p>
- * VanillaBP warns about a handler it may save the workflow aggregate after, because such a
- * handler writes over what the application changed in between where nothing notices a second
- * writer. The contracts of this extension say that VanillaBP never saves after a details
- * provider, so there is no such handler here, and a warning at every start about something which
- * cannot happen is one people learn to skip.
+ * VanillaBP warns about a handler after which it may save the workflow aggregate. Where nothing
+ * notices a second writer, such a handler overwrites what the application changed in between. The
+ * contracts of this extension say that VanillaBP never saves after a details provider, so there
+ * is no such handler here. A warning at every start about something which cannot happen is a
+ * warning people learn to skip.
  * <p>
- * That the warning still reaches an application which really has a writing handler is asserted
- * in the Spring Boot module, with an extension of its own next to the cockpit. The wording and
- * the condition belong to the platform and are asserted there.
+ * The Spring Boot module checks that the warning still reaches an application which really has a
+ * writing handler. It uses an extension of its own next to the cockpit. The wording and the
+ * condition belong to the platform, and the platform's tests check them.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class DetailsProvidersBringNoSecondWriterTest {

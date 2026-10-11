@@ -100,8 +100,8 @@ class SseUpdatesTest extends ItestBase {
      * Giving a task back is the change which used to get lost on the way. It is an {@code $unset}
      * in MongoDB and therefore an {@code update}, the one operation the change stream reports
      * without the changed document, while a newly reported task and a claim both carry theirs
-     * along. {@code ChangeStreamNotificationsTest} counts the three writes next to each other; this
-     * one follows the update all the way to the browser.
+     * along. {@code ChangeStreamNotificationsTest} counts the three writes next to each other. This
+     * test follows the update all the way to the browser.
      */
     @Test
     void givingAUserTaskBackIsPushedToSubscribedClients() {
@@ -154,8 +154,8 @@ class SseUpdatesTest extends ItestBase {
 
     /**
      * The task is offered to petra's group only. Martin's stream must not hear of it. Martin gets
-     * a task of his own afterwards, and once that one has arrived, the first one would have arrived
-     * before it: both go through the same ticks in the order they were reported.
+     * a task of his own afterwards. Once that one has arrived, the first one would have arrived as
+     * well, because both go through the same ticks in the order they were reported.
      */
     @Test
     void aChangeOfAForeignTaskReachesNoOtherStream() {

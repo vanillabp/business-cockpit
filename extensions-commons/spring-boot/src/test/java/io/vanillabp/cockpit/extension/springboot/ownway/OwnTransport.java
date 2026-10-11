@@ -10,12 +10,12 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 
 /**
- * The way to the cockpit a workflow module brings itself, which version 1 of the Business Cockpit
- * allowed and version 2 allows again. It keeps what it was asked to send so that a test can say
- * the report took this way and no other.
+ * A way to the cockpit which the workflow module brings itself. Version 1 of the Business Cockpit
+ * allowed this, and version 2 allows it again. It keeps what it was asked to send, so a test can
+ * check that the report took this way and no other.
  * <p>
- * Both platforms have one of these, written the same way, because a seam which exists on one
- * platform only is no seam an application can rely on.
+ * Both platforms have one of these, written the same way. A seam which exists on only one
+ * platform is not a seam an application can rely on.
  */
 public class OwnTransport implements BusinessCockpitTransport {
 

@@ -178,8 +178,8 @@ class WriteConcernCheckTest {
 
     /**
      * A template which checks its write results raises an unacknowledged write to an acknowledged
-     * one, so what is applied looks harmless. The start ends all the same, because an installation
-     * which asked for 'w: 0' would otherwise run on a promise it never made.
+     * one, so what is applied looks harmless. The start still ends. Otherwise an installation which
+     * asked for 'w: 0' would run with a promise it never made.
      */
     @Test
     void aWriteConcernNobodyAcknowledgesEndsTheStartEvenWhereSpringDataCorrectsIt() {
@@ -195,8 +195,8 @@ class WriteConcernCheckTest {
     }
 
     /**
-     * The one place people write a write concern into first, and the one place a cockpit which
-     * checks its write results never reads.
+     * The place where people put a write concern first, and the one place a cockpit which checks
+     * its write results never reads.
      */
     @Test
     void aWriteConcernOnTheConnectionIsNamedBecauseTheCockpitDoesNotUseIt() {

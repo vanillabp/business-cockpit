@@ -11,9 +11,9 @@ import io.quarkus.test.QuarkusExtensionTest;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
- * An application whose two details providers claim the same user task does not start. Which of
- * them would run is decided by nothing, and a workflow module which shows one title today and
- * another one after a restart is worse than one which does not start.
+ * An application whose two details providers claim the same user task does not start. Nothing
+ * decides which of them would run. A workflow module which shows one title today and another one
+ * after a restart is worse than one which does not start.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TwoProvidersOfOneUserTaskRefusedTest {

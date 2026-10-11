@@ -7,9 +7,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * The workflow aggregate of the second store. It is an entity of the same database here, because
- * the attribution is under test and not a second persistence. The application names a store for
- * it, and VanillaBP answers with that one.
+ * The workflow aggregate of the second store. It is an entity in the same database here, because
+ * the test is about the attribution and not about a second persistence. The application names a
+ * store for it, and VanillaBP answers with that store.
  */
 @Entity
 @Table(name = "COCKPIT_DOCUMENT_AGGREGATE")

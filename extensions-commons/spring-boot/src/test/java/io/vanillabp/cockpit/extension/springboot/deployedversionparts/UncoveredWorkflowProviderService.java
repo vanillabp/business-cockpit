@@ -9,7 +9,7 @@ import io.vanillabp.spi.service.BpmnProcess;
 import io.vanillabp.spi.service.WorkflowService;
 
 /**
- * A provider of the workflow which serves version 1 only, while this start deployed version 2.
+ * A provider of the workflow which serves version 1 only, while this boot deployed version 2.
  */
 @WorkflowService(workflowAggregateClass = DeployedVersionAggregate.class,
     bpmnProcess = @BpmnProcess(bpmnProcessId = DeployedVersionApplication.BPMN_PROCESS))

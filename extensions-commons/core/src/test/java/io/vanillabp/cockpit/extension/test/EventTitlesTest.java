@@ -28,9 +28,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the cockpit shows as a title, and where it comes from.
  * <p>
- * The template context of these tests is a Java record, which is the shape a workflow module
- * naturally builds for a title and the one Freemarker only reads when the object wrapper is
- * configured for it.
+ * The tests hand the templates a Java record. A workflow module usually builds a record for a
+ * title, and Freemarker reads records only if its object wrapper is configured for them.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class EventTitlesTest {
@@ -46,8 +45,8 @@ public class EventTitlesTest {
           .of(), InitiatorSource.BY_APPLICATION);
 
   /**
-   * The same module, with one workflow and one of its user tasks saying something of their own,
-   * a language and the directory their templates live in.
+   * The same module. One workflow sets its own language and template directory, and one of its
+   * user tasks sets its own template directory.
    */
   private static final WorkflowModuleConfiguration MODULE_WITH_A_SPECIAL_WORKFLOW = new WorkflowModuleConfiguration(
       "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map

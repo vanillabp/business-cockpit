@@ -20,12 +20,12 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * What a single workflow of a workflow module said about the Business Cockpit.
+ * What a single workflow of a workflow module sets for the Business Cockpit.
  * <p>
- * The level stands inside the module's own section, because that is the location the core
- * reserves for an extension and hands over as written. The Quarkus twin of the Spring Boot test
- * proves the same thing on this platform: the property is written the way a developer writes it,
- * and the title arrives in the language that workflow asked for.
+ * The setting lives inside the module's own section, because the core keeps that place for an
+ * extension and hands it over as written. This Quarkus twin of the Spring Boot test shows the
+ * same thing on this platform: the property is written the way a developer writes it, and the
+ * title arrives in the language that workflow asked for.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class PerWorkflowConfigurationTest {

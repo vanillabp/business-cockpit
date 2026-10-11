@@ -335,8 +335,8 @@ class OrderOfReportsTest {
         assertNotNull(stored, "the completion of an unknown task has to create it");
         assertEquals(ENDED_AT, stored.getEndedAt());
         assertEquals(UserTaskEndReason.COMPLETED, stored.getEndReason());
-        // this end does not say when the task began, so the task starts at its end, and the
-        // creation which will say it is the report this task is still waiting for
+        // this end does not say when the task began, so the task starts at its end. The task
+        // still waits for the creation, which will say when it began
         assertEquals(ENDED_AT, stored.getCreatedAt());
         assertTrue(stored.isKnownFromItsEndAlone());
 

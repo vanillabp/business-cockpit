@@ -30,14 +30,14 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * One report through a real broker, from the producer the extension builds itself to the bytes
  * a consumer reads off the topic.
  * <p>
- * The other Kafka assertions are made against the client's own test double, which is where the
- * content of a message belongs. What only a broker can show is what surrounds it. The producer
- * this extension configures connects and serializes at all, and a message this extension sent is
- * a message somebody else can read. That is worth one test and not more.
+ * The other Kafka tests use the client's own test double, which is the right place to check the
+ * content of a message. Only a broker can show the rest: that the producer this extension
+ * configures connects and serializes at all, and that somebody else can read a message this
+ * extension sent. One test is enough for that.
  * <p>
- * The container is started by Testcontainers, so the test needs a Docker daemon and is skipped
- * where there is none. A build machine without Docker is a machine which cannot run this, and
- * not a defect of the extension.
+ * Testcontainers starts the broker, so the test needs a Docker daemon and is skipped where there
+ * is none. A build machine without Docker cannot run this test, and that is no defect of the
+ * extension.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -88,8 +88,8 @@ public class KafkaBrokerTest {
 
       transport.publishUserTaskEvent(EventFixture.userTask(UserTaskEventKind.CREATED));
 
-      // the first polls of a fresh subscription answer with nothing while the consumer is
-      // being assigned its partitions, so the message is waited for rather than polled for once
+      // the first polls of a new subscription return nothing while the consumer gets its
+      // partitions, so the test waits for the message instead of polling once
       final var deadline = System.currentTimeMillis() + 60000;
       var records = consumer.poll(Duration.ofSeconds(5));
       while (records.isEmpty() && (System.currentTimeMillis() < deadline)) {

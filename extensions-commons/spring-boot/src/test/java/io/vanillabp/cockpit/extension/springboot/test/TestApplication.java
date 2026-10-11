@@ -21,8 +21,8 @@ public class TestApplication {
   public static final List<String> ACCESSIBLE_TO_GROUPS = List.of("clerks", "approvers");
 
   /**
-   * The BPMS double holds every workflow the test starts, which is what the election reads
-   * when the application asks which BPMS a workflow aggregate's workflow lives in.
+   * The BPMS double holds every workflow the test starts. The election reads this when the
+   * application asks which BPMS holds the workflow of a workflow aggregate.
    *
    * @return The awareness of the double
    */

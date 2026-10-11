@@ -21,13 +21,13 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 
 /**
- * An application which brings its own way to the cockpit. It has one bean of type
- * <code>BusinessCockpitTransport</code>, no REST and no Kafka, and the reports go the way the
+ * An application which brings its own transport to the cockpit. It has one bean of type
+ * <code>BusinessCockpitTransport</code>, no REST and no Kafka, and the reports take the way the
  * application wrote.
  * <p>
- * It is the twin of the Spring Boot test of the same name. The seam has to be the same on both
- * platforms, because an application which reports its own way is what version 1 of the Business
- * Cockpit allowed and what a customer of it cannot upgrade without.
+ * It is the twin of the Spring Boot test of the same name. The hook has to be the same on both
+ * platforms. Version 1 of the Business Cockpit allowed an application to report its own way, and
+ * a customer who does that cannot upgrade without it.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class OwnTransportTest {

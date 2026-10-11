@@ -9,8 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * The workflow aggregate of the test application. Its id is generated and not a string, so
- * that the serialized id travelling through the outbox has to be converted back on the way in.
+ * The workflow aggregate of the test application. Its id is generated and not a string, so the
+ * serialized id which travels through the outbox has to be converted back on the way in.
  */
 @Entity
 @Table(name = "COCKPIT_TEST_AGGREGATE")
@@ -22,9 +22,9 @@ public class TestAggregate {
 
   private String customer;
 
-  // every aggregate of every test context of this module carries one of these, because the
-  // generated ids start at one in each of them and a test asking "was this one saved" would
-  // otherwise read the answer given about another context's first aggregate
+  // every aggregate of every test context of this module has one of these. The generated ids
+  // start at one in each context, so without it a test asking "was this one saved" could read
+  // the answer about the first aggregate of another context
   private String token = UUID.randomUUID().toString();
 
   private String note;

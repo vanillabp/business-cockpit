@@ -32,9 +32,9 @@ import io.vanillabp.spi.cockpit.BusinessCockpitService;
 
 /**
  * <code>BusinessCockpitService.aggregateChanged(aggregate, userTaskIds)</code> for a BPMS half
- * which cannot build the report of a changed user task in the application's transaction: which
- * entries are planned out of what VanillaBP wrote down when it delivered the tasks, and that the
- * half is asked nothing.
+ * which cannot build the report of a changed user task in the application's transaction. The
+ * tests check which entries are planned from the notes VanillaBP took when it delivered the
+ * tasks, and that the half is asked nothing.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
@@ -111,7 +111,7 @@ public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
 
     assertEquals(2, extension.planned.size(), extension.planned.toString());
     assertEquals(CASE, extension.planned.get(0).workflowId());
-    // the case above a called process is not known here. The dispatch looks the task up in the
+    // the case above a called process is not known here. The dispatch looks for the task in the
     // aggregate's own process, by its id alone
     assertEquals(
         new UserTaskReference("c8", MODULE_ID, PROCESS_ID, null, AGGREGATE_ID, null, "12", null, null),
@@ -203,7 +203,7 @@ public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
 
   }
 
-  /** What VanillaBP wrote down about the workflow and its tasks. */
+  /** VanillaBP's notes about the workflow and its tasks. */
   private static final class Election implements WorkflowElection {
 
     private Optional<WorkflowStart> start = Optional.empty();
@@ -312,7 +312,7 @@ public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
 
   }
 
-  /** Records what would be written into the outbox, and takes every report as switched on. */
+  /** Records what would be written into the outbox. User-task reports count as switched off. */
   private static final class Extension extends BusinessCockpitExtension {
 
     private final List<UserTaskReference> planned = new ArrayList<>();
@@ -329,8 +329,8 @@ public class UserTaskChangeOfAHalfWithoutRightAwayReportsTest {
     @Override
     public boolean reportsUserTasks() {
 
-      // a report nobody writes needs no transaction, which keeps the transaction check out of
-      // this test
+      // a report which is switched off needs no transaction. This keeps the transaction check
+      // out of this test
       return false;
 
     }

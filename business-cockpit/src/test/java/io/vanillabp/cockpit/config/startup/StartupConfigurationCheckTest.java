@@ -23,9 +23,9 @@ import org.springframework.mock.env.MockEnvironment;
 /**
  * What a cockpit application is told about its configuration, and which of it stops the start.
  *
- * <p>Every assertion is about the two things a message has to carry to be worth anything, the exact
- * property name to add and an example of a value. Nothing here asserts on wording beyond that, so
- * the texts stay free to improve.
+ * <p>Every assertion is about the two things a message must carry to be useful: the exact property
+ * name to add and an example value. Nothing here asserts on wording beyond that, so the texts stay
+ * free to improve.
  */
 @ExtendWith(SuppressOutputExtension.class)
 class StartupConfigurationCheckTest {
@@ -135,7 +135,7 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * This is the point of collecting. A developer who starts from nothing reads one message and
+     * This is why the check collects. A developer who starts from nothing reads one message and
      * adds everything at once, instead of restarting into the next single complaint.
      */
     @Test
@@ -196,8 +196,8 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * The key is the one value the check can supply itself, so it does. It hands the generated one
-     * over to be written down.
+     * The key is the one value the check can make up itself, so it does. The message hands over the
+     * generated key, so that somebody can write it down.
      */
     @Test
     void aMissingSigningKeyIsGeneratedAndHandedToTheDeveloper() {
@@ -228,7 +228,7 @@ class StartupConfigurationCheckTest {
 
     /**
      * Both values only matter once e-mails are actually sent, so an installation without
-     * notification is not nagged about them.
+     * notification is told nothing about them.
      */
     @Test
     void notificationValuesAreOnlyAskedForOnceNotificationIsSwitchedOn() {
@@ -247,8 +247,8 @@ class StartupConfigurationCheckTest {
     }
 
     /**
-     * Kafka ingestion switches itself on by the three topics together, so half of them looks
-     * configured and consumes nothing.
+     * Kafka ingestion switches on only when all three topics are set. With only some of them it
+     * looks configured and consumes nothing.
      */
     @Test
     void kafkaTopicsConfiguredOnlyInPartAreAWarning() {
@@ -282,7 +282,7 @@ class StartupConfigurationCheckTest {
 
     /**
      * The signing key is written in camel case, which is not a valid configuration property name.
-     * It is bound by Spring's relaxed matching all the same, and the check has to find it under
+     * Spring's relaxed binding still binds it, and the check has to find it under
      * exactly the spelling the reference application writes into its yaml.
      */
     @Test

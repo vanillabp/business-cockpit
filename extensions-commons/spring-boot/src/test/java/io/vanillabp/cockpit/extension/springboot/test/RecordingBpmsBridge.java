@@ -20,9 +20,9 @@ import io.vanillabp.cockpit.extension.spi.WorkflowReference;
 /**
  * The BPMS half of the extension, played by the test.
  * <p>
- * It answers what an engine would answer and it records what it was asked, so that a test can
- * raise an event and then read what the extension did with it. It is also what proves the
- * commons half needs nothing but this interface from a BPMS.
+ * It answers the way an engine would and records every question. So a test can raise an event
+ * and then read what the extension did with it. It also proves that the commons half needs
+ * nothing from a BPMS except this interface.
  */
 public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
@@ -41,7 +41,7 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The initiator this engine prefills, the way Camunda 7 answers for a case it started. */
   public static final String ENGINE_INITIATOR = "the-engine";
 
-  /** When the engine created the task and started the workflow, as an end reports it. */
+  /** When the engine created the task and started the workflow, as the BPMS reports it. */
   public static final OffsetDateTime CREATED_AT = OffsetDateTime.parse("2026-10-01T08:00:00Z");
 
   private final AtomicBoolean knowsTheTask = new AtomicBoolean(true);
@@ -80,8 +80,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @param knows Whether this engine says anything about the task. A test switches it off to prove
-   *          that a task an engine is silent about is not reported, and that the silence ends
-   *          nothing
+   *          two things: a task the engine says nothing about is not reported, and the silence
+   *          does not end anything
    */
   public void knowsTheTask(
       final boolean knows) {
@@ -92,8 +92,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @param prefills Whether this engine names an initiator at all. Camunda 8 and the
-   *          Process-Engine-API name none, so a test switches it off to run the way those two
-   *          report
+   *          Process-Engine-API name none, so a test switches it off to report the way those two
+   *          do
    */
   public void prefillsAnInitiator(
       final boolean prefills) {
@@ -104,8 +104,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @param rightAway Whether this engine names the workflows of a changed aggregate in the
-   *          application's transaction. A test switches it off to play a BPMS which writes a
-   *          storage behind its engine, the way Camunda 8 does
+   *          application's transaction. A test switches it off to act like a BPMS whose
+   *          searchable storage is written after the engine, the way Camunda 8 does
    */
   public void namesWorkflowsRightAway(
       final boolean rightAway) {
@@ -137,8 +137,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @param rightAway Whether this engine builds the report of a changed user task in the
-   *          application's transaction. A test switches it off to play a BPMS which writes a
-   *          storage behind its engine, the way Camunda 8 does
+   *          application's transaction. A test switches it off to act like a BPMS whose
+   *          searchable storage is written after the engine, the way Camunda 8 does
    */
   public void reportsAChangedUserTaskRightAway(
       final boolean rightAway) {
@@ -185,9 +185,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @return For every lookup of one task of an aggregate, whether a transaction was open while
-   *         this engine was asked. A test reads it to see that a question of
-   *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one unit
-   *         of work
+   *         this engine was asked. A test reads it to check that a call of
+   *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one
+   *         transaction
    */
   public List<Boolean> tasksLookedUpInATransaction() {
 
@@ -196,8 +196,8 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * Starts a fresh record of the lookups, so that the setup of a test is not mistaken for the run
-   * under test.
+   * Clears the record of the lookups, so that the lookups of the test setup do not count as part
+   * of the test.
    */
   public void forgetLookups() {
 
@@ -286,9 +286,9 @@ public class RecordingBpmsBridge implements BusinessCockpitBpmsBridge {
       final String workflowAggregateId,
       final List<String> userTaskIds) {
 
-    // an engine which says nothing about its tasks names none of them. That is what a search of
-    // a storage written behind the engine answers while it is behind, and the test uses it to
-    // read what the commons half makes of an empty answer
+    // an engine which says nothing about its tasks names none of them. A search in a storage
+    // which lags behind the engine answers the same way while it lags. The test uses this to see
+    // what the commons half does with an empty answer
     if (!knowsTheTask.get()) {
       return List.of();
     }

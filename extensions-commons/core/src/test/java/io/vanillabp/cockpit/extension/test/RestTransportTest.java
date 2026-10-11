@@ -32,9 +32,9 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 /**
  * What the cockpit server receives over REST, asserted against a server of the test's own.
  * <p>
- * Reading the request instead of a mock of the client is what makes these assertions worth
- * having. The payload, the path and the method are what the two sides agreed on, and a
- * generated client is exactly the place where an agreement is easy to break by accident.
+ * The tests read the request the server received, not a mock of the client. That is what makes
+ * them worth having. Payload, path and method are what both sides agreed on, and a generated
+ * client is exactly where such an agreement breaks easily by accident.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class RestTransportTest {

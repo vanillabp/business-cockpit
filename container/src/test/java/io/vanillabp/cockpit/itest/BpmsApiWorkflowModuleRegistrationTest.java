@@ -211,9 +211,9 @@ class BpmsApiWorkflowModuleRegistrationTest extends ItestBase {
     }
 
     /**
-     * The same move, but the module stayed on its server and only shifted the base path underneath
-     * which it publishes itself. The target of the route is unchanged then, only the path rewrite
-     * differs, which is the part of a route that is easiest to leave stale.
+     * The same move, but the module stayed on its server and only changed the base path it
+     * publishes itself under. The target of the route stays the same, and only the path rewrite
+     * differs. That is the part of a route which is easiest to leave stale.
      */
     @Test
     void reRegistrationWithAChangedBasePathMovesTheProxyToTheNewPath() {

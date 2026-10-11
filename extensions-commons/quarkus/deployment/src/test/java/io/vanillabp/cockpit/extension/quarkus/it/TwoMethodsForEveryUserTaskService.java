@@ -9,7 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 /**
  * A workflow service whose two methods claim every user task, one written as a task definition
- * and one as an element id. Both say the same thing, nothing says which of them to call, so the
+ * and one as an element id. Both mean the same, and nothing says which of them to call, so the
  * application is not allowed to start.
  */
 @ApplicationScoped

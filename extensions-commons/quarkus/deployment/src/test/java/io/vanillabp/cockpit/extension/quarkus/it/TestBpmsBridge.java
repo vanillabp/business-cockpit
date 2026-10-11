@@ -19,8 +19,8 @@ import jakarta.transaction.Status;
 import jakarta.transaction.TransactionSynchronizationRegistry;
 
 /**
- * The BPMS half of the extension, played by the test. It answers what an engine would answer
- * and proves that the commons half needs nothing but this interface from a BPMS.
+ * The BPMS half of the extension, played by the test. It answers what an engine would answer. It
+ * shows that the commons half needs nothing from a BPMS but this interface.
  */
 @ApplicationScoped
 public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
@@ -37,7 +37,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   /** The deployed version this BPMS double runs its workflows on. */
   public static final String PROCESS_VERSION = "1";
 
-  /** The initiator this engine prefills, the way Camunda 7 answers for a case it started. */
+  /** The initiator this engine prefills, the way Camunda 7 does for a case it started. */
   public static final String ENGINE_INITIATOR = "the-engine";
 
   @Inject
@@ -72,8 +72,8 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * @param reads How many of the next reads of a user task answer nothing, the way a storage
-   *          answers while its exporter is behind
+   * @param reads How many of the next reads of a user task return nothing, the way a storage
+   *          does while its exporter is behind
    */
   public void writesTheTaskAfter(
       final int reads) {
@@ -111,8 +111,8 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * @param lookups How many of the next lookups of the workflows of an aggregate answer nothing,
-   *          the way a storage answers while its exporter is behind
+   * @param lookups How many of the next lookups of the workflows of an aggregate return nothing,
+   *          the way a storage does while its exporter is behind
    */
   public void writesTheWorkflowAfter(
       final int lookups) {
@@ -145,7 +145,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
 
   /**
    * @return For every lookup of one task of an aggregate, whether a transaction was open while
-   *         this engine was asked. A test reads it to see that a question of
+   *         this engine was asked. A test reads it to check that a question to
    *         <code>BusinessCockpitService</code> asks the BPMS and reads the aggregate in one unit
    *         of work
    */
@@ -156,7 +156,7 @@ public class TestBpmsBridge implements BusinessCockpitBpmsBridge {
   }
 
   /**
-   * Starts a fresh record of the lookups, so that the setup of a test is not mistaken for the run
+   * Starts a new record of the lookups, so that the setup of a test is not mistaken for the run
    * under test.
    */
   public void forgetLookups() {

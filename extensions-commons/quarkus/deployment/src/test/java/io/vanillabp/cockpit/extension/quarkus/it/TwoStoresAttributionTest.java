@@ -24,10 +24,10 @@ import jakarta.transaction.UserTransaction;
  * An application whose two workflow aggregates live in two outbox stores, each named by the
  * application itself.
  * <p>
- * Each report has to reach the store of its own workflow, because an entry which is not
- * committed with what it reports reports something that may never have happened. The event a
- * BPMS observed names a BPMN process and no class, and the workflow service serving that process
- * is where the class comes from. See decision 13 of the repository's decision log.
+ * Each report has to reach the store of its own workflow. An entry which is not committed
+ * together with what it reports may report something that never happened. The event a BPMS
+ * observed names a BPMN process but no class. The class comes from the workflow service of that
+ * process. See decision 13 of the repository's decision log.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TwoStoresAttributionTest {
@@ -89,8 +89,8 @@ public class TwoStoresAttributionTest {
   @DisplayName("Each report lands in the store of the aggregate its workflow belongs to")
   public void eachReportLandsInItsOwnStore() throws Exception {
 
-    // both cases are saved first, because a report is put together where it is made and the
-    // details provider of the application is handed the case the event is about
+    // both cases are saved first, because a report is built at the event, and the details
+    // provider of the application gets the case the event is about
     final var first = new TestAggregate();
     first.setCustomer("Anna");
     firstAggregates.save(first);
