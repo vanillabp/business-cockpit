@@ -41,14 +41,16 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.testcontainers.mongodb.MongoDBContainer;
 
 /**
- * What happens to a key with a dot in the business data of a user task, today and with the two
- * settings Spring Data offers for it. Measured for story 1442 against a real MongoDB. Nothing of
- * the cockpit was changed for it, so every test describes the behaviour of today's code and stays
- * green as long as that behaviour stays the same.
+ * What happens to a key with a dot in the business data of a user task, without a setting and
+ * with each of the two settings Spring Data offers for it. Measured against a real MongoDB, with a
+ * template which has the converters of {@code MongoDbConfiguration}. Every test describes the
+ * behaviour of today's code and stays green as long as that behaviour stays the same.
  * <p>
- * The business data, {@code details}, is a map the workflow module fills. Today the cockpit sets
- * neither of the two settings, so Spring Data refuses a key like {@code order.id} before anything
- * is sent. {@code WhatMongoDbRefusesEveryTimeTest} shows what the service makes of that.
+ * The business data, {@code details}, is a map the workflow module fills. By default the cockpit
+ * sets neither of the two settings, so Spring Data refuses a key like {@code order.id} before
+ * anything is sent. {@code WhatMongoDbRefusesEveryTimeTest} shows what the service makes of that.
+ * The property {@code business-cockpit.mongodb.map-key-dot-replacement} turns on the second
+ * setting, see {@code MapKeyDotReplacement}.
  * <p>
  * The two settings are these:
  * <ul>

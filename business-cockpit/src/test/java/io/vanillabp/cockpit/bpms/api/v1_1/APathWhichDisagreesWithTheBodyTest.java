@@ -201,7 +201,7 @@ class APathWhichDisagreesWithTheBodyTest {
     }
 
     /**
-     * The case of the story: a change creates a case the cockpit never saw, and the next change of
+     * The case this check is for: a change creates a case the cockpit never saw, and the next change of
      * the same path has to find it. With a body which names another case, it would have been stored
      * under that other id.
      */

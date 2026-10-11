@@ -69,9 +69,9 @@ public final class BusinessCockpitOperations {
    * The version of the deployed BPMN process the event came from, or nothing where the BPMS
    * reports none. It picks the details provider which serves that version.
    * <p>
-   * It travels with the entry although the dispatch reads the rest again. The version is part of
-   * naming the event: a deployment made while the entry waited must not move the event to the
-   * method of the newer model.
+   * It travels with the entry as an argument of its own, also where the report is only built
+   * when the entry is dispatched. The version is part of naming the event: a deployment made
+   * while the entry waited must not move the event to the method of the newer model.
    */
   public static final String ARG_PROCESS_VERSION = "processVersion";
 
