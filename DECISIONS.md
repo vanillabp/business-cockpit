@@ -2847,3 +2847,60 @@ from here.
 | `.github/workflows/publish-snapshots.yaml`, `release.yml`             | Java artifacts only |
 | `UnknownPathsTest`, `ApplicationWithoutTheBaseClassTest`              | 404 for an unknown path |
 | `README.md`, `AGENTS.md`, `UPGRADE.md`, the module READMEs, the skill | no user interface here |
+
+### 64. The version a start deployed needs a details provider which covers it
+
+Built by story 1476 on 2026-10-11. Stephan: "Das Verhalten sollte bei Platform und Extension
+gleich sein". It uses platform story 954, which opened the check of platform decision 126 to
+extensions.
+
+A user task of the model a start deploys may have `@UserTaskDetailsProvider` methods. If none of
+them covers the version the BPMS gave that model, the start ends. The same holds for a process and
+its `@WorkflowDetailsProvider` methods. Before, such a provider passed the start, and the task was
+reported without its details at every event. The core ends the start for a `@WorkflowTask` method
+in the same case, so the extension now does what the core does (decision 16).
+
+**The same code.** Nothing of the check is built here. Both contracts say
+`theDeployedVersionNeedsAMethod(...)`, with one sentence about what a missing provider costs:
+"Every report about such a user task (workflow) then goes out without the details of its
+provider." The platform holds the methods against the version and writes the message, the same
+message a `@WorkflowTask` method gets.
+
+**Who names the elements.** The platform knows the methods but not the user tasks of a model. A
+BPMS half names them while it wires the model, through
+`BusinessCockpitEventPublisher#userTaskWired`. It passes the values it later passes with the events
+of the task, so the check picks the providers an event would pick. The platform-neutral half names
+the process itself for `@WorkflowDetailsProvider`. The contracts are registered on the first
+wiring at the latest, because the platform reads them when it checks.
+
+**What is not asked.**
+
+- A user task or a process with no provider at all. Providers are optional.
+- A process the application declares only as a secondary process (`secondaryBpmnProcesses`) is not
+  checked for its `@WorkflowDetailsProvider`. It runs on the aggregate of its class, so it is a
+  step of the caller's case and never gets a workflow report of its own. A called process with an
+  aggregate of its own is the primary process of its own class and is checked there. Which process
+  is a secondary one is read from the `@WorkflowService` annotation of the class VanillaBP scanned,
+  in the scan hook of the contract.
+- A BPMS which reports no deployed version. The Process-Engine-API is such a BPMS today, so the
+  check never runs there and its half names nothing.
+- A user task the application switched off (`user-tasks-enabled`) or workflows it switched off
+  (`workflow-list-enabled`). No provider is called there.
+
+**A task of a called process counts in the version of the called process.** The version of a task
+provider always refers to the BPMN model the task belongs to. For a task of a called process that
+is the called process, both at the start and at an event. Platform decision 123 says the same. At
+the start, a half names the task under the called process, and the platform holds its providers
+against the version the BPMS gave the called process. At an event, every half reports the called
+process and its version with the task: Camunda 7 the process definition of the task's execution,
+Camunda 8 the version of the job, the Process-Engine-API the version tag of the delivery. Each of
+these three is held by a test in its repository.
+
+**What stays a warning.** A provider which serves no version the BPMS holds is still named and the
+start runs (decision 24, platform decision 60). That finding is about a method without a task. This
+one is about a task without a method.
+
+`TheDeployedVersionNeedsACoveringProviderTest` on Spring Boot and the `DeployedVersion…Test`
+classes on Quarkus hold the cases: a covering provider, a user task and a workflow without one, a
+process without any provider, a provider of a version nobody holds, and a called process whose
+task provider is held against its own version.

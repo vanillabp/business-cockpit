@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import io.vanillabp.cockpit.extension.config.ConfigurationKeys;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
@@ -18,6 +19,8 @@ import io.vanillabp.spi.cockpit.usertask.PrefilledUserTaskDetails;
 import io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider;
 import io.vanillabp.spi.cockpit.workflow.PrefilledWorkflowDetails;
 import io.vanillabp.spi.cockpit.workflow.WorkflowDetailsProvider;
+import io.vanillabp.spi.service.BpmnProcess;
+import io.vanillabp.spi.service.WorkflowService;
 
 /**
  * The two contracts telling VanillaBP how to find and invoke the Business Cockpit's details
@@ -61,6 +64,8 @@ public final class BusinessCockpitHandlers {
         .lookupKeys(BusinessCockpitHandlers::userTaskLookupKeys)
         .versions(annotation -> versionsOf(((UserTaskDetailsProvider) annotation).version()))
         .callsCarryTheProcessVersion()
+        .theDeployedVersionNeedsAMethod(
+            "Every report about such a user task then goes out without the details of its provider.")
         .coreParameters(
             CoreHandlerParameter.WORKFLOW_AGGREGATE,
             CoreHandlerParameter.TASK_PARAM,
@@ -74,15 +79,30 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
-   * @return The contract of <code>&#64;WorkflowDetailsProvider</code>
+   * The contract of <code>&#64;WorkflowDetailsProvider</code>.
+   * <p>
+   * While VanillaBP scans a class, the contract tells the caller which BPMN processes that class
+   * names as <code>secondaryBpmnProcesses</code>. Such a process runs on the aggregate of the
+   * class, so it is a step of the caller's case and never gets a workflow report of its own. The
+   * caller uses this to leave it out of the check of the deployed version (decision 64 in the
+   * repository's DECISIONS.md).
+   *
+   * @param secondaryProcessFound Gets each secondary process of a class with such a provider
+   * @return The contract
    */
-  public static HandlerContract workflowContract() {
+  public static HandlerContract workflowContract(
+      final Consumer<String> secondaryProcessFound) {
 
     return HandlerContract
         .of(ConfigurationKeys.EXTENSION_ID, WorkflowDetailsProvider.class)
         .lookupKeys(annotation -> List.of(HandlerContract.EVERY_KEY))
         .versions(annotation -> versionsOf(((WorkflowDetailsProvider) annotation).version()))
         .callsCarryTheProcessVersion()
+        .theDeployedVersionNeedsAMethod(
+            "Every report about such a workflow then goes out without the details of its provider.")
+        .validatingAnnotation((
+            annotation,
+            method) -> secondaryProcessesOf(method).forEach(secondaryProcessFound))
         .coreParameters(CoreHandlerParameter.WORKFLOW_AGGREGATE)
         .parameterBinder(BusinessCockpitHandlers::bindPrefilledWorkflowDetails)
         .deliversReturnValue()
@@ -210,6 +230,30 @@ public final class BusinessCockpitHandlers {
       case COMPLETED -> DetailsEvent.Event.COMPLETED;
       case CANCELED -> DetailsEvent.Event.CANCELED;
     };
+
+  }
+
+  /**
+   * The BPMN processes the workflow service of a method names as secondary ones.
+   * <p>
+   * The method is the one VanillaBP scanned. A platform may hand over a subclass of the class
+   * the application wrote, which is why the annotation is looked up with its inheritance.
+   *
+   * @param method A method of a <code>&#64;WorkflowService</code> class
+   * @return The ids of its secondary processes, empty where it names none
+   */
+  static List<String> secondaryProcessesOf(
+      final java.lang.reflect.Method method) {
+
+    final var service = method.getDeclaringClass().getAnnotation(WorkflowService.class);
+    if (service == null) {
+      return List.of();
+    }
+    return Arrays
+        .stream(service.secondaryBpmnProcesses())
+        .map(BpmnProcess::bpmnProcessId)
+        .filter(id -> !BpmnProcess.USE_CLASS_NAME.equals(id))
+        .toList();
 
   }
 
