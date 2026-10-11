@@ -129,11 +129,11 @@ public class WorkflowlistService {
     /**
      * Stores what a workflow module reports about a case it has just started.
      * <p>
-     * A creation of a case the cockpit already holds stores nothing but its start. It is the
-     * oldest report there is, so everything else it says has been said again since. Its start is
-     * stored where it is earlier than the one the cockpit holds, which a change that created the
-     * case set to the time of that change. There is one exception: a case the cockpit learned
-     * about from its end alone has been waiting for exactly this report.
+     * If the cockpit already holds the case, the creation stores nothing but its start. A creation
+     * is the oldest report there is, so later reports have said everything else again. The start
+     * is stored if it is earlier than the stored one. A change which created the case set the
+     * stored start to the time of that change. There is one exception: if the cockpit learned
+     * about the case from its end alone, it has been waiting for exactly this report.
      *
      * @param workflowId The case the report is about
      * @param eventTimestamp When the workflow module started the case, by its own clock
@@ -162,8 +162,8 @@ public class WorkflowlistService {
             return OutcomeOfStoring.upToDate();
         }
 
-        // the creation's own start replaces the one the end gave the case, which is the same
-        // where the end reported it, and the time of the end where it did not
+        // the creation's own start replaces the start the end gave the case. If the end
+        // reported a start, both are the same. If not, the end used its own time
         final var workflow = asReported.get();
         // the end is the younger report of the two and stays untouched, as does everything the
         // cockpit itself has recorded about the case since the end arrived
@@ -172,8 +172,8 @@ public class WorkflowlistService {
         workflow.setComment(stored.getComment());
         workflow.setInitiator(stored.getInitiator());
         workflow.setLatestEventAt(stored.getLatestEventAt());
-        // this report is here for what an end could not say about the case. The other way round,
-        // an end which did say it holds the younger answer. One rule decides both ways
+        // this report fills in what the end could not say about the case. Where the end did say
+        // something, the end is younger and wins. One rule decides both cases
         workflow.setDetails(
                 WhatAnEndReports.whatToStore(stored.getDetails(), workflow.getDetails()));
         workflow.setDetailsFulltextSearch(
@@ -272,9 +272,9 @@ public class WorkflowlistService {
     }
 
     /**
-     * Says that a report was read and stored nothing, which is the answer to a report the cockpit
-     * has already been told something younger about. It belongs in the log, because it explains a
-     * change a workflow module sent and nobody finds in the cockpit.
+     * Says that a report was read and stored nothing, because the cockpit already holds something
+     * younger. It belongs in the log, because it explains a change a workflow module sent and
+     * nobody finds in the cockpit.
      */
     private void reportChangesNothing(
             final String workflowId,

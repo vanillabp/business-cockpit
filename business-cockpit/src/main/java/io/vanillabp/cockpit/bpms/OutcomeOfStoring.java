@@ -15,22 +15,22 @@ import org.springframework.data.mapping.MappingException;
  * stored at the same time. The same report goes through when it comes again, so REST answers
  * {@code 503} and Kafka hands the record over again.</li>
  * <li>It fails every time. The document itself is refused, so the same report is refused again
- * however often it comes. REST answers {@code 422} with the reason, and Kafka passes the
- * record over, so that the records behind it are not held up for good.</li>
+ * however often it comes. REST answers {@code 422} with the reason, and Kafka skips the
+ * record, so that the records behind it are not held up for good.</li>
  * </ul>
  * Only three failures are of the second kind. Each of them depends on nothing but the document,
  * so the same report fails the same way however often it comes. Everything else counts as a failure
- * for now, because repeating a report which could have gone through costs a few more attempts, and
- * giving up such a report loses it.
+ * for now. Repeating a report which could have gone through costs a few more attempts. Giving it up
+ * loses it.
  * <ul>
  * <li>{@link BsonMaximumSizeExceededException}. The driver throws it before it sends anything,
  * because the document is larger than the 16 MB MongoDB takes. Spring does not translate it, so it
  * arrives as it is.</li>
  * <li>A write which breaks the validation rules of the collection, which MongoDB answers with the
  * error code {@value #DOCUMENT_VALIDATION_FAILURE}. The cockpit sets no such rules itself. An
- * operator can add them, and then every report which breaks them is refused the same way. The driver throws a
- * {@code MongoWriteException} with that code, and Spring wraps it into a
- * {@code DataIntegrityViolationException}, so the causes are searched for it.</li>
+ * operator can add them, and then every report which breaks them is refused the same way. The
+ * driver throws a {@code MongoWriteException} with that code. Spring wraps it into a
+ * {@code DataIntegrityViolationException}, so the code is looked for among the causes.</li>
  * <li>A {@link MappingException} of Spring Data, thrown while it turns the record into a document
  * and before anything is sent. The case known is a key of the business data with a dot in it, like
  * {@code order.id}: unless {@link MapKeyDotReplacement} is configured, Spring Data refuses such a

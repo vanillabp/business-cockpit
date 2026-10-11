@@ -29,8 +29,8 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   private OffsetDateTime timestamp;
 
   /**
-   * When the BPMS started the workflow, where the BPMS half could tell. Only the report of an end carries it,
-   * for the case that the end arrives at the cockpit before the creation.
+   * When the BPMS started the workflow, where the BPMS half could tell. Only the report of an end
+   * carries it, in case the end arrives at the cockpit before the creation.
    */
   private OffsetDateTime createdAt;
 
@@ -167,7 +167,8 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   }
 
   /**
-   * @return When the BPMS started the workflow, or <code>null</code> where the BPMS half could not tell
+   * @return When the BPMS started the workflow, or <code>null</code> where the BPMS half could
+   *         not tell
    */
   public OffsetDateTime getCreatedAt() {
 

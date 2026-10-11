@@ -69,7 +69,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
         requireATransactionToReport(
             extension.reportsWorkflows(),
             "the change of workflow aggregate '%s'".formatted(aggregateIdOf(workflowAggregate)));
-        // nothing here may wait for a BPMS or read a storage it writes behind its engine: this
+        // nothing here may wait for a BPMS or read a store the BPMS fills after the fact: this
         // runs in the application's transaction. So the note VanillaBP wrote at the start names
         // the adapter where it can, and a BPMS half which cannot name the workflows without such
         // a read gets an entry which is resolved when it is dispatched
@@ -143,7 +143,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
             "the change of the user tasks of workflow aggregate '%s'"
                 .formatted(aggregateIdOf(workflowAggregate)));
         final var named = userTaskIds == null ? List.<String>of() : List.of(userTaskIds);
-        // nothing here may wait for a BPMS or read a storage it writes behind its engine, for
+        // nothing here may wait for a BPMS or read a store the BPMS fills after the fact, for
         // the reason given at aggregateChanged(aggregate). The note of the start names the
         // adapter where it can, and the open tasks VanillaBP wrote down name it otherwise
         final var start = context
@@ -168,7 +168,7 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
         }
         final var bridge = found.get();
         if (bridge.reportsAChangedUserTaskRightAway()) {
-          // a task the BPMS names none of is left out of the loop below, so no entry is written
+          // a task the BPMS does not name is left out of the loop below, so no entry is written
           // for it and the cockpit keeps the data it stored before. That is all an empty answer
           // does here. It does not end the task, and it takes the task off no cockpit list:
           // only the BPMS' own report of an end does that
@@ -433,9 +433,9 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
        * transaction there is nothing to write it into. The platform's own refusal speaks of an
        * adapter reporting from a worker thread, which is not what happened here.
        * <p>
-       * A report nobody writes needs nothing. An application which switched the two lists off,
-       * and a workflow module which configured nothing about the cockpit, carry on without a
-       * transaction the way they did before anybody asked for one.
+       * A report which is never written needs no transaction. An application which switched the two
+       * lists off, and a workflow module which configured nothing about the cockpit, carry on
+       * without a transaction the way they did before anybody asked for one.
        *
        * @param anythingIsReported Whether this kind of report is switched on at all
        * @param what The report, in a form fitting "Reporting ... to the Business Cockpit"

@@ -8,9 +8,9 @@ import java.lang.annotation.Target;
 import org.mapstruct.Qualifier;
 
 /**
- * A MapStruct qualifier binds an ambiguous mapping to one method. No mapping ever names this
- * one, so MapStruct leaves a method carrying it out of the type mapping. That is how a helper
- * method is kept out of its way.
+ * A MapStruct qualifier ties an ambiguous mapping to one method. No mapping ever names this
+ * qualifier, so MapStruct never picks a method which carries it. Put it on a helper method to
+ * keep MapStruct from using that method for a mapping.
  */
 @Qualifier
 @Target(ElementType.METHOD)

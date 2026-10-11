@@ -48,10 +48,10 @@ public class WorkflowChangedNotification extends NotificationEvent {
     /**
      * Azure Cosmos DB for MongoDB does not report the operation type, see
      * <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/mongodb/change-streams?tabs=javascript#current-limitations">its
-     * limitations</a>. There it has to be read off the document, which that mode does carry along
-     * because it is subscribed with a lookup. A document the lookup no longer found says that
-     * something changed and not what, and an update is the honest answer to that: a client reloads
-     * by id either way.
+     * limitations</a>. There it has to be read from the document. In that mode the event carries
+     * the document, because the cockpit subscribes with a lookup. If the lookup no longer found the
+     * document, we only know that something changed, not what. Calling it an update is the honest
+     * answer, and a client reloads by id either way.
      */
     private static OperationType operationOf(
             final Message<ChangeStreamDocument<Document>, Workflow> message) {

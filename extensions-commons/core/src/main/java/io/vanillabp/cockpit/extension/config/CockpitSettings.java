@@ -123,7 +123,7 @@ public record CockpitSettings(
    * Everything below <code>rest.authentication.oauth</code>.
    * <p>
    * In version 1 this section was a client configuration of its own, so an authorization
-   * server behind another proxy or with another certificate was reachable. It stays one. The
+   * server behind another proxy or with another certificate was reachable. It still is. The
    * token client inherits nothing from <code>rest</code>, and what is not written here is the
    * default, not what the cockpit server's client uses.
    *

@@ -39,10 +39,10 @@ import org.slf4j.LoggerFactory;
  * There is one exception. A task which names no assignee, no candidate user and no candidate group
  * is dangling ({@link UserTask#isDangling()}), and the cockpit shows it to everybody. Such a task
  * takes who sees it from the first later report which names somebody. Version 1.1 of the API
- * carries all values in every report, so this happens with reports of version 1, which carry none of
- * the four fields in an end, and with ends of a BPMS which could no longer describe the task. The
- * task stops being dangling then, because the cockpit reads that flag from the fields whenever it
- * stores the task.
+ * carries all values in every report. So this happens in two cases: with reports of version 1,
+ * whose end carries none of the four fields, and with ends from a BPMS which could no longer
+ * describe the task. The task then stops being dangling, because the cockpit computes that flag
+ * from the fields each time it stores the task.
  * <p>
  * The cockpit does not warn about a report which names other people. A workflow module cannot
  * know whether the cockpit already holds the task, so such a report is no mistake. A DEBUG line

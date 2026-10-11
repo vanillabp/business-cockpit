@@ -23,18 +23,23 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * 
  * The method returns {@link UserTaskDetails}.
  * <p>
- * These parameters may stand there, in any order, and none of them is required. The workflow
- * aggregate, taken by its type and without an annotation, the way a
- * <code>&#64;WorkflowTask</code> method takes it. {@link PrefilledUserTaskDetails}, which
- * carries what the BPMS reported about the task and is the object most methods fill in and hand
- * back. A process variable named by <code>&#64;TaskParam</code>. The multi-instance parameters
- * of the task. And <code>&#64;DetailsEvent</code>, which says why the method is asked. Any other
- * parameter ends the start of the application, and the message names the method and says what
- * may stand there instead.
+ * The method may take these parameters, in any order, and none of them is required:
+ * <ul>
+ * <li>the workflow aggregate, by its type and without an annotation, the way a
+ * <code>&#64;WorkflowTask</code> method takes it,
+ * <li>{@link PrefilledUserTaskDetails}, which carries what the BPMS reported about the task.
+ * Most methods fill it in and return it,
+ * <li>a process variable named by <code>&#64;TaskParam</code>,
+ * <li>the multi-instance parameters of the task,
+ * <li><code>&#64;DetailsEvent</code>, which says why the method is called.
+ * </ul>
+ * Any other parameter stops the application from starting. The message names the method and
+ * says which parameters are allowed.
  * <p>
- * The id of the task is not a parameter. It stands in the prefilled details, which every method
- * may take, so <code>&#64;TaskId</code> is not bound here. It belongs to a BPMN task VanillaBP
- * completes, and a method reporting what a task looks like is not that.
+ * The id of the task is not a parameter. It is part of the prefilled details, which every
+ * method may take, so <code>&#64;TaskId</code> is not bound here. <code>&#64;TaskId</code> is
+ * meant for a BPMN task which VanillaBP completes, and a method which describes a task does not
+ * complete it.
  *
  * <p>
  * Which method serves which user task:
@@ -53,7 +58,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * which of them to call.
  *
  * <p>
- * Two methods may name the same task all the same, as long as the versions of the process they
+ * Two methods may still name the same task, as long as the versions of the process they
  * serve do not overlap. That is how one generation of a model gets a method of its own. See
  * {@link #version()}.
  *
@@ -108,8 +113,8 @@ public @interface UserTaskDetailsProvider {
      * (<code>camunda:versionTag</code> in Camunda 7, <code>zeebe:versionTag</code> in Camunda 8):
      * <ul>
      * <li><i>*</i>: every version (the default)
-     * <li><i>3</i> or <i>release-2024</i>: exactly that version, respectively every version
-     * carrying that tag
+     * <li><i>3</i> or <i>release-2024</i>: exactly that version, or every version carrying that
+     * tag
      * <li><i>1-3</i> or <i>v1.0..v2.0</i>: a range, both boundaries included
      * <li><i>&gt;3</i>, <i>&lt;v2.0</i>: open ended
      * </ul>
@@ -129,11 +134,11 @@ public @interface UserTaskDetailsProvider {
      * the range of the <code>&#64;BpmnProcess</code> its process was declared with. That range
      * belongs to the workflow itself, and reporting to the cockpit is not part of running it.
      * <p>
-     * The version arrives with the event the cockpit reacts to, so what the BPMS reports decides
-     * how far this gets. Camunda 7 and Camunda 8 report it for every task. An engine behind the
-     * Process-Engine-API reports a version tag where it fills one in and nothing otherwise. Where
-     * no version arrives, only a method naming no version runs, and a method which names one is
-     * reported while the application starts instead of silently never running.
+     * The version arrives with the event the cockpit reacts to, so this works only as far as the
+     * BPMS reports the version. Camunda 7 and Camunda 8 report it for every task. An engine behind
+     * the Process-Engine-API reports a version tag where it fills one in and nothing otherwise.
+     * Where no version arrives, only a method naming no version runs, and a method which names one
+     * is reported while the application starts instead of silently never running.
      *
      * @return The versions of the deployed BPMN process this method serves
      */

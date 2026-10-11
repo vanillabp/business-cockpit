@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The main task list of the delivered application. It holds everything its user could take a hand
- * in. Those are the tasks they have claimed, the tasks which name them or one of their groups,
- * and the tasks nobody was addressed with.
+ * The main task list of the delivered application. It holds everything its user could work on:
+ * the tasks they have claimed, the tasks which name them or one of their groups, and the tasks
+ * addressed to nobody.
  */
 @RestController("tasklistGuiApiController")
 @RequestMapping(path = "/gui/api/v1")

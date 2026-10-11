@@ -10,15 +10,15 @@ import java.util.stream.Stream;
 
 /**
  * Which user tasks one view of the cockpit lets a user reach. The list of that view is built from
- * it, and so is every request naming a single task, so an id the list would not have shown is
- * answered as unknown rather than opening a way past the list.
+ * it, and so is every request for a single task. So a request for an id the list would not have
+ * shown is answered as unknown, and nobody gets past the list that way.
  *
  * <p>A task is visible once one of the reasons named here holds: it is assigned to one of the
  * {@code assignees}, it names one of the {@code candidateUsers}, it names one of the
  * {@code candidateGroups}, it admits one of the {@code admittedUsers}, or it addresses nobody at all
- * and {@code includeDanglingTasks} is set. A collection left null or empty drops its reason instead
- * of widening the view. Once no reason is left the view is unrestricted, which is what
- * {@link #everyUserTask()} says out loud.
+ * and {@code includeDanglingTasks} is set. A collection left null or empty drops its reason. It
+ * does not widen the view. Once no reason is left the view is unrestricted, and
+ * {@link #everyUserTask()} is the name for that.
  *
  * <p>{@code admittedUsers} is the reason which says nothing about working on the task. A workflow
  * module writes the task's own {@code admittedUsers} to let somebody reach it for a reason of the
@@ -36,20 +36,20 @@ import java.util.stream.Stream;
  * {@code excludedCandidateUsers}, which is how a workflow module enforces four eyes.
  *
  * <p>The exclusion cancels every reason but one. A user in {@code admittedUsers} sees the task
- * even where the same task excludes them. Four eyes do not suffer from that. The first pair should
- * never be shown the second task at all, and if the task did reach them, the workflow module's own
- * security keeps the form shut. So the rule reads: the user is admitted, or they are a candidate
- * and not excluded.
+ * even if the same task excludes them. The four-eyes rule still holds. The workflow module should
+ * never admit the first pair of eyes to the second task. And if the task did reach them, the
+ * module's own security keeps the form closed. So the rule reads: the user is admitted, or they
+ * are a candidate and not excluded.
  *
  * <p>An application built on the cockpit picks one of the visibilities below or writes its own, and
  * the controller carrying it needs nothing else.
  *
  * <p>The rule exists twice. {@code UserTaskService.buildUserTasksCriteria} writes it as a MongoDB
- * query, for the lists. {@link #letsThrough(TaskFacts)} writes it in Java, for the update streams,
- * which decide for every open browser tab at once and would otherwise ask the database once per
- * tab. {@code TheVisibilityInMemoryAgreesWithTheQueryTest} holds the two together: it asks both for
- * many tasks and views and fails on the first difference, and it fails as well when the query
- * reads a field {@link TaskFacts} does not carry.
+ * query, for the lists. {@link #letsThrough(TaskFacts)} writes it in Java, for the update streams.
+ * They decide for every open browser tab at once, and would otherwise ask the database once per
+ * tab. {@code TheVisibilityInMemoryAgreesWithTheQueryTest} keeps the two in line. It asks both
+ * about many tasks and views and fails on the first difference. It also fails if the query reads
+ * a field which {@link TaskFacts} does not carry.
  */
 public record UserTaskVisibility(
         boolean includeDanglingTasks,

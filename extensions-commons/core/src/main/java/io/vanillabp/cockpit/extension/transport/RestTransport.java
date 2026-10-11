@@ -43,7 +43,7 @@ public class RestTransport implements BusinessCockpitTransport {
   /** What the cockpit server serves its BPMS API of version 1.1 under. */
   static final String API_PATH = "/bpms/api/v1_1";
 
-  /** The header a server names the length of its own unavailability in. */
+  /** The header in which a server says how long it will be unavailable. */
   static final String RETRY_AFTER_HEADER = "Retry-After";
 
   /** The role the cockpit server asks of every caller of its BPMS API. */

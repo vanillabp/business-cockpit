@@ -160,10 +160,10 @@ public abstract class WorkflowMapper {
      * the fulltext search reads. And it covers who started the case and who may see it.
      * <p>
      * An end may not replace what it cannot know. When the cockpit stored the case and how often
-     * the record was saved is the cockpit's own record-keeping. When the case began is something an
-     * end does not say. That the case has ended is set by the service and not mapped, because an
-     * end means more to the service than the event says. The target groups and the dangling flag
-     * are read from the users and groups the case is accessible to.
+     * the record was saved are the cockpit's own records. An end does not say when the case began.
+     * The service sets that the case has ended. This is not mapped, because an end means more to
+     * the service than the event says. The target groups and the dangling flag are computed from
+     * the users and groups who may open the case.
      *
      * @param event The end as it was reported
      * @param result The stored workflow, changed in place

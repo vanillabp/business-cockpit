@@ -23,13 +23,13 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * none of its own fields takes. {@code mongodb.changesets.mode} is such a key, so an application
  * which wrote it would not start at all.
  * <p>
- * This is a class of its own rather than another bean of
- * {@link BusinessCockpitMongoDbAutoConfiguration}, because it has to be ordered before the
- * library's auto-configuration and that one may not be. Ordering the other one earlier moves it
- * ahead of the auto-configuration which registers the {@code MongoTemplate}, and its
- * {@code @ConditionalOnBean(MongoTemplate.class)} then finds nothing and drops the change-stream
- * container. Only the bean below needs the order, and nothing below has a condition on another
- * bean.
+ * This is a class of its own and not another bean of
+ * {@link BusinessCockpitMongoDbAutoConfiguration}. It has to run before the library's
+ * auto-configuration, and {@link BusinessCockpitMongoDbAutoConfiguration} must not. Moving that
+ * one earlier would put it ahead of the auto-configuration which registers the
+ * {@code MongoTemplate}. Its {@code @ConditionalOnBean(MongoTemplate.class)} would then find
+ * nothing and drop the change-stream container. Only the bean below needs the early order, and
+ * nothing below depends on another bean.
  */
 // registered through the .imports file, so it has to be an @AutoConfiguration. Only then are
 // @AutoConfigureBefore and @AutoConfigureAfter read

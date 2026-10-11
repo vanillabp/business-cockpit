@@ -175,10 +175,10 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
 
     /**
      * Decodes the cookie when the context is first asked for and keeps the answer. A request
-     * without the cookie gets an empty context and not null, which is what the interface asks
-     * for, and {@link #isGenerated()} says which of the two a caller got. A token which is
-     * expired, or signed with another key, lets the mapper's exception through where the context
-     * is asked for. The deprecated read path let it through in the same place.
+     * without the cookie gets an empty context and not null, as the interface requires.
+     * {@link #isGenerated()} says which of the two a caller got. If the token is expired, or
+     * signed with another key, the mapper's exception is thrown where the context is asked for.
+     * The deprecated read path threw it in the same place.
      * {@link PassiveJwtSecurityFilter} is what turns such a token into a request without a user.
      * See {@code JwtSecurityContextRepositoryTest}.
      */

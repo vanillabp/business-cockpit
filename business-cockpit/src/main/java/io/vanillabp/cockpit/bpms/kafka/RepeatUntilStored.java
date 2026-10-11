@@ -18,22 +18,22 @@ import org.springframework.util.backoff.ExponentialBackOff;
  * A record the cockpit could not store comes again, with a growing pause between two attempts and
  * no last attempt. It holds up the records behind it on the same partition until it is stored.
  * That is on purpose. A workflow module sends every report about one task or one case with the id
- * as the key, so they all sit on one partition, in the order they were sent. Passing over one of
- * them, or parking it on a topic of its own, would let the reports behind it overtake it. A
- * creation which overtakes nothing is what keeps the start of a case right. See decision 36 in the
- * repository's DECISIONS.md.
+ * as the key, so they all sit on one partition, in the order they were sent. Skipping one of
+ * them, or moving it to a topic of its own, would let the reports behind it overtake it. The start
+ * of a case is only right if nothing overtakes its creation. See decision 36 in the repository's
+ * DECISIONS.md.
  * <p>
- * Repeating a report does not make it count twice. Nothing of it was stored, so it is weighed again
- * against what is stored, like any report: a creation of a record the cockpit holds stores at most
- * an earlier start, a change older than what is stored is dropped, an end of a record which has
- * ended changes nothing.
+ * Repeating a report does not make it count twice. Nothing of it was stored, so it is compared
+ * again with what is stored, like any report. A creation of a record the cockpit holds stores at
+ * most an earlier start. A change older than what is stored is dropped. An end of a record which
+ * has already ended changes nothing.
  * <p>
- * Only a failure of storing is repeated, and only one which can go away. Everything else is about the
- * record itself: bytes which are no protobuf message, an event type this cockpit does not know, a
- * field the mapping cannot take, or a report MongoDB refuses every time, like one larger than a
- * document may be (see {@link OutcomeOfStoring}). Such a record fails the
- * same way each time, and repeating it would stop the partition for good. So it is passed over, and
- * an error names it, so that somebody can look for it on the topic.
+ * Only a failure of storing is repeated, and only one which can go away. Everything else is about
+ * the record itself: bytes which are no protobuf message, an event type this cockpit does not know,
+ * a field the mapping cannot take, or a report MongoDB refuses every time, like one larger than a
+ * document may be (see {@link OutcomeOfStoring}). Such a record fails the same way each time, and
+ * repeating it would stop the partition for good. So it is skipped, and an error names it, so that
+ * somebody can look for it on the topic.
  * <p>
  * Each attempt which failed is logged once, as an error which names the record, the attempt and the
  * cause. The service which tried to store the report does not log it, and the listener container
@@ -53,10 +53,10 @@ public final class RepeatUntilStored {
     static final long LONGEST_PAUSE_MILLIS = 60_000;
 
     /**
-     * Which exceptions are repeated, and which are not although their cause is. The error handler
-     * looks at the exception and then at its causes, one after the other, and the first class named
-     * here decides. So a report MongoDB refuses every time is not repeated for the failure of storing
-     * it carries as its cause. Every exception which reaches none of these classes is passed over.
+     * Which exceptions are repeated, and which are not even though their cause would be. The error
+     * handler looks at the exception and then at its causes, one after the other. The first class
+     * named here decides. So a report MongoDB refuses every time is not repeated, even though its
+     * cause is a failure of storing. Every exception which matches none of these classes is skipped.
      */
     private static final Map<Class<? extends Throwable>, Boolean> REPEATED = Map.of(
             ReportNotStoredException.class, true,
@@ -111,8 +111,8 @@ public final class RepeatUntilStored {
                     final Exception exception,
                     final int deliveryAttempt) {
 
-                // the error handler tells the listener of a record it passes over as well, as the
-                // first and last attempt. That record gets the error of passOver instead
+                // the error handler also reports a record it skips here, as the first and last
+                // attempt. That record gets the error of passOver instead
                 if (!isRepeated(exception)) {
                     return;
                 }

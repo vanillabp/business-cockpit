@@ -722,15 +722,17 @@ public class UserTaskService {
     /**
      * Stores what a workflow module reports about a user task it has just created.
      * <p>
-     * A creation of a task the cockpit already holds stores nothing but its start. It is the
-     * oldest report there is, so everything else it says has been said again since. Storing it
+     * If the cockpit already holds the task, the creation stores nothing but its start. A creation
+     * is the oldest report there is, so later reports have said everything else again. Storing it
      * would throw away what the cockpit itself knows about the task: who took it over, who read
-     * it, and that it has ended. Its start is stored where it is earlier than the one the cockpit
-     * holds, which a change that created the task set to the time of that change. There is one
-     * exception: a task the cockpit learned about from its end alone has been waiting for exactly
-     * this report. It takes everything the creation reports, except who sees the task where the end
-     * said it. A task which names nobody, because the report which created it did not say who
-     * sees it, takes that from the creation as well ({@link WhoSeesAUserTask}).
+     * it, and that it has ended. The start is stored if it is earlier than the stored one. A
+     * change which created the task set the stored start to the time of that change.
+     * <p>
+     * There is one exception. If the cockpit learned about the task from its end alone, it has
+     * been waiting for exactly this report. The task then takes everything the creation reports,
+     * except who sees the task if the end said that. A task which names nobody takes who sees it
+     * from the creation as well. That happens if the report which created the task did not say
+     * who sees it ({@link WhoSeesAUserTask}).
      *
      * @param userTaskId The task the report is about
      * @param eventTimestamp When the workflow module created the task, by its own clock
@@ -765,8 +767,8 @@ public class UserTaskService {
             return OutcomeOfStoring.upToDate();
         }
 
-        // the creation's own start replaces the one the end gave the task, which is the same
-        // where the end reported it, and the time of the end where it did not
+        // the creation's own start replaces the start the end gave the task. If the end
+        // reported a start, both are the same. If not, the end used its own time
         final var task = asReported.get();
         // the end is the younger report of the two and stays untouched, as does everything the
         // cockpit itself has recorded about the task since the end arrived
@@ -777,8 +779,8 @@ public class UserTaskService {
         task.setInitiator(stored.getInitiator());
         task.setReadBy(stored.getReadBy());
         task.setLatestEventAt(stored.getLatestEventAt());
-        // this report is here for what an end could not say about the task. The other way round,
-        // an end which did say it holds the younger answer. One rule decides both ways
+        // this report fills in what the end could not say about the task. Where the end did say
+        // something, the end is younger and wins. One rule decides both cases
         task.setDetails(
                 WhatAnEndReports.whatToStore(stored.getDetails(), task.getDetails()));
         task.setDetailsFulltextSearch(
@@ -921,15 +923,15 @@ public class UserTaskService {
     }
 
     /**
-     * The task list is sorted by the due date, so a task without one needs a reading which sorts
-     * behind every real date rather than an empty field. MongoDB sorts an empty field to the front
-     * of an ascending list, which would put the tasks nobody set a date for ahead of the ones which
-     * are almost late.
+     * The task list is sorted by the due date. A task without one needs a value which sorts behind
+     * every real date, not an empty field. MongoDB sorts an empty field to the front of an
+     * ascending list. That would put the tasks without a date ahead of the ones which are almost
+     * late.
      * <p>
-     * Every report the cockpit stores passes here, so a workflow module cannot leave a stored
-     * task without a reading. It cannot do so by reporting a change of a task whose due date the
-     * process removed, and not by ending a task, which keeps the date it does not report. The
-     * reading is an internal one, and the GUI mapper turns it back into an empty date.
+     * Every report the cockpit stores passes here, so no stored task is left without this value.
+     * This holds for a change of a task whose due date the process removed. It also holds for an
+     * end, which keeps the date because it does not report one. The value is internal, and the GUI
+     * mapper turns it back into an empty date.
      */
     private static void keepSortableByDueDate(
             final UserTask userTask) {

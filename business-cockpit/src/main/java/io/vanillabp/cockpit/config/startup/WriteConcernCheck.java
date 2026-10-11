@@ -20,15 +20,15 @@ import org.springframework.util.StringUtils;
  * <p>
  * The cockpit used to get a write concern by accident. The MongoDB changeset library set
  * {@code JOURNALED} on the application's template while it migrated and never took it back, so the
- * cockpit ran for years with a promise nobody had written down. The library gives the template back
- * the way it found it now, which leaves the cockpit to ask for what it needs.
+ * cockpit ran for years with a promise nobody had written down. Now the library puts the template
+ * back the way it found it, so the cockpit has to ask for what it needs itself.
  * <p>
- * Why the value belongs on the template is written down in {@code business-cockpit/README.md}, and
- * what each value costs an installation is in the wiki page "Running the Business Cockpit". In
- * short: a write which only the primary of a replica set has is lost when that primary steps down,
- * and the cockpit has answered the BPMS adapter by then that the user task is stored. A write
- * nobody acknowledges at all cannot be checked for a concurrent change, which every versioned
- * document of the cockpit depends on, so that one ends the start.
+ * {@code business-cockpit/README.md} explains why the value belongs on the template. The wiki page
+ * "Running the Business Cockpit" says what each value costs an installation. In short: a write
+ * which only the primary of a replica set has is lost when that primary steps down. By then the
+ * cockpit has already told the BPMS adapter that the user task is stored. A write which nobody
+ * acknowledges cannot be checked for a concurrent change. Every versioned document of the cockpit
+ * depends on that check, so such a write concern ends the start.
  */
 public final class WriteConcernCheck {
 
@@ -105,11 +105,10 @@ public final class WriteConcernCheck {
     }
 
     /**
-     * A journal flag alone is not a write concern. MongoDB's own {@code JOURNALED} is exactly that
-     * mistake in the driver: it says 'j: true' and leaves the 'w' open, and a template which checks
-     * its write results replaces the whole thing with a plain acknowledged write, journal flag
-     * included. So the flag is only read together with a number of nodes, and saying so is worth a
-     * line.
+     * A journal flag alone is not a write concern. The driver's own {@code JOURNALED} makes exactly
+     * this mistake: it says 'j: true' and leaves the 'w' open. A template which checks its write
+     * results replaces it with a plain acknowledged write and drops the journal flag. So the flag
+     * is only read together with a number of nodes, and the log says so in one line.
      */
     private static void warnAboutAJournalWithoutANumberOfNodes(
             final MongoDbProperties properties) {
@@ -145,10 +144,10 @@ public final class WriteConcernCheck {
             final WriteConcern ofTheConnection,
             final Mode mode) {
 
-        // what was asked for is refused as well as what would be written with. A MongoTemplate
-        // which checks its write results turns an unacknowledged write into an acknowledged one
-        // behind the application's back, and an installation which asked for 'w: 0' would run on a
-        // promise it never made without a word being said about it
+        // both are refused: what was asked for and what would be written with. A MongoTemplate
+        // which checks its write results silently turns an unacknowledged write into an
+        // acknowledged one. An installation which asked for 'w: 0' would then run with a promise
+        // it never made, and nobody would tell it
         if (isUnacknowledged(configured)) {
             throw writesAreNotAcknowledged(configured);
         }
@@ -221,10 +220,10 @@ public final class WriteConcernCheck {
     }
 
     /**
-     * The trap this whole check came out of: a value which asks for a journal and leaves the number
-     * of nodes open. MongoDB calls it 'journaled', and it is what the database migration used to
-     * set on the cockpit's template. Naming it matters, because from where the reader sits the
-     * property is set and the journal is asked for.
+     * The trap which started this whole check: a value which asks for a journal and leaves the
+     * number of nodes open. MongoDB calls it 'journaled', and the database migration used to set it
+     * on the cockpit's template. The message names it, because to the reader the property looks
+     * set and the journal looks requested.
      */
     private static String whatTheConfigurationAsksFor(
             final WriteConcern configured) {
@@ -247,8 +246,8 @@ public final class WriteConcernCheck {
     }
 
     /**
-     * The one place people write a write concern into first, and the one place it does not work.
-     * Worth naming, because from where they sit the value is configured.
+     * The place where people put a write concern first, and the one place where it does not work.
+     * The message names it, because to them the value looks configured.
      */
     private static String whatTheConnectionAsksFor(
             final WriteConcern applied,
@@ -272,9 +271,9 @@ public final class WriteConcernCheck {
     }
 
     /**
-     * Azure Cosmos DB for MongoDB speaks the MongoDB protocol but is not a replica set, so the
-     * paragraph above describes a server the installation does not have. What it does have is said
-     * here, and what could not be decided is left to the documentation rather than guessed.
+     * Azure Cosmos DB for MongoDB speaks the MongoDB protocol but is not a replica set. So the
+     * paragraph above describes a server the installation does not have. This part says what it
+     * does have. What could not be decided is left to the documentation instead of guessed.
      */
     private static String whatAzureCosmosMakesOfIt(
             final Mode mode) {

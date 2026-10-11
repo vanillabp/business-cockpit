@@ -21,12 +21,12 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * 
  * The method returns {@link WorkflowDetails}.
  * <p>
- * Two parameters may stand there, in any order. The first is the workflow aggregate, taken by
+ * The method may take two parameters, in any order. The first is the workflow aggregate, taken by
  * its type and without an annotation, the way a <code>&#64;WorkflowTask</code> method takes it.
  * The second is {@link PrefilledWorkflowDetails}, which carries what the BPMS reported about
  * the workflow and is the object most methods fill in and hand back. Take both, take one of
- * them, or take neither. Any other parameter ends the start of the application, and the message
- * names the method and says what may stand there instead.
+ * them, or take neither. Any other parameter stops the application from starting. The message
+ * names the method and says which parameters are allowed.
  * <p>
  * That is less than {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} takes, and
  * it is meant that way. A user task provider is asked about one task and sees the whole context
@@ -38,9 +38,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * <p>
  * The workflow aggregate is handed over to be read, the same way
  * {@link io.vanillabp.spi.cockpit.usertask.UserTaskDetailsProvider} describes it. VanillaBP
- * does not save it after this method returned, and what your persistence writes on its own is
- * your change with your consequences.
- *  * <p>
+ * does not save it after this method returned. If your persistence writes changes on its own,
+ * they are your changes, and so are their consequences.
+ * <p>
  * A BPMN process has one such method. It may have one per generation of the model instead, and
  * then each of them names the versions it serves, see {@link #version()}.
  * 
@@ -61,8 +61,8 @@ public @interface WorkflowDetailsProvider {
      * (<code>camunda:versionTag</code> in Camunda 7, <code>zeebe:versionTag</code> in Camunda 8):
      * <ul>
      * <li><i>*</i>: every version (the default)
-     * <li><i>3</i> or <i>release-2024</i>: exactly that version, respectively every version
-     * carrying that tag
+     * <li><i>3</i> or <i>release-2024</i>: exactly that version, or every version carrying that
+     * tag
      * <li><i>1-3</i> or <i>v1.0..v2.0</i>: a range, both boundaries included
      * <li><i>&gt;3</i>, <i>&lt;v2.0</i>: open ended
      * </ul>
@@ -83,11 +83,11 @@ public @interface WorkflowDetailsProvider {
      * the range of the <code>&#64;BpmnProcess</code> its process was declared with. That range
      * belongs to the workflow itself, and reporting to the cockpit is not part of running it.
      * <p>
-     * The version arrives with the event the cockpit reacts to, so what the BPMS reports decides
-     * how far this gets. Camunda 7 and Camunda 8 report it for every workflow. An engine behind
-     * the Process-Engine-API reports a version tag where it fills one in and nothing otherwise.
-     * Where no version arrives, only a method naming no version runs, and a method which names
-     * one is reported while the application starts instead of silently never running.
+     * The version arrives with the event the cockpit reacts to, so this works only as far as the
+     * BPMS reports the version. Camunda 7 and Camunda 8 report it for every workflow. An engine
+     * behind the Process-Engine-API reports a version tag where it fills one in and nothing
+     * otherwise. Where no version arrives, only a method naming no version runs, and a method which
+     * names one is reported while the application starts instead of silently never running.
      *
      * @return The versions of the deployed BPMN process this method serves
      */

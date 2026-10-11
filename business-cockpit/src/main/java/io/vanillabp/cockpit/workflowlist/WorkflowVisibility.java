@@ -10,11 +10,11 @@ import java.util.stream.Stream;
 
 /**
  * Which workflows one view of the cockpit lets a user reach. The list of that view is built from
- * it, and so are the requests naming a single workflow, so an id the list would not have shown is
- * answered as unknown rather than opening a way past the list.
+ * it, and so is every request for a single workflow. So a request for an id the list would not
+ * have shown is answered as unknown, and nobody gets past the list that way.
  *
  * <p>A workflow is visible once it names one of the {@code accessibleToUsers} or one of the
- * {@code accessibleToGroups}. A collection left null or empty drops its reason instead of widening
+ * {@code accessibleToGroups}. A collection left null or empty drops its reason. It does not widen
  * the view. A visibility which names nobody restricts nothing, and {@link #everyWorkflow()} is the
  * name for that case. {@code includeDanglingWorkflows} decides what happens to a workflow which
  * names neither users nor groups. Once it is set, such a workflow counts as open to everybody.
@@ -25,7 +25,7 @@ import java.util.stream.Stream;
  *
  * <p>The rule exists twice, as the query of {@code WorkflowlistService.buildWorkflowlistCriteria}
  * and as {@link #letsThrough(WorkflowFacts)} for the update streams.
- * {@code TheVisibilityInMemoryAgreesWithTheQueryTest} holds the two together, the same way it does
+ * {@code TheVisibilityInMemoryAgreesWithTheQueryTest} keeps the two in line, the same way it does
  * for {@code UserTaskVisibility}.
  */
 public record WorkflowVisibility(

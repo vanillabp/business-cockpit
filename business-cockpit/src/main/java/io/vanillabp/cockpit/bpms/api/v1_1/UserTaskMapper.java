@@ -242,13 +242,13 @@ public abstract class UserTaskMapper {
      * also what the notification poller needs: it tells the former assignee that somebody else
      * finished the task.
      * <p>
-     * An end may not replace what it cannot know. A user sets the follow-up date in the cockpit. Who read the task, when the cockpit
-     * stored it, since when somebody is a candidate and how often the record was saved is the
-     * cockpit's own record-keeping. When the task began is something an end does not say. That the
-     * task has ended, why, and who ended it are set by the service and the controller and not
-     * mapped, because an end means more to them than the event says. The target groups and the
-     * dangling flag are read from the assignee and the candidates. The kind of notification and the
-     * forced flag never leave the notification poller.
+     * An end may not replace what it cannot know. A user sets the follow-up date in the cockpit.
+     * Who read the task, when the cockpit stored it, since when somebody is a candidate and how
+     * often the record was saved: these are the cockpit's own records. An end does not say when the
+     * task began. The service and the controller set that the task has ended, why, and who ended
+     * it. These are not mapped, because an end means more to them than the event says. The target
+     * groups and the dangling flag are computed from the assignee and the candidates. The kind of
+     * notification and the forced flag are only used by the notification poller.
      *
      * @param event The end as it was reported
      * @param result The stored task, changed in place

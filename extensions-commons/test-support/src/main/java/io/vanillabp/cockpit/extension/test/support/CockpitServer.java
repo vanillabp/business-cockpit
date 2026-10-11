@@ -39,9 +39,9 @@ import io.vanillabp.integration.test.utils.OneFreePortPerJvm;
  *
  * <pre>
  * businesscockpit.test-server.wait-millis          how long a test waits for a request (30 s)
- * businesscockpit.test-server.quiet-window-millis  how long nothing may arrive to count as quiet (1 s)
- * businesscockpit.test-server.quiet-wait-millis    how long {@link #awaitQuiet()} hopes for that (30 s)
- * </pre>
+ * businesscockpit.test-server.quiet-window-millis how long nothing may arrive to count as quiet (1
+ * s) businesscockpit.test-server.quiet-wait-millis how long {@link #awaitQuiet()} hopes for that
+ * (30 s) </pre>
  *
  * A repository whose reports travel through a cluster raises the first one. A system property
  * carries across the two Quarkus class loaders, which a static field set by a test would not.
@@ -285,8 +285,8 @@ public final class CockpitServer {
    * <p>
    * Which event it is has to be said, because every test class of a module talks to this one
    * server and a context which is kept cached goes on dispatching while another class runs. A
-   * refusal which took whatever arrived next was spent on a report of a class which had long
-   * finished, and the test then waited for a repetition nobody owed it.
+   * refusal which took whatever arrived next could hit a report of a class which had finished
+   * long ago. The test then waited for a repetition which never came.
    *
    * @param marker Something only the body of the event under test carries, its event id
    * @param count How many reports about it are refused

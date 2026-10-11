@@ -358,15 +358,15 @@ public class V000001 {
 
     /**
      * Fills {@code latestEventAt} in for tasks reported before that property existed.
-     * {@code createdAt} is the timestamp of the event which created the task. So it is a reading
-     * of the reporting system's own clock, and it lies before every later event of that task. That
-     * is what the weighing of reports needs. A task whose value is missing takes the next report
+     * {@code createdAt} is the timestamp of the event which created the task. So it comes from the
+     * reporting system's own clock, and it lies before every later event of that task. That is
+     * what the comparison of reports needs. A task whose value is missing takes the next report
      * whatever its timestamp says. A task whose value is too early takes a report it should have
      * refused, which is the smaller loss of the two.
      * <p>
      * A task without a {@code createdAt} keeps an empty {@code latestEventAt}. There is nothing to
-     * copy for it, and inventing a reading would say the cockpit knows which event its state came
-     * from when it does not.
+     * copy for it. An invented value would claim that the cockpit knows which event its state came
+     * from, and it does not.
      *
      * @see io.vanillabp.cockpit.tasklist.model.UserTask#getLatestEventAt()
      */

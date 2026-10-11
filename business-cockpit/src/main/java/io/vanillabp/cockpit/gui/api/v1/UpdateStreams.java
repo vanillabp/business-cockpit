@@ -27,11 +27,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 /**
  * The open update streams, one per browser tab, and the way a change gets to the ones it concerns.
  *
- * <p>A change goes through three steps. It is collected as it happens, for nobody in particular.
- * Once per filtering tick the changes collected since the last tick are matched against every
- * stream: a stream gets a change if one of its views lets the change through, or if its browser
- * already shows the entity, which is how the browser learns that it has to drop it. Once per
- * collecting tick the matched changes are written to the browsers.
+ * <p>A change goes through three steps. First it is collected as it happens, for nobody in
+ * particular. Then, once per filtering tick, the changes collected since the last tick are matched
+ * against every stream. A stream gets a change if one of its views lets the change through. It
+ * also gets it if its browser already shows the entity, so the browser learns that it has to drop
+ * it. Last, once per collecting tick, the matched changes are written to the browsers.
  *
  * <p>Which stream may see what is answered by one {@link UpdateStreamAudience} per kind of entity,
  * from the same visibility the lists use. An event of a kind no audience decides about, and an
@@ -46,7 +46,7 @@ public class UpdateStreams {
      * The stream stays open until the sign-in it was opened with expires, see
      * {@link #subscribe(UserDetails, Optional)}. Where the sign-in names no end, the stream stays
      * open for as long as the browser keeps the tab open. Both are far longer than the default
-     * asynchronous request timeout, and timing out would close the stream under a client which is
+     * timeout of an asynchronous request. A timeout would close the stream of a client which is
      * perfectly healthy.
      */
     private static final long NO_SSE_TIMEOUT = Long.MAX_VALUE;
