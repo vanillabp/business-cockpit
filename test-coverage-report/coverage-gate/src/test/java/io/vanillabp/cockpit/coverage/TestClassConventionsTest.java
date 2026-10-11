@@ -12,22 +12,22 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import io.vanillabp.integration.test.utils.TestClassConventions;
 
 /**
- * What keeps a red build of this repository short. Every test class registers
- * {@link SuppressOutputExtension}, so the log carries what a FAILING test printed and
- * little else.
+ * A gate in the module which already gates this repository as a whole. Every test class
+ * registers {@link SuppressOutputExtension}, and registers it before {@code @Testcontainers}. So
+ * a build log holds what a FAILING test printed and little else.
  * <p>
- * The rule is checked and not reviewed, because a class which forgets the extension stays
- * quiet as long as its own tests pass. It starts talking on the day it gets a mock which
- * warns or a container which boots. By then nobody connects the noise to the class, and
- * the next reader pays for it again.
+ * This rule breaks without anybody noticing, because a class which forgets it stays quiet as
+ * long as its tests pass. It starts to talk on the day it gets a mock which warns or a container
+ * which boots. By then nobody connects the noise to the class. So the rule is checked here and
+ * not left to a review.
  * <p>
- * The check reads the test sources, so this one class covers every module of the
- * repository, the ones added after it included.
+ * The check reads the test sources, so this one class covers every module of the repository,
+ * also the modules added later.
  * <p>
- * It also checks the guiding messages of this repository. A message is what a developer
- * reads in the moment something goes wrong, so a sentence which fell apart in the source
- * takes away the one explanation they get. That check reads the main sources, and one run
- * of it covers every module as well.
+ * The gate also checks the guiding messages of this repository. A developer reads such a message
+ * at the moment something goes wrong. A sentence which fell apart in the source takes away the
+ * one explanation they get. That check reads the main sources, and one run covers every module
+ * as well.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class TestClassConventionsTest {

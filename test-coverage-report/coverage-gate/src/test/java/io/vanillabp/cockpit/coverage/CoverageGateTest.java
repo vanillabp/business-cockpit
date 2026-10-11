@@ -14,45 +14,46 @@ import io.vanillabp.integration.test.utils.CoverageGate;
 import io.vanillabp.integration.test.utils.PrintsWhenPassing;
 
 /**
- * The coverage gate. It breaks the build when a measurement's aggregated coverage drops
- * below the threshold, so a drop is noticed while it happens and not a year later. The
- * rule is 90 in every VanillaBP repository. The threshold sits below it, so a bad week in
- * one repository is not answered by editing the number.
+ * The coverage gate. It breaks the build when the aggregated coverage of a report drops
+ * below its threshold, so a drop is noticed when it happens and not a year later. The rule
+ * is 90 in every VanillaBP repository. The threshold sits below it, so one bad week of a
+ * repository is not answered by editing the number.
  * <p>
- * JaCoCo's own <code>check</code> goal cannot do this. It judges ONE module's classes
- * against ONE execution-data file, while both numbers of this repository come from
- * aggregated reports over many modules. So the gate reads exactly the report which is
- * published, and report and gate can never disagree.
+ * JaCoCo's own <code>check</code> goal cannot do this. It judges the classes of ONE module
+ * against ONE execution data file, but the numbers of this repository come from aggregated
+ * reports over many modules. So the gate reads exactly the report which is published, and
+ * report and gate never disagree.
  * <p>
- * The completeness test comes first for a reason. A threshold checked against an
- * incomplete aggregate fails builds for coverage which exists and is only not counted, and
- * nobody can fix that by writing a test.
+ * The completeness test comes first for a reason. A threshold checked against an incomplete
+ * aggregate fails builds for coverage which exists but is not counted, and no new test can fix
+ * that.
  * <p>
- * This test class prints while it passes, which no other one does. Here the passing run IS
- * the measurement. It is the only place where the build states how each half of the
- * repository stands against the rule. A repository sitting between the threshold and the
- * rule has a gap which would otherwise be visible only to whoever opens the report.
+ * This is the only test class of this repository which prints while it passes, so it is the
+ * only one without {@code SuppressOutputExtension}. Everywhere else a passing test prints
+ * nothing, because output nobody reads hides the output somebody has to read. Here the passing
+ * run IS the measurement. It is the only place where the build says how far each report is
+ * from the rule. Without it, a repository between the threshold and the rule has a gap which
+ * only somebody who opens the report sees.
  */
 @PrintsWhenPassing(
-  "the three numbers ARE the result of this class, and a number is only worth something while "
-      + "somebody still has the code it measures in front of them: whoever has just written tests "
-      + "reads here whether the gap to the rule got smaller, and a line only red builds carry "
-      + "would never reach them")
+  "the measurement is the result: what each report reached belongs in the log of every build "
+      + "and not only of a red one, so whoever just wrote tests reads there whether the gap to the "
+      + "rule got smaller")
 public class CoverageGateTest {
 
   private static final Path ROOT = CoverageGate.repositoryRoot("coverage.repository.root");
 
   /**
-   * What a report is expected to show, as opposed to the threshold, which is where the
-   * build stops. It is reported on every run and never asserted. A build which broke at
-   * the rule would leave a repository nothing to do but edit the rule.
+   * What a report is expected to show. The threshold, in contrast, is where the build stops.
+   * The rule is reported on every run but never asserted. If the build broke at the rule, a
+   * repository could do nothing but edit the rule.
    */
   private static final double RULE = Double.parseDouble(System.getProperty("coverage.rule"));
 
   /**
-   * The command line this build was started with, handed over by the module's Surefire
-   * configuration. It answers the one question the gate cannot read off the disk:
-   * whether this run writes the reports at all.
+   * The command line this build was started with. The Surefire configuration of the module
+   * passes it in. It answers the one question the gate cannot read from the disk: whether this
+   * run writes the reports at all.
    */
   private static final String MAVEN_COMMAND_LINE = System.getProperty("coverage.maven.command", "");
 
@@ -63,9 +64,8 @@ public class CoverageGateTest {
           ROOT.resolve("test-coverage-report/extensions-commons/quarkus/pom.xml"));
 
   /**
-   * Modules whose execution data belongs to no coverage report. Each entry is a
-   * decision. A module which is missing here and missing from both aggregates is the
-   * defect this test exists for.
+   * Modules whose execution data belongs to no coverage report. Each entry is a decision. A
+   * module which is missing here and from every aggregate is the defect this test looks for.
    */
   private static final Set<String> DELIBERATELY_NOT_AGGREGATED = Set
       .of(
@@ -123,15 +123,15 @@ public class CoverageGateTest {
   }
 
   /**
-   * A run which stops before <code>verify</code> writes no report, and the gate says so
-   * and skips instead of failing over a file this run could not have written. It stays
-   * loud about it. The line is printed and the test is reported as skipped, so nobody
-   * reads a green run as a checked one.
+   * A run which stops before <code>verify</code> writes no report. Then the gate says so and
+   * skips, instead of failing over a file this run could not have written. It does not stay
+   * quiet about it: it prints the line and reports the test as skipped, so nobody takes a green
+   * run for a checked one.
    * <p>
-   * The threshold is read per measurement, because a report exists per measurement.
-   * Both numbers are the floor against regression and not the goal. The rule is the
-   * {@code coverage.rule} property, and a report between the two has a gap somebody
-   * still owes a test for.
+   * The threshold is read per report, because each report has its own. In this repository the
+   * container report has a lower one than the two extension reports. A threshold is the floor
+   * against a regression and not the goal. The goal is the {@code coverage.rule} property. A
+   * report between the two still owes a test for the gap.
    */
   private void assertAboveThreshold(
       final String measurement,
@@ -172,9 +172,9 @@ public class CoverageGateTest {
   }
 
   /**
-   * The line a passing run leaves behind. It names both numbers, because the one which
-   * breaks the build is not the one to aim at, and it says how far a report is from the
-   * rule while that distance is still small enough to close.
+   * Prints the line a passing run leaves behind. It names both numbers, because the number
+   * which breaks the build is not the one to aim at. It also says how far a report is from the
+   * rule, while that distance is still small enough to close.
    */
   private void report(
       final CoverageGate.Coverage coverage,

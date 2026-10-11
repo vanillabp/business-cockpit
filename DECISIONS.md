@@ -158,7 +158,7 @@ own, and it got wrong the same application the platform gets right. The Quarkus 
 offers its resolver as a bean as well. Both platforms are served by the one answer, and the question
 is asked while the application boots instead of at the first report.
 
-### 11. A failed report says whether repeating it can help
+### 11. A failed report says whether repeating it can help - 501 changed by decision 42
 
 The outbox repeats what a dispatch threw. That is right for a cockpit server which was restarting,
 and wrong for a report the server will refuse every time. An entry retried forever sits in the store
@@ -627,7 +627,7 @@ without that statement is reported exactly as before. A test of this repository 
 extension next to the cockpit and reads both answers: the line about the writing handler, and no
 line about the details providers.
 
-### 24. Both details providers pick their method by the version of the deployed process
+### 24. Both details providers pick their method by the version of the deployed process - what the dispatch reads again changed by decision 26
 
 The extension reads the `version` attribute of `@UserTaskDetailsProvider`.
 `@WorkflowDetailsProvider` has the attribute too. Both pick their method the same way VanillaBP's
@@ -666,6 +666,11 @@ A method of a details provider does not take over the version range of its `@Bpm
 `@WorkflowTask` method does, because that range says which generation of a model the workflow
 service runs. Reporting to the cockpit is not the same as running the workflow. A range meant for
 the one would quietly narrow the other.
+
+Note (2026-10-11): Since decision 26 the dispatch no longer reads everything else again. A report is
+built at the event and travels with its entry. Only the changes of decisions 43 and 46 are still
+built when the entry is dispatched. The version still travels with the entry as an argument of its
+own, and it still names the event.
 
 ### 25. A report is to carry the state of its event, and the auditing id is the way there - superseded by decision 26 on 2026-09-17
 
@@ -1062,7 +1067,7 @@ The key of the follow-up scheduler was not documented anywhere, neither in the w
 repository. So fixing its spelling takes nothing away from anybody. Both keys are on the wiki page
 `Configuration` now.
 
-### 31. A change event is built without the document behind it
+### 31. A change event is built without the document behind it - who gets an event changed by decision 48
 
 A notification about a changed user task or workflow is built from the change event alone. It
 carries the kind of entity, its id and what happened to it. It does not carry the target groups any
@@ -1112,6 +1117,10 @@ in `ChangeStreamUtils.catchExceptionsListener`. Neither log line said which chan
 the wrapper in `ChangeStreamUtils` is left, because only it knows all three things worth knowing:
 the collection, the key of the document and the operation. A listener does not catch any more, and
 whatever it throws ends up there.
+
+Note (2026-10-11): `LoginApiController.updateClients`, `GuiEvent.getTargetGroups` and
+`matchesTargetGroups` no longer exist. Decision 48 removed them. Each update stream now decides with
+the visibility of the lists which event concerns it.
 
 ### 32. `uiUriType` is carried and never read, and the address is built in the user interface
 
@@ -1312,7 +1321,7 @@ before it is published.
 - story `1351`, which introduced `awaitRequest(pathSuffix, bodyPart)`, story `1373`, which moved
   the 30 waits reading a body onto it, and the commit beside them which added `awaitRequestOf`
 
-### 35. The chain of cockpit repositories is checked once a night, from this repository
+### 35. The chain of cockpit repositories is checked once a night, from this repository - the open question answered by decision 52
 
 Decided on 2026-10-03, as the default of stories 1396 and 1400. The question below is open and
 belongs to the maintainer.
@@ -1608,8 +1617,7 @@ Decided on 2026-10-03 for story 1435. Before, such a report was lost.
 Related entries: 11 (what a sender repeats), 36 (a change of a case the cockpit never saw creates
 the case), 38 (a report the cockpit could not store is answered with 503). This entry does for the
 Kafka way in what 38 does for REST. The part of 38 headed "What is not changed" describes the Kafka
-way in as it was before this entry. Whoever moves this entry into the log decides whether that
-paragraph gets a note which points here.
+way in as it was before this entry.
 
 The Kafka listeners of the cockpit did not read the answer of the service. A failed save was logged,
 the listener returned, and the offset of the record was committed. A read from MongoDB which threw
@@ -1666,6 +1674,10 @@ Nothing is configurable. The pauses are short enough for a MongoDB which restart
 not to flood the log. The longest pause stays well below the five minutes Kafka allows between two
 polls by default, because the container waits in the thread which polls.
 
+Note (2026-10-11): The first sentence of "What it costs" was not true when it was written. The
+listener container logged no error of its own. Decision 41 measured it and made each failed attempt
+log one error, see "One error for each attempt" there.
+
 ### 41. A report MongoDB refuses every time is given up, and every other failed save comes again - a key with a dot narrowed by decision 44
 
 Decided on 2026-10-04 for story 1437. Before, every failed save was repeated: over REST with 503,
@@ -1675,8 +1687,7 @@ Related entries: 11 (what a sender repeats), 38 (a report the cockpit could not 
 with 503), 39 (a request which breaks the rules of its schema is answered with 400), 40 (a report
 from Kafka the cockpit could not store comes again until it is stored). This entry narrows 38 and
 40. Both stay true for a save which fails for now. Neither holds any longer for a save which fails
-every time. Whoever moves this entry into the log adds a note to the headings of 38 and 40, in the
-form the log already uses, like "- a save which fails every time changed by decision <n>". The part
+every time. The part
 of 40 headed "What it costs" says that the listener and the error handler log an error each time.
 That was not true when it was written, see "One error for each attempt" below. It gets a note which
 points here as well.
@@ -1790,9 +1801,7 @@ the BPMS API did not say that two of its operations answer it.
 
 Related entries: 11 (a failed report says whether repeating it can help), 38 (a report the cockpit
 could not store is answered with 503), 41 (a report MongoDB refuses every time is given up). This
-entry adds one status to what 11 calls "not like this". Entry 11 stays as it is. Whoever moves
-this entry into the log decides whether 11 gets a note in its heading, in the form the log uses
-already, like "- 501 changed by decision <n>".
+entry adds one status to what 11 calls "not like this". Entry 11 stays as it is.
 
 The REST API of the BPMS side has two operations which the server does not implement:
 `usertask/{userTaskId}/suspended` and `usertask/{userTaskId}/activated`, in version 1 and version
@@ -1931,8 +1940,7 @@ it was always given up.
 Related entries: 41 (a report MongoDB refuses every time is given up). This entry narrows 41. Its
 list of failures which come back every time names a key with a dot, and says that the cockpit
 configures no replacement for the dot. That stays true by default. It stops being true once the new
-property is set. Whoever moves this entry into the log adds a note to the heading of 41, in the form
-the log already uses, like "- a key with a dot changed by decision <n>".
+property is set.
 
 A dot in a key is allowed. The business data, `details`, is a map the workflow module fills, and a
 key like `order.id` is a normal thing to put there. MongoDB reads a dot in a path as a step into a
@@ -1996,9 +2004,7 @@ Related entries: 18 (the timestamp of the event decides which report the cockpit
 change of a case the cockpit never saw created creates the case). This entry narrows 36 and changes
 one paragraph of 18. 36 says that only a case without `createdAt` waits for its creation. 18 says
 that a record known only from its end can be recognized by its empty `createdAt`. Neither is true
-any longer: such a record has a start now, and a property of its own says that it waits. Whoever
-moves this entry into the log adds a note to the headings of 18 and 36, in the form the log already
-uses, like "- a record known from its end alone changed by decision <n>".
+any longer: such a record has a start now, and a property of its own says that it waits.
 
 The schema of the user interface, `apis/official-gui-api/openapi/v1.yaml`, requires `createdAt` on
 `UserTask` and on `Workflow`. We measured against the running application before the change. A
@@ -2053,9 +2059,7 @@ broke the user interface.
 Decided on 2026-10-05, while story 1443 was built.
 
 This entry does for `BusinessCockpitService.aggregateChanged(aggregate, userTaskIds)` what decision
-43 does for `aggregateChanged(aggregate)`. It narrows decision 26 for this second way too. Whoever
-moves this entry into the log adds it to the headline of decision 26, in the form the log uses
-already, like "and by decision 46, which does the same for a changed user task".
+43 does for `aggregateChanged(aggregate)`. It narrows decision 26 for this second way too.
 
 #### What was wrong
 
@@ -2127,9 +2131,7 @@ Decided on 2026-10-06, while story 1447 was built.
 
 This entry changes the last paragraph of decision 43 and the last paragraph of "What is decided"
 in decision 46. Both said that an application with several adapters and no note of the start still
-asks the election in the application's transaction. Whoever moves this entry into the log adds to
-the headlines of 43 and 46, in the form the log uses already, "- the election moved to the dispatch
-by decision NN".
+asks the election in the application's transaction.
 
 #### What was wrong
 
@@ -2367,6 +2369,66 @@ of work.
   browser keeps the last one.
 - A login by standard OAuth would bring its own renewal, with refresh tokens. If the cockpit moves
   to it, this decision goes away together with today's login.
+
+### 52. Main is built once a night against fresh snapshots, with a tool of our own
+
+Decided on 2026-10-07 by the maintainer, story 1418. This answers the open question of decision 35.
+
+#### The open question of decision 35
+
+Decision 35 asked whether the chain check should become one tool together with the platform
+strand. The answer is no. The cockpit repositories keep their own tool, and we do not wait for a
+shared one. `bin/check-the-chain.sh` stays as it is.
+
+#### What the chain check cannot see
+
+The chain check asks whether the newest run on main was green. It builds nothing. So a main
+which a new snapshot breaks, while nobody pushes, still looks green to it. That happened at the
+end of September 2026. A commit of the platform broke a test here, and main stayed red for five
+days. Only the release-line matrix of `businesscockpit-camunda8-adapter` built anything at night.
+
+#### What runs now
+
+`business-cockpit`, `businesscockpit-camunda7-adapter` and
+`businesscockpit-process-engine-api-adapter` each have a workflow `.github/workflows/nightly-build.yaml`.
+Once a night it calls the repository's `build.yaml` on main. That is the pull-request build, which
+passes `--update-snapshots`. Without that flag Maven checks a snapshot once a day, and the runner
+restores its local repository from a cache.
+
+- It calls the pull-request build and does not copy it. So the night proves what a pull request
+  proves, and a change to the build reaches the night without a second edit.
+- It publishes nothing and pushes nothing. It has no push trigger, so a push to a branch costs no
+  CI time.
+- It runs in the concurrency group of the publish of main, so a build and a publish of the same
+  repository never run at the same time. GitHub keeps one waiting run per group, and a new one
+  takes the waiting place. So before the build joins the group, a first job waits until no
+  publish of main runs or waits. Otherwise the night could cancel a waiting publish and leave
+  the head of main unpublished. It waits one hour at most. After that the night is red and says
+  why.
+- The three runs ask at 00:29, 00:53 and 01:17 UTC. That is after the matrix of the Camunda 8
+  adapter and before the chain check, which counts the nightly build as one more run on main.
+
+The Camunda 8 cockpit adapter gets no nightly build. Its release-line matrix already builds every
+night with `--update-snapshots`.
+
+#### How a red night is reported
+
+The same way as the release-line matrix of the Camunda 8 adapter. A red night opens an issue with
+the label `nightly-build` in the repository that broke. A night which is still red is a comment on
+that issue, never a second issue. A green night after a red one is a comment as well, and the
+issue stays open until somebody closes it. The comment names the failed jobs and the `[ERROR]`
+lines of their logs. A cancelled night says nothing.
+
+#### What it costs
+
+One full build per repository and night, frontend checks of this repository included. A flaky
+test can now make a night red. That is a price we accept: one issue with a comment per night is
+easy to read, and a real break looks the same on the second night.
+
+Note (2026-10-11): This entry was decided on 2026-10-07, but the commit which gave it its number
+removed the waiting file and did not add the entry here. It was put back from the history of
+`DECISIONS.pending/1418.md`. Since decision 63 this repository has no user interface, so the night
+runs no frontend checks.
 
 ### 53. The SPI only promises what reaches the cockpit
 

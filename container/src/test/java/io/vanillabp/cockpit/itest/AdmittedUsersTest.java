@@ -19,9 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * that entry takes the group away. The change reaches the next request of a user who is already
  * logged in, so no second login is needed to see it.
  *
- * <p>These tests came from story 258, which answered the same question inside the cockpit by noting
- * who opened what. The cause is different now, but the business question is the same, so they ask
- * the application the same things.
+ * <p>An earlier version of the cockpit answered the same question by noting who opened what. The
+ * cause is different now, but the business question is the same, so these tests ask the
+ * application the same things.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
@@ -230,8 +230,8 @@ class AdmittedUsersTest extends ItestBase {
     }
 
     /**
-     * The case of the story. The task is done and the role is gone, and the person the module
-     * admitted can still read what they entered.
+     * The main case. The task is done and the role is gone, and the person the module admitted can
+     * still read what they entered.
      */
     @Test
     void anAdmittedUserKeepsACompletedTask() {
@@ -264,7 +264,7 @@ class AdmittedUsersTest extends ItestBase {
 
     }
 
-    /** A task which admits nobody is gone with the role. That is how it was before this story. */
+    /** A task which admits nobody is gone with the role, as it always was. */
     @Test
     void aTaskAdmittingNobodyIsGoneWithTheRole() {
 

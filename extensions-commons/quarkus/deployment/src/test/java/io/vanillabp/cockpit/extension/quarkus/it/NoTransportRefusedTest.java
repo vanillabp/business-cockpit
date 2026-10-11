@@ -15,8 +15,8 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * An application which configured no transport and brought none either does not start. The
  * message names the three ways out: the two keys and the bean.
  * <p>
- * An application without a transport of its own still gets this message. The story about an own
- * transport must not change that.
+ * An application may bring a transport bean of its own. This test makes sure that an application
+ * which brings none still gets this message.
  */
 @ExtendWith(SuppressOutputExtension.class)
 public class NoTransportRefusedTest {

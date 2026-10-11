@@ -17,7 +17,8 @@ import java.util.Optional;
  * reported for a change which was rolled back.
  * <p>
  * Repetitions are free. Several reports of the same task or workflow which are still waiting
- * collapse into one, because what the cockpit is told is read again when the report is sent.
+ * collapse into one. Each report carries the state of its own moment, so the newest takes the
+ * place of the one which still waits.
  * <p>
  * The BPMS is elected per workflow and not fixed. During a migration one workflow of a workflow
  * module may live in one BPMS and the next in another, and each is asked where it is.
