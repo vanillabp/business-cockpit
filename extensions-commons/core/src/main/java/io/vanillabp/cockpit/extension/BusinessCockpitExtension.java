@@ -127,6 +127,15 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    */
   private final Map<String, Set<String>> bpmnProcessesPerWorkflowModule = new ConcurrentHashMap<>();
 
+  private final java.util.concurrent.atomic.AtomicBoolean handlerContractsRegistered = new java.util.concurrent.atomic.AtomicBoolean();
+
+  /**
+   * The BPMN processes a class with a <code>&#64;WorkflowDetailsProvider</code> names as
+   * secondary ones. They never get a workflow report of their own, so the version of their
+   * model is not held against the provider. See decision 64 in the repository's DECISIONS.md.
+   */
+  private final Set<String> secondaryBpmnProcesses = ConcurrentHashMap.newKeySet();
+
   /**
    * @param configuration What the application configured, already validated
    * @param transport Where the events go
@@ -200,8 +209,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    */
   public void registerHandlerContracts() {
 
+    // the platform and the wiring of the first model both ask for it, whichever comes first
+    if (!handlerContractsRegistered.compareAndSet(false, true)) {
+      return;
+    }
     handlers.register(BusinessCockpitHandlers.userTaskContract());
-    handlers.register(BusinessCockpitHandlers.workflowContract());
+    handlers.register(BusinessCockpitHandlers.workflowContract(secondaryBpmnProcesses::add));
 
   }
 
@@ -653,6 +666,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * The registration of a workflow module belongs to no workflow aggregate, yet it is written
    * into the store of one of the module's own aggregates. So it has to be known which
    * aggregates the module holds.
+   * <p>
+   * The process is also named to VanillaBP as an element of the deployed model. Its
+   * <code>&#64;WorkflowDetailsProvider</code> methods are then held against the version the BPMS
+   * gives it, and the start ends where none covers it. A process some class names only as a
+   * secondary one is left out, because it never gets a workflow report of its own. See decision
+   * 64 in the repository's DECISIONS.md.
    *
    * @param workflowModuleId The module
    * @param bpmnProcessId One of its BPMN processes
@@ -664,6 +683,38 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
     bpmnProcessesPerWorkflowModule
         .computeIfAbsent(workflowModuleId, ignored -> ConcurrentHashMap.newKeySet())
         .add(bpmnProcessId);
+
+    // VanillaBP holds the providers against the version the BPMS gives this model once it
+    // is deployed. It reads the contracts then, so they have to be there by now
+    registerHandlerContracts();
+    if (!reportsWorkflows() || secondaryBpmnProcesses.contains(bpmnProcessId)) {
+      // no workflow report is built for it, so no provider is ever asked about it
+      return;
+    }
+    handlers.elementsOfTheDeployedModel(WorkflowDetailsProvider.class, workflowModuleId, bpmnProcessId, List.of(List
+        .of()));
+
+  }
+
+  @Override
+  public void userTaskWired(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String bpmnTaskId) {
+
+    if (!reportsUserTasks()) {
+      // no user task is reported, so no provider of one is ever called
+      return;
+    }
+    final var lookupKeys = BusinessCockpitHandlers.lookupKeysOf(taskDefinition, bpmnTaskId);
+    if (lookupKeys.isEmpty()) {
+      // an empty list would stand for the process itself
+      return;
+    }
+    registerHandlerContracts();
+    handlers.elementsOfTheDeployedModel(UserTaskDetailsProvider.class, workflowModuleId, bpmnProcessId, List.of(
+        lookupKeys));
 
   }
 

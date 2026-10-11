@@ -133,4 +133,32 @@ public interface BusinessCockpitEventPublisher {
 
   }
 
+  /**
+   * Tells the extension about one user task of a model the BPMS half just wired. Call it from
+   * <code>wireBpmn</code>, once per user task, for every BPMN process the cockpit reports about.
+   * <p>
+   * VanillaBP holds the <code>&#64;UserTaskDetailsProvider</code> methods of the task against the
+   * version the BPMS gives the model. Where the task has providers but none of them covers that
+   * version, the start ends, the same as for a <code>&#64;WorkflowTask</code> method. A task
+   * without any provider is not asked about. See decision 64 in the repository's DECISIONS.md.
+   * <p>
+   * Pass the values the half passes with the events of the task, so the check picks the
+   * providers an event would pick.
+   *
+   * @param workflowModuleId The workflow module the task belongs to
+   * @param bpmnProcessId The BPMN process the task belongs to, for a task of a called process
+   *          the called process
+   * @param taskDefinition The task's task definition, may be <code>null</code>
+   * @param bpmnTaskId The task's BPMN element id, may be <code>null</code>
+   */
+  default void userTaskWired(
+      final String workflowModuleId,
+      final String bpmnProcessId,
+      final String taskDefinition,
+      final String bpmnTaskId) {
+
+    // a half built against an older extension reports nothing, and nothing is checked
+
+  }
+
 }

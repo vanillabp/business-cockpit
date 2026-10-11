@@ -69,6 +69,11 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
    * only one knowing what a listener looks like in that engine. What this callback carries, and
    * nothing else does, is which module deployed which process. The registration of a workflow
    * module is written into the outbox store of one of that module's own workflow aggregates.
+   * <p>
+   * It also names the process to VanillaBP as an element of the deployed model, so the
+   * <code>&#64;WorkflowDetailsProvider</code> methods of the process are held against the version
+   * the BPMS gives it (decision 64 in the repository's DECISIONS.md). The user tasks are named by
+   * the BPMS half, which is the one that can read them.
    */
   @Override
   public void wireBpmn(
