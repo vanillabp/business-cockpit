@@ -39,7 +39,7 @@ import io.vanillabp.spi.service.WorkflowService;
  * carry the version, so a method VanillaBP could never reach is named while the application
  * starts. See decision 24 in the repository's DECISIONS.md.
  * <p>
- * No matching method is a legal answer, and that holds for a version nobody serves too. The
+ * Having no matching method is allowed, and so is a version no method serves. The
  * prefilled details then pass through unchanged, so a workflow module which reports nothing of
  * its own still shows up in the cockpit, with the titles the BPMN carries.
  * <p>
@@ -47,7 +47,8 @@ import io.vanillabp.spi.service.WorkflowService;
  * methods ran. A details provider answers what the cockpit should show, and answering a
  * question does not change a case. See decision 17 in the repository's DECISIONS.md. It is said
  * here and not at every call, because VanillaBP wires the methods long before anybody calls one.
- * A start which cannot read it warns about a writer this extension does not have.
+ * If the start could not read it, it would warn about a writing details provider, and this
+ * extension has none.
  */
 public final class BusinessCockpitHandlers {
 
@@ -137,7 +138,7 @@ public final class BusinessCockpitHandlers {
    * so the rule those follow holds here as well. A method naming one task wins over it, and two
    * methods claiming every task of one workflow service end the boot.
    * <p>
-   * Both constants read '*' today. The translation happens all the same, so that a method
+   * Both constants read '*' today. The translation is done anyway, so that a method
    * claiming every task keeps doing so if one of them ever changes.
    *
    * @param keys What the method serves so far

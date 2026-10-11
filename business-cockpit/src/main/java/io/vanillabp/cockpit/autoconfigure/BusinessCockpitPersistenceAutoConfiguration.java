@@ -21,11 +21,11 @@ import org.springframework.data.mongodb.core.MongoTemplate;
  * MongoDB template with the cockpit's converters and write concern, the repositories reading it, the
  * changesets creating what they read, and the change streams the user interface is updated from.
  * <p>
- * Ordered ahead of Spring Boot's own MongoDB configuration, which is what lets
- * {@link MongoDbConfiguration} contribute the {@code MongoTemplate} and the converters. Spring
- * Boot's versions of both stand aside for a bean which is already there. So whoever registers first
- * decides, and leaving that to chance would mean two sets of converters on some starts and a
- * duplicate template on others.
+ * This configuration runs before Spring Boot's own MongoDB configuration. That way
+ * {@link MongoDbConfiguration} can provide the {@code MongoTemplate} and the converters. Spring
+ * Boot skips its own version of both if such a bean already exists. So whoever registers first
+ * wins. If that were left to chance, some starts would have two sets of converters and others a
+ * second template.
  */
 @AutoConfiguration(before = DataMongoAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
@@ -51,12 +51,12 @@ public class BusinessCockpitPersistenceAutoConfiguration {
     /**
      * Subscribes the cockpit's services to the change streams of their collections.
      *
-     * @param changesetsHaveBeenApplied not read, and not replaceable by an annotation: a change
-     *      stream is opened on a collection, so the changesets which create the collections have to
-     *      have run. Asking for the bean which runs them is what says so at compile time. It has to
-     *      be {@link ChangesetApplier} and not the auto-configuration which declares it. A
-     *      configuration class exists before its own beans do, so asking for it would compile,
-     *      start and guarantee nothing.
+     * @param changesetsHaveBeenApplied not read, and an annotation cannot replace it. A change
+     *      stream is opened on a collection, so the changesets which create the collections must
+     *      have run first. Asking for the bean which runs them makes this order visible at compile
+     *      time. It has to be {@link ChangesetApplier}, not the auto-configuration which declares
+     *      it. A configuration class exists before its own beans do. Asking for it would compile
+     *      and start, but guarantee nothing.
      */
     @Bean
     public ChangeStreamUtils changeStreamUtils(
@@ -70,11 +70,11 @@ public class BusinessCockpitPersistenceAutoConfiguration {
      * Tells Spring Boot to look for Spring Data repositories and documents in the cockpit's package as
      * well as in the application's own.
      * <p>
-     * Spring Boot scans the package of the class carrying {@code @SpringBootApplication}, and the
-     * cockpit's repositories live in this jar. Adding to that list is the one way to have them
-     * found without taking the scan over. An {@code @EnableMongoRepositories} of our own would make
-     * Spring Boot's stand aside completely, and the application's own repositories would then be
-     * the ones nobody looks for.
+     * Spring Boot scans the package of the class carrying {@code @SpringBootApplication}, but the
+     * cockpit's repositories live in this jar. Adding a package to that list is the only way to
+     * have them found while Spring Boot still runs the scan. With an
+     * {@code @EnableMongoRepositories} of our own, Spring Boot would skip its scan completely, and
+     * nobody would look for the application's own repositories any more.
      * <p>
      * The package added is the whole of {@link #COCKPIT_PACKAGE} rather than the five packages the
      * repositories sit in. Spring Boot keeps the list free of duplicates, and the delivered

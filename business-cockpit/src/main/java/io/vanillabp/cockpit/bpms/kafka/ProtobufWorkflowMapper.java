@@ -87,9 +87,9 @@ public abstract class ProtobufWorkflowMapper {
 
     // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md. Who started the case is declared optional in
-    // the protobuf schema and arrives as null, and that is what this strategy answers. The title,
-    // the business data and the permissions to open the case arrive empty instead, and
-    // toEndedWorkflow answers that.
+    // the protobuf schema and arrives as null. This strategy handles that. The title, the business
+    // data and the permissions to open the case arrive empty instead, and toEndedWorkflow handles
+    // those.
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -121,11 +121,11 @@ public abstract class ProtobufWorkflowMapper {
      * Maps a completed or cancelled event onto the stored workflow, keeping the business data and
      * the title the cockpit already has where the end reports none.
      * <p>
-     * The sender fills the details field whether it has anything to put in it or not, and a
-     * protobuf map says nothing about presence either way. So an empty map is how an end of a case
-     * the BPMS can no longer describe looks here. The title arrives the same way. So do the users
-     * and groups the case is accessible to, because a repeated protobuf field says nothing about
-     * presence either. Mapping those would take everybody's permission to open a finished case
+     * The sender always fills the details field, even with nothing in it. A protobuf map cannot
+     * tell "left out" from "empty". So if the BPMS can no longer describe the case, its end arrives
+     * here with an empty map. The title arrives the same way. So do the users and groups who may
+     * open the case, because a repeated protobuf field cannot tell the two apart either. Mapping
+     * those would take away everybody's permission to open a finished case
      * ({@link WhatAnEndReports}, and see decision 19 in the repository's DECISIONS.md).
      *
      * @param event The end as it was reported

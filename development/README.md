@@ -23,12 +23,12 @@ This file is about working on the cockpit itself.
 1. [Build and Run the Business Cockpit](#build-and-run-the-business-cockpit)
 1. [Simulation Service](#simulation-service)
 
-The Business Cockpit is a Java Spring Boot application without a user interface. One thing has to be running before it
-starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings two
-services which are not needed to run the cockpit but to develop and test particular features,
-[Mailpit](#notification-e-mails-mailpit) for notification e-mails and a
-[single-node Kafka](#kafka) for reporting BPMS events over Kafka rather than over REST. The latter is
-only needed with a real business service, since the simulation service brings its own broker.
+The Business Cockpit is a Java Spring Boot application without a user interface. One thing has to
+run before it starts: a [MongoDB cluster](#mongodb). The provided compose configuration also brings
+two services which the cockpit does not need to run. They are there to develop and test particular
+features: [Mailpit](#notification-e-mails-mailpit) for notification e-mails, and a
+[single-node Kafka](#kafka) for reporting BPMS events over Kafka instead of REST. You need Kafka only
+with a real business service, because the simulation service brings its own broker.
 
 ```sh
 cd development

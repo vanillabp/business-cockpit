@@ -107,9 +107,9 @@ public class UpdateEmitter {
      *
      * <p>The ids of all kinds count against {@code maxKnownIds}. Above it the stream keeps only the
      * ids of this answer and forgets the rest. Every kind which lost an id is reloaded, because
-     * the browser may still show what the stream forgot. Keeping this answer is what stops a loop:
-     * the answer to the reload is about the same ids, so it does not overflow again unless one
-     * answer alone is above the limit, and even then it loses nothing.
+     * the browser may still show what the stream forgot. Keeping this answer stops a loop. The
+     * answer to the reload has the same ids, so it does not go over the limit again. Only one
+     * answer which is above the limit on its own does, and even then it loses nothing.
      */
     public void rememberAnswer(
             final String kindOfEntity,

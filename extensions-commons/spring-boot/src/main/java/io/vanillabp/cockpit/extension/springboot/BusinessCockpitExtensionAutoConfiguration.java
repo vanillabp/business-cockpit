@@ -108,10 +108,10 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
 
   /**
    * The transport the extension ships. An application replaces it by providing a bean of the
-   * same type. Version 1 of the Business Cockpit had that seam on its three publishing beans,
-   * and an application which used it keeps its way to the cockpit.
+   * same type. Version 1 of the Business Cockpit let an application replace its three publishing
+   * beans, and an application which did so keeps its way to the cockpit.
    * <p>
-   * The seam sits at this point because of what such a transport inherits. It is called while an
+   * The transport is the part to replace because of where it runs. It is called while an
    * outbox entry is dispatched, so a failure is repeated with a backoff and the call runs in the
    * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
    *
@@ -185,8 +185,8 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
 
   /**
    * Resolves the outbox store and the transaction of every workflow aggregate once the
-   * application's singletons exist. This is what makes a store nobody can attribute end the boot
-   * instead of the first report.
+   * application's singletons exist. So a store which cannot be attributed to an aggregate ends
+   * the boot, and not the first report.
    * <p>
    * It waits like VanillaBP's own startup validation does. Asking for the store of an aggregate
    * reaches into the application's persistence, and doing that while beans are still being

@@ -74,7 +74,7 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * So a report says what was true when the event happened, and the dispatch asks nobody
  * anything. See decision 26 in the repository's DECISIONS.md.
  * <p>
- * Two ways are the exception. A changed workflow aggregate which the BPMS half cannot name in the
+ * There are two exceptions. A changed workflow aggregate which the BPMS half cannot name in the
  * application's transaction gets an entry without a report, and that entry is resolved when it
  * is dispatched ({@link #publishWorkflowChangeResolvedWhenDispatched}). A changed user task
  * whose report the BPMS half cannot build there is handled the same way
@@ -110,7 +110,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final TransactionRunnerResolver transactionRunners;
 
   /**
-   * VanillaBP's election, asked only by the dispatch of an entry which names no adapter. It is
+   * VanillaBP's election. Only the dispatch of an entry which names no adapter asks it. It is
    * looked up when it is needed, because the platform builds it from beans which are made after
    * this one.
    */
@@ -204,8 +204,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   /**
    * Tells VanillaBP how to find and invoke the application's details providers. Called once
-   * while the application starts; the order relative to the scanning of the
-   * <code>&#64;WorkflowService</code> classes does not matter.
+   * while the application starts. It does not matter whether this happens before or after the
+   * <code>&#64;WorkflowService</code> classes are scanned.
    */
   public void registerHandlerContracts() {
 
@@ -248,14 +248,14 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   }
 
   /**
-   * The workflow aggregate which serves each BPMN process of the reporting workflow modules,
-   * asked of VanillaBP.
+   * Asks VanillaBP which workflow aggregate serves each BPMN process of the reporting workflow
+   * modules.
    * <p>
    * A workflow service declares two things: the aggregate it is written for, and the processes
    * it serves. The processes are its primary one and any it names as secondary, which is a
    * process called by a call activity or a process which was renamed. VanillaBP registered
-   * every one of those pairs while it built the process services. So an event which names a
-   * BPMN process yields the class whose transaction the entry has to ride, and nobody reads the
+   * every one of those pairs while it built the process services. So the BPMN process an event
+   * names leads to the class whose transaction the entry has to use. Nobody reads the
    * annotations a second time.
    * <p>
    * The key is the pair, not the BPMN process alone. Two workflow modules of one application
@@ -291,8 +291,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * It is the transaction the aggregate's own writes go through, and that may well be a runner
    * the application contributed. A transaction of the extension's own would commit the report
    * separately from the change it reports. It would also lose what the platform's runner knows
-   * about the transaction it opened: its rollback-only verdict, its pre-commit callbacks, and
-   * that it sees an optimistic-locking failure.
+   * about the transaction it opened: whether it is marked rollback-only, its pre-commit
+   * callbacks, and whether it sees an optimistic-locking failure.
    *
    * @param workflowAggregateClass The aggregate, or <code>null</code> for an entry belonging to
    *          none
@@ -563,12 +563,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * known without the BPMS. The report is built when the entry is dispatched, and while the BPMS
    * has not written the task yet the entry is dispatched again a little later.
    *
-   * @param userTask The task as far as VanillaBP wrote it down when it delivered it. Where it
-   *          wrote nothing down, the reference names the id the application named and leaves
-   *          the workflow empty, so the dispatch looks the task up first. Where nothing names the
-   *          adapter, the reference leaves it empty as well, and the dispatch elects it. Where the application
-   *          named no task either, the id is empty as well, and the dispatch looks up every open
-   *          task of the aggregate
+   * @param userTask The task as far as VanillaBP wrote it down when it delivered it. If VanillaBP
+   *          wrote nothing down, the reference has the id the application named and no workflow,
+   *          so the dispatch looks the task up first. If nothing names the adapter, the reference
+   *          has no adapter either, and the dispatch elects it. If the application named no task
+   *          either, the id is empty too, and the dispatch looks up every open task of the
+   *          aggregate
    * @param timestamp When the change happened
    * @param workflowAggregateClass The aggregate's class
    * @return Whether an entry was written, <code>false</code> where the application reports no
@@ -786,11 +786,12 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * about the case as it was before the caller touched it, in the same call which accepts a
    * report of that very change.
    * <p>
-   * Opening one where nothing runs is what keeps a caller outside a transaction answerable. A REST
-   * controller reading a user task brings nothing to join, and it gets an answer all the same.
+   * If no transaction runs, one is opened, so a caller outside a transaction still gets an
+   * answer. A REST controller reading a user task has no transaction to join, and it gets an
+   * answer all the same.
    * <p>
    * The runner is the one the aggregate's own writes go through, for the same reason a report
-   * rides that one. A workflow aggregate kept in a system the platform does not manage is read
+   * uses it. A workflow aggregate kept in a system the platform does not manage is read
    * through the unit of work of that system and no other. Which transaction a question works in
    * is decision 21 in the repository's DECISIONS.md.
    *
@@ -812,11 +813,11 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Whether the calling thread runs a transaction the given aggregate's writes would go through.
    * <p>
    * A report through <code>BusinessCockpitService</code> needs one. The service asks before it
-   * writes, so a caller who brought none reads a sentence about the code they wrote instead of
-   * the platform's wording about a missing transaction.
+   * writes. So a caller without a transaction gets a message about their own code, and not the
+   * platform's general message about a missing transaction.
    * <p>
-   * A runner an application contributed answers <code>true</code> where it cannot tell, which
-   * leaves the refusal to the runner itself.
+   * A runner the application added answers <code>true</code> if it cannot tell. The runner then
+   * refuses on its own.
    *
    * @param workflowAggregateClass The aggregate a report would be written for
    * @return Whether a transaction is open
@@ -831,8 +832,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
 
   /**
    * Whether a workflow module takes part in the Business Cockpit at all.
-   * <code>BusinessCockpitService</code> asks this before it demands a transaction. A module
-   * which configured nothing about the cockpit is then not refused for a report nobody writes.
+   * <code>BusinessCockpitService</code> asks this before it demands a transaction. So a module
+   * which configured nothing about the cockpit is not refused for a report that is never
+   * written.
    *
    * @param workflowModuleId The module
    * @return Whether it configured the extension
@@ -1140,9 +1142,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * backoff, and a <code>PhaseTwoRetryLater</code> of the half is an answer the outbox
    * understands.
    * <p>
-   * Several workflows of one aggregate are sent one by one. Where a later one fails, the entry
-   * comes again and sends the earlier ones a second time, with the same event ids, which is the
-   * at-least-once the outbox promises anyway.
+   * Several workflows of one aggregate are sent one by one. If a later one fails, the entry
+   * comes again and sends the earlier ones a second time, with the same event ids. The outbox
+   * promises at-least-once delivery anyway, so this is fine.
    */
   private void dispatchWorkflowChange(
       final PhaseTwoCall entry,
@@ -1255,9 +1257,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * election is asked now, outside the application's transaction, where it may ask a BPMS and wait
    * for it. A report never waits in the application's transaction, a read may.
    * <p>
-   * The election answers "no adapter" by throwing. On a BPMS which writes a storage behind its
-   * engine that is what a workflow started moments ago looks like, so the entry gets the window
-   * of every other change: given back to the outbox, and blocked after ten minutes.
+   * The election answers "no adapter" by throwing. Some BPMS write what the engine did into a
+   * separate store, a little later. There a workflow started a moment ago looks exactly like
+   * this. So the entry gets the same window as every other change: it goes back to the outbox,
+   * and it is blocked after ten minutes.
    *
    * @param call The entry as the outbox read it
    * @param timestamp When the change happened
@@ -1566,9 +1569,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * An entry keeps its bytes for as long as it stands in the outbox, waiting or blocked, and
    * loses them together with itself once it was dispatched. An entry which outlives its own
    * bytes was therefore written by a transaction which crashed between the entry and the bytes,
-   * which is possible where MongoDB writes outside a transaction. Sending it without business
-   * data is what is left, and it is the better half: the cockpit keeps what it stored about
-   * that task before, and a task whose end is never reported stays open in the list for good.
+   * which is possible where MongoDB writes outside a transaction. All that is left is to send
+   * it without business data, and that is the better choice: the cockpit keeps what it stored
+   * about that task before. A task whose end is never reported would stay open in the list for
+   * good.
    */
   private UserTaskEvent userTaskEventWithoutItsReport(
       final PhaseTwoCall call) {
@@ -1802,8 +1806,8 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * fails.
    * <p>
    * A provider which called <code>setInitiator(null)</code> on purpose, to drop a value its
-   * BPMS prefilled, looks exactly like a provider which did nothing. So that way out is the
-   * constant as well, set on purpose.
+   * BPMS prefilled, looks exactly like a provider which did nothing. To drop such a value, a
+   * provider sets the constant on purpose.
    *
    * @param initiator What stands in the report
    * @return The value to report
@@ -1935,10 +1939,10 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   /**
    * Builds the report and hands its entry to the store.
    * <p>
-   * The entry takes the place of an entry of the same key which is still waiting, instead of
-   * being discarded against it. An entry carries its report now, so the waiting one carries the
-   * older state, and a user reading the cockpit after a backlog wants the newest. What stays is
-   * that the waiting reports of one task collapse into one. See decision 26 in the repository's
+   * The entry replaces a waiting entry of the same key. It is not dropped in favour of the
+   * waiting one. An entry carries its report now, so the waiting one carries the older state,
+   * and a user reading the cockpit after a backlog wants the newest. As before, the waiting
+   * reports of one task end up as one. See decision 26 in the repository's
    * DECISIONS.md.
    *
    * @return Whether an entry was written
@@ -1978,7 +1982,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * Says that a report was dropped because the BPMS says nothing about what it is about.
    * <p>
    * A dropped report was to carry details, so the cockpit loses what it would have shown. That
-   * is said out loud, with everything needed to find the case again. The BPMS half is asked
+   * is why it is logged, with everything needed to find the case again. The BPMS half is asked
    * while the event is being observed, so an empty answer means that the half has nothing about
    * the very event it is reporting.
    * <p>

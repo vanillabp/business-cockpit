@@ -11,8 +11,8 @@ package io.vanillabp.cockpit.extension.spi;
  * @param processVersion The version of the deployed BPMN process this task belongs to, spelled
  *          the way the BPMS reports it, or <code>null</code> where the BPMS reports none. It
  *          picks between <code>&#64;UserTaskDetailsProvider</code> methods which serve
- *          different versions of one model, so it is the plain version and never a version
- *          dressed up for a screen
+ *          different versions of one model, so it is the plain version and never one
+ *          formatted for display
  * @param workflowAggregateId The workflow aggregate's id, serialized
  * @param workflowId The BPMS' own identifier of the workflow the task belongs to
  * @param userTaskId The BPMS' own identifier of the user task

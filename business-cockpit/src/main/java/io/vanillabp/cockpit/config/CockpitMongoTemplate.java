@@ -16,8 +16,8 @@ import org.springframework.data.mongodb.core.convert.MongoConverter;
  * {@code MongoTemplate.prepareWriteConcern}, and the answer is not the one most people expect. The
  * template asks its {@code WriteConcernResolver}, which by default answers with the concern set on
  * the template. Then it raises anything below one acknowledgement to
- * {@link WriteConcern#ACKNOWLEDGED}, as long as write results are checked. Only where all of that
- * ends in nothing does a write fall back to the concern of the connection.
+ * {@link WriteConcern#ACKNOWLEDGED}, as long as write results are checked. Only if none of these
+ * steps gives a concern does a write use the concern of the connection.
  *
  * <p>So a cockpit which checks its write results, and this one does, never reaches the concern of
  * its connection string. Asking the template is the only way to learn what it promises, and

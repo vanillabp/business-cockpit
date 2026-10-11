@@ -134,8 +134,8 @@ public abstract class ProtobufUserTaskMapper {
      */
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
     // decision 19 in the repository's DECISIONS.md. A field the sender left out is declared
-    // optional in the protobuf schema and arrives as null, and that is what this strategy answers.
-    // The titles and the business data arrive empty instead, and toEndedTask answers that.
+    // optional in the protobuf schema and arrives as null. This strategy handles that. The titles
+    // and the business data arrive empty instead, and toEndedTask handles those.
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     // the record is the one the service looked up, and MongoDB counts its saves:
     @Mapping(target = "id", ignore = true)
@@ -189,11 +189,11 @@ public abstract class ProtobufUserTaskMapper {
      * Maps a completed or cancelled event onto the stored user task, keeping the business data and
      * the titles the cockpit already has where the end reports none.
      * <p>
-     * The sender fills the details field whether it has anything to put in it or not, and a
-     * protobuf map says nothing about presence either way. So an empty map is how an end of a task
-     * the BPMS can no longer describe looks here. The three titles arrive the same way, and mapping
-     * them would leave a finished task without a name in the list ({@link WhatAnEndReports}, and
-     * see decision 19 in the repository's DECISIONS.md).
+     * The sender always fills the details field, even with nothing in it. A protobuf map cannot
+     * tell "left out" from "empty". So if the BPMS can no longer describe the task, its end arrives
+     * here with an empty map. The three titles arrive the same way. Mapping them would leave a
+     * finished task without a name in the list ({@link WhatAnEndReports}, and see decision 19 in
+     * the repository's DECISIONS.md).
      *
      * @param event The end as it was reported
      * @param result The stored task, changed in place

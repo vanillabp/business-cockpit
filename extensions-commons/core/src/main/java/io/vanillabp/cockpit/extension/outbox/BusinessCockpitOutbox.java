@@ -17,8 +17,8 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
  * An outbox entry has to be written in the very transaction which persists the workflow
  * aggregate it belongs to, because that is what ties the report to the change it reports. An
  * application may hold several stores: one per persistence, or one it wrote for a single
- * aggregate. So which store to use depends on the aggregate, and picking any of them would break
- * the promise while looking green.
+ * aggregate. So which store to use depends on the aggregate. Picking any of them would break the
+ * promise, and no test would notice.
  * <p>
  * The attribution itself is never made here. VanillaBP answers it for its own operations and for
  * the extension too, so an entry of the extension lands where an entry of the core lands. See
@@ -31,15 +31,15 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
  * application while it boots.
  * <p>
  * The lookup is keyed by the workflow module and the BPMN process together. Two modules of one
- * application may serve a process of the same name, because a module is exactly the boundary
- * which makes that legal. Their aggregates may live in different persistences, so a key which
+ * application may serve a process of the same name, because a module is the boundary which
+ * allows that. Their aggregates may live in different persistences, so a key which
  * left the module out would write the reports of one module into the other's store.
  */
 public class BusinessCockpitOutbox {
 
   /**
-   * One BPMN process of one workflow module. It is the pair an event a BPMS observed names, and
-   * the pair a store is looked up by.
+   * One BPMN process of one workflow module. An event from a BPMS names this pair, and a store
+   * is looked up by it.
    *
    * @param workflowModuleId The workflow module
    * @param bpmnProcessId The BPMN process, as the application wrote it
@@ -256,9 +256,9 @@ public class BusinessCockpitOutbox {
 
   private String noStoreAtAll() {
 
-    // the closing line is the platform's own. Its resolver lists what enables a default and
-    // leaves the store an application writes itself to whoever asks. Here as there, that is
-    // the last of the remedies
+    // the last line is the platform's own. Its resolver lists how to switch on a default store
+    // and leaves the store an application writes itself to the caller. Here, as there, that is
+    // the last remedy
     return """
         The Business Cockpit adapter needs an outbox store: it reports every event after the \
         transaction which caused it was committed, which is what keeps an event from being \

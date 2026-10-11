@@ -31,8 +31,8 @@ import io.vanillabp.integration.adapter.migration.config.MigrationAdapterPropert
  * <p>
  * What is read is the tree {@link CockpitSettings} carries. Both platforms bind that tree with
  * their own means and hand it over as one object. Every value in it is the text the application
- * wrote. So a number which is no number, a span of time which is none and a boolean which is
- * none are all answered here, once and with the same words on both platforms.
+ * wrote. So a number, a span of time or a boolean which cannot be read is reported here, once
+ * and with the same words on both platforms.
  */
 public final class BusinessCockpitConfiguration {
 
@@ -253,8 +253,8 @@ public final class BusinessCockpitConfiguration {
    *          one, a template path is pointless and the BPMN language becomes mandatory
    * @param transportProvidedByTheApplication Whether the application brought a
    *          {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
-   *          own. The platform answers this, because a bean is what each of them knows about
-   *          and a property key which claimed it could be wrong. An application which reports
+   *          own. The platform answers this, because each platform knows its beans. A property
+   *          key which claimed it could be wrong. An application which reports
    *          its own way needs neither of the shipped transports, so neither is missing then
    * @return The configuration
    * @throws IllegalStateException If anything is missing or contradictory. The message lists
@@ -515,7 +515,7 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
-   * The file holding the certificates a server's is checked against.
+   * The file holding the certificates the server's certificate is checked against.
    * <p>
    * The file is opened while the application starts, not at the first report. A truststore
    * which cannot be read means the deployment was assembled wrongly. Finding that out at the
@@ -557,9 +557,9 @@ public final class BusinessCockpitConfiguration {
 
   /**
    * The client-credentials flow, where one was configured. The address of the authorization
-   * server switches it on, and the two halves of the client's identity are needed with it.
+   * server switches it on, and the client id and the client secret are needed with it.
    * <p>
-   * What the flow says about its own connection stays its own. Version 1 configured the token
+   * The flow keeps its own connection settings. Version 1 configured the token
    * client separately from the cockpit server's, and that is why an authorization server behind
    * another proxy stays reachable.
    */
@@ -836,8 +836,8 @@ public final class BusinessCockpitConfiguration {
    * <p>
    * The same text is written a second time in the cockpit server, for the directory the
    * notification templates come from. Both keys name a directory, and a developer who reads one
-   * of the two messages knows the other. The server does not depend on this module. So the price
-   * of the same words is writing them twice, and a test on each side holds the wording.
+   * of the two messages knows the other. The server does not depend on this module. So the same
+   * words are written twice, and a test on each side keeps them alike.
    *
    * @param templateLoaderPath What the application configured, possibly nothing
    * @param key The property key, spelled the way the application writes it
@@ -1167,10 +1167,9 @@ public final class BusinessCockpitConfiguration {
    * Only four of the module's keys mean anything one workflow at a time: the language its
    * titles are written in, the languages they are reported in, the directory its templates
    * live in, and who answers its initiator. Only the template directory means anything for a
-   * single user task. The binding of
-   * each platform declares which keys those are. A key which is none of them is refused by
-   * Quarkus while it starts and ignored by Spring Boot, the way every other key unknown to the
-   * <code>vanillabp</code> tree is.
+   * single user task. The binding of each platform declares which keys those are. A key which is
+   * none of them is refused by Quarkus while it starts and ignored by Spring Boot, the way every
+   * other key unknown to the <code>vanillabp</code> tree is.
    */
   private static Map<String, WorkflowConfiguration> readWorkflows(
       final String workflowModuleId,

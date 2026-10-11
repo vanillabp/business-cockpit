@@ -15,8 +15,8 @@ package io.vanillabp.cockpit.extension.spi;
  * @param processVersion The version of the deployed BPMN process this workflow runs on, spelled
  *          the way the BPMS reports it, or <code>null</code> where the BPMS reports none. It
  *          picks between <code>&#64;WorkflowDetailsProvider</code> methods which serve different
- *          versions of one model, so it is the plain version and never a version dressed up for
- *          a screen
+ *          versions of one model, so it is the plain version and never one formatted for
+ *          display
  * @param workflowAggregateId The workflow aggregate's id, serialized
  * @param workflowId The BPMS' own identifier of the workflow: a process-instance id for
  *          Camunda 7, a process-instance key for Camunda 8

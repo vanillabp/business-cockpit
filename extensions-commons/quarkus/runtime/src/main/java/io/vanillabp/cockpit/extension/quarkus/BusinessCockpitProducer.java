@@ -118,10 +118,10 @@ public class BusinessCockpitProducer {
 
   /**
    * The transport the extension ships. An application replaces it by producing a bean of the
-   * same type. <code>&#64;DefaultBean</code> is what ArC offers for the seam which Spring Boot's
-   * <code>&#64;ConditionalOnMissingBean</code> makes on the other platform.
+   * same type. ArC's <code>&#64;DefaultBean</code> does here what Spring Boot's
+   * <code>&#64;ConditionalOnMissingBean</code> does on the other platform.
    * <p>
-   * The seam sits at this point because of what such a transport inherits. It is called while an
+   * The transport is the part to replace because of where it runs. It is called while an
    * outbox entry is dispatched, so a failure is repeated with a backoff and the call runs in the
    * transaction of the workflow aggregate. See decision 21 in the repository's DECISIONS.md.
    *
@@ -150,7 +150,7 @@ public class BusinessCockpitProducer {
    * @param bridges The BPMS halves the application brought
    * @param bridgeLists The BPMS halves an extension produced as one list. That is how a BPMS
    *          half builds one bridge per configured adapter id on Quarkus. The configuration
-   *          decides how many there are, so a producer method cannot
+   *          decides how many there are, so there cannot be one producer method per bridge
    * @param workflowModuleDetailsProviders What the application says about its modules
    * @param handlers VanillaBP's invocation of the details providers
    * @param outboxResolver VanillaBP's attribution of an outbox store to a workflow aggregate
@@ -228,8 +228,8 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Resolves the outbox store and the transaction of every workflow aggregate. This is what
-   * makes a store nobody can attribute end the boot instead of the first report.
+   * Resolves the outbox store and the transaction of every workflow aggregate. So a store which
+   * cannot be attributed to an aggregate ends the boot, and not the first report.
    * <p>
    * It runs after the deployment pipeline. Only then has VanillaBP registered the workflow
    * services of every process service, and only then can it be asked which aggregate a BPMN
@@ -287,9 +287,9 @@ public class BusinessCockpitProducer {
    * <p>
    * Which beans of that type this application has was decided while the application was built,
    * and so was which of them this class produces as the default. Asking the container reads that
-   * answer and creates none of the beans. That matters twice. The shipped transport loads the
-   * Kafka client which the application may not have, and it is built from the very configuration
-   * being read here.
+   * answer and creates none of the beans. That matters for two reasons. The shipped transport loads
+   * the Kafka client which the application may not have, and it is built from the very
+   * configuration being read here.
    *
    * @param transports Every bean of the transport type
    * @return Whether one of them is not the shipped default

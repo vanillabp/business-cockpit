@@ -65,11 +65,11 @@ the GitHub CLI, logged in. For the snapshot of the MongoDB changeset library it 
 with `read:packages` in `PACKAGES_TOKEN`. The snapshots of the four cockpit repositories need no
 token.
 
-The chain check builds nothing, so it cannot see a main which a new platform snapshot breaks while
-nobody pushes here. The workflow `Nightly build` does that. Once a night it runs the pull-request
-build on main, with `--update-snapshots`, so it builds against the snapshots published since the
-last run. It publishes nothing. It waits for a publish of main which is running or waiting, and then
-joins the publish's group, so the two never run at the same time. A red night becomes one issue with
+The chain check builds nothing. So when a new platform snapshot breaks main and nobody pushes
+here, the chain check does not notice. The workflow `Nightly build` covers this. Once a night it
+runs the pull-request build on main, with `--update-snapshots`, so it builds against the snapshots
+published since the last run. It publishes nothing. If a publish of main is running or waiting, the
+nightly build waits for it, so the two never run at the same time. A red night becomes one issue with
 the label `nightly-build`, and a night which is still red is a comment on that issue. The two
 adapter repositories for Camunda 7 and the Process Engine API have the same workflow.
 
@@ -81,11 +81,11 @@ wiki, under [Releases](https://github.com/vanillabp/business-cockpit/wiki/Releas
 ## Test coverage
 
 Coverage is measured once per deployable and per platform. None of them runs another's code, and a
-single number across them would hide whichever is weakest. The cockpit library, the container and
-what they carry with them run in a business cockpit application. The extension runs inside a
-workflow module, next to the business code, on Spring Boot and on Quarkus. Each platform's tests
-reach only that platform's glue, so the difference between its two numbers names the features one of
-them never runs.
+single number across them would hide the weakest one. The cockpit library, the container and what
+they bring along run in a business cockpit application. The extension runs inside a workflow module,
+next to the business code, on Spring Boot and on Quarkus. The tests of each platform reach only the
+glue code of that platform. So the gap between the two numbers shows the features which one of the
+two platforms never runs.
 
 |                            | Spring Boot | Quarkus |
 |----------------------------|-------------|---------|

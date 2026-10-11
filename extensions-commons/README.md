@@ -56,14 +56,14 @@ and
 
 The path an event takes is drawn in the wiki under
 [Architecture](https://github.com/vanillabp/business-cockpit/wiki/Architecture#the-path-a-report-takes).
-Two things about it are decisions of this module rather than facts a user needs. The report is put
-together while the BPMS event is observed and travels as the payload of the outbox entry, so what
-the cockpit is told is the state of the event; the entry itself stays a row of identifiers, because
-VanillaBP keeps the bytes beside it. Waiting reports about one task still collapse into one, and the
-one which is left is the youngest, which is why they are planned through
-`PhaseTwoOutbox#scheduleReplacingWhatIsStillWaiting`. And a transport which fails throws, so the
-entry stays and the outbox repeats it, unless the cockpit server refused the report itself, which
-ends the entry rather than repeating it forever. Decisions 26 and 11 of the
+Two things about it are decisions of this module, not facts a user needs. First, the report is
+built while the BPMS event is observed, and it travels as the payload of the outbox entry. So the
+cockpit is told the state at the time of the event. The entry itself stays a row of identifiers,
+because VanillaBP keeps the bytes beside it. Reports about one task which still wait are merged into
+one, and the youngest one is kept. That is why they are planned through
+`PhaseTwoOutbox#scheduleReplacingWhatIsStillWaiting`. Second, a transport which fails throws. The
+entry stays, and the outbox repeats it. Only if the cockpit server refused the report itself does
+the entry end, so it is not repeated forever. Decisions 26 and 11 of the
 [decision log](../DECISIONS.md) say why.
 
 The transport itself is a bean of both platforms, and an application which brings one of its own
@@ -83,53 +83,53 @@ workflows of a workflow aggregate it holds, which user tasks of one it holds, an
 task belongs to that aggregate. Two more have a default and are asked by `aggregateChanged`
 only, see below.
 
-Every reference a BPMS half hands over or is asked about carries the version of the deployed BPMN
-process, spelled the way the engine reports it. It is what picks between details providers which
-serve different generations of one model, so it is the plain version and never a version dressed up
-for a screen. A BPMS which reports none leaves it empty, and only the providers naming no version
-then run.
+Every reference a BPMS half hands over, or is asked about, carries the version of the deployed BPMN
+process, written the way the engine reports it. The version picks between details providers which
+serve different generations of one model. So it is the plain version, never a version formatted for
+a screen. A BPMS which reports no version leaves it empty, and then only the providers which name
+no version run.
 
-The two `prefilled…` questions are asked at the moment of the event, inside the transaction it
-arrived in, because that is where the report is built. A half answers them out of the event it is
-reporting rather than out of a storage which runs behind the engine. `prefilledUserTaskDetails`
-serves a second moment as well, the read of `BusinessCockpitService.getUserTask`, and that one is
-about now.
+The two `prefilled…` questions are asked at the moment of the event, inside the transaction of the
+event, because that is where the report is built. A half answers them from the event it reports,
+not from a storage which runs behind the engine. `prefilledUserTaskDetails` is also asked at a
+second moment: when `BusinessCockpitService.getUserTask` reads a task. That answer is about the
+current state.
 
 Both answers have an optional `createdAt`: when the BPMS created the task or started the workflow.
-Only the report of an end sends it. The cockpit reads it where the end is the first report about the
-record it gets, because the end overtook the creation, and the record then starts at that time.
-A half fills it where the event at hand tells it, and leaves it empty where it could only ask the
-engine. The cockpit then starts the record at its end. Both records keep their constructors without
+Only the report of an end sends it. The cockpit reads it if the end is the first report it gets
+about the record, because the end overtook the creation. The record then starts at that time. A
+half fills it if the event at hand tells it, and leaves it empty if it would have to ask the engine.
+Without it the cockpit starts the record at its end. Both records keep their constructors without
 the field, so a half which does not fill it needs no change.
 
-Which answer a BPMS half gives decides whether a report happens at all. A half which cannot read
-what it was asked for throws, and the exception reaches the engine reporting the event, so its work
-fails and says so. An empty answer means the engine says nothing about the task or the workflow. A
-report about a task or a case which is still running is then dropped for good, and a report of an
-end is sent all the same, with its identifiers and without details: a completion which never
-arrives leaves a task the cockpit shows as open forever. `PhaseTwoRetryLater` is no answer at the
+The answer of a BPMS half decides whether a report is sent at all. A half which cannot read what
+it was asked for throws. The exception reaches the engine which reports the event, so that work
+fails and says so. An empty answer means the engine knows nothing about the task or the workflow.
+Then a report about a task or a case which is still running is dropped for good. A report of an
+end is sent anyway, with its identifiers and without details, because a completion which never
+arrives leaves a task open in the cockpit forever. `PhaseTwoRetryLater` is no answer at the
 moment of an event, because there is no entry to dispatch again yet.
 
 One way is the exception: `BusinessCockpitService.aggregateChanged(aggregate)`. It runs in the
-application's transaction, and a half whose engine writes a storage behind it cannot always name
-the workflows of the case there. So the half is asked `workflowsOfAggregateRightAway` first. The
+application's transaction. If the engine of a half writes to a storage behind it, the half cannot
+always name the workflows of the case at that point. So the half is asked `workflowsOfAggregateRightAway` first. The
 default answers what `workflowsOfAggregate` answers, and the report is built right away as on every
 other way. A half which answers nothing gets an outbox entry without a report instead. When that
 entry is dispatched, the half is asked `workflowsOfAggregate` and `prefilledWorkflowDetails`, and
 the details provider runs in a transaction of the dispatch. An empty answer there means "not yet",
-and the entry comes back after two seconds, with the distance growing by a tenth of the time it has
-waited so far. So a BPMS which stays behind for minutes is not asked every two seconds. The
+and the entry comes back after two seconds. The pause grows by a tenth of the time the entry has
+waited so far, so a BPMS which lags behind for minutes is not asked every two seconds. The
 extension gives up after ten minutes, long before the outbox would block the entry on its own. A
 change which still has no workflow then is not dropped. Its entry is blocked, like an entry which
 used up its attempts, and the log says so at ERROR and names what to check in the BPMS. The outbox
 does not dispatch a blocked entry again by itself. The entry keeps the reason in the column
 `LAST_FAILURE`, on MongoDB in the field `lastFailure`. The ERROR links to
 [Blocked outbox entries](https://github.com/vanillabp/adapter-platform-integration/wiki/Blocked-outbox-entries),
-which shows how to find such an entry and open it again or delete it. A `PhaseTwoRetryLater` of
-the half is understood on this way, and any other exception goes to the outbox, which repeats the
-entry with its own backoff. The adapter of the change comes from VanillaBP's note of the start,
-or is the one adapter the application configured. Only an application with several adapters and no
-note asks the election, which may ask a BPMS.
+which shows how to find such an entry and open it again or delete it. On this way the extension
+understands a `PhaseTwoRetryLater` of the half. Any other exception goes to the outbox, which
+repeats the entry with its own backoff. The adapter of the change comes from what VanillaBP noted
+at the start, or it is the only adapter the application configured. Only an application with
+several adapters and no such note asks the election, which may ask a BPMS.
 
 `aggregateChanged(aggregate, userTaskIds)` works the same way for user tasks. The half is asked
 `reportsAChangedUserTaskRightAway` first, and the default answers `true`, so the reports are built
@@ -142,14 +142,14 @@ task and VanillaBP knows of no open one, the dispatch asks `userTasksOfAggregate
 task, and an empty answer of that search sends nothing. An empty answer about a task waits and
 blocks the same way as a workflow, and the log names the task.
 
-An empty answer is silence and never the end of a task. No BPMS can promise the stronger reading. A
-half whose engine publishes what it holds through a storage of its own writes that storage behind
-the engine, so a task created a moment ago is missing from the answer exactly like a task which
-ended. A half answering out of what its own node was served has the same gap for a case another node
-serves. Only an engine asked inside the caller's transaction really knows. So a half says both
-readings in the log where its answer is empty, the neutral half writes no report and leaves the
-stored data alone, and `BusinessCockpitService.getUserTask` hands the empty answer to the
-application with a javadoc saying what may be read into it. A task leaves a cockpit list when the
+An empty answer is silence. It never means that a task ended, because no BPMS can promise that.
+Some engines publish what they hold through a storage of their own, and that storage is written
+after the engine. There a task created a moment ago is missing from the answer, just like a task
+which ended. A half which answers from what its own node was served has the same gap for a case
+which another node serves. Only an engine asked inside the caller's transaction really knows. So
+where its answer is empty, a half logs both possible meanings. The neutral half writes no report
+and leaves the stored data alone. `BusinessCockpitService.getUserTask` hands the empty answer to the
+application, and its Javadoc says what the application may read into it. A task leaves a cockpit list when the
 half reports an end, never because a search found nothing.
 
 `BusinessCockpitEventPublisher` is the other direction, produced as a bean by the platform module. A
@@ -205,13 +205,12 @@ A workflow module's own defaults file, `<module>.yaml` on the classpath root or 
 the module's name, carries these keys as well, below everything the application itself writes. That
 is how a module ships a template path it alone knows about.
 
-One key has no default on purpose: `initiator-source`. It says who answers the initiator of a
-report, and a workflow module which reports to the cockpit and says it nowhere does not start. Every
-other missing value shows an empty column until somebody configures it. This one cannot be put right
-later: a report is built at the moment of the event, when the security context of the request is
-already gone, so a case which ran without an initiator never learns who started it. Giving the key a
-default would turn a field which was optional in version 1 into an exception without anybody saying
-so. The runtime half of the rule sits in `BusinessCockpitExtension`, after the details provider and
+One key has no default on purpose: `initiator-source`. It says where the initiator of a report
+comes from. A workflow module which reports to the cockpit and does not set it does not start. Any
+other missing value shows an empty column until somebody configures it. This one cannot be fixed
+later. A report is built at the moment of the event, when the security context of the request is
+already gone. So a case which ran without an initiator never learns who started it. A default for
+the key would quietly turn a field which was optional in version 1 into an exception. The runtime half of the rule sits in `BusinessCockpitExtension`, after the details provider and
 before the titles. It runs at all three places a details object is built, the read path of
 `BusinessCockpitService.getUserTask` included.
 
@@ -238,12 +237,12 @@ travel through a cluster waits longer without a class of its own:
 `businesscockpit.test-server.quiet-wait-millis`. Its port comes from `OneFreePortPerJvm` of
 `io.vanillabp:test-utils`.
 
-What VanillaBP says about this extension's own annotations is asserted on both platforms too: two
-providers of one user task whose versions overlap keep the application from starting, a provider
-naming a version the BPMS does not hold is named while it boots, and one which is not public is
-named in the startup report of the handler methods nobody sees. All three are the platform's doing,
-and only a booted application shows whether the platform's glue registers the contract carrying
-them.
+The tests also check on both platforms what VanillaBP says about this extension's own
+annotations. Two providers of one user task whose versions overlap stop the application from
+starting. A provider which names a version the BPMS does not hold is named while the application
+boots. A provider which is not public is named in the startup report of handler methods nobody
+sees. The platform does all three, and only a booted application shows whether the platform's glue
+code registers the contract behind them.
 
 The configuration is asserted twice for the same reason, and there it is the binding rather than the
 glue: each platform boots an application whose configuration carries every shape version 1 had - a

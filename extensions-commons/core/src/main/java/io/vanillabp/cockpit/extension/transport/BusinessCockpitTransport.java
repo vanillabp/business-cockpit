@@ -24,7 +24,7 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
  * the report itself, because of a payload it does not accept or a credential it does not know,
  * ends the entry with <code>io.vanillabp.integration.spi.PhaseTwoPermanentFailure</code>,
  * because sending the same bytes again would be refused again. Everything else is repeated,
- * which is the safe side of the classification.
+ * which is the safe choice when in doubt.
  */
 public interface BusinessCockpitTransport {
 

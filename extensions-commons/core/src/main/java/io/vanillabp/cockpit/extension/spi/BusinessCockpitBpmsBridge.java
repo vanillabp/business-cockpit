@@ -44,8 +44,8 @@ import java.util.Optional;
  * <li>The values, where the BPMS says something about the task or the workflow.</li>
  * <li>An exception, where the half cannot read what it was asked for. It travels on to the
  * caller, which is the engine reporting the event, so the engine's own work fails and says so.
- * A report is only read here, but what is read has to be right, and a defect which is repeated
- * away is a defect nobody fixes.</li>
+ * A report is only read here, but what is read has to be right. A defect hidden by repeating
+ * the call is a defect nobody fixes.</li>
  * <li>An empty result, where the BPMS says nothing about it. A report about a task or a case
  * which is still running is then dropped and the log says so; an end is reported with its
  * identifiers and without business data, because a report which never arrives leaves a task
@@ -53,14 +53,14 @@ import java.util.Optional;
  * </ol>
  * <code>io.vanillabp.integration.spi.PhaseTwoRetryLater</code> is no answer at the moment of an
  * event. It asks for an entry to be dispatched again, and at that moment there is no entry yet.
- * A half throwing it there reads a message saying so. The one place where it is an answer is a
- * change which is resolved when its entry is dispatched, see
- * {@link #workflowsOfAggregateRightAway} and {@link #reportsAChangedUserTaskRightAway}.
+ * A half which throws it there gets a message which says so. The one place where it is an answer is
+ * a change which is resolved when its entry is dispatched, see {@link
+ * #workflowsOfAggregateRightAway} and {@link #reportsAChangedUserTaskRightAway}.
  * <p>
  * <b>A change which is resolved later.</b> <code>aggregateChanged(aggregate)</code> runs in the
- * transaction of the application. A half whose engine publishes what it holds through a storage
- * written behind the engine cannot always name the workflows of a case there, because that
- * storage may not hold them yet. Such a half says so through
+ * transaction of the application. Some engines copy what they hold into a separate store, a
+ * little after the fact. A half for such an engine cannot always name the workflows of a case
+ * there, because that store may not hold them yet. Such a half says so through
  * {@link #workflowsOfAggregateRightAway}. The extension then writes an entry without a report,
  * and when the entry is dispatched it calls {@link #workflowsOfAggregate} and
  * {@link #prefilledWorkflowDetails}. An empty answer there means "not yet", and the extension
@@ -72,13 +72,13 @@ import java.util.Optional;
  * BPMS says nothing about the task or the workflow which was asked about. It is silence and not
  * an ending, and a half may not answer it to mean the task is over.
  * <p>
- * The reason is that no BPMS can promise the stronger reading. A half whose engine publishes
- * what it holds through a storage of its own writes that storage behind the engine, so a task
- * created a moment ago is missing from the answer exactly like a task which ended. A half which
- * answers out of what its own node was served has the same gap for a case another node serves.
+ * The reason is that no BPMS can promise the stronger reading. Some engines copy what they hold
+ * into a separate store, a little after the fact. There a task created a moment ago is missing
+ * from the answer, exactly like a task which ended. A half which answers from what its own node
+ * was served has the same gap for a case another node serves.
  * Only an engine asked inside the caller's transaction really knows.
  * <p>
- * So a half says both readings in the log where its answer is empty, and nothing in the neutral
+ * So where its answer is empty, a half logs both readings, and nothing in the neutral
  * half turns an empty answer into the end of a task. A report is left out, the cockpit keeps the
  * data it stored before, and <code>BusinessCockpitService.getUserTask</code> hands the empty
  * answer to the application with a javadoc saying what may be read into it. An end reaches the
@@ -201,9 +201,9 @@ public interface BusinessCockpitBpmsBridge {
    * <p>
    * The default answers <code>true</code>. That is right for an engine which answers inside the
    * caller's transaction, and for a half which keeps what its own node was served. A half whose
-   * engine publishes the fields of a task through a storage written behind the engine answers
-   * <code>false</code>, because that storage may not hold a task created a moment ago, or any
-   * task while it stands still.
+   * engine copies the fields of a task into a separate store, a little after the fact, answers
+   * <code>false</code>. That store may not hold a task created a moment ago, or any task while
+   * the copying stands still.
    *
    * @return Whether the report of a changed user task can be built in the application's
    *         transaction
