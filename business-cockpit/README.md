@@ -77,7 +77,7 @@ does not have. What holds there instead is in the wiki section named above.
 The business data of a user task or a workflow, `details`, is a map the workflow module fills.
 MongoDB reads a dot in a path as a step into a nested document, so Spring Data refuses a key like
 `order.id` unless it is told what to write instead. By default the cockpit tells it nothing. Such a
-report is given up, see decision 41 in the [decision log](../DECISIONS.md). Its `422` and its error
+report is given up, see decision 38 in the [decision log](../DECISIONS.md). Its `422` and its error
 in the log name the key and the property which changes that.
 
 The property is `business-cockpit.mongodb.map-key-dot-replacement`. `MongoDbConfiguration` hands it to

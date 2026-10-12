@@ -17,7 +17,8 @@ import io.vanillabp.spi.cockpit.workflowmodules.WorkflowModuleDetailsProvider;
  * An application whose two workflow aggregates live in two outbox stores, each named by the
  * application itself.
  * <p>
- * Decision 12 refused such an application. An event a BPMS observed names identifiers but no
+ * The extension once refused such an application (see decision 8 in the repository's
+ * DECISIONS.md). An event a BPMS observed names identifiers but no
  * class, so there seemed to be nothing to attribute it by. But there is: the workflow service
  * which serves the BPMN process says which aggregate it is written for. This application shows
  * that each report reaches the store of its own workflow.

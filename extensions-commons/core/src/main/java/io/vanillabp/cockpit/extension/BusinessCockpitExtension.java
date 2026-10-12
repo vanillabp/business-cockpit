@@ -232,7 +232,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * through whatever proxies the platform put around them.
    *
    * @throws IllegalStateException If a store is missing, if it cannot be attributed to an
-   *           aggregate, or if no transaction can be opened for one. See decisions 13 and 16 in
+   *           aggregate, or if no transaction can be opened for one. See decisions 8 and 16 in
    *           the repository's DECISIONS.md
    */
   public void validateWhereEntriesAreWritten() {

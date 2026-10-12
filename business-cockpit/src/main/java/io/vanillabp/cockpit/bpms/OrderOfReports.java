@@ -44,7 +44,7 @@ public final class OrderOfReports {
 
     /**
      * A creation which arrives after a change or an end of its record still knows best when the
-     * record began. The record may hold the time of that change as its start, see decision 36 in
+     * record began. The record may hold the time of that change as its start, see decision 18 in
      * the repository's DECISIONS.md. So an earlier start corrects the stored one, and a later one
      * is left out.
      *

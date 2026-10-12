@@ -20,7 +20,7 @@ import org.springframework.util.backoff.ExponentialBackOff;
  * That is on purpose. A workflow module sends every report about one task or one case with the id
  * as the key, so they all sit on one partition, in the order they were sent. Skipping one of
  * them, or moving it to a topic of its own, would let the reports behind it overtake it. The start
- * of a case is only right if nothing overtakes its creation. See decision 36 in the repository's
+ * of a case is only right if nothing overtakes its creation. See decision 18 in the repository's
  * DECISIONS.md.
  * <p>
  * Repeating a report does not make it count twice. Nothing of it was stored, so it is compared
