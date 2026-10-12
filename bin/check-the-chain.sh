@@ -505,6 +505,13 @@ for line in "${watched[@]}"; do
         continue
     fi
     while IFS=$'\t' read -r workflow; do
+        # The nightly chain check does not judge its own last run. That run failed for what it
+        # found then, so asking about it would find "the chain check failed" every night from the
+        # first finding on, even when nothing else is wrong any more. Run by hand, the script
+        # still reports it.
+        if [ "$repo" = "${GITHUB_REPOSITORY:-}" ] && [ "$workflow" = "${GITHUB_WORKFLOW:-}" ]; then
+            continue
+        fi
         newest=$(printf '%s' "$runs" | jq -c --arg w "$workflow" '[.[] | select(.name == $w)] | .[0]')
         done_run=$(printf '%s' "$runs" | jq -c --arg w "$workflow" \
             '[.[] | select(.name == $w and .status == "completed")] | .[0] // empty')
