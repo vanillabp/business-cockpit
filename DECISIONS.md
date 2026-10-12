@@ -98,24 +98,67 @@ Superseded by decision 24: the events do carry a version now. The platform passe
 call of a handler, so there is something to decide by. Refusing the attribute would leave the
 Business Cockpit behind what `@WorkflowTask` has always been able to do.
 
-### 8. The extension owns one outbox store, chosen at startup - superseded by decision 10
+### 8. The outbox store of an entry is VanillaBP's answer for the workflow aggregate
 
-The extension writes its entries into the application's single `PhaseTwoOutbox`. An application
-which runs several of them is told so while it starts, and the message names the stores. No store is
-picked for it.
+An entry of the extension is written into the store which the transaction of the workflow aggregate
+reaches. That is the store VanillaBP attributes to the aggregate the report is about, and it is
+where an entry of the core about the same aggregate is written. An application with a store per
+persistence, or with a store of its own for one aggregate, is served the way it expects.
 
-`PhaseTwoOutboxAware` is what per-aggregate stores are for. They could be resolved for the reports
-made through `BusinessCockpitService`, where the aggregate class is known. They cannot be resolved
-for an event a BPMS observed. What arrives there is a workflow module, a BPMN process and a
-serialized id, but no class. One store for the whole extension is the shape which works in both
-directions.
+The extension never attributes a store itself. It asks the platform's `PhaseTwoOutboxResolver`.
+That is a bean on Spring Boot, and the Quarkus integration offers it as one too. So both platforms
+are served by the same answer.
 
-Superseded by decision 10: one store for the whole extension was one store too few. An application
-whose stores all come from `PhaseTwoOutboxAware` beans has no plain store bean at all, and it was
-told to add a data source it already had. An application with two persistences did not boot,
-although the platform attributes a store to every aggregate of it. And where one of two stores was
-marked as primary, entries were written into a store the aggregate's transaction never reaches,
-which is the one thing an outbox must not do.
+Two simpler shapes were tried first, and both were wrong.
+
+- One store for the whole extension. An application whose stores all come from
+  `PhaseTwoOutboxAware` beans has no plain store bean at all, and it was told to add a data source
+  it already had. An application with two persistences did not boot, although the platform
+  attributes a store to every aggregate of it. And where one of two stores was marked as primary,
+  entries went into a store the aggregate's transaction never reaches. That is the one thing an
+  outbox must not do.
+- A resolution of the extension's own. Which of the platform's two default stores serves which
+  persistence, and whether a default is switched on and usable at all, is knowledge of the platform
+  integration. An extension does not compile against one (decision 2). So the copy refused an
+  application which the platform serves. And where the platform refuses, the copy returned the
+  store of the other technology, which writes an entry next to the aggregate instead of into its
+  transaction.
+
+A report made through `BusinessCockpitService` knows the class of its aggregate, and the store is
+asked for that class.
+
+An event a BPMS observed carries a workflow module, a BPMN process and a serialized id, but no
+class. It does not have to. `@WorkflowService` declares both halves: the aggregate the service is
+written for, and the BPMN processes it serves, the primary one and the secondary ones. VanillaBP
+read those annotations while it built the process services, and
+`ExtensionHandlers#workflowAggregateOf` names the aggregate a process works on (decision 16). So
+every BPMN process of the application turns into an aggregate class while it boots, and that class
+into VanillaBP's answer about the store.
+
+The lookup is keyed by the workflow module AND the BPMN process. Two modules of one application may
+serve a process of the same name, because a module is the boundary which makes that legal. Their
+aggregates may live in different persistences, so a key without the module would write the reports
+of one module into the other's store.
+
+Two workflow services may declare one BPMN process of one workflow module for different
+aggregates. That is VanillaBP's case to decide (decision 16). It serves the process with the class
+it found first, warns about the other, and names only that first class to an extension. So the
+entry is written for that class, and nothing more is logged about it.
+
+A report whose BPMN process belongs to no workflow service is refused, and the message names the
+declared processes, because nobody can say where that report goes. An application with a single
+store is spared even that. With one store there is nothing to decide.
+
+The registration of a workflow module belongs to no aggregate at all. It is written in a transaction
+of its own, so any store carries it correctly. But it has to be the same store after a restart,
+because the same registration in two stores would be sent twice. So the store taken is the one of
+the module's first aggregate by class name. The aggregates of a module are known, because VanillaBP
+says which module deployed which BPMN process while it wires them.
+
+Every workflow aggregate of the application is resolved once while it boots, the way VanillaBP
+validates the outbox of its own process services. A store which cannot be attributed then ends the
+boot with the platform's own message. It does not show up later inside the transaction of the first
+report.
 
 ### 9. One event class per side, with the kind as a field
 
@@ -130,33 +173,8 @@ anybody noticing.
 
 ### 10. The outbox store is the one the workflow aggregate's transaction reaches - the Quarkus half superseded by decision 12
 
-An entry is written into the store VanillaBP attributes to the workflow aggregate the report is
-about. That is what the platform does for its own operations. Wherever the extension knows the
-aggregate's class, which is every report made through `BusinessCockpitService`, it asks for that
-store and writes there. So an application with a store per persistence, or with a store of its own
-for one aggregate, is served the way it expects.
-
-An event a BPMS observed knows no class. It names a workflow module, a BPMN process and a serialized
-id, and nothing in either SPI turns that into the class of the aggregate. Such an entry therefore
-goes into the application's single store. An application which runs several is told that the report
-cannot be attributed, rather than having a store picked for it. The registration of a workflow
-module belongs to no aggregate at all and is written in a transaction of its own, so any store
-carries it correctly. The first store by class name is taken, so a restart writes it into the same
-one.
-
-On Spring Boot the attribution is VanillaBP's own `PhaseTwoOutboxResolver` bean, taken as the
-interface the platform-neutral core knows. On Quarkus there is no such bean, so the extension does
-what it can reach: the store an application named for the aggregate, and otherwise the single store.
-The platform goes further and attributes one of its two default stores to the persistence which
-manages an aggregate. That needs classes from the Quarkus integration, and an extension does not
-compile against one (decision 2). So a Quarkus application which runs two stores names the store of
-an aggregate itself, with a `PhaseTwoOutboxAware` bean, and the message asks for that bean where it
-is missing.
-
-Superseded by decision 12: the Quarkus half of this was a second attribution next to the platform's
-own, and it got wrong the same application the platform gets right. The Quarkus integration now
-offers its resolver as a bean as well. Both platforms are served by the one answer, and the question
-is asked while the application boots instead of at the first report.
+*Merged into decision 8 on 2026-10-12, before the 1.0 release.* Decision 8 now says that an entry
+goes into the store the transaction of its workflow aggregate reaches, on both platforms.
 
 ### 11. A failed report says whether repeating it can help - 501 changed by decision 42
 
@@ -179,56 +197,15 @@ half may be missing from one deployment and back in the next.
 
 ### 12. The store of an entry is VanillaBP's answer, asked while the application boots - the shared-store rule superseded by decision 13
 
-The extension never attributes a store itself. It asks the platform's `PhaseTwoOutboxResolver`. That
-is a bean on Spring Boot, and the Quarkus integration offers it as one too. So an entry of the
-extension is written where an entry of the core is written: into the store the transaction of the
-workflow aggregate reaches.
-
-The extension's own resolution was a copy which could never be complete. Which of the platform's two
-default stores serves which persistence, and whether a default is switched on and usable at all, is
-knowledge of the platform integration. An extension does not compile against one (decision 2). So
-the copy refused an application with two stores where the platform serves it. And where the platform
-refuses, the copy returned the store of the other technology. That writes an entry next to the
-aggregate instead of into its transaction, which is the one thing this outbox must not do.
-
-Every workflow aggregate of the application is resolved once while it boots, the way VanillaBP
-validates the outbox of its own process services. That settles two things. A store which cannot be
-attributed ends the boot with the platform's own message, instead of showing up inside the
-transaction of the first report. And the store all aggregates share is where an entry naming no
-aggregate class is written. An event a BPMS observed names a workflow module, a BPMN process and a
-serialized id, and nothing in either SPI turns that into a class. An application whose aggregates
-live in different stores has no shared store, and it is told so while it boots. Letting it start and
-fail at the first user task would be the same defect one report later.
-
-Superseded by decision 13: "nothing turns that into a class" was wrong. The workflow service which
-serves the BPMN process names the aggregate it is written for. So an application whose aggregates
-live in two stores is served rather than refused.
+*Merged into decision 8 on 2026-10-12, before the 1.0 release.* Decision 8 now says why the
+extension asks the platform's resolver and never attributes a store itself, and that every
+aggregate is resolved while the application boots.
 
 ### 13. The BPMN process an event names is what its outbox store is looked up by - how it is looked up superseded by decision 16
 
-An event a BPMS observed carries a workflow module, a BPMN process and a serialized id. It belongs
-in the store which holds the workflow aggregate. The class is not carried, and it does not have to
-be. `@WorkflowService` declares both halves: the aggregate the service is written for, and the BPMN
-processes it serves, the primary one and whatever it names as secondary. Reading those annotations
-while the application boots turns every BPMN process into an aggregate class, and that class into
-VanillaBP's answer about the store.
-
-Two workflow services may declare the same process, one per generation of the model. They are
-written for the same aggregate then. Two aggregates on one process would make the store of a report
-depend on which class was scanned first, so that ends the boot.
-
-The registration of a workflow module belongs to no aggregate at all and is written in a transaction
-of its own, so any store carries it correctly. It has to be the same store after a restart, because
-the same registration sitting in two stores would be sent twice. The store taken is the one of the
-module's first aggregate by class name. The module's aggregates are known, because VanillaBP says
-which module deployed which BPMN process while it wires them.
-
-What is left of decision 12 is its point: the extension never attributes a store itself, it asks the
-platform's resolver. What changes is that an application with two persistences no longer has to
-choose between the Business Cockpit and its own architecture. A report whose BPMN process belongs to
-no workflow service is still refused, and the message names the declared processes, because nobody
-can say where that report goes. An application with a single store is spared even that. With one
-store there is nothing to decide.
+*Merged into decision 8 on 2026-10-12, before the 1.0 release.* Decision 8 now says how the store
+of an event a BPMS observed is found through the workflow module and the BPMN process, and where
+the registration of a workflow module is written.
 
 ### 14. The configuration keeps the version 1 keys
 
@@ -339,7 +316,7 @@ instead of one of ours, and that is the same message a workflow task produces.
 
 ### 16. What the application declared is VanillaBP's answer, per workflow module and BPMN process
 
-Decisions 7 and 13 both rest on the `@WorkflowService` annotations of the application: which
+Decisions 7 and 8 both rest on the `@WorkflowService` annotations of the application: which
 aggregate a BPMN process works on, and what a method wrote into the reserved `version` attribute.
 The extension used to read those annotations itself, once per platform, unwrapping whatever proxy
 Spring or ArC had put around the bean. That second reading never saw the same methods as VanillaBP's
@@ -352,7 +329,7 @@ the method, so the refusal names the annotation, the class, the method and this 
 
 Three things follow.
 
-The store of an event is looked up by the workflow module AND the BPMN process. Decision 13 keyed it
+The store of an event is looked up by the workflow module AND the BPMN process. Before, it was keyed
 by the process alone. Two modules of one application may serve a process of the same name, because a
 module is the boundary which makes that legal, and their aggregates may live in different
 persistences. So the old key wrote the reports of one module into the other's store.
@@ -361,7 +338,7 @@ A provider which is not public is no longer refused here. It is not wired either
 VanillaBP's startup report about the handler methods nobody sees names it. That is the answer the
 defect deserves.
 
-And the refusal of decision 13 does not come back. Two workflow services which declare one BPMN
+And the old refusal of two aggregates on one process does not come back. Two workflow services which declare one BPMN
 process of one workflow module for different aggregates are VanillaBP's case to decide. It serves
 the process with the class it found first, warns about the other, and tells an extension about that
 first class alone. So the entry is written for that class, and a report naming another one is served
@@ -408,40 +385,94 @@ aggregate with them. A detached JPA entity throws as soon as a provider touches 
 which is what reading a case usually comes down to. A rule which turns the ordinary use of the
 parameter into an error is worse than the leak it closes.
 
-### 18. The timestamp of the event decides which report the cockpit stores - the state a report carries superseded by decision 26, what waits for its creation changed by decision 45
+### 18. The timestamp of the event decides which report the cockpit stores
 
 VanillaBP's outbox gives its entries no order. It dispatches them in parallel, and an entry whose
 dispatch failed comes back after entries planned later have gone through. So the reports about one
 user task or one case reach the cockpit in an order which is not the order they happened in. A
-change can arrive after the change which followed it, and an end can arrive before the creation it
-ends.
+change can arrive after the change which followed it, and an end or a change can arrive before the
+creation. Some creations never arrive at all. The Process-Engine-API half reports a case together
+with its first user task, so a case which never had one is first reported by a change. And a cockpit
+added to a running system hears of older cases the same way.
 
 The cockpit weighs every report against what it already holds. It weighs by the timestamp of the
-event, not by the moment the report arrived. A report is built while its outbox entry is dispatched,
-which is as late as the outbox happens to get to it, so the arrival says nothing about the order. A
-user task and a case each carry `latestEventAt`, the timestamp of the event behind the latest report
-the cockpit stored. The next report is weighed against that. `updatedAt` cannot serve for it,
-because it is audit information and every save overwrites it with the cockpit's own clock.
+event, not by the moment the report arrived. A user task and a case each carry `latestEventAt`, the
+timestamp of the event behind the latest report the cockpit stored. The next report is weighed
+against that. `updatedAt` cannot serve for it, because it is audit information and every save
+overwrites it with the cockpit's own clock. The decision is made in `UserTaskService` and
+`WorkflowlistService`, not in a controller. So every way in is held to it alike: version 1 and
+version 1.1 of the REST API, and Kafka.
 
-Four rules follow. The decision is made in those two services and not in a controller, so the REST
-way in and the Kafka way in are held to it alike.
+A report carries the state of its event (decision 26). Which fields of a report the cockpit then
+writes is decision 19. Who sees a user task is set by the report which creates the task, and no
+later report changes it (decision 54).
 
-A report older than what is stored changes nothing. An end is never undone, so nothing which arrives
-after it clears `endedAt`. An end of a task or a case the cockpit does not hold creates it, ended.
-The creation may still be waiting in the outbox, and a dropped end would leave a task the cockpit
-shows as open for good. A creation is the one report an older timestamp does not disqualify. Where
-the cockpit knows a task from its end alone, the creation fills in what the end could not report. It
-is the oldest report there is and the only one which says when the task began, so the end stays as
-it is and everything it left empty is filled.
+#### A report about a record the cockpit holds
 
-A record the cockpit holds from an end alone is recognizable by its empty `createdAt`. An end does
-not say when a task began, and guessing it would make the same case look different depending on
-which report came first.
+- A report older than what is stored changes nothing.
+- An end is never undone, so nothing which arrives after it clears `endedAt`.
+- A change writes every field it carries onto the stored record, and a field it leaves empty is
+  written as empty. Unlike the mapping of an end in decision 19, `toUpdatedWorkflow` has no `IGNORE`
+  strategy. For a case the fields are `initiator`, `updatedAt`, `updatedBy`, `source`,
+  `workflowModuleId`, `comment`, `bpmnProcessId`, `bpmnProcessVersion`, `businessId`, `title`,
+  `uiUriPath`, `uiUriType`, `accessibleToUsers`, `accessibleToGroups`, `details` and
+  `detailsFulltextSearch`. The cockpit keeps `id`, `version`, `reportedAt`, `latestEventAt`,
+  `createdAt`, `endedAt`, `targetGroups` and `dangling`. So a record created by a change is only as
+  complete as its latest change.
+- A creation of a record known only from its end fills in what the end could not report. Its start
+  replaces the start the end gave the record.
+- A creation of any other record the cockpit holds compares its timestamp with the stored
+  `createdAt`. If the creation is earlier, its timestamp becomes the new `createdAt`. Nothing else
+  is taken from it, and `latestEventAt` stays. The report which created the record is newer, so the
+  rest stays as that report stored it. If the creation is at the same time or later, nothing is
+  stored, and the log says so, as for any report which changes nothing. The rule only compares two
+  timestamps, so it holds for every record, however it got its start. It is
+  `OrderOfReports.isEarlierThanTheStoredStart`, used by `WorkflowlistService.reportCreatedWorkflow`
+  and `UserTaskService.reportCreatedUserTask`.
 
-Which state a report carries is a different question, and this decision leaves it alone. The state
-is read while the entry is dispatched (decision 3), so it is the state of that moment and not the
-state of the event. Which fields of a report the cockpit then writes is decision 19. The reports
-also keep arriving in whatever order the outbox produces.
+#### A report about a record the cockpit does not hold
+
+Every report creates the record. A record without a start would break the user interface: the
+schema `apis/official-gui-api/openapi/v1.yaml` requires `createdAt` on `UserTask` and on
+`Workflow`. So `createdAt` is never empty.
+
+- A creation creates the record as it is.
+- A change creates it with the mapping a creation uses as well, `toNewWorkflow` for a case. So it
+  holds everything the change reports and nothing else. `createdAt` and `latestEventAt` are the timestamp
+  of the change, because a change does not say when the record began and this is the closest answer
+  there is. `reportedAt` is the cockpit's own clock, and `endedAt` stays empty. The rule sits in
+  `WorkflowlistService.reportChangedWorkflow` and `UserTaskService.reportChangedUserTask`.
+- An end creates the record, ended. The creation may still be waiting in the outbox, and a dropped
+  end would leave a task the cockpit shows as open for good. The four ends of the BPMS API,
+  `UserTaskCompletedEvent`, `UserTaskCancelledEvent`, `WorkflowCompletedEvent` and
+  `WorkflowCancelledEvent`, have an optional `createdAt` in version 1 and version 1.1. The Kafka
+  messages have `created_at`: the four messages of version 1, and the two created-or-updated
+  messages which version 1.1 also uses for ends, where the field is only read from an end. The
+  server sets `createdAt` from that field. If the field is empty, it takes the timestamp of the end,
+  the earliest moment the cockpit knows of. Only such an end sets `knownFromItsEndAlone`, the
+  property of `UserTask` and `Workflow` which marks a record that waits for its creation.
+
+`extensions-commons` takes the start of an end from the answer of the BPMS half.
+`UserTaskDetailsPrefill` and `WorkflowDetailsPrefill` have an optional `createdAt`, and only the
+report of an end sends it. Both keep their constructors without the field, so a half which does not
+fill it needs no change. A half fills it if the event it reports carries the start. It leaves it
+empty if it could only ask the engine, because decision 26 rules out a read at that moment.
+
+A changeset fixed the records stored before there was a start for them. It gave them their end as
+their start and set `knownFromItsEndAlone`, so they still accept their creation. If the end is
+missing too, it takes the latest event the cockpit knows of, and after that the moment the cockpit
+stored the record.
+
+#### What it costs
+
+A record created by a change starts at the time of its first change, and a record known only from an
+end which does not say when it began starts at its end. That stays until the creation arrives, and
+for good if it never does. The other way round would be worse: a creation which never comes would
+keep the record out of the list for good. So the same case can look different for a while,
+depending on which report came first.
+
+A creation which corrects the start writes to a record it used to leave alone. A record whose start
+changes shows up again in the update stream of every browser which shows it.
 
 ### 19. An end overwrites what it reports, and a field it left empty counts as not reported
 
@@ -484,23 +515,38 @@ Note (2026-10-12): Since decision 26 a report is built at the event. Camunda 7 n
 ended task from its history, so the first example above is out of date. The rule of this entry
 stays as it is.
 
-### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none - the warning reaching a cockpit application superseded by decision 23
+### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none
 
-A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` run while a report is dispatched, and
-they are allowed to change the workflow aggregate. VanillaBP does not save after them (decision 17).
-But a persistence which writes the changes of a managed object by itself still writes them when the
-transaction of that dispatch commits. That transaction read the case before the application changed
-it. So a case which cannot notice a second writer loses the application's change without a word. It
-is the same defect as two branches of one model writing one aggregate, with the report in the place
-of the second branch.
+A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` run while a report is built, and they
+can still change the workflow aggregate. VanillaBP does not save after them (decision 17). But a
+persistence which writes the changes of a managed object by itself still writes them when the
+transaction around the provider commits. Where that transaction is not the application's own, the
+provider is a second writer beside the application (decision 26 says when that is). A case which
+cannot notice a second writer then loses a change without a word. It is the same defect as two
+branches of one model writing one aggregate, with the report in the place of the second branch.
 
-VanillaBP says so while the application boots, over the handler contracts an extension registered.
-Take an application whose details provider serves a BPMN process, and whose aggregate notices no
-concurrent change. It reads a warning which names that module and that process and says what to do
-about it. A test on each platform pins that the warning reaches an application with the Business
-Cockpit.
+VanillaBP warns about such a handler while the application boots, over the handler contracts an
+extension registered. The warning is about what a handler is allowed to do, not about what one did.
+So both handler contracts of this extension say while they are wired that their providers never
+write. VanillaBP reads that statement where it wires the methods, long before anybody calls one, and
+the check about a second writer passes over them. Without it, every application with the Business
+Cockpit would read that warning at every start, about something VanillaBP never does. A warning
+which is always there is one people stop reading. The platform wrote the same rule down from its
+side, and it names the Business Cockpit as the case the statement was built for.
 
-The extension adds no check next to it. The condition is the platform's to answer. Whether a
+The statement is what the contract promises VanillaBP, not a lock on the provider. A provider which
+writes the aggregate anyway is written to the database by a persistence which writes managed objects
+by itself, and an aggregate without a version attribute still loses the application's change without
+a word. What ended is the report at every start, not the effect. The sentence for the reader stays
+the one of decision 17: change nothing in a provider, and if you do it anyway, it is your change with
+your consequences. The wiki page `Architecture` says this next to what a report carries.
+
+The warning is still alive for a handler which may write. An extension which registers a contract
+without that statement is reported exactly as before. A test of this repository boots such an
+extension next to the cockpit and reads both answers: the line about the writing handler, and no line
+about the details providers.
+
+The extension adds no check of its own. The condition is the platform's to answer. Whether a
 persistence notices a second writer is `AggregatePersistenceAware#detectsConcurrentModification`, a
 method of the application's own persistence, and an extension which compiles against no platform
 integration reaches neither the bean nor its answer. What it could read instead is the version
@@ -508,15 +554,6 @@ attribute on the class. That is the DEFAULT behind the method, not the method it
 own would therefore warn about a store which notices a second writer some other way and said so, and
 being stricter than the core is what decision 16 rules out. Two warnings about one aggregate would
 also say one thing twice.
-
-A declaration that these handlers only read would switch the warning off, and here that would be
-wrong. What VanillaBP stopped doing is saving. A provider which writes anyway is still written to
-the database by the persistence holding it. So this extension says that VanillaBP need not save
-after a details provider. It does not say that a details provider cannot write.
-
-What the platform's message cannot carry is the half which belongs to this repository: VanillaBP
-does not save the provider, and the provider is a second writer all the same. That sentence is in
-the wiki page `Architecture`, next to what a report carries.
 
 ### 21. A question of the service works in the caller's transaction, a report demands one
 
@@ -606,30 +643,9 @@ of the two was meant.
 
 ### 23. The details providers say while they are wired that they never write
 
-VanillaBP warns while an application boots about a handler it may save the workflow aggregate after.
-The warning is about what a handler is allowed to do, not about what one did, so it reached the
-details providers of this extension as well. Nothing is saved after them any more (decision 17).
-Every application with the Business Cockpit would have read that warning at every start, about
-something which cannot happen. A warning which is always there is one people stop reading.
-
-The statement sits on both handler contracts now, which is where VanillaBP can read it. VanillaBP
-wires the methods long before anybody calls one, and the check about a second writer runs while it
-wires them. The opt-out every call used to carry goes with it. The contract says the same thing
-earlier and for every call, and two places saying one thing is one place too many.
-
-The platform wrote the same rule down from its side, and it names the Business Cockpit as the case
-the statement was built for. So a reading extension has a way of saying what it is, and the check
-has a reason to pass over it.
-
-Nothing changes for somebody writing a provider. A provider which writes the aggregate anyway is
-written to the database by a persistence which writes managed objects by itself, and an aggregate
-without a version attribute still loses the application's change without a word. What ended is the
-report at every start, not the effect.
-
-The warning is still alive for a handler which may write. An extension which registers a contract
-without that statement is reported exactly as before. A test of this repository boots such an
-extension next to the cockpit and reads both answers: the line about the writing handler, and no
-line about the details providers.
+*Merged into decision 20 on 2026-10-12, before the 1.0 release.* Decision 20 now says that both
+handler contracts state that their providers never write, so VanillaBP's warning about a second
+writer passes over them.
 
 ### 24. Both details providers pick their method by the version of the deployed process - what the dispatch reads again changed by decision 26
 
@@ -672,8 +688,8 @@ service runs. Reporting to the cockpit is not the same as running the workflow. 
 the one would quietly narrow the other.
 
 Note (2026-10-11): Since decision 26 the dispatch no longer reads everything else again. A report is
-built at the event and travels with its entry. Only the changes of decisions 43 and 46 are still
-built when the entry is dispatched. The version still travels with the entry as an argument of its
+built at the event and travels with its entry. Only the changes of decision 43 are still built when
+the entry is dispatched. The version still travels with the entry as an argument of its
 own, and it still names the event.
 
 ### 25. A report is to carry the state of its event, and the auditing id is the way there - superseded by decision 26 on 2026-09-17
@@ -799,8 +815,9 @@ task open in the list for good.
 
 This makes two sentences of older entries untrue. The event is no longer built when the entry is
 dispatched, which is the second half of decision 3. And what the BPMS answers is no longer the state
-at the dispatch, which is the last paragraph of decision 18 and a paragraph of 25. Both entries keep
-their number and their text, and their headline says which part of them this entry replaced.
+at the dispatch, which was the last paragraph of decision 18 and a paragraph of 25. Decisions 3 and 25
+keep their number and their text, and their headline says which part of them this entry replaced.
+Decision 18 now says what holds today.
 
 One effect is worth naming, because the wiki promised the opposite. A details provider which writes
 the workflow aggregate used to be a second writer. It ran in the transaction of the dispatch, long
@@ -1434,53 +1451,9 @@ repositories.
 
 ### 36. A change of a case the cockpit never saw created creates the case - the start of such a case narrowed by decision 45, and corrected by a late creation in decision 50, and who sees a user task changed by decision 54
 
-Measured on 2026-10-03 for story 1423. Nothing was changed. The entry writes down what the server
-already does.
-
-A workflow module does not always report the start of a case. The Process-Engine-API half reports a
-case together with its first user task. A case which never had one is first reported by a change. A
-cockpit added to a running system hears of older cases the same way. So when the server gets a
-change of a case it does not hold, it takes it as the first report of that case.
-
-This holds on every way in. Version 1 and version 1.1 of the REST API, `workflow/{id}/updated`,
-both answer `200 OK` and store the case. The Kafka way in does the same. The rule sits in
-`WorkflowlistService.reportChangedWorkflow`, so the controllers have no say in it. User tasks follow
-the same rule in `UserTaskService.reportChangedUserTask`.
-
-#### What such a case holds
-
-The case is built by `toNewWorkflow` from the change, the mapping a creation uses as well. So it
-holds everything the change reports, and nothing else.
-
-- `createdAt` is the timestamp of the change. A change does not say when the case began, and this
-  is the closest answer there is.
-- `latestEventAt` is the same timestamp, and `reportedAt` is the cockpit's own clock.
-- `endedAt` stays empty. A change never ends a case.
-
-#### What comes after it
-
-A creation which arrives later stores nothing. The case has a `createdAt`, so it does not look like
-a case known only from its end, and only such a case waits for its creation. The case keeps the time
-of the change as its start. It also keeps the data of the change, which is newer than the creation
-anyway.
-
-An end which arrives later ends the case like any other.
-
-`toUpdatedWorkflow` writes a second change onto the stored case. Unlike the mapping of an end in
-decision 19, that mapping has no `IGNORE` strategy. A change writes every field it carries, and a
-field it leaves empty is written as empty. The fields are `initiator`, `updatedAt`, `updatedBy`,
-`source`, `workflowModuleId`, `comment`, `bpmnProcessId`, `bpmnProcessVersion`, `businessId`,
-`title`, `uiUriPath`, `uiUriType`, `accessibleToUsers`, `accessibleToGroups`, `details` and
-`detailsFulltextSearch`. The cockpit keeps `id`, `version`, `reportedAt`, `latestEventAt`,
-`createdAt`, `endedAt`, `targetGroups` and `dangling`. This entry leaves that rule as it is. It
-matters here because from then on, a case created by a change is only as complete as its latest
-change.
-
-#### What it costs
-
-In the list, such a case starts at the time of its first change, not at the time the case began. A
-creation which was only late, and not missing, cannot correct that. The other way round would be
-worse: a creation which never comes would keep the case out of the list for good.
+*Merged into decision 18 on 2026-10-12, before the 1.0 release.* Decision 18 now says that a change
+of a record the cockpit does not hold creates it, what such a record holds, and what a later report
+does to it.
 
 ### 37. A report whose path and body name different records is refused
 
@@ -1490,7 +1463,7 @@ A report about a user task or a case the cockpit may already hold carries the id
 names it, for example `workflow/{workflowId}/updated`, and the body names it again, in `workflowId`
 or `userTaskId`. The schema of the body requires that field. The service looks up the stored record
 by the id in the path. The mapper which builds a record the cockpit does not hold yet takes the id
-from the body. Decision 36 lets a change create a case, so both ids were used in one call. A change
+from the body. Decision 18 lets a change create a case, so both ids were used in one call. A change
 whose body named another case was stored under the id of the body, and the next change with the
 same path did not find it.
 
@@ -1517,58 +1490,145 @@ A client which sent different ids got `200 OK` before and gets `400 Bad Request`
 did not get what it wanted before either: its report was stored under one id, and its next report
 used the other.
 
-### 38. A report the cockpit could not store is answered with 503 - the Kafka way in changed by decision 40, a save which fails every time changed by decision 41
+### 38. A report the cockpit could not store comes again, unless MongoDB refuses it every time
 
-Decided on 2026-10-03 for story 1433. Before, the server answered such a report with `400 Bad
-Request`.
+A save into MongoDB can fail for a moment: MongoDB cannot be reached, or another report about the
+same record was stored at the same time. Then the report has to come again, because a report which
+is given up is lost for good. A save can also fail every time, because of the document alone. Then
+repeating it only blocks what comes behind it. So the cockpit tells the two apart, on every way in.
 
-The services which store a report answer with `true` or `false`. They answer `false` in one case
-only: the save into MongoDB threw. That happens when MongoDB cannot be reached for a moment, or
-when another report about the same record was stored at the same time. A report older than what is
-stored is no such case. The service keeps what it has, logs that the report changed nothing, and
-answers `true`. So does an end of a record which has ended already, and a creation of a record the
-cockpit holds.
+The services which store a report answer with an `OutcomeOfStoring`. It says whether the cockpit is
+up to date about the record. If not, it says whether the failure goes away or comes back every time.
+A report older than what is stored is no failure. The service keeps what it has, logs that the
+report changed nothing, and the cockpit is up to date. So is an end of a record which has ended
+already, and a creation which changes nothing (decision 18).
 
-The REST API of the BPMS side turned `false` into `400 Bad Request`. The sender, `RestTransport` in
-`extensions-commons/core`, gives up a report answered with 400, because decision 11 says such a
-report would be refused again. So a report was lost for good while MongoDB was away for a moment.
-Only a person could take it out of the outbox and send it again.
+#### Which failures come back every time
 
-Now the server answers `503 Service Unavailable` when the save failed. By decision 11 the sender
-repeats a 503. The answer has no `Retry-After` header, because the server does not know when
-MongoDB is back. Without the header, the outbox store waits as long as its own backoff says. The
-report still counts against `vanillabp.outbox.block-after-attempts`. So if MongoDB never comes back,
-the entry ends up blocked and is not repeated forever.
+Three, and each of them depends on nothing but the document:
 
-The other answers stay as they were:
+- `BsonMaximumSizeExceededException`. The driver throws it before it sends anything, because the
+  document is larger than the 16 MB MongoDB takes. Spring does not translate it.
+- A write which breaks the validation rules of the collection. MongoDB answers it with error code
+  121, the driver throws a `MongoWriteException` with that code, and Spring wraps it into a
+  `DataIntegrityViolationException`. The cockpit sets no such rules, but an operator can add them.
+- A `MappingException` of Spring Data. It is thrown while Spring Data turns the record into a
+  document, before anything is sent. The known case is a key with a dot in the business data, like
+  `order.id`, where no replacement for the dot is configured (decision 44).
 
-- `200 OK` for a report which was stored, and for a report older than what is stored
-- `400 Bad Request` for a report whose path and body name different records (decision 37). That
-  check runs before anything is stored, so it answers 400 even while MongoDB is gone.
+Everything else counts as a failure for now: a MongoDB which cannot be reached, a report about the
+same record which was stored at the same time, a duplicate key, a timeout. Repeating a report which
+could have gone through costs a few attempts. Giving it up loses it. A test against a real MongoDB,
+`WhatMongoDbRefusesEveryTimeTest`, shows which exception reaches the service in each case.
+
+#### What REST answers
 
 This holds for version 1 and version 1.1 of the REST API, for every report about a user task or a
 case.
 
-#### Why 503 and not 500
+- `200 OK` for a report which was stored, and for a report older than what is stored.
+- `503 Service Unavailable` when the save failed for now. The sender, `RestTransport` in
+  `extensions-commons/core`, repeats a 503 (decision 11). The answer has no `Retry-After` header,
+  because the server does not know when MongoDB is back. So the outbox store waits as long as its
+  own backoff says. The report still counts against `vanillabp.outbox.block-after-attempts`. If
+  MongoDB never comes back, the entry ends up blocked and is not repeated forever.
+- `422 Unprocessable Content` when MongoDB refuses the report every time, with one line of plain
+  text, for example:
 
-Both make the sender repeat the report. A 500 says that something unexpected went wrong, and the
-server gives it for a defect. A 503 says that the server cannot take the report right now, which is
-what happened. It is also the status decision 11 names for "not now". So it keeps that meaning even
-if the sender treats a 500 differently some day.
+  > The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes for one document.
 
-#### What is not changed
+  The sender gives up a 422, as it gives up any status from 400 to 499 except 408 and 429
+  (decision 11). The body names the record and the reason. It never repeats a value of the report.
+  For a key with a dot it does repeat the key, because the sender needs it to find what to change.
+- `400 Bad Request` for a report whose path and body name different records (decision 37). That
+  check runs before anything is stored, so it answers 400 even while MongoDB is gone.
 
-The Kafka way in. Its listeners do not read the answer of the service. A failed save is logged, and
-the record counts as consumed. A read from MongoDB which throws goes to the error handler of Spring
-Kafka. Both are separate defects, and this decision leaves them as they are.
+A read which throws before the save reaches the catch-all of the exception handler and is answered
+with 500, which the sender repeats as well.
 
-A read which throws before the save is not changed either. It reaches the catch-all of the
-exception handler and is answered with 500, which the sender repeats as well.
+Why 503 and not 500: both make the sender repeat the report. A 500 says that something unexpected
+went wrong, and the server gives it for a defect. A 503 says that the server cannot take the report
+right now, which is what happened. It is also the status decision 11 names for "not now". So it
+keeps that meaning even if the sender treats a 500 differently some day.
+
+Why 422 and not 400: a 400 would end the entry as well. But a 400 of this API says that the report
+breaks a rule of the API and has to be changed. Decision 39 gives such a 400 a body which names the
+field, and the sender's log points at the fields, the path and the version of the API. A report
+MongoDB cannot store breaks no rule of the API. The cockpit understood it and still cannot keep it,
+and that is what 422 means. The body is one line of text, like the body of decision 39, so the
+sender's log shows it.
+
+#### What Kafka does
+
+A listener throws when the service answers that it could not store the report. The three listeners
+run in their own listener container factory, `businessCockpitKafkaListenerContainerFactory`. The
+factory is built with the Kafka settings of Spring Boot, so `spring.kafka.*` applies to it. Other
+listeners of an application built on the cockpit keep the factory and the error handler of Spring
+Boot.
+
+Its error handler, `RepeatUntilStored`, hands the same record to the listener again after a pause.
+The pause starts at one second, doubles each time and stops growing at one minute. There is no last
+attempt. Only a failure to store for now is repeated. That is the service's answer that the save
+failed, and an exception of Spring's data access or of the MongoDB driver anywhere in the chain of
+causes.
+
+A save which fails every time makes the listener throw a `ReportCannotBeStoredException`. The error
+handler never repeats it and skips the record at once. The log gets one error which starts with
+`Passing over a Kafka record the cockpit cannot store`. It names the topic, the partition, the
+offset and the key, with the reason and the stack trace of the save. The exception carries the
+failure of the save as its cause, and that cause is a `DataAccessException`, which the handler would
+repeat. When the handler looks through the causes, it stops at the first class it knows. So
+`ReportCannotBeStoredException` is listed as one it never repeats, and the handler finds it before
+its cause.
+
+Everything else is a problem of the record itself: bytes which are not a protobuf message, an event
+type this cockpit does not know, or a field the mapping cannot take. Such a record fails the same way
+each time, and repeating it would stop the partition for good. So it is skipped at once. The log gets
+an error which starts with `Passing over a Kafka record the cockpit cannot read`. It names the topic,
+the partition, the offset and the key, so that somebody can find the record on the topic.
+
+Why no dead-letter topic: a workflow module sends every report about one task or one case with its
+id as the key. So all of them sit on one partition, in the order they were sent. If one report is
+moved to a topic of its own, the reports behind it overtake it. A change which overtakes the
+creation creates the record, and the record shows the time of the change as its start until the
+creation arrives (decision 18). Repeating the report in place keeps the order. The price is that one
+partition stops while MongoDB is away. Nothing behind the record could be stored anyway, because all
+of it goes to the same MongoDB.
+
+A report which was not stored left nothing behind. When it comes again, it is weighed against what is
+stored, like any report (decision 18 and decision 26). A creation of a record the cockpit holds
+follows the rules of decision 18. A change older than what is stored is dropped. An end of a record
+which has ended changes nothing. A record which was stored and comes again because the commit of its
+offset was lost is weighed the same way.
+
+#### One error for each attempt
+
+Each failed attempt is logged once, as an error, by the way in the report came through. Only that
+way in knows what happens to the report next.
+
+- Over REST, `AnswerToAReport` logs `Returning HTTP 503 Service Unavailable` or `Returning HTTP 422
+  Unprocessable Content`, with the reason and the stack trace.
+- Over Kafka, a retry listener of `RepeatUntilStored` logs `Handing a Kafka record over again,
+  attempt <n> failed`, with the record, the attempt and the stack trace. It does so for every
+  failure it repeats, a failed save and a failed read alike.
+
+The services log nothing when a save fails. The listener container logs no error of its own either.
+Measured with Spring Kafka 4.1.1, it logs `Record in retry and not yet recovered` at INFO, without
+the cause.
 
 #### What it costs
 
-A client which read 400 as "not stored" reads 503 now. A client which gave up on 400 repeats now,
-which is the point of the change.
+A MongoDB which is away for an hour writes about sixty errors per listener. A report MongoDB refuses
+every time is given up, and the report is lost. It could not be stored anyway. The log of the
+cockpit and the log of the sender say which record it was and why.
+
+If a defect in the cockpit threw a `MappingException` for every record, every record would be skipped
+instead of held until a fixed release is deployed. No such defect is known. A mapping the cockpit
+cannot write at all would fail its own tests.
+
+Nothing is configurable. The pauses are short enough for a MongoDB which restarts, and long enough
+not to flood the log. The longest pause stays well below the five minutes Kafka allows between two
+polls by default, because the container waits in the thread which polls.
 
 ### 39. A request which breaks the rules of its schema is answered with 400 and the field
 
@@ -1626,196 +1686,22 @@ the message of an exception.
 
 ### 40. A report from Kafka the cockpit could not store comes again until it is stored - a save which fails every time and what an attempt logs changed by decision 41, and the start of a case created by a change narrowed by decision 50
 
-Decided on 2026-10-03 for story 1435. Before, such a report was lost.
-
-Related entries: 11 (what a sender repeats), 36 (a change of a case the cockpit never saw creates
-the case), 38 (a report the cockpit could not store is answered with 503). This entry does for the
-Kafka way in what 38 does for REST. The part of 38 headed "What is not changed" describes the Kafka
-way in as it was before this entry.
-
-The Kafka listeners of the cockpit did not read the answer of the service. A failed save was logged,
-the listener returned, and the offset of the record was committed. A read from MongoDB which threw
-went to the error handler Spring Kafka uses when nobody configures one. That handler tries a record
-ten times in a row, without a pause, and then skips it. Either way, a MongoDB which was away for a
-few seconds cost a report for good.
-
-Now a listener throws when the service answers that it could not store the report. The three
-listeners run in their own listener container factory,
-`businessCockpitKafkaListenerContainerFactory`. Its error handler, `RepeatUntilStored`, hands the
-same record to the listener again after a pause. The pause starts at one second, doubles each time
-and stops growing at one minute. There is no last attempt. The factory is built with the Kafka
-settings of Spring Boot, so `spring.kafka.*` applies to it as before. Other listeners of an
-application built on the cockpit keep the factory and the error handler of Spring Boot.
-
-#### Why no dead-letter topic
-
-A workflow module sends every report about one task or one case with its id as the key. So all of
-them sit on one partition, in the order they were sent. If one report is moved to a topic of its
-own, the reports behind it overtake it. Decision 36 shows what that costs. A change which overtakes
-the creation creates the case, and the creation which comes later stores nothing. The case then
-starts at the time of the change. Repeating the report in place keeps the order.
-
-The price is that one partition stops while MongoDB is away. Nothing behind the record could be
-stored anyway, because all of it goes to the same MongoDB.
-
-#### What is repeated and what is passed over
-
-Only a failure to store is repeated. That is the service's answer that the save failed, and an
-exception of Spring's data access or of the MongoDB driver anywhere in the chain of causes.
-Everything else is a problem of the record itself: bytes which are not a protobuf message, an event
-type this cockpit does not know, or a field the mapping cannot take. Such a record fails the same
-way each time, and repeating it would stop the partition for good. So it is skipped at once. The
-log gets an error which starts with `Passing over a Kafka record the cockpit cannot read`. It names
-the topic, the partition, the offset and the key, so that somebody can find the record on the topic.
-
-#### Why a report repeated does not count twice
-
-A report which was not stored left nothing behind. When it comes again, it is weighed against what
-is stored, like any report (decision 18 and decision 26). A creation of a record the cockpit holds
-stores nothing. A change older than what is stored is dropped. An end of a record which has ended
-changes nothing. A record which was stored and comes again because the commit of its offset was
-lost is weighed the same way.
-
-#### What it costs
-
-The listener and the error handler log an error each time a report fails. So a MongoDB which is away
-for an hour writes about sixty errors per listener. A record whose save fails for a reason which
-never goes away, like a document larger than MongoDB takes, stops its partition until somebody acts.
-The REST way in answers the same case with 503, and its sender repeats it as well, until its outbox
-blocks the entry.
-
-Nothing is configurable. The pauses are short enough for a MongoDB which restarts, and long enough
-not to flood the log. The longest pause stays well below the five minutes Kafka allows between two
-polls by default, because the container waits in the thread which polls.
-
-Note (2026-10-11): The first sentence of "What it costs" was not true when it was written. The
-listener container logged no error of its own. Decision 41 measured it and made each failed attempt
-log one error, see "One error for each attempt" there.
+*Merged into decision 38 on 2026-10-12, before the 1.0 release.* Decision 38 now says how the Kafka
+way in repeats a report the cockpit could not store, and which records it skips.
 
 ### 41. A report MongoDB refuses every time is given up, and every other failed save comes again - a key with a dot narrowed by decision 44
 
-Decided on 2026-10-04 for story 1437. Before, every failed save was repeated: over REST with 503,
-over Kafka without end.
-
-Related entries: 11 (what a sender repeats), 38 (a report the cockpit could not store is answered
-with 503), 39 (a request which breaks the rules of its schema is answered with 400), 40 (a report
-from Kafka the cockpit could not store comes again until it is stored). This entry narrows 38 and
-40. Both stay true for a save which fails for now. Neither holds any longer for a save which fails
-every time. The part
-of 40 headed "What it costs" says that the listener and the error handler log an error each time.
-That was not true when it was written, see "One error for each attempt" below. It gets a note which
-points here as well.
-
-The services which store a report caught every exception of the save and answered `false`. So a
-document larger than MongoDB takes was repeated just like a MongoDB which was away for a moment. On
-Kafka it stopped its partition until somebody acted. Over REST the sender repeated it until its
-outbox blocked the entry.
-
-Now the services answer with an `OutcomeOfStoring`. It says whether the cockpit is up to date about
-the record. If not, it says whether the failure goes away or comes back every time.
-
-#### Which failures come back every time
-
-Three, and each of them depends on nothing but the document:
-
-- `BsonMaximumSizeExceededException`. The driver throws it before it sends anything, because the
-  document is larger than the 16 MB MongoDB takes. Spring does not translate it.
-- A write which breaks the validation rules of the collection. MongoDB answers it with error code
-  121, the driver throws a `MongoWriteException` with that code, and Spring wraps it into a
-  `DataIntegrityViolationException`. The cockpit sets no such rules, but an operator can add them.
-- A `MappingException` of Spring Data. It is thrown while Spring Data turns the record into a
-  document, before anything is sent. The known case is a key with a dot in the business data, like
-  `order.id`. The cockpit configures no replacement for the dot, so Spring Data refuses the key.
-
-The first two are what was decided as "the size and errors of the schema while writing". The third
-is a schema error which comes before MongoDB sees the document. A test against a real MongoDB,
-`WhatMongoDbRefusesEveryTimeTest`, shows which exception reaches the service in each case.
-
-Everything else counts as a failure for now: a MongoDB which cannot be reached, a report about the
-same record which was stored at the same time, a duplicate key, a timeout. Repeating a report which
-could have gone through costs a few attempts. Giving it up loses it.
-
-#### What REST answers
-
-`422 Unprocessable Content` with one line of plain text, for example:
-
-> The user task 'task-1' cannot be stored: it is larger than the 16 MB MongoDB takes for one document.
-
-The sender, `RestTransport` in `extensions-commons/core`, gives up a 422, as it gives up any status
-from 400 to 499 except 408 and 429 (decision 11). So 400 would end the entry as well. But a 400 of
-this API says that the report breaks a rule of the API and has to be changed. Decision 39 gives
-such a 400 a body which names the field, and the sender's log points at the fields, the path and the
-version of the API. A report MongoDB cannot store breaks no rule of the API. The cockpit understood
-it and still cannot keep it, and that is what 422 means. The body is one line of text, like the body
-of decision 39, so the sender's log shows it.
-
-The body names the record and the reason. It never repeats a value of the report. For a key with a
-dot it does repeat the key, because the sender needs it to find what to change.
-
-A save which fails for now is still answered with `503 Service Unavailable` (decision 38).
-
-#### What Kafka does
-
-The listener throws a `ReportCannotBeStoredException`. The error handler `RepeatUntilStored` never
-repeats it and skips the record at once, like a record it cannot read (decision 40). The log gets
-one error which starts with `Passing over a Kafka record the cockpit cannot store`. It names the
-topic, the partition, the offset and the key, with the reason and the stack trace of the save.
-
-The exception carries the failure of the save as its cause. That cause is a `DataAccessException`,
-which the error handler would repeat. When the handler looks through the causes, it stops at the
-first class it knows. So `ReportCannotBeStoredException` is listed as one it never repeats, and the
-handler finds it before its cause.
-
-A save which fails for now still comes again until it is stored (decision 40).
-
-#### One error for each attempt
-
-Each failed attempt is logged once, as an error, by the way in the report came through. Only that
-way in knows what happens to the report next.
-
-- Over REST, `AnswerToAReport` logs `Returning HTTP 503 Service Unavailable` or `Returning HTTP 422
-  Unprocessable Content`, with the reason and the stack trace.
-- Over Kafka, a retry listener of `RepeatUntilStored` logs `Handing a Kafka record over again,
-  attempt <n> failed`, with the record, the attempt and the stack trace. It does so for every
-  failure it repeats, a failed save and a failed read alike.
-
-The services no longer log anything when a save fails. Before, `UserTaskService` and
-`WorkflowlistService` logged `Could not save ...` as an error. Over REST that line moved into the
-answer. Over Kafka the line of the retry listener has everything that line had, plus the record and
-the attempt.
-
-Measured with Spring Kafka 4.1.1 before the change, one failed attempt logged:
-
-| Way in and failure           | Errors before | Errors now |
-|------------------------------|---------------|------------|
-| REST, save fails for now     | 1             | 1 |
-| Kafka, save fails for now    | 1             | 1 |
-| Kafka, read fails            | 0             | 1 |
-| REST, save fails every time  | 1             | 1 |
-| Kafka, save fails every time | 1             | 1 |
-
-So the listener container never logged an error of its own. It logs `Record in retry and not yet
-recovered` at INFO, without the cause. A failed read was not logged above INFO at all, and nobody
-could see why a partition waited.
-
-#### What it costs
-
-A sender which used to repeat a report MongoDB refuses every time now gives it up, and the report is
-lost. It was not stored before either. Now the log of the cockpit and the log of the sender say
-which record it was and why.
-
-If a defect in the cockpit threw a `MappingException` for every record, every record would be
-skipped instead of held until a fixed release is deployed. No such defect is known. A mapping the
-cockpit cannot write at all would fail its own tests.
+*Merged into decision 38 on 2026-10-12, before the 1.0 release.* Decision 38 now says which failures
+of a save come back every time, how REST and Kafka give such a report up, and that each failed
+attempt logs one error.
 
 ### 42. A report answered with 501 is given up, and suspended and activated say that they answer it
 
 Decided on 2026-10-04 for story 1438. Before, the sender repeated a report answered with 501, and
 the BPMS API did not say that two of its operations answer it.
 
-Related entries: 11 (a failed report says whether repeating it can help), 38 (a report the cockpit
-could not store is answered with 503), 41 (a report MongoDB refuses every time is given up). This
-entry adds one status to what 11 calls "not like this". Entry 11 stays as it is.
+Related entries: 11 (a failed report says whether repeating it can help) and 38 (a report the
+cockpit could not store comes again, unless MongoDB refuses it every time). This entry adds one status to what 11 calls "not like this". Entry 11 stays as it is.
 
 The REST API of the BPMS side has two operations which the server does not implement:
 `usertask/{userTaskId}/suspended` and `usertask/{userTaskId}/activated`, in version 1 and version
@@ -1844,7 +1730,7 @@ sits behind `doUpdate = true` and never runs.
 
 The Kafka way in has the same two events in `v1.proto`. `KafkaUserTaskController` does not handle
 them and throws. So such a record is skipped at once, like any record the cockpit cannot read
-(decision 40). This entry leaves that as it is.
+(decision 38). This entry leaves that as it is.
 
 #### Why not implement them
 
@@ -1857,102 +1743,155 @@ A sender which used to repeat a report answered with 501 now gives it up. It was
 either. If a server answered 501 only for a moment and would take the report later, that report
 would be lost. No cockpit server does that.
 
-### 43. A change the BPMS half cannot name right away is built when its entry is dispatched - the election moved to the dispatch by decision 47
+### 43. A change the BPMS half cannot name right away is built when its entry is dispatched
 
-This entry narrows decision 26 for one way: `BusinessCockpitService.aggregateChanged(aggregate)`.
-The headline of decision 26 says so.
+This entry narrows decision 26 for the two ways an application reports a change itself:
+`BusinessCockpitService.aggregateChanged(aggregate)` for the case, and
+`aggregateChanged(aggregate, userTaskIds)` for its user tasks. The headline of decision 26 says so.
 
 #### What was wrong
 
-`aggregateChanged` runs in the application's transaction, and the report was built there. On
-Camunda 8 the BPMS half can only find the workflows of a case in the cluster's search storage,
-unless VanillaBP wrote down key and version at the start. An exporter fills that storage, and it
-lags behind the engine. So a change reported while the exporter was behind was dropped with a
-warning, and nothing reported it later. The last change of a case, and every change while the
-exporter was stuck, never reached the cockpit. If the storage was down, the application's
-transaction failed as well, so a report rolled back the application's own work.
+Both ways run in the application's transaction, and the report was built there. On Camunda 8 the
+BPMS half can only find the workflows and the tasks of a case, and read their assignee, candidates
+and dates, in the cluster's search storage, unless VanillaBP wrote down what it needs. An exporter
+fills that storage, and it lags behind the engine. So a change reported while the exporter was
+behind was dropped with a warning, and nothing reported it later. The last change of a case, and
+every change while the exporter was stuck, never reached the cockpit. No task created while the
+exporter was stuck got a change report at all. If the storage was down, the application's
+transaction failed as well, so a report rolled back the application's own work. And where nothing
+VanillaBP wrote down named the adapter, the election asked a BPMS and waited up to ten seconds while
+it held the application's transaction and its database connection.
 
 #### What is decided
 
-A BPMS half says itself whether it can name the workflows of an aggregate in the application's
-transaction, through `BusinessCockpitBpmsBridge#workflowsOfAggregateRightAway`. By default this
-method answers what `workflowsOfAggregate` answers, so a half which does not override it works as
-before. If the half answers, the report is built right away, and decision 26 holds unchanged.
+A report never waits in the application's transaction. A BPMS half says itself whether it can build
+a report there.
 
-If the half answers nothing, the entry is written without a report. It carries what is known without
-the BPMS: aggregate, module, process, adapter, event id, the time of the change, and the workflow
-and its version if VanillaBP wrote them down. When the entry is dispatched, the half is asked
-`workflowsOfAggregate` and `prefilledWorkflowDetails`, and only then is the report built. On this
-way, the application's details provider runs in a transaction of the dispatch. It reads the
-aggregate as it was committed, which is what decision 26 wanted to get away from. But that price is
-only paid when the report cannot be built at the event.
+- For the case it answers `BusinessCockpitBpmsBridge#workflowsOfAggregateRightAway`. By default this
+  method answers what `workflowsOfAggregate` answers, so a half which does not override it works as
+  before. If the half answers, the report is built right away, and decision 26 holds unchanged.
+- For a user task it answers `BusinessCockpitBpmsBridge#reportsAChangedUserTaskRightAway`. The
+  default answers `true`, so a half which does not override it works as before. A half which answers
+  `false` is asked nothing in the application's transaction.
 
-The entry uses the same operation, `PUBLISH_WORKFLOW_EVENT`, and is marked by the argument
-`resolvedWhenDispatched`. A new operation would get a key of its own. Then a waiting entry of one
-kind and a newer one of the other kind would both go out. With the same operation, the newest entry
-still takes the place of the waiting one. That is the brake against a flood which decision 26 set
-up. An entry which does not know its workflow yet is keyed by its aggregate instead of the workflow.
-Every entry which names its workflow keeps the key decision 4 gave it.
+Where the half cannot answer, the entry is written without a report.
 
-An empty answer at the dispatch means "not written yet". The entry goes back to the outbox with
-`PhaseTwoRetryLater`. A `PhaseTwoRetryLater` which the half throws there is passed on as well. The
-first wait is two seconds. After that, the wait is a tenth of the time the change has waited so far.
-So after twenty seconds it grows by a tenth with each attempt. An exporter which is stuck for
-minutes therefore does not get its BPMS asked every two seconds for every waiting change: ten
-minutes take about 46 attempts instead of 300. The maintainer chose to keep the wait growing. Any
-other exception goes to the outbox, which repeats the entry with its own backoff.
+- The entry of a case carries what is known without the BPMS: aggregate, module, process, adapter,
+  event id, the time of the change, and the workflow and its version if VanillaBP wrote them down.
+- The entries of user tasks come from what VanillaBP wrote down when it delivered the tasks
+  (`WorkflowElection#openUserTasksOf`). No BPMS is asked for that. Each task gets an entry which
+  carries what the delivery log knows: the task, the workflow of its case, the BPMN process the task
+  belongs to, the task definition, the BPMN element and the version. If the application named tasks,
+  only those tasks get an entry, and a named task the log does not know gets an entry with only its
+  id. A task of a called process names the case above it as its workflow. The log takes that case
+  from the note of the start, and without that note the task also gets an entry with only its id. A
+  task of the aggregate's own BPMN process runs in the case itself, so it needs no note. If the
+  application named no task and the log knows no open one, one entry without a task is written. That
+  covers tasks delivered before VanillaBP wrote them down, and a log which cannot be read.
+
+When the entry is dispatched, the half is asked, and only then is the report built: for a case
+`workflowsOfAggregate` and `prefilledWorkflowDetails`, for a task `prefilledUserTaskDetails`. An
+entry with only the id of a task asks `userTaskOfAggregate` first. An entry without a task asks
+`userTasksOfAggregate` for every open task. On this way the application's details provider runs in
+a transaction of the dispatch. It reads the aggregate as it was committed, which is what decision 26
+wanted to get away from. But that price is only paid when the report cannot be built at the event.
+
+The adapter of a change comes from what VanillaBP wrote down: the note of the start, the one adapter
+an application configured, or, for user tasks, the adapter which delivered the open tasks. If none
+of these names it, the entry is written without an adapter, and nothing is asked in the
+application's transaction. The entry of a case then carries no workflow and no version, because the
+note which could name them belongs to no known adapter. An entry of user tasks names the task the
+application named, or no task if it named none. The dispatch asks the election first, outside the
+application's transaction, where the election may ask a BPMS and wait for it. With the adapter the
+election names, the dispatch goes on as above. That also holds for a half which builds its reports
+right away, like Camunda 7: on this way its details provider runs in a transaction of the dispatch.
+The platform keeps an entry without an adapter as it is. `PhaseTwoCall#adapterId` may be `null`, the
+outbox stores write `null`, and the dispatch of an extension's own operation hands the call to the
+extension and elects nothing. A read may wait, so `BusinessCockpitService.getUserTask` still asks the
+election if nothing names the adapter.
+
+The entries use the same operations as every other report, `PUBLISH_WORKFLOW_EVENT` and
+`PUBLISH_USER_TASK_EVENT`, and are marked by the argument `resolvedWhenDispatched`. A new operation
+would get a key of its own. Then a waiting entry of one kind and a newer one of the other kind would
+both go out. With the same operation, the newest entry still takes the place of the waiting one. That
+is the brake against a flood which decision 26 set up. An entry which names its workflow or its task
+keeps the key decision 4 gave it, so a newer report of the same task takes its place. An entry which
+does not know its workflow yet, and an entry without a task, is keyed by its aggregate.
+
+#### Waiting for the BPMS
+
+An empty answer about a case or a task at the dispatch means "not written yet". The entry goes back
+to the outbox with `PhaseTwoRetryLater`. A `PhaseTwoRetryLater` which the half throws there is passed
+on as well. So is an election which names no adapter, because on a BPMS with a storage behind its
+engine a workflow started a moment ago looks exactly like that. An empty answer to the search for
+every open task is accepted as it is, because an aggregate without an open task is nothing unusual.
+Nothing is sent then. Any other exception goes to the outbox, which repeats the entry with its own
+backoff.
+
+The first wait is two seconds. After that, the wait is a tenth of the time the change has waited so
+far. So after twenty seconds it grows by a tenth with each attempt. An exporter which is stuck for
+minutes therefore does not get its BPMS asked every two seconds for every waiting change: ten minutes
+take about 46 attempts instead of 300. The maintainer chose to keep the wait growing.
 
 The extension itself stops waiting after ten minutes. That is how long an exporter may be stuck
 before a report gets lost. The outbox does not count a `PhaseTwoRetryLater` as an attempt. It only
-blocks such an entry after `vanillabp.outbox.wait-for-visibility-at-most`, which is hours by
-default. So the ten minutes always end first.
+blocks such an entry after `vanillabp.outbox.wait-for-visibility-at-most`, which is hours by default.
+So the ten minutes always end first.
 
-A change which has no workflow after ten minutes is not dropped. The dispatch throws
+A change which has no answer after ten minutes is not dropped. The dispatch throws
 `PhaseTwoPermanentFailure`, so the outbox blocks the entry right away. That is the same state an
 entry gets after `block-after-attempts`. The extension logs at ERROR what it waited for and what to
-check: whether the aggregate has a workflow in that BPMS, and whether the BPMS writes down what its
-engine does. Ten minutes without the workflow mean that something is wrong, and a dropped change
-could not be reported again. A blocked entry stays in the outbox, where people can see it. The
-outbox does not dispatch it again by itself. Decided on 2026-10-05.
+check: whether the aggregate has a workflow or the task in that BPMS, whether the BPMS writes down
+what its engine does, or what the election answered. Ten minutes without an answer mean that
+something is wrong, and a dropped change could not be reported again. A blocked entry stays in the
+outbox, where people can see it. The outbox does not dispatch it again by itself.
 
-Since 2026-10-07 the ERROR line also says how to get the entry out again. It names where the entry
-keeps its reason: the column `LAST_FAILURE`, on MongoDB the field `lastFailure` (decision 118 of the
-platform). It ends with the address of the platform's wiki page
+The ERROR line also says how to get the entry out again. It names where the entry keeps its reason:
+the column `LAST_FAILURE`, on MongoDB the field `lastFailure` (decision 118 of the platform). It ends
+with the address of the platform's wiki page
 [Blocked outbox entries](https://github.com/vanillabp/adapter-platform-integration/wiki/Blocked-outbox-entries).
-That page shows for each store how to find a blocked entry and open it again or delete it. The
-address comes from `PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE`, the constant the platform's
-own ERROR lines use (decision 115 of the platform). So both lines always name the same page. The
-outbox writes its own ERROR about the entry next to ours, with the row and the stack trace. Both
-lines stay. There is still no command or user interface for the repair. Decided on 2026-10-07.
-
-The adapter of a change comes from VanillaBP's note of the start, or it is the one adapter the
-application configured. Only an application with several adapters and no note still asks the
-election in the application's transaction, and the election may ask a BPMS there.
+That page shows for each store how to find a blocked entry and open it again or delete it. The address
+comes from `PhaseTwoOutboxProperties.BLOCKED_ENTRIES_GUIDE`, the constant the platform's own ERROR
+lines use (decision 115 of the platform). So both lines always name the same page. The outbox writes
+its own ERROR about the entry next to ours, with the row and the stack trace. Both lines stay. There
+is still no command or user interface for the repair.
 
 #### What it costs
 
-A report built at the dispatch carries the timestamp of the change and the state at the dispatch.
-If an event with a later timestamp reached the cockpit in between, the cockpit keeps the later one
+A report built at the dispatch carries the timestamp of the change and the state at the dispatch. If
+an event with a later timestamp reached the cockpit in between, the cockpit keeps the later one
 (decision 18), which is right. Otherwise the report shows details a little newer than its timestamp.
+A task completed between the change and the dispatch is read with its end, and the report goes out
+as an update with the older timestamp. The cockpit keeps the end, because an older report changes
+nothing and nothing undoes an end (decision 18).
+
+A task which has no entry in the delivery log and is not named is not reported if the log knows other
+open tasks of the aggregate. Only an empty log makes the dispatch search for every open task.
+
+An entry without an adapter has "null" in its key in place of the adapter. It never replaces an entry
+which names its adapter, and the other way round. Then two reports may reach the cockpit for one
+change, and the timestamp holds back the older one (decision 18).
 
 The registration of a workflow module is no longer the only entry whose report is built at its
 dispatch. An entry which lost its report to a write which never committed is still sent with its
 identifiers alone. The argument tells the two apart.
 
 During a rolling deploy, a node of an older version does not know the argument. It sends such an
-entry with its identifiers alone. If the entry names its workflow, the cockpit gets an update
-without details and keeps what it showed. If not, the REST transport sends a path without a
-workflow, the server refuses it with a client error, and the entry is blocked. The Kafka transport
-fails before it sends, and the entry comes back until a newer node takes it. Both were read from the
-code, not tried. Before this entry, such a change was not reported at all.
+entry with its identifiers alone. If the entry names its workflow or its task, the cockpit gets an
+update without details and keeps what it showed. If not, the REST transport sends a path without a
+workflow or a task, the server refuses it with a client error, and the entry is blocked. The Kafka
+transport fails before it sends, and the entry comes back until a newer node takes it. An older node
+finds no half for the adapter "null" either. That dispatch fails, and the outbox repeats it with its
+own backoff until a newer node takes it or the entry is blocked. All of this was read from the code,
+not tried.
 
 ### 44. A key with a dot in the business data is stored once a replacement is configured
 
 Decided on 2026-10-04 for story 1442. Before, a report whose business data had a key with a dot in
 it was always given up.
 
-Related entries: 41 (a report MongoDB refuses every time is given up). This entry narrows 41. Its
-list of failures which come back every time names a key with a dot, and says that the cockpit
+Related entries: 38 (a report the cockpit could not store comes again, unless MongoDB refuses it
+every time). This entry narrows 38. Its list of failures which come back every time names a key with a dot, and says that the cockpit
 configures no replacement for the dot. That stays true by default. It stops being true once the new
 property is set.
 
@@ -1980,7 +1919,7 @@ itself. The changesets do not read `details`.
 
 #### Where the property is named
 
-If the property is not set, a report with such a key is still given up, as 41 says: with `422` over
+If the property is not set, a report with such a key is still given up, as 38 says: with `422` over
 REST, and skipped on Kafka. The reason in the body and in the error in the log now names the key,
 the property, an example value and both costs. It stays one line, so the sender's log shows it.
 
@@ -2010,195 +1949,20 @@ would reach such a key. Only `$getField` in an expression does, and the cockpit 
 
 ### 45. An end which arrives alone gives the record a start, and says which start where it can - a late creation of any record changed by decision 50, and who sees a user task changed by decision 54
 
-Decided on 2026-10-04 for story 1429. Before, a user task or a case which the cockpit knew from its
-end alone had no `createdAt`, and the user interface got a record without the start its schema
-requires.
-
-Related entries: 18 (the timestamp of the event decides which report the cockpit stores), 36 (a
-change of a case the cockpit never saw created creates the case). This entry narrows 36 and changes
-one paragraph of 18. 36 says that only a case without `createdAt` waits for its creation. 18 says
-that a record known only from its end can be recognized by its empty `createdAt`. Neither is true
-any longer: such a record has a start now, and a property of its own says that it waits.
-
-The schema of the user interface, `apis/official-gui-api/openapi/v1.yaml`, requires `createdAt` on
-`UserTask` and on `Workflow`. We measured against the running application before the change. A
-completion which reached the cockpit alone left a task and a case without any `createdAt` in the
-answer of the GUI API, because the server leaves empty fields out. The generated client turns that
-into an invalid date. The schema stays as it is. The server fills the field instead.
-
-#### The end may say when the record began
-
-The four ends of the BPMS API, `UserTaskCompletedEvent`, `UserTaskCancelledEvent`,
-`WorkflowCompletedEvent` and `WorkflowCancelledEvent`, now have an optional `createdAt`, in version 1
-and version 1.1. The Kafka messages have `created_at`. That is the four messages of version 1, and
-the two created-or-updated messages which version 1.1 also uses for ends. There the field is only
-read from an end. The field is only added. A sender which does not fill it is not affected, and the
-generated client and server only gain a property.
-
-When an end creates the record (decision 18), the server sets `createdAt` from that field. If the
-field is empty, it takes the timestamp of the end. The end is the earliest moment the cockpit knows
-of, and a record without a start would break the user interface. The last paragraph of decision 18
-said that guessing would make the same case look different depending on which report came first.
-That is still the cost, but now only for an end which does not say when the record began.
-
-#### What still waits for its creation
-
-The empty `createdAt` used to mark a record which waits for its creation. Now the mark is
-`knownFromItsEndAlone`, a property of `UserTask` and `Workflow`. Only an end which creates the record
-sets it. The creation still fills in what the end could not report (decision 18), and its own start
-replaces the start from the end. If the end reported the start, the two are the same, so a creation
-which arrives later changes nothing about the start. A change which creates a record (decision 36)
-does not set the property, so a creation after it still stores nothing.
-
-A changeset fixes the records stored the old way. It gives them their end as their start and sets
-the property, so they still accept their creation. If the end is missing too, it takes the latest
-event the cockpit knows of, and after that the moment the cockpit stored the record.
-
-#### Who fills the field
-
-`extensions-commons` takes the start from the answer of the BPMS half. `UserTaskDetailsPrefill` and
-`WorkflowDetailsPrefill` have an optional `createdAt`, and only the report of an end sends it. Both
-keep their constructors without the field, so a half which does not fill it needs no change. A half
-fills it if the event it reports carries the start. It leaves it empty if it could only ask the
-engine, because decision 26 ruled out a read at that moment.
-
-#### What it costs
-
-A record known only from its end, whose end does not say when it began, shows its end as its start
-until the creation arrives. If the creation never arrives, that stays so. Before, such a record
-broke the user interface.
+*Merged into decision 18 on 2026-10-12, before the 1.0 release.* Decision 18 now says which start an
+end gives a record it creates, and how `knownFromItsEndAlone` marks a record which waits for its
+creation.
 
 ### 46. A changed user task the BPMS half cannot report right away is built when its entry is dispatched - the election moved to the dispatch by decision 47
 
-Decided on 2026-10-05, while story 1443 was built.
-
-This entry does for `BusinessCockpitService.aggregateChanged(aggregate, userTaskIds)` what decision
-43 does for `aggregateChanged(aggregate)`. It narrows decision 26 for this second way too.
-
-#### What was wrong
-
-`aggregateChanged(aggregate, userTaskIds)` runs in the application's transaction, and the report of
-each task was built there. On Camunda 8 the BPMS half can only find the tasks of a case, and read
-their assignee, candidates and dates, in the cluster's search storage. An exporter fills that
-storage, and it lags behind the engine. So a change of a task the storage did not hold yet was
-dropped with a warning. No task created while the exporter was stuck got a change report at all.
-If the storage was down, the application's transaction failed.
-
-#### What is decided
-
-A BPMS half says itself whether it can build the report of a changed user task in the
-application's transaction, through `BusinessCockpitBpmsBridge#reportsAChangedUserTaskRightAway`.
-The default answers `true`, so a half which does not override it works as before. A half which
-answers `false` is asked nothing in the application's transaction.
-
-The extension then takes the tasks from what VanillaBP wrote down when it delivered them
-(`WorkflowElection#openUserTasksOf`). No BPMS is asked for that. Each task gets an entry without a
-report. The entry carries what the delivery log knows: the task, the workflow of its case, the BPMN
-process the task belongs to, the task definition, the BPMN element and the version.
-
-- If the application named tasks, only those tasks get an entry. A named task the log does not know
-  gets an entry with only its id.
-- A task of a called process names the case above it as its workflow. The log takes that case from
-  the note of the start. Without that note the case is not known, and the task also gets an entry
-  with only its id. A task of the aggregate's own BPMN process runs in the case itself, so it needs
-  no note.
-- If the application named no task and the log knows no open one, one entry without a task is
-  written. That covers tasks delivered before VanillaBP wrote them down, and a log which cannot be
-  read.
-
-When the entry is dispatched, the half is asked `prefilledUserTaskDetails`, and the application's
-details provider runs in a transaction of the dispatch. An entry with only the id asks
-`userTaskOfAggregate` first. An entry without a task asks `userTasksOfAggregate` for every open
-task. An empty answer about a task means "not written yet". The entry then goes back to the outbox
-with the time limit, the growing wait and the block of decision 43: after ten minutes,
-`PhaseTwoPermanentFailure` and a line at ERROR which names the task and what to check. Like the line
-of decision 43, it names the field with the reason and links to the platform's page on blocked
-outbox entries. An empty answer to the search for every open task is accepted as it is, because an
-aggregate without an open task is nothing unusual. Nothing is sent then.
-
-The entry uses the same operation, `PUBLISH_USER_TASK_EVENT`, with the argument
-`resolvedWhenDispatched`, for the reason decision 43 gives. An entry which names its task keeps the
-key of decision 4, so a newer report of the same task takes its place. An entry without a task is
-keyed by its aggregate.
-
-The BPMS half of the tasks is found the way decision 43 finds the half of the workflows, with one
-more source before the election: the adapter which delivered the open tasks.
-
-#### What it costs
-
-As in decision 43, a report built at the dispatch carries the timestamp of the change and the state
-at the dispatch. A task completed between the change and the dispatch is read with its end, and the
-report goes out as an update with the older timestamp. The cockpit keeps the end, because an older
-report changes nothing and nothing undoes an end (decision 18).
-
-A task which has no entry in the delivery log and is not named is not reported if the log knows
-other open tasks of the aggregate. Only an empty log makes the dispatch search for every open task.
-
-During a rolling deploy, a node of an older version does not know the argument. It sends such an
-entry with its identifiers alone. If the entry names its task, the cockpit gets an update without
-details and keeps what it showed. If it names no task, the server refuses the report and the entry
-is blocked, as decision 43 describes for workflows. This was read from the code, not tried.
+*Merged into decision 43 on 2026-10-12, before the 1.0 release.* Decision 43 now says how a changed
+user task is reported when its BPMS half cannot build the report in the application's transaction.
 
 ### 47. A report whose adapter nothing names is elected when its entry is dispatched
 
-Decided on 2026-10-06, while story 1447 was built.
-
-This entry changes the last paragraph of decision 43 and the last paragraph of "What is decided"
-in decision 46. Both said that an application with several adapters and no note of the start still
-asks the election in the application's transaction.
-
-#### What was wrong
-
-`BusinessCockpitService.aggregateChanged` runs in the application's transaction. It finds the
-adapter of the aggregate from what VanillaBP wrote down: the note of the start, the only adapter of
-an application with just one, or the adapter which delivered the open tasks. If none of these names
-it, it asked `WorkflowElection#adapterIdOfWorkflow`. Without the note, the election asks the BPMS.
-On a BPMS which answers from a storage behind its engine, it waits up to ten seconds. That wait held
-the application's transaction and its database connection.
-
-It only happens to an application with several adapters, which means during a migration. It
-happens right after a first delivery which crashed. It happens on Camunda 8 after a start by a
-message, until the worker reports the id. And it happens while an exporter is stuck. No answer was
-wrong, but a report made somebody else's transaction wait.
-
-#### What is decided
-
-A report never waits in the application's transaction. A read may wait, so
-`BusinessCockpitService.getUserTask` still asks the election if nothing names the adapter.
-
-If nothing VanillaBP wrote down names the adapter, both ways of reporting write the entry of
-decision 43 or 46 without an adapter. The workflow entry then carries no workflow and no version,
-because the note which could name them belongs to no known adapter. A user task entry names the
-task the application named, or no task if it named none. No BPMS half is asked in the application's
-transaction.
-
-The dispatch asks the election first, outside the application's transaction, where the election may
-ask a BPMS and wait for it. With the adapter the election names, the dispatch goes on as decisions
-43 and 46 say. That also holds for a half which builds its reports right away, like Camunda 7: on
-this way its details provider runs in a transaction of the dispatch.
-
-If the election names no adapter, it throws. On a BPMS with a storage behind its engine, a workflow
-started a moment ago looks exactly like that. So the entry gets the time limit of decision 43. It
-goes back to the outbox with the growing wait, and after ten minutes it is blocked with a line at
-ERROR which says what the election answered.
-
-The platform keeps an entry without an adapter as it is. `PhaseTwoCall#adapterId` may be `null`,
-the outbox stores write `null`, and the dispatch of an extension's own operation hands the call to
-the extension and elects nothing.
-
-#### What it costs
-
-An entry without an adapter has "null" in its key in place of the adapter. It never replaces an
-entry which names its adapter, and the other way round. Then two reports may reach the cockpit for
-one change, and the timestamp holds back the older one (decision 18).
-
-On this way, the details provider of a Camunda 7 or Process-Engine-API application runs in the
-dispatch, as it does on Camunda 8 under decisions 43 and 46. It reads the aggregate as it was
-committed. This price is only paid where nothing names the adapter.
-
-During a rolling deploy, a node of an older version finds no half for the adapter "null". The
-dispatch fails, and the outbox repeats it with its own backoff until a newer node takes it or the
-entry is blocked. This was read from the code, not tried.
+*Merged into decision 43 on 2026-10-12, before the 1.0 release.* Decision 43 now says that a report
+never waits in the application's transaction, and that the election of an adapter nothing names
+happens at the dispatch.
 
 ### 48. An update stream asks the visibility of the lists, and remembers what its browser shows
 
@@ -2301,49 +2065,8 @@ rewritten or dropped.
 
 ### 50. A creation which arrives late corrects the start, if its start is earlier
 
-Related entries: 36 (a change of a case the cockpit never saw created creates the case) and 45 (an
-end which arrives alone gives the record a start). This entry changes the section "What comes after
-it" of 36, and the last sentence of the section "What still waits for its creation" of 45.
-
-#### What was wrong
-
-A change of a case the cockpit does not hold creates the case (decision 36). The case gets the time
-of the change as its `createdAt`. A creation which arrived later stored nothing, because only a
-record known from its end alone waits for its creation. A creation which was only late, and not
-missing, could not correct the start. The case kept the time of its first change as its start for
-good. User tasks had the same rule and the same gap.
-
-#### What the cockpit does now
-
-A creation of a case or a user task the cockpit already holds compares its timestamp with the
-stored `createdAt`:
-
-- If the creation is earlier, its timestamp becomes the new `createdAt`. Nothing else is taken from
-  the creation. The change which created the record is newer, so the rest of the record stays as
-  the change stored it. `latestEventAt` stays as well.
-- If the creation is at the same time or later, nothing is stored, as before. The log says so, as
-  for any report which changes nothing.
-
-There is no new field and no new mark. The rule only compares two timestamps, so it holds for every
-record the cockpit already holds, however it got its start. The rule is in
-`OrderOfReports.isEarlierThanTheStoredStart` and is used by `WorkflowlistService.reportCreatedWorkflow`
-and `UserTaskService.reportCreatedUserTask`. Both ways in, REST and Kafka, go through these two
-methods.
-
-#### What stays as it is
-
-A record known only from its end (decision 45) still takes everything the creation reports, and the
-start of the creation, as 45 says. If the end reported the start, the two are the same. If it did
-not, the end is later than the creation. So such a record gets the same start under both rules.
-
-`createdAt` is still never empty (decision 45). The user interface still shows the time of the first
-change until the creation arrives.
-
-#### What it costs
-
-If its start is earlier, a creation now writes to a record it used to leave alone. A record whose
-start changes shows up again in the update stream of every browser which shows it. If the creation
-never arrives, the case keeps the time of the change as its start, as before.
+*Merged into decision 18 on 2026-10-12, before the 1.0 release.* Decision 18 now says that a
+creation of a record the cockpit holds corrects its start where the creation is earlier.
 
 ### 51. A login is renewed while it is used, up to a maximum counted from the login
 
@@ -2471,11 +2194,10 @@ both exist, the SPI can get a method for it again.
 
 ### 54. The report which creates a user task says who sees it
 
-Related entries: 19 (an end overwrites what it reports), 36 (a change of a record the cockpit never
-saw creates it), 45 (an end which arrives alone gives the record a start) and 50 (a creation which
-arrives late corrects the start). This entry changes the sentence of 36 which lists what a second
-change writes, for user tasks, and the sentence of 45 "The creation still fills in what the end
-could not report", for who sees a task.
+Related entries: 18 (the timestamp of the event decides which report the cockpit stores, and every
+report creates a record the cockpit does not hold) and 19 (an end overwrites what it reports). For
+who sees a user task, this entry changes what decision 18 says a later change writes, and what a
+creation fills in for a record known only from its end.
 
 #### What was wrong
 
@@ -2496,7 +2218,7 @@ somebody.
 which admits nobody leaves the stored list alone, as decision 19 says for every list of an end.
 
 The report which creates the task is usually the creation. But a change or an end can arrive first
-and create the task (decisions 36 and 45). Then that report says who sees the task, and the creation
+and create the task (decision 18). Then that report says who sees the task, and the creation
 which arrives later changes nothing about it. So a change and an end carry the four fields as well,
 and the server decides. If it does not hold the task yet, it uses them. If it does, it ignores them.
 
