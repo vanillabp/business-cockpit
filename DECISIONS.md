@@ -297,7 +297,7 @@ reachable. What the flow does not say for itself falls back to the default, not 
 server's client uses.
 
 Where the keys stand is the cockpit's business. How the levels are asked is not. VanillaBP walks the
-levels of every plug-in the same way (decision 53 of `adapter-platform-integration`), and the
+levels of every plug-in the same way (decision 7 of `adapter-platform-integration`), and the
 cockpit hands it one section per level instead of writing a second walk. The names stay
 `vanillabp.cockpit.*`, and the order lives in one place for every plug-in. That walk also knows a
 position per configured adapter at every level. This extension does not use it yet: nothing binds
