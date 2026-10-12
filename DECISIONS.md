@@ -769,7 +769,7 @@ A failure while the report is built is meant to be noticed. The details provider
 transaction of the event, so a failure there fails the engine's work. On Camunda 8 the listener job
 holds the transition until it is answered. On the Process-Engine-API the failure leaves the observer
 the adapter calls and fails the delivery, so the engine offers the task again until the provider
-works. The end of a task is the one event that engine does not repeat. Decision 11 of
+works. The end of a task is the one event that engine does not repeat. Decision 10 of
 `businesscockpit-process-engine-api-adapter` says what that costs. Only reading happens here, but
 what is read has to be right. A defect which retries hide is a defect nobody fixes. The way to the
 cockpit server is the other half, and it stays quiet. It runs over the outbox, and a cockpit which
@@ -782,7 +782,7 @@ We measured both against the API's reference implementation for an embedded Camu
 the test application of that half. A completion reaches the engine through a phase-two outbox entry.
 So a report which fails there fails that entry, and the entry comes back. An engine which takes part
 in the transaction of the dispatch even hands the task back, and the next attempt reports the end.
-A cancelation is the one event this extension gets only one shot at. Decision 12 of
+A cancelation is the one event this extension gets only one shot at. Decision 10 of
 `businesscockpit-process-engine-api-adapter` has the numbers. Every text of ours about tasks uses
 these two words.
 
