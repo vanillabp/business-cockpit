@@ -326,7 +326,7 @@ public class BusinessCockpitProducer {
   }
 
   /**
-   * Where the extension writes its entries. See decision 12 in the repository's DECISIONS.md.
+   * Where the extension writes its entries. See decision 8 in the repository's DECISIONS.md.
    * <p>
    * VanillaBP attributes the store to a workflow aggregate, so an entry of the extension lands
    * where an entry of the core lands. That is the store which the aggregate's transaction

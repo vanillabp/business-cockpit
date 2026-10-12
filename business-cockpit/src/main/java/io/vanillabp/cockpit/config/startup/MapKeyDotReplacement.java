@@ -20,7 +20,7 @@ import org.springframework.data.mongodb.core.convert.MongoConverter;
  * The business data, {@code details}, is a map the workflow module fills. MongoDB reads a dot in
  * a path as a step into a nested document, so Spring Data refuses a key like {@code order.id}
  * unless somebody tells it what to write instead. By default the cockpit tells it nothing, and a
- * report with such a key is given up (see decision 41 in the repository's DECISIONS.md).
+ * report with such a key is given up (see decision 38 in the repository's DECISIONS.md).
  * <p>
  * With {@value CockpitConfiguration#MONGODB_MAP_KEY_DOT_REPLACEMENT} set, Spring Data writes the
  * replacement instead of each dot and turns it back into a dot when it reads the record. That has

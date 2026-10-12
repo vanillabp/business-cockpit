@@ -26,7 +26,7 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
  * Each report has to reach the store of its own workflow. An entry which is not committed
  * together with what it reports may report something that never happened. The event a BPMS
  * observed names a BPMN process but no class. The class comes from the workflow service which
- * serves that process. See decision 13 of the repository's decision log.
+ * serves that process. See decision 8 of the repository's decision log.
  */
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput

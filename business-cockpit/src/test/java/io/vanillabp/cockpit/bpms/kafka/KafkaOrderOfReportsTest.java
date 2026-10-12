@@ -285,7 +285,7 @@ class KafkaOrderOfReportsTest {
 
     }
 
-    /** A change which creates a task (decision 36) does not wait for a creation. */
+    /** A change which creates a task (decision 18) does not wait for a creation. */
     @Test
     void aTaskCreatedByAChangeDoesNotWaitForItsCreation() {
 

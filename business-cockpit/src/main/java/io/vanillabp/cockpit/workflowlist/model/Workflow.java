@@ -42,7 +42,7 @@ public class Workflow extends CandidatesAware implements UpdateInformationAware 
     /**
      * Whether the cockpit learned about this case from its end alone and still waits for its
      * creation. Only such a case takes everything from a creation which arrives later. Any other
-     * case takes only its start, and only if it is earlier, see decision 50 in the repository's
+     * case takes only its start, and only if it is earlier, see decision 18 in the repository's
      * DECISIONS.md. For cases stored from their end alone before this property existed, a
      * changeset set it.
      */

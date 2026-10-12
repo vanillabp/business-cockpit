@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * The report which creates the task is usually the creation, but not always. The outbox of a
  * workflow module puts its entries in no order, so a change or an end can arrive first and create
- * the task (see decision 36 and decision 45 in the repository's DECISIONS.md). That is why a change
+ * the task (see decision 18 in the repository's DECISIONS.md). That is why a change
  * and an end carry the four fields as well. The cockpit uses them only where the report creates
  * the task.
  * <p>

@@ -22,7 +22,7 @@ import io.vanillabp.integration.spi.PhaseTwoOutbox;
  * <p>
  * The attribution itself is never made here. VanillaBP answers it for its own operations and for
  * the extension too, so an entry of the extension lands where an entry of the core lands. See
- * decision 13 in the repository's DECISIONS.md.
+ * decision 8 in the repository's DECISIONS.md.
  * <p>
  * An event a BPMS observed names a workflow module, a BPMN process and a serialized id, but no
  * class at all. The class is looked up instead of being demanded. VanillaBP read the

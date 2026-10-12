@@ -54,7 +54,7 @@ public class UserTask extends CandidatesAware implements UpdateInformationAware 
     /**
      * Whether the cockpit learned about this task from its end alone and still waits for its
      * creation. Only such a task takes everything from a creation which arrives later. Any other
-     * task takes only its start, and only if it is earlier, see decision 50 in the repository's
+     * task takes only its start, and only if it is earlier, see decision 18 in the repository's
      * DECISIONS.md. For tasks stored from their end alone before this property existed, a
      * changeset set it.
      */
