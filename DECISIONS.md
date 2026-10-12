@@ -480,6 +480,10 @@ reported means the process ended it. The notification poller reads that field to
 by somebody else from one the reader did themselves, so a name left over from an earlier report
 would name the wrong person.
 
+Note (2026-10-12): Since decision 26 a report is built at the event. Camunda 7 no longer reads an
+ended task from its history, so the first example above is out of date. The rule of this entry
+stays as it is.
+
 ### 20. The warning about a writing details provider is VanillaBP's, and this extension adds none - the warning reaching a cockpit application superseded by decision 23
 
 A `@UserTaskDetailsProvider` and a `@WorkflowDetailsProvider` run while a report is dispatched, and
@@ -881,6 +885,11 @@ The front matter stays English, because an agent matches a task against the `des
 Every file of the description says this in its first lines, and those lines go away with the
 translation.
 
+Note (2026-10-12): Since decision 63 the React application is no longer in this repository. So it
+is no longer the worked example next to the description. The description in
+`skills/business-cockpit-user-interface` stays, and the Git history keeps the sources it was read
+from.
+
 ### 28. An initiator is always set, and the application is the only one who knows it
 
 The initiator is the user who caused something. A process started from a button in a user
@@ -1185,6 +1194,11 @@ Each of these says it in its own words, so none of them has to cite a number:
 - `skills/business-cockpit-user-interface/references/gui-api.md` and
   `references/module-federation.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
+
+Note (2026-10-12): Since decision 63 the shipped user interface is gone, and with it
+`ui/bc-ui/src/utils/module-federation.ts` and `addressOfFederatedBundle`. What this entry says
+about the server still holds. A user interface which loads a workflow module builds the address
+itself.
 
 ### 33. One property turns the whole npm side of the build off, and no registry runs beside it - superseded by decision 62
 
