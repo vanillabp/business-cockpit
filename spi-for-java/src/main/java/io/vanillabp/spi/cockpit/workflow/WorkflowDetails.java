@@ -5,6 +5,8 @@ import java.util.Map;
 
 public interface WorkflowDetails {
 
+    String getId();
+
     /**
      * Who caused this report. The value is mandatory: once a details provider has run, every
      * details object carries one, and the two allowed answers are a user id and the constant
@@ -41,5 +43,21 @@ public interface WorkflowDetails {
      *         configured unless a details provider set one of its own
      */
     String getUiUriPath();
+
+    /**
+     * The users who may open this workflow in the cockpit. Where neither this list nor
+     * {@link #getAccessibleToGroups()} names anybody, everybody who may use the cockpit may.
+     *
+     * @return The user ids admitted to this workflow
+     */
+    List<String> getAccessibleToUsers();
+
+    /**
+     * The groups whose members may open this workflow in the cockpit.
+     *
+     * @return The group ids admitted to this workflow
+     * @see #getAccessibleToUsers()
+     */
+    List<String> getAccessibleToGroups();
 
 }
