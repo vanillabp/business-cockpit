@@ -61,10 +61,6 @@ yes, the same commit updates the log: the old entry STAYS, marked as superseded 
 entry which replaced it, and the new decision takes the next free number. Numbers are never reused
 and never renumbered, because a citation in an older release still points at them.
 
-This rule had one exception, once, on 2026-10-12 before the 1.0 release. Where one rule was spread
-over several entries, they were merged into the first of them, and the others now say "Merged into
-decision N". From 1.0 on, the rule above holds again with no exception.
-
 Adding an entry has the same rule. A decision earns a number when several places rely on it and
 copying the explanation to each of them would rot; anything smaller is a comment where it belongs,
 and anything larger is documentation.
