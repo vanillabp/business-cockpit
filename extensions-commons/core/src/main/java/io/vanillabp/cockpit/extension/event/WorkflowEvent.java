@@ -97,12 +97,21 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
     setDetailsFulltextSearch(details.getDetailsFulltextSearch());
     setTemplateContext(details.getTemplateContext());
     setI18nLanguages(details.getI18nLanguages());
+    setAccessibleToUsers(details.getAccessibleToUsers());
+    setAccessibleToGroups(details.getAccessibleToGroups());
     if (details.getTitle() != null) {
       setTitle(details.getTitle());
     }
     if (details.getUiUriPath() != null) {
       setUiUriPath(details.getUiUriPath());
     }
+
+  }
+
+  @Override
+  public String getId() {
+
+    return workflowId;
 
   }
 
@@ -370,6 +379,7 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  @Override
   public List<String> getAccessibleToUsers() {
 
     return accessibleToUsers;
@@ -384,6 +394,7 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  @Override
   public List<String> getAccessibleToGroups() {
 
     return accessibleToGroups;
