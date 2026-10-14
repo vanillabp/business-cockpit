@@ -96,6 +96,16 @@ jobs:
       actions: read
       issues: write
     steps:
+      # The script which reads a job log for the issue. It lives in the Camunda 8 adapter,
+      # which tests it and uses it for its own issues, and every Business Cockpit repository
+      # checks it out rather than keeping a copy which drifts.
+      - uses: actions/checkout@v7
+        if: github.ref_name == 'main'
+        with:
+          repository: camunda-community-hub/vanillabp-camunda8-adapter
+          ref: main
+          path: vanillabp-camunda8-adapter
+          sparse-checkout: bin
       - name: Open or update the issue
         # Only for main: a dispatch on a branch says nothing about main.
         if: github.ref_name == 'main'
@@ -144,8 +154,11 @@ jobs:
               echo
               echo "- run: $RUN_URL"
               echo "- commit: $SERVER_URL/$GH_REPO/commit/$HEAD_SHA"
-              # Every job which failed, with Maven's own summary out of its log. The six
-              # lines Maven prints after every failure about running it again are left out.
+              # Every job which failed, with the reason out of its log: Maven's summary when
+              # Maven broke, and otherwise the last lines of the step which broke first. A
+              # step which is not Maven gives its reason in plain text, and a filter for
+              # Maven's [ERROR] lines never quoted it. The script is the one the release-line
+              # issues of the Camunda 8 adapter use, see the checkout above.
               gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/jobs" \
                 --jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out")
                       | [.id, .name, .html_url] | @tsv' \
@@ -153,13 +166,20 @@ jobs:
                     echo
                     echo "Job \`$name\` failed: $url"
                     echo
-                    echo '```'
-                    gh api "repos/$GH_REPO/actions/jobs/$id/logs" 2>/dev/null \
-                      | sed -E 's/^[^ ]+ //' \
-                      | grep -aE '^\[ERROR\]' \
-                      | grep -avE '^\[ERROR\][[:space:]]*$|-> \[Help|\[Help [0-9]+\] http|To see the full stack trace|Re-run Maven using|For more information about the errors|After correcting the problems|mvn <args> -rf|See dump files|See /home/runner/' \
-                      | head -30 || true
-                    echo '```'
+                    # A job log carries colour codes, and gh refuses to print a response
+                    # with escape sequences unless told to. Without the flag every excerpt
+                    # came out empty.
+                    gh api --allow-escape-sequences "repos/$GH_REPO/actions/jobs/$id/logs" \
+                      > "$RUNNER_TEMP/job.log" 2>/dev/null || true
+                    excerpt=$(vanillabp-camunda8-adapter/bin/job-log-excerpt.sh \
+                      "$RUNNER_TEMP/job.log")
+                    if [ -n "$excerpt" ]; then
+                      echo '```'
+                      printf '%s\n' "$excerpt"
+                      echo '```'
+                    else
+                      echo "The log of that job gives no reason which could be quoted here."
+                    fi
                   done \
                 || echo "The jobs of this run could not be read, see the run above."
               echo
