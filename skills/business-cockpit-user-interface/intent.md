@@ -126,9 +126,16 @@ kann und hat auf der Startseite für jedes Gremium (= Rolle) eine Card platziert
 sichtbaren Aufgaben und der Anzahl vom Nutzer übernommen Aufgaben dieses Gremiums. Wenn man die Rolle nicht hatte,
 war es zwangsläufig 0/0. 
 
-Darüber hinaus hat jede Liste (egal ob Gesamt- oder Subliste) folgende Primärfilter: OpenTasks,
-OpenTasksWithoutFollowUp (default), OpenTasksWithFollowUp, OpenTaskOnlyFollowUp, ClosedTasksOnly. Manche Kunden
-wünschen nicht alle dieser Zustände zur Verfügung zu stellen.
+Die Statuszeile der Liste bietet links einen Mehrfach-Button als Auswahlmöglichkeit des Primärfilters an.
+An der rechten Seite wird eine Farb-Legende für die möglichen Zustände eines Listeneintrags angezeigt (z.B. Neu,
+Geändert, Beendet, Abgebrochen). Die möglichen Primärfilter sind OpenTasks,
+OpenTasksWithoutFollowUp (default), OpenTasksWithFollowUp, OpenTaskOnlyFollowUp, ClosedTasksOnly, wobei eine
+lokalisierte Kurzform angezeigt wird (z.B. Offen, Abgeschlossen). Neben der Bezeichnung, außer für ClosedTasksOnly,
+wird die Gesamtzahl (in Klammern) der Einträge der Liste angezeigt. Die Gesamtzahl des aktuell gewählten
+Primärfilters wird zusammen mit den Listeneinträgen ermittelt und für die anderen Zahlen müssen eigene Abfragen
+durchgeführt werden (gleiche Filter, nur anderer Primärfilter). Der zuletzt gewählte Primärfilter wird als
+Benutzerpräferenz gespeichert und bei neuen Aufrufen herangezogen. Manche Kunden wünschen nicht alle Primärfilter
+zur Verfügung zu stellen.
 
 Wozu:
 
@@ -164,6 +171,24 @@ Die Spalte Abgeschlossen wird nur bei ClosedTasksOnly angezeigt.
 
 Wenn die Notizenspalte angezeigt wird, können Notizen in der Liste bearbeitet werden oder gesammelt für alle gewählten
 über den Header-Bereich.
+
+Die Standardspalten haben besondere Funktion und Erscheinung gegenüber Spalten, die mit individuellen Daten befüllt
+werden (siehe "Die Spalten, die ein Workflow-Modul mitbringt"):
+- id: Checkbox zur Auswahl, die ID wird nicht dargestellt.
+- title: Text ist verlinkt zum Öffnen der Vollansicht (echter A-Tag, damit rechte-maustaste-"In eigenem Tab öffnen"
+  möglich ist)
+- assignee: Zeigt die Person in Kurzform an und on-mouse-over die Langform, die Benutzerkennung und die Email-Adresse.
+  Zusätzlich erscheint "on-mouse-over" eine Checkbox, mit der die Aufgabe übernommen werden kann (claim). Ist eine
+  Aufgabe durch den aktuellen Benutzer übernommen, dann ist der Kurzform ein Pipe-Strich vorangestellt, jedoch ist
+  die linksbündige Ausrichtung der Namen rechts vom Pipe-Strich, damit alle Namen ausgerichtet sind. Wenn der aktuelle
+  Benutzer die Aufgabe übernommen hat, dann erscheint "on-mouse-over" eine gewählte Checkbox, um die Aufgabe
+  zurückzugeben.
+- candidateUsers: Die Spalte hat nur Symbol-Breite. Der Header ist ein Symbol mit mehreren Personen. Wenn eine Person
+  zugeordnet ist, erscheint das Symbol einer Person. Wenn mehrere Personen zugeordnet sind erscheint das Symbol
+  für mehrere Personen, wie im Header. "on-mouse-over" erscheint eine Auflistung aller Personen mit einem
+  Mistkübel-Symbol zum enfernen. "on-mouse-over" der Person erscheinen die gleichen Details wie beim "assignee".
+- createdAt, dueDate, followup, endetAt: Lokalisiertes Datum, wenn nicht heute. "on-mouse-over" die Uhrzeit ohne
+  Sekunden. Uhrzeit wird statt des Datums angezeigt, wenn das Datum der heutige Tag ist. "on-mouse-over" dann das Datum.
 
 Regeln, die nicht gebrochen werden dürfen:
 
@@ -222,7 +247,7 @@ meist als Buttons z.B. "Annehmen", "Abweisen" angezeigt werden. Die Spalte füll
 scroll aber mit überlangen Formularen nicht mit, damit die Aktions-Buttons immer sichtbar sind. Ist der Bereich über
 den Abschlußaktionen zu klein, dann wird in diesem Bereich gescrollt.
 
-Manche Formular können zwischengespeichert werden und bieten zusätzlich eine Save-Aktionsbutton an. Ob Formulare
+Manche Formulare können zwischengespeichert werden und bieten zusätzlich eine Save-Aktionsbutton an. Ob Formulare
 automatisch zwischenspeichern, manuell oder gar nicht bestimmt das Formular selbst.
 
 Änderungen am Formular durch andere werden sofort mitgeteilt: z.b. "Benutzer x hat die Aufgabe übernommen. Bitte
@@ -289,7 +314,7 @@ Offen:
 
 ## Die Liste der Geschäftsfälle
 
-Technisch gesehen gilt grundsätzlich das Gleiche wie bei den Aufgabenlisten.
+Technisch gesehen gilt grundsätzlich das Selbe wie bei den Aufgabenlisten. Hier werden nur Abweichungen erwähnt.
 
 Die serverseitige Auswahl der angezeigten Vorgänge ergibt sich aus '(accessibleToUsers", "accessibleToGroups")'.
 
@@ -303,8 +328,8 @@ und, wenn nötig, in die Detailansicht zu wechseln.
 Was der Benutzer sieht und tun kann:
 
 Jeder Vorgang hat eine Zeile. Es gibt eigene Spaltendefinitionen im Workflow-Modul für Vorgangslisten.
-Es gibt eigene fixe Spalten, unabhängig von jenen der Aufgaben. Es gibt keine "gelesen" Darstellung und
--funktionalität wie beim den Aufgaben.
+Es gibt eigene fixe Spalten, unabhängig von jenen der Aufgaben. Es gibt keine "gelesen" Kennzeichnung und
+-funktionalität wie bei den Aufgaben. "accessibleToUsers" und "accessibleToGroups" wird nicht als Spalte dargestellt.
 
 Regeln, die nicht gebrochen werden dürfen:
 
@@ -331,8 +356,9 @@ verarbeitet wird.
 Was der Benutzer sieht und tun kann:
 
 Unterschied zur Aufgabenansicht:
-- Es gibt durch die UI Möglichkeit die Vorgangsdetailansicht in einem separaten Tab zu öffnen.
-- Es gibt keine Aufgaben-Header, weil es keine übergreifende Funktionalität gibt wie bei den Aufgaben.
+- Es gibt keine Funktion, um die Vorgangsdetailansicht in einem separaten Tab zu öffnen
+  (Maus-rechts-klick und "in separatem Tab öffnen" geht).
+- Es gibt keinen Header, weil es keine übergreifende Funktionalität gibt wie bei den Aufgaben.
 - Es gibt eine Spalte mit Info- und Aktionsbereich analog zur Aufgabenansicht.
 
 Regeln, die nicht gebrochen werden dürfen:
@@ -363,7 +389,68 @@ Pro Spalte kann ein eigener Suchbegriff zum (serverseitigen) Filtern angegeben u
 
 Es gibt einen Button, um die Suchen zurückzusetzen.
 
-Pro Vorgang und Aufgabe kann geregelt werden, was mit der Spalte gemacht werden kann. Die Liste der
+Pro Vorgang und Aufgabe kann geregelt werden, was mit der Spalte gemacht werden kann (siehe
+"Die Spalten, die ein Workflow-Modul mitbringt").
+
+Regeln, die nicht gebrochen werden dürfen:
+
+-
+
+Was ein Kunde hier anders will:
+
+Sortierung nach Werten statt nach Darstellung. Problem ist, dass die Werte in Mongo geschrieben sind und dort
+sortiert wird. Es müsste, analog zum i18n, eine kleine Struktur mit Wert und Darstellung zur Verfügung gestellt
+werden und die Sortierung nach dem Wert gehen. Das ließe sich mit individuellen Zellen leicht ermöglichen, weil
+dann der Path immer der Wert wäre und die Zellen-Komponente parallel dazu nach der Text-Darstellung sucht. 
+
+Offen:
+
+Individuelles Rendern von Spalten. Mehr Spaltentypen out-of-the-box (z.B. Währung). 
+
+## Was live passiert, während der Benutzer zusieht
+
+Hier gehört auch hin, was eine Oberflaeche dem Benutzer SAGEN soll, wenn sich etwas geändert hat,
+siehe Story `1410`.
+
+Wozu:
+
+Änderungen am angezeigten Datenbestand sollen zeitnah in der Oberfläche ohne aktives Zutun sichtbar werden.
+
+Was der Benutzer sieht und tun kann:
+
+Änderungen müssen
+farblich ausgewiesen sein, damit man nach einer Abwesenheit vom Bildschirm sehen kann, was passiert ist.
+Über einen Button müssen Änderungen bestätigt werden, wodurch die farblichen Markierungen und inaktive Einträge
+verschwinden.
+
+Versuch und zu validieren: Es soll auch einen automatischen Modus dafür geben: z.B. Nach einem Überfahren der Zeile
+mit der Maus (Verlassen) wird die Ausweisung entfernt (z.B. mit 3 Sekunden Verzögerung).
+
+Regeln, die nicht gebrochen werden dürfen:
+
+Der Herausforderung ist, dass in einer Liste mit einem Primärfilter für z.B. Aktive auch temporär inaktive Einträge
+enthalten sind, nämlich jene die live während der Darstellung in dieser Liste als Abgeschlossen gemeldet wurden.
+Das Scrollen muss dennoch korrekt funktionieren.
+
+Die angezeigten Gesamtanzahl(en) müssen bei Änderungen aktualisiert werden. 
+
+Was ein Kunde hier anders will:
+
+Manche Kunden wollen die gesamte Aktualisierung nicht und stattdessen nur einen Refresh-Button im Header, der aktiv
+wird, wenn Änderungen gemeldet wurden.
+
+Offen:
+
+Implementierung als Orientierung, um weitere Regeln Erkenntnisse, gibt es bereits in der alten UI.
+
+## Die Spalten, die ein Workflow-Modul mitbringt
+
+Wozu:
+
+Um als Benutzer mit möglichst wenig Platz am Bildschirm möglichst die Informationen pro Aufgabe bzw. Vorgang
+zu sehen, die ich zur Bewertung des Eintrags brauche.
+
+Die Liste der
 Spalten-Definitionen werden durch das Workflow-Modul über zwei Funktionen (Aufgaben, Vorgänge) definiert:
 
 ```
@@ -397,21 +484,30 @@ details?: { [key: string]: unknown };
 }
 ```
 
+Was der Benutzer sieht und tun kann:
+
 Pro Typ wird unter "path" eine andere Datenstruktur erwartet:
 - *value*:
   - Feld: Ein Wert, der
-  - Darstellung: 
+  - Darstellung: lokalisierte Ansicht (z.B. in Deutsch: Ganzzahl mit Tausenderpunkten; Float mit Komma; Boolean als
+    "Ja" und "Nein"), Text linksbündig, Nicht-Text-Werte rechtsbündig, Floats am Komma ausgerichtet.
 - *i18n*:
   - Feld: Eine Map, mit Sprachen (z.B. en, de) als Keys und Text in der jeweiligen Sprache als Values
   - Darstellung: Der Text passend zur Sprache der UI, mit Fallback auf die Defaultsprache
 - *person*:
   - Feld: Eine Struktur von Person
-  - Darstellung: Nachnahme + ", " + Erster Buchstabe des Vornamens. On-mouse-over:  
+  - Darstellung: displayShort oder email oder id. On-mouse-over:
+    ```
+    display
+    
+    id
+    email
+    ```
 - *date*:
   - Feld: Ein String im Format 'YYYY-MM-DD'
   - Darstellung: Lokalisierte Form des Datums
 - *date-time*:
-  - Feld: Ein String im Format ISO
+  - Feld: Ein String im Format ISO 8601 calendar date extended format
   - Darstellung: Lokalisierte Form des Datums, daneben lokalisierte Form von Stunde und Minute. On-mouse-over auch mit Sekunde.
 - *time*:
   - Feld: Ein String im 'hh:mm[:ss]'
@@ -419,72 +515,110 @@ Pro Typ wird unter "path" eine andere Datenstruktur erwartet:
 
 Regeln, die nicht gebrochen werden dürfen:
 
-Was ein Kunde hier anders will:
-
-Offen:
-
-## Was live passiert, während der Benutzer zusieht
-
-Hier gehört auch hin, was eine Oberflaeche dem Benutzer SAGEN soll, wenn sich etwas geändert hat,
-siehe Story `1410`.
-
-Wozu:
-
-Was der Benutzer sieht und tun kann:
-
-Regeln, die nicht gebrochen werden dürfen:
+-
 
 Was ein Kunde hier anders will:
 
-Offen:
-
-## Die Spalten, die ein Workflow-Modul mitbringt
-
-Wozu:
-
-Was der Benutzer sieht und tun kann:
-
-Regeln, die nicht gebrochen werden dürfen:
-
-Was ein Kunde hier anders will:
+-
 
 Offen:
+
+Individuelles Rendern von Spalten. 
 
 ## Benachrichtigungen
 
 Wozu:
 
+Um über neue Aufgaben informiert zu werden, die man selbst übernehmen könnte. Das ist besonders interessant, wenn
+Benutzer das Business cockpit nicht fortwährend im Browser geöffnet haben.
+
 Was der Benutzer sieht und tun kann:
+
+Es gibt die Möglichkeit unter einem eigenen Menüpunkt die Notifizierungen zu konfigurieren. Es kann übergreifend
+und pro Vorgang gewählt werden, ob man Benachrichtigungen erhalten will und auf welchem Kanal.
 
 Regeln, die nicht gebrochen werden dürfen:
 
+-
+
 Was ein Kunde hier anders will:
 
+-
+
 Offen:
+
+-
 
 ## Sprache und Texte
 
 Wozu:
 
+Um Übersetzungen anzubieten.
+
 Was der Benutzer sieht und tun kann:
+
+i18n-Darstellung aller Texte mit vorausgewählter Default-Sprache.
 
 Regeln, die nicht gebrochen werden dürfen:
 
+Texte in separaten Dateien.
+
 Was ein Kunde hier anders will:
 
+-
+
 Offen:
+
+-
+
+## Header und Customizing
+
+Wozu:
+
+Damit Workflow-Module sich in bestehende UI-Elemente des Business cockpits mit eigener Funktionalität einklinken
+können.
+
+Was der Benutzer sieht und tun kann:
+
+An individuell vorgesehenen Stellen, können Workflow-Module UI-Erweiterungen anzeigen. Beispiele: Der Header, das
+Menü.
+
+Regeln, die nicht gebrochen werden dürfen:
+
+Es werden alle berechtigten Workflow-Module befragt. Welche Erweiterungsmöglichkeiten es gibt ist individuell
+und eine Module-Federation-"Vertrag" zwischen dem Business cockpit und dem Workflow module, der für alle Module
+gilt. Nicht ausgefüllte Erweiterungen eines Moduls dürfen keinen Fehler bringen, sondern müssen ignoriert werden.
+
+Was ein Kunden hier anders will:
+
+-
+
+Offen:
+
+-
 
 ## Wer was sehen darf
 
 Wozu:
 
+Angepasste Sichten für unterschiedliche Benutzergruppen.
+
 Was der Benutzer sieht und tun kann:
+
+Das ist individuell geregelt. Die benötigten Gruppen werden aus dem initialen Aufruf von `current-user` entnommen,
+da der JWT potentiell weniger bis keine Gruppen enthält.
 
 Regeln, die nicht gebrochen werden dürfen:
 
+-
+
 Was ein Kunde hier anders will:
 
+-
+
 Offen:
+
+-
 
 ## Was ein Cockpit-UI nicht tut
 
