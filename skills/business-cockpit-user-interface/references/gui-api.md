@@ -1,399 +1,465 @@
-# Die GUI-API
+# The GUI API
 
-*Teil der Beschreibung in [`../SKILL.md`](../SKILL.md). Bis zum Review deutsch.*
+*Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-Die GUI-API ist alles, was ein Cockpit-UI vom Server bekommt. Sie liegt unter `/gui/api/v1`, ist in
-`apis/official-gui-api/openapi/v1.yaml` und `business-cockpit/src/main/resources/api/gui/v1.yaml`
-beschrieben, und diese beiden Dateien sind die Wahrheit. Was hier steht, ist das Verhalten dahinter,
-das in keiner der beiden Dateien steht.
+The GUI API is everything a cockpit user interface gets from the server. It lives under
+`/gui/api/v1`. Two OpenAPI files describe it, and these two files are the truth:
 
-Erzeuge dir deinen Client aus der OpenAPI-Beschreibung. Schreibe ihn nicht von Hand ab.
+- `apis/official-gui-api/openapi/v1.yaml`, the `official-gui-api`: the lists, a user task, a case,
+  the workflow modules, the notifications.
+- `business-cockpit/src/main/resources/api/gui/v1.yaml`: `GET /app/info` and
+  `GET /app/current-user`.
 
-1. [Anmelden und angemeldet bleiben](#anmelden-und-angemeldet-bleiben)
-1. [Die Endpunkte](#die-endpunkte)
-1. [Seitenweise lesen](#seitenweise-lesen)
-1. [Sortieren](#sortieren)
-1. [Filtern über gemeldete Geschäftsdaten](#filtern-über-gemeldete-geschäftsdaten)
-1. [Vorschläge für ein Suchfeld](#vorschläge-für-ein-suchfeld)
-1. [Welche Zeilen überhaupt kommen](#welche-zeilen-überhaupt-kommen)
-1. [Der Zeitstempel, der eine Liste stabil hält](#der-zeitstempel-der-eine-liste-stabil-hält)
-1. [Die zweite Form derselben Abfrage](#die-zweite-form-derselben-abfrage)
-1. [Live-Aktualisierung über Server-Sent-Events](#live-aktualisierung-über-server-sent-events)
-1. [Was das Cockpit ausliefert](#was-das-cockpit-ausliefert)
+What is written here is the behaviour behind them, which neither file says.
 
-## Anmelden und angemeldet bleiben
+1. [Generating the client](#generating-the-client)
+1. [Protection and login](#protection-and-login)
+1. [Staying logged in](#staying-logged-in)
+1. [The endpoints](#the-endpoints)
+1. [Reading page by page](#reading-page-by-page)
+1. [Sorting](#sorting)
+1. [Filtering over reported business data](#filtering-over-reported-business-data)
+1. [Suggestions for a search field](#suggestions-for-a-search-field)
+1. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
+1. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
+1. [The second form of the same query](#the-second-form-of-the-same-query)
+1. [The update stream](#the-update-stream)
+1. [What the cockpit serves](#what-the-cockpit-serves)
 
-Das Cockpit hat keine eigene Anmeldeseite, und dein UI baut auch keine. Jede Anfrage an die GUI-API
-verlangt eine Anmeldung, die Antwort auf die erste setzt ein Cookie, und von da an reist das Cookie
-mit. Im Cookie steht ein JWT. Wie es signiert wird, wie lange es lebt und wie ein Identity-Provider
-davorkommt, steht im Wiki unter
+## Generating the client
+
+Generate the client from the OpenAPI files. Never write it by hand.
+
+The tool is `@openapitools/openapi-generator-cli` from npm, as a dev dependency of the project. It
+needs a Java runtime on the build machine, because it runs the OpenAPI Generator jar. The generated
+code is TypeScript:
+
+- generator `typescript-fetch` for every framework except Angular,
+- generator `typescript-angular` for Angular, with the additional property `ngVersion` set to the
+  Angular version of the application.
+
+Generate it at build time, for example in a `prebuild` script, into a folder that Git ignores. It is
+never committed. The same goes for every dev shell: it generates its own client from the same
+files.
+
+How the npm project gets the two files: both ship inside jars of the cockpit release on Maven
+Central, under the group `io.vanillabp.businesscockpit`.
+
+| File                          | Jar                                     | Path inside the jar |
+|-------------------------------|-----------------------------------------|---------------------|
+| the `official-gui-api`        | `official-gui-api-server-<version>.jar` | `v1.yaml` |
+| `app/info` and `current-user` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml` |
+
+A script downloads the jars of the cockpit version from the interview (`Q-COCKPIT-VERSION`) from
+`https://repo1.maven.org/maven2/io/vanillabp/businesscockpit/...`, unpacks the two files and runs
+the generator. Pin the version. Then a new cockpit release never changes your client without a
+commit. The other way is the raw file in the `business-cockpit` repository at the release tag, for
+example
+`https://raw.githubusercontent.com/vanillabp/business-cockpit/<tag>/apis/official-gui-api/openapi/v1.yaml`.
+That needs no unpacking, but it reads the source and not the released artifact. The jar is the
+default.
+
+The update stream `GET /updates` is in neither file. Its events, `UserTaskEvent` and
+`WorkflowEvent`, are schemas of the `official-gui-api`, see [The update stream](#the-update-stream).
+
+## Protection and login
+
+The backend serves the user interface. The single-page application has to load without a login
+and log in afterwards, when needed. So these stay open:
+
+- the static files of the user interface,
+- the shell, `index.html`, also as the answer to an unknown path,
+- `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user`,
+- the proxy to the workflow modules under `/wm/**`. A module protects itself.
+
+Everything else asks for a login. Login is the job of the backend, not of the user interface, see
+[`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit).
+
+What the backend does today, in the library's default security chain: it lets
+`/gui/api/v1/app/info`, `/gui/api/v1/app/current-user`, `/assets/**`, `/static/**` and `/wm/**`
+through without a login. Every other path asks for one, including the shell at `/`. So today the
+static files have to be below `/assets/` or `/static/`, and an application that replaces the chain
+opens the shell itself. A login answers with a cookie, and from then on the cookie travels with
+every request. The cookie holds a JWT. How it is signed, how long it lives and how an identity
+provider is put in front is in the wiki under
 [Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
 
-Fünf Muster kommen ohne Anmeldung durch, und genau die braucht dein UI, um sich überhaupt zeigen zu
-können: `/gui/api/v1/app/info`, `/gui/api/v1/app/current-user`, `/assets/**`, `/static/**` und der
-Proxy auf die Workflow-Module unter `/wm/**`. Alles andere verlangt eine Anmeldung, auch die Hülle
-deiner Anwendung unter `/`, siehe [`../SKILL.md`](../SKILL.md#wie-dein-ui-in-das-cockpit-kommt).
+What follows for the start of the user interface:
 
-Daraus folgt der Ablauf beim Start:
+1. `GET /gui/api/v1/app/info` fetches the title, the version and the build time of the
+   application. It needs no user, so the frame can stand before anybody is logged in.
+2. `GET /gui/api/v1/app/current-user` returns the user who is logged in, with their groups. If
+   nobody is logged in, the answer has no body. Do not treat that as an error. Send the browser to
+   the login of the backend (`Q-LOGIN`).
+3. Only then is the first list worth loading.
 
-1. `GET /gui/api/v1/app/info` holt Titel, Version und Bauzeitpunkt der Anwendung. Das geht ohne
-   Benutzer, also kann der Rahmen schon stehen, bevor jemand angemeldet ist.
-2. `GET /gui/api/v1/app/current-user` liefert den angemeldeten Benutzer mit seinen Gruppen. Ist
-   niemand angemeldet, kommt eine Antwort ohne Körper. Dein UI darf daraus nicht auf einen Fehler
-   schließen, sondern muss den Benutzer zur Anmeldung schicken.
-3. Erst danach lohnt sich die erste Liste.
+The groups come from this answer and not from the JWT. A token may carry few groups or none, see
+[behaviour.md](behaviour.md#who-sees-what).
 
-Der Grund für die leere Antwort ist die Anmeldung selbst: die Anfrage, die sich anmeldet, ist
-authentifiziert, aber erst ihre Antwort trägt das Cookie. Das Cockpit liest den Benutzer aus dem
-Cookie, also hat gerade diese Anfrage noch keinen, und der Client fragt mit dem Cookie nochmal.
+`current-user` can answer without a body for a second reason: the request that logs in is
+authenticated, but only its answer carries the cookie. The cockpit reads the user from the cookie,
+so exactly this request has no user yet, and the client asks again with the cookie.
 
-Das Cookie verlängert der Server selbst. Hat das Token weniger als die Hälfte seiner Laufzeit übrig
-(`business-cockpit.jwt.cookie.expires-duration`, standardmäßig zwölf Stunden), trägt die Antwort auf
-eine gewöhnliche Anfrage ein neues Cookie. Der Browser übernimmt es von allein, dein UI tut dafür
-nichts. Zwei Dinge musst du trotzdem einplanen:
+`/logout` deletes the cookie and sends the browser to the start page.
 
-- Der Ereignisstrom zählt nicht. Ein Tab, in dem niemand etwas tut, ist nach zwölf Stunden
-  abgemeldet. Frag deshalb nichts im Hintergrund nach, nur um angemeldet zu bleiben. Genau das soll
-  nicht passieren.
-- Jede Anmeldung endet nach `business-cockpit.jwt.cookie.max-login-duration`, standardmäßig sieben
-  Tage, auch mitten in der Arbeit. Danach antwortet jede Anfrage mit 401, und der Benutzer muss
-  sich neu anmelden. Dein UI muss eine 401 also jederzeit verkraften, nicht nur beim Start.
+## Staying logged in
 
-`/logout` löscht das Cookie und schickt den Browser auf die Startseite.
+The server renews the cookie by itself. When the token has less than half of its lifetime left
+(`business-cockpit.jwt.cookie.expires-duration`, twelve hours by default), the answer to an ordinary
+request carries a new cookie. The browser takes it over, and your user interface does nothing for
+it. Plan for two things anyway:
 
-Das mitgelieferte UI hat dazu noch ein zweites Verfahren, einen Refresh-Token. Es legt den Wert des
-Kopffelds `x-refresh-token` im `localStorage` ab, schickt ihn mit, wenn eine Anfrage mit 401
-abgelehnt wurde, und wiederholt sie dann. Die Anfragen laufen dafür durch ein Web-Lock namens
-`bc-webapp`, eine Anfrage mit Refresh-Token exklusiv und jede andere geteilt, damit nicht zwei
-Anfragen gleichzeitig erneuern. Das ist kein Vertrag der GUI-API. Ohne Identity-Provider, der so
-etwas ausstellt, passiert hier nichts, und dein UI darf es weglassen. Siehe
-[rough-edges.md](rough-edges.md#der-refresh-token-hängt-in-der-luft) für das, was daran hängt.
+- The update stream does not count. A tab where nobody does anything is logged out after twelve
+  hours. So do not ask anything in the background only to stay logged in. That is exactly what must
+  not happen.
+- Every login ends after `business-cockpit.jwt.cookie.max-login-duration`, seven days by default,
+  even in the middle of work. After that every request answers 401, and the user has to log in
+  again. So your user interface must handle a 401 at any time, not only at the start.
 
-## Die Endpunkte
+## The endpoints
 
-Die drei Aufgabenlisten der mitgelieferten Anwendung sind derselbe Endpunkt unter drei
-Basispfaden. Welche Aufgaben jeder davon zeigt, entscheidet ein Controller der Anwendung und nicht
-die API, siehe
+The task lists of the runnable cockpit are the same endpoints under three base paths. Which tasks
+each of them shows is decided by a controller of the application and not by the API, see
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
 
-| Basispfad | Was die Liste zeigt |
-|---|---|
-| `/gui/api/v1` | alles, was der Benutzer bearbeiten darf |
-| `/gui/api/v1/current-user` | nur was ihm persönlich zugewiesen ist |
-| `/gui/api/v1/user-roles` | was seine Gruppen übernehmen dürfen und niemandem zugewiesen ist |
+| Base path                  | What the list shows |
+|----------------------------|---------------------|
+| `/gui/api/v1`              | everything the user may work on |
+| `/gui/api/v1/current-user` | only what is assigned to the user personally |
+| `/gui/api/v1/user-roles`   | what the user's groups may claim and nobody is assigned to yet |
 
-Dein UI darf diese drei Pfade nicht als gegeben nehmen. Sie sind die Entscheidung der
-mitgelieferten Anwendung. Ein eigenes Cockpit darf andere Listen anbieten, und dann heißen die
-Pfade anders.
+Do not take these three paths as given. They are a choice of the runnable cockpit. An application of
+the organisation's own may offer other lists, and then the paths have other names. `/tasks` uses
+the first base path, and `/my-tasks` the second one, or the first with a filter on `assignee.id`.
 
-Die Endpunkte selbst, alle relativ zum Basispfad:
+The endpoints, all relative to the base path:
 
-| Aufruf | Wofür |
-|---|---|
-| `POST /usertask` | eine Seite der Aufgabenliste |
-| `PUT /usertask` | dieselbe Abfrage als Aktualisierung, siehe unten |
-| `OPTIONS /usertask` | Vorschläge für ein Suchfeld über Aufgaben |
-| `GET /usertask/{id}` | eine Aufgabe, mit `markAsRead` zugleich als gelesen markieren |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim` | Bearbeiter setzen, mit `unclaim=true` zurückgeben |
-| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign` | eine Person als Kandidat hinzufügen, mit `unassign=true` wieder entfernen |
-| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read` | als gelesen markieren, mit `unread=true` zurücknehmen |
-| `PATCH /usertask/{id}/follow-up-date` | Wiedervorlage setzen oder löschen |
-| `POST /user` | Benutzer suchen, für die Zuweisung an eine Person |
-| `POST /workflow` | eine Seite der Fallliste |
-| `PUT /workflow` | dieselbe Abfrage als Aktualisierung |
-| `OPTIONS /workflow` | Vorschläge für ein Suchfeld über Fälle |
-| `GET /workflow/{id}` | ein Fall |
-| `POST /workflow/{id}/usertasks` | die Aufgaben eines Falls |
-| `GET /workflow-module`, `GET /workflow-module/{id}` | die Workflow-Module, die der Benutzer sehen darf |
-| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | die Benachrichtigungen des Benutzers |
-| `GET /app/info`, `GET /app/current-user` | die Anwendung und der Benutzer |
-| `GET /updates` | der Ereignisstrom, siehe unten |
+| Call                                                                     | What for |
+|--------------------------------------------------------------------------|----------|
+| `POST /usertask`                                                         | one page of the task list |
+| `PUT /usertask`                                                          | the same query as an update, see below |
+| `OPTIONS /usertask`                                                      | suggestions for a search field over user tasks |
+| `GET /usertask/{id}`                                                     | one user task, with `markAsRead` also marked as read |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | set the assignee, with `unclaim=true` give it back |
+| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them |
+| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back |
+| `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
+| `POST /user`                                                             | search users, to propose a task to a person |
+| `POST /workflow`                                                         | one page of the workflow list |
+| `PUT /workflow`                                                          | the same query as an update |
+| `OPTIONS /workflow`                                                      | suggestions for a search field over cases |
+| `GET /workflow/{id}`                                                     | one case |
+| `POST /workflow/{id}/usertasks`                                          | the user tasks of a case |
+| `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see |
+| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
+| `GET /app/info`, `GET /app/current-user`                                 | the application and the user |
+| `GET /updates`                                                           | the update stream, see below |
 
-Die beiden Formen jeder Aktion, eine für eine Aufgabe und eine für eine Liste von Kennungen, machen
-dasselbe. Die Mehrfachform ist da, damit eine Mehrfachauswahl in der Liste nicht zu zwanzig Anfragen
-führt.
+The two forms of each action, one for one task and one for a list of ids, do the same. The list
+form is there so that several selected rows do not cause twenty requests.
 
-## Seitenweise lesen
+`GET /workflow-module` answers the modules the user may see, each with `id`, `version` and `uri`.
+`uri` is `/wm/<id>`, the path of the module behind the cockpit's proxy, or empty if the module
+registered no address. It carries no `uiUriType`. This is the list an extension point asks, see
+[module-federation.md](module-federation.md#extension-points).
 
-`pageNumber` und `pageSize` in `POST /usertask` und `POST /workflow` gehen unverändert an die
-Datenbank. Fehlt `pageNumber`, kommt die erste Seite, also `0`. Fehlt `sortAscending`, sortiert der
-Server aufsteigend. Das gilt auch für die Aktualisierung mit `PUT`.
+## Reading page by page
 
-`pageSize` hat keinen Standardwert. Fehlt es, antwortet der Server mit 400 und nennt das Feld:
-`The request is not valid: 'pageSize' is missing.` Eine Seitengröße unter 1 und eine Seite unter 0
-lehnt er genauso mit 400 ab. Setze `pageSize` also immer.
+`pageNumber` and `pageSize` of `POST /usertask` and `POST /workflow` go to the database unchanged.
+If `pageNumber` is missing, the first page comes, so `0`. If `sortAscending` is missing, the server
+sorts ascending. This holds for the update with `PUT` as well.
 
-Eine Obergrenze gibt es nicht. Wähle die Seitengröße selbst mit Bedacht. Das mitgelieferte UI lädt
-in Blöcken von 30 Zeilen und hängt den nächsten Block an, wenn der Benutzer nach unten kommt. Der
-Server hält dich von nichts ab, auch nicht von 100000 Zeilen in einer Anfrage.
+`pageSize` has no default. If it is missing, the server answers 400 and names the field:
+`The request is not valid: 'pageSize' is missing.` A page size below 1 and a page below 0 are
+refused with 400 too. So always set `pageSize`.
 
-Die Antwort trägt ein `page` mit `number`, `size`, `totalPages` und `totalElements`.
-`totalElements` ist genau gezählt, in einer zweiten Abfrage über dieselben Bedingungen. Du kannst
-also eine Gesamtzahl anzeigen, und sie kostet eine Zählung je Seite.
+There is no upper limit. Choose the page size with care (`Q-PAGE-SIZE`). The server stops you from
+nothing, not even from 100000 rows in one request.
 
-`POST /workflow/{id}/usertasks` ist die Ausnahme: dort ist die Seitengröße standardmäßig 100.
+The answer carries a `page` with `number`, `size`, `totalPages` and `totalElements`.
+`totalElements` is counted exactly, in a second query over the same conditions. So you can show a
+total, and it costs one count per page.
 
-## Sortieren
+`POST /workflow/{id}/usertasks` is the exception: there the page size is 100 by default.
 
-`sort` ist eine Liste von Pfaden im gespeicherten Dokument, mit Komma getrennt. `sortAscending` gilt
-für alle davon.
+## Sorting
 
-Ein Pfad nennt entweder ein Feld der Liste oder einen Schlüssel der gemeldeten Geschäftsdaten unter
-`details.`. Die Felder der Liste sind die Felder von `UserTask` bzw. `Workflow` in der Beschreibung,
-die der Server unter demselben Namen speichert, also zum Beispiel `dueDate`, `title.de` oder
-`assignee.sort`. `uiUri`, `workflowModuleUri` und `read` gehören nicht dazu, weil der Server sie
-erst beim Antworten berechnet. Jeder Teil eines Pfads besteht aus Buchstaben, Ziffern und `_`. Unter
-`details.` ist auch der Bindestrich erlaubt, weil ein Workflow-Modul einen Schlüssel wie `order-id`
-melden darf. Ein Leerzeichen oder ein `$` ist nirgends erlaubt. Ist für die Geschäftsdaten ein
-Ersatz für den Punkt eingestellt, darf er unter `details.` vorkommen.
+`sort` is a list of paths in the stored document, separated by commas. `sortAscending` holds for
+all of them.
 
-Jeden anderen Pfad lehnt der Server mit 400 ab:
+A path names either a field of the list or a key of the reported business data below `details.`.
+The fields of the list are the fields of `UserTask` or `Workflow` in the description that the
+server stores under the same name, for example `dueDate`, `title.de` or `assignee.sort`. `uiUri`,
+`workflowModuleUri` and `read` are not among them, because the server computes them only when it
+answers. Each part of a path consists of letters, digits and `_`. Below `details.` the hyphen is
+allowed as well, because a workflow module may report a key like `order-id`. A space or a `$` is
+allowed nowhere. If a replacement for the dot is configured for the business data, it may appear
+below `details.`.
+
+The server refuses every other path with 400:
 `The request is not valid: 'sort' may only name fields of the list or keys below 'details.'. A part
-of a path holds letters, digits and '_', and below 'details.' also '-'.` Das gilt für die Liste und
-für die Aktualisierung.
+of a path holds letters, digits and '_', and below 'details.' also '-'.` This holds for the list and
+for the update.
 
-Zu jeder neuen Kombination von Pfaden legt der Server einen Index in der Datenbank an, aber höchstens
-30 je Sammlung (`business-cockpit.mongodb.sort-indexes-per-collection`). Danach sortiert er ohne
-eigenen Index und warnt einmal je Kombination im Log. Das Ergebnis ist dasselbe, nur auf einer großen
-Sammlung langsamer. Schicke also weiter am besten Pfade, die aus einer Spalte kommen.
+For every new combination of paths the server creates an index in the database, but at most 30 per
+collection (`business-cockpit.mongodb.sort-indexes-per-collection`). After that it sorts without
+an index of its own and warns once per combination in the log. The result is the same, only slower
+on a large collection. So send paths that come from a column.
 
-An das, was du schickst, hängt der Server seine eigene Ordnung an, damit das Blättern stabil
-bleibt. Bei Aufgaben ist das `dueDate`, `createdAt`, `id`, bei Fällen `createdAt`, `id`. Ein Feld,
-das du selbst genannt hast, fällt aus dieser Ergänzung heraus. Weil `id` eindeutig ist und zuletzt
-steht, ist die Ordnung vollständig, und dieselbe Abfrage liefert zweimal dieselbe Reihenfolge.
+The server adds its own order to what you send, so that paging stays stable. For user tasks this is
+`dueDate`, `createdAt`, `id`, for cases `createdAt`, `id`. A field you named yourself is left out of
+this addition. Because `id` is unique and comes last, the order is complete, and the same query
+returns the same order twice.
 
-Ohne `sort` sortiert der Server Aufgaben nach `dueDate` und Fälle nach `createdAt`.
+Without `sort` the server sorts user tasks by `dueDate` and cases by `createdAt`.
 
-Eine Aufgabe ohne Fälligkeit ist dabei nicht ohne Wert. Der Server speichert dafür einen Zeitpunkt
-in ferner Zukunft und liefert in der API `null`, damit so eine Aufgabe beim Sortieren nach
-Fälligkeit hinten landet.
+A user task without a due date is not without a value. The server stores a point in the far future
+for it and answers `null` in the API, so such a task ends up at the back when sorted by due date.
 
-Bei jedem anderen Feld ist ein leerer Wert leer, und wo er landet, entscheidet die Datenbank. Der
-Server bittet zwar darum, leere Werte hinten einzuordnen, aber die Bitte kommt nicht an: die
-Abfrage trägt am Ende nur Feld und Richtung. Rechne also damit, dass Zeilen ohne Wert beim
-aufsteigenden Sortieren vorne stehen.
+For every other field an empty value is empty, and where it ends up is decided by the database.
+Expect rows without a value at the front when sorting ascending.
 
-## Filtern über gemeldete Geschäftsdaten
+Counts for the other primary filters: the list shows a total next to every primary filter, see
+[behaviour.md](behaviour.md#the-task-lists). The total of the chosen one comes with the page. For
+each of the others, send the same query with that primary filter, `pageSize` 1 and no `sort`. Then
+the database can always count with an index, and the request stays cheap.
 
-Jede `SearchQuery` hat drei Felder und wird zu einer Bedingung:
+## Filtering over reported business data
+
+Each `SearchQuery` has three fields and becomes one condition:
 
 ```json
 { "path": "details.customer.name", "query": "Meier", "caseInsensitive": true }
 ```
 
-`path` ist der Pfad im Dokument, derselbe wie bei `sort` und derselbe wie `path` einer Spalte. Fehlt
-er, sucht der Server im Feld `detailsFulltextSearch`. Das ist der Volltext, den das Workflow-Modul
-selbst zusammengestellt hat, siehe
+`path` is the path in the document, the same as for `sort` and the same as `path` of a column. If
+it is missing, the server searches the field `detailsFulltextSearch`. That is the full text the
+workflow module has put together itself, see
 [Reporting workflows and user tasks](https://github.com/vanillabp/business-cockpit/wiki/Reporting-workflows-and-user-tasks).
-Ein Volltextfeld und nichts darüber hinaus: wer nicht gemeldet hat, ist nicht zu finden.
+One full-text field and nothing more: what was not reported cannot be found.
 
-Für `path` gilt dieselbe Regel wie für einen Sortierpfad, siehe [Sortieren](#sortieren): ein Feld der
-Liste oder ein Schlüssel unter `details.`. Jeden anderen Pfad lehnt der Server mit 400 ab, zum
-Beispiel `The request is not valid: 'searchQueries.path' may only name fields of the list or keys
-below 'details.'. A part of a path holds letters, digits and '_', and below 'details.' also '-'.`
-Ein Feld, das die API nicht zeigt, ist also auch als Filter nicht zu erreichen.
+The same rule as for a sort path holds for `path`, see [Sorting](#sorting): a field of the list or
+a key below `details.`. The server refuses every other path with 400, for example
+`The request is not valid: 'searchQueries.path' may only name fields of the list or keys below
+'details.'. A part of a path holds letters, digits and '_', and below 'details.' also '-'.` So a
+field the API does not show cannot be reached by a filter either.
 
-`query` ist ein regulärer Ausdruck, kein Text. Er ist nicht verankert, trifft also auch mitten im
-Wert. Ein `.` oder ein `*` aus der Eingabe des Benutzers wird als Sonderzeichen gelesen. Wenn dein
-UI eine Eingabe durchreicht, maskiere sie.
+`query` is a regular expression, not text. It is not anchored, so it also matches in the middle of
+a value. A `.` or a `*` from the user's input is read as a special character. When your user
+interface passes an input on, escape it, see
+[rough-edges.md](rough-edges.md#a-search-pattern-goes-into-the-database-unescaped).
 
-`caseInsensitive` schaltet die Option `i` ein, sonst wird Groß- und Kleinschreibung unterschieden.
+`caseInsensitive` switches on the option `i`. Otherwise upper and lower case are told apart.
 
-Mehrere `SearchQuery` werden mit UND verknüpft. Eine Grenze gibt es dabei: zwei Einträge mit
-demselben `path` sind keine zwei Bedingungen auf einem Feld, sondern ein Fehlerfall. Das
-mitgelieferte UI hält sich daran, indem es beim Setzen eines Filters den alten Eintrag für diesen
-Pfad vorher entfernt. Mach es genauso.
+Several `SearchQuery` entries are joined with AND. Do not send two entries with the same `path`.
+When the user sets a filter on a path, remove the old entry for that path first, see
+[rough-edges.md](rough-edges.md#two-filters-on-one-path).
 
-Ein Feld, das danach aussieht und es nicht ist: `businessIds` von `WorkflowsRequest` ist ein
-genauer Vergleich auf dem Feld `businessId` und kein Suchmuster. Es wirkt nur auf `POST /workflow`
-und nicht auf die Aktualisierung mit `PUT`, siehe
-[rough-edges.md](rough-edges.md#businessids-verschwindet-bei-der-aktualisierung).
+A field that looks like a filter and is not one: `businessIds` of `WorkflowsRequest` is an exact
+match on the field `businessId` and not a search pattern. It only works on `POST /workflow` and not
+on the update with `PUT`, see
+[rough-edges.md](rough-edges.md#businessids-is-lost-in-the-update).
 
-## Vorschläge für ein Suchfeld
+## Suggestions for a search field
 
-`OPTIONS /usertask` und `OPTIONS /workflow` liefern Wörter und ihre Anzahl, auf Englisch "keyword in
-context", kurz KWIC. Ein UI benutzt sie für die Vorschläge unter einem Suchfeld.
+`OPTIONS /usertask` and `OPTIONS /workflow` return words and how often they occur. This is called
+"keyword in context", KWIC for short. A user interface uses them for the suggestions below a search
+field.
 
-Die Abfrage nimmt `query` und wahlweise `path` als Parameter und die bereits gesetzten
-`searchQueries` im Körper. Sie antwortet mit ganzen Wörtern, die `query` enthalten, je Wort eine
-Anzahl. `path` und die Pfade in `searchQueries` folgen derselben Regel wie ein Sortierpfad, sonst
-antwortet der Server mit 400. Bei `path` nennt die Meldung `'path'`.
+The query takes `query` and, if wanted, `path` as parameters, and the filters already set as
+`searchQueries` in the body. It answers with whole words that contain `query`, each with a count.
+`path` and the paths in `searchQueries` follow the same rule as a sort path, otherwise the server
+answers 400. For `path` the message names `'path'`.
 
-Was du dabei wissen musst:
+What you need to know:
 
-Unter drei Zeichen kommt eine leere Antwort und kein Fehler. Lass das Feld also erst ab drei Zeichen
-fragen.
+Below three characters the answer is empty, and it is no error. So let the field ask only from
+three characters on.
 
-Die Suche ist hier immer unabhängig von Groß- und Kleinschreibung, auch wenn eine `SearchQuery`
-etwas anderes sagt.
+The search is always case-insensitive here, whatever a `SearchQuery` says.
 
-Die Antwort hat höchstens 21 Einträge, und es sind nicht die 21 häufigsten, sondern die ersten 21,
-die die Datenbank findet. Sortiert sind sie nach Anzahl aufsteigend, bei gleicher Anzahl nach Wort.
-Das mitgelieferte UI zeigt bei 21 Einträgen einen Hinweis, dass es mehr als zwanzig Treffer gibt,
-statt die Liste zu zeigen.
+The answer has at most 21 entries, and they are not the 21 most frequent ones, but the first 21 the
+database finds. They are sorted by count ascending, and by word for the same count. When 21 entries
+come, show a note that there are more than twenty matches instead of the list, see
+[rough-edges.md](rough-edges.md#the-suggestions-are-not-the-most-frequent).
 
-Die Anzahl zählt Vorkommen des Wortes, nicht Zeilen. Ein Wort, das in einer Aufgabe zweimal steht,
-zählt zweimal.
+The count counts occurrences of the word, not rows. A word that appears twice in one user task
+counts twice.
 
-Die Vorschläge halten sich an die Sichtbarkeit des Benutzers und an die gesetzten `searchQueries`,
-aber nicht an den Modus der Liste. Sie schauen immer nur auf offene Aufgaben und aktive Fälle. Eine
-Liste, die abgeschlossene Aufgaben zeigt, bekommt also Vorschläge, die dazu nicht passen.
+The suggestions keep to the user's visibility and to the `searchQueries` that are set, but not to
+the primary filter. They always look at open user tasks and active cases only. So a list that shows
+closed tasks gets suggestions that do not fit it.
 
-## Welche Zeilen überhaupt kommen
+## The primary filter: which rows come at all
 
-Zwei Dinge entscheiden das: der Modus, den dein UI schickt, und die Sichtbarkeit, die der Server für
-den Benutzer bestimmt.
+Two things decide which rows come: the mode your user interface sends, and the visibility the
+server determines for the user. The mode is called the primary filter. The user picks it in the
+status line of the list, see [behaviour.md](behaviour.md#the-task-lists), and this skill uses
+this term everywhere.
 
-Der Modus:
+| `mode` of a task list      | What comes |
+|----------------------------|------------|
+| `All`                      | everything, open and closed |
+| `OpenTasks`                | what has no end |
+| `OpenTasksWithoutFollowUp` | open, without a follow-up date or with one that is due |
+| `OpenTaskOnlyFollowUp`     | open, with a follow-up date in the future |
+| `OpenTasksWithFollowUp`    | another name for `OpenTasks`: the same rows, with and without a follow-up |
+| `ClosedTasksOnly`          | only what has an end |
 
-| `mode` einer Aufgabenliste | Was kommt |
-|---|---|
-| `All` | alles, offen und abgeschlossen |
-| `OpenTasks` | was kein Ende hat |
-| `OpenTasksWithoutFollowUp` | offen, ohne Wiedervorlage oder mit einer, die fällig ist |
-| `OpenTaskOnlyFollowUp` | offen, mit einer Wiedervorlage in der Zukunft |
-| `OpenTasksWithFollowUp` | ein anderer Name für `OpenTasks`: dieselben Zeilen, mit und ohne Wiedervorlage |
-| `ClosedTasksOnly` | nur was ein Ende hat |
+| `mode` of a workflow list | What comes |
+|---------------------------|------------|
+| `All`                     | everything |
+| `Active`                  | what has no end |
+| `Inactive`                | what has an end |
 
-| `mode` einer Fallliste | Was kommt |
-|---|---|
-| `All` | alles |
-| `Active` | was kein Ende hat |
-| `Inactive` | was ein Ende hat |
+Without `mode` the server takes `All` for `POST` and `OpenTasks` or `Active` for `PUT`. That is not
+the same, so always send the primary filter yourself.
 
-Ohne `mode` nimmt der Server `All` bei `POST` und `OpenTasks` bzw. `Active` bei `PUT`. Das ist nicht
-dasselbe, also schicke den Modus immer selbst, wenn dir die Antwort wichtig ist.
+An unknown value is a server error and not silently ignored.
 
-Ein unbekannter Wert ist ein Serverfehler und keine stille Ignoranz.
-
-Die Sichtbarkeit ist die Sache des Servers. Dein UI fragt nicht nach ihr und kann sie nicht
-umgehen. Welche Regel die mitgelieferte Anwendung anwendet, steht im Wiki unter
+The visibility is the server's business. Your user interface does not ask for it and cannot get
+around it. Which rule the runnable cockpit applies is in the wiki under
 [Who sees which workflow](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-workflow)
-und [Who sees which user task](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-user-task).
-Dieselbe Regel gilt für die Liste, für eine einzelne Zeile, für die Vorschläge und für jede Aktion.
+and [Who sees which user task](https://github.com/vanillabp/business-cockpit/wiki/Security#who-sees-which-user-task).
+The same rule holds for the list, for a single row, for the suggestions and for every action.
 
-`POST /workflow/{id}/usertasks` hat dafür einen eigenen Schalter, den Parameter `llatcup`. Mit
-`true` kommen die Aufgaben, die dieser Benutzer bearbeiten dürfte, mit `false` alle Aufgaben des
-Falls. Eine Seite, die den Stand eines Falls zeigt, will meist `false`, eine Seite, die zu tun
-gibt, `true`.
+`POST /workflow/{id}/usertasks` has a switch of its own for this, the parameter `llatcup`. With
+`true` come the user tasks this user may work on, with `false` all user tasks of the case. A page
+that shows the state of a case usually wants `false`, a page that gives work to do wants `true`.
 
-## Der Zeitstempel, der eine Liste stabil hält
+## The timestamp that keeps a list stable
 
-`initialTimestamp` ist der Zeitpunkt, an dem der Benutzer angefangen hat, auf diese Liste zu
-schauen. Er wirkt nur an einer Stelle, und die ist wichtig: in den Modi für offene Aufgaben und
-aktive Fälle kommt eine Zeile auch dann noch mit, wenn sie nach diesem Zeitpunkt beendet wurde.
+`initialTimestamp` is the moment the user started to look at this list. It has an effect at only
+one place, and that place matters: in the primary filters for open user tasks and active cases, a
+row still comes along if it ended after this moment.
 
-Ohne das würde sich die Liste unter dem Leser verschieben. Eine Aufgabe, die auf Seite eins endet,
-würde verschwinden, und alles danach würde eine Zeile nach vorne rutschen, sodass der Benutzer beim
-Blättern eine Zeile nie zu sehen bekommt.
+Without it the list would move under the reader. A task that ends on page one would disappear, and
+everything after it would move up by one row. When paging, the user would never see one row.
 
-Deshalb:
+So:
 
-1. Die erste Anfrage einer Liste schickt keinen `initialTimestamp`. Der Server setzt dann die
-   aktuelle Zeit ein.
-2. Die Antwort trägt diesen Wert als `serverTimestamp` zurück. Das ist der eingesetzte Wert und kein
-   neuer Blick auf die Uhr.
-3. Dein UI behält ihn und schickt ihn bei jeder weiteren Anfrage derselben Liste als
-   `initialTimestamp` mit. Auch beim Blättern, beim Sortieren, beim Filtern und bei den Vorschlägen.
-4. Erst wenn der Benutzer die Liste neu lädt, fängt der Zeitstempel neu an.
+1. The first request of a list sends no `initialTimestamp`. The server puts in the current time.
+2. The answer returns this value as `serverTimestamp`. It is the value put in, not a new look at
+   the clock.
+3. Your user interface keeps it and sends it as `initialTimestamp` with every further request of the
+   same list. Also when paging, sorting, filtering and asking for suggestions.
+4. Only when the user loads the list again does the timestamp start again.
 
-Derselbe Zeitstempel ist die Grundlage für die Farbe einer Zeile, siehe
-[behaviour.md](behaviour.md#was-eine-liste-live-tut).
+The same timestamp is the base for the colour of a row, see
+[behaviour.md](behaviour.md#live-updates).
 
-`requestId` in `POST /workflow` und `PUT /workflow` gibt der Server unverändert zurück und wertet
-ihn nicht aus. `UserTasks` hat kein solches Feld, und das mitgelieferte UI setzt `requestId`
-nirgends. Lücke in dieser Beschreibung: wozu das Feld gedacht war, sagt weder der Code noch die
-OpenAPI-Beschreibung. Eine Antwort einer Anfrage zuzuordnen wäre die naheliegende Verwendung, aber
-niemand hat sie aufgeschrieben, also verlass dich nicht darauf, dass sie gemeint war.
+`requestId` in `POST /workflow` and `PUT /workflow` is returned by the server unchanged and not
+read. `UserTasks` has no such field. What the field was meant for is said neither by the code nor
+by the OpenAPI description. Matching an answer to its request would be the obvious use, but do not
+rely on it.
 
-## Die zweite Form derselben Abfrage
+## The second form of the same query
 
-Neben `POST` hat jede Liste ein `PUT` mit `size` und den Kennungen, die der Client schon hat. Es
-antwortet mit der ersten Seite von `size` Zeilen in derselben Reihenfolge wie die Liste, und es
-liefert
+Next to `POST`, each list has a `PUT` with `size` and the ids the client already has. It answers
+with the first page of `size` rows, in the same order as the list, and it returns
 
-* eine Zeile, die der Client schon kennt, nur als Hülle mit ihrer Kennung,
-* eine Zeile, die er noch nicht kennt, vollständig.
+* a row the client already knows only as a shell with its id,
+* a row it does not know yet in full.
 
-Damit erfährt dein UI die ganze aktuelle Reihenfolge und lädt nur, was neu ist. Eine Hülle ist am
-Feld `version` zu erkennen: sie trägt `0`, eine echte Zeile nie.
+So your user interface learns the whole current order and loads only what is new. A shell can be
+told by the field `version`: it carries `0`, a real row never does.
 
-So benutzt es das mitgelieferte UI: nach einem Ereignis aus dem Ereignisstrom fragt es mit `PUT`
-nach so vielen Zeilen, wie es geladen hat, plus einer Reserve, und lässt die Kennungen der Zeilen
-weg, von denen es weiß, dass sie sich geändert haben. Genau die kommen dadurch vollständig zurück.
+Use it like this: after a wake-up call from the update stream, ask with `PUT` for as many rows as
+you have loaded, plus a reserve, and leave out the ids of the rows you know have changed. Exactly
+these come back in full.
 
-Zwei Dinge sind bei `PUT` anders als bei `POST`: `page.number` ist immer 0 und `page.size` ist die
-Anzahl der gelieferten Zeilen, und `businessIds` gibt es nicht.
+Two things are different for `PUT`: `page.number` is always 0 and `page.size` is the number of rows
+returned, and there is no `businessIds`.
 
-## Live-Aktualisierung über Server-Sent-Events
+## The update stream
 
-`GET /gui/api/v1/updates` ist ein `text/event-stream`. Er bleibt offen, bis das Token abläuft, mit
-dem er geöffnet wurde. Dann schließt der Server ihn, und der Browser verbindet mit dem Cookie neu,
-das er in diesem Moment hat. Hat der Benutzer inzwischen gearbeitet, ist das ein verlängertes, und
-der neue Strom läuft weiter. Sonst antwortet der Server mit 401. Der Strom selbst verlängert die
-Anmeldung nicht.
+`GET /gui/api/v1/updates` is a `text/event-stream` (server-sent events). There is one stream per
+browser tab. An event in it is a wake-up call. It names the kind of entity, its id and what
+happened to it. It does not say what changed. Your user interface asks again.
 
-Was darüber kommt:
+What comes through it:
 
-| Name des Ereignisses | Inhalt |
-|---|---|
-| `ping` | ein Objekt mit `id` und `name`, sonst nichts |
-| `UserTask` | eine Liste von Ereignissen, jedes mit `id`, `name` und `type` |
-| `Workflow` | dasselbe für Fälle |
+| Name of the event | Data |
+|-------------------|------|
+| `ping`            | an object with `id` and `name`, nothing else |
+| `UserTask`        | a JSON array; each entry carries an `event` object with `id`, `name` and `type` |
+| `Workflow`        | the same for cases |
 
-`type` ist `INSERT`, `UPDATE`, `DELETE` oder `FOLLOWUP`. `id` ist die Kennung der Aufgabe oder des
-Falls. Mehr steht nicht drin, also sagt ein Ereignis nur, dass sich etwas geändert hat, und nicht
-was. Dein UI fragt danach neu.
+`type` is `INSERT`, `UPDATE`, `DELETE`, `FOLLOWUP` or `RELOAD`. `id` is the id of the user task or
+the case. `RELOAD` has an empty id and means: load the lists of this kind again.
 
-Fünf Eigenschaften des Stroms musst du einplanen:
+### Who gets an event
 
-Die Ereignisse werden gesammelt und nicht einzeln geschickt. Der Sammler läuft alle 250
-Millisekunden, und je Browser wird höchstens alle `business-cockpit.gui-sse.update-interval`
-Millisekunden abgeliefert, standardmäßig alle 500, mit höchstens
-`business-cockpit.gui-sse.max-items-per-update` Einträgen, standardmäßig 100. Was darüber liegt,
-bleibt liegen und kommt beim nächsten Mal. Ein Schwung von Änderungen wird so zu einer
-Aktualisierung statt zu hunderten.
+Each stream decides for itself, with the same visibility rules the lists use.
+A stream gets a change if one of its views lets it through: the widest view of its person, or a view
+a list of that person was answered with. A stream also gets a change of an entity its browser
+already shows. That is how a browser learns that it has to drop a row its user may no longer see.
+So the stream sends nothing the user may not know, and an id from the stream is a reason to ask, not
+an answer.
 
-Kurz nach dem Verbinden kommt ein `ping`, und alle 27 Sekunden wieder einer. Der erste ist nicht
-Höflichkeit: solange der Browser noch nichts empfangen hat, gilt die Anfrage für ihn als laufend.
-Das mitgelieferte UI schickt den Strom durch dasselbe Web-Lock wie jede andere Anfrage, und ohne
-diesen ersten `ping` bliebe das Lock gehalten und die Oberfläche stünde. Wenn dein UI so ein Lock
-nicht hat, brauchst du den ersten `ping` nicht. Die späteren brauchst du, denn ein Strom, über den
-nichts läuft, wird unterwegs geschlossen.
+### What a stream remembers
 
-Die Ereignisse sind heute nicht auf den Benutzer zugeschnitten. Jeder verbundene Browser bekommt
-jedes Ereignis, auch zu einer Aufgabe, die dieser Benutzer nicht sehen darf. Verlass dich also nicht
-darauf, dass eine Kennung aus dem Strom für diesen Benutzer existiert. Frag nach und nimm eine leere
-Antwort als Antwort. Die Einschränkung ist vorgesehen und noch nicht gebaut.
+The stream remembers the ids the lists of its person were answered
+with, at most `business-cockpit.gui-sse.max-known-ids-per-stream` (2,000 by default). When it has to
+forget ids, it sends a `RELOAD`. A new stream always starts with a `RELOAD` for every kind, because
+the page may have loaded a list before the stream was open. So treat `RELOAD` as "load the list
+again", with the same primary filter, filters and sorting.
 
-Wenn die Verbindung abbricht, verbindet das mitgelieferte UI nach 15 Sekunden neu. In dieser Lücke
-gehen Ereignisse verloren. Dafür gibt es den Weckruf: vor jeder normalen Anfrage wird eine
-wartende Neuverbindung sofort ausgelöst, damit ein Ereignis, das diese Anfrage auslöst, nicht in die
-Lücke fällt. Baue etwas in dieser Art, sonst verpasst dein UI genau die Änderungen, die der Benutzer
-selbst angestoßen hat.
+### Timing
 
-Beim Herunterfahren schließt der Server alle Ströme. Ein Strom, der sich von selbst schließt, ist
-also normal und kein Fehler.
+Changes are collected and filtered every 250 milliseconds
+(`business-cockpit.gui-sse.filtering-interval`, `business-cockpit.gui-sse.collecting-interval`).
+A browser gets at most one delivery per kind every `business-cockpit.gui-sse.update-interval`
+milliseconds, 500 by default, with at most `business-cockpit.gui-sse.max-items-per-update`
+entries, 100 by default. What is above that waits for the next time. So a burst of changes becomes
+one update instead of hundreds.
 
-## Was das Cockpit ausliefert
+### Pings
 
-Das Cockpit ist nicht nur eine API, es liefert auch aus, und zwei Pfade gehören zum Vertrag.
+About 300 milliseconds after connecting comes a `ping`, and then one every 27 seconds.
+The first one tells the browser that the request has an answer, so a client that waits for the first
+byte stops waiting. The later ones keep the connection open; a stream that carries nothing is closed
+on the way.
 
-Unter `/wm/<workflowModuleId>/**` steht jedes registrierte Workflow-Modul. Das Cockpit leitet die
-Anfrage an die Adresse weiter, die das Modul gemeldet hat. Darum laufen zwei Dinge über den eigenen
-Ursprung des Cockpits: das Bundle eines Moduls und jede Anfrage, die ein Formular an sein eigenes
-Backend stellt. Das Session-Cookie reist dabei mit. Die Routen ändern sich, während die Anwendung
-läuft, denn ein Modul registriert sich im Betrieb.
+### When a stream ends
 
-Unter `/` liegt das UI selbst, als Single-Page-Anwendung. Das Jar der Bibliothek bringt keines mit,
-dein UI legt seine statischen Dateien dorthin, siehe
-[../SKILL.md](../SKILL.md#wie-dein-ui-in-das-cockpit-kommt).
+A stream ends when the login it was opened with expires. The browser
+connects again, with the cookie it has at that moment, and gets a stream with the rights of the new
+login. That is how a change of rights, for example a new substitute, reaches the stream. The stream
+itself does not renew the login. When the server shuts down, it closes all streams. So a stream that
+closes by itself is normal and no error.
 
-In `uiUri` einer Aufgabe oder eines Falls steht der Pfad, den das Workflow-Modul gemeldet hat,
-unverändert. Der Server baut daraus keine Adresse und liest auch `uiUriType` nicht. Die Adresse zu
-bilden ist Sache deines UIs: beim Typ `WEBPACK_MF_REACT` gehört der Pfad unter
-`/wm/<workflowModuleId>/`, weil das Cockpit das Modul dort selbst ausliefert, und beim Typ
-`EXTERNAL` ist der gemeldete Wert schon die ganze Adresse, denn das Cockpit kennt diese Anwendung
-nicht und leitet nichts dorthin weiter. In `workflowModuleUri` steht der Pfad zum Modul selbst, ohne
-Datei. Er dient Anfragen eines Formulars an sein eigenes Backend und ist zugleich der Vorsatz, den
-du vor einen gemeldeten Pfad setzt.
+What your user interface does about it:
+
+- When the server ended the stream in order, connect again right away.
+- When the connection was lost, connect again with a growing pause, for example 1, 2, 4 seconds, up
+  to 15 seconds at most.
+- When connecting again answers 401, stop trying and handle it like any other 401: send the
+  browser to the login.
+- Before every ordinary request, connect a stream that is waiting for its next attempt right away.
+  Otherwise a change the request causes falls into the gap.
+- Whatever was missed in a gap comes back through the `RELOAD` of the new stream.
+
+## What the cockpit serves
+
+The cockpit is not only an API, it also serves files, and two paths belong to the contract.
+
+Under `/wm/<workflowModuleId>/**` is every registered workflow module. The cockpit forwards the
+request to the address the module reported. So two things run over the cockpit's own origin: the
+parts of a module and every request a form makes to its own backend. The session cookie travels
+along. The routes change while the application runs, because a module registers while the
+cockpit is running.
+
+Under `/` is the user interface itself, as a single-page application. The jar of the library brings
+none. Your jar puts its static files there, see
+[project.md](project.md#the-jar-the-backend-serves).
+
+`uiUri` of a user task or a case is the path the workflow module reported, unchanged. The server
+builds no address from it and does not read `uiUriType`. Building the address is the job of your
+user interface: for the type `NATIVE_MF` the path belongs under `/wm/<workflowModuleId>`, because the
+cockpit serves the module there, see
+[module-federation.md](module-federation.md#which-data-finds-the-part). For the type `EXTERNAL` the
+reported value already is the whole address, because the cockpit does not know this application
+and forwards nothing to it. `workflowModuleUri` is the path to the module itself, without a file.
+It serves the requests of a form to its own backend, and it is the prefix you put in front of a
+reported path.

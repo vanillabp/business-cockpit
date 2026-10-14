@@ -1,67 +1,68 @@
-# Die Typen und was davon Vertrag ist
+# The types library
 
-*Teil der Beschreibung in [`../SKILL.md`](../SKILL.md). Bis zum Review deutsch.*
+*Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-Vier NPM-Pakete liegen zwischen dem Cockpit und einem Workflow-Modul. Wer ein UI in TypeScript und
-React baut, nimmt sie wie sie sind. Wer ein UI in einem anderen Framework baut, braucht nur einen
-Teil davon, denn der Rest ist React.
+VanillaBP gives no types for the user interface. The generated user interface publishes them
+itself, as `<scope>/bc-types` (`Q-NPM-SCOPE`). A workflow module installs this package to build its
+parts. The package says what a part may expect as input and which functions it may call. It does
+not depend on module federation and has no dependencies, see
+[project.md](project.md#the-types-library).
 
-| Paket | Was drin ist |
-|---|---|
-| `@vanillabp/bc-official-gui-client` | der aus der OpenAPI-Beschreibung erzeugte Client der GUI-API |
-| `@vanillabp/bc-types` | die TypeScript-Typen, die Cockpit und Workflow-Modul gemeinsam haben |
-| `@vanillabp/bc-shared` | die Formen der vier Teile, dazu Komponenten und Hilfsmittel für React |
-| `@vanillabp/bc-ui` | die Listen und Seiten des mitgelieferten UIs |
+Everything that crosses the line between the cockpit and a module is in it. Nothing else is.
 
-`@vanillabp/bc-ui` ist das mitgelieferte UI selbst. Es ist das Beispiel und kein Vertrag. Ein UI in
-einem anderen Framework kann es nicht benutzen, denn es sind React-Komponenten.
+1. [Data from the GUI API](#data-from-the-gui-api)
+1. [Translatable and Person](#translatable-and-person)
+1. [Column](#column)
+1. [BcUserTask and BcWorkflow](#bcusertask-and-bcworkflow)
+1. [What a part gets](#what-a-part-gets)
+1. [The event protocol](#the-event-protocol)
+1. [The extension points](#the-extension-points)
 
-## Was Vertrag ist
+## Data from the GUI API
 
-Vertrag ist, was über eine Grenze geht: über die HTTP-Grenze zur GUI-API oder über die Grenze zu
-einem geladenen Teil eines Workflow-Moduls. Alles andere ist Bequemlichkeit.
+`UserTask`, `Workflow`, `Person` and `Group` are the data of the GUI API, as the OpenAPI
+description `official-gui-api` defines them. The types library carries them as TypeScript
+interfaces, generated from the same file the user interface generates its client from, see
+[gui-api.md](gui-api.md#generating-the-client). Generate them; do not copy them by hand.
 
-### Über die HTTP-Grenze
+`uiUriType` is a string there and not a type of its own. Which values exist is agreed between the
+cockpit and its modules, and the server does not know them. The library exports the agreed values
+as constants: `EXTERNAL` and `NATIVE_MF`, or the value from `Q-UI-URI-TYPE`.
 
-Die Wahrheit über diese Typen steht in `apis/official-gui-api/openapi/v1.yaml` und nicht in einem
-TypeScript-Paket. Ein UI, das nicht TypeScript spricht, erzeugt seinen eigenen Client daraus.
-`UserTask`, `Workflow`, `Page`, `SearchQuery`, `UserTaskRetrieveMode`, `WorkflowRetrieveMode`,
-`KwicResult`, `Person`, `Group` und `WorkflowModule` kommen alle von dort. `uiUriType` ist dort
-eine Zeichenkette und kein eigener Typ: welche Werte es gibt, ist eine Abmachung zwischen dem
-Workflow-Modul und dem UI, das es lädt, und der Server kennt sie nicht.
+## Translatable and Person
 
-Eine Falle liegt hier: `@vanillabp/bc-types` hat ein eigenes `Person`, das dem `Person` der GUI-API
-nachgebaut ist. Welches von beiden du vor dir hast, siehst du am Import und nicht an den Feldern.
+```typescript
+/** A text per language. The keys are language codes like 'en' or 'de'. */
+export interface Translatable {
+  [languageKey: string]: string;
+}
 
-### Über die Grenze zum Workflow-Modul
+export interface Person {
+  id: string;
+  display?: string;
+  displayShort?: string;
+  email?: string;
+  avatar?: number;
+  details?: { [key: string]: unknown };
+}
+```
 
-Diese Typen sind der Vertrag, der nirgends in einer OpenAPI-Beschreibung steht. Ein UI in einem
-anderen Framework muss sie trotzdem einhalten, denn das Modul ist gegen sie gebaut.
-
-| Typ | Paket | Richtung | Was er bedeutet |
-|---|---|---|---|
-| `Column` | `bc-types` | Modul an UI | eine Spalte einer Liste |
-| `ColumnsOfUserTaskFunction`, `ColumnsOfWorkflowFunction` | `bc-types` | Modul an UI | die Form der beiden Spaltenfunktionen |
-| `ListItem<T>`, `ListItemStatus` | `bc-types` | UI an Modul | eine Zeile und ihr Zustand |
-| `Translatable` | `bc-types` | beide | ein Text je Sprache |
-| `BcUserTask` | `bc-types` | UI an Modul | die Aufgabe plus die Funktionen darauf |
-| `BcWorkflow` | `bc-types` | UI an Modul | der Fall plus die Funktionen darauf |
-| `BcUserTasksProvider` | `bc-types` | UI an Modul | die Funktion, mit der eine Fallseite ihre Aufgaben holt |
-| `UserTaskForm`, `WorkflowPage` | `bc-shared` | Modul an UI | die Form der beiden Seitenkomponenten |
-| `UserTaskListCell`, `WorkflowListCell` | `bc-shared` | Modul an UI | die Form der beiden Zellenkomponenten |
-| `DefaultListCellProps`, `DefaultListCellAwareProps` | `bc-shared` | UI an Modul | was eine Zelle bekommt |
-| `WorkflowModuleComponent` | `bc-shared` | Modul an UI | die Form eines eigenen Teils |
-
-`ColumnsOfUserTaskFunction` und `ColumnsOfWorkflowFunction` stehen zweimal da, in `bc-types` und
-nochmal in `bc-shared`. Die beiden Erklärungen sind heute gleich, aber es sind zwei. Lies die aus
-`bc-types`, denn `bc-shared` baut darauf auf.
+`Person` has the same fields as the person of the GUI API. A column of type `person` expects this
+shape at its path.
 
 ## Column
 
+A workflow module defines the columns of a list with two functions, one for user tasks and one for
+cases:
+
 ```typescript
-interface Column {
+export type ColumnsOfUserTaskFunction = (userTask: UserTask) => Column[] | undefined;
+
+export type ColumnsOfWorkflowFunction = (workflow: Workflow) => Column[] | undefined;
+
+export interface Column {
   title: Translatable;
-  path: string;
+  path: string;      // path of the value within the UserTask or Workflow object
   type?: 'value' | 'i18n' | 'person' | 'date' | 'date-time' | 'time';
   priority: number;
   width: string;
@@ -72,125 +73,114 @@ interface Column {
 }
 ```
 
-`path` ist der Schlüssel. Er ist zugleich
+The functions are called once per row, without waiting. They must be fast and must not fetch
+anything. They return `undefined` when the module has no columns for this row.
 
-* der Pfad, an dem der Wert in der Zeile steht, aufgelöst mit Punkten als Trennern,
-* der Pfad, den dein UI als `sort` an den Server schickt,
-* der Pfad, den dein UI als `path` einer `SearchQuery` schickt,
-* und der Schlüssel, unter dem die Spalten verschiedener Workflow-Module zusammengelegt werden.
+`path` is the key. It is at the same time
 
-Deshalb muss er auf das Dokument passen, das der Server speichert. `details.customer.name` trifft
-die Geschäftsdaten, die das Workflow-Modul gemeldet hat. Siehe
-[gui-api.md](gui-api.md#sortieren) für die Folgen auf dem Server.
+* the path where the value is in the row, resolved with dots as separators,
+* the path your user interface sends to the server as `sort`,
+* the path it sends as `path` of a `SearchQuery`,
+* and the key under which the columns of different workflow modules are merged.
 
-`title` ist ein Text je Sprache. Fehlt die aktuelle Sprache, steht kein Titel da, und dein UI
-entscheidet, was es dann zeigt.
+So it must match the document the server stores. `details.customer.name` hits the business data
+the workflow module reported. See [gui-api.md](gui-api.md#sorting) for what this means on the server.
 
-`type` entscheidet die Darstellung. Was das mitgelieferte UI daraus macht, steht in
-[behaviour.md](behaviour.md#eine-zelle-zeichnen).
+`title` is a text per language. `type` decides how the cell is drawn, see
+[behaviour.md](behaviour.md#the-columns-a-workflow-module-brings). `priority` orders the columns,
+the smallest number first. `width` is a CSS size, and the empty string means "take the rest".
+`show` may hide a column. `sortable`, `filterable` and `resizeable` say what the user may do with
+the column. The server does not read `filterable`; the user interface does.
 
-`priority` ordnet die Spalten, die kleinste Zahl zuerst. `width` ist eine CSS-Größe, und die leere
-Zeichenkette heißt "nimm den Rest". `show` darf eine Spalte verstecken. `sortable` und `resizeable`
-sagen, was der Benutzer mit der Spalte darf.
+## BcUserTask and BcWorkflow
 
-`filterable` ist überall gesetzt und wird von keinem Code gelesen. Es ist eine Absicht und keine
-Zusicherung.
-
-## ListItem und sein Zustand
-
-```typescript
-interface ListItem<T> {
-  id: string;
-  number: number;
-  data: T;
-  status: ListItemStatus;
-  selected: boolean;
-  read?: Date;
-}
-
-enum ListItemStatus { INITIAL, NEW, UPDATED, ENDED, REMOVED_FROM_LIST }
-```
-
-`data` ist die Aufgabe oder der Fall, so wie der Server sie geliefert hat. `number` ist die laufende
-Nummer in der Liste und nichts, was vom Server kommt. `status` ist das Ergebnis des Vergleichs mit
-dem Zeitpunkt, an dem der Benutzer angefangen hat zu schauen, siehe
-[behaviour.md](behaviour.md#was-eine-liste-live-tut). `read` ist gesetzt, wenn der Benutzer die
-Zeile gelesen hat.
-
-Der Zustand ist für ein Modul sichtbar, weil seine Zelle ihn bekommt und die Farbe davon abhängt.
-Wer eigene Farben nimmt, muss die fünf Zustände trotzdem unterscheidbar machen, sonst sieht der
-Benutzer nicht, was neu ist.
-
-## BcUserTask und BcWorkflow
-
-Das sind die Objekte, die dein UI einem geladenen Teil vorsetzt. Sie sind die Antwort des Servers
-plus Funktionen, die dein UI beisteuert:
+These are the objects a part of a module works with. They are the data from the server plus
+functions the cockpit provides. Every function returns a promise, because below it runs the
+[event protocol](#the-event-protocol):
 
 ```typescript
-interface BcUserTask extends UserTask {
-  open: () => void;
-  navigateToWorkflow: () => void;
-  assign: (userId: string) => void;
-  unassign: (userId: string) => void;
-  claim: () => void;
-  unclaim: () => void;
+export interface BcUserTask extends UserTask {
+  open: () => Promise<void>;
+  navigateToWorkflow: () => Promise<void>;
+  assign: (userId: string) => Promise<void>;
+  unassign: (userId: string) => Promise<void>;
+  claim: () => Promise<void>;
+  unclaim: () => Promise<void>;
 }
 
-interface BcWorkflow extends Workflow {
-  navigateToWorkflow: () => void;
-  getUserTasks: (activeOnly: boolean, limitListAccordingToCurrentUsersPermissions: boolean)
-      => Promise<Array<BcUserTask>>;
+export interface BcWorkflow extends Workflow {
+  navigateToWorkflow: () => Promise<void>;
+  getUserTasks: BcUserTasksProvider;
 }
+
+export type BcUserTasksProvider = (
+  activeOnly: boolean,
+  limitListAccordingToCurrentUsersPermissions: boolean,
+) => Promise<Array<BcUserTask>>;
+
+export interface BcToast {
+  title?: string;
+  message: string;
+  status: 'info' | 'warning' | 'error' | 'success';
+  dismissible?: boolean;   // true: stays until the user clicks it away
+}
+
+export type ToastFunction = (toast: BcToast) => Promise<void>;
 ```
 
-Jede dieser Funktionen ist ein Versprechen deines UIs. Ein Formular darf `claim` aufrufen und
-erwarten, dass die Aufgabe danach dem Benutzer gehört und die Liste es weiß. `getUserTasks` ruft
-`POST /workflow/{workflowId}/usertasks` auf und gibt die Aufgaben als `BcUserTask` zurück, also
-wieder mit diesen Funktionen.
+Each of these functions is a promise of the cockpit. A form may call `claim` and expect that the
+task belongs to the user afterwards and that the list knows it. `getUserTasks` calls
+`POST /workflow/{workflowId}/usertasks` and returns the tasks as `BcUserTask` again, with the same
+functions.
 
-`BcWorkflowModule` in `bc-types` ist nur die Teilmenge von Feldern, die zum Laden eines Teils
-reicht: `workflowModuleId`, `uiUri` und `uiUriType`. Aufgabe und Fall erfüllen sie beide. Alle drei
-braucht man zusammen, denn die Adresse entsteht erst aus der Modul-Kennung und dem gemeldeten
-Pfad.
+Build them all. A function that does nothing cannot be told apart from a bug by the author of a
+form.
 
-## Was eine Zelle bekommt
+## What a part gets
+
+The host sets plain data as properties of the custom element. The wrapper in the module turns it
+into the objects above:
+
+| Part               | Properties the host sets                                                          | What the module's component gets |
+|--------------------|-----------------------------------------------------------------------------------|----------------------------------|
+| user task form     | `userTask`, `language`, `currentUser`                                             | `BcUserTask`, the language, the user, `toast` |
+| workflow page      | `workflow`, `language`, `currentUser`                                             | `BcWorkflow`, the language, the user, `toast` |
+| other visual parts | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same, plus `toast` |
+
+`workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
+
+`language` is the language the user interface shows, for example `en`. A part follows it when it
+changes. `currentUser` is the user from `GET /app/current-user`, with the groups.
+
+## The event protocol
+
+The library holds the protocol of [module-federation.md](module-federation.md#the-event-protocol):
+
+- the event names `bc-request` and `bc-response`, as constants,
+- the types of the request and the answer, the action names and the error codes,
+- `requestFromCockpit(element, action, args, timeoutMs?)`, which dispatches the request, waits for
+  the answer with the same `requestId` and resolves or rejects,
+- `toBcUserTask(element, data)` and `toBcWorkflow(element, data)`, which add the functions to the
+  plain data,
+- `defineBcElement({ mount, update, unmount })`, which builds a custom element with an open shadow
+  root, reads the properties, runs the protocol and calls the module's three functions.
+
+The host side of the protocol is in the cockpit user interface, not in the library. A module never
+needs it.
+
+## The extension points
+
+The library names every extension point of this cockpit: the four minimum ones and those from
+`Q-EXTENSION-POINTS`. For each one it exports the exposed name, the type of the export, and the
+properties the host sets. For example:
 
 ```typescript
-interface DefaultListCellProps<D> {
-  t: TranslationFunction;
-  item: ListItem<D>;
-  column: Column;
-  showUnreadAsBold?: boolean;
-  currentLanguage: string;
-  currentUser?: Person;
-  nameOfList?: string;
-  selectItem: (select: boolean) => void;
-  isPhone: boolean;
-  isTablet: boolean;
-}
+export const USER_TASK_FORM = './UserTaskForm';      // exports: element
+export const WORKFLOW_PAGE = './WorkflowPage';       // exports: element
+export const USER_TASK_LIST = './UserTaskList';      // exports: userTaskListColumns
+export const WORKFLOW_LIST = './WorkflowList';       // exports: workflowListColumns
+export const HEADER_BUTTONS = './HeaderButtons';     // an extension point of this organisation
 ```
 
-Die Zelle eines Moduls bekommt dasselbe und zusätzlich `defaultCell`, die Standardzelle des
-Cockpits. Sie behandelt die Spalten, die sie kennt, und gibt alles andere an `defaultCell` weiter.
-Ein UI, das kein `defaultCell` mitgibt, bricht jede Zelle, die diesen Weg nimmt.
-
-## Was nur Bequemlichkeit ist
-
-Aus `@vanillabp/bc-shared`, alles React und alles auf Grommet gebaut: `Badge`, `CircleButton`,
-`Link`, `ModalDialog`, `LoadingIndicator`, `Toast`, `CopyClipboard`, `UserDetailsBox`,
-`UserTaskAppLayout`, `WarningListCell`, `SseProvider` und das Thema `theme`. Dazu die Hilfsmittel
-`buildFetchApi`, `debounce`, `clickOutside`, `getObjectProperty`, die Zeitformatierer und der
-`now`-Hook.
-
-Nichts davon muss dein UI benutzen. Zwei Dinge daraus sind aber trotzdem Pflicht, wenn du Teile
-eines Workflow-Moduls lädst, weil das Modul sie benutzt:
-
-`window.i18n` muss eine `i18next`-Instanz sein, bevor ein Teil geladen wird. Die Komponenten von
-`bc-shared` und `bc-ui` melden ihre Texte dort an. Ist es nicht gesetzt, melden sie nichts an, und
-die Texte fehlen ohne Fehlermeldung.
-
-Ein Grommet-Thema muss im Kontext stehen. Die Komponenten des Moduls zeichnen mit Grommet und
-greifen auf Farbnamen zu, unter anderem `list-default`, `list-new`, `list-updated`, `list-ended`,
-`list-removed_from_list` und die `list-text-`-Varianten davon. Ein Thema ohne diese Namen zeichnet
-die Zeile ohne Farbe. Welche Namen das mitgelieferte Thema setzt, steht im Wiki unter
-[Customizing the user interface](https://github.com/vanillabp/business-cockpit/wiki/Customizing-the-user-interface).
+It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module
+can use them inside its shadow DOM.

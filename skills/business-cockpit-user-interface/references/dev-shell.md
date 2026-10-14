@@ -1,248 +1,207 @@
-# Die Dev Shell
+# The dev shell
 
-*Teil der Beschreibung in [`../SKILL.md`](../SKILL.md). Bis zum Review deutsch.*
+*Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-Wer ein Formular für ein Workflow-Modul schreibt, braucht etwas, worin es läuft. Das echte Cockpit
-ist dafür schlecht geeignet: Module Federation und der Austausch von Code im laufenden Browser
-kommen nicht miteinander aus, also bedeutet jede Änderung einen neuen Bau des Bundles und ein
-Neuladen. Dazu müssen ein Cockpit, eine MongoDB und ein BPMS laufen.
+Somebody who writes a form for a workflow module needs something it runs in. The real cockpit is a
+poor fit. Its parts are embedded through module federation, so hot module replacement does not work:
+every change needs a production build of the module and a reload in the browser. On top of that, a
+cockpit, a MongoDB and a BPMS have to run.
 
-Die Dev Shell ist der Ausweg. Sie ist eine kleine Webanwendung, die die Teile des Moduls ganz normal
-importiert, sodass der Dev-Server sie beim Tippen austauschen kann. Hinter ihr steht der Dev Shell
-Simulator, eine Java-Anwendung, die die Fragen beantwortet, die sonst das Cockpit beantwortet.
+The dev shell is the way out. It simulates the Business Cockpit for the developer of a module. It is
+a small web application, written in the framework of the module, that imports the module's
+components directly, not through the web component wrapper. So the dev server swaps them while the
+developer types. Behind it runs the dev shell simulator, a Java application that answers what the
+cockpit would answer. The workflow module itself runs unchanged against the dev shell.
 
-Es gab sie dreimal, in `development/dev-shell-react`, `development/dev-shell-vue` und
-`development/dev-shell-angular`. Seit Entscheidung 63 in der `DECISIONS.md` des Repositorys stehen
-sie nur noch in der Git-Historie. Diese drei sind Belege und Beispiele. Der Vertrag ist, was unten
-steht, und wo die drei auseinandergehen, steht es dabei.
+The generated project has one dev shell package per framework the modules use
+(`Q-MODULE-FRAMEWORKS`), see [project.md](project.md#the-dev-shell-libraries).
 
-1. [Was eine Dev Shell leisten muss](#was-eine-dev-shell-leisten-muss)
-1. [Der Einstiegspunkt](#der-einstiegspunkt)
-1. [Was sie anzeigt und wie man umschaltet](#was-sie-anzeigt-und-wie-man-umschaltet)
-1. [Woher die Daten kommen](#woher-die-daten-kommen)
-1. [Der Dev Shell Simulator](#der-dev-shell-simulator)
-1. [Der Proxy des Dev-Servers](#der-proxy-des-dev-servers)
-1. [Wo sie absichtlich anders ist als das Cockpit](#wo-sie-absichtlich-anders-ist-als-das-cockpit)
-1. [Wo die drei vorhandenen Shells auseinandergehen](#wo-die-drei-vorhandenen-shells-auseinandergehen)
+1. [The rule](#the-rule)
+1. [What a dev shell must do](#what-a-dev-shell-must-do)
+1. [The entry point](#the-entry-point)
+1. [What it shows](#what-it-shows)
+1. [Where the data comes from](#where-the-data-comes-from)
+1. [The dev shell simulator](#the-dev-shell-simulator)
+1. [The proxy of the dev server](#the-proxy-of-the-dev-server)
+1. [Where it differs from the cockpit on purpose](#where-it-differs-from-the-cockpit-on-purpose)
+1. [Developing inside the cockpit instead](#developing-inside-the-cockpit-instead)
 
-## Was eine Dev Shell leisten muss
+## The rule
 
-Sie tritt an die Stelle der Cockpit-Seiten, die Teile eines Moduls laden: die Seite einer Aufgabe,
-die Seite eines Falls, die Zelle einer Listenzeile und die Stelle, an der ein Cockpit einen eigenen
-Teil eines Moduls unterbringt.
+For the components of the workflow module there must be no difference between the dev shell and
+the cockpit. They get the same objects, `BcUserTask` and `BcWorkflow` from the types library, with
+the same functions, the same language and the same theme. A form that works in the dev shell works in
+the cockpit.
 
-Fünf Dinge muss sie dafür können:
+## What a dev shell must do
 
-1. Die Teile des Moduls direkt importieren, nicht über Module Federation. Nur so kann der Dev-Server
-   sie austauschen, während der Entwickler schreibt.
-2. Echte Daten vorsetzen. Die Aufgabe und der Fall kommen aus der GUI-API, nicht aus einer Datei mit
-   Beispieldaten. Nur so stimmt die Form der Daten mit der des Cockpits überein.
-3. Die Daten in `BcUserTask` und `BcWorkflow` verpacken, also die Funktionen ergänzen, die ein Teil
-   erwartet. Siehe [types.md](types.md#bcusertask-und-bcworkflow).
-4. Zwischen den Teilen umschaltbar sein und zwischen den Aufgaben und Fällen, die es gibt.
-5. Den angemeldeten Benutzer wechselbar machen, denn ein Formular zeigt je Benutzer anderes.
+It stands in for the pages of the cockpit that load parts of a module: the page of a user task, the
+page of a case, and the places of the other extension points (`Q-EXTENSION-POINTS`).
 
-Sie braucht keine Listen, keine Live-Aktualisierung und keine Anmeldung. Das sind Aufgaben des
-Cockpits und nicht der Werkbank.
+For this it must:
 
-## Der Einstiegspunkt
+1. Import the module's components directly, not through module federation.
+2. Show real data. The user task and the case come from the GUI API of the simulator, not from a
+   file with sample data. Only then does the shape of the data match the cockpit's.
+3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there. See
+   [types.md](types.md#bcusertask-and-bcworkflow).
+4. Switch between the parts, and between the user tasks and cases there are.
+5. Switch the user, because a form shows different things to different users.
+6. Show a toast when a part asks for one, also one that has to be clicked away.
+7. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
+8. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
+   the dev shell is generated, so a user task or a case looks as close to pixel-identical to the
+   cockpit as possible. The frame around a form, the task bar and the scrolling area are the same as
+   in the cockpit. A layout for the column on the right may be offered as in the cockpit.
 
-Der Entwickler übergibt seine Teile und eine Adresse, und die Shell baut daraus die Anwendung. Was
-übergeben wird, ist das eigentliche Stück Vertrag:
+It needs no lists, no live updates and no login. Those are the cockpit's business and not the
+workbench's. A view that copies a row of a list is only needed once modules can draw cells
+themselves, see [module-federation.md](module-federation.md#cells-drawn-by-a-workflow-module).
 
-| Was | Warum die Shell es braucht |
-|---|---|
-| die Adresse der GUI-API | daraus baut sie ihre Clients, im Beispiel `/official-api/v1` |
-| `UserTaskForm` | die Seite einer Aufgabe |
-| `WorkflowPage` | die Seite eines Falls |
-| weitere Teile unter ihrem Namen | für die eigenen Teile eines Moduls, siehe [module-federation.md](module-federation.md#eigene-teile) |
-| die Spaltenfunktionen und die Zellen | nur nötig, wenn die Shell eine Liste nachstellt |
-| das Workflow-Modul und das Thema | nur nötig, wenn die Shell einen Teil wie das Cockpit umrahmt |
+## The entry point
 
-Die React-Shell nimmt alles davon, in dieser Reihenfolge, und setzt die Anwendung in ein Element mit
-der angegebenen Kennung:
+The developer hands over their parts and an address, and the shell builds the application from them.
+What is handed over is the real contract:
 
-```ts
-bootstrapDevShell(
-    elementId, workflowModule, theme, officialGuiApiUrl,
-    userTaskForm, userTaskListColumns, userTaskListCell,
-    workflowListColumns, workflowListCell, workflowPage,
-    additionalComponents?)
-```
+| What                        | Why the shell needs it |
+|-----------------------------|------------------------|
+| the address of the GUI API  | it builds its client from it, with the simulator `/official-api/v1` |
+| the user task form          | the page of a user task |
+| the workflow page           | the page of a case |
+| further parts by their name | for the organisation's other extension points |
+| the workflow module id      | for the frame, and for the requests of a form through `/wm/` |
 
-Die Vue-Shell ist eine Komponente `DevShellApp` mit vier Eigenschaften, die Angular-Shell liefert
-eine `ApplicationConfig` über `appConfig(...)` und dazu ein `bootstrapDevShell`. Beide nehmen nur die
-Adresse, das Formular, die Fallseite und die weiteren Teile.
+The form of the entry point follows the framework, and it does not have to be the same everywhere:
 
-Die Form ist also nicht gleich, und das muss sie auch nicht sein. Nimm die Form, die in deinem
-Framework natürlich ist. Gleich ist, was übergeben wird.
+- React: `bootstrapDevShell(elementId, options)`, which renders into the element with that id.
+- Angular: a function that returns an `ApplicationConfig`, plus a `bootstrapDevShell` that starts it.
+- Vue: a component `DevShellApp` with properties, or a plugin.
 
-Ein Hinweis zum Beispiel in der Git-Historie: `development/simulator/src/main/webapp-react/test/index.tsx`
-ruft `bootstrapDevShell` noch mit der alten Reihenfolge auf, ohne `workflowModule` und ohne `theme`.
-Nimm die Form aus `development/dev-shell-react/src/dev-shell-react/index.tsx` und nicht aus dem
-Beispiel.
+Use what is natural in the framework. What is handed over is the same.
 
-## Was sie anzeigt und wie man umschaltet
+## What it shows
 
-Drei Oberflächen genügen:
+Three surfaces are enough:
 
-Eine Startseite mit einem Weg zu jedem Teil und mit der Wahl des Benutzers.
+- A start page, with a way to each part and the choice of the user.
+- A page per part, with the id of the user task or the case in the address, for example
+  `/tasks/<id>` and `/workflows/<id>`.
+- A header with a drop-down list of the user tasks or cases there are, searchable by name and with
+  paging, plus a switch for all, only open or only closed. The drop-down loads its entries in blocks
+  of 20 and sorts by `createdAt` descending. The header also holds the language choice.
 
-Eine Seite je Teil, mit der Kennung der Aufgabe oder des Falls in der Adresse. Die drei vorhandenen
-Shells benutzen dafür `/task/<id>` und `/workflow/<id>`, in der React-Shell übersetzt, also auch
-`/aufgabe/<id>` und `/vorgang/<id>`.
+## Where the data comes from
 
-Ein Kopfbereich mit einer Auswahlliste der vorhandenen Aufgaben beziehungsweise Fälle, nach Namen
-durchsuchbar und blätterbar, dazu ein Schalter für alle, nur offene oder nur abgeschlossene. Die
-Auswahlliste holt ihre Einträge in Blöcken von 20 und sortiert nach `createdAt` absteigend.
+From the GUI API, through a client generated the same way as the cockpit's, see
+[gui-api.md](gui-api.md#generating-the-client). The shell only gets the base address. There is no file
+with sample data.
 
-Die React-Shell hat zusätzlich eine Ansicht, die eine Listenzeile nachstellt, und eine
-Platzhalterseite für ein Symbol. Die anderen zwei haben beides nicht.
+That is why a dev shell shows nothing without the simulator. It is also why it is worth anything: a
+form that runs here runs against the same shape of data as in the cockpit.
 
-## Woher die Daten kommen
+The functions on `BcUserTask` and `BcWorkflow` call the API directly. There is no event protocol in
+the dev shell, because the components are not wrapped. What each function does:
 
-Aus der GUI-API, über denselben erzeugten Client, den auch ein Cockpit benutzt. Die Shell bekommt
-dafür nur die Basisadresse. Es gibt in keiner der drei Shells eine Datei mit Beispieldaten.
+| Function                                 | What the shell does |
+|------------------------------------------|---------------------|
+| `open`, `navigateToWorkflow`             | go to the shell's own page of this user task or this case |
+| `assign`, `unassign`, `claim`, `unclaim` | the simulator does not answer them; show a toast that says so, and resolve |
+| `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again |
 
-Das ist der Grund, warum eine Dev Shell ohne den Simulator nichts zeigt, und es ist auch der Grund,
-warum sie überhaupt etwas wert ist: ein Formular, das hier läuft, läuft gegen dieselbe Datenform wie
-im Cockpit.
+Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is
+the worst choice, because the developer then looks for the bug in their form.
 
-Die Funktionen, die die Shell an `BcUserTask` und `BcWorkflow` hängt, darf sie nachstellen, und die
-drei tun das auf drei Weisen. Was du dabei entscheidest:
+`getUserTasks` must be real. A case page without its user tasks is no case page.
 
-| Funktion | Was die Shell damit tun kann |
-|---|---|
-| `open`, `navigateToWorkflow` | zur eigenen Seite dieser Aufgabe oder dieses Falls springen |
-| `assign`, `unassign`, `claim`, `unclaim` | wirklich die GUI-API rufen, oder nichts tun und es sagen |
-| `getUserTasks` | `POST /workflow/{id}/usertasks` rufen und die Aufgaben wieder verpacken |
+## The dev shell simulator
 
-Nichts tun ist eine zulässige Entscheidung, solange der Entwickler es merkt. Die Angular-Shell zeigt
-dafür einen Hinweis im Browser, die React-Shell tut bei vier dieser Funktionen schlicht nichts, und
-die Vue-Shell ruft die echte API. Eine Funktion, die stillschweigend nichts tut, ist die schlechteste
-der drei Varianten, denn der Entwickler sucht den Fehler dann in seinem Formular.
+A Spring Boot application in `development/dev-shell-simulator` of the `business-cockpit`
+repository, built as a runnable jar and attached to a release. It runs on port 8079 and keeps
+everything in an in-memory H2 database. No MongoDB, no BPMS and no cockpit are needed.
 
-`getUserTasks` sollte echt sein. Eine Fallseite ohne ihre Aufgaben ist keine Fallseite.
+It has two sides.
 
-## Der Dev Shell Simulator
+Towards the dev shell, it speaks the official GUI API under `/official-api/v1`. It answers five
+calls of it: a user task, the task list, a case, the workflow list and the user tasks of a case.
+Paging and sorting happen in memory, the page size is 20 by default, and the default order is
+`createdAt` descending.
 
-Eine Spring-Boot-Anwendung in `development/dev-shell-simulator`, als lauffähiges Jar gebaut und einem
-Release beigelegt. Sie läuft auf Port 8079 und hält alles in einer H2-Datenbank im Speicher. Weder
-MongoDB noch BPMS noch Cockpit sind nötig.
+Towards the workflow module, it speaks the BPMS API under `/bpms/api/v1` and `/bpms/api/v1_1`. A
+workflow module registers there, and its reports about user tasks and cases come in there, the same
+as with the cockpit.
 
-Sie hat zwei Seiten:
-
-Nach vorne, zur Dev Shell, spricht sie die offizielle GUI-API unter `/official-api/v1`. Sie
-beantwortet davon fünf Aufrufe: eine Aufgabe, die Aufgabenliste, einen Fall, die Fallliste und die
-Aufgaben eines Falls. Seitenweise lesen und Sortieren macht sie im Speicher, die Seitengröße ist
-standardmäßig 20, und die Standardsortierung ist `createdAt` absteigend.
-
-Nach hinten, zum Workflow-Modul, spricht sie die BPMS-API unter `/bpms/api/v1` und `/bpms/api/v1_1`.
-Dort meldet sich ein Workflow-Modul an, und dort melden seine Berichte über Aufgaben und Fälle
-herein, genau wie beim Cockpit.
-
-Umgehängt wird das Modul mit einem Schlüssel: `vanillabp.cockpit.rest.base-url` zeigt auf
-`http://localhost:8079` statt auf das Cockpit. Die Adresse ist der Rumpf, der Transport hängt
-`/bpms/api/v1_1` selbst an, und genau diesen Pfad beantwortet der Simulator. Anmeldedaten braucht
-es dazu nicht, denn der Simulator lässt seine Datenpfade offen.
-Wo der Schlüssel sonst noch stehen darf, steht im Wiki unter
+The module is pointed at it with one key: `vanillabp.cockpit.rest.base-url` points to
+`http://localhost:8079` instead of to the cockpit. The address is the root; the transport adds
+`/bpms/api/v1_1` itself, and that is exactly the path the simulator answers. No credentials are
+needed, because the simulator leaves its data paths open. Where else the key may be set is in the
+wiki under
 [Connecting a workflow module](https://github.com/vanillabp/business-cockpit/wiki/Connecting-a-workflow-module).
 
-Dazu kommt eine eigene kleine Schnittstelle für die Shell, unter `/dev-shell/user`:
+There is also a small interface of its own for the shell, under `/dev-shell/user`:
 
-| Aufruf | Für wen | Was er tut |
-|---|---|---|
-| `GET /dev-shell/user/all/id` | Shell | die Kennungen aller Benutzer |
-| `GET /dev-shell/user/all` | Shell | alle Benutzer mit Details |
-| `GET /dev-shell/user/` | Shell | die Kennung des gerade gewählten Benutzers, als Text |
-| `POST /dev-shell/user/{userId}` | Shell | den Benutzer wechseln, `---` meldet ab |
-| `GET /dev-shell/user/details` | Anwendung | der gerade gewählte Benutzer, aus dem Cookie |
-| `GET /dev-shell/user/{userId}` | Anwendung | ein Benutzer nach Kennung |
+| Call                            | For whom    | What it does |
+|---------------------------------|-------------|--------------|
+| `GET /dev-shell/user/all/id`    | shell       | the ids of all users |
+| `GET /dev-shell/user/all`       | shell       | all users with details |
+| `GET /dev-shell/user/`          | shell       | the id of the user chosen now, as text |
+| `POST /dev-shell/user/{userId}` | shell       | switch the user; `---` logs out |
+| `GET /dev-shell/user/details`   | application | the user chosen now, from the cookie |
+| `GET /dev-shell/user/{userId}`  | application | one user by id |
 
-Die vorgetäuschten Benutzer stehen in `development/dev-shell-simulator/users.yaml`, unter dem
-Schlüssel `dev-shell-simulator.users`. Je Benutzer `id`, `email`, `first-name`, `last-name`, `groups`
-als kommagetrennte Liste und `attributes` als freie Abbildung. Mitgeliefert sind `john`, `jane` und
-`joe` mit den Gruppen `ADMIN` und `RISK_ASSESSMENT`.
+The pretend users are in `development/dev-shell-simulator/users.yaml`, under the key
+`dev-shell-simulator.users`. Each user has `id`, `email`, `first-name`, `last-name`, `groups` as a
+comma-separated list, and `attributes` as a free map. `john`, `jane` and `joe` come with it, with the
+groups `ADMIN` and `RISK_ASSESSMENT`.
 
-Diese Benutzer sind drei Dinge auf einmal: die Einträge der Auswahlliste in der Shell, die
-Benutzerverwaltung des Simulators, und die Gruppen werden zu den Berechtigungen im Token. Der
-Simulator löst Gruppen dabei absichtlich nicht auf. Eine Gruppenhierarchie ist Sache der
-Geschäftsanwendung.
+These users are three things at once: the entries of the user choice in the shell, the user
+directory of the simulator, and their groups become the rights in the token. The simulator does not
+resolve groups on purpose. A group hierarchy is the business application's job.
 
-Angemeldet wird nicht. Der Simulator schreibt denselben JWT in dasselbe Cookie, das auch das Cockpit
-benutzt, mit demselben Satz Klassen aus `commons`, und der Wechsel des Benutzers ist ein `POST`. Das
-Geheimnis zum Signieren steht im Klartext in seiner Konfiguration, denn es soll keine Sicherheit
-geben, sondern ein echtes Token in der richtigen Form. Die Datenpfade `/official-api/**` und
-`/bpms/api/**` sind für jeden offen.
+Nobody logs in. The simulator writes the same JWT into the same cookie the cockpit uses, and switching
+the user is a `POST`. The secret for signing is in plain text in its configuration, because the point
+is not security but a real token in the right shape. The data paths `/official-api/**` and
+`/bpms/api/**` are open to everyone.
 
-Der Simulator ist absichtlich eine Anwendung und keine Attrappe aus Testdaten. Was er antwortet, muss
-antworten, was das Cockpit antwortet, sonst läuft ein Formular hier und dort nicht.
+The simulator is an application on purpose, not a set of test data. What it answers must be what the
+cockpit answers, or a form runs here and not there.
 
-Was er nicht beantwortet, ist der Rest der GUI-API: Übernehmen, Zuweisen, Als-gelesen-markieren,
-Wiedervorlage, die Aktualisierungsform der Listen, die Benutzersuche, die Vorschläge für das
-Suchfeld, die Benachrichtigungen und den Ereignisstrom. Eine Shell, die eine dieser Funktionen echt
-ruft, ruft ins Leere. Rechne damit, wenn du die Funktionen von `BcUserTask` echt bauen willst.
+What it does not answer is the rest of the GUI API: claim, assign, mark as read, follow-up, the update
+form of the lists, the user search, the suggestions for the search field, the notifications and the
+update stream. A shell that calls one of these calls into nothing.
 
-## Der Proxy des Dev-Servers
+## The proxy of the dev server
 
-Die Shell läuft auf dem Dev-Server des Frameworks, der Simulator auf Port 8079. Damit das Cookie
-mitreist und der Browser keine fremde Herkunft sieht, leitet der Dev-Server weiter:
+The shell runs on the dev server of the framework, the simulator on port 8079. So that the cookie
+travels along and the browser sees no other origin, the dev server forwards:
 
-| Pfad | Ziel |
-|---|---|
+| Path               | Target |
+|--------------------|--------|
 | `/official-api/**` | `http://localhost:8079` |
-| `/dev-shell/**` | `http://localhost:8079` |
+| `/dev-shell/**`    | `http://localhost:8079` |
+| `/wm/<id>/**`      | the workflow module, if its forms call their own backend through `/wm/` |
 
-Dazu der Rückfall auf die Startseite für unbekannte Pfade, denn die Shell ist eine
-Single-Page-Anwendung.
+Plus the fallback to the start page for unknown paths, because the shell is a single-page
+application. The generated dev shell brings this proxy configuration for its dev server.
 
-Im Repository steht der erste Pfad in der Konfiguration der React- und der Angular-Anwendung. Der
-zweite fehlt in beiden, obwohl alle drei Shells ihn aufrufen. Nimm beide.
+## Where it differs from the cockpit on purpose
 
-## Wo sie absichtlich anders ist als das Cockpit
+A dev shell is not meant to be the cockpit. These differences are wanted, and a developer must know
+them, so they do not believe their form passed a check the shell never makes:
 
-Eine Dev Shell soll nicht das Cockpit sein. Diese Abweichungen sind gewollt, und ein Entwickler muss
-sie kennen, damit er seinem Formular nicht etwas nachweist, was die Shell gar nicht prüft:
+- There are no live updates. The simulator has no update stream.
+- There is no login. The user is chosen, not logged in, and the data paths check nothing.
+- The visibility rules of the cockpit are not copied. What the shell shows, it shows to everybody.
+- The actions that change a user task are not simulated, see
+  [Where the data comes from](#where-the-data-comes-from).
 
-Die Liste ist gestellt. Die React-Shell zeichnet zwei Zeilen aus derselben einen Aufgabe, eine davon
-mit erfundener Fälligkeit und eine als ungelesen markiert. Die Spalten gibt der Entwickler als
-kommagetrennte Liste in ein Textfeld ein, und die Shell merkt sie sich in der Sitzung. Ob die
-Oberfläche ein Telefon oder ein Rechner ist, wird über Radioknöpfe gewählt und nicht am Fenster
-gemessen. Eine Liste mit mehreren Modulen, mit Sortierung und mit Filterung kommt hier nicht vor.
+## Developing inside the cockpit instead
 
-Es gibt keine Live-Aktualisierung. Die React-Shell hängt zwar einen Ereignisstrom ein, aber der
-Simulator liefert diesen Pfad nicht, und der Dev-Server leitet ihn auch nicht weiter.
+Some customers want to develop directly in the cockpit. That has an advantage and two drawbacks.
 
-Es gibt keine Anmeldung. Der Benutzer wird gewählt, nicht angemeldet, und die Datenpfade prüfen
-nichts.
+The advantage: global CSS styles of the cockpit sometimes change how a form looks, and the dev shell
+does not show that unless it uses the same styles. Shadow DOM and the theme built into the dev shell
+keep this difference small.
 
-Die Sichtbarkeitsregeln des Cockpits werden nicht nachgestellt. Was die Shell zeigt, zeigt sie allen.
-
-Die Übersetzung in der Zelle ist die Identität. Die React-Shell gibt der Zelle eine
-Übersetzungsfunktion, die den Schlüssel zurückgibt, und nagelt die Sprache auf `de` fest. Ein
-Texteintrag, der im Cockpit übersetzt wird, steht hier als Schlüssel da.
-
-## Wo die drei vorhandenen Shells auseinandergehen
-
-Das sind Unterschiede der Beispiele und keine Regeln. Wer eine vierte Shell baut, entscheidet selbst,
-welcher Seite er folgt.
-
-| Punkt | React | Vue | Angular |
-|---|---|---|---|
-| Art des Einstiegs | Funktion, die in ein Element rendert | Komponente mit Eigenschaften | Konfigurationsfunktion plus Bootstrap |
-| Workflow-Modul und Thema als Parameter | ja | nein | nein |
-| Spalten und Zellen als Parameter | ja | nein | nein |
-| Listenansicht | gestellt, zwei Zeilen | keine | keine |
-| Symbolansicht | Platzhalter | keine | keine |
-| Eigene Teile bekommen `toast` | ja | nein | nein |
-| Übersetzung | eigene i18next-Instanz, `de` mit Rückfall `en` | keine | keine |
-| Thema | das vom Aufrufer übergebene Grommet-Thema | PrimeVue `Aura`, fest | keines |
-| `assign` und `claim` | tun nichts | rufen die echte API | zeigen einen Hinweis |
-| Beispiel im Repository | ja, aber veraltet | keines | ja, zwei |
-| README | ja | nein | ja, nennt aber das falsche Paket |
-| Proxy-Konfiguration im Repository | ja, ohne `/dev-shell` | keine | ja, ohne `/dev-shell` |
-
-Eine Eigenart von Angular ist dabei keine Entscheidung, sondern eine Einschränkung des Werkzeugs:
-`npm link` funktioniert für Angular-Bibliotheken nicht, also muss jede Änderung in die lokale
-NPM-Registry veröffentlicht und von der benutzenden Anwendung neu geholt werden. Wer für Angular
-baut, plant diesen Schritt ein.
+The drawbacks: the whole cockpit has to be set up, with MongoDB, while the dev shell uses an
+in-memory H2 database. And parts loaded through module federation are not updated while the
+developer types; every change needs a production build and a reload in the browser.
