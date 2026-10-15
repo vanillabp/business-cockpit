@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.config.InitiatorSource;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.config.WorkflowConfiguration;
 import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -34,7 +33,7 @@ public class WorkflowModuleSettingsTest {
       final WorkflowConfiguration workflow) {
 
     return new WorkflowModuleConfiguration(
-        MODULE_ID, "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map
+        MODULE_ID, "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map
             .of(), MODULE_ID, workflow == null ? Map.of()
                 : Map.of(PROCESS_ID, workflow), InitiatorSource.BY_APPLICATION);
 
@@ -82,7 +81,7 @@ public class WorkflowModuleSettingsTest {
   public void nothingAnywhereIsNothing() {
 
     final var module = new WorkflowModuleConfiguration(
-        MODULE_ID, "http://localhost", UiUriType.EXTERNAL, "/ui", null, null, Map.of(), MODULE_ID, Map.of(PROCESS_ID,
+        MODULE_ID, "http://localhost", "EXTERNAL", "/ui", null, null, Map.of(), MODULE_ID, Map.of(PROCESS_ID,
             new WorkflowConfiguration(PROCESS_ID, null, null, null, Map.of(), null)), null);
 
     assertEquals(List.of(), module.i18nLanguages(PROCESS_ID));

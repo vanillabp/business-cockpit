@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.sun.net.httpserver.HttpServer;
 
 import io.vanillabp.cockpit.extension.config.RestTransportConfiguration;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.RestTransport;
@@ -145,7 +144,7 @@ public class RestTransportTest {
   public void anExternalUserTaskCarriesItsOwnAddress() {
 
     final var event = EventFixture.userTask(UserTaskEventKind.CREATED);
-    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriType("EXTERNAL");
     event.setUiUriPath("https://tickets.example.com/ticket/4711");
 
     transport.publishUserTaskEvent(event);
@@ -162,7 +161,7 @@ public class RestTransportTest {
   public void anExternalWorkflowCarriesItsOwnAddress() {
 
     final var event = EventFixture.workflow(WorkflowEventKind.CREATED);
-    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriType("EXTERNAL");
     event.setUiUriPath("https://orders.example.com/order/4711");
 
     transport.publishWorkflowEvent(event);

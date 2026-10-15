@@ -727,8 +727,8 @@ components:
       description: >-
         Which kind of user interface this workflow module brings. The cockpit carries the value
         and never reads it. What a value means is agreed between the workflow module and the user
-        interface which loads it. The shipped user interface knows EXTERNAL for a module with
-        pages of its own and WEBPACK_MF_REACT for a React bundle loaded by module federation.
+        interface which loads it. VanillaBP knows no names. The user interface names the values it
+        understands.
     SearchQuery:
       type: object
       required:
@@ -857,10 +857,10 @@ components:
           type: string
           description: >-
             Where the user interface of this item is found, the way the workflow module reported
-            it. The cockpit hands the value out unchanged and builds no address from it. The user
-            interface reads uiUriType to know what to do with it: a module federated into the
-            cockpit is served below workflowModuleUri, and a module with pages of its own reports
-            the whole address already.
+            it. The cockpit hands the value out unchanged and builds no address from it. A value
+            which starts with http:// or https:// is an address already, and the user interface
+            opens it as it is. Any other value is a path of the workflow module, and the user
+            interface puts /wm/ and the workflowModuleId in front of it.
           example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'
@@ -980,10 +980,10 @@ components:
           type: string
           description: >-
             Where the user interface of this item is found, the way the workflow module reported
-            it. The cockpit hands the value out unchanged and builds no address from it. The user
-            interface reads uiUriType to know what to do with it: a module federated into the
-            cockpit is served below workflowModuleUri, and a module with pages of its own reports
-            the whole address already.
+            it. The cockpit hands the value out unchanged and builds no address from it. A value
+            which starts with http:// or https:// is an address already, and the user interface
+            opens it as it is. Any other value is a path of the workflow module, and the user
+            interface puts /wm/ and the workflowModuleId in front of it.
           example: /remoteEntry.js
         uiUriType:
           $ref: '#/components/schemas/UiUriType'

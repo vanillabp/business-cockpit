@@ -159,26 +159,41 @@ value shows up, nobody could tell what an empty one was meant to say. One line o
 answers that question once.
 
 The start of an application still checks `ui-uri-type`, and it only checks that a value is there.
-Any string passes. The message where nothing is configured offers `EXTERNAL` and `WEBPACK_MF_REACT`
-as a hint, because those are the two the shipped user interface knows.
+Any string passes. The message where nothing is configured names no values. It sends you to the
+cockpit user interface instead.
+
+The names are a convention between a workflow module and the user interface which loads it.
+VanillaBP passes the value on and never reads it, so it has no list of names and no class with
+constants for them. `WEBPACK_MF_REACT` was the value of the React user interface which came with
+the cockpit up to 0.8. It is still accepted, like any other string. Which names a user interface
+understands is written down with that user interface. If your user interface comes with a small
+jar of constants, your workflow modules can use that.
 
 What changes for a user interface is `uiUri` in the GUI API. Until 0.9.0 the cockpit built the whole
 address: `/wm/<workflowModuleId>` plus the path the workflow module reported. Only for the type
 `EXTERNAL` it handed out the reported value unchanged. Now the reported path is handed out in every
-case. The shipped user interface puts the proxy route in front of it itself, and
-a user interface of your own has to do the same. `workflowModuleId` and `workflowModuleUri` are in
+case, and the user interface builds the address. A cockpit user interface follows one rule. A path
+which starts with `http://` or `https://` is an address already and is opened as it is. Every other
+path gets `/wm/<workflowModuleId>/` in front of it. `workflowModuleId` and `workflowModuleUri` are in
 the same answer, so nothing has to be looked up for it.
+
+So the type no longer decides whether a path is an address. A workflow module whose pages live in
+another application reports the whole address in `ui-uri-path`, or per case through `setUiUriPath`
+of `PrefilledUserTaskDetails` and `PrefilledWorkflowDetails`. It is opened without the route in
+front, whatever `ui-uri-type` says.
 
 If you built your own user interface against the old answer, there are two ways out.
 
-The first is to do it in the browser. Your code looks at the text it got, and where it does not
-start with `/wm/` it adds the proxy route of the module. That keeps working against both versions of
-the cockpit, which matters while the two are rolled out one after the other.
+The first is to do it in the browser. Your code looks at the text it got. Where it starts with
+neither `/wm/` nor `http://` or `https://`, it adds the proxy route of the module. That keeps
+working against both versions of the cockpit, which matters while the two are rolled out one after
+the other.
 
 The second is to change what is stored, so the answer looks like it used to. Report the whole
 address as `ui-uri-path`, `/wm/taxi-ride/remoteEntry.js` rather than `/remoteEntry.js`, and update
-the entries which are already there in one block. Three things are worth knowing before you do
-that.
+the entries which are already there in one block. This way only fits a user interface of your own
+which does not follow the rule above. One which follows it would put the route in front a second
+time. Three things are worth knowing before you do that.
 
 The field exists twice. A user task has one and a workflow has one, so two MongoDB collections carry
 it, `UserTask` and `Workflow`.
@@ -186,9 +201,11 @@ it, `UserTask` and `Workflow`.
 The database holds the reported path, never the computed address. Only `GuiApiMapper` built the
 address, at the moment it answered, so nothing in the database has to be taken apart.
 
-Entries whose type is `EXTERNAL` must be left alone. Their path is the whole address already, the
-cockpit never prefixed it, and prefixing it now would send the browser to a route of the cockpit
-which does not exist. So an update in one block has to ask for the type first.
+Entries whose path starts with `http://` or `https://` must be left alone. Their path is the whole
+address already, the cockpit never prefixed it, and prefixing it now would send the browser to a
+route of the cockpit which does not exist. So an update in one block has to leave them out. Up to
+0.8 the type `EXTERNAL` said the same thing. If an entry of that type has a path without `http://`
+or `https://`, give it the whole address in the same block.
 
 ### A report no longer changes who sees a user task
 

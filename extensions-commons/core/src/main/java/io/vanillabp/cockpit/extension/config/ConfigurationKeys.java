@@ -80,7 +80,10 @@ public final class ConfigurationKeys {
   /** Where the workflow module answers the cockpit's provider APIs. */
   public static final String WORKFLOW_MODULE_URI = "workflow-module-uri";
 
-  /** How the cockpit is to render this module's forms: EXTERNAL or WEBPACK_MF_REACT. */
+  /**
+   * Which kind of user interface this module brings. The name is agreed between the module and the
+   * cockpit user interface which loads it. VanillaBP only passes it on and knows no names.
+   */
   public static final String UI_URI_TYPE = "ui-uri-type";
 
   /** Where this module's forms are served from. */
