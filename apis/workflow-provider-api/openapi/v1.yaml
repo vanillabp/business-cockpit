@@ -34,8 +34,8 @@ components:
       description: >-
         Which kind of user interface this workflow module brings. The cockpit carries the value
         and never reads it. What a value means is agreed between the workflow module and the user
-        interface which loads it. The shipped user interface knows EXTERNAL for a module with
-        pages of its own and WEBPACK_MF_REACT for a React bundle loaded by module federation.
+        interface which loads it. VanillaBP knows no names. The user interface names the values it
+        understands.
     UserTaskEventType:
       type: string
       enum:
@@ -127,7 +127,9 @@ components:
             de: Führe die Fahrt durch
         uiUri:
           type: string
-          description: The URL to show the user task form. Maybe a technical URL (e.g. for WEBPACK) or an URL targeting a human readable form (e.g. EXTERNAL)
+          description: >-
+            The URL to show the user task form. A value which starts with http:// or https:// is an
+            address already and is opened as it is. Any other value is a path of the workflow module.
           example: http://localhost:9000/taxiride-api/webpack/TaxiRideForm
         uiUriType:
           $ref: '#/components/schemas/UiUriType'

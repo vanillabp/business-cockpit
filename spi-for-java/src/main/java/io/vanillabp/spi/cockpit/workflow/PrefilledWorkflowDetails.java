@@ -50,8 +50,11 @@ public interface PrefilledWorkflowDetails extends WorkflowDetails {
      * Tells the cockpit where the status page of this workflow is found.
      *
      * <p>Without this the cockpit uses the path the workflow module configured, which is the same
-     * for every workflow of the module. A module whose UI URI type is <code>EXTERNAL</code> uses it
-     * to hand out the address of the page in the other application which shows this very case.
+     * for every workflow of the module. A path which starts with <code>http://</code> or
+     * <code>https://</code> is opened as it is. This is how a module hands out the address of the
+     * page in another application which shows this very case. Any other path belongs to the
+     * workflow module, and the cockpit user interface puts <code>/wm/&lt;workflowModuleId&gt;/</code>
+     * in front of it.
      *
      * @param uiUriPath What the cockpit opens for this workflow
      */

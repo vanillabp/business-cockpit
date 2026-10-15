@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vanillabp.cockpit.extension.config.BusinessCockpitConfiguration;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport;
 import io.vanillabp.integration.test.utils.CapturedOutput;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
@@ -83,7 +82,7 @@ public class BusinessCockpitConfigurationTest {
     assertNull(configuration.getKafka());
     final var module = configuration.workflowModule(ConfigurationFixture.WORKFLOW_MODULE);
     assertEquals("http://localhost:8081", module.workflowModuleUri());
-    assertEquals(UiUriType.WEBPACK_MF_REACT, module.uiUriType());
+    assertEquals("WEBPACK_MF_REACT", module.uiUriType());
     assertEquals(List.of("en", "de"), module.i18nLanguages());
     assertEquals("en", module.bpmnDescriptionLanguage());
     assertEquals(ConfigurationFixture.WORKFLOW_MODULE, module.templatePath());
@@ -373,16 +372,17 @@ public class BusinessCockpitConfigurationTest {
   }
 
   @Test
-  @DisplayName("A missing UI URI type offers the names the shipped user interface knows")
-  public void aMissingUiUriTypeOffersTheKnownNames() {
+  @DisplayName("A missing UI URI type sends the developer to the user interface and offers no names")
+  public void aMissingUiUriTypeSendsTheDeveloperToTheUserInterface() {
 
     final var defects = defectsOf(
         ConfigurationFixture.aConfiguredApplication().withoutWorkflowModule("ui-uri-type"),
         false);
 
     assertTrue(defects.contains("ui-uri-type"), defects);
-    assertTrue(defects.contains("EXTERNAL"), defects);
-    assertTrue(defects.contains("WEBPACK_MF_REACT"), defects);
+    assertTrue(defects.contains("the name your cockpit user interface expects"), defects);
+    assertFalse(defects.contains("EXTERNAL"), defects);
+    assertFalse(defects.contains("WEBPACK_MF_REACT"), defects);
 
   }
 

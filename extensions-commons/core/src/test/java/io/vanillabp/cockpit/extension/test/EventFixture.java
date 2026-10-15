@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.event.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
 import io.vanillabp.cockpit.extension.event.WorkflowEvent;
@@ -53,7 +52,7 @@ public final class EventFixture {
     event.setTitle(new LinkedHashMap<>(Map.of("en", "Approve order 4711")));
     event.setTaskDefinitionTitle(new LinkedHashMap<>(Map.of("en", "Approval")));
     event.setUiUriPath("/remoteEntry.js");
-    event.setUiUriType(UiUriType.WEBPACK_MF_REACT);
+    event.setUiUriType("WEBPACK_MF_REACT");
     event.setAssignee("anna");
     event.setCandidateUsers(List.of("bert"));
     event.setCandidateGroups(List.of("approvers"));
@@ -89,7 +88,7 @@ public final class EventFixture {
     event.setBpmnProcessVersion("3");
     event.setTitle(new LinkedHashMap<>(Map.of("en", "Order 4711")));
     event.setUiUriPath("/remoteEntry.js");
-    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriType("EXTERNAL");
     event.setDetails(details());
     event.setDetailsFulltextSearch("order 4711");
     event.setAccessibleToUsers(List.of("anna"));

@@ -23,7 +23,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
 import io.vanillabp.cockpit.extension.BusinessCockpitAssembly;
 import io.vanillabp.cockpit.extension.config.KafkaTransportConfiguration;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.spi.UserTaskEventKind;
 import io.vanillabp.cockpit.extension.spi.WorkflowEventKind;
 import io.vanillabp.cockpit.extension.transport.KafkaTransport;
@@ -90,7 +89,7 @@ public class KafkaTransportTest {
   public void anExternalUserTaskCarriesItsOwnAddress() throws Exception {
 
     final var event = EventFixture.userTask(UserTaskEventKind.CREATED);
-    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriType("EXTERNAL");
     event.setUiUriPath("https://tickets.example.com/ticket/4711");
 
     transport.publishUserTaskEvent(event);
@@ -106,7 +105,7 @@ public class KafkaTransportTest {
   public void anExternalWorkflowCarriesItsOwnAddress() throws Exception {
 
     final var event = EventFixture.workflow(WorkflowEventKind.CREATED);
-    event.setUiUriType(UiUriType.EXTERNAL);
+    event.setUiUriType("EXTERNAL");
     event.setUiUriPath("https://orders.example.com/order/4711");
 
     transport.publishWorkflowEvent(event);

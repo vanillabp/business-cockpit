@@ -13,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import freemarker.cache.ClassTemplateLoader;
 import io.vanillabp.cockpit.extension.config.InitiatorSource;
-import io.vanillabp.cockpit.extension.config.UiUriType;
 import io.vanillabp.cockpit.extension.config.WorkflowConfiguration;
 import io.vanillabp.cockpit.extension.config.WorkflowModuleConfiguration;
 import io.vanillabp.cockpit.extension.event.UserTaskEvent;
@@ -41,7 +40,7 @@ public class EventTitlesTest {
   }
 
   private static final WorkflowModuleConfiguration MODULE = new WorkflowModuleConfiguration(
-      "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", Map
           .of(), InitiatorSource.BY_APPLICATION);
 
   /**
@@ -49,7 +48,7 @@ public class EventTitlesTest {
    * user tasks sets its own template directory.
    */
   private static final WorkflowModuleConfiguration MODULE_WITH_A_SPECIAL_WORKFLOW = new WorkflowModuleConfiguration(
-      "test-module", "http://localhost", UiUriType.EXTERNAL, "/ui", List.of("en"), "en", Map.of(), "test-module", Map
+      "test-module", "http://localhost", "EXTERNAL", "/ui", List.of("en"), "en", Map.of(), "test-module", Map
           .of(
               "TestProcess",
               new WorkflowConfiguration(
