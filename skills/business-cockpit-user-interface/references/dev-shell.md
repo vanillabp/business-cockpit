@@ -36,23 +36,32 @@ the cockpit.
 ## What a dev shell must do
 
 It stands in for the pages of the cockpit that load parts of a module: the page of a user task, the
-page of a case, and the places of the other extension points (`Q-EXTENSION-POINTS`).
+page of a case, and the places of every other extension point agreed in the interview
+(`Q-EXTENSION-POINTS`), for example the buttons in the header, the pages of a module with their
+menu entries, and the modal dialogs they open.
 
 For this it must:
 
 1. Import the module's components directly, not through module federation.
 2. Show real data. The user task and the case come from the GUI API of the simulator, not from a
    file with sample data. Only then does the shape of the data match the cockpit's.
-3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there. See
-   [types.md](types.md#bcusertask-and-bcworkflow).
+3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there,
+   `sendTo` and `receiveMessage` included. See [types.md](types.md#bcusertask-and-bcworkflow).
 4. Switch between the parts, and between the user tasks and cases there are.
-5. Switch the user, because a form shows different things to different users.
-6. Show a toast when a part asks for one, also one that has to be clicked away.
-7. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
-8. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
+5. Offer the users of the simulator to choose from. The developer picks a user, switches to another
+   one, and deselects the user again. Picking a user sets up a real security context: the simulator
+   writes a JWT into the same cookie the cockpit uses, see
+   [The dev shell simulator](#the-dev-shell-simulator). A form shows different things to different
+   users, and this is how the developer sees it.
+6. Offer every agreed extension point for testing, not only the page of a user task and the page of
+   a case. A header button shows in a header like the cockpit's, a page of a module under its route
+   `/<workflowModuleId>/<pageId>` with its menu entry, and a dialog opens modally.
+7. Show a toast when a part asks for one, also one that has to be clicked away.
+8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
+9. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
    the dev shell is generated, so a user task or a case looks as close to pixel-identical to the
-   cockpit as possible. The frame around a form, the task bar and the scrolling area are the same as
-   in the cockpit. A layout for the column on the right may be offered as in the cockpit.
+   cockpit as possible. The application header with the task actions, the areas `body`,
+   `information` and `actions` (`Q-PAGE-AREAS`) and the scrolling are laid out as in the cockpit.
 
 It needs no lists, no live updates and no login. Those are the cockpit's business and not the
 workbench's. A view that copies a row of a list is only needed once modules can draw cells
@@ -66,8 +75,8 @@ What is handed over is the real contract:
 | What                        | Why the shell needs it |
 |-----------------------------|------------------------|
 | the address of the GUI API  | it builds its client from it, with the simulator `/official-api/v1` |
-| the user task form          | the page of a user task |
-| the workflow page           | the page of a case |
+| the user task page          | the page of a user task |
+| the case page               | the page of a case |
 | further parts by their name | for the organisation's other extension points |
 | the workflow module id      | for the frame, and for the requests of a form through `/wm/` |
 
@@ -79,16 +88,23 @@ The form of the entry point follows the framework, and it does not have to be th
 
 Use what is natural in the framework. What is handed over is the same.
 
+The user task page and the case page are handed over as a function of the same shape as the one the
+module exposes, see
+[module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). The only
+difference: per area it returns the module's component of the framework instead of the name of a
+web component. So the dev shell lays out the same areas, and the dev server can swap the components.
+
 ## What it shows
 
 Three surfaces are enough:
 
-- A start page, with a way to each part and the choice of the user.
+- A start page, with a way to each part and to each extension point, and the choice of the user.
 - A page per part, with the id of the user task or the case in the address, for example
   `/tasks/<id>` and `/workflows/<id>`.
 - A header with a drop-down list of the user tasks or cases there are, searchable by name and with
   paging, plus a switch for all, only open or only closed. The drop-down loads its entries in blocks
-  of 20 and sorts by `createdAt` descending. The header also holds the language choice.
+  of 20 and sorts by `createdAt` descending. The header also holds the language choice and the
+choice of the user, with an entry for "no user".
 
 ## Where the data comes from
 
@@ -107,6 +123,8 @@ the dev shell, because the components are not wrapped. What each function does:
 | `open`, `navigateToWorkflow`             | go to the shell's own page of this user task or this case |
 | `assign`, `unassign`, `claim`, `unclaim` | the simulator does not answer them; show a toast that says so, and resolve |
 | `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again |
+| `sendTo`, `receiveMessage`               | carry the message to the component of the other area, as the cockpit does |
+| `openDialog`                             | show the component in a modal layer, as the cockpit does |
 
 Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is
 the worst choice, because the developer then looks for the bug in their form.
@@ -122,7 +140,7 @@ everything in an in-memory H2 database. No MongoDB, no BPMS and no cockpit are n
 It has two sides.
 
 Towards the dev shell, it speaks the official GUI API under `/official-api/v1`. It answers five
-calls of it: a user task, the task list, a case, the workflow list and the user tasks of a case.
+calls of it: a user task, the task list, a case, the case list and the user tasks of a case.
 Paging and sorting happen in memory, the page size is 20 by default, and the default order is
 `createdAt` descending.
 
@@ -189,7 +207,8 @@ A dev shell is not meant to be the cockpit. These differences are wanted, and a 
 them, so they do not believe their form passed a check the shell never makes:
 
 - There are no live updates. The simulator has no update stream.
-- There is no login. The user is chosen, not logged in, and the data paths check nothing.
+- There is no login. The user is chosen, not logged in. The cookie is real, but the data paths
+  check nothing.
 - The visibility rules of the cockpit are not copied. What the shell shows, it shows to everybody.
 - The actions that change a user task are not simulated, see
   [Where the data comes from](#where-the-data-comes-from).

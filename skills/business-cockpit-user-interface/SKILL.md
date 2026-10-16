@@ -1,6 +1,6 @@
 ---
 name: business-cockpit-user-interface
-description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules and a jar the cockpit backend serves. The agent first interviews the user (framework, design library, theme, screens, primary filters, columns, live updates, language, extension points, backend, coordinates), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, loading the parts of workflow modules at runtime through native federation as web components with shadow DOM, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules, a jar the cockpit backend pulls as a Maven dependency and an nginx image for a separate deployment. The agent first interviews the user (framework, design library, theme, the word for a case, screens, primary filters, columns, live updates, language, extension points, backend framework, coordinates, memory limit), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime through native federation as web components with shadow DOM, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
   author: vanillabp
@@ -43,18 +43,28 @@ the code disagree, the code is right and the text is the bug.
 
 ## What you generate
 
-One npm project which produces four things. [references/project.md](references/project.md)
-describes each of them.
+By default two repositories, each with one build tool.
+[references/project.md](references/project.md) describes them.
+
+The UI repository is a pure npm project. It produces:
 
 - The cockpit user interface, a single-page application. It shows the lists and loads the parts of
   the workflow modules into its pages at runtime.
-- A jar with the built files at the place where the backend serves them. If the organisation runs
-  the runnable cockpit, also a runnable jar which carries the user interface.
-- A types library for workflow modules. It says what a part of a module may expect from the
-  cockpit, and it carries the small helper which turns a function call into an event on the DOM
-  element.
-- A dev shell for each framework the workflow modules use. It is the workbench on which somebody
-  writes a user task form without starting a cockpit.
+- The UI jar, with the built files at the place where the backend framework serves them. A Node
+  script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
+- The types jar, a small jar with the constants of the `ui-uri-type` values this user interface
+  understands, for the Java side of the workflow modules. It is uploaded the same way.
+- A types library for workflow modules, as an npm package. It says what a part of a module may
+  expect from the cockpit, and it carries the small helper which turns a function call into an event
+  on the DOM element.
+- A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
+  which somebody writes a user task form without starting a cockpit.
+- A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
+  apart from the backend.
+
+The backend repository is a pure Maven project, the cockpit application of the organisation. It
+pulls the UI jar as an ordinary dependency. The skill does not write it, but it tells the user which
+dependency to add.
 
 ## Phase 1: interview
 
@@ -113,20 +123,22 @@ Read them in this order. Each one builds on the one before.
 1. [references/interview.md](references/interview.md)<br>
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
-   What the generated npm project contains: the user interface, the jar, the types library and
-   the dev shells.
+   The two repositories: the user interface, the UI jar, the types jar, the upload into the Maven
+   repository, the nginx image, the backend, the types library and the dev shells.
 3. [references/gui-api.md](references/gui-api.md)<br>
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
    timestamp that keeps a list stable, and the update stream.
 4. [references/module-federation.md](references/module-federation.md)<br>
    How a part of a workflow module gets into your page: native federation, the extension points,
-   web components with shadow DOM, the event protocol, and the states of loading.
+   the registry of modules and the central loader, web components with shadow DOM, the areas of a
+   page, the event protocol, and the states of loading.
 5. [references/types.md](references/types.md)<br>
    What goes into the types library the generated user interface publishes.
 6. [references/behaviour.md](references/behaviour.md)<br>
-   What the user expects: the screens, the lists, the columns, opening a task, live updates,
-   search, language, extension points and who sees what.
+   What the user expects: the screens, the header and the menu, the counts, the lists, the columns,
+   opening a task, the window of loaded rows, live updates, search, language, extension points and
+   who sees what.
 7. [references/dev-shell.md](references/dev-shell.md)<br>
    The workbench for a workflow module and the simulator behind it.
 8. [references/rough-edges.md](references/rough-edges.md)<br>
@@ -148,7 +160,7 @@ and
 These limits are the design, not thrift. If you cross them, you build a second system next to the
 workflow modules.
 
-It never contains a user interface part of a business process. Forms, workflow pages, list columns
+It never contains a user interface part of a business process. Forms, case pages, list columns
 and extensions of a workflow module are always loaded at runtime. This keeps the life cycle of the
 cockpit apart from the life cycles of the business processes. Otherwise every change to the form of
 one process would need a new release of the cockpit. From about ten processes on, that is a problem
@@ -174,14 +186,22 @@ from its OpenAPI description, so it never goes into the customer's Git repositor
 
 ## How your user interface gets into the cockpit
 
-A cockpit is a Spring Boot application. It is either the runnable `container` jar of the
-`business-cockpit` repository, or an application of the organisation's own that has the library
-`io.vanillabp.businesscockpit:business-cockpit` as a dependency. How such an application is built is
-in the wiki under
+Today a cockpit is a Spring Boot application. A Quarkus variant of the cockpit comes later, and the
+generator is ready for it (`Q-BACKEND-FRAMEWORK`). A cockpit is either the runnable `container` jar
+of the `business-cockpit` repository, or an application of the organisation's own that has the
+library `io.vanillabp.businesscockpit:business-cockpit` as a dependency. How such an application is
+built is in the wiki under
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
-The library and the `container` jar bring no user interface. Every cockpit application serves what
-lies below `static` on its class path, so your jar puts its files there. The details are in
-[references/project.md](references/project.md#the-jar-the-backend-serves).
+The library and the `container` jar bring no user interface.
+
+The backend repository adds the UI jar as a dependency. A Spring Boot cockpit serves what lies below
+`static` on its class path, a Quarkus application what lies below `META-INF/resources`. So the UI jar
+puts its files there. The details are in [references/project.md](references/project.md#the-ui-jar).
+
+An organisation that does not want the user interface inside the backend runs the nginx image of
+the UI repository instead. It forwards the GUI API, the workflow modules and the login to the
+backend, so the browser still sees one origin, see
+[references/project.md](references/project.md#the-nginx-image).
 
 The library prescribes no authentication. How a user logs in is decided by the kind of backend. In
 Spring Boot, for example, an unauthenticated request can be sent to the `/login` endpoint. Depending
@@ -206,18 +226,20 @@ What your user interface needs from the backend:
 Each step can be shown on its own. If you change the order, you build for a long time without
 seeing anything.
 
-1. The project skeleton: the npm workspace, the generated GUI API client, and the jar with an empty
-   shell. Put it into a running cockpit and see the shell load.
+1. The project skeleton: the npm workspace, the generated GUI API client, and the UI jar with an
+   empty shell, uploaded into the Maven repository. Add it to the backend and see the shell load.
 2. The frame and the login. `GET /app/info` and `GET /app/current-user` are enough for an
-   application that knows who is there.
-3. A list without the columns of the modules, with the primary filter and its counts. This settles
-   paging.
+   application that knows who is there. Then the header with its toggle and the menu.
+3. A list without the columns of the modules, with the primary filter and its counts, and with the
+   window of loaded rows. This settles paging. Write the memory test now, not at the end.
 4. Sorting and searching. After this, the paths and their traps are clear.
-5. The types library and the loading of module parts. First the columns of a list, then the form of
-   a user task, then the workflow page, then the other extension points.
+5. The types library, the registry of modules and the central loader. Then the columns of a list,
+   then the page of a user task with its areas, then the page of a case, then the other extension
+   points.
 6. The update stream. It comes late, because it needs most of the rest.
 7. The dev shells, one per framework the workflow modules use.
-8. The end-to-end tests, one per checklist item.
+8. The types jar and the nginx image.
+9. The end-to-end tests, one per checklist item.
 
 ## How you know it is done
 
@@ -230,10 +252,14 @@ that every extension point is tested by a real module.
 Then:
 
 1. Every item of `CHECKLIST.md` has a test that names its id, and every test passes.
-2. The task list and the workflow list show rows with the columns the modules bring.
-3. The form of a user task from a module loads and shows the data of the task.
+2. The task list and the case list show rows with the columns the modules bring.
+3. The page of a user task from a module loads, lays out its areas and shows the data of the task.
 4. A change to a task that somebody else makes shows up without a reload.
 5. Claiming and unclaiming work, and the row shows it afterwards.
 6. Paging, sorting and searching return what they should, also over reported business data.
-7. A user task of a module of type `EXTERNAL` opens the other page and leaves the list intact.
-8. The dev shell shows the form of a blueprint module the same way the cockpit shows it.
+7. Scrolling through 20,000 cases keeps the JavaScript heap below the limit from the interview.
+8. A user task whose `uiUri` is a whole address opens that address unchanged and leaves the list
+   intact.
+9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.
+10. The backend repository builds with the UI jar as a dependency, and the nginx image serves the
+    same user interface against the same backend.

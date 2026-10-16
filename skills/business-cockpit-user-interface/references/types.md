@@ -2,13 +2,17 @@
 
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-VanillaBP gives no types for the user interface. The generated user interface publishes them
-itself, as `<scope>/bc-types` (`Q-NPM-SCOPE`). A workflow module installs this package to build its
+VanillaBP gives no types for the user interface, and no user interface either. The generated user
+interface publishes the types itself, as `<scope>/bc-types` (`Q-NPM-SCOPE`). A workflow module installs this package to build its
 parts. The package says what a part may expect as input and which functions it may call. It does
 not depend on module federation and has no dependencies, see
 [project.md](project.md#the-types-library).
 
-Everything that crosses the line between the cockpit and a module is in it. Nothing else is.
+Everything that crosses the line between the cockpit and a module is in it. Nothing else is. Apart
+from this library, the cockpit and a module only meet through DOM events.
+
+For the Java side of a workflow module there is the types jar with the constants of `ui-uri-type`,
+see [project.md](project.md#the-types-jar).
 
 1. [Data from the GUI API](#data-from-the-gui-api)
 1. [Translatable and Person](#translatable-and-person)
@@ -25,9 +29,11 @@ description `official-gui-api` defines them. The types library carries them as T
 interfaces, generated from the same file the user interface generates its client from, see
 [gui-api.md](gui-api.md#generating-the-client). Generate them; do not copy them by hand.
 
-`uiUriType` is a string there and not a type of its own. Which values exist is agreed between the
-cockpit and its modules, and the server does not know them. The library exports the agreed values
-as constants: `EXTERNAL` and `NATIVE_MF`, or the value from `Q-UI-URI-TYPE`.
+`uiUriType` is a string there and not a type of its own. Which values exist is agreed between this
+user interface and its modules, and VanillaBP knows no names for them. The library exports the
+values from `Q-UI-URI-TYPE` as constants, by default `NATIVE_MF` and `EXTERNAL`, the same as the
+types jar. Whether a page is opened as it is depends on `uiUri` and not on these names, see
+[module-federation.md](module-federation.md#which-data-finds-the-part).
 
 ## Translatable and Person
 
@@ -73,15 +79,17 @@ export interface Column {
 }
 ```
 
-The functions are called once per row, without waiting. They must be fast and must not fetch
-anything. They return `undefined` when the module has no columns for this row.
+The host calls the function once for every row it loads, without waiting. So it must be fast and
+must not fetch anything. It returns `undefined` when the module has no columns for this row. The
+columns of a list are the union over the rows loaded at the moment, see
+[behaviour.md](behaviour.md#how-the-columns-of-a-list-come-about).
 
 `path` is the key. It is at the same time
 
 * the path where the value is in the row, resolved with dots as separators,
 * the path your user interface sends to the server as `sort`,
 * the path it sends as `path` of a `SearchQuery`,
-* and the key under which the columns of different workflow modules are merged.
+* and the key under which the columns of different rows and workflow modules are merged.
 
 So it must match the document the server stores. `details.customer.name` hits the business data
 the workflow module reported. See [gui-api.md](gui-api.md#sorting) for what this means on the server.
@@ -99,7 +107,7 @@ functions the cockpit provides. Every function returns a promise, because below 
 [event protocol](#the-event-protocol):
 
 ```typescript
-export interface BcUserTask extends UserTask {
+export interface BcUserTask extends UserTask, BcPageMessaging {
   open: () => Promise<void>;
   navigateToWorkflow: () => Promise<void>;
   assign: (userId: string) => Promise<void>;
@@ -108,9 +116,15 @@ export interface BcUserTask extends UserTask {
   unclaim: () => Promise<void>;
 }
 
-export interface BcWorkflow extends Workflow {
+export interface BcWorkflow extends Workflow, BcPageMessaging {
   navigateToWorkflow: () => Promise<void>;
   getUserTasks: BcUserTasksProvider;
+}
+
+/** Messages between the areas of one page, for example from 'body' to 'actions'. */
+export interface BcPageMessaging {
+  sendTo: (target: string, message: unknown) => Promise<void>;
+  receiveMessage: (handler: (message: unknown, from: string) => void) => () => void;
 }
 
 export type BcUserTasksProvider = (
@@ -126,12 +140,19 @@ export interface BcToast {
 }
 
 export type ToastFunction = (toast: BcToast) => Promise<void>;
+
+/** Shows the web component 'element' in a modal dialog; resolves with what the dialog closed with. */
+export type OpenDialogFunction = (element: string, data?: unknown) => Promise<unknown>;
 ```
 
 Each of these functions is a promise of the cockpit. A form may call `claim` and expect that the
 task belongs to the user afterwards and that the list knows it. `getUserTasks` calls
 `POST /workflow/{workflowId}/usertasks` and returns the tasks as `BcUserTask` again, with the same
 functions.
+
+`sendTo` carries a message to the web component of another area of the same page, for example
+`sendTo('actions', { valid: true })` from the form in `body`. `receiveMessage` registers a handler
+and returns a function that removes it. A message is any value that survives `structuredClone`.
 
 Build them all. A function that does nothing cannot be told apart from a bug by the author of a
 form.
@@ -141,11 +162,11 @@ form.
 The host sets plain data as properties of the custom element. The wrapper in the module turns it
 into the objects above:
 
-| Part               | Properties the host sets                                                          | What the module's component gets |
-|--------------------|-----------------------------------------------------------------------------------|----------------------------------|
-| user task form     | `userTask`, `language`, `currentUser`                                             | `BcUserTask`, the language, the user, `toast` |
-| workflow page      | `workflow`, `language`, `currentUser`                                             | `BcWorkflow`, the language, the user, `toast` |
-| other visual parts | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same, plus `toast` |
+| Web component               | Properties the host sets                                                          | What the module's component gets |
+|-----------------------------|-----------------------------------------------------------------------------------|----------------------------------|
+| an area of a user task page | `userTask`, `area`, `language`, `currentUser`                                     | `BcUserTask`, the area, the language, the user, `toast` |
+| an area of a case page      | `workflow`, `area`, `language`, `currentUser`                                     | `BcWorkflow`, the area, the language, the user, `toast` |
+| other visual parts          | `workflowModule`, `language`, `currentUser`, and what the extension point defines | the same, plus `toast`, `openDialog` |
 
 `workflowModule` has the fields `GET /workflow-module` returns: `id`, `version`, `uri`.
 
@@ -156,14 +177,15 @@ changes. `currentUser` is the user from `GET /app/current-user`, with the groups
 
 The library holds the protocol of [module-federation.md](module-federation.md#the-event-protocol):
 
-- the event names `bc-request` and `bc-response`, as constants,
+- the event names `bc-request`, `bc-response` and `bc-message`, as constants,
 - the types of the request and the answer, the action names and the error codes,
 - `requestFromCockpit(element, action, args, timeoutMs?)`, which dispatches the request, waits for
   the answer with the same `requestId` and resolves or rejects,
 - `toBcUserTask(element, data)` and `toBcWorkflow(element, data)`, which add the functions to the
   plain data,
-- `defineBcElement({ mount, update, unmount })`, which builds a custom element with an open shadow
-  root, reads the properties, runs the protocol and calls the module's three functions.
+- `defineBcElement(name, { mount, update, unmount })`, which builds a custom element with an open
+  shadow root, registers it under `name`, reads the properties, runs the protocol, carries the
+  messages between areas and calls the module's three functions.
 
 The host side of the protocol is in the cockpit user interface, not in the library. A module never
 needs it.
@@ -171,15 +193,25 @@ needs it.
 ## The extension points
 
 The library names every extension point of this cockpit: the four minimum ones and those from
-`Q-EXTENSION-POINTS`. For each one it exports the exposed name, the type of the export, and the
-properties the host sets. For example:
+`Q-EXTENSION-POINTS`. For each one it exports the exposed name, the type of the function the module
+exports, and the properties the host sets. For example:
 
 ```typescript
-export const USER_TASK_FORM = './UserTaskForm';      // exports: element
-export const WORKFLOW_PAGE = './WorkflowPage';       // exports: element
 export const USER_TASK_LIST = './UserTaskList';      // exports: userTaskListColumns
 export const WORKFLOW_LIST = './WorkflowList';       // exports: workflowListColumns
+export const USER_TASK_PAGE = './UserTaskPage';      // exports: userTaskPage
+export const WORKFLOW_PAGE = './WorkflowPage';       // exports: workflowPage
 export const HEADER_BUTTONS = './HeaderButtons';     // an extension point of this organisation
+
+export type UserTaskPageFunction = (userTask: UserTask) => PageAreas | undefined;
+export type WorkflowPageFunction = (workflow: Workflow) => PageAreas | undefined;
+
+/** Area -> name of a registered web component. By convention 'body', 'information', 'actions'. */
+export type PageAreas = { [area: string]: string };
+
+export const AREA_BODY = 'body';
+export const AREA_INFORMATION = 'information';
+export const AREA_ACTIONS = 'actions';
 ```
 
 It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module

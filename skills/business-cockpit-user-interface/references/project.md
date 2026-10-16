@@ -2,19 +2,31 @@
 
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-The generated project is a pure npm project. It uses npm workspaces, so one repository builds and
-publishes everything that belongs to one cockpit user interface. Maven is only used at the very
-end, to package and publish the jars.
+By default the skill fills two repositories, and each one needs only one build tool.
 
-1. [The layout](#the-layout)
+- The UI repository is a pure npm project. It builds and publishes everything that belongs to
+  one cockpit user interface: the user interface, the types library, the dev shells, the UI jar,
+  the types jar and an nginx image. It has no `pom.xml`.
+- The backend repository is a pure Maven project. It is the cockpit application, and it pulls
+  the UI jar as an ordinary dependency. It has no `package.json`.
+
+Many companies run build agents that have either npm or Maven, not both. Many also treat a build
+that downloads a second tool chain later, like `frontend-maven-plugin` does, as a security risk.
+Two repositories avoid both problems, and a Maven release of the backend stays an ordinary Maven
+release.
+
+1. [The UI repository](#the-ui-repository)
 1. [The user interface bundle](#the-user-interface-bundle)
-1. [The jar the backend serves](#the-jar-the-backend-serves)
-1. [The runnable jar](#the-runnable-jar)
+1. [The UI jar](#the-ui-jar)
+1. [The types jar](#the-types-jar)
+1. [Uploading the jars into the Maven repository](#uploading-the-jars-into-the-maven-repository)
+1. [The nginx image](#the-nginx-image)
+1. [The backend repository](#the-backend-repository)
 1. [The types library](#the-types-library)
 1. [The dev shell libraries](#the-dev-shell-libraries)
 1. [What the project keeps beside the code](#what-the-project-keeps-beside-the-code)
 
-## The layout
+## The UI repository
 
 ```
 package.json                  the workspace root, with the scripts that build everything
@@ -24,10 +36,13 @@ packages/
   ui/                         the cockpit user interface
   bc-types/                   <scope>/bc-types, no dependencies
   bc-dev-shell-<framework>/   <scope>/bc-dev-shell-<framework>, one per framework of the modules
-jar/
-  pom.xml                     packages ui/dist into the UI jar
-runnable/
-  pom.xml                     optional, the runnable cockpit with the user interface inside
+jars/
+  build-jars.mjs              builds the UI jar and the types jar
+  publish-jars.mjs            uploads both into the Maven repository
+  types/                      the Java source of the types jar
+docker/
+  Dockerfile                  the nginx image for a separate deployment
+  nginx.conf.template
 e2e/                          the end-to-end tests, one per checklist item
 ```
 
@@ -56,12 +71,17 @@ Two rules for the output come from the backend:
   put their files into an `assets` folder by default. Where yours does not, configure the output
   path or the base path so that it does.
 
-## The jar the backend serves
+## The UI jar
 
-A Spring Boot cockpit serves static files from `classpath:/static/`. The runnable `container` jar
-sets `spring.web.resources.static-locations` to exactly this place, and the shell is looked up at
-`classpath:/static/index.html` unless `application.spa-default-file` says otherwise. So the UI jar
-holds the built files below `static/`:
+A jar is a zip file with a `META-INF/MANIFEST.MF`. The UI jar holds the built files at the place
+where the backend framework serves static files from its class path (`Q-BACKEND-FRAMEWORK`):
+
+| Backend framework | Place in the jar      | Served at |
+|-------------------|-----------------------|-----------|
+| Spring Boot       | `static/`             | `/` |
+| Quarkus           | `META-INF/resources/` | `/` |
+
+For Spring Boot:
 
 ```
 static/index.html
@@ -69,60 +89,157 @@ static/assets/<the bundle>
 META-INF/MANIFEST.MF
 ```
 
-The file `static/assets/main-1234.js` is served at the URL `/assets/main-1234.js`. Put this jar on
-the class path of the cockpit application, and the cockpit serves the user interface.
+The file `static/assets/main-1234.js` is served at the URL `/assets/main-1234.js`. Spring Boot
+also serves `META-INF/resources/` by default, but the runnable `container` jar sets
+`spring.web.resources.static-locations` to `classpath:/static/` only, and the shell is looked up at
+`classpath:/static/index.html` unless `application.spa-default-file` says otherwise. So for Spring
+Boot, `static/` is the place that works for every cockpit.
 
-`META-INF/resources/` is the place Quarkus serves from, and Spring Boot by default as well. It does
-not work with the runnable `container` jar, because that jar names `classpath:/static/` as its only
-location. There is no Quarkus variant of the cockpit backend today. So `static/` is the one place
-that works for every cockpit.
+There is no Quarkus variant of the cockpit backend yet. It comes later, and the generator is ready
+for it: the UI jar then puts the files below `META-INF/resources/`. A Quarkus native build bakes
+the static files into the native image when the image is built. So the UI jar must be a dependency
+at that moment. A file added afterwards is never served.
 
-The jar gets the Maven coordinates from the interview (`Q-UI-JAR`). A minimal `pom.xml` in `jar/`
-does the packaging:
+`jars/build-jars.mjs` builds the jar with a zip library from npm, for example `yazl` or `archiver`.
+No Maven and no JDK are needed for it. The version of the jar is the version in the root
+`package.json`. The script also writes the pom of the jar, with the coordinates from `Q-UI-JAR`,
+packaging `jar` and no dependencies.
 
-```xml
-<project>
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.example.cockpit</groupId>
-  <artifactId>business-cockpit-ui</artifactId>
-  <version>${revision}</version>
-  <packaging>jar</packaging>
-  <properties>
-    <revision>0.0.0-SNAPSHOT</revision>
-  </properties>
-  <build>
-    <resources>
-      <resource>
-        <directory>../packages/ui/dist</directory>
-        <targetPath>static</targetPath>
-      </resource>
-    </resources>
-  </build>
-  <distributionManagement>
-    <!-- the repository from Q-MAVEN-REPOSITORY -->
-  </distributionManagement>
-</project>
+## The types jar
+
+The values of `ui-uri-type` are a convention between this user interface and its workflow modules.
+VanillaBP knows no names for them and has no constant for them. So that a workflow module does not
+have to type the string, the UI repository ships a small jar with constants (`Q-TYPES-JAR`):
+
+```java
+package com.example.cockpit.ui;
+
+/** The values of ui-uri-type this cockpit user interface understands. */
+public final class UiUriTypes {
+
+    /** The module's parts are loaded into the cockpit through native federation. */
+    public static final String NATIVE_MF = "NATIVE_MF";
+
+    /** The module has pages of its own; its uiUriPath is a whole address. */
+    public static final String EXTERNAL = "EXTERNAL";
+
+    private UiUriTypes() {
+    }
+
+}
 ```
 
-The npm scripts call it: `npm run build:jar` runs `mvn -B -f jar/pom.xml package`, and
-`npm run publish:jar` runs `mvn -B -f jar/pom.xml deploy`. The version in the pom follows the
-version in the root `package.json`: the script passes it as `-Drevision=<version>`. A machine that builds the jar needs a JDK and Maven. If that is not wanted, a
-jar is a zip file with a `META-INF/MANIFEST.MF`. An npm script can build it with a zip library and
-publish it with `mvn deploy:deploy-file`, or with an HTTP `PUT` of the jar and a generated pom to the
-Maven repository. The pom is the simpler way and is the default.
+`EXTERNAL` is a name of this user interface like any other. It does not point to a constant of
+VanillaBP, because there is none. Whether a page is opened as it is depends on the path, not on the
+type: a `uiUriPath` that starts with `http://` or `https://` is used unchanged, see
+[module-federation.md](module-federation.md#which-data-finds-the-part).
 
-## The runnable jar
+A workflow module uses the constant in its configuration or its code. The types jar holds one class
+and nothing else, so it fits every module.
 
-If the organisation runs the runnable cockpit (`Q-BACKEND` is the `container` jar), build a second
-jar: the runnable cockpit with the user interface inside. A second `pom.xml` in `runnable/` has two
-dependencies, `io.vanillabp.businesscockpit:container` in the cockpit version from the interview and
-the UI jar from above. It repackages both with `spring-boot-maven-plugin`, goal `repackage`, main
-class `io.vanillabp.cockpit.BusinessCockpitStandaloneApplication`. That is the same way the
-`container` module builds its own runnable jar. The result is started with `java -jar` like the
-plain runnable cockpit, and it serves the user interface.
+The types jar needs a compiled class, and compiling needs `javac`. The OpenAPI generator already
+needs Java on the build machine, see [gui-api.md](gui-api.md#generating-the-client). So give that
+machine a JDK instead of a JRE, and `build-jars.mjs` runs `javac --release 17` on the one source
+file. If the build agent of the UI repository has no Java at all, see
+[rough-edges.md](rough-edges.md#the-ui-repository-still-needs-java).
 
-Do not unpack and repack a runnable jar by hand. Spring Boot expects the jars in `BOOT-INF/lib`
-stored without compression and listed in an index, and a hand-made change easily breaks that.
+## Uploading the jars into the Maven repository
+
+`jars/publish-jars.mjs` uploads the UI jar and the types jar with HTTP `PUT` into the Maven
+repository from `Q-MAVEN-REPOSITORY`. Nexus, Artifactory, GitHub Packages and a plain WebDAV server
+all take a `PUT` on the path Maven expects:
+
+```
+<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar
+<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.pom
+```
+
+For each of the two files the script also uploads the checksums Maven reads, `.sha1` and `.md5`,
+and `.sha256` and `.sha512` as well. The credentials come from the environment variables named in
+the interview, never from a file in the repository.
+
+So that a Maven release of the backend works:
+
+- The script uploads release versions only, like `1.4.0`. A Maven release refuses a dependency
+  with `-SNAPSHOT`. A snapshot would also need time-stamped file names and its own
+  `maven-metadata.xml`, which the script would have to write.
+- A release version is uploaded once. Before the upload the script asks with `HEAD` for the jar.
+  If it is there, the script stops with a message. It never overwrites a release.
+- A build for trying something out gets a version of its own, for example `1.4.0-dev.7`. Maven
+  treats it like a release version, so it never clashes with a snapshot and is never overwritten.
+- The version of the npm packages and of the jars is the same, the one in the root `package.json`.
+  `npm version` sets it, and the Git tag is made from it.
+- Nexus and Artifactory update the `maven-metadata.xml` of the artifact themselves after a `PUT`.
+  A plain WebDAV server does not; there the script also writes that file. Check this with your
+  repository once, before the first release.
+
+The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the
+npm packages runs next to it, with the same version.
+
+## The nginx image
+
+Some organisations do not put the user interface into the backend but deploy it on its own. For
+them, `docker/Dockerfile` builds an image based on the official `nginx` image. It copies
+`packages/ui/dist` into `/usr/share/nginx/html` and the configuration into
+`/etc/nginx/templates/`, so the address of the backend comes from an environment variable when the
+container starts.
+
+The configuration does four things:
+
+- Every path that is no file gets `index.html`
+  (`try_files $uri $uri/ /index.html`). `index.html` is sent with `Cache-Control: no-cache`.
+- nginx forwards to the backend whatever the backend answers: `/gui/api/`, `/wm/`,
+  `/logout` and the paths of the login from `Q-LOGIN`, for example `/login`, `/oauth2/` and
+  `/login/oauth2/`. So the browser sees one origin, and the session cookie travels with every
+  request without CORS.
+- `Host`, `X-Forwarded-For`, `X-Forwarded-Proto` and
+  `X-Forwarded-Host` are passed on, so a login redirect of the backend points back to nginx.
+- `/gui/api/v1/updates` is forwarded with `proxy_buffering off`,
+  `proxy_http_version 1.1`, an empty `Connection` header and a long `proxy_read_timeout`, for
+  example one hour. Otherwise nginx holds back the events or closes the stream.
+
+```nginx
+location /gui/api/v1/updates {
+  proxy_pass ${BACKEND_URL};
+  proxy_http_version 1.1;
+  proxy_set_header Connection "";
+  proxy_buffering off;
+  proxy_cache off;
+  proxy_read_timeout 1h;
+}
+```
+
+The backend then needs no UI jar. It still has to trust the forwarded headers, in Spring Boot with
+`server.forward-headers-strategy=framework` or `native`.
+
+## The backend repository
+
+The backend repository is the cockpit application of the organisation, built with Maven. How such
+an application is built is in the wiki under
+[Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
+It takes the UI jar as an ordinary dependency:
+
+```xml
+<dependency>
+  <groupId>com.example.cockpit</groupId>
+  <artifactId>business-cockpit-ui</artifactId>
+  <version>1.4.0</version>
+  <scope>runtime</scope>
+</dependency>
+```
+
+The skill does not write this repository. If it exists, read its `pom.xml` for
+`Q-BACKEND-FRAMEWORK`, and tell the user which dependency to add. A new version of the user
+interface is a new version number in this `pom.xml`, and the backend is released as usual.
+
+Repacking a finished runnable jar, for example turning `container-without-ui` into `container` by
+putting the files of the user interface into it, is not the way this skill takes. If somebody wants
+it anyway, two rules apply, and neither is proven by a test yet:
+
+- `Start-Class` in the manifest stays as it is. The main class has a different name in every
+  project.
+- The nested jars in `BOOT-INF/lib` stay stored without compression. Spring Boot reads them in
+  place, and a compressed nested jar does not start.
 
 ## The types library
 
@@ -142,7 +259,7 @@ React, an application config plus bootstrap for Angular, a component or plugin f
 [dev-shell.md](dev-shell.md) describes what it must do.
 
 The theme of the cockpit (`Q-THEME`) is built into the base pages of every dev shell. A user task
-or a workflow page must look the same in the dev shell as in the cockpit, as close to pixel-identical
+or a case page must look the same in the dev shell as in the cockpit, as close to pixel-identical
 as possible.
 
 ## What the project keeps beside the code
@@ -150,7 +267,7 @@ as possible.
 - `INTERVIEW.md`, the answers with their question ids.
 - `CHECKLIST.md`, the reference checklist plus the customer's items, see
   [`../SKILL.md`](../SKILL.md#phase-2-generate).
-- A `README.md` that says how to build, how to run against a cockpit and how to run the end-to-end
-  tests.
+- A `README.md` that says how to build, how to publish, how to run against a cockpit, how to run
+  the nginx image and how to run the end-to-end tests.
 - The texts of the user interface in separate files, one per language, see
   [behaviour.md](behaviour.md#language-and-texts).
