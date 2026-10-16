@@ -20,7 +20,10 @@ code of the cockpit. Read this before the first screen, not when something does 
 1. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
 1. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
 1. [The shell is not open today](#the-shell-is-not-open-today)
-1. [The module side still suggests an old `uiUriType`](#the-module-side-still-suggests-an-old-uiuritype)
+1. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
+1. [The update form has no offset](#the-update-form-has-no-offset)
+1. [An ended row does not say whether it was cancelled](#an-ended-row-does-not-say-whether-it-was-cancelled)
+1. [The UI repository still needs Java](#the-ui-repository-still-needs-java)
 1. [What the GUI API does not have](#what-the-gui-api-does-not-have)
 
 ## Assigning makes a candidate
@@ -132,6 +135,11 @@ An event of the update stream is a wake-up call: kind, id and type of change. It
 changed data, and it does not say who made the change. Never show anything from an event directly.
 Ask the server, and take an empty answer as an answer: the row may have left the user's view.
 
+Because the event does not say who made the change, the user interface cannot tell the user's own
+change from somebody else's by the event. It remembers the ids of the rows the user just changed
+through the cockpit, and does not mark the next change of such a row, see
+[behaviour.md](behaviour.md#live-updates).
+
 Each stream only gets events its user may know of, or events about rows its browser already shows.
 A `RELOAD` with an empty id means "load the lists of this kind again". It comes at the start of every
 stream and whenever the stream had to forget ids. See
@@ -151,11 +159,39 @@ basic authentication for everything else, the shell at `/` included. An applicat
 security chain (a bean named `guiHttpSecurity`) opens the shell itself. With the default chain, the
 browser shows its basic authentication dialog before the shell loads.
 
-## The module side still suggests an old `uiUriType`
+## A module may report a type of another user interface
 
-When a workflow module starts without `ui-uri-type`, the message of the VanillaBP extension suggests
-`EXTERNAL` and `WEBPACK_MF_REACT`. Any string is accepted. A module for a native federation cockpit
-sets `NATIVE_MF`, or the value from `Q-UI-URI-TYPE`. Tell the module developers so.
+VanillaBP knows no names for `ui-uri-type`. It requires the value and accepts any string. A workflow
+module built for an older or another cockpit user interface keeps reporting the name that user
+interface understood. Your user interface does not know it. Show the row, and tell the user that it
+cannot be opened here. Tell the module developers to use the constants of your types jar, see
+[project.md](project.md#the-types-jar).
+
+## The update form has no offset
+
+`PUT /usertask` and `PUT /workflow` always start at the first row. There is no `pageNumber`. For a
+window of loaded rows further down the list, a `PUT` would have to ask for every row above the
+window, and every row it does not know comes in full. That is the memory problem the window is
+there to avoid. So read the pages of such a window again with `POST`, with the same
+`initialTimestamp`. Use `PUT` only while the window starts at the top. See
+[behaviour.md](behaviour.md#live-updates).
+
+## An ended row does not say whether it was cancelled
+
+A user task and a case have `endedAt`, but nothing says whether they were completed or cancelled.
+The list wants to show completed rows normally and cancelled rows grey with a struck-through title,
+see [behaviour.md](behaviour.md#closed-and-cancelled-rows). Until the GUI API carries this, the
+user interface cannot tell the two apart. Show every ended row as completed, and add a backend
+extension to the plan if the organisation wants the difference.
+
+## The UI repository still needs Java
+
+The UI repository is an npm project, but two steps need Java: `openapi-generator-cli` runs the
+OpenAPI Generator jar, and the types jar needs `javac` for its one class. So the build agent needs a
+JDK next to Node, from an image the company trusts. The generator jar is downloaded on the first
+run; point that download at the company's Maven repository, see
+[gui-api.md](gui-api.md#generating-the-client). If an npm-only agent without any Java is a hard
+rule, this is not solved yet.
 
 ## What the GUI API does not have
 
@@ -165,6 +201,10 @@ Some wishes of the interview need something the GUI API does not offer today:
 - a place to keep the user's preferences, such as the last primary filter; keep them in the
   browser's local storage,
 - counts grouped by task type or case kind for a dashboard (`Q-DASHBOARD`); count with one request
-  per type, or extend the backend.
+  per type, with `pageSize` 1 and no `sort`, or extend the backend,
+- whether an ended user task or case was completed or cancelled, see
+  [above](#an-ended-row-does-not-say-whether-it-was-cancelled),
+- the rights of the user and where they come from, for the overview in the menu; this part is
+  still to come, see [behaviour.md](behaviour.md#the-header-and-the-menu).
 
 Say so in the interview, and add a backend extension to the plan when the organisation wants them.
