@@ -46,7 +46,8 @@ For this it must:
 2. Show real data. The user task and the case come from the GUI API of the simulator, not from a
    file with sample data. Only then does the shape of the data match the cockpit's.
 3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there,
-   `sendTo` and `receiveMessage` included. See [types.md](types.md#bcusertask-and-bcworkflow).
+   `sendTo` and `receiveMessage` included, and hand every part `showNotification`. See
+   [types.md](types.md#bcusertask-and-bcworkflow).
 4. Switch between the parts, and between the user tasks and cases there are.
 5. Offer the users of the simulator to choose from. The developer picks a user, switches to another
    one, and deselects the user again. Picking a user sets up a real security context: the simulator
@@ -56,7 +57,8 @@ For this it must:
 6. Offer every agreed extension point for testing, not only the page of a user task and the page of
    a case. A header button shows in a header like the cockpit's, a page of a module under its route
    `/<workflowModuleId>/<pageId>` with its menu entry, and a dialog opens modally.
-7. Show a toast when a part asks for one, also one that has to be clicked away.
+7. Show a toast when a part calls `showNotification`, in the look of its `level`, and keep a
+   `sticky` one until it is clicked away.
 8. Let the developer choose the language from the languages of the cockpit (`Q-LANGUAGES`).
 9. Look like the cockpit. The theme from the interview (`Q-THEME`) is built into the base pages when
    the dev shell is generated, so a user task or a case looks as close to pixel-identical to the
@@ -75,7 +77,7 @@ What is handed over is the real contract:
 | What                        | Why the shell needs it |
 |-----------------------------|------------------------|
 | the address of the GUI API  | it builds its client from it, with the simulator `/official-api/v1` |
-| the user task page          | the page of a user task |
+| the user task form          | the page of a user task |
 | the case page               | the page of a case |
 | further parts by their name | for the organisation's other extension points |
 | the workflow module id      | for the frame, and for the requests of a form through `/wm/` |
@@ -88,11 +90,12 @@ The form of the entry point follows the framework, and it does not have to be th
 
 Use what is natural in the framework. What is handed over is the same.
 
-The user task page and the case page are handed over as a function of the same shape as the one the
-module exposes, see
+The user task form and the case page are handed over as a function of the same shape as the one the
+module exposes, `userTaskForm` and `workflowPage`, see
 [module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). The only
-difference: per area it returns the module's component of the framework instead of the name of a
-web component. So the dev shell lays out the same areas, and the dev server can swap the components.
+difference: it returns the module's component of the framework instead of the name of a web
+component. One component is the all-in-one form, a map of areas to components is the laid-out
+form. So the dev shell lays out the page the same way, and the dev server can swap the components.
 
 ## What it shows
 
@@ -123,7 +126,8 @@ the dev shell, because the components are not wrapped. What each function does:
 | `open`, `navigateToWorkflow`             | go to the shell's own page of this user task or this case |
 | `assign`, `unassign`, `claim`, `unclaim` | the simulator does not answer them; show a toast that says so, and resolve |
 | `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again |
-| `sendTo`, `receiveMessage`               | carry the message to the component of the other area, as the cockpit does |
+| `sendTo`, `receiveMessage`               | carry the message to the subscribed component of the other area, as the cockpit does; keep messages until the area subscribes, and stop on `unsubscribe` |
+| `showNotification`                       | show the toast, as the cockpit does |
 | `openDialog`                             | show the component in a modal layer, as the cockpit does |
 
 Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is

@@ -4,11 +4,12 @@
 
 By default the skill fills two repositories, and each one needs only one build tool.
 
-- The UI repository is a pure npm project. It builds and publishes everything that belongs to
-  one cockpit user interface: the user interface, the types library, the dev shells, the UI jar,
-  the types jar and an nginx image. It has no `pom.xml`.
+- The UI repository is a pure npm project. It builds and publishes the user interface, the types
+  library, the dev shells, the UI jar and an nginx image. It has no `pom.xml`, and its build needs
+  no Java.
 - The backend repository is a pure Maven project. It is the cockpit application, and it pulls
-  the UI jar as an ordinary dependency. It has no `package.json`.
+  the UI jar as an ordinary dependency. By default it also builds the types jar. It has no
+  `package.json`.
 
 Many companies run build agents that have either npm or Maven, not both. Many also treat a build
 that downloads a second tool chain later, like `frontend-maven-plugin` does, as a security risk.
@@ -18,10 +19,11 @@ release.
 1. [The UI repository](#the-ui-repository)
 1. [The user interface bundle](#the-user-interface-bundle)
 1. [The UI jar](#the-ui-jar)
-1. [The types jar](#the-types-jar)
-1. [Uploading the jars into the Maven repository](#uploading-the-jars-into-the-maven-repository)
+1. [Uploading the UI jar into the Maven repository](#uploading-the-ui-jar-into-the-maven-repository)
 1. [The nginx image](#the-nginx-image)
 1. [The backend repository](#the-backend-repository)
+1. [The types jar](#the-types-jar)
+1. [What still needs Java](#what-still-needs-java)
 1. [The types library](#the-types-library)
 1. [The dev shell libraries](#the-dev-shell-libraries)
 1. [What the project keeps beside the code](#what-the-project-keeps-beside-the-code)
@@ -37,9 +39,8 @@ packages/
   bc-types/                   <scope>/bc-types, no dependencies
   bc-dev-shell-<framework>/   <scope>/bc-dev-shell-<framework>, one per framework of the modules
 jars/
-  build-jars.mjs              builds the UI jar and the types jar
-  publish-jars.mjs            uploads both into the Maven repository
-  types/                      the Java source of the types jar
+  build-jars.mjs              builds the UI jar
+  publish-jars.mjs            uploads it into the Maven repository
 docker/
   Dockerfile                  the nginx image for a separate deployment
   nginx.conf.template
@@ -66,10 +67,11 @@ the cockpit is the host, and the host only needs the runtime, see
 Two rules for the output come from the backend:
 
 - `index.html` is the shell. It must not be cached, and it is served for every unknown path.
-- Every other file must be reachable under `/assets/` or `/static/`. Today only these two prefixes
-  are open without a login, see [gui-api.md](gui-api.md#protection-and-login). Many build tools
-  put their files into an `assets` folder by default. Where yours does not, configure the output
-  path or the base path so that it does.
+- Every other file lies below one prefix, `/assets/` by default. Then the backend application
+  opens all of them without a login with one rule, see
+  [gui-api.md](gui-api.md#protection-and-login). Many build tools put their files into an `assets`
+  folder by default. Where yours does not, configure the output path or the base path so that it
+  does.
 
 ## The UI jar
 
@@ -101,53 +103,15 @@ the static files into the native image when the image is built. So the UI jar mu
 at that moment. A file added afterwards is never served.
 
 `jars/build-jars.mjs` builds the jar with a zip library from npm, for example `yazl` or `archiver`.
-No Maven and no JDK are needed for it. The version of the jar is the version in the root
-`package.json`. The script also writes the pom of the jar, with the coordinates from `Q-UI-JAR`,
-packaging `jar` and no dependencies.
+No Maven and no JDK are needed for it, because the jar holds no compiled class. The version of the
+jar is the version in the root `package.json`. The script also writes the pom of the jar, with the
+coordinates from `Q-UI-JAR`, packaging `jar` and no dependencies.
 
-## The types jar
+## Uploading the UI jar into the Maven repository
 
-The values of `ui-uri-type` are a convention between this user interface and its workflow modules.
-VanillaBP knows no names for them and has no constant for them. So that a workflow module does not
-have to type the string, the UI repository ships a small jar with constants (`Q-TYPES-JAR`):
-
-```java
-package com.example.cockpit.ui;
-
-/** The values of ui-uri-type this cockpit user interface understands. */
-public final class UiUriTypes {
-
-    /** The module's parts are loaded into the cockpit through native federation. */
-    public static final String NATIVE_MF = "NATIVE_MF";
-
-    /** The module has pages of its own; its uiUriPath is a whole address. */
-    public static final String EXTERNAL = "EXTERNAL";
-
-    private UiUriTypes() {
-    }
-
-}
-```
-
-`EXTERNAL` is a name of this user interface like any other. It does not point to a constant of
-VanillaBP, because there is none. Whether a page is opened as it is depends on the path, not on the
-type: a `uiUriPath` that starts with `http://` or `https://` is used unchanged, see
-[module-federation.md](module-federation.md#which-data-finds-the-part).
-
-A workflow module uses the constant in its configuration or its code. The types jar holds one class
-and nothing else, so it fits every module.
-
-The types jar needs a compiled class, and compiling needs `javac`. The OpenAPI generator already
-needs Java on the build machine, see [gui-api.md](gui-api.md#generating-the-client). So give that
-machine a JDK instead of a JRE, and `build-jars.mjs` runs `javac --release 17` on the one source
-file. If the build agent of the UI repository has no Java at all, see
-[rough-edges.md](rough-edges.md#the-ui-repository-still-needs-java).
-
-## Uploading the jars into the Maven repository
-
-`jars/publish-jars.mjs` uploads the UI jar and the types jar with HTTP `PUT` into the Maven
-repository from `Q-MAVEN-REPOSITORY`. Nexus, Artifactory, GitHub Packages and a plain WebDAV server
-all take a `PUT` on the path Maven expects:
+`jars/publish-jars.mjs` uploads the UI jar with HTTP `PUT` into the Maven repository from
+`Q-MAVEN-REPOSITORY`. Nexus, Artifactory, GitHub Packages and a plain WebDAV server all take a
+`PUT` on the path Maven expects:
 
 ```
 <repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar
@@ -167,14 +131,15 @@ So that a Maven release of the backend works:
   If it is there, the script stops with a message. It never overwrites a release.
 - A build for trying something out gets a version of its own, for example `1.4.0-dev.7`. Maven
   treats it like a release version, so it never clashes with a snapshot and is never overwritten.
-- The version of the npm packages and of the jars is the same, the one in the root `package.json`.
+- The version of the npm packages and of the UI jar is the same, the one in the root `package.json`.
   `npm version` sets it, and the Git tag is made from it.
 - Nexus and Artifactory update the `maven-metadata.xml` of the artifact themselves after a `PUT`.
   A plain WebDAV server does not; there the script also writes that file. Check this with your
   repository once, before the first release.
 
 The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the
-npm packages runs next to it, with the same version.
+npm packages runs next to it, with the same version. The types library must be published before the
+backend builds the types jar, see [The types jar](#the-types-jar).
 
 ## The nginx image
 
@@ -228,8 +193,9 @@ It takes the UI jar as an ordinary dependency:
 </dependency>
 ```
 
-The skill does not write this repository. If it exists, read its `pom.xml` for
-`Q-BACKEND-FRAMEWORK`, and tell the user which dependency to add. A new version of the user
+The skill does not write the application. If the repository exists, read its `pom.xml` for
+`Q-BACKEND-FRAMEWORK`, and tell the user which dependency to add. The one thing the skill may add
+to it is the module of the types jar, see [The types jar](#the-types-jar). A new version of the user
 interface is a new version number in this `pom.xml`, and the backend is released as usual.
 
 Repacking a finished runnable jar, for example turning `container-without-ui` into `container` by
@@ -240,6 +206,68 @@ it anyway, two rules apply, and neither is proven by a test yet:
   project.
 - The nested jars in `BOOT-INF/lib` stay stored without compression. Spring Boot reads them in
   place, and a compressed nested jar does not start.
+
+## The types jar
+
+**Proposal, to be confirmed by Stephan.**
+
+The values of `ui-uri-type` are a convention between this user interface and its workflow modules.
+VanillaBP knows no names for them and has no constant for them. So that a workflow module does not
+have to type the string, there is a small Maven artifact with constants (`Q-TYPES-JAR`):
+
+```java
+package com.example.cockpit.ui;
+
+/** The values of ui-uri-type this cockpit user interface understands. */
+public final class UiUriTypes {
+
+    /** The module's parts are loaded into the cockpit through native federation. */
+    public static final String NATIVE_MF = "NATIVE_MF";
+
+    /** The module has pages of its own; the cockpit opens them in a tab of its own. */
+    public static final String EXTERNAL = "EXTERNAL";
+
+    private UiUriTypes() {
+    }
+
+}
+```
+
+`EXTERNAL` is a name of this user interface like any other. It does not point to a constant of
+VanillaBP, because there is none. The type decides how a row opens, not the form of its address,
+see [module-federation.md](module-federation.md#which-data-finds-the-part).
+
+A workflow module uses the constant in its configuration or its code. The types jar holds one class
+and nothing else, so it fits every module.
+
+A jar with a compiled class needs `javac`, and the UI repository stays npm-only. So the types jar is
+built where Maven already runs. The default is a small Maven module in the backend repository, for
+example `business-cockpit-ui-types`. If the backend repository should not carry it, it is a tiny
+Maven project of its own. Either way it is built like this:
+
+1. The UI repository decides the list. The types library carries it as `ui-uri-types.json`, see
+   [types.md](types.md#data-from-the-gui-api).
+2. The Maven module downloads the npm package `<scope>/bc-types` of the same version from the npm
+   registry. A tarball is a plain file, so a plain download needs no npm, for example with
+   `download-maven-plugin`.
+3. A short build step writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
+   with the description as Javadoc. Maven compiles it as usual.
+4. The version of the types jar is the version of the types library. So `1.4.0` of the jar always
+   holds the values of `1.4.0` of the user interface.
+
+The generator writes this module into the backend repository only when the user agrees, and tells
+the user which coordinates it has (`Q-TYPES-JAR`).
+
+## What still needs Java
+
+The UI repository needs no Java to build. Two things around it still run on Java:
+
+- The end-to-end tests run against a running cockpit with workflow modules, and both are Java
+  applications. Run them as container images where the organisation has them. Otherwise the test
+  machine needs a Java runtime, but only to start them, not to build anything.
+- The dev shell simulator is a runnable jar, see
+  [dev-shell.md](dev-shell.md#the-dev-shell-simulator). A module developer needs a Java runtime to
+  start it. The UI repository does not build it.
 
 ## The types library
 

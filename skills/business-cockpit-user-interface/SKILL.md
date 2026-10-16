@@ -52,19 +52,19 @@ The UI repository is a pure npm project. It produces:
   the workflow modules into its pages at runtime.
 - The UI jar, with the built files at the place where the backend framework serves them. A Node
   script builds it and uploads it with HTTP `PUT` into the company's Maven repository.
-- The types jar, a small jar with the constants of the `ui-uri-type` values this user interface
-  understands, for the Java side of the workflow modules. It is uploaded the same way.
 - A types library for workflow modules, as an npm package. It says what a part of a module may
   expect from the cockpit, and it carries the small helper which turns a function call into an event
-  on the DOM element.
+  on the DOM element. It also lists the `ui-uri-type` values this user interface understands.
 - A dev shell for each framework the workflow modules use, as an npm package. It is the workbench on
   which somebody writes a user task form without starting a cockpit.
 - A `Dockerfile` that serves the user interface with nginx, for an organisation that deploys it
   apart from the backend.
 
 The backend repository is a pure Maven project, the cockpit application of the organisation. It
-pulls the UI jar as an ordinary dependency. The skill does not write it, but it tells the user which
-dependency to add.
+pulls the UI jar as an ordinary dependency. The skill does not write the application, but it tells
+the user which dependency to add. By default it adds one small Maven module to this repository: the
+types jar with the constants of the `ui-uri-type` values, for the Java side of the workflow modules.
+The types jar needs compiled Java classes, so it cannot live in the npm-only UI repository.
 
 ## Phase 1: interview
 
@@ -123,8 +123,8 @@ Read them in this order. Each one builds on the one before.
 1. [references/interview.md](references/interview.md)<br>
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
-   The two repositories: the user interface, the UI jar, the types jar, the upload into the Maven
-   repository, the nginx image, the backend, the types library and the dev shells.
+   The two repositories: the user interface, the UI jar, the upload into the Maven repository, the
+   nginx image, the backend with the types jar, the types library and the dev shells.
 3. [references/gui-api.md](references/gui-api.md)<br>
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
@@ -137,8 +137,8 @@ Read them in this order. Each one builds on the one before.
    What goes into the types library the generated user interface publishes.
 6. [references/behaviour.md](references/behaviour.md)<br>
    What the user expects: the screens, the header and the menu, the counts, the lists, the columns,
-   opening a task, the window of loaded rows, live updates, search, language, extension points and
-   who sees what.
+   notes, opening a task, the window of loaded rows, live updates, search, user settings, language,
+   extension points and who sees what.
 7. [references/dev-shell.md](references/dev-shell.md)<br>
    The workbench for a workflow module and the simulator behind it.
 8. [references/rough-edges.md](references/rough-edges.md)<br>
@@ -203,15 +203,13 @@ the UI repository instead. It forwards the GUI API, the workflow modules and the
 backend, so the browser still sees one origin, see
 [references/project.md](references/project.md#the-nginx-image).
 
-The library prescribes no authentication. How a user logs in is decided by the kind of backend. In
+The library sets no rules for login. How a user logs in is decided by the backend application. In
 Spring Boot, for example, an unauthenticated request can be sent to the `/login` endpoint. Depending
 on the configuration, that shows a login form or forwards to an OAuth2 login. The runnable
-`container` jar is an example that runs out of the box, and only it uses basic authentication with
-a local user directory. Today the library's default security chain also asks for basic
-authentication, until the application replaces the bean `guiHttpSecurity` with its own. See
-[Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
+`container` jar is an example that runs out of the box. Only it uses basic authentication, with a
+local user directory. See [Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
 
-What your user interface needs from the backend:
+What your user interface needs from the backend application:
 
 - The single-page application loads without a login. Its static files, its shell `index.html` and
   the two endpoints `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user` stay open.
@@ -238,7 +236,7 @@ seeing anything.
    points.
 6. The update stream. It comes late, because it needs most of the rest.
 7. The dev shells, one per framework the workflow modules use.
-8. The types jar and the nginx image.
+8. The types jar in the backend repository, and the nginx image.
 9. The end-to-end tests, one per checklist item.
 
 ## How you know it is done
@@ -258,8 +256,8 @@ Then:
 5. Claiming and unclaiming work, and the row shows it afterwards.
 6. Paging, sorting and searching return what they should, also over reported business data.
 7. Scrolling through 20,000 cases keeps the JavaScript heap below the limit from the interview.
-8. A user task whose `uiUri` is a whole address opens that address unchanged and leaves the list
-   intact.
+8. A user task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own and leaves
+   the list intact.
 9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.
 10. The backend repository builds with the UI jar as a dependency, and the nginx image serves the
     same user interface against the same backend.
