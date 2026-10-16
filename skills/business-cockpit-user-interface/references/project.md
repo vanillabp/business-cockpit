@@ -62,8 +62,9 @@ framework, so separate packages are cleaner.
 The GUI API client is generated at build time into `packages/ui` and into each dev shell, see
 [gui-api.md](gui-api.md#generating-the-client). It is not committed. `scripts/fetch-openapi.mjs`
 loads the two OpenAPI files first. It reads the jars of the cockpit from the Maven repository of
-the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`), with the token from the environment
-variable the interview names. For GitHub Packages that is the token `.npmrc` uses as well.
+the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default that is Maven Central,
+which needs no token. Only a company repository with a login needs one, from the environment
+variable the interview names.
 
 ## The user interface bundle
 
