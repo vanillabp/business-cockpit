@@ -46,8 +46,9 @@ task and the page of a case, see [Extension points](#extension-points). Because 
 used across the whole company, such a function may have little to do with processes. An example is
 a page where a user sets a substitute for an absence.
 
-Many developers find module federation unusual, because it is not how web applications are usually
-built. The dev shell is the answer for the modules' developers, see [dev-shell.md](dev-shell.md).
+Many developers find it unusual that the parts of a module are loaded into the cockpit at runtime,
+because it is not how web applications are usually built. The dev shell is the answer for the
+modules' developers, see [dev-shell.md](dev-shell.md).
 
 ## The screens
 
@@ -261,10 +262,10 @@ A list that first shows the fixed columns and then adds the module columns flick
 dislike that. So:
 
 1. Ask for the first 20 rows. That is about one screen.
-2. Ask the [loader](module-federation.md#one-registry-and-one-loader) for the list part
-   (`UserTaskList` or `WorkflowList`) of each module these rows come from. A part that is
-   already loaded is not loaded again. The registry of modules is in memory since the start, so
-   nothing is asked for it here.
+2. Ask the [loader](module-loading.md#one-registry-and-one-loader) for the list part
+   (`UserTaskList` or `WorkflowList`) of each module these rows come from. It is a data entry
+   without a framework, so this is fast. A part that is already loaded is not loaded again. The
+   registry of modules is in memory since the start, so nothing is asked for it here.
 3. Call the column function for each of the 20 rows, and build the list with these columns.
 4. While the list stands, load the rest of the window, as many rows as are needed to fill the
    visible area plus one page.
@@ -325,7 +326,7 @@ document the server stores, not into the JSON you got. For `details.*` both are 
 stored fields are `id`, `fulltext` and `sort`.
 
 Whether a module may draw cells itself is an open question, see
-[module-federation.md](module-federation.md#cells-drawn-by-a-workflow-module). It depends on a way to
+[module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module). It depends on a way to
 do it without starting a framework once per cell, and prompt `1500` looks for one. More column
 types out of the box, for example a currency, are a wish for later.
 
@@ -384,7 +385,7 @@ a real link, so a user who wants a tab can still choose "open in new tab".
 There is one exception. A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its
 own, so the list stays. That is the module's choice, made through the type, not the form of the
 address. The address itself is built by the one rule of
-[module-federation.md](module-federation.md#which-data-finds-the-part). From a task to its case
+[module-loading.md](module-loading.md#which-data-finds-the-part). From a task to its case
 always leads to the cockpit's own case page, not to the address of the task. The task says where the
 task is shown, and that is not where the case is shown.
 
@@ -434,7 +435,7 @@ in, the checklist items `TF-007`, `TF-017` and `TF-018` say they are to be verif
 ### What the page does
 
 1. It loads the user task and marks it as read.
-2. It asks the [loader](module-federation.md#one-registry-and-one-loader) for `UserTaskForm` of
+2. It asks the [loader](module-loading.md#one-registry-and-one-loader) for `UserTaskForm` of
    the task's module and calls `userTaskForm` with the task.
 3. While one of the two is running, it shows a loading state. On an error, a note with a button that
    tries again. There are two different errors: the task could not be loaded, or the part of the
@@ -445,7 +446,7 @@ in, the checklist items `TF-007`, `TF-017` and `TF-018` say they are to be verif
 ### The areas and the frame
 
 The function returns either one web component or one per area (`Q-PAGE-AREAS`), see
-[module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). A string is the
+[module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). A string is the
 name of one web component, the all-in-one form: it gets the whole area, with no column. An object
 names a web component per area, the laid-out form. With the default convention:
 
@@ -710,8 +711,10 @@ a setting uses the service, and nothing else calls the endpoints. The service:
 - reads an entry the first time somebody asks for it, and keeps it in a cache in memory,
 - answers every later question from the cache,
 - writes a change to the server and updates the cache at once, so the page does not wait,
-- names its keys with a prefix of the user interface and a fixed scheme, for example
-  `bc.tasks.primaryFilter` or `bc.columns.tasks.<path>.width`,
+- names its keys with a prefix of the user interface and a fixed scheme, with `:` as the
+  separator, for example `bc:tasks:primaryFilter` or `bc:columns:tasks:width:<path>`. The server
+  refuses a key with a `.` (prompt `1505`), so the dots of a path become `:` as well:
+  `bc:columns:tasks:width:details:customer:name`,
 - keeps implicit settings that change often, like a column width while dragging, until the change
   has stopped for a moment, and writes only then.
 
@@ -761,12 +764,12 @@ The rules:
 
 - An extension point outside the lists and the two pages asks every workflow module the user may
   see. The lists and the two pages only ask the module of the row, the task or the case.
-- Which extension points exist is decided per organisation. It is a module federation contract
-  between the cockpit and the workflow modules, and it holds for all modules. The types library
-  writes it down, see [types.md](types.md#the-extension-points).
+- Which extension points exist is decided per organisation. It is a contract between the cockpit
+  and the workflow modules, and it holds for all modules. The types library writes it down, see
+  [types.md](types.md#the-extension-points).
 - A module that does not fill an extension point causes no error. It is ignored.
 
-How it works is in [module-federation.md](module-federation.md#the-other-extension-points).
+How it works is in [module-loading.md](module-loading.md#the-other-extension-points).
 
 ## Who sees what
 

@@ -35,27 +35,30 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## PKG: build outputs
 
-| Id        | Item                                                                                                                                                                                                                                                         | Applies |
-|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `PKG-001` | Removed: the types jar left the UI repository, see `PKG-015` and `PKG-016`.                                                                                                                                                                                  | removed |
-| `PKG-002` | The GUI API client is generated at build time from the OpenAPI files of the pinned cockpit version and is not committed.                                                                                                                                     | always |
-| `PKG-003` | The UI jar has the coordinates from the interview and holds `index.html` and the bundle at the place the backend framework serves: `static/` or `META-INF/resources/`.                                                                                       | always |
-| `PKG-004` | Added as a dependency to the backend, the UI jar makes `/` show the user interface.                                                                                                                                                                          | always |
-| `PKG-005` | The backend repository builds with Maven only, takes the UI jar as an ordinary dependency, and a Maven release of it succeeds.                                                                                                                               | always |
-| `PKG-006` | The types library is published with no dependencies and no peer dependencies.                                                                                                                                                                                | always |
-| `PKG-007` | Each dev shell package is published with its framework as a peer dependency and the types library as a dependency.                                                                                                                                           | always |
-| `PKG-008` | `INTERVIEW.md` and `CHECKLIST.md` are in the project and name the version of this reference.                                                                                                                                                                 | always |
-| `PKG-009` | The bundle contains no part of any workflow module.                                                                                                                                                                                                          | always |
-| `PKG-010` | Removed: replaced by `PKG-016`.                                                                                                                                                                                                                              | removed |
-| `PKG-011` | The upload script puts jar, pom and their checksums into the Maven repository with HTTP `PUT`, and refuses to overwrite a release version that is already there.                                                                                             | always |
-| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.                                                                                                   | always |
-| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                                                                                                        | always |
-| `PKG-014` | The UI repository has no `pom.xml`, and the backend repository has no `package.json`.                                                                                                                                                                        | always |
-| `PKG-015` | One npm workspace builds the user interface, the types library, every dev shell and the UI jar with one command, without Maven and without Java.                                                                                                             | always |
-| `PKG-016` | The types jar is built with Maven outside the UI repository, from `ui-uri-types.json` of the types library of the same version; it holds one constant per entry, `EXTERNAL` included, and none points to a constant of VanillaBP.                            | always |
-| `PKG-017` | The types library carries `ui-uri-types.json` and one TypeScript constant for each of its values.                                                                                                                                                            | always |
-| `PKG-018` | The types jar is built by a Maven project of its own, not by the backend application or the UI build, and its `README.md` explains the order cockpit release, user interface, types module, backend, and why.                                                | always |
-| `PKG-019` | The OpenAPI files are loaded from the jars of the cockpit coordinates in the Maven repository of the interview, Maven Central by default; a token is read from the environment variable the interview names, and only where the repository asks for a login. | always |
+| Id        | Item                                                                                                                                                                                                                                                            | Applies |
+|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `PKG-001` | Removed: the types jar left the UI repository, see `PKG-015` and `PKG-016`.                                                                                                                                                                                     | removed |
+| `PKG-002` | The GUI API client is generated at build time from the OpenAPI files of the pinned cockpit version and is not committed.                                                                                                                                        | always |
+| `PKG-003` | The UI jar has the coordinates from the interview and holds `index.html` and the bundle at the place the backend framework serves: `static/` or `META-INF/resources/`.                                                                                          | always |
+| `PKG-004` | Added as a dependency to the backend, the UI jar makes `/` show the user interface.                                                                                                                                                                             | always |
+| `PKG-005` | The backend repository builds with Maven only, takes the UI jar as an ordinary dependency, and a Maven release of it succeeds.                                                                                                                                  | always |
+| `PKG-006` | The types library is published with no dependencies and no peer dependencies.                                                                                                                                                                                   | always |
+| `PKG-007` | Each dev shell package is published with its framework as a peer dependency and the types library as a dependency.                                                                                                                                              | always |
+| `PKG-008` | `INTERVIEW.md` and `CHECKLIST.md` are in the project and name the version of this reference.                                                                                                                                                                    | always |
+| `PKG-009` | The bundle contains no part of any workflow module.                                                                                                                                                                                                             | always |
+| `PKG-010` | Removed: replaced by `PKG-016`.                                                                                                                                                                                                                                 | removed |
+| `PKG-011` | The upload script puts jar, pom and their checksums into the Maven repository with HTTP `PUT`, and refuses to overwrite a release version that is already there.                                                                                                | always |
+| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.                                                                                                      | always |
+| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                                                                                                           | always |
+| `PKG-014` | The UI repository has no `pom.xml`, and the backend repository has no `package.json`.                                                                                                                                                                           | always |
+| `PKG-015` | One npm workspace builds the user interface, the types library, every dev shell and the UI jar with one command, without Maven and without Java.                                                                                                                | always |
+| `PKG-016` | The types jar is built with Maven outside the UI repository, from `ui-uri-types.json` of the types library of the same version; it holds one constant per entry, `EXTERNAL` included, and none points to a constant of VanillaBP.                               | always |
+| `PKG-017` | The types library carries `ui-uri-types.json` and one TypeScript constant for each of its values.                                                                                                                                                               | always |
+| `PKG-018` | The types jar is built by a Maven project of its own, not by the backend application or the UI build, and its `README.md` explains the order cockpit release, user interface, types module, backend, and why.                                                   | always |
+| `PKG-019` | The OpenAPI files are loaded from the jars of the cockpit coordinates in the Maven repository of the interview, Maven Central by default; a token is read from the environment variable the interview names, and only where the repository asks for a login.    | always |
+| `PKG-020` | The bundle has no import map, no `es-module-shims` and no package of a module federation library.                                                                                                                                                               | always |
+| `PKG-021` | The types library ships `bc-check-entries`, a script without dependencies that fails a module's build when an entry of the manifest has no file, or when a data entry with the files it imports is larger than `Q-DATA-ENTRY-LIMIT` or contains framework code. | always |
+| `PKG-022` | `bc-check-entries` passes for every blueprint module the end-to-end tests use, and fails for a test entry that imports a framework.                                                                                                                             | always |
 
 ## AUTH: loading and login
 
@@ -256,32 +259,41 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## EXT: module parts and extension points
 
-| Id        | Item                                                                                                                                                     | Applies |
-|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `EXT-001` | Parts are loaded with the native federation orchestrator from `/wm/<workflowModuleId>/remoteEntry.json`.                                                 | always |
-| `EXT-002` | Each pair of module and exposed name is loaded at most once per page.                                                                                    | always |
-| `EXT-003` | Removed: replaced by `EXT-020`.                                                                                                                          | removed |
-| `EXT-004` | Removed: replaced by `EXT-021`.                                                                                                                          | removed |
-| `EXT-005` | Every web component of a module renders inside a shadow DOM, and the cockpit's styles do not change it, nor it the cockpit's.                            | always |
-| `EXT-006` | A name of a web component that is not registered when the module's function returns is treated as a failed load.                                         | always |
-| `EXT-007` | A `bc-request` from a part is answered with exactly one `bc-response` with the same `requestId`.                                                         | always |
-| `EXT-008` | An unknown action is answered with the error code `UNKNOWN_ACTION`.                                                                                      | always |
-| `EXT-009` | An action the server refuses is answered with `REFUSED` and the HTTP status.                                                                             | always |
-| `EXT-010` | Every extension point outside the lists, the task page and the case page asks every module the user may see; those three ask only the module of the row. | always |
-| `EXT-011` | A module that does not expose an extension point causes no error and no message to the user.                                                             | always |
-| `EXT-012` | The extension points from the interview work with a blueprint module that fills them.                                                                    | `Q-EXTENSION-POINTS` |
-| `EXT-013` | The theme reaches the module's shadow DOM as the CSS custom properties named in the types library.                                                       | `Q-THEME-TOKENS` = yes |
-| `EXT-014` | When the language changes, every visible web component gets the new `language` property.                                                                 | `Q-LANGUAGE-SWITCH` = yes |
-| `EXT-015` | A part that fails to load shows a note and a retry button.                                                                                               | always |
-| `EXT-016` | `GET /workflow-module` is called once at the start; every part comes through the one central loader, and no component loads by itself.                   | always |
-| `EXT-017` | A page of a module has the route `/<workflowModuleId>/<pageId>`, and a deep link to it works.                                                            | `Q-EXTENSION-POINTS` includes pages |
-| `EXT-018` | A part of a module can open a modal dialog, and the promise resolves with what the dialog closed with.                                                   | `Q-EXTENSION-POINTS` |
-| `EXT-019` | A module that registered after the page loaded is added to the registry the first time a row of it shows up.                                             | always |
-| `EXT-020` | A row whose `uiUriType` is the native federation value of `Q-UI-URI-TYPE` loads its parts through native federation, whatever the form of its address.   | always |
-| `EXT-021` | A row with an unknown `uiUriType` is shown, and the user is told it cannot be opened here.                                                               | always |
-| `EXT-022` | The exposed names are `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage` and those of the interview, without `./` in front.                  | always |
-| `EXT-023` | `cockpit.showNotification` shows a toast in the look of its `level`; a sticky one stays until clicked away, any other goes away by itself.               | always |
-| `EXT-024` | `page.subscribe` answers with a `subscriptionId`, and after `page.unsubscribe` the host delivers nothing more to it.                                     | always |
+| Id        | Item                                                                                                                                                                           | Applies |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `EXT-001` | Removed: replaced by `EXT-025`.                                                                                                                                                | removed |
+| `EXT-002` | Each pair of module and entry name is loaded at most once per page.                                                                                                            | always |
+| `EXT-003` | Removed: replaced by `EXT-020`.                                                                                                                                                | removed |
+| `EXT-004` | Removed: replaced by `EXT-021`.                                                                                                                                                | removed |
+| `EXT-005` | Every web component of a module renders inside a shadow DOM, and the cockpit's styles do not change it, nor it the cockpit's.                                                  | always |
+| `EXT-006` | A name of a web component that is not registered when the module's function returns is treated as a failed load.                                                               | always |
+| `EXT-007` | A `bc-request` from a part is answered with exactly one `bc-response` with the same `requestId`.                                                                               | always |
+| `EXT-008` | An unknown action is answered with the error code `UNKNOWN_ACTION`.                                                                                                            | always |
+| `EXT-009` | An action the server refuses is answered with `REFUSED` and the HTTP status.                                                                                                   | always |
+| `EXT-010` | Every extension point outside the lists, the task page and the case page asks every module the user may see; those three ask only the module of the row.                       | always |
+| `EXT-011` | A module whose manifest does not name an extension point causes no error and no message to the user.                                                                           | always |
+| `EXT-012` | The extension points from the interview work with a blueprint module that fills them.                                                                                          | `Q-EXTENSION-POINTS` |
+| `EXT-013` | The theme reaches the module's shadow DOM as the CSS custom properties named in the types library.                                                                             | `Q-THEME-TOKENS` = yes |
+| `EXT-014` | When the language changes, every visible web component gets the new `language` property.                                                                                       | `Q-LANGUAGE-SWITCH` = yes |
+| `EXT-015` | A part that fails to load shows a note and a retry button.                                                                                                                     | always |
+| `EXT-016` | `GET /workflow-module` is called once at the start; every part comes through the one central loader, and no component loads by itself.                                         | always |
+| `EXT-017` | A page of a module has the route `/<workflowModuleId>/<pageId>`, and a deep link to it works.                                                                                  | `Q-EXTENSION-POINTS` includes pages |
+| `EXT-018` | A part of a module can open a modal dialog, and the promise resolves with what the dialog closed with.                                                                         | `Q-EXTENSION-POINTS` |
+| `EXT-019` | A module that registered after the page loaded is added to the registry the first time a row of it shows up.                                                                   | always |
+| `EXT-020` | Removed: replaced by `EXT-026`.                                                                                                                                                | removed |
+| `EXT-021` | A row with an unknown `uiUriType` is shown, and the user is told it cannot be opened here.                                                                                     | always |
+| `EXT-022` | Removed: replaced by `EXT-027`.                                                                                                                                                | removed |
+| `EXT-023` | `cockpit.showNotification` shows a toast in the look of its `level`; a sticky one stays until clicked away, any other goes away by itself.                                     | always |
+| `EXT-024` | `page.subscribe` answers with a `subscriptionId`, and after `page.unsubscribe` the host delivers nothing more to it.                                                           | always |
+| `EXT-025` | Parts are loaded with `import()` from the files that `/wm/<workflowModuleId>/bc-manifest.json` names; the manifest is read once per module and page, with `cache: 'no-cache'`. | always |
+| `EXT-026` | A row whose `uiUriType` is the ES module value of `Q-UI-URI-TYPE` loads its parts through the loader, whatever the form of its address.                                        | always |
+| `EXT-027` | The entry names are `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage` and those of the interview, without `./` in front.                                          | always |
+| `EXT-028` | Loading the data entries of a blueprint module (columns, header, pages) fetches no file of the module's framework, as the resource timing of the browser shows.                | always |
+| `EXT-029` | One page shows parts of two modules whose frameworks differ from each other and from the cockpit's, for example a React and an Angular module in a Vue cockpit.                | always |
+| `EXT-030` | Every file of a module is fetched at most once per page, however many of its parts are shown.                                                                                  | always |
+| `EXT-031` | No page of the cockpit loads `zone.js`, and an Angular part works without it.                                                                                                  | `Q-FRAMEWORK` or `Q-MODULE-FRAMEWORKS` includes Angular |
+| `EXT-032` | A web component a header or page entry names is loaded with its visual entry only when it is about to be shown.                                                                | `Q-EXTENSION-POINTS` |
+| `EXT-033` | A retry after a failed load reads the manifest again and calls `import()` again.                                                                                               | always |
 
 ## SET: user settings
 
@@ -291,6 +303,7 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `SET-002` | A setting the service has read once is answered from its cache, without a new request.                                                                          | always |
 | `SET-003` | A setting made in one browser holds in another browser of the same user: the language, "don't ask again", the primary filter last chosen and the column widths. | always |
 | `SET-004` | The user interface keeps no setting in `localStorage`, `sessionStorage` or a cookie of its own.                                                                 | always |
+| `SET-005` | Every key of a setting uses `:` as its separator and has no `.`, for example `bc:tasks:primaryFilter`; a path in a key has its dots replaced by `:`.            | always |
 
 ## I18N: language and texts
 
@@ -330,3 +343,4 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `DS-013` | Every extension point from the interview can be tried in the dev shell, besides the page of a user task and of a case.           | `Q-EXTENSION-POINTS` |
 | `DS-014` | `sendTo` and `receiveMessage` carry messages between the areas in the dev shell as in the cockpit.                               | always |
 | `DS-015` | The drop-down of the dev shell asks for user tasks and for cases with the primary filter `All`, and offers no other.             | always |
+| `DS-016` | A dev shell for Angular runs zoneless, as a module does in the cockpit.                                                          | `Q-MODULE-FRAMEWORKS` includes Angular |
