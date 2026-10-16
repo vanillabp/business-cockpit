@@ -181,6 +181,10 @@ build of the module notices it with `bc-check-entries`, see
 entries in files of their own, and mark the module's package with `"sideEffects": false` where that
 is true.
 
+The function of `UserTaskForm` is the likeliest place for this. It picks the form of a user task,
+so it feels natural to import the forms there. Do not. It names the visual entry and the web
+components as strings, and the forms stay in their own visual entries.
+
 ## What needs a newer cockpit
 
 This description counts on prompts of the `business-cockpit` repository that are not all released
