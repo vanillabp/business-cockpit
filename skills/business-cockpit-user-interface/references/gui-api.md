@@ -42,6 +42,11 @@ Generate it at build time, for example in a `prebuild` script, into a folder tha
 never committed. The same goes for every dev shell: it generates its own client from the same
 files.
 
+On its first run `openapi-generator-cli` downloads the generator jar from Maven Central. A company
+that blocks downloads during a build points it at its own Maven repository with
+`generator-cli.repository.downloadUrl` in `openapitools.json`, and pins the generator version
+there.
+
 How the npm project gets the two files: both ship inside jars of the cockpit release on Maven
 Central, under the group `io.vanillabp.businesscockpit`.
 
@@ -145,7 +150,7 @@ The endpoints, all relative to the base path:
 | `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back |
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
 | `POST /user`                                                             | search users, to propose a task to a person |
-| `POST /workflow`                                                         | one page of the workflow list |
+| `POST /workflow`                                                         | one page of the case list |
 | `PUT /workflow`                                                          | the same query as an update |
 | `OPTIONS /workflow`                                                      | suggestions for a search field over cases |
 | `GET /workflow/{id}`                                                     | one case |
@@ -160,8 +165,20 @@ form is there so that several selected rows do not cause twenty requests.
 
 `GET /workflow-module` answers the modules the user may see, each with `id`, `version` and `uri`.
 `uri` is `/wm/<id>`, the path of the module behind the cockpit's proxy, or empty if the module
-registered no address. It carries no `uiUriType`. This is the list an extension point asks, see
-[module-federation.md](module-federation.md#extension-points).
+registered no address. It carries no `uiUriType`. Your user interface calls it once, when it
+starts, and keeps the answer in memory for all its parts. One central loader then fetches the
+exposed parts of the modules from these addresses. No list and no page calls this endpoint itself,
+see [module-federation.md](module-federation.md#one-registry-and-one-loader).
+
+`GET /app/info` also returns `additionalProperties`, a free map. The backend fills it from
+`business-cockpit.additional-properties`. Use it for what the user interface needs to know about
+the installation, for example the languages it offers (`Q-LANGUAGES`):
+
+```yaml
+business-cockpit:
+  additional-properties:
+    languages: en,de
+```
 
 ## Reading page by page
 
@@ -174,7 +191,9 @@ sorts ascending. This holds for the update with `PUT` as well.
 refused with 400 too. So always set `pageSize`.
 
 There is no upper limit. Choose the page size with care (`Q-PAGE-SIZE`). The server stops you from
-nothing, not even from 100000 rows in one request.
+nothing, not even from 100000 rows in one request. A list never holds all its rows in the browser.
+It holds a window of pages around the visible area and asks for each page with its `pageNumber`,
+see [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
 The answer carries a `page` with `number`, `size`, `totalPages` and `totalElements`.
 `totalElements` is counted exactly, in a second query over the same conditions. So you can show a
@@ -219,10 +238,12 @@ for it and answers `null` in the API, so such a task ends up at the back when so
 For every other field an empty value is empty, and where it ends up is decided by the database.
 Expect rows without a value at the front when sorting ascending.
 
-Counts for the other primary filters: the list shows a total next to every primary filter, see
-[behaviour.md](behaviour.md#the-task-lists). The total of the chosen one comes with the page. For
-each of the others, send the same query with that primary filter, `pageSize` 1 and no `sort`. Then
-the database can always count with an index, and the request stays cheap.
+Counts: the list shows a total next to every primary filter, and the toggle in the header shows one
+next to each list, see [behaviour.md](behaviour.md#counts). The total of the chosen primary filter
+comes with the page. For every other count, send the same query with that primary filter,
+`pageSize` 1 and no `sort`. Then the database can always count with an index, and the request
+stays cheap. The GUI API has no endpoint that counts several things at once, so each count is a
+request of its own.
 
 ## Filtering over reported business data
 
@@ -306,11 +327,11 @@ this term everywhere.
 | `OpenTasksWithFollowUp`    | another name for `OpenTasks`: the same rows, with and without a follow-up |
 | `ClosedTasksOnly`          | only what has an end |
 
-| `mode` of a workflow list | What comes |
-|---------------------------|------------|
-| `All`                     | everything |
-| `Active`                  | what has no end |
-| `Inactive`                | what has an end |
+| `mode` of a case list | What comes |
+|-----------------------|------------|
+| `All`                 | everything |
+| `Active`              | what has no end |
+| `Inactive`            | what has an end |
 
 Without `mode` the server takes `All` for `POST` and `OpenTasks` or `Active` for `PUT`. That is not
 the same, so always send the primary filter yourself.
@@ -370,6 +391,11 @@ these come back in full.
 
 Two things are different for `PUT`: `page.number` is always 0 and `page.size` is the number of rows
 returned, and there is no `businessIds`.
+
+`PUT` has no offset. It always starts at the first row. That fits a window of loaded rows at the top
+of the list. For a window further down, `PUT` would return every row above it in full, so read the
+pages of the window again with `POST` and the same `initialTimestamp` instead, see
+[rough-edges.md](rough-edges.md#the-update-form-has-no-offset).
 
 ## The update stream
 
@@ -452,14 +478,17 @@ cockpit is running.
 
 Under `/` is the user interface itself, as a single-page application. The jar of the library brings
 none. Your jar puts its static files there, see
-[project.md](project.md#the-jar-the-backend-serves).
+[project.md](project.md#the-ui-jar).
 
-`uiUri` of a user task or a case is the path the workflow module reported, unchanged. The server
-builds no address from it and does not read `uiUriType`. Building the address is the job of your
-user interface: for the type `NATIVE_MF` the path belongs under `/wm/<workflowModuleId>`, because the
-cockpit serves the module there, see
-[module-federation.md](module-federation.md#which-data-finds-the-part). For the type `EXTERNAL` the
-reported value already is the whole address, because the cockpit does not know this application
-and forwards nothing to it. `workflowModuleUri` is the path to the module itself, without a file.
-It serves the requests of a form to its own backend, and it is the prefix you put in front of a
-reported path.
+`uiUri` of a user task or a case is the `uiUriPath` the workflow module reported, unchanged. The
+server builds no address from it and does not read `uiUriType`. Building the address is the job of
+your user interface, and it follows one rule:
+
+- A value that starts with `http://` or `https://` is a whole address. Use it as it is.
+- Every other value is a path of the workflow module. Put `/wm/<workflowModuleId>/` in front of it,
+  because the cockpit serves the module there.
+
+The rule looks at the value only, never at `uiUriType`. What your user interface does with the
+address, for example loading a part through native federation, is what `uiUriType` says, see
+[module-federation.md](module-federation.md#which-data-finds-the-part). `workflowModuleUri` is the
+path to the module itself, without a file. It serves the requests of a form to its own backend.
