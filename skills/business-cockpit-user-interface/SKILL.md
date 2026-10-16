@@ -136,8 +136,9 @@ Read them in this order. Each one builds on the one before.
 4. [references/module-loading.md](references/module-loading.md)<br>
    How a part of a workflow module gets into your page: self-contained ES modules loaded with
    `import()`, the manifest of a module, build recipes per framework, the extension points, data
-   entries without a framework, the registry of modules and the central loader, web components with
-   shadow DOM, the areas of a page, the event protocol, and the states of loading.
+   entries without a framework, the registry of modules and the central loader, the three steps
+   ask, load and draw with their states, web components with shadow DOM, the areas of a page, and
+   the event protocol.
 5. [references/types.md](references/types.md)<br>
    What goes into the types library the generated user interface publishes.
 6. [references/behaviour.md](references/behaviour.md)<br>

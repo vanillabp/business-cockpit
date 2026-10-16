@@ -19,7 +19,7 @@ host does. The host is your user interface.
 1. [Data entries carry no framework](#data-entries-carry-no-framework)
 1. [Which data finds the part](#which-data-finds-the-part)
 1. [One registry and one loader](#one-registry-and-one-loader)
-1. [When a part is loaded](#when-a-part-is-loaded)
+1. [Ask, load, draw](#ask-load-draw)
 1. [Nothing is shared](#nothing-is-shared)
 1. [A visual part is a web component](#a-visual-part-is-a-web-component)
 1. [The page of a user task or a case](#the-page-of-a-user-task-or-a-case)
@@ -29,7 +29,7 @@ host does. The host is your user interface.
 
 ## Self-contained ES modules
 
-An entry is one part a module offers, for example `UserTaskForm`. Every entry is an ES module that
+An entry is one part a module offers, for example `UserTaskList`. Every entry is an ES module that
 brings everything it needs. It imports only files of its own module, by relative paths. It has no
 bare import like `import 'react'` that the page would have to resolve, and it expects nothing from
 the cockpit or from another module.
@@ -64,6 +64,9 @@ The cockpit reaches it at `/wm/<workflowModuleId>/bc-manifest.json`. The proposa
     "UserTaskForm": "entries/user-task-form-8b21de90.js",
     "WorkflowPage": "entries/workflow-page-c40a7f13.js",
     "Header": "entries/header-1d9e5a60.js",
+    "AssessRiskForm": "entries/assess-risk-form-5c0e7a21.js",
+    "ConfirmRideForm": "entries/confirm-ride-form-a93d40b6.js",
+    "RidePage": "entries/ride-page-0f6b2c85.js",
     "HeaderElements": "entries/header-elements-e2b81c4f.js"
   }
 }
@@ -83,8 +86,11 @@ itself has a fixed name, so it is never cached: the module serves it with `Cache
 and the loader asks for it with `fetch(url, { cache: 'no-cache' })`.
 
 The entry names are the keys. They have no `./` in front. That prefix comes from Webpack's module
-federation and means nothing here. The types library names the keys as constants, see
-[types.md](types.md#the-extension-points).
+federation and means nothing here. The names of the data entries are fixed, and the types library
+names them as constants, see [types.md](types.md#the-extension-points). The names of the visual
+entries, here `AssessRiskForm`, `ConfirmRideForm`, `RidePage` and `HeaderElements`, are the
+module's choice. A data entry names them, see
+[Data entries carry no framework](#data-entries-carry-no-framework).
 
 ## Building the entries
 
@@ -116,9 +122,13 @@ keeps one promise per pair and hands out the same one to every caller.
 A part never comes from the cockpit's own bundle. The cockpit never contains a user interface part
 of a business process, see [`../SKILL.md`](../SKILL.md#what-a-cockpit-user-interface-never-does).
 
-Every entry exports plain JavaScript functions. A function that stands for something visible
-returns the names of web components. The module registers these web components itself, and each of
-them draws into its own shadow DOM.
+A data entry exports plain JavaScript functions. A function that stands for something visible
+returns the names of web components and the visual entry that defines them. A visual entry exports
+nothing. When the browser evaluates it, it defines its web components, and each of them draws into
+its own shadow DOM.
+
+Every part comes into the page in the same three steps: ask, load and draw, see
+[Ask, load, draw](#ask-load-draw).
 
 Nothing is shared between the host and the modules, except the types library and DOM events, see
 [Nothing is shared](#nothing-is-shared).
@@ -132,12 +142,12 @@ something only this module has, outside the page of a user task and the page of 
 
 Four extension points are the bare minimum, and every generated cockpit has them:
 
-| Entry          | What the module exports                                            | Kind   | Where the cockpit uses it |
-|----------------|--------------------------------------------------------------------|--------|---------------------------|
-| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns  | data   | the task lists |
-| `WorkflowList` | `workflowListColumns`, a function from a case to its columns       | data   | the case list |
-| `UserTaskForm` | `userTaskForm`, a function from a user task to web component names | visual | the page of a user task |
-| `WorkflowPage` | `workflowPage`, a function from a case to web component names      | visual | the page of a case |
+| Entry          | What the module exports                                                              | Kind | Where the cockpit uses it |
+|----------------|--------------------------------------------------------------------------------------|------|---------------------------|
+| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns                    | data | the task lists |
+| `WorkflowList` | `workflowListColumns`, a function from a case to its columns                         | data | the case list |
+| `UserTaskForm` | `userTaskForm`, a function from a user task to a visual entry and its web components | data | the page of a user task |
+| `WorkflowPage` | `workflowPage`, a function from a case to a visual entry and its web components      | data | the page of a case |
 
 An organisation may add more (`Q-EXTENSION-POINTS`). Examples: buttons in the header, menu
 entries, pages of a module, and modal dialogs those open, see
@@ -160,16 +170,50 @@ console with the module id.
 
 There are two kinds of entries:
 
-- A data entry tells the cockpit something: the columns of a row, the pages of a module and
-  their menu entries, the buttons of the header. `UserTaskList`, `WorkflowList`, `Header` and
-  `Pages` are data entries.
-- A visual entry registers web components and draws something: `UserTaskForm`, `WorkflowPage`
-  and the entries that hold the web components of the header, the pages and the dialogs.
+- A data entry tells the cockpit something: the columns of a row, which form a user task gets,
+  which page a case gets, the pages of a module and their menu entries, the buttons of the header.
+  `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage`, `Header` and `Pages` are data
+  entries.
+- A visual entry defines web components that draw something: the forms of the user tasks, the
+  pages of the cases, the buttons of the header, the pages of a module and the dialogs. Its name is
+  the module's choice, and a data entry names it.
 
 A data entry is minimal JavaScript without a framework. It loads without the framework files of its
 module. That matters, because the cockpit loads data entries of many modules at once: the columns
 for every module in a list, the header and the pages for every module the user may see. A task list
 with rows of ten modules must not load ten frameworks before it draws its first row.
+
+`UserTaskForm` and `WorkflowPage` are data entries for a second reason. A module has many forms,
+usually one per process and task definition. The function of `UserTaskForm` decides which one a
+user task gets: it looks at `bpmnProcessId` and `taskDefinition` and names the visual entry of that
+form. So every form is a visual entry of its own and a file of its own, and the cockpit loads only
+the form the user opens. Lazy loading is built in, and the module does not need a component of its
+own that picks the form at runtime. A `WorkflowPage` does the same per process.
+
+```js
+// UserTaskForm: plain JavaScript, it imports no form
+export const userTaskForm = (userTask) => {
+  if (userTask.bpmnProcessId !== 'TaxiRide') return undefined;
+  switch (userTask.taskDefinition) {
+    case 'assessRisk':
+      return {
+        entry: 'AssessRiskForm',
+        element: {
+          body: 'taxi-ride-assess-risk-form',
+          information: 'taxi-ride-assess-risk-information',
+          actions: 'taxi-ride-assess-risk-actions',
+        },
+      };
+    case 'confirmRide':
+      return { entry: 'ConfirmRideForm', element: 'taxi-ride-confirm-ride-page' };
+    default:
+      return undefined;
+  }
+};
+```
+
+The function names web components by their names, as strings. It never imports a form. An import
+would pull the form and its framework into the data entry.
 
 Tree-shaking keeps a data entry small. The bundler drops every import the entry does not use. A
 helper that a data entry imports by mistake from a file that also imports React drops out as long
@@ -181,10 +225,13 @@ dependencies, `bc-check-entries`. It reads `bc-manifest.json` and fails the buil
 
 - an entry the manifest names has no file,
 - a data entry, together with every file it imports, is larger than the limit from the interview
-  (`Q-DATA-ENTRY-LIMIT`, by default 10 KB before compression),
+  (`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression),
 - a data entry, or a file it imports, contains code of a framework package, for example `react`,
   `react-dom`, `vue`, `@angular/core` or `zone.js`. The script finds them by the comments and
   markers those packages leave in a bundle, and by the bundler's list of inputs when it is there.
+
+The limit holds for the data entry only, not for a form. A form is a visual entry, and it may be as
+large as its framework makes it.
 
 The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
 a blueprint module fetches no file of the module's framework.
@@ -236,7 +283,8 @@ No list, no page and no header loads a module part on its own. One central place
    nothing to load.
 2. The loader. It is the only code that calls `import()` for a module. A component only asks it:
    "give me the entry `UserTaskForm` of the module `taxi-ride`". The loader answers with a promise
-   of the entry's exports.
+   of the entry's exports. For a visual entry the promise only says that the entry was evaluated,
+   because a visual entry exports nothing.
 
 What the loader does:
 
@@ -259,22 +307,54 @@ The browser keeps a loaded ES module for the life of the page. A module that is 
 while a tab is open is loaded fresh with the next reload of the page, because the new manifest
 names new files.
 
-## When a part is loaded
+## Ask, load, draw
 
-The promise of the loader is the signal. Four states look different to the user, and your user
-interface tells them apart:
+Every part of a module comes into a page in three steps. The steps do not depend on each other.
+Each one has its own loading state and its own error. They are the same everywhere: on the page of a
+user task, on the page of a case, in the header, on a page of a module and in a dialog.
 
-| State      | How you know it                                                                            | What the user sees |
-|------------|--------------------------------------------------------------------------------------------|--------------------|
-| loading    | the promise has not settled yet                                                            | a loading sign |
-| loaded     | the promise resolved, and the export is there                                              | the part of the module |
-| failed     | the promise rejected, the export is missing, or a web component it names is not registered | a note and a button that loads again |
-| not loaded | `uiUriType` is `EXTERNAL`, or the module has no manifest                                   | what the cockpit knows itself |
+1. Ask. The cockpit asks the loader for the data entry, for example `UserTaskForm`, and calls its
+   function with the user task, the case or the current user. The answer is `undefined`, or the
+   names of web components together with the visual entry that defines them, see
+   [types.md](types.md#the-extension-points). Nothing visible is loaded yet.
+2. Load. The cockpit asks the loader for the visual entry the answer names. The loader imports it
+   through the manifest, the same way as a data entry. When the browser evaluates the entry, the
+   entry calls `customElements.define` for its web components. The cockpit then waits for each
+   named web component with `customElements.whenDefined(name)`, together with a time limit, by
+   default 10 seconds. An entry may define its web components a little later, for example after
+   its own setup, and that is fine within the limit.
+3. Draw. The cockpit creates the element with `document.createElement(name)` in its area, sets the
+   properties and listens for its requests, see [What a part gets](types.md#what-a-part-gets). For a
+   user task it hands over the plain data, and the wrapper of the module turns it into `BcUserTask`.
+
+What the user sees in each step:
+
+| Step | Loading state                     | Error                                      | What the user sees on the error |
+|------|-----------------------------------|--------------------------------------------|---------------------------------|
+| ask  | the data entry is being loaded    | the data entry fails to load               | a note and a button that loads again |
+| ask  |                                   | the function answers `undefined`: not mine | see below; no error |
+| load | the visual entry is being loaded  | `import()` of the visual entry fails       | a note and a button that loads again |
+| load | the cockpit waits for the element | a web component is not defined in time     | a note that names the module, the entry and the web component |
+| draw | none; the part shows its own      | creating the element throws                | a note that names the module and the web component |
+
+"Not mine" is no error. On the page of a user task and the page of a case only the module of the
+row is asked, so the page says that this module has no form for it. In the header and on the pages
+the cockpit asks the next module, and a module that answers `undefined` adds nothing. A data entry
+whose manifest does not exist, or an `EXTERNAL` row, never reaches the first step: the cockpit
+shows only what it knows itself.
 
 A failed load stays failed until the user tries again. Retrying asks the loader again for this
-pair. The loader drops the failed promise, reads the manifest again and calls `import()` again. The
-browser does not cache a failed `import()`, so a second try really asks the server. If it fails
-again, offer to reload the page.
+pair of module and entry. The loader drops the failed promise, reads the manifest again and calls
+`import()` again. The browser does not cache a failed `import()`, so a second try really asks the
+server. If it fails again, offer to reload the page. A web component that was not defined in time
+is a bug of the module, not of the network. Write the module id, the entry and the name of the web
+component to the console as well, so the author of the module finds it.
+
+Because the steps stand alone, the cockpit may run the first two early. This is preloading. For
+example, when the mouse rests on a row of the task list, the cockpit asks the data entry of the
+row's module and loads the visual entry it names. When the user then clicks, the form is already
+there. Preloading uses the same loader and the same promises, so it never loads a file twice, and a
+preload that fails does not show an error. The error shows only when the user opens the part.
 
 `buildVersion` and `buildTimestamp` of the manifest are not needed to know that a part is loaded.
 Show them in a details view, if at all.
@@ -308,9 +388,9 @@ module renders into a shadow DOM.
 ## A visual part is a web component
 
 The module defines its web components itself, with `customElements.define`, when its visual entry
-is evaluated. A function that returns the name of a web component must only return a name that is
-registered at that moment. The host checks it with `customElements.get(name)` right after the
-function returns. A name that is not registered is a failed load.
+is evaluated. The cockpit does not check a name when the function of a data entry returns it. It
+loads the visual entry and waits for the name with `customElements.whenDefined`, see
+[Ask, load, draw](#ask-load-draw).
 
 The names must not collide across modules. A custom element name is lower case and has a hyphen. By
 convention it starts with the module id, for example `taxi-ride-assess-risk-form`.
@@ -339,30 +419,42 @@ hand.
 
 ## The page of a user task or a case
 
-The module does not export a component for these pages. It exports a function:
+The module does not export a component for these pages. Its data entries `UserTaskForm` and
+`WorkflowPage` export a function each, see
+[Data entries carry no framework](#data-entries-carry-no-framework):
 
 ```ts
-userTaskForm: (userTask: UserTask) => PageParts | undefined;
-workflowPage: (workflow: Workflow) => PageParts | undefined;
+userTaskForm: (userTask: UserTask) => BcPageParts | undefined;
+workflowPage: (workflow: Workflow) => BcPageParts | undefined;
 
-type PageParts = string | PageAreas;
+interface BcPageParts {
+  entry: string;                // the visual entry that defines the web components
+  element: string | PageAreas;  // one web component, or one per area
+}
 type PageAreas = { [area: string]: string };   // area -> name of a web component
 ```
 
+It has the same shape as the `{ element, entry }` of the header and the pages, see
+[The other extension points](#the-other-extension-points). Only `element` may also be an object.
 The result has three forms:
 
 - `undefined`: the function does not know this user task or this case. It is not the module's.
-- A string: the name of one web component. It is the all-in-one form. The cockpit gives it the
-  whole area, draws no column and sets its property `area` to `all`.
-- An object: per area, the name of the web component that fills it. It is the laid-out form.
+- `element` is a string: the name of one web component. It is the all-in-one form. The cockpit
+  gives it the whole area, draws no column and sets its property `area` to `all`.
+- `element` is an object: per area, the name of the web component that fills it. It is the
+  laid-out form.
 
 ```ts
-'taxi-ride-assess-risk-page'
+{ entry: 'ConfirmRideForm', element: 'taxi-ride-confirm-ride-page' }
 
-{ body: 'taxi-ride-assess-risk-form',
-  information: 'taxi-ride-assess-risk-information',
-  actions: 'taxi-ride-assess-risk-actions' }
+{ entry: 'AssessRiskForm',
+  element: { body: 'taxi-ride-assess-risk-form',
+             information: 'taxi-ride-assess-risk-information',
+             actions: 'taxi-ride-assess-risk-actions' } }
 ```
+
+All web components of one page come from the one visual entry the result names. The cockpit loads
+it once and waits for every named web component, see [Ask, load, draw](#ask-load-draw).
 
 Which areas exist is a convention, not a law (`Q-PAGE-AREAS`). The default convention:
 
@@ -386,22 +478,24 @@ shared between the areas. An all-in-one form has one web component and needs no 
 
 ## The other extension points
 
-Every further extension point follows the same pattern: the module names an entry in its manifest,
-and the entry exports a function. Header buttons and pages are split in two. A data entry says what
-there is, and a visual entry registers the web components. So the cockpit can build the menu and the
+Every further extension point follows the same pattern as the page of a user task: the module
+names a data entry in its manifest, and the data entry exports a function. The function says what
+there is, and a visual entry defines the web components. So the cockpit can build the menu and the
 routes for every module without loading a single framework. Proposals for the usual ones:
 
 | Entry            | What the module exports                                                           | Kind   | Where the cockpit uses it |
 |------------------|-----------------------------------------------------------------------------------|--------|---------------------------|
 | `Header`         | `header: (currentUser) => Array<{ element, entry }> \| undefined`                 | data   | the application header |
 | `Pages`          | `pages: (currentUser) => Array<{ id, title, element, entry, menu }> \| undefined` | data   | the router and the menu |
-| `HeaderElements` | nothing; evaluating it registers the web components of the header buttons         | visual | the application header |
-| `PageElements`   | nothing; evaluating it registers the web components of the pages                  | visual | a page of a module |
+| `HeaderElements` | nothing; evaluating it defines the web components of the header buttons           | visual | the application header |
+| `PageElements`   | nothing; evaluating it defines the web components of the pages                    | visual | a page of a module |
 
 `element` is the name of a web component, and `entry` names the visual entry of the same manifest
-that registers it. The cockpit loads that entry only when the web component is about to be shown:
-the header elements when the header draws, the elements of a page when its route opens. A module may
-use other names for its visual entries; only `Header` and `Pages` are fixed.
+that defines it. The cockpit runs the three steps of [Ask, load, draw](#ask-load-draw). It loads the
+visual entry only when the web component is about to be shown, or earlier as a preload: the header
+elements when the header draws, the elements of a page when its route opens. `HeaderElements` and
+`PageElements` are only examples. A module may use other names for its visual entries; only
+`Header` and `Pages` are fixed.
 
 A page of a module has the route `/<workflowModuleId>/<id>`, always. The router of the cockpit
 adds a route for every page of every module in the registry. `title` is a `Translatable`, and
@@ -410,8 +504,10 @@ first, so a module id like `tasks` cannot hide a screen of the cockpit.
 
 A module may open a modal dialog, for example a header button "Start" that shows a start form. The
 button asks the cockpit with the action `cockpit.openDialog` and names the web component of the
-dialog. That web component must be registered already, usually by the same visual entry as the
-button. The cockpit shows it in a modal layer above everything. The dialog closes itself with
+dialog and its visual entry, the same `{ element, entry }` as above. The button has already asked,
+so the cockpit starts with the second step: it loads the entry, waits for the web component and
+draws it in a modal layer above everything. Often the entry is the one of the button and is loaded
+already. The dialog closes itself with
 `cockpit.closeDialog` and a result, and the promise of `cockpit.openDialog` resolves with that
 result, see [Actions](#actions).
 
@@ -522,7 +618,7 @@ The minimum set, matching the functions in [types.md](types.md#bcusertask-and-bc
 | `page.subscribe`              | none; the area is the one of the element                                  | `subscriptionId` |
 | `page.unsubscribe`            | `subscriptionId`                                                          | nothing |
 | `cockpit.showNotification`    | `level`, `text`, `sticky`                                                 | nothing |
-| `cockpit.openDialog`          | `element`, `data`                                                         | what the dialog closed with |
+| `cockpit.openDialog`          | `element`, `entry`, `data`                                                | what the dialog closed with |
 | `cockpit.closeDialog`         | `result`                                                                  | nothing |
 
 The four claim and assign actions resolve once the server has accepted the change. The server

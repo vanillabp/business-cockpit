@@ -434,14 +434,21 @@ in, the checklist items `TF-007`, `TF-017` and `TF-018` say they are to be verif
 
 ### What the page does
 
-1. It loads the user task and marks it as read.
-2. It asks the [loader](module-loading.md#one-registry-and-one-loader) for `UserTaskForm` of
-   the task's module and calls `userTaskForm` with the task.
-3. While one of the two is running, it shows a loading state. On an error, a note with a button that
-   tries again. There are two different errors: the task could not be loaded, or the part of the
-   module could not be loaded.
-4. It puts the web components the function named into their places and sets their properties, see
+1. It loads the user task and marks it as read. If that fails, it shows a note with a button that
+   tries again.
+2. It runs the three steps of [Ask, load, draw](module-loading.md#ask-load-draw). Ask: it gets the
+   data entry `UserTaskForm` of the task's module from the
+   [loader](module-loading.md#one-registry-and-one-loader) and calls `userTaskForm` with the task.
+   Load: it loads the visual entry the answer names and waits until its web components are
+   defined. Draw: it puts the web components into their places and sets their properties, see
    [types.md](types.md#what-a-part-gets).
+3. Each step has its own loading state and its own note. The module has no form for this task: the
+   page says so. The data entry or the visual entry fails to load: a note with a button that
+   tries again. A web component is not defined in time: a note that names the module, the entry and
+   the web component.
+
+The list may start the first two steps early. When the mouse rests on a row, it asks the data entry
+and loads the visual entry, so the form is there when the user clicks.
 
 ### The areas and the frame
 
@@ -533,8 +540,9 @@ The page works like the page of a user task, with these differences:
   width, and the controls stay in the same place. There is no header or footer of the case's own.
 
 The page asks the loader for `WorkflowPage` and calls `workflowPage` with the case. The function
-returns one web component for the all-in-one form, or one per area, the same areas as on the page
-of a user task (`Q-PAGE-AREAS`). The page has the same loading and error states as the task page,
+names the visual entry and one web component for the all-in-one form, or one per area, the same
+areas as on the page of a user task (`Q-PAGE-AREAS`). The page runs the same three steps, with the
+same loading and error states as the task page,
 and gives the module `getUserTasks` for the tasks of the case. Long content scrolls in its own area
 and never breaks the frame of the cockpit.
 

@@ -167,8 +167,11 @@ export interface BcNotification {
 /** Shows a toast in the cockpit. */
 export type ShowNotificationFunction = (notification: BcNotification) => Promise<void>;
 
-/** Shows the web component 'element' in a modal dialog; resolves with what the dialog closed with. */
-export type OpenDialogFunction = (element: string, data?: unknown) => Promise<unknown>;
+/**
+ * Loads the visual entry 'dialog.entry', shows its web component 'dialog.element' in a modal dialog
+ * and resolves with what the dialog closed with.
+ */
+export type OpenDialogFunction = (dialog: BcElementRef, data?: unknown) => Promise<unknown>;
 ```
 
 Each of these functions is a promise of the cockpit. A form may call `claim` and expect that the
@@ -240,26 +243,36 @@ export const HEADER = 'Header';                 // exports: header; an extension
 export const PAGES = 'Pages';                   // exports: pages; an extension point of this organisation
 
 /** The entries that carry no framework; bc-check-entries checks their size and content. */
-export const DATA_ENTRIES = [USER_TASK_LIST, WORKFLOW_LIST, HEADER, PAGES] as const;
+export const DATA_ENTRIES = [USER_TASK_LIST, WORKFLOW_LIST, USER_TASK_FORM, WORKFLOW_PAGE, HEADER, PAGES] as const;
 
-export type UserTaskFormFunction = (userTask: UserTask) => PageParts | undefined;
-export type WorkflowPageFunction = (workflow: Workflow) => PageParts | undefined;
+/** A web component that a data entry names, and the visual entry that defines it. */
+export interface BcElementRef {
+  element: string;
+  entry: string;
+}
 
-/** A string is the one web component of the all-in-one form; an object maps areas to web components. */
-export type PageParts = string | PageAreas;
+/**
+ * The web components of the page of a user task or a case, and the visual entry that defines them.
+ * A string as 'element' is the one web component of the all-in-one form; an object maps areas to
+ * web components.
+ */
+export interface BcPageParts {
+  element: string | PageAreas;
+  entry: string;
+}
 
-/** Area -> name of a registered web component. By convention 'body', 'information', 'actions'. */
+/** Area -> name of a web component. By convention 'body', 'information', 'actions'. */
 export type PageAreas = { [area: string]: string };
 
 export const AREA_BODY = 'body';
 export const AREA_INFORMATION = 'information';
 export const AREA_ACTIONS = 'actions';
 
-/** A web component that a data entry names, and the visual entry that registers it. */
-export interface BcElementRef {
-  element: string;
-  entry: string;
-}
+/** undefined: this user task is not the module's. */
+export type UserTaskFormFunction = (userTask: UserTask) => BcPageParts | undefined;
+
+/** undefined: this case is not the module's. */
+export type WorkflowPageFunction = (workflow: Workflow) => BcPageParts | undefined;
 
 export type HeaderFunction = (currentUser: CurrentUser) => BcElementRef[] | undefined;
 
@@ -273,9 +286,13 @@ export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
 ```
 
 `CurrentUser` is the user the host hands every part as `currentUser`, see
-[What a part gets](#what-a-part-gets). `Header` and `Pages` are data entries: they name web
-components, and `entry` says which visual entry of the same manifest registers them, see
-[module-loading.md](module-loading.md#the-other-extension-points).
+[What a part gets](#what-a-part-gets). All six are data entries. Their functions name web
+components, and `entry` says which visual entry of the same manifest defines them. `BcPageParts`
+has the same shape as `BcElementRef`, except that `element` may also name one web component per
+area. The cockpit then loads the visual entry and draws the web components in three steps, see
+[module-loading.md](module-loading.md#ask-load-draw). The routing by process and task definition
+lives in `UserTaskFormFunction`, so every form is a visual entry of its own, see
+[module-loading.md](module-loading.md#data-entries-carry-no-framework).
 
 It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module
 can use them inside its shadow DOM.
@@ -296,8 +313,9 @@ export interface BcManifest {
 ```
 
 It also ships `bc-check-entries` as a `bin` script, plain Node.js without dependencies. A module
-runs it after its build, for example `bc-check-entries dist/bc-manifest.json --limit 10kb`. It
+runs it after its build, for example `bc-check-entries dist/bc-manifest.json --limit 32kb`. It
 reads the manifest, follows the relative imports of every data entry in `DATA_ENTRIES`, and fails
 when a file is missing, when a data entry is larger than the limit, or when it contains framework
 code, see [module-loading.md](module-loading.md#data-entries-carry-no-framework). The limit is
-`Q-DATA-ENTRY-LIMIT`.
+`Q-DATA-ENTRY-LIMIT`, by default 32 KB before compression. It holds for the data entries only, not
+for the visual entries with the forms.
