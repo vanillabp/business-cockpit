@@ -1,6 +1,6 @@
 ---
 name: business-cockpit-user-interface
-description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules, a jar the cockpit backend pulls as a Maven dependency and an nginx image for a separate deployment. The agent first interviews the user (framework, design library, theme, the word for a case, screens, primary filters, columns, live updates, language, extension points, backend framework, coordinates, memory limit), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime through native federation as web components with shadow DOM, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
+description: Generate a user interface for the VanillaBP Business Cockpit that fits an organisation's own tech stack, in any web framework, together with a dev shell, a types library for workflow modules, a jar the cockpit backend pulls as a Maven dependency and an nginx image for a separate deployment. The agent first interviews the user (framework, design library, theme, the word for a case, screens, primary filters, columns, live updates, language, extension points, backend framework, coordinates, memory limit), then generates the project, then verifies it against a versioned checklist that also drives the end-to-end tests. Covers the GUI API with paging, sorting, filtering over reported business data and the update stream, lists that hold only a window of rows, loading the parts of workflow modules at runtime as self-contained ES modules with import() and a small manifest per module, sharing no dependencies so that cockpit and modules mix frameworks freely, the web components with shadow DOM those parts register, the event protocol between a module's part and the cockpit, the behaviour a user expects, and what a cockpit user interface never does. Use whenever somebody wants their own Business Cockpit front end, wants to upgrade a generated one to a newer checklist, or needs a dev shell for the parts of a workflow module.
 license: Apache-2.0
 metadata:
   author: vanillabp
@@ -85,7 +85,7 @@ interface reads it first.
 Generate the project as [references/project.md](references/project.md) describes. Build each screen
 as [references/behaviour.md](references/behaviour.md) describes. Talk to the server as
 [references/gui-api.md](references/gui-api.md) describes, and load the parts of the workflow
-modules as [references/module-federation.md](references/module-federation.md) describes. Read
+modules as [references/module-loading.md](references/module-loading.md) describes. Read
 [references/rough-edges.md](references/rough-edges.md) before the first screen, not afterwards.
 
 Then write `CHECKLIST.md` into the project:
@@ -133,10 +133,11 @@ Read them in this order. Each one builds on the one before.
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
    timestamp that keeps a list stable, and the update stream.
-4. [references/module-federation.md](references/module-federation.md)<br>
-   How a part of a workflow module gets into your page: native federation, the extension points,
-   the registry of modules and the central loader, web components with shadow DOM, the areas of a
-   page, the event protocol, and the states of loading.
+4. [references/module-loading.md](references/module-loading.md)<br>
+   How a part of a workflow module gets into your page: self-contained ES modules loaded with
+   `import()`, the manifest of a module, build recipes per framework, the extension points, data
+   entries without a framework, the registry of modules and the central loader, web components with
+   shadow DOM, the areas of a page, the event protocol, and the states of loading.
 5. [references/types.md](references/types.md)<br>
    What goes into the types library the generated user interface publishes.
 6. [references/behaviour.md](references/behaviour.md)<br>
@@ -240,9 +241,9 @@ seeing anything.
 3. A list without the columns of the modules, with the primary filter and its counts, and with the
    window of loaded rows. This settles paging. Write the memory test now, not at the end.
 4. Sorting and searching. After this, the paths and their traps are clear.
-5. The types library, the registry of modules and the central loader. Then the columns of a list,
-   then the page of a user task with its areas, then the page of a case, then the other extension
-   points.
+5. The types library with `bc-check-entries`, the registry of modules and the central loader. Then
+   the columns of a list, then the page of a user task with its areas, then the page of a case,
+   then the other extension points.
 6. The update stream. It comes late, because it needs most of the rest.
 7. The dev shells, one per framework the workflow modules use.
 8. The types module with its `README.md`, and the nginx image.
@@ -268,5 +269,7 @@ Then:
 8. A user task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own and leaves
    the list intact.
 9. The dev shell shows the page of a blueprint module the same way the cockpit shows it.
-10. The backend repository builds with the UI jar as a dependency, and the nginx image serves the
+10. A page shows parts of modules in two frameworks other than the cockpit's, side by side, and the
+    data entries of a module load without its framework.
+11. The backend repository builds with the UI jar as a dependency, and the nginx image serves the
     same user interface against the same backend.

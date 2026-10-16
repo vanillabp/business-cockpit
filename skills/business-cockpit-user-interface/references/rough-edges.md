@@ -20,6 +20,9 @@ code of the cockpit. Read this before the first screen, not when something does 
 1. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
 1. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
 1. [The update form has no offset](#the-update-form-has-no-offset)
+1. [The bundler rewrites `import()`](#the-bundler-rewrites-import)
+1. [`zone.js` in a module slows every part down](#zonejs-in-a-module-slows-every-part-down)
+1. [A data entry pulls in the framework](#a-data-entry-pulls-in-the-framework)
 1. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
@@ -152,6 +155,31 @@ window, and every row it does not know comes in full. That is the memory problem
 there to avoid. So read the pages of such a window again with `POST`, with the same
 `initialTimestamp`. Use `PUT` only while the window starts at the top. See
 [behaviour.md](behaviour.md#live-updates).
+
+## The bundler rewrites `import()`
+
+The loader calls `import()` with an address it only knows at runtime. The cockpit's bundler sees the
+call at build time and tries to resolve it. Vite warns and may rewrite it, Webpack builds a context
+of files that matches nothing. Mark the call as one to leave alone: `/* @vite-ignore */` for Vite,
+`/* webpackIgnore: true */` for Webpack. Then the browser runs the plain `import()`. See
+[module-loading.md](module-loading.md#one-registry-and-one-loader).
+
+## `zone.js` in a module slows every part down
+
+`zone.js` patches timers, promises and events for the whole page, not for one module. An Angular
+module that brings it changes the timing of the cockpit and of every other module. A second Angular
+module with its own copy patches everything once more. So no module and no cockpit loads `zone.js`,
+and Angular runs zoneless, see [module-loading.md](module-loading.md#nothing-is-shared).
+
+## A data entry pulls in the framework
+
+One import is enough. A column function that imports a date helper from a file that also renders a
+React component can bring React along, when the bundler cannot prove that the rest of that file has
+no side effects. Then the task list loads the framework of every module before it draws a row. The
+build of the module notices it with `bc-check-entries`, see
+[module-loading.md](module-loading.md#data-entries-carry-no-framework). Keep the code of data
+entries in files of their own, and mark the module's package with `"sideEffects": false` where that
+is true.
 
 ## What needs a newer cockpit
 

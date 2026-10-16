@@ -204,8 +204,8 @@ of the pinned cockpit version, not from this text. The path of the user settings
 `uri` is `/wm/<id>`, the path of the module behind the cockpit's proxy, or empty if the module
 registered no address. It carries no `uiUriType`. Your user interface calls it once, when it
 starts, and keeps the answer in memory for all its parts. One central loader then fetches the
-exposed parts of the modules from these addresses. No list and no page calls this endpoint itself,
-see [module-federation.md](module-federation.md#one-registry-and-one-loader).
+parts of the modules from these addresses. No list and no page calls this endpoint itself,
+see [module-loading.md](module-loading.md#one-registry-and-one-loader).
 
 `GET /app/info` also returns `additionalProperties`, a free map. The backend fills it from
 `business-cockpit.additional-properties`. Use it for what the user interface needs to know about
@@ -563,7 +563,7 @@ First it builds the address, and that follows one rule:
   because the cockpit serves the module there.
 
 Then `uiUriType` decides what happens with the address. `EXTERNAL` opens it in a window or tab of
-its own. `NATIVE_MF` loads the parts of the module from it through native federation. The address
-alone never decides this, see
-[module-federation.md](module-federation.md#which-data-finds-the-part). `workflowModuleUri` is the
-path to the module itself, without a file. It serves the requests of a form to its own backend.
+its own. `ES_MODULES` reads the module's manifest from it and loads its parts with `import()`. The
+address alone never decides this, see
+[module-loading.md](module-loading.md#which-data-finds-the-part). `workflowModuleUri` is the path
+to the module itself, without a file. It serves the requests of a form to its own backend.

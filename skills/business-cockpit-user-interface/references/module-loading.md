@@ -3,17 +3,20 @@
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
 The cockpit shows lists. What a user sees after a click on a row comes from the workflow module.
-The module builds its parts as a federated bundle, and the cockpit loads them into its own pages
-at runtime. The mechanism is native federation.
+The module builds its parts as plain ES modules, and the cockpit loads them into its own pages at
+runtime with `import()`. Nothing else is needed: no import map, no shim and no federation library.
 
 The wiki page
 [User task forms and status sites](https://github.com/vanillabp/business-cockpit/wiki/User-task-forms-and-status-sites)
 describes the module's side: what it offers and how it builds. Here is the other side, what the
 host does. The host is your user interface.
 
-1. [Native federation](#native-federation)
+1. [Self-contained ES modules](#self-contained-es-modules)
+1. [The manifest](#the-manifest)
+1. [Building the entries](#building-the-entries)
 1. [The rules](#the-rules)
 1. [Extension points](#extension-points)
+1. [Data entries carry no framework](#data-entries-carry-no-framework)
 1. [Which data finds the part](#which-data-finds-the-part)
 1. [One registry and one loader](#one-registry-and-one-loader)
 1. [When a part is loaded](#when-a-part-is-loaded)
@@ -24,36 +27,96 @@ host does. The host is your user interface.
 1. [The event protocol](#the-event-protocol)
 1. [Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module)
 
-## Native federation
+## Self-contained ES modules
 
-Native federation is module federation built on browser standards: ES modules and import maps. It
-does not depend on the UI framework or on the bundler. So the cockpit and each workflow module pick
-their own framework, their own version and their own build tool.
+An entry is one part a module offers, for example `UserTaskForm`. Every entry is an ES module that
+brings everything it needs. It imports only files of its own module, by relative paths. It has no
+bare import like `import 'react'` that the page would have to resolve, and it expects nothing from
+the cockpit or from another module.
 
-Two sides:
+The browser loads such a file with `import(url)` and caches it by its address. That is all the
+cockpit uses. So the cockpit and each workflow module pick their own framework, their own version
+and their own build tool. A Vue cockpit shows a React form and an Angular case page on the same
+page, and a module upgrades its framework without asking anybody.
 
-- A workflow module builds its parts with `@softarc/native-federation`. It uses an adapter for its
-  bundler: `@softarc/native-federation-esbuild` for esbuild (React, Vue, plain JavaScript),
-  `@angular-architects/native-federation` for the Angular CLI. There is no official adapter for
-  Vite today. Other bundlers implement the adapter contract. Check the list of adapters at
-  [native-federation.com](https://native-federation.com) before you advise a module. The build
-  writes `remoteEntry.json`, the description of what the module exposes.
-- The host loads the parts with `@softarc/native-federation-orchestrator` and `es-module-shims`.
-  The host needs no federation build of its own. The orchestrator is plain JavaScript and runs in
-  any page.
+The entries of one module may share files. The bundler splits the framework into one chunk, and
+every entry of the module imports that chunk. The browser loads the chunk once, because it is the
+same address. So a module's framework is loaded once per module, not once per form, per page or per
+cell.
 
-The name of a remote is the `workflowModuleId`. The remote entry lies at the root of the module's
-web path, so the cockpit reaches it at `/wm/<workflowModuleId>/remoteEntry.json`.
+The address of an entry lies below `/wm/<workflowModuleId>/`, where the cockpit serves the module.
+It is the same origin as the cockpit, so a Content Security Policy needs nothing beyond
+`script-src 'self'`.
+
+## The manifest
+
+A module describes its entries in one small file, `bc-manifest.json`, at the root of its web path.
+The cockpit reaches it at `/wm/<workflowModuleId>/bc-manifest.json`. The proposal:
+
+```json
+{
+  "manifestVersion": 1,
+  "buildVersion": "1.4.0",
+  "buildTimestamp": "2026-10-16T09:30:00Z",
+  "entries": {
+    "UserTaskList": "entries/user-task-list-3f9a1c2b.js",
+    "WorkflowList": "entries/workflow-list-77e0d415.js",
+    "UserTaskForm": "entries/user-task-form-8b21de90.js",
+    "WorkflowPage": "entries/workflow-page-c40a7f13.js",
+    "Header": "entries/header-1d9e5a60.js",
+    "HeaderElements": "entries/header-elements-e2b81c4f.js"
+  }
+}
+```
+
+| Field             | Meaning |
+|-------------------|---------|
+| `manifestVersion` | the version of this format; `1` today; a cockpit refuses a higher one it does not know |
+| `buildVersion`    | the version of the module's build, shown in a details view, if at all |
+| `buildTimestamp`  | when the module was built, also only for a details view |
+| `entries`         | entry name to file; the file is relative to the manifest |
+
+Cache busting works through the file names. The bundler puts a hash of the content into every file
+name, so a new build has new addresses, and the browser cannot take an old file for a new one. A
+bundler that cannot do that appends `?v=<buildVersion>` to the file in the manifest. The manifest
+itself has a fixed name, so it is never cached: the module serves it with `Cache-Control: no-cache`,
+and the loader asks for it with `fetch(url, { cache: 'no-cache' })`.
+
+The entry names are the keys. They have no `./` in front. That prefix comes from Webpack's module
+federation and means nothing here. The types library names the keys as constants, see
+[types.md](types.md#the-extension-points).
+
+## Building the entries
+
+Any bundler that writes ES modules works. Two things the build must do: write one file per entry
+with the content hash in the name, and write `bc-manifest.json` from the bundler's own list of
+outputs. A short script of ten lines does the second, for every bundler below. Nothing is marked as
+external, because the entries share nothing with the page.
+
+| Framework        | Recipe |
+|------------------|--------|
+| React            | Vite in library mode: `build.lib.entry` is an object of entry name to source file, `formats: ['es']`, `build.manifest: true`. Set `define: { 'process.env.NODE_ENV': '"production"' }`, because library mode leaves it alone, and React reads it. Or esbuild: `--bundle --format=esm --splitting --entry-names=[name]-[hash] --metafile=meta.json`. |
+| Vue              | Vite in library mode as for React, with `@vitejs/plugin-vue`. Import the styles of a component with `?inline`, so they go into the shadow root and not into the page. |
+| Angular          | Zoneless, see [Nothing is shared](#nothing-is-shared). Vite in library mode with `@analogjs/vite-plugin-angular`, or the Angular CLI with its esbuild `application` builder and one build per visual entry, with `--stats-json` for the list of outputs. |
+| Plain JavaScript | esbuild or Rollup with `output.format: 'es'`. This is the recipe for every data entry, whatever the framework of the module's forms. |
+
+The data entries need no framework compiler, see
+[Data entries carry no framework](#data-entries-carry-no-framework). So a module can build them with
+plain esbuild, apart from its forms, even when its forms are Angular.
+
+The recipes are a starting point. Probe `1500` compares the ways of loading across frameworks and
+measures the load time and the size per way, see
+[Cells drawn by a workflow module](#cells-drawn-by-a-workflow-module).
 
 ## The rules
 
-Every part is loaded once. A part is the pair of a workflow module and an exposed name. The host
+Every entry is loaded once. A part is the pair of a workflow module and an entry name. The host
 keeps one promise per pair and hands out the same one to every caller.
 
 A part never comes from the cockpit's own bundle. The cockpit never contains a user interface part
 of a business process, see [`../SKILL.md`](../SKILL.md#what-a-cockpit-user-interface-never-does).
 
-Every exposed part is a plain JavaScript function. A function that stands for something visible
+Every entry exports plain JavaScript functions. A function that stands for something visible
 returns the names of web components. The module registers these web components itself, and each of
 them draws into its own shadow DOM.
 
@@ -69,12 +132,12 @@ something only this module has, outside the page of a user task and the page of 
 
 Four extension points are the bare minimum, and every generated cockpit has them:
 
-| Exposed name   | What the module exports                                            | Where the cockpit uses it |
-|----------------|--------------------------------------------------------------------|---------------------------|
-| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns  | the task lists |
-| `WorkflowList` | `workflowListColumns`, a function from a case to its columns       | the case list |
-| `UserTaskForm` | `userTaskForm`, a function from a user task to web component names | the page of a user task |
-| `WorkflowPage` | `workflowPage`, a function from a case to web component names      | the page of a case |
+| Entry          | What the module exports                                            | Kind   | Where the cockpit uses it |
+|----------------|--------------------------------------------------------------------|--------|---------------------------|
+| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns  | data   | the task lists |
+| `WorkflowList` | `workflowListColumns`, a function from a case to its columns       | data   | the case list |
+| `UserTaskForm` | `userTaskForm`, a function from a user task to web component names | visual | the page of a user task |
+| `WorkflowPage` | `workflowPage`, a function from a case to web component names      | visual | the page of a case |
 
 An organisation may add more (`Q-EXTENSION-POINTS`). Examples: buttons in the header, menu
 entries, pages of a module, and modal dialogs those open, see
@@ -85,19 +148,49 @@ every module. Write it into the types library, see [types.md](types.md#the-exten
 
 An extension point outside the lists, the page of a user task and the page of a case, like the
 header, asks every module the user may see. The four minimum ones only ask the module of the row,
-the user task or the case. A module that does not expose the name is no error. It is ignored,
-without a message to the user. Only a module that exposes the name and fails to load is worth a
+the user task or the case. A module whose manifest does not name the entry is no error. It is
+ignored, without a message to the user. Only an entry that is named and fails to load is worth a
 note.
 
-The exposed name is the contract, and so are the names of the exports. A module that exposes
-`UserTaskForm` but names its export differently is loaded and shows nothing. Report that in the
+The entry name is the contract, and so are the names of the exports. A module that names
+`UserTaskForm` but calls its export differently is loaded and shows nothing. Report that in the
 console with the module id.
 
-The exposed names have no `./` in front. That prefix is a habit of Webpack module federation, where
-the keys follow the subpaths of a package's `exports`. Native federation takes the key as it is:
-the build writes it into `remoteEntry.json` unchanged, and `loadRemoteModule` finds the part by
-comparing the name with the key exactly. So a module writes `exposes: { UserTaskForm: '...' }` in
-its `federation.config`, and a module that writes `./UserTaskForm` is not found.
+## Data entries carry no framework
+
+There are two kinds of entries:
+
+- A data entry tells the cockpit something: the columns of a row, the pages of a module and
+  their menu entries, the buttons of the header. `UserTaskList`, `WorkflowList`, `Header` and
+  `Pages` are data entries.
+- A visual entry registers web components and draws something: `UserTaskForm`, `WorkflowPage`
+  and the entries that hold the web components of the header, the pages and the dialogs.
+
+A data entry is minimal JavaScript without a framework. It loads without the framework files of its
+module. That matters, because the cockpit loads data entries of many modules at once: the columns
+for every module in a list, the header and the pages for every module the user may see. A task list
+with rows of ten modules must not load ten frameworks before it draws its first row.
+
+Tree-shaking keeps a data entry small. The bundler drops every import the entry does not use. A
+helper that a data entry imports by mistake from a file that also imports React drops out as long
+as the helper itself does not need React. A real dependency on the framework stays, and that is
+what the check below finds.
+
+The check runs in the build of the module. The types library ships a small script without
+dependencies, `bc-check-entries`. It reads `bc-manifest.json` and fails the build when:
+
+- an entry the manifest names has no file,
+- a data entry, together with every file it imports, is larger than the limit from the interview
+  (`Q-DATA-ENTRY-LIMIT`, by default 10 KB before compression),
+- a data entry, or a file it imports, contains code of a framework package, for example `react`,
+  `react-dom`, `vue`, `@angular/core` or `zone.js`. The script finds them by the comments and
+  markers those packages leave in a bundle, and by the bundler's list of inputs when it is there.
+
+The end-to-end tests of the cockpit check the same from the other side: loading the data entries of
+a blueprint module fetches no file of the module's framework.
+
+The types library lists the names of the data entries as `DATA_ENTRIES`, so the script and the
+cockpit agree on them.
 
 ## Which data finds the part
 
@@ -106,7 +199,7 @@ names in both objects:
 
 | Field              | Meaning |
 |--------------------|---------|
-| `workflowModuleId` | the workflow module the row comes from, and the name of the remote |
+| `workflowModuleId` | the workflow module the row comes from |
 | `uiUriType`        | a type agreed between this user interface and the module; it decides how the row opens |
 | `uiUri`            | the `uiUriPath` the module reported, unchanged |
 
@@ -124,9 +217,9 @@ names for it. The values are a convention between this user interface and its wo
 (`Q-UI-URI-TYPE`). The types library lists them, and the types jar carries them as Java constants,
 see [project.md](project.md#the-types-jar). The defaults:
 
-- `NATIVE_MF`: the address is the remote entry of the module. Usually the module reports the path
-  `/remoteEntry.json`, so the cockpit loads the parts from
-  `/wm/<workflowModuleId>/remoteEntry.json`.
+- `ES_MODULES`: the address is the manifest of the module. Usually the module reports the path
+  `/bc-manifest.json`, so the cockpit loads the parts named in
+  `/wm/<workflowModuleId>/bc-manifest.json`.
 - `EXTERNAL`: the address is a page of the module's own. The cockpit opens it in a window or tab of
   its own and loads nothing into its own page. The list stays where it is.
 
@@ -141,62 +234,72 @@ No list, no page and no header loads a module part on its own. One central place
    `GET /gui/api/v1/workflow-module` once. It lists the modules the user may see. The answer stays in
    memory, for every part of the user interface. A module whose `uri` is empty has no web path and
    nothing to load.
-2. The loader. It is the only code that talks to the orchestrator. A component only asks it:
-   "give me the exposed part `UserTaskForm` of the module `taxi-ride`". The loader answers with a
-   promise of the module's exports.
+2. The loader. It is the only code that calls `import()` for a module. A component only asks it:
+   "give me the entry `UserTaskForm` of the module `taxi-ride`". The loader answers with a promise
+   of the entry's exports.
 
 What the loader does:
 
-1. It initialises the orchestrator once, in shim mode, so that remotes can be added later:
-   `initFederation({}, { ...useShimImportMap({ shimMode: true }) })`. It keeps the functions it
-   returns, `initRemoteEntry` and `loadRemoteModule`. Adding remotes after the start only works in
-   shim mode.
-2. It registers each module of the registry on its own:
-   `initRemoteEntry('/wm/<id>/remoteEntry.json', '<id>')`. One at a time and in parallel, so that a
-   module that fails to answer does not stop the others. A module without a remote entry (404) has
-   no federated parts. The loader remembers that and does not ask again in this session.
-3. A row of a module that is not in the registry yet, because the module registered after the page
+1. It reads the manifest of each module of the registry on its own:
+   `fetch('/wm/<id>/bc-manifest.json', { cache: 'no-cache' })`. All at once and each on its own, so
+   that a module that fails to answer does not stop the others. A module without a manifest (404)
+   has no parts to load. The loader remembers that and does not ask again in this session.
+2. A row of a module that is not in the registry yet, because the module registered after the page
    loaded, makes the loader call `GET /gui/api/v1/workflow-module/{id}` for that one module. It adds
-   the module to the registry and registers it the same way.
-4. `loadRemoteModule('<id>', 'UserTaskForm')` returns the module's exports. The loader keeps the
-   promise per pair of module and exposed name, so a second caller gets the same one.
+   the module to the registry and reads its manifest the same way.
+3. `import(new URL(file, manifestUrl).href)` returns the entry's exports. The loader keeps the
+   promise per pair of module and entry name, so a second caller gets the same one.
 
-The orchestrator keeps what it loaded for the life of the page. A module that is deployed again
-while a tab is open is loaded fresh with the next reload of the page. Check the options of the
-orchestrator version you use (`storage`, `profile.overrideCachedRemotes`) if you want another
-behaviour.
+The address of an `import()` is only known at runtime, so the cockpit's own bundler must leave it
+alone. Write the hint of the bundler next to it, `/* @vite-ignore */` for Vite or
+`/* webpackIgnore: true */` for Webpack. esbuild and the Angular CLI leave such an import alone by
+themselves.
+
+The browser keeps a loaded ES module for the life of the page. A module that is deployed again
+while a tab is open is loaded fresh with the next reload of the page, because the new manifest
+names new files.
 
 ## When a part is loaded
 
 The promise of the loader is the signal. Four states look different to the user, and your user
 interface tells them apart:
 
-| State         | How you know it                                                                            | What the user sees |
-|---------------|--------------------------------------------------------------------------------------------|--------------------|
-| loading       | the promise has not settled yet                                                            | a loading sign |
-| loaded        | the promise resolved, and the export is there                                              | the part of the module |
-| failed        | the promise rejected, the export is missing, or a web component it names is not registered | a note and a button that loads again |
-| not federated | `uiUriType` is `EXTERNAL`, or the module has no remote entry                               | what the cockpit knows itself |
+| State      | How you know it                                                                            | What the user sees |
+|------------|--------------------------------------------------------------------------------------------|--------------------|
+| loading    | the promise has not settled yet                                                            | a loading sign |
+| loaded     | the promise resolved, and the export is there                                              | the part of the module |
+| failed     | the promise rejected, the export is missing, or a web component it names is not registered | a note and a button that loads again |
+| not loaded | `uiUriType` is `EXTERNAL`, or the module has no manifest                                   | what the cockpit knows itself |
 
-A failed load stays failed until the user tries again. Retrying asks the loader again for this pair,
-and the loader calls `initRemoteEntry` and `loadRemoteModule` again. If it fails again, offer to
-reload the page.
+A failed load stays failed until the user tries again. Retrying asks the loader again for this
+pair. The loader drops the failed promise, reads the manifest again and calls `import()` again. The
+browser does not cache a failed `import()`, so a second try really asks the server. If it fails
+again, offer to reload the page.
 
-A module may also export `buildVersion` and `buildTimestamp`. The cockpit does not need them to
-know that a part is loaded. Show them in a details view, if at all.
+`buildVersion` and `buildTimestamp` of the manifest are not needed to know that a part is loaded.
+Show them in a details view, if at all.
 
 ## Nothing is shared
 
-The host shares nothing with the modules, and the modules should share nothing with each other.
-The only things that cross the line are the types library and DOM events. Every module brings its
-own framework in its own version. That is what lets an Angular cockpit load a React form, and a
-module upgrade its framework without asking anybody.
+The host shares nothing with the modules, and the modules share nothing with each other. The only
+things that cross the line are the types library and DOM events. Every module brings its own
+framework in its own version. That is what lets a Vue cockpit load a React form and an Angular case
+page, and a module upgrade its framework without asking anybody.
 
-It costs little, because every part is loaded once. A module's framework is loaded once per module
-and not once per element.
+It costs little, because every entry is loaded once, and the entries of one module share their
+framework chunk, see [Self-contained ES modules](#self-contained-es-modules).
 
-In `federation.config` a module therefore shares no singleton with other remotes. It does not put
-anything on `window` that another part reads, and it registers no global CSS.
+Shadow DOM isolates the DOM and the styles of a web component, not its JavaScript. Every module
+runs in the same `window`, with the same `customElements` registry and the same global objects. So
+a module does not put anything on `window` that another part reads, registers no global CSS, and
+loads no polyfill that changes a global API.
+
+The most common of these polyfills is `zone.js`, and so Angular modules run zoneless, with
+`provideZonelessChangeDetection()`. `zone.js` patches timers, promises and events of the whole
+page. Two Angular modules with `zone.js` patch them twice, and the second copy fails or slows every
+part down. An Angular cockpit runs zoneless as well. Zoneless change detection is stable since
+Angular 20.2. A form that relies on `zone.js` to notice changes uses signals instead, or calls
+`markForCheck()`.
 
 CSS frameworks are the hard part. A global stylesheet of the cockpit changes the look of a form, and
 the stylesheet of a form changes the look of the cockpit. That is why every web component of a
@@ -204,7 +307,7 @@ module renders into a shadow DOM.
 
 ## A visual part is a web component
 
-The module defines its web components itself, with `customElements.define`, when its exposed module
+The module defines its web components itself, with `customElements.define`, when its visual entry
 is evaluated. A function that returns the name of a web component must only return a name that is
 registered at that moment. The host checks it with `customElements.get(name)` right after the
 function returns. A name that is not registered is a failed load.
@@ -230,7 +333,9 @@ example `--bc-color-primary` or `--bc-font-family`, and they are inherited into 
 The types library offers a helper, `defineBcElement`, that builds and registers such a web
 component from three plain functions of the module: `mount`, `update` and `unmount`. A React module
 writes `mount = (root, props) => createRoot(root).render(<Form {...props} />)`, a Vue module uses
-`createApp`, and so on. So no module has to write the shadow root and the protocol by hand.
+`createApp`, an Angular module `createApplication` once per module and `createComponent` with
+`hostElement` per web component. So no module has to write the shadow root and the protocol by
+hand.
 
 ## The page of a user task or a case
 
@@ -281,22 +386,32 @@ shared between the areas. An all-in-one form has one web component and needs no 
 
 ## The other extension points
 
-Every further extension point follows the same pattern: the module exposes a function, and a
-visual one returns names of web components. Proposals for the usual ones:
+Every further extension point follows the same pattern: the module names an entry in its manifest,
+and the entry exports a function. Header buttons and pages are split in two. A data entry says what
+there is, and a visual entry registers the web components. So the cockpit can build the menu and the
+routes for every module without loading a single framework. Proposals for the usual ones:
 
-| Exposed name | What the module exports                                                    | Where the cockpit uses it |
-|--------------|----------------------------------------------------------------------------|---------------------------|
-| `Header`     | `header: (currentUser) => string[] \| undefined`, names of web components  | the application header |
-| `Pages`      | `pages: (currentUser) => Array<{ id, title, element, menu }> \| undefined` | the router and the menu |
+| Entry            | What the module exports                                                           | Kind   | Where the cockpit uses it |
+|------------------|-----------------------------------------------------------------------------------|--------|---------------------------|
+| `Header`         | `header: (currentUser) => Array<{ element, entry }> \| undefined`                 | data   | the application header |
+| `Pages`          | `pages: (currentUser) => Array<{ id, title, element, entry, menu }> \| undefined` | data   | the router and the menu |
+| `HeaderElements` | nothing; evaluating it registers the web components of the header buttons         | visual | the application header |
+| `PageElements`   | nothing; evaluating it registers the web components of the pages                  | visual | a page of a module |
+
+`element` is the name of a web component, and `entry` names the visual entry of the same manifest
+that registers it. The cockpit loads that entry only when the web component is about to be shown:
+the header elements when the header draws, the elements of a page when its route opens. A module may
+use other names for its visual entries; only `Header` and `Pages` are fixed.
 
 A page of a module has the route `/<workflowModuleId>/<id>`, always. The router of the cockpit
-adds a route for every page of every module in the registry. `title` is a `Translatable`, `element`
-the name of the web component, and `menu: true` adds a menu entry. The cockpit's own routes come
+adds a route for every page of every module in the registry. `title` is a `Translatable`, and
+`menu: true` adds a menu entry. The cockpit's own routes come
 first, so a module id like `tasks` cannot hide a screen of the cockpit.
 
 A module may open a modal dialog, for example a header button "Start" that shows a start form. The
 button asks the cockpit with the action `cockpit.openDialog` and names the web component of the
-dialog. The cockpit shows it in a modal layer above everything. The dialog closes itself with
+dialog. That web component must be registered already, usually by the same visual entry as the
+button. The cockpit shows it in a modal layer above everything. The dialog closes itself with
 `cockpit.closeDialog` and a result, and the promise of `cockpit.openDialog` resolves with that
 result, see [Actions](#actions).
 
@@ -439,9 +554,13 @@ Directions that might work, none of them proven:
   the visible area exist at all, see
   [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
-Prompt `1500` decides this with a probe. It builds a test page each in React, Angular and Vue. Each
-page loads a cell component through native federation, exactly as the cockpit will, and web
-components are the ideal it starts from. The probe measures the memory, how fast cells are drawn,
-how fast they react to the user, and how many cells a list can hold. Until then, cells are drawn by
-the cockpit from the column types, see
+Prompt `1500` decides this with a probe. It compares three ways of loading a cell across
+frameworks: the way of this description, which shares nothing and loads self-contained ES modules
+with `import()`; Module Federation 2.0 with shared dependencies; and native federation. It mixes the
+frameworks crosswise, for example a Vue page with cells from a React and an Angular module. It
+measures the memory, how fast cells are drawn, how fast they react to the user, how many cells a
+list can hold, and how long loading takes. Its result decides whether cells may relax the rule
+[Nothing is shared](#nothing-is-shared). Every other part keeps the rule.
+
+Until then, cells are drawn by the cockpit from the column types, see
 [behaviour.md](behaviour.md#the-columns-a-workflow-module-brings).
