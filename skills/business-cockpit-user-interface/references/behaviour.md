@@ -21,6 +21,7 @@ depends on an interview answer, the question id is named.
 1. [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows)
 1. [Live updates](#live-updates)
 1. [Notifications](#notifications)
+1. [User settings](#user-settings)
 1. [Language and texts](#language-and-texts)
 1. [Extension points](#extension-points)
 1. [Who sees what](#who-sees-what)
@@ -68,9 +69,8 @@ Often there is more:
 
 - A dashboard as the start page (`Q-DASHBOARD`). What it shows is up to the organisation. An example:
   a pie chart of all open user tasks by task type, and a second one of all open cases by kind. A
-  click on a slice opens the matching list, narrowed to that type. The GUI API has no endpoint that
-  counts by type. The user interface counts with one request per type, with `pageSize` 1 and no
-  `sort`, or the backend gets an endpoint of its own.
+  click on a slice opens the matching list, narrowed to that type. Each slice is one request to the
+  count endpoint, with a filter on the type, see [gui-api.md](gui-api.md#counting).
 - Sub-lists (`Q-SUB-LISTS`), narrowed to a role or to some task types. An example: a company has a
   list of committees a user can be a member of. The start page has one card per committee (that is,
   per role), with the number of tasks the user can see and the number the user has claimed. A user
@@ -93,6 +93,9 @@ What else the header shows depends on the view:
 - While a user task is open, the header shows the information about the task (`Q-TASK-HEADER-INFO`)
   and its actions (`Q-TASK-HEADER-ACTIONS`), see
   [Opening and working on a user task](#opening-and-working-on-a-user-task).
+- While a case is open, the header shows the information about the case
+  (`Q-WORKFLOW-HEADER-INFO`) and its actions (`Q-WORKFLOW-HEADER-ACTIONS`), for example the
+  note, see [The page of a case](#the-page-of-a-case).
 - In every other view it shows what the interview decided (`Q-HEADER`), for example the title, the
   buttons modules add (`Q-EXTENSION-POINTS`) and the refresh button (`Q-LIVE-MODE` is
   `refresh-button`).
@@ -113,8 +116,8 @@ the end the logout.
 ## Counts
 
 A count in brackets stands next to every part of the toggle in the header and next to every
-primary filter of a list. Each count is a request of its own, with `pageSize` 1 and no `sort`, see
-[gui-api.md](gui-api.md#sorting). A count in the toggle uses the primary filter the list would open
+primary filter of a list. Each count is a request to the count endpoint, see
+[gui-api.md](gui-api.md#counting). A count in the toggle uses the primary filter the list would open
 with.
 
 All counts are asked again:
@@ -151,15 +154,12 @@ form can only be edited after the user has claimed the task (`Q-CLAIM`).
 
 On the left, the status line has a group of buttons to choose the primary filter. The interview
 decides which primary filters are offered and which is the default (`Q-PRIMARY-FILTERS`). Possible
-are `OpenTasks`, `OpenTasksWithoutFollowUp`, `OpenTasksWithFollowUp`, `OpenTaskOnlyFollowUp` and
+are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp`, `OpenTaskOnlyFollowUp` and
 `ClosedTasksOnly`. The buttons show a short, translated label, for example "Open" or "Closed", with
-the count in brackets, see [Counts](#counts). The primary filter last chosen is kept as a preference
-of the user and used again next time. The GUI API has no place for preferences, so keep it in the
-browser's local storage, per user. On the right, the status line shows a colour legend for the
-states of a row, for example new, changed, removed and inactive.
-
-`OpenTasksWithFollowUp` returns the same rows as `OpenTasks`. The difference in the user interface
-is the follow-up column, see below.
+the count in brackets, see [Counts](#counts). The primary filter last chosen is a user setting and
+is used again next time, in every browser, see [User settings](#user-settings). On the right, the
+status line shows a colour legend for the states of a row, for example new, changed, removed and
+inactive.
 
 ### A row
 
@@ -178,9 +178,8 @@ unread, in the list and on the task page. Opening a task marks it as read.
 
 In `ClosedTasksOnly` a completed task looks like any other row, without grey. Only a cancelled task
 looks inactive: grey, with its title struck through. One style stands for "inactive", so there is no
-second colour for a second kind of inactive. The GUI API does not say yet whether an ended task was
-completed or cancelled, see
-[rough-edges.md](rough-edges.md#an-ended-row-does-not-say-whether-it-was-cancelled).
+second colour for a second kind of inactive. `endReason` tells the two apart: `COMPLETED` or
+`CANCELLED`, see [gui-api.md](gui-api.md#how-a-row-ended).
 
 What the page of a task or a case shows is the module's business, whatever the status. The cockpit
 only handles the row and the page the same way, open or closed, active or inactive.
@@ -189,8 +188,8 @@ only handles the row and the page the same way, open or closed, active or inacti
 
 Some columns every task has (`Q-TASK-COLUMNS`). The organisation picks them and
 their order, for example id, case kind, title, assignee, candidate users, created (`createdAt`), due
-(`dueDate`), follow-up (`followUpDate`), ended (`endedAt`). The follow-up column only shows for
-`OpenTasksWithFollowUp` and `OpenTaskOnlyFollowUp`. The ended column only shows for
+(`dueDate`), follow-up (`followUpDate`), ended (`endedAt`), notes. The follow-up column only shows
+for `OpenTasksWithFollowUp` and `OpenTaskOnlyFollowUp`. The ended column only shows for
 `ClosedTasksOnly`. Some organisations want fixed columns only and no dynamic ones, because the
 cockpit is used in one area where the list holds known values (`Q-MODULE-COLUMNS`).
 
@@ -216,15 +215,21 @@ The fixed columns behave and look different from the columns filled with a modul
 ### Bulk actions
 
 The selected tasks can be claimed, proposed to another person (they become
-candidate users), marked as read or unread, and put on follow-up (`Q-BULK-ACTIONS`). The selection
+candidate users), marked as read or unread, put on follow-up, and given a note (`Q-BULK-ACTIONS`). The selection
 is a set of ids. It stays when rows leave the window of loaded rows, see
 [Paging and the window of loaded rows](#paging-and-the-window-of-loaded-rows).
 
 ### Notes
 
-If there is a notes column (`Q-NOTES`), notes can be edited in the list, or for all
-selected tasks at once through the header area. The GUI API has no endpoint for notes today. This
-choice needs an extension of the backend.
+User tasks and cases can carry notes (`Q-NOTES`). The endpoints come with prompt `1507`. A note
+can be written in three places:
+
+- in the list, per row, in the notes column,
+- in the list, once for all selected rows, as a bulk action,
+- on the full view, in the application header, see
+  [The header while a task is open](#the-header-while-a-task-is-open).
+
+The same holds for the case list and the page of a case.
 
 ### Follow-up
 
@@ -257,7 +262,7 @@ dislike that. So:
 
 1. Ask for the first 20 rows. That is about one screen.
 2. Ask the [loader](module-federation.md#one-registry-and-one-loader) for the list part
-   (`./UserTaskList` or `./WorkflowList`) of each module these rows come from. A part that is
+   (`UserTaskList` or `WorkflowList`) of each module these rows come from. A part that is
    already loaded is not loaded again. The registry of modules is in memory since the start, so
    nothing is asked for it here.
 3. Call the column function for each of the 20 rows, and build the list with these columns.
@@ -321,8 +326,8 @@ stored fields are `id`, `fulltext` and `sort`.
 
 Whether a module may draw cells itself is an open question, see
 [module-federation.md](module-federation.md#cells-drawn-by-a-workflow-module). It depends on a way to
-do it without starting a framework once per cell. More column types out of the box, for example a
-currency, are a wish for later.
+do it without starting a framework once per cell, and prompt `1500` looks for one. More column
+types out of the box, for example a currency, are a wish for later.
 
 ## The actions on a user task
 
@@ -340,8 +345,8 @@ For one row or for several selected rows:
 
 Claiming a task that already has another assignee takes it away from a colleague, see
 [rough-edges.md](rough-edges.md#claiming-overwrites). So the user interface asks first. The question
-has a checkbox "don't ask again". When the user ticks it, the choice is kept in the browser's local
-storage, per user, and the question no longer comes.
+has a checkbox "don't ask again". When the user ticks it, the choice is kept as a user setting, see
+[User settings](#user-settings), and the question no longer comes, in any browser.
 
 To propose a task, the user searches for persons in a field, and the user interface calls
 `POST /user` with a maximum number of hits for that.
@@ -372,18 +377,20 @@ and shows the general functions in the application header.
 ### Opening
 
 The title in the list is a link to the task page. A click opens it in the same tab, and
-"open in new tab" works too. A task whose `uiUri` is a whole address, starting with `http://` or
-`https://`, opens that address as it is, in a tab of its own, so the list stays. That depends on
-the address, not on `uiUriType`. From a task to its case always leads to the cockpit's own case
-page, not to the address of the task. The task says where the task is shown, and that is not where
-the case is shown.
+"open in new tab" works too. A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of
+its own, so the list stays. The type decides this, not the form of the address. The address itself
+is built by the one rule of
+[module-federation.md](module-federation.md#which-data-finds-the-part). From a task to its case
+always leads to the cockpit's own case page, not to the address of the task. The task says where
+the task is shown, and that is not where the case is shown.
 
 ### The header while a task is open
 
 The task actions of the cockpit always sit in the application header. There is no header or footer
 of the task's own. The header shows information about the task (`Q-TASK-HEADER-INFO`), for example
-task kind, case kind and case number, and offers claim, unclaim, propose to a person and follow-up
-(`Q-TASK-HEADER-ACTIONS`). It also offers "mark as unread", because an opened task counts as read.
+task kind, case kind and case number, and offers claim, unclaim, propose to a person, follow-up and
+the note of the task (`Q-TASK-HEADER-ACTIONS`). It also offers "mark as unread", because an opened
+task counts as read.
 
 The header stands in the same place for all kinds of tasks, so it is a visual anchor for the user.
 The controls of the actions are always in the same place. Its content can never break it: each
@@ -410,25 +417,27 @@ Before that, the cockpit warns that the input may be lost, and the user can stay
 comes when the user closes the tab (`beforeunload`).
 
 **To verify:** whether `focus()` on the kept window object brings the tab to the front is up to the
-browser. Check it in Chromium, Firefox and WebKit with Playwright before this becomes fixed
-behaviour. Until then the checklist item says it is to be verified.
+browser. Probe `1508` checks it: a small example application in plain JavaScript that shows what
+works in which browser today. Until its result is in, the checklist items `TF-007`, `TF-017` and
+`TF-018` say they are to be verified with `1508`.
 
 ### What the page does
 
 1. It loads the user task and marks it as read.
-2. It asks the [loader](module-federation.md#one-registry-and-one-loader) for `./UserTaskPage` of
-   the task's module and calls `userTaskPage` with the task.
+2. It asks the [loader](module-federation.md#one-registry-and-one-loader) for `UserTaskForm` of
+   the task's module and calls `userTaskForm` with the task.
 3. While one of the two is running, it shows a loading state. On an error, a note with a button that
    tries again. There are two different errors: the task could not be loaded, or the part of the
    module could not be loaded.
-4. It puts the web components the function named into their areas and sets their properties, see
+4. It puts the web components the function named into their places and sets their properties, see
    [types.md](types.md#what-a-part-gets).
 
 ### The areas and the frame
 
-The function names a web component per area (`Q-PAGE-AREAS`), see
-[module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). With the default
-convention:
+The function returns either one web component or one per area (`Q-PAGE-AREAS`), see
+[module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). A string is the
+name of one web component, the all-in-one form: it gets the whole area, with no column. An object
+names a web component per area, the laid-out form. With the default convention:
 
 - `body` is the main area. A long form scrolls in it.
 - `information` is the top of a column on the right, with basic information about the task, for
@@ -436,8 +445,6 @@ convention:
 - `actions` is the bottom of that column, with the completing actions, usually buttons like
   "Accept" and "Reject". The column fills the whole visible height and does not scroll with a long
   form, so the action buttons are always visible.
-
-A module that returns `body` only gets the whole area for it, with no column.
 
 The use of the main parts is always the same: functions in the header, information and action
 buttons in the column on the right. The cockpit lays them out, so modules of different teams look
@@ -463,7 +470,7 @@ automatically, by hand with a save button, or not at all, the form decides.
 
 When somebody else changes the task while the user has it open, the user is
 told right away. For example: "User X has claimed this task. Please talk to them before you save or
-complete, to avoid losing data." The message is a toast that the user has to click away.
+complete, to avoid losing data." The message is a sticky toast that the user has to click away.
 
 ## The case list
 
@@ -486,10 +493,11 @@ The interview decides which are offered (`Q-WORKFLOW-FILTERS`). By default these
 
 Every case has one row. Modules define their own columns for the case list, apart from the task
 columns. The case list has its own fixed columns (`Q-WORKFLOW-COLUMNS`). There is no read marker
-and no read function. A case list without bulk actions has no selection column.
+and no read function. A case list without bulk actions has no selection column. Notes work as in
+the task list, per row and for all selected rows, see [Notes](#notes).
 
 In `Inactive` a completed case looks like any other row. Only a cancelled case looks inactive: grey,
-with its title struck through, the same as for user tasks.
+with its title struck through, the same as for user tasks. `endReason` tells the two apart.
 
 Some organisations want fixed columns only, as for the task lists (`Q-MODULE-COLUMNS`).
 
@@ -502,13 +510,15 @@ handles in an event-based sub-process.
 The page works like the page of a user task, with these differences:
 
 - There is no "open as own window". "Open in new tab" with the right mouse button works.
-- The application header shows no task actions, because there are no functions across all cases.
-  It shows what the interview decided for the other views (`Q-HEADER`). There is no header or
-  footer of the case's own either.
+- The application header has a form of its own for a case, like the one for a user task. It shows
+  information about the case (`Q-WORKFLOW-HEADER-INFO`), for example case kind and case number,
+  and the actions on the case (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
+  shows no task actions. The same rule holds as for the task: each value has its own share of the
+  width, and the controls stay in the same place. There is no header or footer of the case's own.
 
-The page asks the loader for `./WorkflowPage` and calls `workflowPage` with the case. The function
-names the web components per area, the same areas as on the page of a user task
-(`Q-PAGE-AREAS`), or `body` alone. The page has the same loading and error states as the task page,
+The page asks the loader for `WorkflowPage` and calls `workflowPage` with the case. The function
+returns one web component for the all-in-one form, or one per area, the same areas as on the page
+of a user task (`Q-PAGE-AREAS`). The page has the same loading and error states as the task page,
 and gives the module `getUserTasks` for the tasks of the case. Long content scrolls in its own area
 and never breaks the frame of the cockpit.
 
@@ -662,6 +672,37 @@ and per kind of case, whether they want notifications and on which channel. The 
 A link in a notification mail points to the task page. It must work without a detour over the start
 page, also when the user has to log in first.
 
+## User settings
+
+Users expect the cockpit to remember their choices in every browser they use. So every user
+setting is stored on the server, in the map `customSettings` of the user. Prompt `1505` adds it,
+with endpoints that read and write one entry, see [gui-api.md](gui-api.md#user-settings).
+
+This holds for every setting, whether the user sets it on purpose or the user interface only
+remembers it. Examples:
+
+| Setting                                                 | Explicit or implicit |
+|---------------------------------------------------------|----------------------|
+| the language                                            | explicit, in the menu |
+| "don't ask again" before claiming                       | explicit, in the question |
+| the primary filter last chosen                          | implicit |
+| the width of a column the user resized                  | implicit |
+| the order or the hidden state of columns, where offered | implicit |
+
+The generated user interface has one global settings service for this. Every part of it that keeps
+a setting uses the service, and nothing else calls the endpoints. The service:
+
+- reads an entry the first time somebody asks for it, and keeps it in a cache in memory,
+- answers every later question from the cache,
+- writes a change to the server and updates the cache at once, so the page does not wait,
+- names its keys with a prefix of the user interface and a fixed scheme, for example
+  `bc.tasks.primaryFilter` or `bc.columns.tasks.<path>.width`,
+- keeps implicit settings that change often, like a column width while dragging, until the change
+  has stopped for a moment, and writes only then.
+
+Never use `localStorage`, `sessionStorage` or a cookie of your own for a setting. They stay in one
+browser, and the user sees another cockpit on the next computer.
+
 ## Language and texts
 
 All texts are translated, with a default language chosen in advance (`Q-LANGUAGE-DEFAULT`). The
@@ -670,7 +711,7 @@ interview asks whether the user can switch the language (`Q-LANGUAGE-SWITCH`).
 The languages on offer come from the backend. `GET /app/info` returns `additionalProperties`, which
 the application fills from `business-cockpit.additional-properties`, for example
 `languages: en,de` (`Q-LANGUAGES`), see [gui-api.md](gui-api.md#the-endpoints). The switch sits in
-the menu, below the menu entries. The choice is kept in the browser's local storage.
+the menu, below the menu entries. The choice is a user setting, see [User settings](#user-settings).
 
 The texts are in separate files, one per language. None is written into the code.
 
