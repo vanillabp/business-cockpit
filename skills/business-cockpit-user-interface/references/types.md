@@ -4,8 +4,8 @@
 
 VanillaBP gives no types for the user interface, and no user interface either. The generated user
 interface publishes the types itself, as `<scope>/bc-types` (`Q-NPM-SCOPE`). A workflow module installs this package to build its
-parts. The package says what a part may expect as input and which functions it may call. It does
-not depend on module federation and has no dependencies, see
+parts. The package says what a part may expect as input and which functions it may call. It
+depends on no loading library and has no dependencies, see
 [project.md](project.md#the-types-library).
 
 Everything that crosses the line between the cockpit and a module is in it. Nothing else is. Apart
@@ -22,6 +22,7 @@ It is generated from the list in this library, by a Maven project of its own, se
 1. [What a part gets](#what-a-part-gets)
 1. [The event protocol](#the-event-protocol)
 1. [The extension points](#the-extension-points)
+1. [The manifest and its check](#the-manifest-and-its-check)
 
 ## Data from the GUI API
 
@@ -33,12 +34,12 @@ include `endReason`, see [gui-api.md](gui-api.md#how-a-row-ended).
 
 `uiUriType` is a string there and not a type of its own. Which values exist is agreed between this
 user interface and its modules, and VanillaBP knows no names for them. The library exports the
-values from `Q-UI-URI-TYPE` as constants, by default `NATIVE_MF` and `EXTERNAL`. The type decides
-how a row opens, see [module-federation.md](module-federation.md#which-data-finds-the-part).
+values from `Q-UI-URI-TYPE` as constants, by default `ES_MODULES` and `EXTERNAL`. The type decides
+how a row opens, see [module-loading.md](module-loading.md#which-data-finds-the-part).
 
 ```typescript
-export const UI_URI_TYPE_NATIVE_MF = 'NATIVE_MF';   // parts loaded through native federation
-export const UI_URI_TYPE_EXTERNAL = 'EXTERNAL';     // a page of its own, opened in a tab of its own
+export const UI_URI_TYPE_ES_MODULES = 'ES_MODULES';   // parts loaded with import(), named in bc-manifest.json
+export const UI_URI_TYPE_EXTERNAL = 'EXTERNAL';       // a page of its own, opened in a tab of its own
 ```
 
 The package also carries the same list as a plain file, `ui-uri-types.json`, with the name and a
@@ -48,7 +49,7 @@ constants and the TypeScript constants never drift apart, see
 
 ```json
 [
-  { "name": "NATIVE_MF", "description": "The module's parts are loaded into the cockpit through native federation." },
+  { "name": "ES_MODULES", "description": "The module's parts are ES modules named in bc-manifest.json; the cockpit loads them with import()." },
   { "name": "EXTERNAL", "description": "The module has pages of its own; the cockpit opens them in a tab of its own." }
 ]
 ```
@@ -179,7 +180,7 @@ functions.
 `sendTo('actions', { valid: true })` from the form in `body`. `receiveMessage` registers a handler
 with the cockpit and returns a subscription. `unsubscribe()` on it stops the delivery. A message
 that was sent before the area subscribed is delivered once it does, see
-[module-federation.md](module-federation.md#messages-between-areas). A message is any value that
+[module-loading.md](module-loading.md#messages-between-areas). A message is any value that
 survives `structuredClone`.
 
 `showNotification` shows a toast in the cockpit, for example
@@ -209,7 +210,7 @@ changes. `currentUser` is the user from `GET /app/current-user`, with the groups
 
 ## The event protocol
 
-The library holds the protocol of [module-federation.md](module-federation.md#the-event-protocol):
+The library holds the protocol of [module-loading.md](module-loading.md#the-event-protocol):
 
 - the event names `bc-request`, `bc-response` and `bc-message`, as constants,
 - the types of the request and the answer, the action names and the error codes,
@@ -227,7 +228,7 @@ needs it.
 ## The extension points
 
 The library names every extension point of this cockpit: the four minimum ones and those from
-`Q-EXTENSION-POINTS`. For each one it exports the exposed name, the type of the function the module
+`Q-EXTENSION-POINTS`. For each one it exports the entry name, the type of the function the module
 exports, and the properties the host sets. For example:
 
 ```typescript
@@ -237,6 +238,9 @@ export const USER_TASK_FORM = 'UserTaskForm';   // exports: userTaskForm
 export const WORKFLOW_PAGE = 'WorkflowPage';    // exports: workflowPage
 export const HEADER = 'Header';                 // exports: header; an extension point of this organisation
 export const PAGES = 'Pages';                   // exports: pages; an extension point of this organisation
+
+/** The entries that carry no framework; bc-check-entries checks their size and content. */
+export const DATA_ENTRIES = [USER_TASK_LIST, WORKFLOW_LIST, HEADER, PAGES] as const;
 
 export type UserTaskFormFunction = (userTask: UserTask) => PageParts | undefined;
 export type WorkflowPageFunction = (workflow: Workflow) => PageParts | undefined;
@@ -250,7 +254,50 @@ export type PageAreas = { [area: string]: string };
 export const AREA_BODY = 'body';
 export const AREA_INFORMATION = 'information';
 export const AREA_ACTIONS = 'actions';
+
+/** A web component that a data entry names, and the visual entry that registers it. */
+export interface BcElementRef {
+  element: string;
+  entry: string;
+}
+
+export type HeaderFunction = (currentUser: CurrentUser) => BcElementRef[] | undefined;
+
+export interface BcPage extends BcElementRef {
+  id: string;
+  title: Translatable;
+  menu: boolean;
+}
+
+export type PagesFunction = (currentUser: CurrentUser) => BcPage[] | undefined;
 ```
+
+`CurrentUser` is the user the host hands every part as `currentUser`, see
+[What a part gets](#what-a-part-gets). `Header` and `Pages` are data entries: they name web
+components, and `entry` says which visual entry of the same manifest registers them, see
+[module-loading.md](module-loading.md#the-other-extension-points).
 
 It also exports the names of the CSS custom properties of the theme (`Q-THEME-TOKENS`), so a module
 can use them inside its shadow DOM.
+
+## The manifest and its check
+
+The library carries the type of `bc-manifest.json`, see
+[module-loading.md](module-loading.md#the-manifest):
+
+```typescript
+export interface BcManifest {
+  manifestVersion: 1;
+  buildVersion?: string;
+  buildTimestamp?: string;
+  /** Entry name -> file, relative to the manifest. */
+  entries: { [entry: string]: string };
+}
+```
+
+It also ships `bc-check-entries` as a `bin` script, plain Node.js without dependencies. A module
+runs it after its build, for example `bc-check-entries dist/bc-manifest.json --limit 10kb`. It
+reads the manifest, follows the relative imports of every data entry in `DATA_ENTRIES`, and fails
+when a file is missing, when a data entry is larger than the limit, or when it contains framework
+code, see [module-loading.md](module-loading.md#data-entries-carry-no-framework). The limit is
+`Q-DATA-ENTRY-LIMIT`.

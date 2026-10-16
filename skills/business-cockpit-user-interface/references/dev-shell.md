@@ -3,7 +3,7 @@
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
 Somebody who writes a form for a workflow module needs something it runs in. The real cockpit is a
-poor fit. Its parts are embedded through module federation, so hot module replacement does not work:
+poor fit. It loads the built files of a module at runtime, so hot module replacement does not work:
 every change needs a production build of the module and a reload in the browser. On top of that, a
 cockpit, a MongoDB and a BPMS have to run.
 
@@ -42,7 +42,7 @@ menu entries, and the modal dialogs they open.
 
 For this it must:
 
-1. Import the module's components directly, not through module federation.
+1. Import the module's components directly, not through the manifest and `import()`.
 2. Show real data. The user task and the case come from the GUI API of the simulator, not from a
    file with sample data. Only then does the shape of the data match the cockpit's.
 3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there,
@@ -65,9 +65,13 @@ For this it must:
    cockpit as possible. The application header with the task actions, the areas `body`,
    `information` and `actions` (`Q-PAGE-AREAS`) and the scrolling are laid out as in the cockpit.
 
+A dev shell for Angular runs zoneless, as an Angular module does in the cockpit, see
+[module-loading.md](module-loading.md#nothing-is-shared). A form that needs `zone.js` fails in the
+dev shell, not first in the cockpit.
+
 It needs no lists, no live updates and no login. Those are the cockpit's business and not the
 workbench's. A view that copies a row of a list is only needed once modules can draw cells
-themselves, see [module-federation.md](module-federation.md#cells-drawn-by-a-workflow-module).
+themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-module).
 
 ## The entry point
 
@@ -91,8 +95,8 @@ The form of the entry point follows the framework, and it does not have to be th
 Use what is natural in the framework. What is handed over is the same.
 
 The user task form and the case page are handed over as a function of the same shape as the one the
-module exposes, `userTaskForm` and `workflowPage`, see
-[module-federation.md](module-federation.md#the-page-of-a-user-task-or-a-case). The only
+module's entries export, `userTaskForm` and `workflowPage`, see
+[module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). The only
 difference: it returns the module's component of the framework instead of the name of a web
 component. One component is the all-in-one form, a map of areas to components is the laid-out
 form. So the dev shell lays out the page the same way, and the dev server can swap the components.
@@ -231,5 +235,5 @@ does not show that unless it uses the same styles. Shadow DOM and the theme buil
 keep this difference small.
 
 The drawbacks: the whole cockpit has to be set up, with MongoDB, while the dev shell uses an
-in-memory H2 database. And parts loaded through module federation are not updated while the
+in-memory H2 database. And parts the cockpit loads with `import()` are not updated while the
 developer types; every change needs a production build and a reload in the browser.

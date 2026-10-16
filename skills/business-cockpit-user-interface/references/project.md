@@ -69,9 +69,9 @@ variable the interview names.
 ## The user interface bundle
 
 `packages/ui` builds the single-page application into `packages/ui/dist`. It is built with the
-framework and the build tool from the interview. It does not need a federation build of its own:
-the cockpit is the host, and the host only needs the runtime, see
-[module-federation.md](module-federation.md#native-federation).
+framework and the build tool from the interview. It needs nothing special to load the parts of the
+modules: it calls `import()` for the files their manifests name, see
+[module-loading.md](module-loading.md#self-contained-es-modules).
 
 Two rules for the output come from the backend:
 
@@ -234,8 +234,8 @@ package com.example.cockpit.ui;
 /** The values of ui-uri-type this cockpit user interface understands. */
 public final class UiUriTypes {
 
-    /** The module's parts are loaded into the cockpit through native federation. */
-    public static final String NATIVE_MF = "NATIVE_MF";
+    /** The module's parts are ES modules named in bc-manifest.json, loaded with import(). */
+    public static final String ES_MODULES = "ES_MODULES";
 
     /** The module has pages of its own; the cockpit opens them in a tab of its own. */
     public static final String EXTERNAL = "EXTERNAL";
@@ -248,7 +248,7 @@ public final class UiUriTypes {
 
 `EXTERNAL` is a name of this user interface like any other. It does not point to a constant of
 VanillaBP, because there is none. The type decides how a row opens, not the form of its address,
-see [module-federation.md](module-federation.md#which-data-finds-the-part).
+see [module-loading.md](module-loading.md#which-data-finds-the-part).
 
 A workflow module uses the constant in its configuration or its code. The types jar holds one class
 and nothing else, so it fits every module.
@@ -319,8 +319,9 @@ The UI repository needs no Java to build. Two things around it still run on Java
 ## The types library
 
 `<scope>/bc-types` is what a workflow module installs to build its parts. It has no dependencies
-and no peer dependencies, and it does not depend on module federation. It holds the types and the
-small helper that runs the event protocol. [types.md](types.md) lists what goes into it.
+and no peer dependencies, and it depends on no loading library. It holds the types, the small
+helper that runs the event protocol and the script `bc-check-entries` a module runs in its build.
+[types.md](types.md) lists what goes into it.
 
 It is published to the npm registry from the interview (`Q-NPM-SCOPE`). Its version follows the
 version of the user interface, because both sides of a contract change together.
