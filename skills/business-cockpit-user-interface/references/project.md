@@ -2,19 +2,21 @@
 
 *Part of the description in [`../SKILL.md`](../SKILL.md).*
 
-By default the skill fills two repositories, and each one needs only one build tool.
+By default the skill fills two repositories and one small Maven project, and each one needs only
+one build tool.
 
 - The UI repository is a pure npm project. It builds and publishes the user interface, the types
   library, the dev shells, the UI jar and an nginx image. It has no `pom.xml`, and its build needs
   no Java.
 - The backend repository is a pure Maven project. It is the cockpit application, and it pulls
-  the UI jar as an ordinary dependency. By default it also builds the types jar. It has no
-  `package.json`.
+  the UI jar as an ordinary dependency. It has no `package.json`.
+- The types module is a Maven project of its own. It builds the types jar, see
+  [The types jar](#the-types-jar).
 
 Many companies run build agents that have either npm or Maven, not both. Many also treat a build
 that downloads a second tool chain later, like `frontend-maven-plugin` does, as a security risk.
-Two repositories avoid both problems, and a Maven release of the backend stays an ordinary Maven
-release.
+Keeping npm and Maven apart avoids both problems, and a Maven release of the backend stays an
+ordinary Maven release.
 
 1. [The UI repository](#the-ui-repository)
 1. [The user interface bundle](#the-user-interface-bundle)
@@ -38,6 +40,9 @@ packages/
   ui/                         the cockpit user interface
   bc-types/                   <scope>/bc-types, no dependencies
   bc-dev-shell-<framework>/   <scope>/bc-dev-shell-<framework>, one per framework of the modules
+scripts/
+  fetch-openapi.mjs           loads the OpenAPI files from the jars of the cockpit
+  check-texts.mjs             fails the build when a language file misses a key
 jars/
   build-jars.mjs              builds the UI jar
   publish-jars.mjs            uploads it into the Maven repository
@@ -55,7 +60,10 @@ shaking drops the parts a module does not use. But its peer dependencies would s
 framework, so separate packages are cleaner.
 
 The GUI API client is generated at build time into `packages/ui` and into each dev shell, see
-[gui-api.md](gui-api.md#generating-the-client). It is not committed.
+[gui-api.md](gui-api.md#generating-the-client). It is not committed. `scripts/fetch-openapi.mjs`
+loads the two OpenAPI files first. It reads the jars of the cockpit from the Maven repository of
+the interview (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`), with the token from the environment
+variable the interview names. For GitHub Packages that is the token `.npmrc` uses as well.
 
 ## The user interface bundle
 
@@ -72,6 +80,12 @@ Two rules for the output come from the backend:
   [gui-api.md](gui-api.md#protection-and-login). Many build tools put their files into an `assets`
   folder by default. Where yours does not, configure the output path or the base path so that it
   does.
+
+Before the bundle is built, `npm run check:texts` runs `scripts/check-texts.mjs`. It is part of
+`prebuild`, so no build skips it. It reads the file of the default language (`Q-LANGUAGE-DEFAULT`)
+and every other language file. If a file misses a key of the default language, the script names the
+file and the key and ends with an error, so the build fails. The fallback to the default language at
+run time stays, see [behaviour.md](behaviour.md#language-and-texts).
 
 ## The UI jar
 
@@ -139,7 +153,7 @@ So that a Maven release of the backend works:
 
 The npm scripts call this: `npm run build:jars` and `npm run publish:jars`. `npm publish` of the
 npm packages runs next to it, with the same version. The types library must be published before the
-backend builds the types jar, see [The types jar](#the-types-jar).
+types module builds the types jar, see [The types jar](#the-types-jar).
 
 ## The nginx image
 
@@ -194,9 +208,9 @@ It takes the UI jar as an ordinary dependency:
 ```
 
 The skill does not write the application. If the repository exists, read its `pom.xml` for
-`Q-BACKEND-FRAMEWORK`, and tell the user which dependency to add. The one thing the skill may add
-to it is the module of the types jar, see [The types jar](#the-types-jar). A new version of the user
-interface is a new version number in this `pom.xml`, and the backend is released as usual.
+`Q-BACKEND-FRAMEWORK`, and tell the user which dependency to add. The types jar is not built here,
+see [The types jar](#the-types-jar). A new version of the user interface is a new version number in
+this `pom.xml`, and the backend is released as usual.
 
 Repacking a finished runnable jar, for example turning `container-without-ui` into `container` by
 putting the files of the user interface into it, is not the way this skill takes. If somebody wants
@@ -208,8 +222,6 @@ it anyway, two rules apply, and neither is proven by a test yet:
   place, and a compressed nested jar does not start.
 
 ## The types jar
-
-**Proposal, to be confirmed by Stephan.**
 
 The values of `ui-uri-type` are a convention between this user interface and its workflow modules.
 VanillaBP knows no names for them and has no constant for them. So that a workflow module does not
@@ -240,14 +252,33 @@ see [module-federation.md](module-federation.md#which-data-finds-the-part).
 A workflow module uses the constant in its configuration or its code. The types jar holds one class
 and nothing else, so it fits every module.
 
-A jar with a compiled class needs `javac`, and the UI repository stays npm-only. So the types jar is
-built where Maven already runs. The default is a small Maven module in the backend repository, for
-example `business-cockpit-ui-types`. If the backend repository should not carry it, it is a tiny
-Maven project of its own. Either way it is built like this:
+### A Maven project of its own
+
+The types jar is built by a Maven project of its own, the types module, for example
+`business-cockpit-ui-types`. It is not part of the backend application and not part of the UI
+build. By default it lives in a repository of its own.
+
+The reason is the order of the builds. Each step needs the one before:
+
+1. A release of the cockpit. Its jars carry the OpenAPI files of the GUI API.
+2. The user interface, built with npm. It needs the OpenAPI files from the cockpit jars, see
+   [gui-api.md](gui-api.md#generating-the-client). It publishes the npm package of the types
+   library.
+3. The types module, built with Maven. It reads the npm package of the types library.
+4. The backend application, built with Maven. It takes the UI jar. The workflow modules take the
+   types jar.
+
+Put the types into the build of the cockpit, and that build needs the npm package of the user
+interface, while the user interface needs the jars of the cockpit first. The builds go round in a
+circle. Put them into the UI build, and the npm-only UI repository needs `javac`. A project of its
+own avoids both. The backend application does not carry the types module either: workflow modules
+need the types jar, and they should not wait for a release of the cockpit application.
+
+It is built like this:
 
 1. The UI repository decides the list. The types library carries it as `ui-uri-types.json`, see
    [types.md](types.md#data-from-the-gui-api).
-2. The Maven module downloads the npm package `<scope>/bc-types` of the same version from the npm
+2. The types module downloads the npm package `<scope>/bc-types` of the same version from the npm
    registry. A tarball is a plain file, so a plain download needs no npm, for example with
    `download-maven-plugin`.
 3. A short build step writes `UiUriTypes.java` from `ui-uri-types.json`, one constant per entry,
@@ -255,8 +286,23 @@ Maven project of its own. Either way it is built like this:
 4. The version of the types jar is the version of the types library. So `1.4.0` of the jar always
    holds the values of `1.4.0` of the user interface.
 
-The generator writes this module into the backend repository only when the user agrees, and tells
-the user which coordinates it has (`Q-TYPES-JAR`).
+The generator writes the types module when the user agrees, and tells the user which coordinates it
+has (`Q-TYPES-JAR`):
+
+```
+pom.xml                       downloads the tarball, writes and compiles UiUriTypes.java
+README.md                     the order of the builds and why
+```
+
+Its `README.md` explains the order and why. It says, in the words of the project:
+
+- The user interface needs the OpenAPI files from the cockpit jars.
+- The types module needs the npm package of the user interface.
+- If the types were part of the cockpit build, the builds would form a circle. If they were part of
+  the UI build, the npm-only UI repository would need Java. That is why the types module is a
+  project of its own.
+- The order of a release: the cockpit release, then the user interface (npm), then the types module
+  (Maven, reads the npm tarball), then the backend.
 
 ## What still needs Java
 

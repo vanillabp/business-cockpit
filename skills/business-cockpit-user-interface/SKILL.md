@@ -43,7 +43,7 @@ the code disagree, the code is right and the text is the bug.
 
 ## What you generate
 
-By default two repositories, each with one build tool.
+By default two repositories and one small Maven project, each with one build tool.
 [references/project.md](references/project.md) describes them.
 
 The UI repository is a pure npm project. It produces:
@@ -62,9 +62,13 @@ The UI repository is a pure npm project. It produces:
 
 The backend repository is a pure Maven project, the cockpit application of the organisation. It
 pulls the UI jar as an ordinary dependency. The skill does not write the application, but it tells
-the user which dependency to add. By default it adds one small Maven module to this repository: the
-types jar with the constants of the `ui-uri-type` values, for the Java side of the workflow modules.
-The types jar needs compiled Java classes, so it cannot live in the npm-only UI repository.
+the user which dependency to add.
+
+The types module is a Maven project of its own, apart from the backend application and from the UI
+build. It builds the types jar with the constants of the `ui-uri-type` values, for the Java side of
+the workflow modules. It reads the npm package of the types library, and the user interface needs
+the OpenAPI files of the cockpit jars first. Inside the cockpit build that would be a circle, so its
+`README.md` explains the order: cockpit release, user interface, types module, backend.
 
 ## Phase 1: interview
 
@@ -124,7 +128,7 @@ Read them in this order. Each one builds on the one before.
    The questions you ask before you generate anything, and their defaults.
 2. [references/project.md](references/project.md)<br>
    The two repositories: the user interface, the UI jar, the upload into the Maven repository, the
-   nginx image, the backend with the types jar, the types library and the dev shells.
+   nginx image, the backend, the types module, the types library and the dev shells.
 3. [references/gui-api.md](references/gui-api.md)<br>
    What the server can do: generating the client, logging in, the endpoints, paging, sorting,
    filtering over reported business data, suggestions for a search field, the primary filter, the
@@ -208,6 +212,9 @@ Spring Boot, for example, an unauthenticated request can be sent to the `/login`
 on the configuration, that shows a login form or forwards to an OAuth2 login. The runnable
 `container` jar is an example that runs out of the box. Only it uses basic authentication, with a
 local user directory. See [Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
+Today the library still has a default chain of its own, with basic authentication and users in
+memory. Prompt `1510` moves it into `container`, see
+[references/rough-edges.md](references/rough-edges.md#what-needs-a-newer-cockpit).
 
 What your user interface needs from the backend application:
 
@@ -236,7 +243,7 @@ seeing anything.
    points.
 6. The update stream. It comes late, because it needs most of the rest.
 7. The dev shells, one per framework the workflow modules use.
-8. The types jar in the backend repository, and the nginx image.
+8. The types module with its `README.md`, and the nginx image.
 9. The end-to-end tests, one per checklist item.
 
 ## How you know it is done

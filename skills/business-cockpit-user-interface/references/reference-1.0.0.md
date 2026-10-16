@@ -54,6 +54,8 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `PKG-015` | One npm workspace builds the user interface, the types library, every dev shell and the UI jar with one command, without Maven and without Java.                                                                                  | always |
 | `PKG-016` | The types jar is built with Maven outside the UI repository, from `ui-uri-types.json` of the types library of the same version; it holds one constant per entry, `EXTERNAL` included, and none points to a constant of VanillaBP. | always |
 | `PKG-017` | The types library carries `ui-uri-types.json` and one TypeScript constant for each of its values.                                                                                                                                 | always |
+| `PKG-018` | The types jar is built by a Maven project of its own, not by the backend application or the UI build, and its `README.md` explains the order cockpit release, user interface, types module, backend, and why.                     | always |
+| `PKG-019` | The OpenAPI files are loaded from the jars of the cockpit coordinates in the Maven repository of the interview, with the token from the environment variable the interview names.                                                 | always |
 
 ## AUTH: loading and login
 
@@ -91,7 +93,7 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | Id       | Item                                                                                                                                                                | Applies |
 |----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `TL-001` | The status line offers the primary filters from the interview, with short translated labels.                                                                        | always |
-| `TL-002` | The default primary filter is the one from the interview.                                                                                                           | always |
+| `TL-002` | The default primary filter is the one from the interview, by default `OpenTasksWithFollowUp`.                                                                       | always |
 | `TL-003` | Each primary filter except `ClosedTasksOnly` shows its count in brackets. The count of `ClosedTasksOnly` is asked on mouse-over only, and not kept or updated live. | always |
 | `TL-004` | Removed: replaced by `TL-024`.                                                                                                                                      | removed |
 | `TL-005` | The primary filter last chosen is used again the next time the user opens the list.                                                                                 | always |
@@ -155,31 +157,32 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## TF: the page of a user task
 
-| Id       | Item                                                                                                                                                                                    | Applies |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `TF-001` | Opening a task loads it, marks it as read and shows the web components the module's page function names.                                                                                | always |
-| `TF-002` | While the task or the module part loads, a loading state shows.                                                                                                                         | always |
-| `TF-003` | A task that fails to load and a module part that fails to load show two different notes, each with a retry button.                                                                      | always |
-| `TF-004` | The task actions sit in the application header, in the same place for every task kind; there is no header or footer of the task's own.                                                  | always |
-| `TF-005` | The header shows the information from the interview; each value has its own share of the width and is cut with "..." on its own when too long.                                          | always |
-| `TF-006` | The header offers the task actions from the interview, always in the same place.                                                                                                        | always |
-| `TF-007` | "Open as own window" opens the list in a new tab; the task tab keeps the application header, and a red "back to the list" button replaces the burger menu. To verify with probe `1508`. | `Q-OWN-WINDOW` = yes |
-| `TF-008` | On the page of a user task and of a case, long content scrolls in its own area, the application header stays, and the frame never breaks.                                               | always |
-| `TF-009` | The page cannot be edited before the user has claimed the task.                                                                                                                         | `Q-CLAIM` = hard |
-| `TF-010` | The page can be edited without a claim.                                                                                                                                                 | `Q-CLAIM` = informal |
-| `TF-011` | When somebody else changes the open task, a toast tells the user, and it stays until clicked away.                                                                                      | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `TF-012` | Removed: replaced by `TF-019` and `TF-020`.                                                                                                                                             | removed |
-| `TF-013` | The link from a task to its case opens the cockpit's case page.                                                                                                                         | always |
-| `TF-014` | A link from a notification mail opens the task page directly, after a login if needed.                                                                                                  | `Q-NOTIFICATIONS` = yes |
-| `TF-015` | Removed: replaced by `TF-021`.                                                                                                                                                          | removed |
-| `TF-016` | A message sent with `sendTo` from one area reaches the handler of `receiveMessage` in the named area of the same page.                                                                  | always |
-| `TF-017` | "Back to the list" and closing the task tab both warn that input may be lost, and the user can stay. To verify with probe `1508`.                                                       | `Q-OWN-WINDOW` = yes |
-| `TF-018` | To verify with probe `1508` in Chromium, Firefox and WebKit: "back to the list" brings the list tab to the front, or shows a hint when that is not possible.                            | `Q-OWN-WINDOW` = yes |
-| `TF-019` | A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own, and the list stays intact.                                                                                | always |
-| `TF-020` | The address of a task is its `uiUri` unchanged when it starts with `http://` or `https://`, and `/wm/<workflowModuleId>/` plus `uiUri` otherwise, whatever its `uiUriType`.             | always |
-| `TF-021` | A page function that returns a string gets the whole area for that one web component, with no column; one that returns an object gets each named web component in its area.             | always |
-| `TF-022` | A message sent before the target area subscribed reaches it once it subscribes, and after `unsubscribe` no message reaches it.                                                          | always |
-| `TF-023` | The header of an open task offers its note.                                                                                                                                             | `Q-NOTES` = yes |
+| Id       | Item                                                                                                                                                                                                                                | Applies |
+|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `TF-001` | Opening a task loads it, marks it as read and shows the web components the module's page function names.                                                                                                                            | always |
+| `TF-002` | While the task or the module part loads, a loading state shows.                                                                                                                                                                     | always |
+| `TF-003` | A task that fails to load and a module part that fails to load show two different notes, each with a retry button.                                                                                                                  | always |
+| `TF-004` | The task actions sit in the application header, in the same place for every task kind; there is no header or footer of the task's own.                                                                                              | always |
+| `TF-005` | The header shows the information from the interview; each value has its own share of the width and is cut with "..." on its own when too long.                                                                                      | always |
+| `TF-006` | The header offers the task actions from the interview, always in the same place.                                                                                                                                                    | always |
+| `TF-007` | The button "list in its own window" opens the list with `window.open` in a window of its own; the task tab keeps the application header, and a red "back to the list" button replaces the burger menu. To verify with probe `1508`. | `Q-OWN-WINDOW` = yes |
+| `TF-008` | On the page of a user task and of a case, long content scrolls in its own area, the application header stays, and the frame never breaks.                                                                                           | always |
+| `TF-009` | The page cannot be edited before the user has claimed the task.                                                                                                                                                                     | `Q-CLAIM` = hard |
+| `TF-010` | The page can be edited without a claim.                                                                                                                                                                                             | `Q-CLAIM` = informal |
+| `TF-011` | When somebody else changes the open task, a toast tells the user, and it stays until clicked away.                                                                                                                                  | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `TF-012` | Removed: replaced by `TF-019` and `TF-020`.                                                                                                                                                                                         | removed |
+| `TF-013` | The link from a task to its case opens the cockpit's case page.                                                                                                                                                                     | always |
+| `TF-014` | A link from a notification mail opens the task page directly, after a login if needed.                                                                                                                                              | `Q-NOTIFICATIONS` = yes |
+| `TF-015` | Removed: replaced by `TF-021`.                                                                                                                                                                                                      | removed |
+| `TF-016` | A message sent with `sendTo` from one area reaches the handler of `receiveMessage` in the named area of the same page.                                                                                                              | always |
+| `TF-017` | "Back to the list" and closing the task tab both warn that input may be lost, and the user can stay. To verify with probe `1508`.                                                                                                   | `Q-OWN-WINDOW` = yes |
+| `TF-018` | To verify with probe `1508` in Chromium, Firefox and WebKit: "back to the list" brings the window of the list to the front, or shows a hint when that is not possible.                                                              | `Q-OWN-WINDOW` = yes |
+| `TF-019` | A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own, and the list stays intact.                                                                                                                            | always |
+| `TF-020` | The address of a task is its `uiUri` unchanged when it starts with `http://` or `https://`, and `/wm/<workflowModuleId>/` plus `uiUri` otherwise, whatever its `uiUriType`.                                                         | always |
+| `TF-021` | A page function that returns a string gets the whole area for that one web component, with no column; one that returns an object gets each named web component in its area.                                                         | always |
+| `TF-022` | A message sent before the target area subscribed reaches it once it subscribes, and after `unsubscribe` no message reaches it.                                                                                                      | always |
+| `TF-023` | The header of an open task offers its note.                                                                                                                                                                                         | `Q-NOTES` = yes |
+| `TF-024` | A click on the title of a task or a case opens its page inside the application, in the same tab; the cockpit opens no tab by itself, except for a task whose `uiUriType` is `EXTERNAL`.                                             | always |
 
 ## WL: the case list
 
@@ -193,20 +196,21 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `WL-006` | The title opens the case page, and "open in new tab" works on it.                                                                        | always |
 | `WL-007` | In `Inactive` a completed case looks like any other row, and a cancelled one is grey with its title struck through, as `endReason` says. | always |
 | `WL-008` | A note can be written per row in the case list and for all selected cases at once in the list.                                           | `Q-NOTES` = yes |
+| `WL-009` | The default primary filter of the case list is the one from the interview, by default `Active`.                                          | always |
 
 ## WP: the page of a case
 
-| Id       | Item                                                                                                                                                                                          | Applies |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                                                                                        | always |
-| `WP-002` | Removed: replaced by `WP-007`.                                                                                                                                                                | removed |
-| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                                                                                                 | always |
-| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                                                                                    | removed |
-| `WP-005` | A case page that fails to load shows a note with a retry button.                                                                                                                              | always |
-| `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                | removed |
-| `WP-007` | The case page has no header or footer of its own and no "open as own window"; the application header shows the case information and the case actions from the interview, and no task actions. | always |
-| `WP-008` | The case page shows one web component or the same areas as the page of a user task, as the page function returns.                                                                             | always |
-| `WP-009` | The header of an open case offers its note.                                                                                                                                                   | `Q-NOTES` = yes |
+| Id       | Item                                                                                                                                                                                                     | Applies |
+|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                                                                                                   | always |
+| `WP-002` | Removed: replaced by `WP-007`.                                                                                                                                                                           | removed |
+| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                                                                                                            | always |
+| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                                                                                               | removed |
+| `WP-005` | A case page that fails to load shows a note with a retry button.                                                                                                                                         | always |
+| `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                           | removed |
+| `WP-007` | The case page has no header or footer of its own and no button "list in its own window"; the application header shows the case information and the case actions from the interview, and no task actions. | always |
+| `WP-008` | The case page shows one web component or the same areas as the page of a user task, as the page function returns.                                                                                        | always |
+| `WP-009` | The header of an open case offers its note.                                                                                                                                                              | `Q-NOTES` = yes |
 
 ## SRCH: search, filter, sort and paging
 
@@ -230,24 +234,25 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## LIVE: live updates
 
-| Id         | Item                                                                                                                                           | Applies |
-|------------|------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `LIVE-001` | A task created by somebody else appears in the open list without a reload, highlighted as new.                                                 | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-002` | A task changed by somebody else is updated in place and highlighted as changed; a change by the current user only shows the new data.          | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-003` | A task that ends while the user watches turns grey and stays in the list; a cancelled one also has its title struck through.                   | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-004` | A row the server no longer returns stays in place, marked as removed.                                                                          | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-005` | Scrolling and loading more rows work correctly while ended and removed rows are still shown.                                                   | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-006` | The counts update after a change.                                                                                                              | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `LIVE-007` | The acknowledge button removes all highlights and the inactive rows.                                                                           | `Q-LIVE-MODE` = `live` |
-| `LIVE-008` | The highlight of a row goes away a few seconds after the mouse has left it; a row marked as removed stays until the user opens the list again. | `Q-LIVE-MODE` = `auto-acknowledge` |
-| `LIVE-009` | Nothing updates by itself, and a refresh button becomes active when changes were reported.                                                     | `Q-LIVE-MODE` = `refresh-button` |
-| `LIVE-010` | A `RELOAD` event loads the list again with the same primary filter, filters and sorting.                                                       | always |
-| `LIVE-011` | A task whose follow-up date has come appears in `OpenTasksWithoutFollowUp` without a reload.                                                   | `Q-FOLLOW-UP` = yes |
-| `LIVE-012` | When the server ends the stream, the user interface connects again within one second.                                                          | always |
-| `LIVE-013` | After a lost connection, the user interface connects again with a growing pause of at most 15 seconds.                                         | always |
-| `LIVE-014` | When connecting again answers 401, the user interface stops trying and sends the browser to the login.                                         | always |
-| `LIVE-015` | The selection of the user stays when the list updates and when rows leave the window.                                                          | `Q-BULK-ACTIONS` not empty |
-| `LIVE-016` | An update reads only the rows of the loaded window again, never the whole list.                                                                | `Q-LIVE-MODE` ≠ `refresh-button` |
+| Id         | Item                                                                                                                                                     | Applies |
+|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `LIVE-001` | A task created by somebody else appears in the open list without a reload, highlighted as new.                                                           | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-002` | A task changed by somebody else is updated in place and highlighted as changed; a change by the current user only shows the new data.                    | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-003` | A task that ends while the user watches turns grey and stays in the list; a cancelled one also has its title struck through.                             | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-004` | A row the server no longer returns stays in place, marked as removed.                                                                                    | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-005` | Scrolling and loading more rows work correctly while ended and removed rows are still shown.                                                             | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-006` | The counts update after a change.                                                                                                                        | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-007` | The acknowledge button removes all highlights and the inactive rows.                                                                                     | `Q-LIVE-MODE` = `live` |
+| `LIVE-008` | The highlight of a row goes away a few seconds after the mouse has left it; a row marked as removed stays until the user opens the list again.           | `Q-LIVE-MODE` = `auto-acknowledge` |
+| `LIVE-009` | Nothing updates by itself, and a refresh button becomes active when changes were reported.                                                               | `Q-LIVE-MODE` = `refresh-button` |
+| `LIVE-010` | A `RELOAD` event loads the list again with the same primary filter, filters and sorting.                                                                 | always |
+| `LIVE-011` | A task whose follow-up date has come appears in `OpenTasksWithoutFollowUp` without a reload.                                                             | `Q-FOLLOW-UP` = yes |
+| `LIVE-012` | When the server ends the stream, the user interface connects again within one second.                                                                    | always |
+| `LIVE-013` | After a lost connection, the user interface connects again with a growing pause of at most 15 seconds.                                                   | always |
+| `LIVE-014` | When connecting again answers 401, the user interface stops trying and sends the browser to the login.                                                   | always |
+| `LIVE-015` | The selection of the user stays when the list updates and when rows leave the window.                                                                    | `Q-BULK-ACTIONS` not empty |
+| `LIVE-016` | An update reads only the rows of the loaded window again, never the whole list.                                                                          | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `LIVE-017` | The types of the update events come from the generated client; the stream is opened with `EventSource` or a `fetch` stream, not with a generated method. | always |
 
 ## EXT: module parts and extension points
 
@@ -289,13 +294,14 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## I18N: language and texts
 
-| Id         | Item                                                                                                                    | Applies |
-|------------|-------------------------------------------------------------------------------------------------------------------------|---------|
-| `I18N-001` | All texts of the user interface are in separate files, one per language.                                                | always |
-| `I18N-002` | The user interface starts in the default language from the interview.                                                   | always |
-| `I18N-003` | The menu offers the languages from `additionalProperties` of `GET /app/info` below its entries, and the choice is kept. | `Q-LANGUAGE-SWITCH` = yes |
-| `I18N-004` | A missing translation falls back to the default language the same way in headers, cells and titles.                     | always |
-| `I18N-005` | Numbers and dates are formatted for the chosen language.                                                                | always |
+| Id         | Item                                                                                                                      | Applies |
+|------------|---------------------------------------------------------------------------------------------------------------------------|---------|
+| `I18N-001` | All texts of the user interface are in separate files, one per language.                                                  | always |
+| `I18N-002` | The user interface starts in the default language from the interview.                                                     | always |
+| `I18N-003` | The menu offers the languages from `additionalProperties` of `GET /app/info` below its entries, and the choice is kept.   | `Q-LANGUAGE-SWITCH` = yes |
+| `I18N-004` | A missing translation falls back to the default language the same way in headers, cells and titles.                       | always |
+| `I18N-005` | Numbers and dates are formatted for the chosen language.                                                                  | always |
+| `I18N-006` | The build fails when a language file misses a key of the file of the default language, and it names the file and the key. | always |
 
 ## NOTI: notifications
 
@@ -323,3 +329,4 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `DS-012` | The dev shell offers the users of the simulator; one can be picked, switched and deselected, and picking sets a real JWT cookie. | always |
 | `DS-013` | Every extension point from the interview can be tried in the dev shell, besides the page of a user task and of a case.           | `Q-EXTENSION-POINTS` |
 | `DS-014` | `sendTo` and `receiveMessage` carry messages between the areas in the dev shell as in the cockpit.                               | always |
+| `DS-015` | The drop-down of the dev shell asks for user tasks and for cases with the primary filter `All`, and offers no other.             | always |
