@@ -185,8 +185,10 @@ It has no login of its own. There is no login form, no user management and no ri
 browser. Login is the job of the backend. Who sees what is decided by the server, and what the
 server does not deliver does not exist for your user interface.
 
-All data of the cockpit comes through the GUI API, `official-gui-api`. The client is generated
-from its OpenAPI description, so it never goes into the customer's Git repository.
+All data of the cockpit comes through the GUI API. Two OpenAPI files describe it: the
+`official-gui-api` and the cockpit's own file in the `business-cockpit` jar, see
+[gui-api.md](references/gui-api.md). The client is generated from them, so it never goes into the
+customer's Git repository.
 
 ## How your user interface gets into the cockpit
 
