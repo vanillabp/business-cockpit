@@ -6,9 +6,13 @@ The GUI API is everything a cockpit user interface gets from the server. It live
 `/gui/api/v1`. Two OpenAPI files describe it, and these two files are the truth:
 
 - `apis/official-gui-api/openapi/v1.yaml`, the `official-gui-api`: the lists, a user task, a case,
-  the workflow modules, the notifications and the update stream.
-- `business-cockpit/src/main/resources/api/gui/v1.yaml`: `GET /app/info` and
-  `GET /app/current-user`.
+  the workflow modules and the notifications.
+- `business-cockpit/src/main/resources/api/gui/v1.yaml`, the cockpit's own file: `GET /app/info`,
+  `GET /app/current-user`, the user settings and the update stream.
+
+The rule between the two: the `official-gui-api` holds what the dev shell simulator fakes, and
+what the simulator does not offer, such as the current user, the settings and the update stream,
+is in the cockpit's own file.
 
 What is written here is the behaviour behind them, which neither file says.
 
@@ -57,32 +61,39 @@ Maven repository the cockpit artifacts are deployed to. The interview names that
 Maven coordinates of the cockpit (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default the
 group is `io.vanillabp.businesscockpit`.
 
-| File                          | Jar                                     | Path inside the jar |
-|-------------------------------|-----------------------------------------|---------------------|
-| the `official-gui-api`        | `official-gui-api-server-<version>.jar` | `v1.yaml` |
-| `app/info` and `current-user` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml` |
+| File                                                                         | Jar                                     | Path inside the jar |
+|------------------------------------------------------------------------------|-----------------------------------------|---------------------|
+| the `official-gui-api`                                                       | `official-gui-api-server-<version>.jar` | `v1.yaml` |
+| the cockpit's own file: `app/info`, `current-user`, the settings, `/updates` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml` |
 
 A script downloads the two jars with HTTP `GET` from the path Maven uses,
 `<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar`. It unpacks the two
-files and runs the generator. Maven Central is one possible repository, but not the fixed one.
+files and runs the generator.
 
-- Today the cockpit deploys its snapshots to GitHub Packages. GitHub Packages asks for a login even
-  to read. Use the same token that `.npmrc` uses for the npm registry of GitHub Packages. The script
-  reads it from the environment variable the interview names, never from a file in the repository.
+- By default the repository is Maven Central. The cockpit deploys its releases and its snapshots
+  there. Releases come from `https://repo1.maven.org/maven2/`, snapshots from the snapshot
+  repository of Maven Central, `https://central.sonatype.com/repository/maven-snapshots/`. Both
+  can be read without a login, so the script needs no token.
+- A company repository that mirrors Maven Central works as well, for example Nexus or Artifactory
+  (`Q-COCKPIT-REPOSITORY`). If it asks for a login, the script reads the token from the environment
+  variable the interview names, never from a file in the repository. If the same company
+  repository also serves the npm packages, this can be the token `.npmrc` uses for it.
 - A `-SNAPSHOT` version has a time stamp in its file name. The script first reads
   `<version>/maven-metadata.xml` and takes the newest jar it lists.
 - Pin a release version where there is one. Then a new cockpit release never changes your client
-  without a commit. A snapshot can change under the same version.
+  without a commit. A snapshot can change under the same version, and Maven Central deletes a
+  snapshot about 90 days after it was published.
 
 The other way is the raw file in the `business-cockpit` repository at the release tag, for example
 `https://raw.githubusercontent.com/vanillabp/business-cockpit/<tag>/apis/official-gui-api/openapi/v1.yaml`.
 That needs no unpacking, but it reads the source and not the released artifact. The jar is the
 default.
 
-The update stream `GET /updates` is in the `official-gui-api` since prompt `1511`. So the generated
-client brings the types of its events too, `UserTaskEvent` and `WorkflowEvent`. It brings no method
-to use for the stream itself, because a stream never ends. Open the stream with `EventSource`, or
-with `fetch` and a reader on the body, see [The update stream](#the-update-stream).
+The update stream `GET /updates` is in the cockpit's own file since prompt `1511`, together with
+the types of its events, `UserTaskEvent` and `WorkflowEvent`. So the generated client brings these
+types too. Do not use a generated call for the stream itself, because a stream never ends. Open the
+stream with `EventSource`, or with `fetch` and a reader on the body, see
+[The update stream](#the-update-stream).
 
 ## Protection and login
 
@@ -167,7 +178,6 @@ The endpoints, all relative to the base path:
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
 | notes of a user task and of a case                                       | read and write notes, added by prompt `1507` |
 | counting a list                                                          | the number of rows of a query, added by prompt `1506` |
-| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505` |
 | `POST /user`                                                             | search users, to propose a task to a person |
 | `POST /workflow`                                                         | one page of the case list |
 | `PUT /workflow`                                                          | the same query as an update |
@@ -177,7 +187,11 @@ The endpoints, all relative to the base path:
 | `GET /workflow-module`, `GET /workflow-module/{id}`                      | the workflow modules the user may see |
 | `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | the notification settings of the user; `PUT` on `/config` and `/recipient-config/{mediumType}` stores them |
 | `GET /app/info`, `GET /app/current-user`                                 | the application and the user |
+| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505` |
 | `GET /updates`                                                           | the update stream, see below |
+
+The last three rows are in the cockpit's own file, all the others in the `official-gui-api`. They
+exist only under `/gui/api/v1`, not under the other two base paths.
 
 The two forms of each action, one for one task and one for a list of ids, do the same. The list
 form is there so that several selected rows do not cause twenty requests.
@@ -434,7 +448,7 @@ pages of the window again with `POST` and the same `initialTimestamp` instead, s
 browser tab. An event in it is a wake-up call. It names the kind of entity, its id and what
 happened to it. It does not say what changed. Your user interface asks again.
 
-The path is in the `official-gui-api` since prompt `1511`, so the types of the events come from the
+The path is in the cockpit's own file since prompt `1511`, so the types of the events come from the
 generated client. The connection does not: open it with `EventSource`, or with `fetch` and a reader
 on the body. A generated call waits for the end of the answer, and a stream has none.
 
@@ -511,8 +525,9 @@ fields.
 
 ## User settings
 
-Prompt `1505` gives the user a map `customSettings` and adds endpoints to the GUI API that read and
-write one entry of it. Every setting of a user is kept there, so it follows the user into every
+Prompt `1505` gives the user a map `customSettings` and adds endpoints that read and write one entry
+of it. They are in the cockpit's own file, `api/gui/v1.yaml` in the `business-cockpit` jar, next to
+`current-user`. Every setting of a user is kept there, so it follows the user into every
 browser. Your user interface never keeps a setting in `localStorage`, `sessionStorage` or a cookie
 of its own.
 
@@ -520,7 +535,8 @@ of its own.
 same path stores it. The value is any JSON.
 
 Your user interface talks to these endpoints through one global settings service, see
-[behaviour.md](behaviour.md#user-settings). No other code calls them.
+[behaviour.md](behaviour.md#user-settings). No other code calls them. The dev shell simulator has
+no current user and no settings, so in a dev shell the service keeps the settings in memory only.
 
 ## What the cockpit serves
 
