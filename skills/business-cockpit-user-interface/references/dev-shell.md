@@ -105,9 +105,14 @@ Three surfaces are enough:
 - A page per part, with the id of the user task or the case in the address, for example
   `/tasks/<id>` and `/workflows/<id>`.
 - A header with a drop-down list of the user tasks or cases there are, searchable by name and with
-  paging, plus a switch for all, only open or only closed. The drop-down loads its entries in blocks
-  of 20 and sorts by `createdAt` descending. The header also holds the language choice and the
-choice of the user, with an entry for "no user".
+  paging. The drop-down loads its entries in blocks of 20 and sorts by `createdAt` descending. The
+  header also holds the language choice and the choice of the user, with an entry for "no user".
+
+The drop-down always asks with the primary filter `All`, for user tasks and for cases, and offers no
+other. It is only there to pick an entry while developing. The data comes from the simulator, so
+there are few entries, and closed ones are worth trying too. This differs from the cockpit on
+purpose: there the default is `OpenTasksWithFollowUp` for user tasks and `Active` for cases, see
+[behaviour.md](behaviour.md#the-task-lists).
 
 ## Where the data comes from
 

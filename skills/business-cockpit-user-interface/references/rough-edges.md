@@ -161,13 +161,18 @@ yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 | Prompt | What it brings |
 |--------|----------------|
 | `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one |
-| `1505` | `customSettings` on the user, with endpoints for single entries |
+| `1505` | `customSettings` on the user, read and written one entry at a time with `GET` and `PUT /app/current-user/settings/{key}` |
 | `1506` | the count endpoint |
 | `1507` | notes on user tasks and cases |
-| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp` |
+| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp`; without `mode` the server takes `OpenTasksWithFollowUp` for user tasks and `Active` for cases |
+| `1511` | `GET /updates` in the `official-gui-api`, so the types of the update events are generated too |
 
 Against an older cockpit the generated client lacks these endpoints and fields, and the build
 fails. That is on purpose: better a failed build than a user interface that guesses.
+
+Your user interface does not need prompt `1510`. Today the library still has a default security
+chain with basic authentication, and `1510` moves it into `container`. The login on the cockpit side
+is the business of the backend application.
 
 One thing is still to come and has no prompt yet: the rights of the user and where they come from,
 for the overview in the menu, see [behaviour.md](behaviour.md#the-header-and-the-menu).
