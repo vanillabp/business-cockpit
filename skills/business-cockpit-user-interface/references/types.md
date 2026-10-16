@@ -12,7 +12,7 @@ Everything that crosses the line between the cockpit and a module is in it. Noth
 from this library, the cockpit and a module only meet through DOM events.
 
 For the Java side of a workflow module there is the types jar with the constants of `ui-uri-type`.
-It is generated from the list in this library, in the backend repository, see
+It is generated from the list in this library, by a Maven project of its own, see
 [project.md](project.md#the-types-jar).
 
 1. [Data from the GUI API](#data-from-the-gui-api)

@@ -155,11 +155,11 @@ form can only be edited after the user has claimed the task (`Q-CLAIM`).
 On the left, the status line has a group of buttons to choose the primary filter. The interview
 decides which primary filters are offered and which is the default (`Q-PRIMARY-FILTERS`). Possible
 are `OpenTasksWithFollowUp` (all open tasks), `OpenTasksWithoutFollowUp`, `OpenTaskOnlyFollowUp` and
-`ClosedTasksOnly`. The buttons show a short, translated label, for example "Open" or "Closed", with
-the count in brackets, see [Counts](#counts). The primary filter last chosen is a user setting and
-is used again next time, in every browser, see [User settings](#user-settings). On the right, the
-status line shows a colour legend for the states of a row, for example new, changed, removed and
-inactive.
+`ClosedTasksOnly`. The default of the cockpit is `OpenTasksWithFollowUp`. The buttons show a short,
+translated label, for example "Open" or "Closed", with the count in brackets, see [Counts](#counts).
+The primary filter last chosen is a user setting and is used again next time, in every browser, see
+[User settings](#user-settings). On the right, the status line shows a colour legend for the states
+of a row, for example new, changed, removed and inactive.
 
 ### A row
 
@@ -196,8 +196,8 @@ cockpit is used in one area where the list holds known values (`Q-MODULE-COLUMNS
 The fixed columns behave and look different from the columns filled with a module's data:
 
 - `id`: a checkbox to select the row for bulk actions. The id itself is not shown.
-- `title`: the text is a link that opens the full view. It is a real `<a>` element, so "open in new
-  tab" from the right mouse button works.
+- `title`: the text is a link that opens the full view inside the application, in the same tab. It
+  is a real `<a>` element, so "open in new tab" from the right mouse button works.
 - `assignee`: the short form of the person. On mouse-over of the name, the details of the person:
   the long form, the user id and the email address. On mouse-over of the cell, a checkbox appears
   inside the cell that claims the task. It appears whether or not the details show. If the current
@@ -376,13 +376,17 @@ and shows the general functions in the application header.
 
 ### Opening
 
-The title in the list is a link to the task page. A click opens it in the same tab, and
-"open in new tab" works too. A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of
-its own, so the list stays. The type decides this, not the form of the address. The address itself
-is built by the one rule of
+The title in the list is a link to the task page. A click opens the page inside the single-page
+application, in the same tab. The page of a case opens the same way. The cockpit never opens a task
+or a case in a tab of its own by itself. Users often find many tabs hard to work with. The title is
+a real link, so a user who wants a tab can still choose "open in new tab".
+
+There is one exception. A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its
+own, so the list stays. That is the module's choice, made through the type, not the form of the
+address. The address itself is built by the one rule of
 [module-federation.md](module-federation.md#which-data-finds-the-part). From a task to its case
-always leads to the cockpit's own case page, not to the address of the task. The task says where
-the task is shown, and that is not where the case is shown.
+always leads to the cockpit's own case page, not to the address of the task. The task says where the
+task is shown, and that is not where the case is shown.
 
 ### The header while a task is open
 
@@ -390,7 +394,8 @@ The task actions of the cockpit always sit in the application header. There is n
 of the task's own. The header shows information about the task (`Q-TASK-HEADER-INFO`), for example
 task kind, case kind and case number, and offers claim, unclaim, propose to a person, follow-up and
 the note of the task (`Q-TASK-HEADER-ACTIONS`). It also offers "mark as unread", because an opened
-task counts as read.
+task counts as read, and the button that moves the list into a window of its own, see
+[The list in a window of its own](#the-list-in-a-window-of-its-own-q-own-window).
 
 The header stands in the same place for all kinds of tasks, so it is a visual anchor for the user.
 The controls of the actions are always in the same place. Its content can never break it: each
@@ -399,27 +404,32 @@ share is cut with "..." on its own. One long value never pushes the others out.
 
 The header belongs to the cockpit, not to the workflow module.
 
-### Open as own window (`Q-OWN-WINDOW`)
+### The list in a window of its own (`Q-OWN-WINDOW`)
 
 The use case: a customer calls and wants to know about their case while the user is in the middle
 of a form. The user must not have to close the form and lose the input.
 
-The header offers "open as own window". It opens the list in a new tab with `window.open`, and the
-cockpit keeps the window object this returns. The task stays in this tab. The application header
-stays as well, because it holds the task actions. Only the burger menu goes. In its place stands a
-red icon button "back to the list".
+Outlook solves something like this with a button that pops a mail out into a window of its own.
+The cockpit does it the other way round. In a web application the form would lose its input if it
+moved to a new window. So the form stays, and the list moves out.
 
-The button cancels the work on the task and brings the tab of the list to the front, with `focus()`
-on the kept window object, as long as that tab still exists. If the tab is gone, or the browser does
-not allow it, the cockpit shows a hint that the list is in another tab.
+The header of an open task offers a button "list in its own window". It opens the list with
+`window.open` in a window of its own, and the cockpit keeps the window object this returns. Whether
+the browser shows a window or a tab is up to the browser. The task stays in this tab. From then on,
+the application header of the task tab stays as it is, because it holds the task actions. Only the
+burger menu goes. In its place stands a red icon button "back to the list".
+
+The button cancels the work on the task and brings the window of the list to the front, with
+`focus()` on the kept window object, as long as that window still exists. If it is gone, or the
+browser does not allow it, the cockpit shows a hint that the list is in another window.
 
 Before that, the cockpit warns that the input may be lost, and the user can stay. The same warning
 comes when the user closes the tab (`beforeunload`).
 
-**To verify:** whether `focus()` on the kept window object brings the tab to the front is up to the
-browser. Probe `1508` checks it: a small example application in plain JavaScript that shows what
-works in which browser today. Until its result is in, the checklist items `TF-007`, `TF-017` and
-`TF-018` say they are to be verified with `1508`.
+**To verify:** whether `window.open` gives a window or a tab, and whether `focus()` on the kept
+window object brings it to the front, is up to the browser. Probe `1508` checks it: a small example
+application in plain JavaScript that shows what works in which browser today. Until its result is
+in, the checklist items `TF-007`, `TF-017` and `TF-018` say they are to be verified with `1508`.
 
 ### What the page does
 
@@ -487,7 +497,10 @@ These two fields are not shown as columns.
 ### Primary filters
 
 The interview decides which are offered (`Q-WORKFLOW-FILTERS`). By default these are `Active` and
-`Inactive`, and `All` is possible as well.
+`Inactive`, and `All` is possible as well. The default of the cockpit is `Active`.
+
+The dev shell is different: it always asks with `All`, for user tasks and for cases, see
+[dev-shell.md](dev-shell.md#what-it-shows).
 
 ### Rows
 
@@ -509,7 +522,9 @@ handles in an event-based sub-process.
 
 The page works like the page of a user task, with these differences:
 
-- There is no "open as own window". "Open in new tab" with the right mouse button works.
+- It opens inside the application, in the same tab, like the page of a user task. There is no
+  button that moves the list into a window of its own. "Open in new tab" with the right mouse button
+  on a link to the case works.
 - The application header has a form of its own for a case, like the one for a user task. It shows
   information about the case (`Q-WORKFLOW-HEADER-INFO`), for example case kind and case number,
   and the actions on the case (`Q-WORKFLOW-HEADER-ACTIONS`), for example the note of the case. It
@@ -714,6 +729,11 @@ the application fills from `business-cockpit.additional-properties`, for example
 the menu, below the menu entries. The choice is a user setting, see [User settings](#user-settings).
 
 The texts are in separate files, one per language. None is written into the code.
+
+The build checks that the language files are complete. Every file must have every key of the file
+of the default language. If a key is missing, the build fails and names the file and the key. The
+fallback below stays as well, for texts that do not come from these files, like the `i18n` cells of
+a module. See [project.md](project.md#the-user-interface-bundle).
 
 The chosen language must reach every place where a text per language is drawn: the column header,
 the cell, the title of a row, and every web component of a module, through the property `language`.

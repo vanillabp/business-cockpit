@@ -6,7 +6,7 @@ The GUI API is everything a cockpit user interface gets from the server. It live
 `/gui/api/v1`. Two OpenAPI files describe it, and these two files are the truth:
 
 - `apis/official-gui-api/openapi/v1.yaml`, the `official-gui-api`: the lists, a user task, a case,
-  the workflow modules, the notifications.
+  the workflow modules, the notifications and the update stream.
 - `business-cockpit/src/main/resources/api/gui/v1.yaml`: `GET /app/info` and
   `GET /app/current-user`.
 
@@ -52,25 +52,37 @@ never committed. The same goes for every dev shell: it generates its own client 
 files. `orval` also writes the TypeScript interfaces of the data, so the types library takes them
 from the same run, see [types.md](types.md#data-from-the-gui-api).
 
-How the npm project gets the two files: both ship inside jars of the cockpit release on Maven
-Central, under the group `io.vanillabp.businesscockpit`.
+How the npm project gets the two files: both ship inside jars of the cockpit. The jars lie in the
+Maven repository the cockpit artifacts are deployed to. The interview names that repository and the
+Maven coordinates of the cockpit (`Q-COCKPIT-VERSION`, `Q-COCKPIT-REPOSITORY`). By default the
+group is `io.vanillabp.businesscockpit`.
 
 | File                          | Jar                                     | Path inside the jar |
 |-------------------------------|-----------------------------------------|---------------------|
 | the `official-gui-api`        | `official-gui-api-server-<version>.jar` | `v1.yaml` |
 | `app/info` and `current-user` | `business-cockpit-<version>.jar`        | `api/gui/v1.yaml` |
 
-A script downloads the jars of the cockpit version from the interview (`Q-COCKPIT-VERSION`) from
-`https://repo1.maven.org/maven2/io/vanillabp/businesscockpit/...`, unpacks the two files and runs
-the generator. Pin the version. Then a new cockpit release never changes your client without a
-commit. The other way is the raw file in the `business-cockpit` repository at the release tag, for
-example
+A script downloads the two jars with HTTP `GET` from the path Maven uses,
+`<repository>/<group as path>/<artifactId>/<version>/<artifactId>-<version>.jar`. It unpacks the two
+files and runs the generator. Maven Central is one possible repository, but not the fixed one.
+
+- Today the cockpit deploys its snapshots to GitHub Packages. GitHub Packages asks for a login even
+  to read. Use the same token that `.npmrc` uses for the npm registry of GitHub Packages. The script
+  reads it from the environment variable the interview names, never from a file in the repository.
+- A `-SNAPSHOT` version has a time stamp in its file name. The script first reads
+  `<version>/maven-metadata.xml` and takes the newest jar it lists.
+- Pin a release version where there is one. Then a new cockpit release never changes your client
+  without a commit. A snapshot can change under the same version.
+
+The other way is the raw file in the `business-cockpit` repository at the release tag, for example
 `https://raw.githubusercontent.com/vanillabp/business-cockpit/<tag>/apis/official-gui-api/openapi/v1.yaml`.
 That needs no unpacking, but it reads the source and not the released artifact. The jar is the
 default.
 
-The update stream `GET /updates` is in neither file. Its events, `UserTaskEvent` and
-`WorkflowEvent`, are schemas of the `official-gui-api`, see [The update stream](#the-update-stream).
+The update stream `GET /updates` is in the `official-gui-api` since prompt `1511`. So the generated
+client brings the types of its events too, `UserTaskEvent` and `WorkflowEvent`. It brings no method
+to use for the stream itself, because a stream never ends. Open the stream with `EventSource`, or
+with `fetch` and a reader on the body, see [The update stream](#the-update-stream).
 
 ## Protection and login
 
@@ -85,7 +97,9 @@ and log in afterwards, when needed. So these stay open:
 Everything else asks for a login. Login is the job of the backend application, not of the user
 interface, see [`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit). The
 `business-cockpit` library sets no rules for it. The application decides which paths are open, and
-the generated user interface never asks for a change of the library.
+the generated user interface never asks for a change of the library. Today the library still has a
+default chain of its own; prompt `1510` moves it into `container`, see
+[rough-edges.md](rough-edges.md#what-needs-a-newer-cockpit).
 
 A login answers with a cookie, and from then on the cookie travels with every request. The cookie
 holds a JWT. How it is signed, how long it lives and how an identity provider is put in front is in
@@ -153,7 +167,7 @@ The endpoints, all relative to the base path:
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
 | notes of a user task and of a case                                       | read and write notes, added by prompt `1507` |
 | counting a list                                                          | the number of rows of a query, added by prompt `1506` |
-| user settings                                                            | read and write one entry of `customSettings`, added by prompt `1505` |
+| `GET /app/current-user/settings/{key}`, `PUT` on the same path           | read and write one entry of `customSettings`, added by prompt `1505` |
 | `POST /user`                                                             | search users, to propose a task to a person |
 | `POST /workflow`                                                         | one page of the case list |
 | `PUT /workflow`                                                          | the same query as an update |
@@ -168,9 +182,9 @@ The endpoints, all relative to the base path:
 The two forms of each action, one for one task and one for a list of ids, do the same. The list
 form is there so that several selected rows do not cause twenty requests.
 
-The prompts `1505`, `1506` and `1507` decide the paths of their endpoints. Take them from the
-OpenAPI file of the pinned cockpit version, not from this text. For user settings see
-[User settings](#user-settings), for counts [Counting](#counting).
+The prompts `1506` and `1507` decide the paths of their endpoints. Take them from the OpenAPI file
+of the pinned cockpit version, not from this text. The path of the user settings is fixed, see
+[User settings](#user-settings). For counts see [Counting](#counting).
 
 `GET /workflow-module` answers the modules the user may see, each with `id`, `version` and `uri`.
 `uri` is `/wm/<id>`, the path of the module behind the cockpit's proxy, or empty if the module
@@ -348,9 +362,10 @@ follow-ups alone.
 | `Active`              | what has no end |
 | `Inactive`            | what has an end |
 
-Without `mode` the server takes `All` for `POST`, and for `PUT` the mode for all open rows,
-`OpenTasksWithFollowUp` or `Active`. That is not the same, so always send the primary filter
-yourself.
+Without `mode` the server takes the default of the cockpit since prompt `1509`:
+`OpenTasksWithFollowUp` for a task list and `Active` for a case list, for `POST` and `PUT` alike.
+Still always send the primary filter yourself, so the list never depends on a default. The dev shell
+always sends `All`, see [dev-shell.md](dev-shell.md#what-it-shows).
 
 An unknown value is a server error and not silently ignored.
 
@@ -418,6 +433,10 @@ pages of the window again with `POST` and the same `initialTimestamp` instead, s
 `GET /gui/api/v1/updates` is a `text/event-stream` (server-sent events). There is one stream per
 browser tab. An event in it is a wake-up call. It names the kind of entity, its id and what
 happened to it. It does not say what changed. Your user interface asks again.
+
+The path is in the `official-gui-api` since prompt `1511`, so the types of the events come from the
+generated client. The connection does not: open it with `EventSource`, or with `fetch` and a reader
+on the body. A generated call waits for the end of the answer, and a stream has none.
 
 What comes through it:
 
@@ -497,9 +516,8 @@ write one entry of it. Every setting of a user is kept there, so it follows the 
 browser. Your user interface never keeps a setting in `localStorage`, `sessionStorage` or a cookie
 of its own.
 
-**Proposal until `1505` is done**, not a fixed path:
-`GET /gui/api/v1/app/current-user/settings/{key}` answers the value of one entry, `PUT` on the
-same path stores it, and the value is any JSON. Take the real paths from the OpenAPI file.
+`GET /gui/api/v1/app/current-user/settings/{key}` answers the value of one entry, and `PUT` on the
+same path stores it. The value is any JSON.
 
 Your user interface talks to these endpoints through one global settings service, see
 [behaviour.md](behaviour.md#user-settings). No other code calls them.
