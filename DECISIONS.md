@@ -1209,7 +1209,7 @@ Each of these says it in its own words, so none of them has to cite a number:
 - `ui/bc-ui/src/utils/module-federation.ts`, `UiUriType` and `addressOfFederatedBundle`
 - `UPGRADE.md`, the section about the address
 - `skills/business-cockpit-user-interface/references/gui-api.md` and
-  `references/module-federation.md`
+  `references/module-loading.md`
 - the wiki pages `User-task-forms-and-status-sites` and `Customizing-the-user-interface`
 
 Note (2026-10-12): Since decision 63 the shipped user interface is gone, and with it

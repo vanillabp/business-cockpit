@@ -42,7 +42,8 @@ menu entries, and the modal dialogs they open.
 
 For this it must:
 
-1. Import the module's components directly, not through the manifest and `import()`.
+1. Import the module's data entries and components directly, not through the manifest and
+   `import()`.
 2. Show real data. The user task and the case come from the GUI API of the simulator, not from a
    file with sample data. Only then does the shape of the data match the cockpit's.
 3. Wrap the data into `BcUserTask` and `BcWorkflow`, so the functions a part expects are there,
@@ -78,13 +79,12 @@ themselves, see [module-loading.md](module-loading.md#cells-drawn-by-a-workflow-
 The developer hands over their parts and an address, and the shell builds the application from them.
 What is handed over is the real contract:
 
-| What                        | Why the shell needs it |
-|-----------------------------|------------------------|
-| the address of the GUI API  | it builds its client from it, with the simulator `/official-api/v1` |
-| the user task form          | the page of a user task |
-| the case page               | the page of a case |
-| further parts by their name | for the organisation's other extension points |
-| the workflow module id      | for the frame, and for the requests of a form through `/wm/` |
+| What                                  | Why the shell needs it |
+|---------------------------------------|------------------------|
+| the address of the GUI API            | it builds its client from it, with the simulator `/official-api/v1` |
+| the functions of the data entries     | `userTaskForm`, `workflowPage`, and for the other extension points for example `header` and `pages`; the shell asks them as the cockpit does |
+| the components, by web component name | what the shell draws for each name the functions return |
+| the workflow module id                | for the frame, and for the requests of a form through `/wm/` |
 
 The form of the entry point follows the framework, and it does not have to be the same everywhere:
 
@@ -94,12 +94,21 @@ The form of the entry point follows the framework, and it does not have to be th
 
 Use what is natural in the framework. What is handed over is the same.
 
-The user task form and the case page are handed over as a function of the same shape as the one the
-module's entries export, `userTaskForm` and `workflowPage`, see
-[module-loading.md](module-loading.md#the-page-of-a-user-task-or-a-case). The only
-difference: it returns the module's component of the framework instead of the name of a web
-component. One component is the all-in-one form, a map of areas to components is the laid-out
-form. So the dev shell lays out the page the same way, and the dev server can swap the components.
+The functions are the module's own data entries, imported from their source files. So the shell
+runs the same routing by process and task definition as the cockpit, see
+[module-loading.md](module-loading.md#data-entries-carry-no-framework). Of the three steps of
+[Ask, load, draw](module-loading.md#ask-load-draw), the shell does the first and the last:
+
+1. Ask. It calls the function with the user task, the case or the current user, the same as the
+   cockpit. `undefined` means "not mine", as in the cockpit.
+2. Load. The shell skips it. It does not load the visual entry the answer names.
+3. Draw. For each web component name in the answer, the shell draws the framework component that
+   was handed over under this name. A string is the all-in-one form, an object of areas the
+   laid-out form, so the shell lays out the page the same way as the cockpit.
+
+The components are imported directly, so the dev server swaps them while the developer types. A
+name the function returns but for which no component was handed over shows a note with that name,
+so the developer sees the mistake in the shell and not first in the cockpit.
 
 ## What it shows
 
@@ -137,7 +146,7 @@ the dev shell, because the components are not wrapped. What each function does:
 | `getUserTasks`                           | call `POST /workflow/{id}/usertasks` and wrap the tasks again |
 | `sendTo`, `receiveMessage`               | carry the message to the subscribed component of the other area, as the cockpit does; keep messages until the area subscribes, and stop on `unsubscribe` |
 | `showNotification`                       | show the toast, as the cockpit does |
-| `openDialog`                             | show the component in a modal layer, as the cockpit does |
+| `openDialog`                             | show the component handed over for its `element` in a modal layer, as the cockpit does |
 
 Doing nothing is allowed, as long as the developer notices. A function that silently does nothing is
 the worst choice, because the developer then looks for the bug in their form.
