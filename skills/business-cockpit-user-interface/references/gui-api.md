@@ -18,34 +18,39 @@ What is written here is the behaviour behind them, which neither file says.
 1. [The endpoints](#the-endpoints)
 1. [Reading page by page](#reading-page-by-page)
 1. [Sorting](#sorting)
+1. [Counting](#counting)
 1. [Filtering over reported business data](#filtering-over-reported-business-data)
 1. [Suggestions for a search field](#suggestions-for-a-search-field)
 1. [The primary filter: which rows come at all](#the-primary-filter-which-rows-come-at-all)
 1. [The timestamp that keeps a list stable](#the-timestamp-that-keeps-a-list-stable)
 1. [The second form of the same query](#the-second-form-of-the-same-query)
 1. [The update stream](#the-update-stream)
+1. [How a row ended](#how-a-row-ended)
+1. [User settings](#user-settings)
 1. [What the cockpit serves](#what-the-cockpit-serves)
 
 ## Generating the client
 
 Generate the client from the OpenAPI files. Never write it by hand.
 
-The tool is `@openapitools/openapi-generator-cli` from npm, as a dev dependency of the project. It
-needs a Java runtime on the build machine, because it runs the OpenAPI Generator jar. The generated
-code is TypeScript:
+The tool is [`orval`](https://orval.dev), a dev dependency of the project. It runs on Node alone
+(22.18 or newer) and needs no Java. Set `output.client` in `orval.config.ts`:
 
-- generator `typescript-fetch` for every framework except Angular,
-- generator `typescript-angular` for Angular, with the additional property `ngVersion` set to the
-  Angular version of the application.
+- `fetch` for every framework except Angular. It uses the browser's `fetch`.
+- `angular` for Angular. It writes services that use Angular's `HttpClient`, so the interceptors
+  of the application see every request.
+
+Why `orval`: it covers both kinds of client with one tool and one configuration. Its major version
+is stable (8 in October 2026), and new versions come out every few days. `@hey-api/openapi-ts` also
+has a fetch and an Angular client, but it is still below 1.0, so every minor version may break
+the generated code. `openapi-typescript` with `openapi-fetch` has no Angular client.
+`ng-openapi-gen` writes Angular only, so a second tool would be needed for the other frameworks.
+Pin the version of `orval` exactly in `package.json`.
 
 Generate it at build time, for example in a `prebuild` script, into a folder that Git ignores. It is
 never committed. The same goes for every dev shell: it generates its own client from the same
-files.
-
-On its first run `openapi-generator-cli` downloads the generator jar from Maven Central. A company
-that blocks downloads during a build points it at its own Maven repository with
-`generator-cli.repository.downloadUrl` in `openapitools.json`, and pins the generator version
-there.
+files. `orval` also writes the TypeScript interfaces of the data, so the types library takes them
+from the same run, see [types.md](types.md#data-from-the-gui-api).
 
 How the npm project gets the two files: both ship inside jars of the cockpit release on Maven
 Central, under the group `io.vanillabp.businesscockpit`.
@@ -77,17 +82,14 @@ and log in afterwards, when needed. So these stay open:
 - `GET /gui/api/v1/app/info` and `GET /gui/api/v1/app/current-user`,
 - the proxy to the workflow modules under `/wm/**`. A module protects itself.
 
-Everything else asks for a login. Login is the job of the backend, not of the user interface, see
-[`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit).
+Everything else asks for a login. Login is the job of the backend application, not of the user
+interface, see [`../SKILL.md`](../SKILL.md#how-your-user-interface-gets-into-the-cockpit). The
+`business-cockpit` library sets no rules for it. The application decides which paths are open, and
+the generated user interface never asks for a change of the library.
 
-What the backend does today, in the library's default security chain: it lets
-`/gui/api/v1/app/info`, `/gui/api/v1/app/current-user`, `/assets/**`, `/static/**` and `/wm/**`
-through without a login. Every other path asks for one, including the shell at `/`. So today the
-static files have to be below `/assets/` or `/static/`, and an application that replaces the chain
-opens the shell itself. A login answers with a cookie, and from then on the cookie travels with
-every request. The cookie holds a JWT. How it is signed, how long it lives and how an identity
-provider is put in front is in the wiki under
-[Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
+A login answers with a cookie, and from then on the cookie travels with every request. The cookie
+holds a JWT. How it is signed, how long it lives and how an identity provider is put in front is in
+the wiki under [Security](https://github.com/vanillabp/business-cockpit/wiki/Security).
 
 What follows for the start of the user interface:
 
@@ -149,6 +151,9 @@ The endpoints, all relative to the base path:
 | `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | add a person as candidate user, with `unassign=true` remove them |
 | `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | mark as read, with `unread=true` take it back |
 | `PATCH /usertask/{id}/follow-up-date`                                    | set or delete the follow-up date |
+| notes of a user task and of a case                                       | read and write notes, added by prompt `1507` |
+| counting a list                                                          | the number of rows of a query, added by prompt `1506` |
+| user settings                                                            | read and write one entry of `customSettings`, added by prompt `1505` |
 | `POST /user`                                                             | search users, to propose a task to a person |
 | `POST /workflow`                                                         | one page of the case list |
 | `PUT /workflow`                                                          | the same query as an update |
@@ -162,6 +167,10 @@ The endpoints, all relative to the base path:
 
 The two forms of each action, one for one task and one for a list of ids, do the same. The list
 form is there so that several selected rows do not cause twenty requests.
+
+The prompts `1505`, `1506` and `1507` decide the paths of their endpoints. Take them from the
+OpenAPI file of the pinned cockpit version, not from this text. For user settings see
+[User settings](#user-settings), for counts [Counting](#counting).
 
 `GET /workflow-module` answers the modules the user may see, each with `id`, `version` and `uri`.
 `uri` is `/wm/<id>`, the path of the module behind the cockpit's proxy, or empty if the module
@@ -196,8 +205,9 @@ It holds a window of pages around the visible area and asks for each page with i
 see [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
 The answer carries a `page` with `number`, `size`, `totalPages` and `totalElements`.
-`totalElements` is counted exactly, in a second query over the same conditions. So you can show a
-total, and it costs one count per page.
+`totalElements` is counted exactly, in a second query over the same conditions. So the list knows
+its own total from every page. Every other number comes from the count endpoint, see
+[Counting](#counting).
 
 `POST /workflow/{id}/usertasks` is the exception: there the page size is 100 by default.
 
@@ -238,12 +248,14 @@ for it and answers `null` in the API, so such a task ends up at the back when so
 For every other field an empty value is empty, and where it ends up is decided by the database.
 Expect rows without a value at the front when sorting ascending.
 
-Counts: the list shows a total next to every primary filter, and the toggle in the header shows one
-next to each list, see [behaviour.md](behaviour.md#counts). The total of the chosen primary filter
-comes with the page. For every other count, send the same query with that primary filter,
-`pageSize` 1 and no `sort`. Then the database can always count with an index, and the request
-stays cheap. The GUI API has no endpoint that counts several things at once, so each count is a
-request of its own.
+## Counting
+
+The list shows a total next to every primary filter, and the toggle in the header shows one next to
+each list, see [behaviour.md](behaviour.md#counts). The total of the chosen primary filter comes
+with the page. Every other count comes from the count endpoint that prompt `1506` adds. It takes
+the same conditions as the list (base path, primary filter, filters, `initialTimestamp`) and
+answers a number, without rows and without sorting. Counting fast, with an index, is the job of
+the backend. Never ask for a page only to read its `totalElements`.
 
 ## Filtering over reported business data
 
@@ -321,11 +333,14 @@ this term everywhere.
 | `mode` of a task list      | What comes |
 |----------------------------|------------|
 | `All`                      | everything, open and closed |
-| `OpenTasks`                | what has no end |
+| `OpenTasksWithFollowUp`    | everything open, with and without a follow-up date |
 | `OpenTasksWithoutFollowUp` | open, without a follow-up date or with one that is due |
 | `OpenTaskOnlyFollowUp`     | open, with a follow-up date in the future |
-| `OpenTasksWithFollowUp`    | another name for `OpenTasks`: the same rows, with and without a follow-up |
 | `ClosedTasksOnly`          | only what has an end |
+
+The mode `OpenTasks` is gone since prompt `1509`. It returned the same rows as
+`OpenTasksWithFollowUp`. So the open modes are a pair, with and without follow-up, plus the
+follow-ups alone.
 
 | `mode` of a case list | What comes |
 |-----------------------|------------|
@@ -333,8 +348,9 @@ this term everywhere.
 | `Active`              | what has no end |
 | `Inactive`            | what has an end |
 
-Without `mode` the server takes `All` for `POST` and `OpenTasks` or `Active` for `PUT`. That is not
-the same, so always send the primary filter yourself.
+Without `mode` the server takes `All` for `POST`, and for `PUT` the mode for all open rows,
+`OpenTasksWithFollowUp` or `Active`. That is not the same, so always send the primary filter
+yourself.
 
 An unknown value is a server error and not silently ignored.
 
@@ -466,6 +482,28 @@ What your user interface does about it:
   Otherwise a change the request causes falls into the gap.
 - Whatever was missed in a gap comes back through the `RELOAD` of the new stream.
 
+## How a row ended
+
+A user task and a case have `endedAt`, the moment they ended, and `endReason`, the reason. Prompt
+`1504` adds `endReason` to the case and brings it to the GUI API for both. The values are
+`COMPLETED` and `CANCELLED`. An open row has neither field. Data stored before `1504` is converted
+by the backend, so your user interface reads `endReason` only and guesses nothing from other
+fields.
+
+## User settings
+
+Prompt `1505` gives the user a map `customSettings` and adds endpoints to the GUI API that read and
+write one entry of it. Every setting of a user is kept there, so it follows the user into every
+browser. Your user interface never keeps a setting in `localStorage`, `sessionStorage` or a cookie
+of its own.
+
+**Proposal until `1505` is done**, not a fixed path:
+`GET /gui/api/v1/app/current-user/settings/{key}` answers the value of one entry, `PUT` on the
+same path stores it, and the value is any JSON. Take the real paths from the OpenAPI file.
+
+Your user interface talks to these endpoints through one global settings service, see
+[behaviour.md](behaviour.md#user-settings). No other code calls them.
+
 ## What the cockpit serves
 
 The cockpit is not only an API, it also serves files, and two paths belong to the contract.
@@ -481,14 +519,17 @@ none. Your jar puts its static files there, see
 [project.md](project.md#the-ui-jar).
 
 `uiUri` of a user task or a case is the `uiUriPath` the workflow module reported, unchanged. The
-server builds no address from it and does not read `uiUriType`. Building the address is the job of
-your user interface, and it follows one rule:
+server builds no address from it and does not read `uiUriType`. Your user interface does two things
+with it.
+
+First it builds the address, and that follows one rule:
 
 - A value that starts with `http://` or `https://` is a whole address. Use it as it is.
 - Every other value is a path of the workflow module. Put `/wm/<workflowModuleId>/` in front of it,
   because the cockpit serves the module there.
 
-The rule looks at the value only, never at `uiUriType`. What your user interface does with the
-address, for example loading a part through native federation, is what `uiUriType` says, see
+Then `uiUriType` decides what happens with the address. `EXTERNAL` opens it in a window or tab of
+its own. `NATIVE_MF` loads the parts of the module from it through native federation. The address
+alone never decides this, see
 [module-federation.md](module-federation.md#which-data-finds-the-part). `workflowModuleUri` is the
 path to the module itself, without a file. It serves the requests of a form to its own backend.

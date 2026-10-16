@@ -69,12 +69,12 @@ something only this module has, outside the page of a user task and the page of 
 
 Four extension points are the bare minimum, and every generated cockpit has them:
 
-| Exposed name     | What the module exports                                            | Where the cockpit uses it |
-|------------------|--------------------------------------------------------------------|---------------------------|
-| `./UserTaskList` | `userTaskListColumns`, a function from a user task to its columns  | the task lists |
-| `./WorkflowList` | `workflowListColumns`, a function from a case to its columns       | the case list |
-| `./UserTaskPage` | `userTaskPage`, a function from a user task to web component names | the page of a user task |
-| `./WorkflowPage` | `workflowPage`, a function from a case to web component names      | the page of a case |
+| Exposed name   | What the module exports                                            | Where the cockpit uses it |
+|----------------|--------------------------------------------------------------------|---------------------------|
+| `UserTaskList` | `userTaskListColumns`, a function from a user task to its columns  | the task lists |
+| `WorkflowList` | `workflowListColumns`, a function from a case to its columns       | the case list |
+| `UserTaskForm` | `userTaskForm`, a function from a user task to web component names | the page of a user task |
+| `WorkflowPage` | `workflowPage`, a function from a case to web component names      | the page of a case |
 
 An organisation may add more (`Q-EXTENSION-POINTS`). Examples: buttons in the header, menu
 entries, pages of a module, and modal dialogs those open, see
@@ -90,8 +90,14 @@ without a message to the user. Only a module that exposes the name and fails to 
 note.
 
 The exposed name is the contract, and so are the names of the exports. A module that exposes
-`./UserTaskPage` but names its export differently is loaded and shows nothing. Report that in the
+`UserTaskForm` but names its export differently is loaded and shows nothing. Report that in the
 console with the module id.
+
+The exposed names have no `./` in front. That prefix is a habit of Webpack module federation, where
+the keys follow the subpaths of a package's `exports`. Native federation takes the key as it is:
+the build writes it into `remoteEntry.json` unchanged, and `loadRemoteModule` finds the part by
+comparing the name with the key exactly. So a module writes `exposes: { UserTaskForm: '...' }` in
+its `federation.config`, and a module that writes `./UserTaskForm` is not found.
 
 ## Which data finds the part
 
@@ -101,31 +107,31 @@ names in both objects:
 | Field              | Meaning |
 |--------------------|---------|
 | `workflowModuleId` | the workflow module the row comes from, and the name of the remote |
-| `uiUriType`        | a string agreed between this user interface and the module |
+| `uiUriType`        | a type agreed between this user interface and the module; it decides how the row opens |
 | `uiUri`            | the `uiUriPath` the module reported, unchanged |
 
-First the address, which depends on `uiUri` only:
+First the address. It is built from `uiUri` by one rule, see
+[gui-api.md](gui-api.md#what-the-cockpit-serves):
 
-- A `uiUri` that starts with `http://` or `https://` is a whole address. The user interface opens
-  it as it is and loads nothing into its own page. The module has pages of its own.
+- A `uiUri` that starts with `http://` or `https://` is a whole address and stays as it is.
 - Every other `uiUri` is a path of the module. The address is `/wm/<workflowModuleId>/` plus this
   path.
 
-Then the kind of loading, which depends on `uiUriType`. The server stores the value and never
-compares it to anything. VanillaBP knows no names for it. The values are a convention between this
-user interface and its workflow modules (`Q-UI-URI-TYPE`), and the types jar carries them as
-constants, see [project.md](project.md#the-types-jar). The defaults:
+Then `uiUriType` decides what happens with the address. Only the type decides, never the form of
+the address. A convention like "a whole address opens in a new tab" breaks sooner or later, and a
+type is safer. The server stores the value and never compares it to anything. VanillaBP knows no
+names for it. The values are a convention between this user interface and its workflow modules
+(`Q-UI-URI-TYPE`). The types library lists them, and the types jar carries them as Java constants,
+see [project.md](project.md#the-types-jar). The defaults:
 
-- `NATIVE_MF`: the module reports `uiUriPath` as the path of its remote entry, `/remoteEntry.json`.
-  The cockpit loads the parts from `/wm/<workflowModuleId>/remoteEntry.json`.
-- `EXTERNAL`: the name for a module that has pages of its own and reports a whole address. It is
-  only a name. The address decides that a page opens as it is, not this name.
+- `NATIVE_MF`: the address is the remote entry of the module. Usually the module reports the path
+  `/remoteEntry.json`, so the cockpit loads the parts from
+  `/wm/<workflowModuleId>/remoteEntry.json`.
+- `EXTERNAL`: the address is a page of the module's own. The cockpit opens it in a window or tab of
+  its own and loads nothing into its own page. The list stays where it is.
 
-The server does not build the address for you: it carries the value and does not read it.
-
-An unknown `uiUriType` with a path that is no whole address is no error of the server. It is a
-module built for another user interface. Show the row anyway, and tell the user that this row
-cannot be opened here.
+An unknown `uiUriType` is no error of the server. It is a module built for another user interface.
+Show the row anyway, and tell the user that this row cannot be opened here.
 
 ## One registry and one loader
 
@@ -136,7 +142,7 @@ No list, no page and no header loads a module part on its own. One central place
    memory, for every part of the user interface. A module whose `uri` is empty has no web path and
    nothing to load.
 2. The loader. It is the only code that talks to the orchestrator. A component only asks it:
-   "give me the exposed part `./UserTaskPage` of the module `taxi-ride`". The loader answers with a
+   "give me the exposed part `UserTaskForm` of the module `taxi-ride`". The loader answers with a
    promise of the module's exports.
 
 What the loader does:
@@ -152,7 +158,7 @@ What the loader does:
 3. A row of a module that is not in the registry yet, because the module registered after the page
    loaded, makes the loader call `GET /gui/api/v1/workflow-module/{id}` for that one module. It adds
    the module to the registry and registers it the same way.
-4. `loadRemoteModule('<id>', './UserTaskPage')` returns the module's exports. The loader keeps the
+4. `loadRemoteModule('<id>', 'UserTaskForm')` returns the module's exports. The loader keeps the
    promise per pair of module and exposed name, so a second caller gets the same one.
 
 The orchestrator keeps what it loaded for the life of the page. A module that is deployed again
@@ -170,7 +176,7 @@ interface tells them apart:
 | loading       | the promise has not settled yet                                                            | a loading sign |
 | loaded        | the promise resolved, and the export is there                                              | the part of the module |
 | failed        | the promise rejected, the export is missing, or a web component it names is not registered | a note and a button that loads again |
-| not federated | `uiUri` is a whole address, or the module has no remote entry                              | what the cockpit knows itself |
+| not federated | `uiUriType` is `EXTERNAL`, or the module has no remote entry                               | what the cockpit knows itself |
 
 A failed load stays failed until the user tries again. Retrying asks the loader again for this pair,
 and the loader calls `initRemoteEntry` and `loadRemoteModule` again. If it fails again, offer to
@@ -231,16 +237,23 @@ writes `mount = (root, props) => createRoot(root).render(<Form {...props} />)`, 
 The module does not export a component for these pages. It exports a function:
 
 ```ts
-userTaskPage: (userTask: UserTask) => PageAreas | undefined;
-workflowPage: (workflow: Workflow) => PageAreas | undefined;
+userTaskForm: (userTask: UserTask) => PageParts | undefined;
+workflowPage: (workflow: Workflow) => PageParts | undefined;
 
+type PageParts = string | PageAreas;
 type PageAreas = { [area: string]: string };   // area -> name of a web component
 ```
 
-The function returns `undefined` when it does not know this user task or this case. Otherwise it
-returns, per area, the name of the web component that fills it:
+The result has three forms:
+
+- `undefined`: the function does not know this user task or this case. It is not the module's.
+- A string: the name of one web component. It is the all-in-one form. The cockpit gives it the
+  whole area, draws no column and sets its property `area` to `all`.
+- An object: per area, the name of the web component that fills it. It is the laid-out form.
 
 ```ts
+'taxi-ride-assess-risk-page'
+
 { body: 'taxi-ride-assess-risk-form',
   information: 'taxi-ride-assess-risk-information',
   actions: 'taxi-ride-assess-risk-actions' }
@@ -254,27 +267,27 @@ Which areas exist is a convention, not a law (`Q-PAGE-AREAS`). The default conve
 | `information` | the top of a column on the right, for example the case number and the customer |
 | `actions`     | the bottom of that column, for example "Accept" and "Reject"; it never scrolls away |
 
-A module that wants the whole page for itself returns `body` only. The cockpit then gives `body`
-the whole area and draws no column. So each module chooses between the laid-out form and the
-all-in-one form, and the cockpit decides where the parts sit. This keeps the usability the same
-across modules when several teams build them.
+An object with `body` only is still the laid-out form: `body` sits in the main area, and the column
+stays empty. A module that wants the whole page returns a string. So each module chooses between
+the laid-out form and the all-in-one form, and the cockpit decides where the parts sit. This keeps
+the usability the same across modules when several teams build them.
 
 The areas of one page often have to talk to each other. For example, "Complete" in `actions` only
 becomes active when the form in `body` has its required fields. For this `BcUserTask` and
 `BcWorkflow` have `sendTo(target, message)` and `receiveMessage(handler)`, see
 [types.md](types.md#bcusertask-and-bcworkflow). The host carries the message from the web component
 of one area to the web component of the area named in `target`, as a DOM event. Nothing else is
-shared between the areas.
+shared between the areas. An all-in-one form has one web component and needs no messages.
 
 ## The other extension points
 
 Every further extension point follows the same pattern: the module exposes a function, and a
 visual one returns names of web components. Proposals for the usual ones:
 
-| Exposed name      | What the module exports                                                          | Where the cockpit uses it |
-|-------------------|----------------------------------------------------------------------------------|---------------------------|
-| `./HeaderButtons` | `headerButtons: (currentUser) => string[] \| undefined`, names of web components | the application header |
-| `./Pages`         | `pages: (currentUser) => Array<{ id, title, element, menu }> \| undefined`       | the router and the menu |
+| Exposed name | What the module exports                                                    | Where the cockpit uses it |
+|--------------|----------------------------------------------------------------------------|---------------------------|
+| `Header`     | `header: (currentUser) => string[] \| undefined`, names of web components  | the application header |
+| `Pages`      | `pages: (currentUser) => Array<{ id, title, element, menu }> \| undefined` | the router and the menu |
 
 A page of a module has the route `/<workflowModuleId>/<id>`, always. The router of the cockpit
 adds a route for every page of every module in the registry. `title` is a `Translatable`, `element`
@@ -328,18 +341,36 @@ element.dispatchEvent(new CustomEvent('bc-response', {
 
 ### Messages between areas
 
-`sendTo(target, message)` is the request `page.sendTo` with `target` and `message`. The host
-dispatches the message on the web component of the area `target` of the same page:
+Sending and receiving are both actions, so the host knows who listens.
+
+Sending: `sendTo(target, message)` is the request `page.sendTo` with `target` and `message`.
+
+Receiving: `receiveMessage(handler)` sends the request `page.subscribe`. The host answers with a
+`subscriptionId`. From then on the host dispatches every message for this area on the web component
+of the area, with this id:
 
 ```ts
 targetElement.dispatchEvent(new CustomEvent('bc-message', {
-  detail: { from: 'body', message },
+  detail: { subscriptionId, from: 'body', message },
 }));
 ```
 
-`receiveMessage(handler)` listens for `bc-message` on its own web component and returns a function
-that stops listening. A `target` without a web component on this page is answered with
+The wrapper calls the handler for every `bc-message` with its `subscriptionId`. `receiveMessage`
+returns a subscription with `unsubscribe()`. That sends `page.unsubscribe` with the id, and the
+host stops delivering. When the element leaves the page, the host drops its subscriptions by
+itself.
+
+The areas of a page load at the same time, so a message may come before its target has
+subscribed. The host keeps such messages, in order, and delivers them once the area subscribes. It
+drops them when the page is left. A `target` without a web component on this page is answered with
 `NO_TARGET`.
+
+### Notifications
+
+`showNotification` is the request `cockpit.showNotification`. The cockpit shows a toast with the
+`text` in the look of the `level`: `info`, `success`, `warning` or `error`. With `sticky: true` the
+toast stays until the user clicks it away. Otherwise it goes away by itself after a few seconds.
+The text comes in the user's language; the part knows it from the property `language`.
 
 ### Error codes
 
@@ -373,7 +404,9 @@ The minimum set, matching the functions in [types.md](types.md#bcusertask-and-bc
 | `workflow.navigateToWorkflow` | `workflowId`                                                              | nothing |
 | `workflow.getUserTasks`       | `workflowId`, `activeOnly`, `limitListAccordingToCurrentUsersPermissions` | an array of user tasks |
 | `page.sendTo`                 | `target`, `message`                                                       | nothing |
-| `cockpit.toast`               | `title`, `message`, `status`, `dismissible`                               | nothing |
+| `page.subscribe`              | none; the area is the one of the element                                  | `subscriptionId` |
+| `page.unsubscribe`            | `subscriptionId`                                                          | nothing |
+| `cockpit.showNotification`    | `level`, `text`, `sticky`                                                 | nothing |
 | `cockpit.openDialog`          | `element`, `data`                                                         | what the dialog closed with |
 | `cockpit.closeDialog`         | `result`                                                                  | nothing |
 
@@ -387,7 +420,7 @@ is additive. An old cockpit answers `UNKNOWN_ACTION`, and the module decides wha
 ## Cells drawn by a workflow module
 
 This is an open question. It is not required and not generated until a solution exists
-(`Q-CELL-RENDERING`).
+(`Q-CELL-RENDERING`). Prompt `1500` works it out.
 
 The wish: a module draws single cells of a list itself, for example a traffic light for a risk
 rating, buttons that complete a user task in place, or details loaded on mouse-over. It is a good
@@ -406,5 +439,9 @@ Directions that might work, none of them proven:
   the visible area exist at all, see
   [behaviour.md](behaviour.md#paging-and-the-window-of-loaded-rows).
 
-A separate analysis will work this out. Until then, cells are drawn by the cockpit from the column
-types, see [behaviour.md](behaviour.md#the-columns-a-workflow-module-brings).
+Prompt `1500` decides this with a probe. It builds a test page each in React, Angular and Vue. Each
+page loads a cell component through native federation, exactly as the cockpit will, and web
+components are the ideal it starts from. The probe measures the memory, how fast cells are drawn,
+how fast they react to the user, and how many cells a list can hold. Until then, cells are drawn by
+the cockpit from the column types, see
+[behaviour.md](behaviour.md#the-columns-a-workflow-module-brings).

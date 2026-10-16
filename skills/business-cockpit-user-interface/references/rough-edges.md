@@ -15,16 +15,12 @@ code of the cockpit. Read this before the first screen, not when something does 
 1. [A search pattern goes into the database unescaped](#a-search-pattern-goes-into-the-database-unescaped)
 1. [Two filters on one path](#two-filters-on-one-path)
 1. [`businessIds` is lost in the update](#businessids-is-lost-in-the-update)
-1. [`OpenTasksWithFollowUp` is only another name](#opentaskswithfollowup-is-only-another-name)
 1. [The suggestions are not the most frequent](#the-suggestions-are-not-the-most-frequent)
 1. [An event says that something changed, not what](#an-event-says-that-something-changed-not-what)
 1. [`filterable` is not read by the server](#filterable-is-not-read-by-the-server)
-1. [The shell is not open today](#the-shell-is-not-open-today)
 1. [A module may report a type of another user interface](#a-module-may-report-a-type-of-another-user-interface)
 1. [The update form has no offset](#the-update-form-has-no-offset)
-1. [An ended row does not say whether it was cancelled](#an-ended-row-does-not-say-whether-it-was-cancelled)
-1. [The UI repository still needs Java](#the-ui-repository-still-needs-java)
-1. [What the GUI API does not have](#what-the-gui-api-does-not-have)
+1. [What needs a newer cockpit](#what-needs-a-newer-cockpit)
 
 ## Assigning makes a candidate
 
@@ -107,16 +103,6 @@ By intent this is no error, and a later version will allow it.
 filtered by business ids gets cases in the update that do not belong to it. Filter them out yourself
 if you use this filter.
 
-## `OpenTasksWithFollowUp` is only another name
-
-The name sounds like a filter on the follow-up date. There is none: the primary filter is another
-name for `OpenTasks` and returns all open tasks, with and without a follow-up date. This is decided,
-and it stays so. In the user interface the difference is the follow-up column, see
-[behaviour.md](behaviour.md#the-task-lists).
-
-Open tasks with a follow-up date in the future come with `OpenTaskOnlyFollowUp`. Those without one,
-or with one that is due, come with `OpenTasksWithoutFollowUp`.
-
 ## The suggestions are not the most frequent
 
 The answer to a KWIC query has at most 21 entries, and the limit applies in the database before
@@ -150,15 +136,6 @@ stream and whenever the stream had to forget ids. See
 The field is in every column. The server does not know columns, so it never reads it. Whether a
 column offers a filter is decided by your user interface from this flag.
 
-## The shell is not open today
-
-The single-page application must load without a login, see
-[gui-api.md](gui-api.md#protection-and-login). The library's default security chain does not do that
-yet. It opens `/assets/**`, `/static/**`, `/wm/**`, `app/info` and `app/current-user`, and asks for
-basic authentication for everything else, the shell at `/` included. An application with its own
-security chain (a bean named `guiHttpSecurity`) opens the shell itself. With the default chain, the
-browser shows its basic authentication dialog before the shell loads.
-
 ## A module may report a type of another user interface
 
 VanillaBP knows no names for `ui-uri-type`. It requires the value and accepts any string. A workflow
@@ -176,35 +153,21 @@ there to avoid. So read the pages of such a window again with `POST`, with the s
 `initialTimestamp`. Use `PUT` only while the window starts at the top. See
 [behaviour.md](behaviour.md#live-updates).
 
-## An ended row does not say whether it was cancelled
+## What needs a newer cockpit
 
-A user task and a case have `endedAt`, but nothing says whether they were completed or cancelled.
-The list wants to show completed rows normally and cancelled rows grey with a struck-through title,
-see [behaviour.md](behaviour.md#closed-and-cancelled-rows). Until the GUI API carries this, the
-user interface cannot tell the two apart. Show every ended row as completed, and add a backend
-extension to the plan if the organisation wants the difference.
+This description counts on prompts of the `business-cockpit` repository that are not all released
+yet. The cockpit version of the interview (`Q-COCKPIT-VERSION`) must have them:
 
-## The UI repository still needs Java
+| Prompt | What it brings |
+|--------|----------------|
+| `1504` | `endReason` on user tasks and cases, so a cancelled row can be told from a completed one |
+| `1505` | `customSettings` on the user, with endpoints for single entries |
+| `1506` | the count endpoint |
+| `1507` | notes on user tasks and cases |
+| `1509` | `OpenTasks` is gone; the open modes are `OpenTasksWithFollowUp` and `OpenTasksWithoutFollowUp` |
 
-The UI repository is an npm project, but two steps need Java: `openapi-generator-cli` runs the
-OpenAPI Generator jar, and the types jar needs `javac` for its one class. So the build agent needs a
-JDK next to Node, from an image the company trusts. The generator jar is downloaded on the first
-run; point that download at the company's Maven repository, see
-[gui-api.md](gui-api.md#generating-the-client). If an npm-only agent without any Java is a hard
-rule, this is not solved yet.
+Against an older cockpit the generated client lacks these endpoints and fields, and the build
+fails. That is on purpose: better a failed build than a user interface that guesses.
 
-## What the GUI API does not have
-
-Some wishes of the interview need something the GUI API does not offer today:
-
-- notes on a user task (`Q-NOTES`),
-- a place to keep the user's preferences, such as the last primary filter; keep them in the
-  browser's local storage,
-- counts grouped by task type or case kind for a dashboard (`Q-DASHBOARD`); count with one request
-  per type, with `pageSize` 1 and no `sort`, or extend the backend,
-- whether an ended user task or case was completed or cancelled, see
-  [above](#an-ended-row-does-not-say-whether-it-was-cancelled),
-- the rights of the user and where they come from, for the overview in the menu; this part is
-  still to come, see [behaviour.md](behaviour.md#the-header-and-the-menu).
-
-Say so in the interview, and add a backend extension to the plan when the organisation wants them.
+One thing is still to come and has no prompt yet: the rights of the user and where they come from,
+for the overview in the menu, see [behaviour.md](behaviour.md#the-header-and-the-menu).

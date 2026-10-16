@@ -28,28 +28,32 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `SRCH-` | search, filter, sort and paging |
 | `LIVE-` | live updates |
 | `EXT-`  | module parts and extension points |
+| `SET-`  | user settings |
 | `I18N-` | language and texts |
 | `NOTI-` | notifications |
 | `DS-`   | dev shell |
 
 ## PKG: build outputs
 
-| Id        | Item                                                                                                                                                                   | Applies |
-|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `PKG-001` | One npm workspace builds the user interface, the types library, every dev shell, the UI jar and the types jar with one command, without Maven.                         | always |
-| `PKG-002` | The GUI API client is generated at build time from the OpenAPI files of the pinned cockpit version and is not committed.                                               | always |
-| `PKG-003` | The UI jar has the coordinates from the interview and holds `index.html` and the bundle at the place the backend framework serves: `static/` or `META-INF/resources/`. | always |
-| `PKG-004` | Added as a dependency to the backend, the UI jar makes `/` show the user interface.                                                                                    | always |
-| `PKG-005` | The backend repository builds with Maven only, takes the UI jar as an ordinary dependency, and a Maven release of it succeeds.                                         | always |
-| `PKG-006` | The types library is published with no dependencies and no peer dependencies.                                                                                          | always |
-| `PKG-007` | Each dev shell package is published with its framework as a peer dependency and the types library as a dependency.                                                     | always |
-| `PKG-008` | `INTERVIEW.md` and `CHECKLIST.md` are in the project and name the version of this reference.                                                                           | always |
-| `PKG-009` | The bundle contains no part of any workflow module.                                                                                                                    | always |
-| `PKG-010` | The types jar holds the constants of `Q-UI-URI-TYPE`, `EXTERNAL` included, and none of them points to a constant of VanillaBP.                                         | always |
-| `PKG-011` | The upload script puts jar, pom and their checksums into the Maven repository with HTTP `PUT`, and refuses to overwrite a release version that is already there.       | always |
-| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.             | always |
-| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                  | always |
-| `PKG-014` | The UI repository has no `pom.xml`, and the backend repository has no `package.json`.                                                                                  | always |
+| Id        | Item                                                                                                                                                                                                                              | Applies |
+|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `PKG-001` | Removed: the types jar left the UI repository, see `PKG-015` and `PKG-016`.                                                                                                                                                       | removed |
+| `PKG-002` | The GUI API client is generated at build time from the OpenAPI files of the pinned cockpit version and is not committed.                                                                                                          | always |
+| `PKG-003` | The UI jar has the coordinates from the interview and holds `index.html` and the bundle at the place the backend framework serves: `static/` or `META-INF/resources/`.                                                            | always |
+| `PKG-004` | Added as a dependency to the backend, the UI jar makes `/` show the user interface.                                                                                                                                               | always |
+| `PKG-005` | The backend repository builds with Maven only, takes the UI jar as an ordinary dependency, and a Maven release of it succeeds.                                                                                                    | always |
+| `PKG-006` | The types library is published with no dependencies and no peer dependencies.                                                                                                                                                     | always |
+| `PKG-007` | Each dev shell package is published with its framework as a peer dependency and the types library as a dependency.                                                                                                                | always |
+| `PKG-008` | `INTERVIEW.md` and `CHECKLIST.md` are in the project and name the version of this reference.                                                                                                                                      | always |
+| `PKG-009` | The bundle contains no part of any workflow module.                                                                                                                                                                               | always |
+| `PKG-010` | Removed: replaced by `PKG-016`.                                                                                                                                                                                                   | removed |
+| `PKG-011` | The upload script puts jar, pom and their checksums into the Maven repository with HTTP `PUT`, and refuses to overwrite a release version that is already there.                                                                  | always |
+| `PKG-012` | The nginx image serves the user interface, answers an unknown path with `index.html`, and forwards `/gui/api/`, `/wm/` and the login paths to the backend.                                                                        | always |
+| `PKG-013` | Through the nginx image the update stream delivers events without delay and stays open longer than the ping interval.                                                                                                             | always |
+| `PKG-014` | The UI repository has no `pom.xml`, and the backend repository has no `package.json`.                                                                                                                                             | always |
+| `PKG-015` | One npm workspace builds the user interface, the types library, every dev shell and the UI jar with one command, without Maven and without Java.                                                                                  | always |
+| `PKG-016` | The types jar is built with Maven outside the UI repository, from `ui-uri-types.json` of the types library of the same version; it holds one constant per entry, `EXTERNAL` included, and none points to a constant of VanillaBP. | always |
+| `PKG-017` | The types library carries `ui-uri-types.json` and one TypeScript constant for each of its values.                                                                                                                                 | always |
 
 ## AUTH: loading and login
 
@@ -89,7 +93,7 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `TL-001` | The status line offers the primary filters from the interview, with short translated labels.                                                                        | always |
 | `TL-002` | The default primary filter is the one from the interview.                                                                                                           | always |
 | `TL-003` | Each primary filter except `ClosedTasksOnly` shows its count in brackets. The count of `ClosedTasksOnly` is asked on mouse-over only, and not kept or updated live. | always |
-| `TL-004` | The counts of the primary filters not chosen are asked with `pageSize` 1 and no `sort`.                                                                             | always |
+| `TL-004` | Removed: replaced by `TL-024`.                                                                                                                                      | removed |
 | `TL-005` | The primary filter last chosen is used again the next time the user opens the list.                                                                                 | always |
 | `TL-006` | The status line shows a legend for new, changed, removed and inactive rows.                                                                                         | `Q-LIVE-MODE` ≠ `refresh-button` |
 | `TL-007` | A row whose task the user has not read is bold.                                                                                                                     | always |
@@ -105,10 +109,12 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `TL-017` | On mouse-over the candidate users column lists all persons, each with a bin icon that removes the person.                                                           | always |
 | `TL-018` | A date column shows the localised date, or the time if the date is today, and the other one on mouse-over.                                                          | always |
 | `TL-019` | The selected tasks can be acted on together with the bulk actions from the interview.                                                                               | `Q-BULK-ACTIONS` not empty |
-| `TL-020` | Notes can be edited in the list and for all selected tasks through the header area.                                                                                 | `Q-NOTES` = yes |
+| `TL-020` | Removed: replaced by `TL-025` and `TF-023`.                                                                                                                         | removed |
 | `TL-021` | A task put on follow-up leaves `OpenTasksWithoutFollowUp` until its date has come.                                                                                  | `Q-FOLLOW-UP` = yes |
 | `TL-022` | A closed task can be listed and opened like an open one; the cockpit handles it the same whatever its status, and the module draws its page.                        | `Q-CLOSED-TASKS` = yes |
-| `TL-023` | In `ClosedTasksOnly` a completed task looks like any other row, and a cancelled one is grey with its title struck through.                                          | `Q-CLOSED-TASKS` = yes |
+| `TL-023` | In `ClosedTasksOnly` a completed task looks like any other row, and a cancelled one is grey with its title struck through, as `endReason` says.                     | `Q-CLOSED-TASKS` = yes |
+| `TL-024` | Every count comes from the count endpoint, and no page of a list is asked only for its total.                                                                       | always |
+| `TL-025` | A note can be written per row in the task list and for all selected tasks at once in the list.                                                                      | `Q-NOTES` = yes |
 
 ## COL: columns and cells
 
@@ -133,64 +139,74 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 
 ## ACT: actions on user tasks
 
-| Id        | Item                                                                                                                                    | Applies |
-|-----------|-----------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `ACT-001` | Claim makes the user the assignee, and the row shows it.                                                                                | always |
-| `ACT-002` | Claiming a task that has another assignee asks the user first; the question has "don't ask again", kept in the browser's local storage. | always |
-| `ACT-003` | Unclaim removes the user as assignee, and the row shows it.                                                                             | always |
-| `ACT-004` | "Propose to" a person found by search makes the person a candidate user.                                                                | always |
-| `ACT-005` | Removing a candidate user takes the person off the task.                                                                                | always |
-| `ACT-006` | Mark as read and mark as unread change the bold state of the row.                                                                       | always |
-| `ACT-007` | Setting and deleting a follow-up date works for one task and for the selected tasks.                                                    | `Q-FOLLOW-UP` = yes |
-| `ACT-008` | The effect of the user's own action shows as soon as the server has accepted it.                                                        | always |
-| `ACT-009` | The actions are disabled for a task whose `endedAt` is set.                                                                             | always |
-| `ACT-010` | A failed single action tells the user, without revealing whether the task exists.                                                       | always |
+| Id        | Item                                                                                                                                                   | Applies |
+|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `ACT-001` | Claim makes the user the assignee, and the row shows it.                                                                                               | always |
+| `ACT-002` | Removed: replaced by `ACT-011`.                                                                                                                        | removed |
+| `ACT-003` | Unclaim removes the user as assignee, and the row shows it.                                                                                            | always |
+| `ACT-004` | "Propose to" a person found by search makes the person a candidate user.                                                                               | always |
+| `ACT-005` | Removing a candidate user takes the person off the task.                                                                                               | always |
+| `ACT-006` | Mark as read and mark as unread change the bold state of the row.                                                                                      | always |
+| `ACT-007` | Setting and deleting a follow-up date works for one task and for the selected tasks.                                                                   | `Q-FOLLOW-UP` = yes |
+| `ACT-008` | The effect of the user's own action shows as soon as the server has accepted it.                                                                       | always |
+| `ACT-009` | The actions are disabled for a task whose `endedAt` is set.                                                                                            | always |
+| `ACT-010` | A failed single action tells the user, without revealing whether the task exists.                                                                      | always |
+| `ACT-011` | Claiming a task that has another assignee asks the user first; the question has "don't ask again", and that choice holds in every browser of the user. | always |
 
 ## TF: the page of a user task
 
-| Id       | Item                                                                                                                                                            | Applies |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `TF-001` | Opening a task loads it, marks it as read and shows the web components the module's page function names.                                                        | always |
-| `TF-002` | While the task or the module part loads, a loading state shows.                                                                                                 | always |
-| `TF-003` | A task that fails to load and a module part that fails to load show two different notes, each with a retry button.                                              | always |
-| `TF-004` | The task actions sit in the application header, in the same place for every task kind; there is no header or footer of the task's own.                          | always |
-| `TF-005` | The header shows the information from the interview; each value has its own share of the width and is cut with "..." on its own when too long.                  | always |
-| `TF-006` | The header offers the task actions from the interview, always in the same place.                                                                                | always |
-| `TF-007` | "Open as own window" opens the list in a new tab; the task tab keeps the application header, and a red "back to the list" button replaces the burger menu.      | `Q-OWN-WINDOW` = yes |
-| `TF-008` | On the page of a user task and of a case, long content scrolls in its own area, the application header stays, and the frame never breaks.                       | always |
-| `TF-009` | The page cannot be edited before the user has claimed the task.                                                                                                 | `Q-CLAIM` = hard |
-| `TF-010` | The page can be edited without a claim.                                                                                                                         | `Q-CLAIM` = informal |
-| `TF-011` | When somebody else changes the open task, a toast tells the user, and it stays until clicked away.                                                              | `Q-LIVE-MODE` ≠ `refresh-button` |
-| `TF-012` | A task whose `uiUri` starts with `http://` or `https://` opens that address unchanged in a tab of its own, whatever its `uiUriType`, and the list stays intact. | always |
-| `TF-013` | The link from a task to its case opens the cockpit's case page.                                                                                                 | always |
-| `TF-014` | A link from a notification mail opens the task page directly, after a login if needed.                                                                          | `Q-NOTIFICATIONS` = yes |
-| `TF-015` | The web components named for `body`, `information` and `actions` sit in their areas; a page with `body` alone uses the whole area.                              | always |
-| `TF-016` | A message sent with `sendTo` from one area reaches the handler of `receiveMessage` in the named area of the same page.                                          | always |
-| `TF-017` | "Back to the list" and closing the task tab both warn that input may be lost, and the user can stay.                                                            | `Q-OWN-WINDOW` = yes |
-| `TF-018` | To verify in Chromium, Firefox and WebKit: "back to the list" brings the list tab to the front, or shows a hint when that is not possible.                      | `Q-OWN-WINDOW` = yes |
+| Id       | Item                                                                                                                                                                                    | Applies |
+|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `TF-001` | Opening a task loads it, marks it as read and shows the web components the module's page function names.                                                                                | always |
+| `TF-002` | While the task or the module part loads, a loading state shows.                                                                                                                         | always |
+| `TF-003` | A task that fails to load and a module part that fails to load show two different notes, each with a retry button.                                                                      | always |
+| `TF-004` | The task actions sit in the application header, in the same place for every task kind; there is no header or footer of the task's own.                                                  | always |
+| `TF-005` | The header shows the information from the interview; each value has its own share of the width and is cut with "..." on its own when too long.                                          | always |
+| `TF-006` | The header offers the task actions from the interview, always in the same place.                                                                                                        | always |
+| `TF-007` | "Open as own window" opens the list in a new tab; the task tab keeps the application header, and a red "back to the list" button replaces the burger menu. To verify with probe `1508`. | `Q-OWN-WINDOW` = yes |
+| `TF-008` | On the page of a user task and of a case, long content scrolls in its own area, the application header stays, and the frame never breaks.                                               | always |
+| `TF-009` | The page cannot be edited before the user has claimed the task.                                                                                                                         | `Q-CLAIM` = hard |
+| `TF-010` | The page can be edited without a claim.                                                                                                                                                 | `Q-CLAIM` = informal |
+| `TF-011` | When somebody else changes the open task, a toast tells the user, and it stays until clicked away.                                                                                      | `Q-LIVE-MODE` ≠ `refresh-button` |
+| `TF-012` | Removed: replaced by `TF-019` and `TF-020`.                                                                                                                                             | removed |
+| `TF-013` | The link from a task to its case opens the cockpit's case page.                                                                                                                         | always |
+| `TF-014` | A link from a notification mail opens the task page directly, after a login if needed.                                                                                                  | `Q-NOTIFICATIONS` = yes |
+| `TF-015` | Removed: replaced by `TF-021`.                                                                                                                                                          | removed |
+| `TF-016` | A message sent with `sendTo` from one area reaches the handler of `receiveMessage` in the named area of the same page.                                                                  | always |
+| `TF-017` | "Back to the list" and closing the task tab both warn that input may be lost, and the user can stay. To verify with probe `1508`.                                                       | `Q-OWN-WINDOW` = yes |
+| `TF-018` | To verify with probe `1508` in Chromium, Firefox and WebKit: "back to the list" brings the list tab to the front, or shows a hint when that is not possible.                            | `Q-OWN-WINDOW` = yes |
+| `TF-019` | A task whose `uiUriType` is `EXTERNAL` opens its address in a tab of its own, and the list stays intact.                                                                                | always |
+| `TF-020` | The address of a task is its `uiUri` unchanged when it starts with `http://` or `https://`, and `/wm/<workflowModuleId>/` plus `uiUri` otherwise, whatever its `uiUriType`.             | always |
+| `TF-021` | A page function that returns a string gets the whole area for that one web component, with no column; one that returns an object gets each named web component in its area.             | always |
+| `TF-022` | A message sent before the target area subscribed reaches it once it subscribes, and after `unsubscribe` no message reaches it.                                                          | always |
+| `TF-023` | The header of an open task offers its note.                                                                                                                                             | `Q-NOTES` = yes |
 
 ## WL: the case list
 
-| Id       | Item                                                                                                                | Applies |
-|----------|---------------------------------------------------------------------------------------------------------------------|---------|
-| `WL-001` | The case list offers the primary filters from the interview, by default `Active` and `Inactive`.                    | always |
-| `WL-002` | Its fixed columns are the ones from the interview, in its order.                                                    | always |
-| `WL-003` | Modules add their own case columns, apart from the task columns.                                                    | `Q-MODULE-COLUMNS` = yes |
-| `WL-004` | There is no read marker in the case list.                                                                           | always |
-| `WL-005` | `accessibleToUsers` and `accessibleToGroups` are not shown as columns.                                              | always |
-| `WL-006` | The title opens the case page, and "open in new tab" works on it.                                                   | always |
-| `WL-007` | In `Inactive` a completed case looks like any other row, and a cancelled one is grey with its title struck through. | always |
+| Id       | Item                                                                                                                                     | Applies |
+|----------|------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `WL-001` | The case list offers the primary filters from the interview, by default `Active` and `Inactive`.                                         | always |
+| `WL-002` | Its fixed columns are the ones from the interview, in its order.                                                                         | always |
+| `WL-003` | Modules add their own case columns, apart from the task columns.                                                                         | `Q-MODULE-COLUMNS` = yes |
+| `WL-004` | There is no read marker in the case list.                                                                                                | always |
+| `WL-005` | `accessibleToUsers` and `accessibleToGroups` are not shown as columns.                                                                   | always |
+| `WL-006` | The title opens the case page, and "open in new tab" works on it.                                                                        | always |
+| `WL-007` | In `Inactive` a completed case looks like any other row, and a cancelled one is grey with its title struck through, as `endReason` says. | always |
+| `WL-008` | A note can be written per row in the case list and for all selected cases at once in the list.                                           | `Q-NOTES` = yes |
 
 ## WP: the page of a case
 
-| Id       | Item                                                                                                                        | Applies |
-|----------|-----------------------------------------------------------------------------------------------------------------------------|---------|
-| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                      | always |
-| `WP-002` | The case page has no header or footer of its own and no "open as own window"; the application header shows no task actions. | always |
-| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                               | always |
-| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                  | removed |
-| `WP-005` | A case page that fails to load shows a note with a retry button.                                                            | always |
-| `WP-006` | The case page lays out the same areas as the page of a user task, or `body` alone.                                          | always |
+| Id       | Item                                                                                                                                                                                          | Applies |
+|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `WP-001` | Opening a case loads it and shows the web components the module's page function names.                                                                                                        | always |
+| `WP-002` | Removed: replaced by `WP-007`.                                                                                                                                                                | removed |
+| `WP-003` | The case page gets `getUserTasks`, and it returns the user tasks of the case.                                                                                                                 | always |
+| `WP-004` | Removed: merged into `TF-008`, which holds for both pages.                                                                                                                                    | removed |
+| `WP-005` | A case page that fails to load shows a note with a retry button.                                                                                                                              | always |
+| `WP-006` | Removed: replaced by `WP-008`.                                                                                                                                                                | removed |
+| `WP-007` | The case page has no header or footer of its own and no "open as own window"; the application header shows the case information and the case actions from the interview, and no task actions. | always |
+| `WP-008` | The case page shows one web component or the same areas as the page of a user task, as the page function returns.                                                                             | always |
+| `WP-009` | The header of an open case offers its note.                                                                                                                                                   | `Q-NOTES` = yes |
 
 ## SRCH: search, filter, sort and paging
 
@@ -239,8 +255,8 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 |-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `EXT-001` | Parts are loaded with the native federation orchestrator from `/wm/<workflowModuleId>/remoteEntry.json`.                                                 | always |
 | `EXT-002` | Each pair of module and exposed name is loaded at most once per page.                                                                                    | always |
-| `EXT-003` | A row with a relative `uiUri` and the native federation value of `Q-UI-URI-TYPE` loads its parts through native federation.                              | always |
-| `EXT-004` | A row with an unknown `uiUriType` and a relative `uiUri` is shown, and the user is told it cannot be opened here.                                        | always |
+| `EXT-003` | Removed: replaced by `EXT-020`.                                                                                                                          | removed |
+| `EXT-004` | Removed: replaced by `EXT-021`.                                                                                                                          | removed |
 | `EXT-005` | Every web component of a module renders inside a shadow DOM, and the cockpit's styles do not change it, nor it the cockpit's.                            | always |
 | `EXT-006` | A name of a web component that is not registered when the module's function returns is treated as a failed load.                                         | always |
 | `EXT-007` | A `bc-request` from a part is answered with exactly one `bc-response` with the same `requestId`.                                                         | always |
@@ -256,6 +272,20 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `EXT-017` | A page of a module has the route `/<workflowModuleId>/<pageId>`, and a deep link to it works.                                                            | `Q-EXTENSION-POINTS` includes pages |
 | `EXT-018` | A part of a module can open a modal dialog, and the promise resolves with what the dialog closed with.                                                   | `Q-EXTENSION-POINTS` |
 | `EXT-019` | A module that registered after the page loaded is added to the registry the first time a row of it shows up.                                             | always |
+| `EXT-020` | A row whose `uiUriType` is the native federation value of `Q-UI-URI-TYPE` loads its parts through native federation, whatever the form of its address.   | always |
+| `EXT-021` | A row with an unknown `uiUriType` is shown, and the user is told it cannot be opened here.                                                               | always |
+| `EXT-022` | The exposed names are `UserTaskList`, `WorkflowList`, `UserTaskForm`, `WorkflowPage` and those of the interview, without `./` in front.                  | always |
+| `EXT-023` | `cockpit.showNotification` shows a toast in the look of its `level`; a sticky one stays until clicked away, any other goes away by itself.               | always |
+| `EXT-024` | `page.subscribe` answers with a `subscriptionId`, and after `page.unsubscribe` the host delivers nothing more to it.                                     | always |
+
+## SET: user settings
+
+| Id        | Item                                                                                                                                                            | Applies |
+|-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `SET-001` | One global settings service reads and writes every user setting, and no other code calls the settings endpoints.                                                | always |
+| `SET-002` | A setting the service has read once is answered from its cache, without a new request.                                                                          | always |
+| `SET-003` | A setting made in one browser holds in another browser of the same user: the language, "don't ask again", the primary filter last chosen and the column widths. | always |
+| `SET-004` | The user interface keeps no setting in `localStorage`, `sessionStorage` or a cookie of its own.                                                                 | always |
 
 ## I18N: language and texts
 
@@ -284,7 +314,7 @@ instead of deleting it. So an upgrade is the diff between two versions of this f
 | `DS-003` | The dev shell shows real data from the dev shell simulator.                                                                      | always |
 | `DS-004` | The dev shell switches between parts, user tasks and cases.                                                                      | always |
 | `DS-005` | The page of a user task and of a case look the same in the dev shell as in the cockpit, with the same header and areas.          | always |
-| `DS-006` | A toast a part asks for is shown, also one that has to be clicked away.                                                          | always |
+| `DS-006` | A toast a part asks for with `showNotification` is shown, and a sticky one stays until it is clicked away.                       | always |
 | `DS-007` | The developer can choose the language.                                                                                           | always |
 | `DS-008` | A function the simulator does not answer tells the developer so instead of doing nothing silently.                               | always |
 | `DS-009` | `getUserTasks` returns the real user tasks of the case.                                                                          | always |
