@@ -39,7 +39,7 @@
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>6.6.0</version>
         <!-- Still on 6.4.0, the version which once also generated the TypeScript client of the
              webapp. Neither lives here any more, see decision 63 in the repository's DECISIONS.md,
              so nothing holds this version back. The spring execution sets
