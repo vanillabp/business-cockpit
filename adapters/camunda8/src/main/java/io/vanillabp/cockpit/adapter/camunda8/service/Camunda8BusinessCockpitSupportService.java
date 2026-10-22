@@ -8,9 +8,9 @@ import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEve
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.spi.process.WorkflowNotFoundException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
@@ -118,46 +118,40 @@ public class Camunda8BusinessCockpitSupportService {
             final String tenantId,
             final String bpmnProcessId,
             final String businessKey,
+            final String workflowAggregateIdName,
             final List<Long> userTaskIds) {
 
-        final var userTasksFound = new HashSet<io.camunda.client.api.search.response.UserTask>();
-        String afterCursor = null;
-        boolean nextPage = true;
-        while (nextPage) {
-            var after = afterCursor;
-            final var result = client
-                    .newUserTaskSearchRequest()
-                    .filter(filter -> {
-                        filter.bpmnProcessId(bpmnProcessId);
-                        /*
-                        filter.processInstanceVariables(
-                                Map.of(idName, businessKey));
-                         */
-                        if (tenantId != null) {
-                            filter.tenantId(tenantId);
-                        }
-                    })
-                    .page(request -> {
-                        request.limit(100);
-                        if (after != null) {
-                            request.after(after);
-                        }
-                    })
-                    .execute();
-            result
-                    .items()
-                    .stream()
-                    .filter(userTask -> userTaskIds.contains(userTask.getUserTaskKey()))
-                    .forEach(userTasksFound::add);
-            afterCursor = result.page().endCursor();
-            if (
-                    userTasksFound.size() == userTaskIds.size() // All user tasks found
-                    || result.items().isEmpty()                 // No more items
-                    || afterCursor == null                      // No more pages
-            ) {
-                nextPage = false;
+        final var processInstance = client
+                .newProcessInstanceSearchRequest()
+                .filter(filter -> {
+                    filter.processDefinitionId(bpmnProcessId);
+                    filter.variables(
+                            Map.of(workflowAggregateIdName, "\"" + businessKey + "\""));
+                    if (tenantId != null) {
+                        filter.tenantId(tenantId);
+                    }
+                })
+                .send()
+                .join(5, TimeUnit.SECONDS)
+                .singleItem();
+        if (processInstance == null) {
+            if (tenantId == null) {
+                throw new WorkflowNotFoundException(
+                        "Could not find process instance for business key '%s', BPMN process ID '%s'!"
+                                .formatted(businessKey, bpmnProcessId));
+            } else {
+                throw new WorkflowNotFoundException(
+                        "Could not find process instance for business key '%s', BPMN process ID '%s', tenant '%s'!"
+                                .formatted(businessKey, bpmnProcessId, tenantId));
             }
         }
+
+        final var userTasksFound = client
+                .newUserTaskSearchRequest()
+                .filter(filter -> filter.processInstanceKey(processInstance.getProcessInstanceKey()))
+                .send()
+                .join(5, TimeUnit.SECONDS)
+                .items();
 
         if (userTasksFound.isEmpty()) {
             if (tenantId == null) {
@@ -185,11 +179,11 @@ public class Camunda8BusinessCockpitSupportService {
             final List<Long> userTaskIds) {
 
         if (tenantId == null) {
-            logger.warn("Could not found user tasks {} for business key '{}', BPMN process ID '{}'!",
-                    userTaskIds, businessKey, bpmnProcessId);
+            logger.warn("Could not find user tasks {} for business key '{}', BPMN process ID '{}'!",
+                    userTaskIds, businessKey, bpmnProcessId, cause);
         } else {
-            logger.warn("Could not found user tasks {} for business key '{}', BPMN process ID '{}', tenant '{}'!",
-                    userTaskIds, businessKey, bpmnProcessId, tenantId);
+            logger.warn("Could not find user tasks {} for business key '{}', BPMN process ID '{}', tenant '{}'!",
+                    userTaskIds, businessKey, bpmnProcessId, tenantId, cause);
         }
         return List.of();
 
