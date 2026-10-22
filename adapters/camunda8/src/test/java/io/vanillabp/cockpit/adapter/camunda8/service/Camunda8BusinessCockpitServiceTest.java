@@ -1,21 +1,24 @@
 package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
-import io.camunda.client.api.search.page.AnyPage;
+import io.camunda.client.api.CamundaFuture;
+import io.camunda.client.api.search.filter.UserTaskFilter;
+import io.camunda.client.api.search.request.ProcessInstanceSearchRequest;
 import io.camunda.client.api.search.request.UserTaskSearchRequest;
+import io.camunda.client.api.search.response.ProcessInstance;
 import io.camunda.client.api.search.response.SearchResponse;
-import io.camunda.client.api.search.response.SearchResponsePage;
 import io.camunda.client.api.search.response.UserTask;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,10 +26,11 @@ import org.springframework.data.repository.CrudRepository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.RETURNS_SELF;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +46,9 @@ class Camunda8BusinessCockpitServiceTest {
     @Mock
     private Camunda8UserTaskEventHandler userTaskEventHandler;
 
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+
     private Camunda8BusinessCockpitService<String> service;
 
     @BeforeEach
@@ -52,7 +59,7 @@ class Camunda8BusinessCockpitServiceTest {
                 businessKey -> businessKey,
                 businessKey -> businessKey,
                 "id",
-                mock(ApplicationEventPublisher.class),
+                applicationEventPublisher,
                 workflowEventHandler,
                 userTaskEventHandler,
                 new Camunda8BusinessCockpitSupportService(workflowEventHandler, userTaskEventHandler));
@@ -64,61 +71,57 @@ class Camunda8BusinessCockpitServiceTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void userTaskSearchShouldConsiderAllPages() {
-        final var request = mock(UserTaskSearchRequest.class, RETURNS_SELF);
-        when(camundaClient.newUserTaskSearchRequest()).thenReturn(request);
+    void userTaskSearchShouldPublishAllUserTasksOfProcessInstanceWithoutPagination() {
+        // process instance identified by business key
+        final var processInstance = mock(ProcessInstance.class);
+        when(processInstance.getProcessInstanceKey()).thenReturn(4711L);
+        final var processInstanceResponse = (SearchResponse<ProcessInstance>) mock(SearchResponse.class);
+        when(processInstanceResponse.singleItem()).thenReturn(processInstance);
+        final var processInstanceFuture = (CamundaFuture<SearchResponse<ProcessInstance>>) mock(CamundaFuture.class);
+        when(processInstanceFuture.join(anyLong(), any(TimeUnit.class))).thenReturn(processInstanceResponse);
+        final var processInstanceRequest = mock(ProcessInstanceSearchRequest.class, RETURNS_SELF);
+        when(processInstanceRequest.send()).thenReturn(processInstanceFuture);
+        when(camundaClient.newProcessInstanceSearchRequest()).thenReturn(processInstanceRequest);
 
-        // page 1: does not contain the requested user task, but has a next page
-        final var otherTask = mock(UserTask.class);
-        when(otherTask.getUserTaskKey()).thenReturn(111L);
-        final var page1 = mock(SearchResponsePage.class);
-        when(page1.endCursor()).thenReturn("cursor-after-page-1");
-        final var page1Response = (SearchResponse<UserTask>) mock(SearchResponse.class);
-        when(page1Response.items()).thenReturn(List.of(otherTask));
-        when(page1Response.page()).thenReturn(page1);
+        // user tasks of that process instance, all returned by one single search request
+        final var firstTask = mock(UserTask.class);
+        when(firstTask.getUserTaskKey()).thenReturn(111L);
+        when(firstTask.getExternalFormReference()).thenReturn("first-form");
+        final var secondTask = mock(UserTask.class);
+        when(secondTask.getUserTaskKey()).thenReturn(222L);
+        when(secondTask.getExternalFormReference()).thenReturn("second-form");
+        final var userTaskResponse = (SearchResponse<UserTask>) mock(SearchResponse.class);
+        when(userTaskResponse.items()).thenReturn(List.of(firstTask, secondTask));
+        final var userTaskFuture = (CamundaFuture<SearchResponse<UserTask>>) mock(CamundaFuture.class);
+        when(userTaskFuture.join(anyLong(), any(TimeUnit.class))).thenReturn(userTaskResponse);
+        final var userTaskRequest = mock(UserTaskSearchRequest.class, RETURNS_SELF);
+        when(userTaskRequest.send()).thenReturn(userTaskFuture);
+        when(camundaClient.newUserTaskSearchRequest()).thenReturn(userTaskRequest);
 
-        // page 2: only reachable via after("cursor-after-page-1"), contains the requested task
-        final var wantedTask = mock(UserTask.class);
-        when(wantedTask.getUserTaskKey()).thenReturn(222L);
-        when(wantedTask.getExternalFormReference()).thenReturn("some-form");
-        final var page2 = mock(SearchResponsePage.class);
-        final var page2Response = (SearchResponse<UserTask>) mock(SearchResponse.class);
-        when(page2Response.items()).thenReturn(List.of(wantedTask));
-        when(page2Response.page()).thenReturn(page2);
+        service.aggregateChanged("business-key-1", "111", "222");
 
-        // fake backend: records which cursor the production code asked for via page(...)
-        final var requestedAfterCursor = new AtomicReference<String>();
-        final var pageStep = mock(AnyPage.class);
-        doAnswer(invocation -> {
-            requestedAfterCursor.set(invocation.getArgument(0));
-            return null;
-        }).when(pageStep).after(anyString());
+        // user task search is filtered by the process instance found
+        final var filterCaptor = ArgumentCaptor.forClass(Consumer.class);
+        verify(userTaskRequest).filter(filterCaptor.capture());
+        final var userTaskFilter = mock(UserTaskFilter.class);
+        filterCaptor.getValue().accept(userTaskFilter);
+        verify(userTaskFilter).processInstanceKey(4711L);
 
-        when(request.page(any(Consumer.class))).thenAnswer(invocation -> {
-            requestedAfterCursor.set(null);
-            final Consumer<AnyPage> pageConsumer = invocation.getArgument(0);
-            pageConsumer.accept(pageStep);
-            return request;
-        });
+        // exactly one search request, no pagination
+        verify(userTaskRequest, times(1)).send();
+        verify(userTaskRequest, never()).page(any(Consumer.class));
 
-        // fake backend: returns page 2 only if the code progressed the cursor, page 1 otherwise
-        final var executeCallCount = new AtomicInteger();
-        when(request.execute()).thenAnswer(invocation -> {
-            if (executeCallCount.incrementAndGet() > 5) {
-                throw new AssertionError(
-                        "aggregateChanged() called execute() more than 5 times: pagination is "
-                                + "stuck on the same page instead of advancing via after()/from()");
-            }
-            return "cursor-after-page-1".equals(requestedAfterCursor.get())
-                    ? page2Response
-                    : page1Response;
-        });
-
-        service.aggregateChanged("business-key-1", "222");
-
-        verify(pageStep).after("cursor-after-page-1");
-        assertEquals(2, executeCallCount.get(),
-                "expected exactly one search request per page (page 1, then page 2)");
+        // one event per user task found
+        final var eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(applicationEventPublisher, times(2)).publishEvent(eventCaptor.capture());
+        final var events = eventCaptor
+                .getAllValues()
+                .stream()
+                .map(Camunda8UserTaskEvent.class::cast)
+                .toList();
+        assertEquals(List.of(111L, 222L), events.stream().map(Camunda8UserTaskEvent::getUserTaskKey).toList());
+        assertEquals(List.of("first-form", "second-form"),
+                events.stream().map(Camunda8UserTaskEvent::getTaskDefinition).toList());
     }
 
 }
