@@ -155,6 +155,7 @@ public class Camunda8BusinessCockpitService<WA> implements BusinessCockpitServic
                 tenantId,
                 bpmnProcessId,
                 businessKey.toString(),
+                getWorkflowAggregateIdName(),
                 userTaskIdsConverted);
 
         userTasksFound
