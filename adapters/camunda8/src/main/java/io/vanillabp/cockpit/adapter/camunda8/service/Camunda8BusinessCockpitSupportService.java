@@ -125,10 +125,11 @@ public class Camunda8BusinessCockpitSupportService {
             final String workflowAggregateIdName,
             final List<Long> userTaskIds) {
 
-        final var processInstance = client
+        final var processInstances = client
                 .newProcessInstanceSearchRequest()
                 .filter(filter -> {
                     filter.processDefinitionId(bpmnProcessId);
+                    filter.state(ProcessInstanceState.ACTIVE);
                     filter.variables(
                             Map.of(workflowAggregateIdName, "\"" + businessKey + "\""));
                     if (tenantId != null) {
@@ -137,8 +138,12 @@ public class Camunda8BusinessCockpitSupportService {
                 })
                 .send()
                 .join(5, TimeUnit.SECONDS)
-                .singleItem();
-        if (processInstance == null) {
+                .items()
+                .stream()
+                // call-activity children inherit the business key, only the root is a workflow
+                .filter(processInstance -> processInstance.getParentProcessInstanceKey() == null)
+                .toList();
+        if (processInstances.isEmpty()) {
             if (tenantId == null) {
                 throw new WorkflowNotFoundException(
                         "Could not find process instance for business key '%s', BPMN process ID '%s'!"
@@ -150,14 +155,18 @@ public class Camunda8BusinessCockpitSupportService {
             }
         }
 
-        final var userTasksFound = client
-                .newUserTaskSearchRequest()
-                .filter(filter -> filter.processInstanceKey(processInstance.getProcessInstanceKey()))
-                .send()
-                .join(5, TimeUnit.SECONDS)
-                .items()
+        // more than one root instance if the same business key is used by several
+        // running instances of the process
+        final var userTasksFound = processInstances
                 .stream()
-                // no user task IDs given means all user tasks of the process instance
+                .flatMap(processInstance -> client
+                        .newUserTaskSearchRequest()
+                        .filter(filter -> filter.processInstanceKey(processInstance.getProcessInstanceKey()))
+                        .send()
+                        .join(5, TimeUnit.SECONDS)
+                        .items()
+                        .stream())
+                // no user task IDs given means all user tasks of the process instances
                 .filter(userTask -> (userTaskIds == null)
                         || userTaskIds.isEmpty()
                         || userTaskIds.contains(userTask.getUserTaskKey()))

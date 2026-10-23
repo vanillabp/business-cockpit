@@ -2,6 +2,8 @@ package io.vanillabp.cockpit.adapter.camunda8.service;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.CamundaFuture;
+import io.camunda.client.api.search.enums.ProcessInstanceState;
+import io.camunda.client.api.search.filter.ProcessInstanceFilter;
 import io.camunda.client.api.search.filter.UserTaskFilter;
 import io.camunda.client.api.search.request.ProcessInstanceSearchRequest;
 import io.camunda.client.api.search.request.UserTaskSearchRequest;
@@ -73,11 +75,15 @@ class Camunda8BusinessCockpitServiceTest {
     @SuppressWarnings("unchecked")
     @Test
     void userTaskSearchShouldPublishAllUserTasksOfProcessInstanceWithoutPagination() {
-        // process instance identified by business key
+        // process instance identified by business key and a call-activity child inheriting it
         final var processInstance = mock(ProcessInstance.class);
         when(processInstance.getProcessInstanceKey()).thenReturn(4711L);
+        // the client reports a missing parent as null (a mock would default to 0)
+        when(processInstance.getParentProcessInstanceKey()).thenReturn(null);
+        final var childInstance = mock(ProcessInstance.class);
+        when(childInstance.getParentProcessInstanceKey()).thenReturn(4711L);
         final var processInstanceResponse = (SearchResponse<ProcessInstance>) mock(SearchResponse.class);
-        when(processInstanceResponse.singleItem()).thenReturn(processInstance);
+        when(processInstanceResponse.items()).thenReturn(List.of(processInstance, childInstance));
         final var processInstanceFuture = (CamundaFuture<SearchResponse<ProcessInstance>>) mock(CamundaFuture.class);
         when(processInstanceFuture.join(anyLong(), any(TimeUnit.class))).thenReturn(processInstanceResponse);
         final var processInstanceRequest = mock(ProcessInstanceSearchRequest.class, RETURNS_SELF);
@@ -101,7 +107,14 @@ class Camunda8BusinessCockpitServiceTest {
 
         service.aggregateChanged("business-key-1", "111", "222");
 
-        // user task search is filtered by the process instance found
+        // only active process instances are searched
+        final var processInstanceFilterCaptor = ArgumentCaptor.forClass(Consumer.class);
+        verify(processInstanceRequest).filter(processInstanceFilterCaptor.capture());
+        final var processInstanceFilter = mock(ProcessInstanceFilter.class);
+        processInstanceFilterCaptor.getValue().accept(processInstanceFilter);
+        verify(processInstanceFilter).state(ProcessInstanceState.ACTIVE);
+
+        // user task search is filtered by the root process instance only, not the child
         final var filterCaptor = ArgumentCaptor.forClass(Consumer.class);
         verify(userTaskRequest).filter(filterCaptor.capture());
         final var userTaskFilter = mock(UserTaskFilter.class);
