@@ -8,6 +8,10 @@
     <version>0.4.3-SNAPSHOT</version>
   </parent>
 
+  <properties>
+    <npm.update.packages>@vanillabp/bc-official-gui-client @vanillabp/bc-types</npm.update.packages>
+  </properties>
+
   <packaging>pom</packaging>
   <artifactId>dev-shell-vue</artifactId>
   <name>Used to build '@vanillabp/bc-dev-shell-vue' npm package</name>

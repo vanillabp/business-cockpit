@@ -12,6 +12,7 @@
   <name>A microservice simulating all bounded systems needed to run the business-cockpit for development.</name>
 
   <properties>
+    <npm.update.packages>@vanillabp/bc-dev-shell-react @vanillabp/bc-official-gui-client @vanillabp/bc-shared</npm.update.packages>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
   </properties>
 
@@ -90,7 +91,7 @@
             <configuration>
               <workingDirectory>${project.basedir}/src/main/webapp-angular</workingDirectory>
               <skip>${skip.npm.update}</skip>
-              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --force</arguments>
+              <arguments>--@vanillabp:registry=${npm.registry} update @vanillabp/bc-dev-shell-angular @vanillabp/bc-official-gui-client @vanillabp/bc-types --force</arguments>
             </configuration>
           </execution>
           <execution>

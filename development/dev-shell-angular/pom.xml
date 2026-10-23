@@ -8,6 +8,10 @@
     <version>0.4.3-SNAPSHOT</version>
   </parent>
 
+  <properties>
+    <npm.update.packages>@vanillabp/bc-official-gui-client @vanillabp/bc-types</npm.update.packages>
+  </properties>
+
   <packaging>pom</packaging>
   <artifactId>dev-shell-angular</artifactId>
   <name>Used to build '@vanillabp/bc-dev-shell-angular' npm package</name>
@@ -65,7 +69,7 @@
             <id>npm install</id>
             <configuration>
               <skip>${skip.npm.update}</skip>
-              <arguments>--@vanillabp:registry=${npm.registry} update --scope @vanillabp/** --legacy-peer-deps</arguments>
+              <arguments>--@vanillabp:registry=${npm.registry} update ${npm.update.packages} --legacy-peer-deps</arguments>
             </configuration>
           </execution>
         </executions>

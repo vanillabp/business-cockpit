@@ -87,6 +87,13 @@
         </configuration>
         <executions>
           <execution>
+            <!-- no @vanillabp packages to update -->
+            <id>npm install</id>
+            <configuration>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+          <execution>
             <id>link-for-other-packages</id>
             <phase>generate-resources</phase>
             <goals>
