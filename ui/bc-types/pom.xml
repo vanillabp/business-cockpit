@@ -10,6 +10,10 @@
         <version>0.3.4-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <npm.update.packages>@vanillabp/bc-official-gui-client</npm.update.packages>
+    </properties>
+
     <artifactId>bc-types</artifactId>
     <name>Used to build '@vanillabp/bc-types' npm package</name>
 
