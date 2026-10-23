@@ -9,6 +9,7 @@ import io.camunda.client.api.search.response.ProcessInstance;
 import io.camunda.client.api.search.response.SearchResponse;
 import io.camunda.client.api.search.response.UserTask;
 import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8UserTaskEvent;
+import io.vanillabp.cockpit.adapter.camunda8.receiver.events.Camunda8WorkflowEvent;
 import io.vanillabp.cockpit.adapter.camunda8.usertask.Camunda8UserTaskEventHandler;
 import io.vanillabp.cockpit.adapter.camunda8.workflow.Camunda8WorkflowEventHandler;
 import io.vanillabp.cockpit.adapter.common.service.AdapterAwareBusinessCockpitService;
@@ -122,6 +123,32 @@ class Camunda8BusinessCockpitServiceTest {
         assertEquals(List.of(111L, 222L), events.stream().map(Camunda8UserTaskEvent::getUserTaskKey).toList());
         assertEquals(List.of("first-form", "second-form"),
                 events.stream().map(Camunda8UserTaskEvent::getTaskDefinition).toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void workflowSearchShouldIgnoreCallActivityChildren() {
+        // root process instance and a call-activity child inheriting the business key
+        final var rootInstance = mock(ProcessInstance.class);
+        when(rootInstance.getProcessInstanceKey()).thenReturn(4711L);
+        // the client reports a missing parent as null (a mock would default to 0)
+        when(rootInstance.getParentProcessInstanceKey()).thenReturn(null);
+        final var childInstance = mock(ProcessInstance.class);
+        when(childInstance.getParentProcessInstanceKey()).thenReturn(4711L);
+        final var processInstanceResponse = (SearchResponse<ProcessInstance>) mock(SearchResponse.class);
+        when(processInstanceResponse.items()).thenReturn(List.of(rootInstance, childInstance));
+        final var processInstanceFuture = (CamundaFuture<SearchResponse<ProcessInstance>>) mock(CamundaFuture.class);
+        when(processInstanceFuture.join()).thenReturn(processInstanceResponse);
+        final var processInstanceRequest = mock(ProcessInstanceSearchRequest.class, RETURNS_SELF);
+        when(processInstanceRequest.send()).thenReturn(processInstanceFuture);
+        when(camundaClient.newProcessInstanceSearchRequest()).thenReturn(processInstanceRequest);
+
+        service.aggregateChanged("business-key-1");
+
+        // one event for the root process instance only
+        final var eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertEquals(4711L, ((Camunda8WorkflowEvent) eventCaptor.getValue()).getProcessInstanceKey());
     }
 
 }

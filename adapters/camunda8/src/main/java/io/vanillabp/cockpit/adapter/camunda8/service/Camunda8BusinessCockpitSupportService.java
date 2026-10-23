@@ -93,7 +93,11 @@ public class Camunda8BusinessCockpitSupportService {
                 })
                 .send()
                 .join()
-                .items();
+                .items()
+                .stream()
+                // call-activity children inherit the business key, only the root is a workflow
+                .filter(processInstance -> processInstance.getParentProcessInstanceKey() == null)
+                .toList();
 
         if (processes.isEmpty()) {
             if (tenantId == null) {
