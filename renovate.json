@@ -1,4 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>vanillabp/renovate-config"]
+  "extends": ["github>vanillabp/renovate-config"],
+  "packageRules": [
+    {
+      "description": "VanillaBP artifacts, the Business Cockpit among them, follow the framework, not Renovate: their versions are bumped when a release is cut, and while they are snapshots there is nothing to look up. Without this rule every module of this repository is looked up in Maven Central as the parent of another module, and the Dependency Dashboard lists each of them as a failed lookup.",
+      "matchPackageNames": ["/^io\\.vanillabp/"],
+      "enabled": false
+    },
+    {
+      "description": "mongodb-changesets is a snapshot from the GitHub Packages of Phactum/mongodb-changesets, which only the build reads through its settings.xml. Renovate does not know that repository, so the lookup can only fail. The version is raised by hand when a release is cut.",
+      "matchPackageNames": ["com.phactum.mongodb:mongodb-changesets"],
+      "enabled": false
+    }
+  ]
 }
