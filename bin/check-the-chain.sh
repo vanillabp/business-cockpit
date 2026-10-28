@@ -3,7 +3,7 @@
 # Looks at the chain of Business Cockpit repositories from the outside and asks four
 # questions about their main branches:
 #
-#   1. Do the four repositories name the same version where they have to?
+#   1. Do the five repositories name the same version where they have to?
 #   2. Has a pin stayed behind without anybody saying so? That is: a newer release is
 #      older than Renovate's waiting time, and there is neither an open pull request for
 #      it nor a rule in renovate.json which tells Renovate to leave it alone. Part of this
@@ -22,7 +22,7 @@
 # A question which could not be answered is never green.
 #
 # Needs bash, curl, jq, perl, sort -V, GNU date and the GitHub CLI (gh), logged in.
-# Question 4 reads the snapshots of the four from the snapshot repository of Maven Central,
+# Question 4 reads the snapshots of the five from the snapshot repository of Maven Central,
 # which needs no login. The MongoDB changeset library still publishes to GitHub Packages,
 # which asks for a token even for a public package. Pass one with the scope read:packages
 # in PACKAGES_TOKEN, and its user in PACKAGES_USER. Without it question 4 is answered for
@@ -51,15 +51,16 @@ renovate_wait_days=7
 # dashboard still shows the old version, and that is not a finding either.
 dashboard_wait_hours=36
 
-# The four repositories whose pins are compared. The first one is the root of the chain.
+# The five repositories whose pins are compared. The first one is the root of the chain.
 repos=(
     vanillabp/business-cockpit
     vanillabp/businesscockpit-camunda7-adapter
     vanillabp/businesscockpit-camunda8-adapter
     vanillabp/businesscockpit-process-engine-api-adapter
+    vanillabp/businesscockpit-operaton-adapter
 )
 
-# The repositories whose main branch and snapshot are watched: the four, and the MongoDB
+# The repositories whose main branch and snapshot are watched: the five, and the MongoDB
 # changeset library. It lives in another account and is released to Maven Central on its
 # own, but this repository builds against its snapshot, so a broken or stale snapshot
 # there reaches us first. Its pins are not compared, because none of its versions ends up
@@ -75,18 +76,19 @@ watched=(
     "vanillabp/businesscockpit-camunda7-adapter io.vanillabp.businesscockpit businesscockpit-camunda7-adapter central Publish snapshots"
     "vanillabp/businesscockpit-camunda8-adapter io.vanillabp.businesscockpit businesscockpit-camunda8-adapter central Publish snapshots"
     "vanillabp/businesscockpit-process-engine-api-adapter io.vanillabp.businesscockpit businesscockpit-process-engine-api-adapter central Publish snapshots"
+    "vanillabp/businesscockpit-operaton-adapter io.vanillabp.businesscockpit businesscockpit-operaton-adapter central Publish snapshots"
     "Phactum/mongodb-changesets com.phactum.mongodb mongodb-changesets packages Publish to GitHub Packages"
 )
 
-# The pins which are a promise between the four repositories, one sentence each on why.
+# The pins which are a promise between the five repositories, one sentence each on why.
 # A pin which is not here is not compared, and the list below says why for the ones which
 # look as if they belonged.
 #
 # Per pin: name, Maven Central coordinate whose releases decide whether it stayed behind
 # (or '-' for a snapshot, which has no release to fall behind), and the reason.
 pins=(
-    "release-parent|io.vanillabp:release-parent|The release parent decides the plugins, the Javadoc gate and how a release is cut, and the four are released together."
-    "java|-|The lowest Java an application needs is the highest of the four, so they promise one."
+    "release-parent|io.vanillabp:release-parent|The release parent decides the plugins, the Javadoc gate and how a release is cut, and the five are released together."
+    "java|-|The lowest Java an application needs is the highest of the five, so they promise one."
     "spring-boot|org.springframework.boot:spring-boot-dependencies|The extension and its BPMS half run in the same Spring Boot application, so they are compiled against the Spring Boot that application brings."
     "quarkus|io.quarkus:quarkus-bom|The extension and its BPMS half are Quarkus extensions of the same application, and a Quarkus extension is built for one Quarkus version."
     "jacoco|org.jacoco:jacoco-maven-plugin|The coverage gate is the same number in every repository, and it means the same thing only when the same JaCoCo counts it."
@@ -95,7 +97,7 @@ pins=(
 )
 
 # How each repository names each pin. Two names for one thing are normal here: this
-# repository calls every version 'version.<name>', the three adapter repositories use
+# repository calls every version 'version.<name>', the four adapter repositories use
 # '<name>.version'. Renovate reads both. What has to be the same is the value.
 #
 # Per line: pin, repository, file, how to read it, what to read, and a label for the
@@ -109,38 +111,45 @@ reads=(
     "release-parent|vanillabp/businesscockpit-camunda7-adapter|pom.xml|parent||"
     "release-parent|vanillabp/businesscockpit-camunda8-adapter|pom.xml|parent||"
     "release-parent|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|parent||"
+    "release-parent|vanillabp/businesscockpit-operaton-adapter|pom.xml|parent||"
     "java|vanillabp/business-cockpit|pom.xml|property|version.java|"
     "java|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|version.java|"
     "java|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|version.java|"
     "java|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|version.java|"
+    "java|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|version.java|"
     "spring-boot|vanillabp/business-cockpit|pom.xml|artifact|spring-boot-dependencies|BOM"
     "spring-boot|vanillabp/business-cockpit|pom.xml|artifact|spring-boot-maven-plugin|plugin"
     "spring-boot|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|spring-boot.version|"
     "spring-boot|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|spring-boot.version|"
     "spring-boot|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|spring-boot.version|"
+    "spring-boot|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|spring-boot.version|"
     "quarkus|vanillabp/business-cockpit|extensions-commons/pom.xml|property|version.quarkus|"
     "quarkus|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|quarkus.version|"
     "quarkus|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|quarkus.version|"
     "quarkus|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|quarkus.version|"
+    "quarkus|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|quarkus.version|"
     "jacoco|vanillabp/business-cockpit|pom.xml|property|jacoco.version|"
     "jacoco|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|jacoco.version|"
     "jacoco|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|jacoco.version|"
     "jacoco|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|jacoco.version|"
+    "jacoco|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|jacoco.version|"
     "vanillabp|vanillabp/business-cockpit|pom.xml|property|version.vanillabp|"
     "vanillabp|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|adapter-platform.version|"
     "vanillabp|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|adapter-platform.version|"
     "vanillabp|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|adapter-platform.version|"
+    "vanillabp|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|adapter-platform.version|"
     "business-cockpit|vanillabp/business-cockpit|pom.xml|project||"
     "business-cockpit|vanillabp/businesscockpit-camunda7-adapter|pom.xml|property|business-cockpit.version|"
     "business-cockpit|vanillabp/businesscockpit-camunda8-adapter|pom.xml|property|business-cockpit.version|"
     "business-cockpit|vanillabp/businesscockpit-process-engine-api-adapter|pom.xml|property|business-cockpit.version|"
+    "business-cockpit|vanillabp/businesscockpit-operaton-adapter|pom.xml|property|business-cockpit.version|"
 )
 
 # Pins which look as if they belonged to the list above and do not. Printed in every
 # report, so whoever reads a quiet report sees what was left out on purpose.
 not_compared=(
     "The Camunda 8 client pins of the release lines (camunda8.version.line-*), the Camunda 8 adapter per line and protobuf: they follow camunda-community-hub/vanillabp-camunda8-adapter and are raised by hand, and the nightly matrix of businesscockpit-camunda8-adapter holds them against that repository."
-    "testcontainers.version: tests only. No jar of one of the four carries it into another, and only the Camunda 8 adapter names it, for the cluster that camunda-community-hub/vanillabp-camunda8-adapter starts."
+    "testcontainers.version: tests only. No jar of one of the five carries it into another, and only the Camunda 8 adapter names it, for the cluster that camunda-community-hub/vanillabp-camunda8-adapter starts."
     "lombok.version: it translates the source and is gone from the class files, so it never meets another repository's code."
 )
 
@@ -331,7 +340,7 @@ fi
 
 # ---------------------------------------------------------------------------------------
 say
-say "## 1. Do the four repositories name the same version?"
+say "## 1. Do the five repositories name the same version?"
 say
 for pin_line in "${pins[@]}"; do
     IFS='|' read -r pin coordinate reason <<< "$pin_line"

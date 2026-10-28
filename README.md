@@ -109,10 +109,11 @@ In the order they build on each other:
 1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
    code is written with to report business data about its user tasks and workflows.
 1. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
-   into VanillaBP Version 2, on Spring Boot and on Quarkus. The three halves which know a BPMS live in
+   into VanillaBP Version 2, on Spring Boot and on Quarkus. The four halves which know a BPMS live in
    their own repositories and consume this one as a published artifact:
    [businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
-   [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
+   [businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter),
+   [businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
 1. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
