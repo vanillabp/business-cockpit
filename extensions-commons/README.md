@@ -8,7 +8,7 @@ Boot and on Quarkus.
 
 An extension joins the deployment pipeline of the VanillaBP core, watches what a workflow module
 does and reports it somewhere. This one reports user tasks and workflows to a Business Cockpit
-server. It knows no BPMS: the three halves which do live in their own repositories and consume this
+server. It knows no BPMS: the four halves which do live in their own repositories and consume this
 one as a published artifact.
 
 Extension is the core's word for it. A user adds a dependency and calls the result a cockpit
@@ -48,9 +48,10 @@ Kafka transports, the templating, the outbox operations, the `BusinessCockpitSer
 interface a BPMS half implements. A platform module finds beans and hands them over; it decides
 nothing, which is what keeps a feature from existing on one platform only.
 
-The three BPMS halves live in
+The four BPMS halves live in
 [businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
-[businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter)
+[businesscockpit-camunda8-adapter](https://github.com/vanillabp/businesscockpit-camunda8-adapter),
+[businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
 and
 [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
 
@@ -245,7 +246,7 @@ server. An event is reported, the transaction commits, and the test reads what a
 duplication between the two platforms is deliberate - the neutral core being right says nothing
 about a platform's glue ever calling it.
 
-That cockpit server is `test-support`, and the three BPMS repositories read it from there rather
+That cockpit server is `test-support`, and the four BPMS repositories read it from there rather
 than holding a copy. It is a published module because a test classpath cannot read another
 repository's test classes, and it lives in `src/main/java` for the same reason. A test asks it
 everything over HTTP: a Quarkus extension test initializes its test class twice, once while the
