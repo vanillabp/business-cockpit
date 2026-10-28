@@ -214,6 +214,25 @@ the key would quietly turn a field which was optional in version 1 into an excep
 before the titles. It runs at all three places a details object is built, the read path of
 `BusinessCockpitService.getUserTask` included.
 
+### What the IDE knows about the keys
+
+The Spring Boot jar ships `META-INF/spring-configuration-metadata.json`. An IDE reads it to offer
+the keys in `application.yaml` and to mark a key it does not know. See decision 66 in
+[`DECISIONS.md`](../DECISIONS.md).
+
+The configuration processor writes the keys below `vanillabp.cockpit` from
+`CockpitOverlayProperties`, with the Javadoc of each field. So a new field there needs a Javadoc.
+`spring-boot/src/main/resources/META-INF/additional-spring-configuration-metadata.json` is written by
+hand. It adds the defaults, the keys of the levels below a workflow module and the keys of version 1.
+
+A new key goes into three places: its field in the overlay of both platforms, its list in
+`ConfigurationKeys`, and, where it has a default or lives below a workflow module, the hand-written
+file. `EveryKeyIsKnownToTheIdeTest` fails when one of them is missing.
+
+The processor merges the hand-written file only while `javac` compiles. A change to that file alone
+leaves the old metadata in `target`, and the test then reads the old file. Build with `clean` after
+such a change.
+
 ## How it is tested
 
 The neutral core is tested where it can be tested without a platform: the configuration matrix, the

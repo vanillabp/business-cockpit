@@ -1,0 +1,152 @@
+{
+  "properties": [
+    {
+      "name": "vanillabp.workflow-modules",
+      "type": "java.util.Map<java.lang.String,io.vanillabp.cockpit.extension.springboot.CockpitOverlayProperties$WorkflowModuleOverlay>",
+      "description": "What single workflow modules tell the Business Cockpit, by workflow module id. Below '<module>.cockpit': 'workflow-module-uri', 'ui-uri-type', 'ui-uri-path', 'i18n-languages', 'bpmn-description-language', 'template-path', 'group-hierarchy', 'initiator-source'. Below '<module>.workflows.<process>.cockpit', for one workflow: 'bpmn-description-language', 'i18n-languages', 'template-path', 'initiator-source'. Below '<module>.workflows.<process>.user-tasks.<task>.cockpit', for one user task: 'template-path'. The most specific level wins. VanillaBP 1 also read 'group-hierarchy-bean-name' below '<module>.cockpit'. This version does not: which groups may see a workflow module is answered by the WorkflowModuleDetailsProvider bean."
+    },
+    {
+      "name": "vanillabp.cockpit.user-tasks-enabled",
+      "type": "java.lang.String",
+      "description": "Whether user tasks are reported at all.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "vanillabp.cockpit.workflow-list-enabled",
+      "type": "java.lang.String",
+      "description": "Whether workflows are reported at all.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "vanillabp.cockpit.initiator-source",
+      "type": "java.lang.String",
+      "description": "Who answers the initiator of a report: 'by-application' or 'system'. It has no default, so a workflow module which reports to the cockpit and says it nowhere ends the start. A workflow module and a single workflow may answer it for themselves, and the most specific value wins: 'vanillabp.workflow-modules.<module>.cockpit.initiator-source' and 'vanillabp.workflow-modules.<module>.workflows.<process>.cockpit.initiator-source'."
+    },
+    {
+      "name": "vanillabp.cockpit.rest.connect-timeout",
+      "type": "java.lang.String",
+      "description": "How long establishing the connection to the cockpit server may take. A span of time: a number of milliseconds ('1500'), ISO-8601 ('PT10S') or a number with a unit ('10s', '1500ms', '2m', '1h').",
+      "defaultValue": "1500ms"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.read-timeout",
+      "type": "java.lang.String",
+      "description": "How long the cockpit server may take to answer. A span of time: a number of milliseconds ('1500'), ISO-8601 ('PT10S') or a number with a unit ('10s', '1500ms', '2m', '1h').",
+      "defaultValue": "10000ms"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.verify-ssl",
+      "type": "java.lang.String",
+      "description": "Whether the certificate the cockpit server presents is checked at all.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.authentication.basic",
+      "type": "java.lang.String",
+      "description": "Whether a basic authentication is sent, with 'username' and 'password'.",
+      "defaultValue": "false"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.authentication.oauth.basic",
+      "type": "java.lang.String",
+      "description": "Whether the client identifies itself in an Authorization header rather than in the form the token request carries.",
+      "defaultValue": "false"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.authentication.oauth.connect-timeout",
+      "type": "java.lang.String",
+      "description": "How long establishing the connection to the authorization server may take. A span of time: a number of milliseconds ('1500'), ISO-8601 ('PT10S') or a number with a unit ('10s', '1500ms', '2m', '1h').",
+      "defaultValue": "1500ms"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.authentication.oauth.read-timeout",
+      "type": "java.lang.String",
+      "description": "How long the authorization server may take to answer. A span of time: a number of milliseconds ('1500'), ISO-8601 ('PT10S') or a number with a unit ('10s', '1500ms', '2m', '1h').",
+      "defaultValue": "10000ms"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.authentication.oauth.verify-ssl",
+      "type": "java.lang.String",
+      "description": "Whether the certificate the authorization server presents is checked at all.",
+      "defaultValue": "true"
+    },
+    {
+      "name": "vanillabp.cockpit.process-engine-api.remembered-user-tasks",
+      "type": "java.lang.String",
+      "description": "How many delivered user tasks one node keeps in memory. Only the Business Cockpit adapter for the Process-Engine-API reads it: that BPMS cannot be asked about a task a second time, so the node keeps what arrived with the delivery until the task is gone. The memory is one per node and shared by every workflow module, so the key is read here only, and a workflow module which writes it at 'vanillabp.workflow-modules.<module>.cockpit.process-engine-api.remembered-user-tasks' ends the start.",
+      "defaultValue": "1000"
+    },
+    {
+      "name": "vanillabp.cockpit.rest.log",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. The client logs through SLF4J: set the logger 'io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi' to DEBUG.",
+      "deprecation": {
+        "level": "error",
+        "reason": "The client logs through SLF4J: set the logger 'io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi' to DEBUG."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.rest.additional-get-parameters",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "A key of VanillaBP 1 which this version does not read. It appended query parameters to GET requests, and every report is a POST.",
+      "deprecation": {
+        "level": "error",
+        "reason": "It appended query parameters to GET requests, and every report is a POST."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.rest.retry.enabled",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures.",
+      "deprecation": {
+        "level": "error",
+        "reason": "A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.rest.retry.max-attempts",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures.",
+      "deprecation": {
+        "level": "error",
+        "reason": "A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.rest.retry.period",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures.",
+      "deprecation": {
+        "level": "error",
+        "reason": "A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.rest.retry.max-period",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures.",
+      "deprecation": {
+        "level": "error",
+        "reason": "A failed report waits in the outbox and is repeated from there, which 'vanillabp.outbox.*' configures."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.kafka.group-id-suffix",
+      "type": "java.lang.String",
+      "description": "A key of VanillaBP 1 which this version does not read. It made a consumer group unique, and the cockpit only produces.",
+      "deprecation": {
+        "level": "error",
+        "reason": "It made a consumer group unique, and the cockpit only produces."
+      }
+    },
+    {
+      "name": "vanillabp.cockpit.jwt",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "description": "A key of VanillaBP 1 which this version does not read. Version 1 bound these keys and read them nowhere. The cockpit server configures its own tokens.",
+      "deprecation": {
+        "level": "error",
+        "reason": "Version 1 bound these keys and read them nowhere. The cockpit server configures its own tokens."
+      }
+    }
+  ]
+}
