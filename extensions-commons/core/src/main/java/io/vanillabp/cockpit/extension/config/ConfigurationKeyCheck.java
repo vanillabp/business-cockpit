@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Tells a key the Business Cockpit reads from one which merely looks like it.
@@ -81,6 +82,20 @@ public final class ConfigurationKeyCheck {
   }
 
   private ConfigurationKeyCheck() {
+  }
+
+  /**
+   * The keys of version 1 which version 2 does not read. A key which stood for a whole section
+   * in version 1 is the name of that section. The configuration metadata of the Spring Boot
+   * module describes them as removed, and its test reads them from here.
+   *
+   * @return The keys, below <code>vanillabp.cockpit</code> or below the <code>cockpit</code>
+   *         section of a workflow module
+   */
+  public static Set<String> keysOfVersionOne() {
+
+    return GONE.keySet();
+
   }
 
   /**

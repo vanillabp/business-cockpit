@@ -2745,3 +2745,54 @@ Each of these says it in its own words, so none of them has to cite a number:
 - `UPGRADE.md`, the section about `uiUriType`
 - the wiki pages `Configuration`, `Connecting-a-workflow-module` and
   `User-task-forms-and-status-sites`
+
+### 66. The IDE learns the cockpit's keys from the Spring Boot jar, and a test keeps them complete
+
+Built by story 994 on 2026-10-28.
+
+An IDE offers the keys of `application.yaml` and marks a key it does not know. It reads them from
+`META-INF/spring-configuration-metadata.json` in the jars of the application. Until this story
+`extensions-commons-spring-boot` shipped no such file, so every key of the cockpit looked unknown.
+Each Business Cockpit adapter brings that jar along, so an application gets the file with the
+adapter it adds.
+
+The file has two parts:
+
+- The configuration processor writes an entry for every key below `vanillabp.cockpit`, with the
+  Javadoc of its field in `CockpitOverlayProperties` as the description. It also writes one entry
+  for `vanillabp.workflow-modules`, with the type of the map's values. The processor never
+  describes the keys below a map key, because the application chooses that key. An IDE which
+  follows the value type finds the keys of a workflow module, a workflow and a user task there. We
+  expect IntelliJ IDEA to do this, but nobody tried it in an IDE yet.
+- `additional-spring-configuration-metadata.json` is written by hand. It adds the defaults, and
+  better words where a field's Javadoc is too short for somebody who reads it in an IDE. The
+  metadata format has no name for "any workflow module", so the levels below a workflow module
+  cannot get entries of their own. The description of `vanillabp.workflow-modules` names every key
+  of each of these levels instead. `initiator-source`, which a workflow module and a workflow may
+  answer for themselves, names those places in its description.
+- The keys of version 1 which this version does not read are described as deprecated with level
+  `error` and a reason, so an IDE marks them. They are the keys of
+  `ConfigurationKeyCheck.keysOfVersionOne()`. `group-hierarchy-bean-name` stood below a workflow
+  module and cannot get an entry. The description of `vanillabp.workflow-modules` names it.
+
+Every value below `vanillabp.cockpit` is bound as text, and the core parses it. So the type in the
+file is `java.lang.String` for a flag and a span of time as well. The description says what the
+core accepts.
+
+`EveryKeyIsKnownToTheIdeTest` holds two sides against each other and against the file. One side is
+what Spring Boot binds: it walks `CockpitOverlayProperties` like the binder does. The other is what
+the cockpit lets pass: the lists of `ConfigurationKeys` per level, and the keys of version 1. The
+test fails when the two sides differ, when a key has no entry, when an entry describes a key nobody
+reads, and when a default in the file differs from what the cockpit starts with. It checks a default
+by binding the key with that value, and the configuration the core reads must stay the same as
+without the key.
+
+`vanillabp.cockpit.process-engine-api.remembered-user-tasks` is described here and in no other jar.
+Only the Process-Engine-API half reads it, but this module binds it, and the processor writes an
+entry for every field it binds. Keeping it out here would need a way around the processor. The
+default `1000` lives in the Process-Engine-API half, so this test leaves that one default alone. The
+test of that repository reads this jar's file and holds the default against its own constant.
+
+The platform also writes an entry `vanillabp.workflow-modules`, with a type of its own, and so do the
+BPMS adapters. Which entry an IDE uses when several jars describe the same name was not tried in an
+IDE. The Quarkus modules are not part of this decision.
