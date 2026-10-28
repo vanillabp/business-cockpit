@@ -72,8 +72,8 @@ jobs:
           # the server of the profile 'central-portal' in io.vanillabp:release-parent. The
           # two names are environment variables, and only the step which publishes sets them
           server-id: vanillabp-central
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
+          server-username-env-var: MAVEN_USERNAME
+          server-password-env-var: MAVEN_PASSWORD
       - name: Publish package
         # This run publishes Java artifacts only. The repository holds no user interface, see
         # decision 63 in the repository's DECISIONS.md.
