@@ -30,9 +30,9 @@ paths:
               $ref: "#/components/schemas/UserTaskIds"
       responses:
         200:
-          description: Usertask changed successfully
-        404:
-          description: User task is unknown
+          description: >-
+            The tasks are changed. Ids of tasks the user may not see are left out without a word,
+            because an answer about them would tell that they exist.
   /usertask/{userTaskId}/mark-as-read:
     patch:
       tags:
@@ -80,9 +80,13 @@ paths:
               $ref: "#/components/schemas/UserTaskIds"
       responses:
         200:
-          description: Usertask changed successfully
-        404:
-          description: User task is unknown
+          description: >-
+            The tasks are changed. Ids of tasks the user may not see are left out without a word,
+            because an answer about them would tell that they exist.
+        409:
+          description: >-
+            One of the tasks the user may see has ended. None of the tasks is changed. An ended
+            task is documentation, and only marking it as read still works.
   /usertask/{userTaskId}/assign:
     patch:
       tags:
@@ -110,6 +114,10 @@ paths:
           description: Usertask changed successfully
         404:
           description: User task is unknown
+        409:
+          description: >-
+            The task has ended and is not changed. An ended task is documentation, and only
+            marking it as read still works.
   /usertask/claim:
     patch:
       tags:
@@ -130,9 +138,13 @@ paths:
               $ref: "#/components/schemas/UserTaskIds"
       responses:
         200:
-          description: Usertask changed successfully
-        404:
-          description: User task is unknown
+          description: >-
+            The tasks are changed. Ids of tasks the user may not see are left out without a word,
+            because an answer about them would tell that they exist.
+        409:
+          description: >-
+            One of the tasks the user may see has ended. None of the tasks is changed. An ended
+            task is documentation, and only marking it as read still works.
   /usertask/{userTaskId}/claim:
     patch:
       tags:
@@ -155,6 +167,10 @@ paths:
           description: Usertask changed successfully
         404:
           description: User task is unknown
+        409:
+          description: >-
+            The task has ended and is not changed. An ended task is documentation, and only
+            marking it as read still works.
   /usertask/{userTaskId}/follow-up-date:
     patch:
       tags:

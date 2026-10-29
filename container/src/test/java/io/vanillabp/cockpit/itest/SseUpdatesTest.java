@@ -3,12 +3,7 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,34 +19,6 @@ import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 @ExtendWith(SuppressOutputExtension.class)
 @SuppressOutputExtension.SuppressBackgroundOutput
 class SseUpdatesTest extends ItestBase {
-
-  private Queue<String> openEventStream(
-      final String cookie) {
-
-    final var request = HttpRequest
-        .newBuilder(URI.create(url("/gui/api/v1/updates")))
-        .header("Cookie", cookie)
-        .header("Accept", "text/event-stream")
-        .GET()
-        .build();
-    final var response = HTTP
-        .sendAsync(request, HttpResponse.BodyHandlers.ofLines())
-        .join();
-    assertThat(response.statusCode()).isEqualTo(200);
-
-    final var lines = new ConcurrentLinkedQueue<String>();
-    final var reader = new Thread(() -> {
-      try {
-        response.body().forEach(lines::add);
-      } catch (RuntimeException e) {
-        // the stream never completes. The read ends when the JVM shuts down
-      }
-    }, "sse-reader");
-    reader.setDaemon(true);
-    reader.start();
-    return lines;
-
-  }
 
   @Test
   void subscriptionIsConfirmedByPingShortlyAfterConnecting() {
@@ -280,22 +247,6 @@ class SseUpdatesTest extends ItestBase {
         }
         """.formatted(unique("event"), userTaskId, isoNow(), moduleId, addressedTo));
     assertThat(created.statusCode()).isEqualTo(200);
-
-  }
-
-  /**
-   * How many update events the stream has delivered about one user task. The payload is written
-   * as indented JSON, one {@code data:} line per property, so the id appears on a line of its own
-   * and counting those lines counts the events.
-   */
-  private static long eventsAbout(
-      final String userTaskId,
-      final Queue<String> lines) {
-
-    return lines
-        .stream()
-        .filter(line -> line.startsWith("data:") && line.contains(userTaskId))
-        .count();
 
   }
 

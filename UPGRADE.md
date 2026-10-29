@@ -257,3 +257,15 @@ caller of `UserTaskService.getUserTasksOfWorkflow`.
 
 The dev-shell simulator still shows all tasks and all workflows without `mode`. It only fills the
 list a developer picks a task from, and it holds a few tasks only.
+
+### An ended user task refuses claim and assign
+
+Claiming a user task, giving it back, assigning it and unassigning it now answer 409 for a task which
+has ended. Before, they answered 200 and changed the task. The list forms do the same: if one of the
+tasks the user may see has ended, the request changes none of them and answers 409. A user interface
+which relied on 200 has to switch these actions off for a task whose `endedAt` is set.
+
+Marking as read and as unread still work for an ended task, and so does `GET /usertask/{id}` with
+`markAsRead=true`. A read marker only changes how the list shows the row.
+
+The list forms never answered 404, although the OpenAPI file said so. The file no longer says it.

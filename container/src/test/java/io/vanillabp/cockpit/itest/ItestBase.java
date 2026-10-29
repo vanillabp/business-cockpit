@@ -12,7 +12,9 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.kafka.clients.admin.Admin;
@@ -33,6 +35,8 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.Option;
 import com.sun.net.httpserver.HttpServer;
+
+import io.vanillabp.integration.test.utils.ContainerImages;
 
 /**
  * Base for black-box integration tests. It boots the complete application on a random port and
@@ -76,7 +80,7 @@ public abstract class ItestBase {
   protected static final String GROUP_OF_MARTIN = "accounting";
   protected static final String GROUP_OF_PETRA = "sales";
 
-  private static final MongoDBContainer MONGODB = new MongoDBContainer("mongo:7.0").withReplicaSet();
+  private static final MongoDBContainer MONGODB = new MongoDBContainer(ContainerImages.MONGODB).withReplicaSet();
   private static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:3.9.1");
   private static final HttpServer USERS_STUB;
 
@@ -475,6 +479,63 @@ public abstract class ItestBase {
           + " "
           + response.body());
     }
+
+  }
+
+  /**
+   * Opens the update stream the way a browser does and collects its lines while it runs.
+   *
+   * @param cookie The login of the user the stream is opened for
+   * @return The lines received so far, filled by a thread of its own
+   */
+  protected Queue<String> openEventStream(
+      final String cookie) {
+
+    final var request = HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1/updates")))
+        .header("Cookie", cookie)
+        .header("Accept", "text/event-stream")
+        .GET()
+        .build();
+    final var response = HTTP
+        .sendAsync(request, HttpResponse.BodyHandlers.ofLines())
+        .join();
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not open the update stream: HTTP "
+          + response.statusCode());
+    }
+
+    final var lines = new ConcurrentLinkedQueue<String>();
+    final var reader = new Thread(() -> {
+      try {
+        response.body().forEach(lines::add);
+      } catch (RuntimeException e) {
+        // the stream never completes. The read ends when the JVM shuts down
+      }
+    }, "sse-reader");
+    reader.setDaemon(true);
+    reader.start();
+    return lines;
+
+  }
+
+  /**
+   * How many update events the stream has delivered about one user task. The payload is written
+   * as indented JSON, one {@code data:} line per property, so the id appears on a line of its own
+   * and counting those lines counts the events.
+   *
+   * @param userTaskId The task
+   * @param lines The lines of the stream
+   * @return The number of events
+   */
+  protected static long eventsAbout(
+      final String userTaskId,
+      final Queue<String> lines) {
+
+    return lines
+        .stream()
+        .filter(line -> line.startsWith("data:") && line.contains(userTaskId))
+        .count();
 
   }
 

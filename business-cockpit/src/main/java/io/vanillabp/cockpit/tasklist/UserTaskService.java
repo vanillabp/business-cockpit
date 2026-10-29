@@ -418,6 +418,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param person The person to add
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask assignTask(
       final UserTaskVisibility visibility,
@@ -428,6 +429,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     userTask.addCandidatePerson(person);
     return saveInitiatedByCockpit(userTask);
 
@@ -441,6 +443,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param person The person to add
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> assignTask(
       final UserTaskVisibility visibility,
@@ -448,6 +452,7 @@ public class UserTaskService {
       final Person person) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.addCandidatePerson(person));
     return saveAllInitiatedByCockpit(found);
 
@@ -460,6 +465,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param personId The id of the person to remove
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask unassignTask(
       final UserTaskVisibility visibility,
@@ -470,6 +476,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     userTask.removeCandidatePerson(personId);
     return saveInitiatedByCockpit(userTask);
 
@@ -483,6 +490,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param personId The id of the person to remove
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> unassignTask(
       final UserTaskVisibility visibility,
@@ -490,6 +499,7 @@ public class UserTaskService {
       final String personId) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.removeCandidatePerson(personId));
     return saveAllInitiatedByCockpit(found);
 
@@ -518,9 +528,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
-    if (userTask.getEndedAt() != null) {
-      throw new UserTaskAlreadyCompletedException(userTaskId);
-    }
+    refuseIfEnded(userTask);
     userTask.setFollowUpDate(normalizedFollowUpDate);
     return saveInitiatedByCockpit(userTask);
 
@@ -533,6 +541,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param person The person who takes the task
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask claimTask(
       final UserTaskVisibility visibility,
@@ -543,6 +552,7 @@ public class UserTaskService {
     if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
     if ((userTask.getAssignee() == null) || !userTask.getAssignee().getId().equals(person.getId())) {
       userTask.setAssignee(person);
       return saveInitiatedByCockpit(userTask);
@@ -558,6 +568,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param person The person who takes the tasks
    * @return The tasks as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> claimTask(
       final UserTaskVisibility visibility,
@@ -565,6 +577,7 @@ public class UserTaskService {
       final Person person) {
 
     final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
     found.forEach(userTask -> userTask.setAssignee(person));
     return saveAllInitiatedByCockpit(found);
 
@@ -582,6 +595,7 @@ public class UserTaskService {
    * @param userTaskId The id of the task
    * @param personId The id of the assignee. The task is only given back if this is its assignee.
    * @return The task as it is stored now, or {@code null} if the caller may not reach it
+   * @throws UserTaskAlreadyCompletedException if the task has ended. Nothing is written then.
    */
   public UserTask unclaimTask(
       final UserTaskVisibility visibility,
@@ -589,13 +603,17 @@ public class UserTaskService {
       final String userTaskId,
       final String personId) {
 
-    if (getUserTask(visibility, userTaskId) == null) {
+    final var userTask = getUserTask(visibility, userTaskId);
+    if (userTask == null) {
       return null;
     }
+    refuseIfEnded(userTask);
 
     final var query = new Query();
     query.addCriteria(Criteria.where("id").is(userTaskId));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
+    // a task which ends between the read above and this write stays as it ended
+    query.addCriteria(Criteria.where("endedAt").exists(false));
 
     mongoTemplate.updateFirst(query, unsetAssignee(currentUser), UserTask.class);
 
@@ -613,6 +631,8 @@ public class UserTaskService {
    * @param userTaskIds The ids of the tasks
    * @param personId The id of the assignee. A task is only given back if this is its assignee.
    * @return The tasks the caller may reach, as they are stored now
+   * @throws UserTaskAlreadyCompletedException if one of the tasks the caller may reach has ended.
+   *         None of the tasks is changed then.
    */
   public List<UserTask> unclaimTask(
       final UserTaskVisibility visibility,
@@ -620,7 +640,9 @@ public class UserTaskService {
       final Collection<String> userTaskIds,
       final String personId) {
 
-    final var unclaimable = getUserTasks(visibility, userTaskIds)
+    final var found = getUserTasks(visibility, userTaskIds);
+    found.forEach(this::refuseIfEnded);
+    final var unclaimable = found
         .stream()
         .map(UserTask::getId)
         .toList();
@@ -631,6 +653,7 @@ public class UserTaskService {
     final var query = new Query();
     query.addCriteria(Criteria.where("id").in(unclaimable));
     query.addCriteria(Criteria.where("assignee.id").is(personId));
+    query.addCriteria(Criteria.where("endedAt").exists(false));
 
     mongoTemplate.updateMulti(query, unsetAssignee(currentUser), UserTask.class);
 
@@ -638,6 +661,23 @@ public class UserTaskService {
     findQuery.addCriteria(Criteria.where("id").in(unclaimable));
 
     return mongoTemplate.find(findQuery, UserTask.class);
+
+  }
+
+  /**
+   * An ended task is documentation of how it was completed. Who worked on it, who was proposed
+   * and when it was due stay as they were at the end. Only the read marker of a user may still
+   * change, because it changes nothing but how the list shows the row.
+   *
+   * @param userTask The task as it is stored
+   * @throws UserTaskAlreadyCompletedException if the task has ended
+   */
+  private void refuseIfEnded(
+      final UserTask userTask) {
+
+    if (userTask.getEndedAt() != null) {
+      throw new UserTaskAlreadyCompletedException(userTask.getId());
+    }
 
   }
 

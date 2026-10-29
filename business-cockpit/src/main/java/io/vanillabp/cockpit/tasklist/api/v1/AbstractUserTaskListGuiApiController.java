@@ -47,6 +47,11 @@ import io.vanillabp.cockpit.util.SearchQuery;
  * the same answer an id which was never reported gets, so the answer itself tells nobody the task
  * exists.
  *
+ * <p>A task which has ended is documentation. Claiming, giving back, assigning and unassigning
+ * answer HTTP 409 for it, and so does a list of ids which holds one. Nothing is written then.
+ * Marking as read still works, because it only changes how the list shows the row. A task the
+ * user may not reach is answered with 404 first, whether it ended or not.
+ *
  * <p>{@link UserTaskVisibility} names the ready-made views the cockpit ships with. An application
  * which needs another one builds a {@code UserTaskVisibility} of its own rather than overriding the
  * methods below, which is the difference between describing who may see something and rewriting how
@@ -383,10 +388,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     final var visibility = userTasksVisibleTo(currentUser);
     final var currentUserId = currentUser.getId();
 
-    final var result = (unclaim != null) && unclaim
-        ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
-        : userTaskService.claimTask(
-            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
+    final io.vanillabp.cockpit.tasklist.model.UserTask result;
+    try {
+      result = (unclaim != null) && unclaim
+          ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
+          : userTaskService.claimTask(
+              visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
     return result == null
         ? ResponseEntity.notFound().build()
@@ -403,14 +413,18 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     final var visibility = userTasksVisibleTo(currentUser);
     final var currentUserId = currentUser.getId();
 
-    if ((unclaim != null) && unclaim) {
-      userTaskService.unclaimTask(
-          visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
-    } else {
-      userTaskService.claimTask(
-          visibility,
-          userTaskIds.getUserTaskIds(),
-          personAndGroupModelMapper.toModelPerson(currentUser));
+    try {
+      if ((unclaim != null) && unclaim) {
+        userTaskService.unclaimTask(
+            visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
+      } else {
+        userTaskService.claimTask(
+            visibility,
+            userTaskIds.getUserTaskIds(),
+            personAndGroupModelMapper.toModelPerson(currentUser));
+      }
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     return ResponseEntity.ok().build();
@@ -425,10 +439,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-    final var result = (unassign != null) && unassign
-        ? userTaskService.unassignTask(visibility, userTaskId, userId)
-        : userTaskService.assignTask(
-            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
+    final io.vanillabp.cockpit.tasklist.model.UserTask result;
+    try {
+      result = (unassign != null) && unassign
+          ? userTaskService.unassignTask(visibility, userTaskId, userId)
+          : userTaskService.assignTask(
+              visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
 
     return result == null
         ? ResponseEntity.notFound().build()
@@ -444,11 +463,15 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
     final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-    if ((unassign != null) && unassign) {
-      userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
-    } else {
-      userTaskService.assignTask(
-          visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+    try {
+      if ((unassign != null) && unassign) {
+        userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
+      } else {
+        userTaskService.assignTask(
+            visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+      }
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
     }
 
     return ResponseEntity.ok().build();
