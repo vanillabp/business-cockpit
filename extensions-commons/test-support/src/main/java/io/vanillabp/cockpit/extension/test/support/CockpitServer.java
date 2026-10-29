@@ -256,6 +256,8 @@ public final class CockpitServer {
   }
 
   /**
+   * The base URL of this server. A test puts it into the application's configuration.
+   *
    * @return Where an application has to send its reports
    */
   public static String baseUrl() {
@@ -303,6 +305,8 @@ public final class CockpitServer {
   }
 
   /**
+   * Everything which arrived, in the order it arrived.
+   *
    * @return Everything the server received since it was last asked to forget
    */
   public static List<Request> received() {
@@ -312,6 +316,8 @@ public final class CockpitServer {
   }
 
   /**
+   * The requests which arrived on one kind of path, for example the user-task reports.
+   *
    * @param pathSuffix What the paths have to end with
    * @return What arrived so far and ends in that
    */
@@ -517,6 +523,8 @@ public final class CockpitServer {
   }
 
   /**
+   * Waits until nothing arrived for the given time.
+   *
    * @param quietFor How long nothing may arrive before the server counts as quiet
    * @see #awaitQuiet()
    */
