@@ -40,7 +40,7 @@ the same one.
 ## What a change to it costs
 
 This module is compiled against by every application using the cockpit, and it is read by
-`extensions-commons` and, through it, by the four BPMS halves in their own repositories. An
+`extensions-commons` and, through it, by the five BPMS halves in their own repositories. An
 addition is cheap, a rename is not, and a change to what a details provider may declare as a
 parameter has to be followed in `BusinessCockpitHandlers` of `extensions-commons`.
 
