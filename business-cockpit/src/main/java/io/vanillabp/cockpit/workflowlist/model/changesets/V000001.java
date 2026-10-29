@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -224,6 +225,7 @@ public class V000001 {
      * @return {@code null}, because the changeset cannot be undone
      */
     @DbChangeset(order = 1008)
+    @SuppressWarnings("unchecked")
     public String introducePersonAndGroupForWorkflows(
             final MongoTemplate mongo) {
 
@@ -239,12 +241,11 @@ public class V000001 {
                         newDocument.set("initiator", getPerson(initiator.toString()));
                     }
                     final var accessibleToUsers = document.get("accessibleToUsers");
-                    if ((accessibleToUsers != null)
-                            && (accessibleToUsers instanceof List)
-                            && (((List<?>) accessibleToUsers).size() > 0)
-                            && (((List<?>) accessibleToUsers).get(0) instanceof String)) {
+                    if ((accessibleToUsers instanceof List<?> accessibleToUsersList)
+                            && !accessibleToUsersList.isEmpty()
+                            && (accessibleToUsersList.getFirst() instanceof String)) {
                         final var newAccessibleToUsers = new BasicBSONList();
-                        ((List<String>) accessibleToUsers)
+                        ((List<String>) accessibleToUsersList)
                                 .stream()
                                 .map(this::getPerson)
                                 .filter(Objects::nonNull)
@@ -252,19 +253,15 @@ public class V000001 {
                         newDocument.set("accessibleToUsers", newAccessibleToUsers);
                     }
                     final var accessibleToGroups = document.get("accessibleToGroups");
-                    if ((accessibleToGroups != null)
-                            && (accessibleToGroups instanceof List)
-                            && (((List<?>) accessibleToGroups).size() > 0)
-                            && (((List<?>) accessibleToGroups).get(0) instanceof String)) {
+                    if ((accessibleToGroups instanceof List<?> accessibleToGroupsList)
+                            && !accessibleToGroupsList.isEmpty()
+                            && (accessibleToGroupsList.getFirst() instanceof String)) {
                         final var newAccessibleToGroups = new BasicBSONList();
-                        if ((newAccessibleToGroups.size() > 0)
-                                && (newAccessibleToGroups.get(0) instanceof String)) {
-                            ((List<String>) accessibleToGroups)
-                                    .stream()
-                                    .map(this::getGroup)
-                                    .filter(Objects::nonNull)
-                                    .forEach(newAccessibleToGroups::add);
-                        }
+                        ((List<String>) accessibleToGroupsList)
+                                .stream()
+                                .map(this::getGroup)
+                                .filter(Objects::nonNull)
+                                .forEach(newAccessibleToGroups::add);
                         newDocument.set("accessibleToGroups", newAccessibleToGroups);
                     }
                     final var updateQuery = new Query(Criteria.where("_id").is(document.get("_id")));
@@ -348,7 +345,7 @@ public class V000001 {
                 .indexOps(Workflow.COLLECTION_NAME)
                 .getIndexInfo()
                 .stream()
-                .map(indexInfo -> indexInfo.getName())
+                .map(IndexInfo::getName)
                 .filter(name -> name.startsWith(INDEX_CUSTOM_SORT_PREFIX))
                 .toList()
                 .forEach(name -> mongo.indexOps(Workflow.COLLECTION_NAME).dropIndex(name));
