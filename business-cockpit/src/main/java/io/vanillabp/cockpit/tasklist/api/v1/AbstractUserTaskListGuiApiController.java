@@ -157,7 +157,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         ListPaging.sortAscending(userTasksRequest.getSortAscending()),
         userTasksRequest.getMode() != null
             ? mapper.toModel(userTasksRequest.getMode())
-            : UserTaskService.RetrieveItemsMode.All);
+            : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
@@ -223,7 +223,7 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
         ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
         userTasksUpdateRequest.getMode() != null
             ? mapper.toModel(userTasksUpdateRequest.getMode())
-            : UserTaskService.RetrieveItemsMode.OpenTasks);
+            : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 

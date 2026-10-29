@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.commons.exceptions;
 
 import java.io.InputStream;
+import java.util.Arrays;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +20,12 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The status code every kind of exception turns into. These numbers are part of what a
@@ -178,11 +184,97 @@ public class RestfulExceptionHandlerTest {
       }
     };
 
-    // the status comes from the annotation on the method, all the method itself does is log
+    final var response = handler.handleUnreadableRequestBody(
+        new HttpMessageNotReadableException("no JSON in here", emptyRequest));
+
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getBody()).isNull();
+
+  }
+
+  /** A field which takes a fixed set of names, like the mode of a list in the GUI API. */
+  enum Mode {
+    ALL("All"),
+    OPEN("Open");
+
+    private final String value;
+
+    Mode(
+        final String value) {
+      this.value = value;
+    }
+
+    @JsonValue
+    public String getValue() {
+      return value;
+    }
+
+    @Override
+    public String toString() {
+      return value;
+    }
+
+    // the same kind of factory the OpenAPI generator writes for every enum
+    @JsonCreator
+    public static Mode fromValue(
+        final String value) {
+      return Arrays
+          .stream(values())
+          .filter(mode -> mode.value.equals(value))
+          .findFirst()
+          .orElseThrow(() -> new IllegalArgumentException("Unexpected value '"
+              + value
+              + "'"));
+    }
+  }
+
+  record ListRequest(Mode mode) {
+  }
+
+  @Test
+  public void testANameTheFieldDoesNotKnowIsAnsweredWithTheNamesItKnows() {
+
+    final var response = handler.handleUnreadableRequestBody(unreadable("{ \"mode\": \"Gone\" }"));
+
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
     Assertions
-        .assertThatNoException()
-        .isThrownBy(() -> handler.handle(
-            new HttpMessageNotReadableException("no JSON in here", emptyRequest)));
+        .assertThat(response.getBody())
+        .isEqualTo("The request is not valid: 'mode' takes one of 'All', 'Open'.")
+        .doesNotContain("Gone");
+
+  }
+
+  @Test
+  public void testAValueOfTheWrongKindIsAnsweredWithTheField() {
+
+    final var response = handler.handleUnreadableRequestBody(unreadable("{ \"mode\": [ 1 ] }"));
+
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getBody()).startsWith("The request is not valid: 'mode' ");
+
+  }
+
+  private static HttpMessageNotReadableException unreadable(
+      final String json) {
+
+    final var request = new HttpInputMessage() {
+      @Override
+      public InputStream getBody() {
+        return InputStream.nullInputStream();
+      }
+
+      @Override
+      public HttpHeaders getHeaders() {
+        return new HttpHeaders();
+      }
+    };
+    try {
+      JsonMapper.builder().build().readValue(json, ListRequest.class);
+    } catch (JacksonException e) {
+      return new HttpMessageNotReadableException(e.getOriginalMessage(), e, request);
+    }
+    throw new IllegalStateException("The body was read: "
+        + json);
 
   }
 

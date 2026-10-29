@@ -89,14 +89,11 @@ public class UserTaskService {
   public static enum RetrieveItemsMode {
     /** Every task, ended or not. */
     All,
-    /** Every task which has not ended, whatever its follow-up date says. */
-    OpenTasks,
     /** Open tasks without a follow-up date, or with one which is due. */
     OpenTasksWithoutFollowUp,
     /**
-     * Another name for {@link #OpenTasks}, which shows the same tasks. The name sounds like a
-     * filter, but there is none. It stays because the GUI API offers it. See decision 58 in
-     * the repository's DECISIONS.md.
+     * Every task which has not ended, with or without a follow-up date. It is what a list shows
+     * when the request names no mode.
      */
     OpenTasksWithFollowUp,
     /** Open tasks with a follow-up date which is not due yet. */
@@ -829,7 +826,7 @@ public class UserTaskService {
     final var match = buildUserTasksCriteria(
         visibility,
         initialTimestamp,
-        RetrieveItemsMode.OpenTasks,
+        RetrieveItemsMode.OpenTasksWithFollowUp,
         searchCriteria);
 
     return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
@@ -839,7 +836,8 @@ public class UserTaskService {
    * The user tasks of one workflow, for the first page of a list.
    *
    * @param workflowId The id of the workflow
-   * @param activeOnly Whether to leave out the tasks which have ended
+   * @param mode Which tasks of the workflow to return, or {@code null} for
+   *        {@link RetrieveItemsMode#OpenTasksWithFollowUp}
    * @param limitListAccordingToCurrentUsersPermissions Whether to show only what the user may
    *        work on, see {@link UserTaskVisibility#everythingTheUserMayWorkOn(String, Collection)}
    * @param currentUser The id of the user
@@ -851,7 +849,7 @@ public class UserTaskService {
    */
   public List<UserTask> getUserTasksOfWorkflow(
       final String workflowId,
-      final boolean activeOnly,
+      final RetrieveItemsMode mode,
       final boolean limitListAccordingToCurrentUsersPermissions,
       final String currentUser,
       final Collection<String> currentUserGroups,
@@ -870,7 +868,7 @@ public class UserTaskService {
         sort,
         sortAscending,
         List.of(Criteria.where("workflowId").is(workflowId)),
-        activeOnly ? RetrieveItemsMode.OpenTasks : RetrieveItemsMode.All
+        mode != null ? mode : RetrieveItemsMode.OpenTasksWithFollowUp
     ).getContent();
 
   }
@@ -887,7 +885,8 @@ public class UserTaskService {
    * @param searchQueries The filters of the list, or {@code null}
    * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
    * @param sortAscending Whether to sort in ascending order
-   * @param mode Which tasks the list holds, or {@code null} for the open tasks
+   * @param mode Which tasks the list holds, or {@code null} for
+   *        {@link RetrieveItemsMode#OpenTasksWithFollowUp}
    * @return The tasks as one page, with the number of all tasks of the list
    */
   public Page<UserTask> getUserTasksUpdated(
@@ -906,7 +905,7 @@ public class UserTaskService {
         .withPage(0)
         .withSort(Sort.by(orderBySort.order()));
 
-    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.OpenTasks;
+    final var effectiveMode = mode != null ? mode : RetrieveItemsMode.OpenTasksWithFollowUp;
 
     final var query = new Query();
     query.fields().include("_id");
@@ -1368,7 +1367,6 @@ public class UserTaskService {
     switch (mode) {
       case All:
         break;
-      case OpenTasks:
       case OpenTasksWithFollowUp:
       case OpenTasksWithoutFollowUp:
       case OpenTaskOnlyFollowUp:

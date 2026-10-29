@@ -116,7 +116,7 @@ class KafkaIngestionTest extends ItestBase {
         .build());
 
     await().untilAsserted(() -> {
-      final var list = userTaskList(cookie, token, "OpenTasks");
+      final var list = userTaskList(cookie, token, "OpenTasksWithFollowUp");
       assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
     });
 

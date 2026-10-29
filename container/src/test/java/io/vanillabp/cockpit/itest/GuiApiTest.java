@@ -125,7 +125,7 @@ class GuiApiTest extends ItestBase {
           "pageSize": 2,
           "searchQueries": [ { "query": "%s" } ],
           "sortAscending": true,
-          "mode": "OpenTasks"
+          "mode": "OpenTasksWithFollowUp"
         }
         """.formatted(token)));
     assertThat(firstPage.read("$.page.totalElements", Integer.class)).isEqualTo(3);
@@ -140,7 +140,7 @@ class GuiApiTest extends ItestBase {
           "pageSize": 2,
           "searchQueries": [ { "query": "%s" } ],
           "sortAscending": true,
-          "mode": "OpenTasks"
+          "mode": "OpenTasksWithFollowUp"
         }
         """.formatted(token)));
     assertThat(secondPage.read("$.userTasks[*].id", List.class))
@@ -152,7 +152,7 @@ class GuiApiTest extends ItestBase {
           "pageSize": 3,
           "searchQueries": [ { "query": "%s" } ],
           "sortAscending": false,
-          "mode": "OpenTasks"
+          "mode": "OpenTasksWithFollowUp"
         }
         """.formatted(token)));
     assertThat(descending.read("$.userTasks[*].id", List.class))

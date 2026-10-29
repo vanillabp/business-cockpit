@@ -113,7 +113,7 @@ class UserTaskPermissionsTest extends ItestBase {
               "pageSize": 50,
               "searchQueries": [ { "query": "%s" } ],
               "sortAscending": true,
-              "mode": "OpenTasks"
+              "mode": "OpenTasksWithFollowUp"
             }
             """.formatted(token));
     assertThat(response.statusCode()).isEqualTo(200);

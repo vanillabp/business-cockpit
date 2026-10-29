@@ -1044,6 +1044,11 @@ components:
           format: int32
     WorkflowRetrieveMode:
       type: string
+      description: >-
+        Which workflows a list shows. 'All' shows running and ended workflows. 'Active' shows the
+        workflows which have not ended, and those which ended after 'initialTimestamp', so the pages
+        stay the same while the user pages through them. 'Inactive' shows the workflows which have
+        ended. A request without 'mode' gets 'Active'.
       enum:
         - All
         - Active
@@ -1051,14 +1056,15 @@ components:
     UserTaskRetrieveMode:
       type: string
       description: >-
-        Which user tasks a list shows. 'All' shows open and ended tasks. 'OpenTasks' shows every
-        task which has not ended, with or without a follow-up date. 'OpenTasksWithFollowUp' is
-        another name for 'OpenTasks' and shows the same tasks. 'OpenTasksWithoutFollowUp' shows open
-        tasks without a follow-up date or with one which is due. 'OpenTaskOnlyFollowUp' shows open
-        tasks with a follow-up date in the future. 'ClosedTasksOnly' shows ended tasks.
+        Which user tasks a list shows. There are five modes. 'All' shows open and ended tasks.
+        'OpenTasksWithFollowUp' shows every task which has not ended, with or without a follow-up
+        date. 'OpenTasksWithoutFollowUp' shows open tasks without a follow-up date or with one which
+        is due. 'OpenTaskOnlyFollowUp' shows open tasks with a follow-up date in the future.
+        'ClosedTasksOnly' shows ended tasks. A task which ended after 'initialTimestamp' still counts
+        as open, so the pages stay the same while the user pages through them. A request without
+        'mode' gets 'OpenTasksWithFollowUp'. Any other value is answered with 400.
       enum:
         - All
-        - OpenTasks
         - OpenTasksWithoutFollowUp
         - OpenTasksWithFollowUp
         - OpenTaskOnlyFollowUp

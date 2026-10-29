@@ -230,15 +230,15 @@ class AdmittedUsersTest extends ItestBase {
 
     final var userTaskId = createTaskAdmitting(USER_MARTIN);
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
 
     withdrawTheGroupFromMartin();
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
-    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).containsExactly(userTaskId);
     assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
 
   }
@@ -252,7 +252,7 @@ class AdmittedUsersTest extends ItestBase {
 
     final var userTaskId = createTaskAdmitting(USER_MARTIN);
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
     completeTask(userTaskId);
 
@@ -272,7 +272,7 @@ class AdmittedUsersTest extends ItestBase {
     final var userTaskId = createTaskAdmitting(USER_PETRA);
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
     assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(200);
 
@@ -284,13 +284,13 @@ class AdmittedUsersTest extends ItestBase {
 
     final var userTaskId = createTask("");
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
 
     withdrawTheGroupFromMartin();
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).isEmpty());
     assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
 
   }
@@ -302,9 +302,9 @@ class AdmittedUsersTest extends ItestBase {
     final var userTaskId = createTaskAdmitting(USER_MARTIN);
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
-    assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks")).isEmpty();
+    assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasksWithFollowUp")).isEmpty();
     assertThat(detailStatusFor(cookieOfPetra, userTaskId)).isEqualTo(404);
 
   }
@@ -325,9 +325,9 @@ class AdmittedUsersTest extends ItestBase {
           "excludedCandidateUsers": [ "martin" ]""");
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
-    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).containsExactly(userTaskId);
     assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
 
   }
@@ -342,9 +342,9 @@ class AdmittedUsersTest extends ItestBase {
           "excludedCandidateUsers": [ "martin" ]""");
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfPetra, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
-    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty();
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).isEmpty();
     assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(404);
 
   }
@@ -359,15 +359,15 @@ class AdmittedUsersTest extends ItestBase {
 
     final var userTaskId = createTaskAdmitting(USER_MARTIN);
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
 
     withdrawTheGroupFromMartin();
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "/user-roles", "OpenTasksWithFollowUp"))
             .isEmpty());
-    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).containsExactly(userTaskId);
+    assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).containsExactly(userTaskId);
 
   }
 
@@ -380,17 +380,17 @@ class AdmittedUsersTest extends ItestBase {
 
     final var userTaskId = createTask("");
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
 
     withdrawTheGroupFromMartin();
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks")).isEmpty());
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp")).isEmpty());
 
     reportAgainAdmitting(userTaskId, USER_MARTIN);
 
     await().untilAsserted(
-        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasks"))
+        () -> assertThat(tasksListedFor(cookieOfMartin, "", "OpenTasksWithFollowUp"))
             .containsExactly(userTaskId));
     assertThat(detailStatusFor(cookieOfMartin, userTaskId)).isEqualTo(200);
 

@@ -92,7 +92,7 @@ public class OfficialWorkflowlistApiController implements OfficialWorkflowlistAp
     final var result = new LinkedList<UserTask>();
     userTasks.put(workflowId, result);
 
-    final var num = random.nextInt(userTasksRequest.getMode() == UserTaskRetrieveMode.OPENTASKS ? 5 : 10);
+    final var num = random.nextInt(userTasksRequest.getMode() == UserTaskRetrieveMode.OPENTASKSWITHFOLLOWUP ? 5 : 10);
     String businessId = null;
     for (int i = 0; i < num; ++i) {
 

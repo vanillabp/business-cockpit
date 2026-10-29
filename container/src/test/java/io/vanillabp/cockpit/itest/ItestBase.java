@@ -341,6 +341,143 @@ public abstract class ItestBase {
 
   }
 
+  protected HttpResponse<String> guiPut(
+      final String cookie,
+      final String path,
+      final String jsonBody) {
+
+    return send(HttpRequest
+        .newBuilder(URI.create(url("/gui/api/v1"
+            + path)))
+        .header("Cookie", cookie)
+        .header("Content-Type", "application/json")
+        .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
+        .build());
+
+  }
+
+  /**
+   * Reports a user task the way a workflow module does. The full text carries the token, so a
+   * list filtered by it shows only the test's own tasks.
+   *
+   * @param moduleId The workflow module, registered already
+   * @param token The token the test filters its lists by
+   * @param workflowId The workflow the task belongs to
+   * @param whoSeesIt The fields which say who sees the task, like {@code "assignee": "martin"}
+   * @return The id of the task
+   */
+  protected String reportUserTask(
+      final String moduleId,
+      final String token,
+      final String workflowId,
+      final String whoSeesIt) {
+
+    final var userTaskId = unique("task");
+    final var response = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "workflowId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "detailsFulltextSearch": "%s",
+          %s
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, workflowId, token, whoSeesIt));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report user task: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+    return userTaskId;
+
+  }
+
+  /**
+   * Reports that a user task was completed, the way a workflow module does.
+   *
+   * @param moduleId The workflow module of the task
+   * @param token The token the test filters its lists by
+   * @param userTaskId The task, reported already
+   */
+  protected void reportUserTaskCompleted(
+      final String moduleId,
+      final String token,
+      final String userTaskId) {
+
+    final var response = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "initiator": "martin",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report the completion: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+
+  }
+
+  /**
+   * Reports a workflow the way a workflow module does, or its completion.
+   *
+   * @param moduleId The workflow module, registered already
+   * @param token The token the test filters its lists by
+   * @param workflowId The id of the workflow
+   * @param what {@code "created"} or {@code "completed"}
+   */
+  protected void reportWorkflow(
+      final String moduleId,
+      final String token,
+      final String workflowId,
+      final String what) {
+
+    final var response = bpmsV1_1("/workflow/"
+        + ("created".equals(what) ? "" : workflowId
+            + "/")
+        + what, """
+            {
+              "id": "%s",
+              "workflowId": "%s",
+              "timestamp": "%s",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "bpmnProcessVersion": "1",
+              "initiator": "martin",
+              "title": { "en": "Ride request" },
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), workflowId, isoNow(), moduleId, token));
+    if (response.statusCode() != 200) {
+      throw new IllegalStateException("Could not report the workflow: HTTP "
+          + response.statusCode()
+          + " "
+          + response.body());
+    }
+
+  }
+
   /**
    * Fetches the current user's task list filtered by a fulltext token, which isolates the test's
    * own tasks from those created by other tests sharing the application context.

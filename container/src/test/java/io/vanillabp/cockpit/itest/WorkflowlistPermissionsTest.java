@@ -328,7 +328,7 @@ class WorkflowlistPermissionsTest extends ItestBase {
             + "/usertasks?llatcup="
             + limitListAccordingToCurrentUsersPermissions,
         """
-            { "pageSize": 50, "mode": "OpenTasks" }
+            { "pageSize": 50, "mode": "OpenTasksWithFollowUp" }
             """);
     assertThat(response.statusCode()).isEqualTo(200);
     return json(response).read("$[*].id", List.class);

@@ -153,7 +153,6 @@ public abstract class GuiApiMapper {
    * @return The mode for the service
    */
   @ValueMapping(target = "All", source = "ALL")
-  @ValueMapping(target = "OpenTasks", source = "OPENTASKS")
   @ValueMapping(target = "OpenTasksWithoutFollowUp", source = "OPENTASKSWITHOUTFOLLOWUP")
   @ValueMapping(target = "OpenTasksWithFollowUp", source = "OPENTASKSWITHFOLLOWUP")
   @ValueMapping(target = "OpenTaskOnlyFollowUp", source = "OPENTASKONLYFOLLOWUP")

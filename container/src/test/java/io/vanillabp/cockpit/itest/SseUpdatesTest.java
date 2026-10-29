@@ -220,7 +220,7 @@ class SseUpdatesTest extends ItestBase {
         "detailsFulltextSearch": "%s"
         """.formatted(USER_MARTIN, token));
     await().untilAsserted(() -> assertThat(eventsAbout(userTaskId, martin)).isEqualTo(1));
-    assertThat(userTaskList(martinsCookie, token, "OpenTasks")
+    assertThat(userTaskList(martinsCookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class))
         .containsExactly(userTaskId);
 
@@ -251,10 +251,10 @@ class SseUpdatesTest extends ItestBase {
     assertThat(eventsAbout(userTaskId, petra))
         .as("petra's stream so far: %s", petra)
         .isZero();
-    assertThat(userTaskList(martinsCookie, token, "OpenTasks")
+    assertThat(userTaskList(martinsCookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class))
         .containsExactly(userTaskId);
-    assertThat(userTaskList(petrasCookie, token, "OpenTasks")
+    assertThat(userTaskList(petrasCookie, token, "OpenTasksWithFollowUp")
         .read("$.userTasks[*].id", List.class))
         .isEmpty();
 

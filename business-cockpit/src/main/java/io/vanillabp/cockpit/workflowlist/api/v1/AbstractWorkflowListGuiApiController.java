@@ -17,7 +17,6 @@ import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.gui.api.v1.UserTaskRetrieveMode;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
@@ -166,7 +165,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
         ListPaging.sortAscending(workflowsRequest.getSortAscending()),
         workflowsRequest.getMode() != null
             ? mapper.toModel(workflowsRequest.getMode())
-            : WorkflowlistService.RetrieveItemsMode.All);
+            : WorkflowlistService.RetrieveItemsMode.Active);
 
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
 
@@ -285,7 +284,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
    * @param visibility Which workflows the user may reach. A workflow outside of it has no tasks
    *        to show.
    * @param workflowId The id of the workflow
-   * @param activeOnlyRequested Whether to leave out the tasks which have ended
+   * @param mode Which tasks of the workflow to return
    * @param limitListAccordingToCurrentUsersPermissions {@code true} lists only the tasks the
    *        current user could work on, the way the task list does. {@code false} lists every user
    *        task of the workflow, for a site which shows what the workflow is up to and not what
@@ -299,7 +298,7 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
   protected List<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksOfWorkflow(
       final WorkflowVisibility visibility,
       final String workflowId,
-      final boolean activeOnlyRequested,
+      final UserTaskService.RetrieveItemsMode mode,
       final boolean limitListAccordingToCurrentUsersPermissions,
       final UserDetails currentUser,
       final int pageSize,
@@ -307,14 +306,14 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
       final boolean sortAscending) {
 
     // the tasks belong to the detail view of the workflow, so a workflow the user may not see
-    // has none to show, whichever of the two modes the caller asks for
+    // has none to show, whatever the caller asks for
     if (workflowlistService.getWorkflow(visibility, workflowId) == null) {
       return List.of();
     }
 
     return userTaskService.getUserTasksOfWorkflow(
         workflowId,
-        activeOnlyRequested,
+        mode,
         limitListAccordingToCurrentUsersPermissions,
         currentUser.getId(),
         currentUser.getAuthorities(),
@@ -335,7 +334,9 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     final var userTasks = getUserTasksOfWorkflow(
         workflowsVisibleTo(currentUser),
         workflowId,
-        userTasksRequest.getMode() == UserTaskRetrieveMode.OPENTASKS,
+        userTasksRequest.getMode() != null
+            ? userTaskMapper.toModel(userTasksRequest.getMode())
+            : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp,
         llatcup != null ? llatcup : true,
         currentUser,
         userTasksRequest.getPageSize() == null ? 100 : userTasksRequest.getPageSize(),

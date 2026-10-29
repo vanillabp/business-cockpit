@@ -1,5 +1,6 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -24,14 +25,36 @@ public class TaskService {
   public enum RetrieveMode {
     /** All tasks, open and closed. */
     ALL,
-    /** Only the tasks which have not ended yet. */
-    OPENTASKS,
-    /** Treated like {@link #ALL} here, because the simulator knows no follow-up dates. */
+    /** Open tasks without a follow-up date, or with one which is due. */
     OPENTASKSWITHOUTFOLLOWUP,
-    /** Another name for OPENTASKS, the same as in the cockpit. */
+    /** Every task which has not ended, with or without a follow-up date. */
     OPENTASKSWITHFOLLOWUP,
+    /** Open tasks with a follow-up date in the future. */
+    OPENTASKONLYFOLLOWUP,
     /** Only the tasks which have ended. */
-    CLOSEDTASKSONLY
+    CLOSEDTASKSONLY;
+
+    /**
+     * @param userTask A stored task
+     * @param now The time to compare the follow-up date with
+     * @return Whether a list of this mode shows the task
+     */
+    boolean shows(
+        final UserTask userTask,
+        final OffsetDateTime now) {
+
+      final var open = userTask.getEndedAt() == null;
+      final var followUpDate = userTask.getFollowUpDate();
+      final var followUpIsDue = (followUpDate == null) || !followUpDate.isAfter(now);
+      return switch (this) {
+        case ALL -> true;
+        case OPENTASKSWITHFOLLOWUP -> open;
+        case OPENTASKSWITHOUTFOLLOWUP -> open && followUpIsDue;
+        case OPENTASKONLYFOLLOWUP -> open && !followUpIsDue;
+        case CLOSEDTASKSONLY -> !open;
+      };
+
+    }
   };
 
   @Autowired
@@ -113,11 +136,7 @@ public class TaskService {
 
     final Sort sort = resolveSort(sortField, sortAscending);
 
-    final var allTasks = switch (retrieveMode) {
-      case OPENTASKS, OPENTASKSWITHFOLLOWUP -> userTasks.findByEndedAtIsNull(sort);
-      case CLOSEDTASKSONLY -> userTasks.findByEndedAtIsNotNull(sort);
-      default -> userTasks.findAll(sort);
-    };
+    final var allTasks = shownBy(retrieveMode, userTasks.findAll(sort));
 
     // Set default pagination values if not provided
     int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
@@ -164,11 +183,7 @@ public class TaskService {
 
     final Sort sort = resolveSort(sortField, sortAscending);
 
-    final var allTasks = switch (retrieveMode) {
-      case OPENTASKS, OPENTASKSWITHFOLLOWUP -> userTasks.findByWorkflowIdAndEndedAtIsNull(workflowId, sort);
-      case CLOSEDTASKSONLY -> userTasks.findByWorkflowIdAndEndedAtIsNotNull(workflowId, sort);
-      default -> userTasks.findByWorkflowId(workflowId, sort);
-    };
+    final var allTasks = shownBy(retrieveMode, userTasks.findByWorkflowId(workflowId, sort));
 
     // Set default pagination values if not provided
     int pageSize = pageSizeRequested != null ? pageSizeRequested : 20;
@@ -192,6 +207,18 @@ public class TaskService {
         .totalPages(totalPages)
         .pageObjects(pagedTasks)
         .build();
+  }
+
+  private static List<UserTask> shownBy(
+      final RetrieveMode retrieveMode,
+      final List<UserTask> userTasks) {
+
+    final var now = OffsetDateTime.now();
+    return userTasks
+        .stream()
+        .filter(userTask -> retrieveMode.shows(userTask, now))
+        .toList();
+
   }
 
   /**
