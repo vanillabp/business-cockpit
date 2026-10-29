@@ -20,8 +20,16 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Sends random user task events to the Business Cockpit. It first registers the workflow module
+ * {@code TestModule}, then creates tasks and updates some of them, until it has sent the number
+ * of events it was given. Each instance runs in a thread of its own.
+ */
 public class UserTaskTestDataGenerator implements Runnable {
 
+    /**
+     * Set to {@code true} when the application shuts down, so all generators stop.
+     */
     public static volatile boolean shutdown = false;
     
     private Random random;
@@ -42,6 +50,18 @@ public class UserTaskTestDataGenerator implements Runnable {
 
     private Logger logger;
     
+    /**
+     * Creates a generator.
+     *
+     * @param offset The number of events the generators before this one send. It names the
+     *               logger and is part of the random seed.
+     * @param noOfEvents The number of events this generator sends
+     * @param bpmsApi The client of the Business Cockpit
+     * @param users The users to assign tasks to
+     * @param groups The groups to offer tasks to
+     * @param fairies The generators of random texts, by language
+     * @param parameters The parameters from the form
+     */
     public UserTaskTestDataGenerator(
             final int offset,
             final int noOfEvents,
@@ -360,6 +380,17 @@ public class UserTaskTestDataGenerator implements Runnable {
                 candidateGroups);
         
     }
+    /**
+     * Builds the event of a new random user task. The task gets a title in every language of
+     * {@code fairies} and random details.
+     *
+     * @param random The source of random numbers
+     * @param fairies The generators of random texts, by language
+     * @param assignee The user the task is assigned to, or {@code null}
+     * @param candidateUsers The users who may work on the task, or {@code null}
+     * @param candidateGroups The groups which may work on the task, or {@code null}
+     * @return The event
+     */
     public static UserTaskCreatedEvent buildCreatedEvent(
             final Random random,
             final Map<String, Fairy> fairies,

@@ -11,12 +11,27 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Scope;
 
+/**
+ * Builds the REST client which sends user tasks and workflows to the Business Cockpit.
+ */
 @Configuration
 public class ClientsConfiguration extends ClientsConfigurationBase {
+
+    /**
+     * Creates the configuration. Spring creates it, nobody else does.
+     */
+    public ClientsConfiguration() {
+    }
 
     @Autowired
     private ApplicationProperties properties;
     
+    /**
+     * The client of the Business Cockpit's BPMS API. It exists only in the profile
+     * {@code rest-sync}, where the simulator reports by REST.
+     *
+     * @return The client
+     */
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @Profile("rest-sync")

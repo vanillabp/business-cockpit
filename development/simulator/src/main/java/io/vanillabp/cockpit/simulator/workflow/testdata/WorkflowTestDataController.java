@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+/**
+ * The web page which generates test workflows. A form takes the parameters, and the generation
+ * sends the workflows to the Business Cockpit in the background.
+ */
 @Controller
 @RequestMapping(path = "/testdata/workflow")
 public class WorkflowTestDataController {
@@ -23,6 +27,17 @@ public class WorkflowTestDataController {
     @Autowired
     private BpmsApi bpmsApiProvider;
 
+    /**
+     * Creates the controller. Spring creates it, nobody else does.
+     */
+    public WorkflowTestDataController() {
+    }
+
+    /**
+     * Shows the form for the parameters of the generation.
+     *
+     * @return The name of the form's template
+     */
     @GetMapping(path = "/form")
     public String form() {
 
@@ -30,6 +45,14 @@ public class WorkflowTestDataController {
 
     }
 
+    /**
+     * Starts the generation. The events are split among as many threads as the parameters ask
+     * for concurrent requests. The method does not wait for the threads.
+     *
+     * @param parameters The parameters from the form
+     * @param model The model of the page
+     * @return The name of the report's template
+     */
     @PostMapping(
             path = "/generate",
             consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -66,6 +89,9 @@ public class WorkflowTestDataController {
         return "testdata/workflow/report";
     }
 
+    /**
+     * Stops all running generators when the application shuts down.
+     */
     @PostConstruct
     public void trackShutdown() {
         Runtime

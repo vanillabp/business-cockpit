@@ -55,6 +55,19 @@ public class EmbeddedKafkaConfiguration {
     @Value("${server.address:}")
     private String serverAddress;
 
+    /**
+     * Creates the configuration. Spring creates it, nobody else does.
+     */
+    public EmbeddedKafkaConfiguration() {
+    }
+
+    /**
+     * The embedded Kafka broker. It listens at {@code localhost:9092} and at port 9093 of the
+     * server address.
+     *
+     * @return The broker
+     * @throws Exception If the network interfaces cannot be read
+     */
     @Bean
     // switched on unless told otherwise, either by 'kafka.embedded' or by naming an external broker
     @ConditionalOnExpression("${kafka.embedded:true} and '${spring.kafka.bootstrap-servers:}'.empty")

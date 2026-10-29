@@ -21,9 +21,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * A fake of the Business Cockpit's official workflow list API. It answers every workflow id with
+ * a random workflow and keeps it, so the next request for the same id returns the same workflow.
+ * The user tasks of a workflow are random too, and kept the same way.
+ */
 @RestController
 @RequestMapping(path = "/official-api/v1")
 public class OfficialWorkflowlistApiController implements OfficialWorkflowlistApi {
+
+    /**
+     * Creates the controller. Spring creates it, nobody else does.
+     */
+    public OfficialWorkflowlistApiController() {
+    }
     
     private Map<String, Workflow> workflows = new HashMap<>();
     

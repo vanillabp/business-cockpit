@@ -20,6 +20,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
+/**
+ * The security setup of the simulator. If a request carries a JSON Web Token (JWT), the token is
+ * checked, and the code gets the user it names through the {@link UserContext}.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true)
@@ -28,6 +32,17 @@ public class WebSecurityConfiguration {
     @Autowired
     private ApplicationProperties properties;
 
+    /**
+     * Creates the configuration. Spring creates it, nobody else does.
+     */
+    public WebSecurityConfiguration() {
+    }
+
+    /**
+     * Reads the details of the current user from the JWT.
+     *
+     * @return The provider
+     */
     @Bean
     public UserDetailsProvider userDetailsProvider() {
 
@@ -35,6 +50,12 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * Gives the code access to the user who sent the current request.
+     *
+     * @param userDetailsProvider Reads the details of the user
+     * @return The user context
+     */
     @Bean
     public UserContext userContext(
             final UserDetailsProvider userDetailsProvider) {
@@ -43,6 +64,15 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * The filter chain for all requests. CSRF, CORS and anonymous access are switched off, and
+     * the JWT filter runs after basic authentication.
+     *
+     * @param http The builder of the filter chain
+     * @param jwtSecurityFilter The filter which reads the JWT
+     * @return The filter chain
+     * @throws Exception If the filter chain cannot be built
+     */
     @Bean
     @Order(99)
     protected SecurityFilterChain configure(
@@ -60,6 +90,11 @@ public class WebSecurityConfiguration {
         
     }
 
+    /**
+     * Turns a JWT into an authentication token for Spring Security.
+     *
+     * @return The mapper
+     */
     @Bean
     public JwtMapper<? extends JwtAuthenticationToken> jwtMapper() {
 
@@ -67,6 +102,13 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * The filter which reads the JWT of a request. It is passive: a request without a token
+     * is not rejected.
+     *
+     * @param jwtMapper Turns the JWT into an authentication token
+     * @return The filter
+     */
     @Bean
     public PassiveJwtSecurityFilter jwtSecurityFilter(
             final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {
@@ -76,6 +118,13 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * The user controller of the dev shell simulator. Here it only loads the users when the
+     * Business Cockpit starts with the local Spring Boot profile.
+     *
+     * @param properties The properties of the dev shell simulator, which list the users
+     * @return The controller
+     */
     @Bean
     public UserController devShellUserDropdownRestController(
             final Properties properties) {

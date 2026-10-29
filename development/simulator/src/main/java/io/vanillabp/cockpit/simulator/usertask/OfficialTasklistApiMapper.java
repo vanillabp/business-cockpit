@@ -6,9 +6,25 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * Turns a generated "user task created" event into a user task of the official task list API.
+ */
 @Mapper
 public abstract class OfficialTasklistApiMapper {
 
+    /**
+     * Creates the mapper. MapStruct's generated subclass calls it.
+     */
+    public OfficialTasklistApiMapper() {
+    }
+
+    /**
+     * Turns the event into a user task. Both timestamps are set to now, and the URIs point to
+     * the workflow module behind the cockpit's proxy.
+     *
+     * @param event The generated event
+     * @return The user task
+     */
     @Mapping(target = "createdAt", expression = "java(java.time.OffsetDateTime.now())")
     @Mapping(target = "updatedAt", expression = "java(java.time.OffsetDateTime.now())")
     @Mapping(target = "endedAt", ignore = true)
@@ -21,6 +37,12 @@ public abstract class OfficialTasklistApiMapper {
     @Mapping(target = "candidateGroups", ignore = true)
     public abstract UserTask toApi(UserTaskCreatedEvent event);
     
+    /**
+     * The path of the task's UI, always with a leading slash.
+     *
+     * @param userTask The generated event
+     * @return The path, or {@code null} if the event names no workflow module or no UI path
+     */
     @NoMappingMethod
     protected String proxiedUiUri(
             final UserTaskCreatedEvent userTask) {
@@ -38,6 +60,12 @@ public abstract class OfficialTasklistApiMapper {
         
     }
 
+    /**
+     * The path of the workflow module behind the cockpit's proxy: {@code /<id>/}.
+     *
+     * @param userTask The generated event
+     * @return The path, or {@code null} if the event names no workflow module
+     */
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
             final UserTaskCreatedEvent userTask) {
