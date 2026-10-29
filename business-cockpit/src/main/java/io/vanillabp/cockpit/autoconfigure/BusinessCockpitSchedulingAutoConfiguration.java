@@ -17,24 +17,21 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class BusinessCockpitSchedulingAutoConfiguration {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(BusinessCockpitSchedulingAutoConfiguration.class);
+  private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitSchedulingAutoConfiguration.class);
 
-    /**
-     * Called by Spring Boot. Logs that {@code @EnableScheduling} now applies to the whole
-     * application, and how to switch it off.
-     */
-    public BusinessCockpitSchedulingAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Logs that {@code @EnableScheduling} now applies to the whole
+   * application, and how to switch it off.
+   */
+  public BusinessCockpitSchedulingAutoConfiguration() {
 
-        new WholeApplicationSwitch(
-                "@EnableScheduling",
-                "every @Scheduled method of this application runs on Spring's scheduler. The cockpit's "
-                        + "own scheduled work runs there too, among it the notification poller and the "
-                        + "collector which pushes live updates to the browser.",
-                "set 'business-cockpit.scheduling.enabled: false', and expect that work of the cockpit "
-                        + "to stop with it.")
-                .reportTo(logger);
+    new WholeApplicationSwitch(
+        "@EnableScheduling", "every @Scheduled method of this application runs on Spring's scheduler. The cockpit's "
+            + "own scheduled work runs there too, among it the notification poller and the "
+            + "collector which pushes live updates to the browser.", "set 'business-cockpit.scheduling.enabled: false', and expect that work of the cockpit "
+                + "to stop with it.")
+        .reportTo(logger);
 
-    }
+  }
 
 }

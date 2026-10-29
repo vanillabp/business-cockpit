@@ -12,17 +12,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
-import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
-import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.tasklist.UserTaskService;
-import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
-import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
-import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
-import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
-import io.vanillabp.cockpit.workflowlist.api.v1.AbstractWorkflowListGuiApiController;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +24,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import io.vanillabp.cockpit.commons.exceptions.RestfulExceptionHandler;
+import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
+import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
+import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
+import io.vanillabp.cockpit.workflowlist.WorkflowlistService;
+import io.vanillabp.cockpit.workflowlist.api.v1.AbstractWorkflowListGuiApiController;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * What the lists of the GUI API do with a request which leaves out a paging value. The OpenAPI
@@ -48,186 +50,194 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 @ExtendWith(SuppressOutputExtension.class)
 class AListWithoutPagingValuesTest {
 
-    /** The interfaces map the paths below this prefix, and an application adds the prefix. */
-    private static final String GUI_API = "";
+  /** The interfaces map the paths below this prefix, and an application adds the prefix. */
+  private static final String GUI_API = "";
 
-    private UserTaskService userTaskService;
+  private UserTaskService userTaskService;
 
-    private WorkflowlistService workflowlistService;
+  private WorkflowlistService workflowlistService;
 
-    private MockMvc client;
+  private MockMvc client;
 
-    static class UserTasks extends AbstractUserTaskListGuiApiController {
+  static class UserTasks extends AbstractUserTaskListGuiApiController {
 
-        @Override
-        protected UserTaskVisibility userTasksVisibleTo(
-                final UserDetails currentUser) {
-            return UserTaskVisibility.everyUserTask();
-        }
-
+    @Override
+    protected UserTaskVisibility userTasksVisibleTo(
+        final UserDetails currentUser) {
+      return UserTaskVisibility.everyUserTask();
     }
 
-    static class Workflows extends AbstractWorkflowListGuiApiController {
+  }
 
-        @Override
-        protected WorkflowVisibility workflowsVisibleTo(
-                final UserDetails currentUser) {
-            return WorkflowVisibility.everyWorkflow();
-        }
+  static class Workflows extends AbstractWorkflowListGuiApiController {
 
+    @Override
+    protected WorkflowVisibility workflowsVisibleTo(
+        final UserDetails currentUser) {
+      return WorkflowVisibility.everyWorkflow();
     }
 
-    @BeforeEach
-    void setUp() throws Exception {
+  }
 
-        final var userContext = mock(UserContext.class);
-        when(userContext.getUserLoggedInDetails()).thenReturn(mock(UserDetails.class));
-        userTaskService = mock(UserTaskService.class);
-        workflowlistService = mock(WorkflowlistService.class);
-        when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any()))
-                .thenReturn(Page.empty());
-        when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
-                .thenReturn(Page.empty());
-        when(workflowlistService.getWorkflows(anyInt(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
-                .thenReturn(Page.empty());
-        when(workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
-                .thenReturn(Page.empty());
+  @BeforeEach
+  void setUp() throws Exception {
 
-        final var userTasks = new UserTasks();
-        set(AbstractUserTaskListGuiApiController.class, userTasks, "userContext", userContext);
-        set(AbstractUserTaskListGuiApiController.class, userTasks, "userTaskService", userTaskService);
-        set(AbstractUserTaskListGuiApiController.class, userTasks, "updateStreams", mock(UpdateStreams.class));
-        set(AbstractUserTaskListGuiApiController.class, userTasks, "mapper",
-                mock(io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper.class));
+    final var userContext = mock(UserContext.class);
+    when(userContext.getUserLoggedInDetails()).thenReturn(mock(UserDetails.class));
+    userTaskService = mock(UserTaskService.class);
+    workflowlistService = mock(WorkflowlistService.class);
+    when(userTaskService.getUserTasks(any(), anyInt(), anyInt(), any(), any(), any(), anyBoolean(), any()))
+        .thenReturn(Page.empty());
+    when(userTaskService.getUserTasksUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
+        .thenReturn(Page.empty());
+    when(workflowlistService.getWorkflows(anyInt(), anyInt(), any(), any(), any(), any(), any(), anyBoolean(), any()))
+        .thenReturn(Page.empty());
+    when(workflowlistService.getWorkflowsUpdated(any(), anyInt(), any(), any(), any(), any(), anyBoolean(), any()))
+        .thenReturn(Page.empty());
 
-        final var workflows = new Workflows();
-        set(AbstractWorkflowListGuiApiController.class, workflows, "userContext", userContext);
-        set(AbstractWorkflowListGuiApiController.class, workflows, "workflowlistService", workflowlistService);
-        set(AbstractWorkflowListGuiApiController.class, workflows, "updateStreams", mock(UpdateStreams.class));
-        set(AbstractWorkflowListGuiApiController.class, workflows, "mapper",
-                mock(io.vanillabp.cockpit.workflowlist.api.v1.GuiApiMapper.class));
+    final var userTasks = new UserTasks();
+    set(AbstractUserTaskListGuiApiController.class, userTasks, "userContext", userContext);
+    set(AbstractUserTaskListGuiApiController.class, userTasks, "userTaskService", userTaskService);
+    set(AbstractUserTaskListGuiApiController.class, userTasks, "updateStreams", mock(UpdateStreams.class));
+    set(AbstractUserTaskListGuiApiController.class, userTasks, "mapper",
+        mock(io.vanillabp.cockpit.tasklist.api.v1.GuiApiMapper.class));
 
-        final var exceptionHandler = new RestfulExceptionHandler();
-        set(RestfulExceptionHandler.class, exceptionHandler, "logger",
-                LoggerFactory.getLogger(AListWithoutPagingValuesTest.class));
+    final var workflows = new Workflows();
+    set(AbstractWorkflowListGuiApiController.class, workflows, "userContext", userContext);
+    set(AbstractWorkflowListGuiApiController.class, workflows, "workflowlistService", workflowlistService);
+    set(AbstractWorkflowListGuiApiController.class, workflows, "updateStreams", mock(UpdateStreams.class));
+    set(AbstractWorkflowListGuiApiController.class, workflows, "mapper",
+        mock(io.vanillabp.cockpit.workflowlist.api.v1.GuiApiMapper.class));
 
-        client = MockMvcBuilders
-                .standaloneSetup(userTasks, workflows)
-                .setControllerAdvice(exceptionHandler)
-                .build();
+    final var exceptionHandler = new RestfulExceptionHandler();
+    set(RestfulExceptionHandler.class, exceptionHandler, "logger",
+        LoggerFactory.getLogger(AListWithoutPagingValuesTest.class));
 
-    }
+    client = MockMvcBuilders
+        .standaloneSetup(userTasks, workflows)
+        .setControllerAdvice(exceptionHandler)
+        .build();
 
-    private static void set(
-            final Class<?> declaringClass,
-            final Object target,
-            final String field,
-            final Object value) throws Exception {
+  }
 
-        final var declaredField = declaringClass.getDeclaredField(field);
-        declaredField.setAccessible(true);
-        declaredField.set(target, value);
+  private static void set(
+      final Class<?> declaringClass,
+      final Object target,
+      final String field,
+      final Object value) throws Exception {
 
-    }
+    final var declaredField = declaringClass.getDeclaredField(field);
+    declaredField.setAccessible(true);
+    declaredField.set(target, value);
 
-    private MvcResult send(
-            final MockHttpServletRequestBuilder request,
-            final String body) throws Exception {
+  }
 
-        return client
-                .perform(request
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andReturn();
+  private MvcResult send(
+      final MockHttpServletRequestBuilder request,
+      final String body) throws Exception {
 
-    }
+    return client
+        .perform(request
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body))
+        .andReturn();
 
-    @Test
-    void aTaskListWithOnlyAPageSizeIsTheFirstPageSortedAscending() throws Exception {
+  }
 
-        final var answer = send(post(GUI_API + "/usertask"), "{ \"pageSize\": 10 }");
+  @Test
+  void aTaskListWithOnlyAPageSizeIsTheFirstPageSortedAscending() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-        verify(userTaskService).getUserTasks(any(), eq(0), eq(10), any(), any(), any(), eq(true), any());
+    final var answer = send(post(GUI_API
+        + "/usertask"), "{ \"pageSize\": 10 }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(200);
+    verify(userTaskService).getUserTasks(any(), eq(0), eq(10), any(), any(), any(), eq(true), any());
 
-    @Test
-    void aTaskListWhichNamesItsValuesGetsThem() throws Exception {
+  }
 
-        final var answer = send(
-                post(GUI_API + "/usertask"),
-                "{ \"pageNumber\": 2, \"pageSize\": 10, \"sortAscending\": false }");
+  @Test
+  void aTaskListWhichNamesItsValuesGetsThem() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-        verify(userTaskService).getUserTasks(any(), eq(2), eq(10), any(), any(), any(), eq(false), any());
+    final var answer = send(
+        post(GUI_API
+            + "/usertask"),
+        "{ \"pageNumber\": 2, \"pageSize\": 10, \"sortAscending\": false }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(200);
+    verify(userTaskService).getUserTasks(any(), eq(2), eq(10), any(), any(), any(), eq(false), any());
 
-    @Test
-    void aTaskListWithoutAPageSizeIsRefusedAndTheFieldIsNamed() throws Exception {
+  }
 
-        final var answer = send(post(GUI_API + "/usertask"), "{}");
+  @Test
+  void aTaskListWithoutAPageSizeIsRefusedAndTheFieldIsNamed() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(400);
-        assertThat(answer.getResponse().getContentAsString())
-                .isEqualTo("The request is not valid: 'pageSize' is missing.");
-        verifyNoInteractions(userTaskService);
+    final var answer = send(post(GUI_API
+        + "/usertask"), "{}");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(400);
+    assertThat(answer.getResponse().getContentAsString())
+        .isEqualTo("The request is not valid: 'pageSize' is missing.");
+    verifyNoInteractions(userTaskService);
 
-    @Test
-    void aPageSizeOfZeroAndANegativePageAreRefusedByTheSchema() throws Exception {
+  }
 
-        final var answer = send(post(GUI_API + "/usertask"), "{ \"pageNumber\": -1, \"pageSize\": 0 }");
+  @Test
+  void aPageSizeOfZeroAndANegativePageAreRefusedByTheSchema() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(400);
-        assertThat(answer.getResponse().getContentAsString()).isEqualTo(
-                "The request is not valid: 'pageNumber' breaks the rule @Min, 'pageSize' breaks the rule @Min.");
-        verifyNoInteractions(userTaskService);
+    final var answer = send(post(GUI_API
+        + "/usertask"), "{ \"pageNumber\": -1, \"pageSize\": 0 }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(400);
+    assertThat(answer.getResponse().getContentAsString()).isEqualTo(
+        "The request is not valid: 'pageNumber' breaks the rule @Min, 'pageSize' breaks the rule @Min.");
+    verifyNoInteractions(userTaskService);
 
-    @Test
-    void aTaskListUpdateWithoutADirectionSortsAscending() throws Exception {
+  }
 
-        final var answer = send(put(GUI_API + "/usertask"), "{ \"size\": 10, \"knownUserTasksIds\": [] }");
+  @Test
+  void aTaskListUpdateWithoutADirectionSortsAscending() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-        verify(userTaskService).getUserTasksUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
+    final var answer = send(put(GUI_API
+        + "/usertask"), "{ \"size\": 10, \"knownUserTasksIds\": [] }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(200);
+    verify(userTaskService).getUserTasksUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
 
-    @Test
-    void aWorkflowListWithOnlyAPageSizeIsTheFirstPageSortedAscending() throws Exception {
+  }
 
-        final var answer = send(post(GUI_API + "/workflow"), "{ \"pageSize\": 10 }");
+  @Test
+  void aWorkflowListWithOnlyAPageSizeIsTheFirstPageSortedAscending() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-        verify(workflowlistService).getWorkflows(eq(0), eq(10), any(), any(), any(), any(), any(), eq(true), any());
+    final var answer = send(post(GUI_API
+        + "/workflow"), "{ \"pageSize\": 10 }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(200);
+    verify(workflowlistService).getWorkflows(eq(0), eq(10), any(), any(), any(), any(), any(), eq(true), any());
 
-    @Test
-    void aWorkflowListWithoutAPageSizeIsRefusedAndTheFieldIsNamed() throws Exception {
+  }
 
-        final var answer = send(post(GUI_API + "/workflow"), "{ \"sortAscending\": false }");
+  @Test
+  void aWorkflowListWithoutAPageSizeIsRefusedAndTheFieldIsNamed() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(400);
-        assertThat(answer.getResponse().getContentAsString())
-                .isEqualTo("The request is not valid: 'pageSize' is missing.");
-        verifyNoInteractions(workflowlistService);
+    final var answer = send(post(GUI_API
+        + "/workflow"), "{ \"sortAscending\": false }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(400);
+    assertThat(answer.getResponse().getContentAsString())
+        .isEqualTo("The request is not valid: 'pageSize' is missing.");
+    verifyNoInteractions(workflowlistService);
 
-    @Test
-    void aWorkflowListUpdateWithoutADirectionSortsAscending() throws Exception {
+  }
 
-        final var answer = send(put(GUI_API + "/workflow"), "{ \"size\": 10, \"knownWorkflowsIds\": [] }");
+  @Test
+  void aWorkflowListUpdateWithoutADirectionSortsAscending() throws Exception {
 
-        assertThat(answer.getResponse().getStatus()).isEqualTo(200);
-        verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
+    final var answer = send(put(GUI_API
+        + "/workflow"), "{ \"size\": 10, \"knownWorkflowsIds\": [] }");
 
-    }
+    assertThat(answer.getResponse().getStatus()).isEqualTo(200);
+    verify(workflowlistService).getWorkflowsUpdated(any(), eq(10), eq(List.of()), any(), any(), any(), eq(true), any());
+
+  }
 
 }

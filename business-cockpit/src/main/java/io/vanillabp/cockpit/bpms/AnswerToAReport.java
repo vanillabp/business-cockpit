@@ -39,61 +39,61 @@ import org.springframework.http.ResponseEntity;
  */
 public final class AnswerToAReport {
 
-    private static final Logger logger = LoggerFactory.getLogger(AnswerToAReport.class);
+  private static final Logger logger = LoggerFactory.getLogger(AnswerToAReport.class);
 
-    private AnswerToAReport() {
+  private AnswerToAReport() {
+  }
+
+  /**
+   * Answers a report which is refused before anything is stored, for example because its path
+   * and its body name different records.
+   *
+   * @return The answer to a report which can never go through
+   */
+  public static ResponseEntity<Void> refused() {
+
+    return ResponseEntity.badRequest().build();
+
+  }
+
+  /**
+   * Turns the outcome of storing a report into the answer the sender gets. The status code tells
+   * the sender whether to send the report again.
+   *
+   * @param outcome What the service answered: whether the cockpit is up to date about the record
+   *        now, and if not, whether the same report can go through when it comes again. A report
+   *        which is older than what is stored changes nothing, and the cockpit is up to date
+   *        anyway.
+   * @return {@code 200 OK}, {@code 503 Service Unavailable} if the report has to come again, or
+   *         {@code 422 Unprocessable Content} with the reason if it never goes through
+   */
+  // the generated API declares no body for any answer, so the type of the answer says Void. Spring
+  // writes a body which is a CharSequence as text, whatever the declared type, and so the reason
+  // of a 422 reaches the sender
+  @SuppressWarnings("unchecked")
+  public static ResponseEntity<Void> afterStoring(
+      final OutcomeOfStoring outcome) {
+
+    if (outcome.isUpToDate()) {
+      return ResponseEntity.ok().build();
     }
-
-    /**
-     * Answers a report which is refused before anything is stored, for example because its path
-     * and its body name different records.
-     *
-     * @return The answer to a report which can never go through
-     */
-    public static ResponseEntity<Void> refused() {
-
-        return ResponseEntity.badRequest().build();
-
+    if (outcome.failsEveryTime()) {
+      final var reason = outcome.reason();
+      logger.error(
+          "Returning HTTP 422 Unprocessable Content: {} The sender gives the report up.",
+          reason,
+          outcome.failure());
+      return (ResponseEntity<Void>) (ResponseEntity<?>) ResponseEntity
+          .unprocessableContent()
+          .contentType(MediaType.TEXT_PLAIN)
+          .body(reason);
     }
+    logger.error(
+        "Returning HTTP 503 Service Unavailable: {}. The sender sends the report again.",
+        outcome.reason(),
+        outcome.failure());
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
 
-    /**
-     * Turns the outcome of storing a report into the answer the sender gets. The status code tells
-     * the sender whether to send the report again.
-     *
-     * @param outcome What the service answered: whether the cockpit is up to date about the record
-     *        now, and if not, whether the same report can go through when it comes again. A report
-     *        which is older than what is stored changes nothing, and the cockpit is up to date
-     *        anyway.
-     * @return {@code 200 OK}, {@code 503 Service Unavailable} if the report has to come again, or
-     *         {@code 422 Unprocessable Content} with the reason if it never goes through
-     */
-    // the generated API declares no body for any answer, so the type of the answer says Void. Spring
-    // writes a body which is a CharSequence as text, whatever the declared type, and so the reason
-    // of a 422 reaches the sender
-    @SuppressWarnings("unchecked")
-    public static ResponseEntity<Void> afterStoring(
-            final OutcomeOfStoring outcome) {
-
-        if (outcome.isUpToDate()) {
-            return ResponseEntity.ok().build();
-        }
-        if (outcome.failsEveryTime()) {
-            final var reason = outcome.reason();
-            logger.error(
-                    "Returning HTTP 422 Unprocessable Content: {} The sender gives the report up.",
-                    reason,
-                    outcome.failure());
-            return (ResponseEntity<Void>) (ResponseEntity<?>) ResponseEntity
-                    .unprocessableContent()
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body(reason);
-        }
-        logger.error(
-                "Returning HTTP 503 Service Unavailable: {}. The sender sends the report again.",
-                outcome.reason(),
-                outcome.failure());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
-
-    }
+  }
 
 }

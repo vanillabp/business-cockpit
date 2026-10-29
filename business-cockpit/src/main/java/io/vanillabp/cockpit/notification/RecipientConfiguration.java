@@ -13,9 +13,9 @@ import java.util.Map;
  * @param value       the current value
  */
 public record RecipientConfiguration(
-        String type,
-        Map<String, String> title,
-        Map<String, String> description,
-        String value) {
+                                     String type,
+                                     Map<String, String> title,
+                                     Map<String, String> description,
+                                     String value) {
 
 }

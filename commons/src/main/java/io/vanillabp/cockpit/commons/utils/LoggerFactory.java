@@ -13,24 +13,25 @@ import org.springframework.context.annotation.Scope;
 @Configuration
 public class LoggerFactory {
 
-    /**
-     * Creates the configuration. Spring calls this constructor.
-     */
-    public LoggerFactory() {
-    }
+  /**
+   * Creates the configuration. Spring calls this constructor.
+   */
+  public LoggerFactory() {
+  }
 
-    /**
-     * Builds a logger named after the class it is injected into.
-     *
-     * @param injectionPoint Where the logger is injected
-     * @return The logger
-     */
-    @Bean
-    @Scope("prototype")
-    public Logger logger(final InjectionPoint injectionPoint) {
+  /**
+   * Builds a logger named after the class it is injected into.
+   *
+   * @param injectionPoint Where the logger is injected
+   * @return The logger
+   */
+  @Bean
+  @Scope("prototype")
+  public Logger logger(
+      final InjectionPoint injectionPoint) {
 
-        return org.slf4j.LoggerFactory.getLogger(injectionPoint.getMember().getDeclaringClass());
+    return org.slf4j.LoggerFactory.getLogger(injectionPoint.getMember().getDeclaringClass());
 
-    }
+  }
 
 }

@@ -15,21 +15,21 @@ the module.
 **Contents:**
 
 1. [What is here](#what-is-here)
-1. [What a change to it costs](#what-a-change-to-it-costs)
-1. [Building it](#building-it)
+2. [What a change to it costs](#what-a-change-to-it-costs)
+3. [Building it](#building-it)
 
 ## What is here
 
 Everything lives below `io.vanillabp.spi.cockpit`, and the module depends on nothing but the JDK, so
 that a workflow module can compile against it without inheriting anything.
 
-| Package | What it holds |
-|---|---|
-| `usertask` | `@UserTaskDetailsProvider` and its repeatable container, the details a method returns, the prefilled details it is handed, and the notification settings |
-| `workflow` | `@WorkflowDetailsProvider` and the same pair of details interfaces for a business case |
-| `details` | `@DetailsEvent`, the parameter saying which lifecycle event caused the call |
-| `workflowmodules` | `WorkflowModuleDetailsProvider`, the bean saying which groups may see a workflow module |
-| (root) | `BusinessCockpitService`, which a workflow service injects to report a change of its own |
+|      Package      |                                                                      What it holds                                                                       |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `usertask`        | `@UserTaskDetailsProvider` and its repeatable container, the details a method returns, the prefilled details it is handed, and the notification settings |
+| `workflow`        | `@WorkflowDetailsProvider` and the same pair of details interfaces for a business case                                                                   |
+| `details`         | `@DetailsEvent`, the parameter saying which lifecycle event caused the call                                                                              |
+| `workflowmodules` | `WorkflowModuleDetailsProvider`, the bean saying which groups may see a workflow module                                                                  |
+| (root)            | `BusinessCockpitService`, which a workflow service injects to report a change of its own                                                                 |
 
 Both details provider annotations carry a `version` attribute, and it picks the method by the
 deployed version of the BPMN process. It is written the way `@WorkflowTask` writes it, version tags
@@ -52,3 +52,4 @@ Nothing special; it is part of the reactor build described in the
 ```sh
 mvn -pl spi-for-java -am install
 ```
+

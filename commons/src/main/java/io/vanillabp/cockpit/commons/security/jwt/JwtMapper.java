@@ -1,7 +1,16 @@
 package io.vanillabp.cockpit.commons.security.jwt;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.OctetSequenceKey;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.crypto.spec.SecretKeySpec;
+
 import org.slf4j.Logger;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,15 +25,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import javax.crypto.spec.SecretKeySpec;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
 
 /**
  * Turns a login token (a JSON Web Token, JWT) into a Spring Security authentication and back. The
@@ -35,287 +37,288 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
-    /**
-     * The claim which holds the groups and other authorities of the user.
-     */
-    public static final String AUTHORITIES_CLAIM = "authorities";
+  /**
+   * The claim which holds the groups and other authorities of the user.
+   */
+  public static final String AUTHORITIES_CLAIM = "authorities";
 
-    /**
-     * When the user logged in, in seconds since the epoch. The name is the one OpenID Connect
-     * uses for the same thing.
-     */
-    public static final String LOGIN_TIME_CLAIM = "auth_time";
+  /**
+   * When the user logged in, in seconds since the epoch. The name is the one OpenID Connect
+   * uses for the same thing.
+   */
+  public static final String LOGIN_TIME_CLAIM = "auth_time";
 
-    /**
-     * Added to the lifetime of a new token, so a token is not judged expired by a clock which is a
-     * few seconds ahead.
-     */
-    private static final Duration EXPIRY_BUFFER = Duration.ofSeconds(10);
+  /**
+   * Added to the lifetime of a new token, so a token is not judged expired by a clock which is a
+   * few seconds ahead.
+   */
+  private static final Duration EXPIRY_BUFFER = Duration.ofSeconds(10);
 
-    private final JwtProperties properties;
+  private final JwtProperties properties;
 
-    /**
-     * Creates the mapper.
-     *
-     * @param properties The token settings
-     */
-    public JwtMapper(
-            final JwtProperties properties) {
+  /**
+   * Creates the mapper.
+   *
+   * @param properties The token settings
+   */
+  public JwtMapper(
+      final JwtProperties properties) {
 
-        this.properties = properties;
+    this.properties = properties;
 
+  }
+
+  /**
+   * The logger the mapper writes its errors to, so they appear under the name of the subclass.
+   *
+   * @return The logger
+   */
+  protected abstract Logger getLogger();
+
+  /**
+   * Builds the authentication out of a checked token.
+   *
+   * @param jwt           The checked token
+   * @param bcAuthorities The authorities found so far, which already hold the user itself. The
+   *                      subclass may add more.
+   * @return The authentication
+   */
+  protected abstract D buildAuthenticationToken(
+      final Jwt jwt,
+      final Collection<GrantedAuthority> bcAuthorities);
+
+  /**
+   * Checks a token and turns it into an authentication. The authentication always holds the
+   * authority {@code USER_} plus the user id.
+   *
+   * @param token The token as sent in the cookie
+   * @return The authentication, or {@code null} if there is no token
+   */
+  public D toAuth(
+      final String token) {
+
+    if (token == null) {
+      return null;
+    }
+    final var jwt = buildJwt(token);
+
+    final var authorities = new HashSet<GrantedAuthority>();
+    authorities.add(new SimpleGrantedAuthority(JwtUserDetails.USER_AUTHORITY_PREFIX + jwt.getSubject()));
+
+    return buildAuthenticationToken(jwt, authorities);
+
+  }
+
+  /**
+   * Checks a token and turns it into a security context.
+   *
+   * @param token The token as sent in the cookie
+   * @return The security context, with no authentication if there is no token
+   */
+  public SecurityContext toSecurityContext(
+      final String token) {
+
+    final var auth = toAuth(token);
+    final var securityContext = new SecurityContextImpl();
+    securityContext.setAuthentication(auth);
+    return securityContext;
+
+  }
+
+  /**
+   * Adds the claims of a new token which come from the login, like the user id and the groups.
+   *
+   * @param claimsSetBuilder The claims of the token being built
+   * @param context          The security context of the login
+   */
+  protected abstract void applyJwtClaimsSet(
+      final JwtClaimsSet.Builder claimsSetBuilder,
+      final SecurityContext context);
+
+  /**
+   * The token of a new login. It lives {@code expires-duration}, but never longer than
+   * {@code max-login-duration}, and it notes the time of the login in the claim
+   * {@value #LOGIN_TIME_CLAIM}, which every renewal keeps.
+   *
+   * @param context The security context of the login
+   * @return The token and the moment it expires, or empty if there is no authentication or the
+   *         token cannot be built
+   */
+  public Optional<Map.Entry<String, Instant>> toToken(
+      final SecurityContext context) {
+
+    try {
+
+      final var auth = context.getAuthentication();
+      if (auth == null) {
+        return Optional.empty();
+      }
+
+      final var now = Instant.now();
+      final var expiresAt = earlierOf(
+          now
+              .plus(expiresDuration())
+              .plus(EXPIRY_BUFFER),
+          now.plus(maxLoginDuration()));
+
+      final var claimsSetBuilder = JwtClaimsSet
+          .builder()
+          .expiresAt(expiresAt)
+          .id(UUID.randomUUID().toString())
+          .issuedAt(now)
+          .claim(LOGIN_TIME_CLAIM, now.getEpochSecond());
+
+      applyJwtClaimsSet(
+          claimsSetBuilder,
+          context);
+
+      final var claimsSet = claimsSetBuilder.build();
+
+      return Optional.of(Map.entry(
+          buildToken(claimsSet),
+          expiresAt));
+
+    } catch (Exception e) {
+      getLogger().error("Could not build JWT token", e);
+      return Optional.empty();
     }
 
-    /**
-     * The logger the mapper writes its errors to, so they appear under the name of the subclass.
-     *
-     * @return The logger
-     */
-    protected abstract Logger getLogger();
+  }
 
-    /**
-     * Builds the authentication out of a checked token.
-     *
-     * @param jwt           The checked token
-     * @param bcAuthorities The authorities found so far, which already hold the user itself. The
-     *                      subclass may add more.
-     * @return The authentication
-     */
-    protected abstract D buildAuthenticationToken(
-            final Jwt jwt,
-            final Collection<GrantedAuthority> bcAuthorities);
+  /**
+   * A new token for a login which is still in use, or empty if the token does not need one yet.
+   * <p>
+   * A token is renewed once less than half of {@code expires-duration} is left. The new token
+   * carries the same claims, so the same user with the same groups, and it lives
+   * {@code expires-duration} again. It never lives past the login time plus
+   * {@code max-login-duration}. When that limit leaves no more time than the old token has, there
+   * is nothing to renew, and the login ends when the old token expires.
+   * <p>
+   * The login time comes from the claim {@value #LOGIN_TIME_CLAIM}. A token without it was
+   * issued before renewal existed, or by an application of its own, and was never renewed, so
+   * its issue time is its login time.
+   *
+   * @param jwt The token of the current request, already checked
+   * @return The new token and the moment it expires, or empty if there is nothing to renew
+   */
+  public Optional<Map.Entry<String, Instant>> renew(
+      final Jwt jwt) {
 
-    /**
-     * Checks a token and turns it into an authentication. The authentication always holds the
-     * authority {@code USER_} plus the user id.
-     *
-     * @param token The token as sent in the cookie
-     * @return The authentication, or {@code null} if there is no token
-     */
-    public D toAuth(
-            final String token) {
-
-        if (token == null) {
-            return null;
-        }
-        final var jwt = buildJwt(token);
-
-        final var authorities = new HashSet<GrantedAuthority>();
-        authorities.add(new SimpleGrantedAuthority(JwtUserDetails.USER_AUTHORITY_PREFIX + jwt.getSubject()));
-
-        return buildAuthenticationToken(jwt, authorities);
-
+    final var loginAt = loginTimeOf(jwt);
+    final var expiresAt = jwt.getExpiresAt();
+    if (loginAt.isEmpty() || (expiresAt == null)) {
+      return Optional.empty();
     }
 
-    /**
-     * Checks a token and turns it into a security context.
-     *
-     * @param token The token as sent in the cookie
-     * @return The security context, with no authentication if there is no token
-     */
-    public SecurityContext toSecurityContext(
-            final String token) {
-
-        final var auth = toAuth(token);
-        final var securityContext = new SecurityContextImpl();
-        securityContext.setAuthentication(auth);
-        return securityContext;
-
+    final var now = Instant.now();
+    final var expiresDuration = expiresDuration();
+    if (Duration.between(now, expiresAt).compareTo(expiresDuration.dividedBy(2)) >= 0) {
+      return Optional.empty();
     }
 
-    /**
-     * Adds the claims of a new token which come from the login, like the user id and the groups.
-     *
-     * @param claimsSetBuilder The claims of the token being built
-     * @param context          The security context of the login
-     */
-    protected abstract void applyJwtClaimsSet(
-            final JwtClaimsSet.Builder claimsSetBuilder,
-            final SecurityContext context);
-
-    /**
-     * The token of a new login. It lives {@code expires-duration}, but never longer than
-     * {@code max-login-duration}, and it notes the time of the login in the claim
-     * {@value #LOGIN_TIME_CLAIM}, which every renewal keeps.
-     *
-     * @param context The security context of the login
-     * @return The token and the moment it expires, or empty if there is no authentication or the
-     *         token cannot be built
-     */
-    public Optional<Map.Entry<String, Instant>> toToken(
-            final SecurityContext context) {
-
-        try {
-
-            final var auth = context.getAuthentication();
-            if (auth == null) {
-                return Optional.empty();
-            }
-
-            final var now = Instant.now();
-            final var expiresAt = earlierOf(
-                    now
-                            .plus(expiresDuration())
-                            .plus(EXPIRY_BUFFER),
-                    now.plus(maxLoginDuration()));
-
-            final var claimsSetBuilder = JwtClaimsSet
-                    .builder()
-                    .expiresAt(expiresAt)
-                    .id(UUID.randomUUID().toString())
-                    .issuedAt(now)
-                    .claim(LOGIN_TIME_CLAIM, now.getEpochSecond());
-
-            applyJwtClaimsSet(
-                    claimsSetBuilder,
-                    context);
-
-            final var claimsSet = claimsSetBuilder.build();
-
-            return Optional.of(Map.entry(
-                    buildToken(claimsSet),
-                    expiresAt));
-
-        } catch (Exception e) {
-            getLogger().error("Could not build JWT token", e);
-            return Optional.empty();
-        }
-
+    final var renewedExpiresAt = earlierOf(
+        now
+            .plus(expiresDuration)
+            .plus(EXPIRY_BUFFER),
+        loginAt
+            .get()
+            .plus(maxLoginDuration()));
+    if (!renewedExpiresAt.isAfter(expiresAt)) {
+      return Optional.empty();
     }
 
-    /**
-     * A new token for a login which is still in use, or empty if the token does not need one yet.
-     * <p>
-     * A token is renewed once less than half of {@code expires-duration} is left. The new token
-     * carries the same claims, so the same user with the same groups, and it lives
-     * {@code expires-duration} again. It never lives past the login time plus
-     * {@code max-login-duration}. When that limit leaves no more time than the old token has, there
-     * is nothing to renew, and the login ends when the old token expires.
-     * <p>
-     * The login time comes from the claim {@value #LOGIN_TIME_CLAIM}. A token without it was
-     * issued before renewal existed, or by an application of its own, and was never renewed, so
-     * its issue time is its login time.
-     *
-     * @param jwt The token of the current request, already checked
-     * @return The new token and the moment it expires, or empty if there is nothing to renew
-     */
-    public Optional<Map.Entry<String, Instant>> renew(
-            final Jwt jwt) {
+    try {
 
-        final var loginAt = loginTimeOf(jwt);
-        final var expiresAt = jwt.getExpiresAt();
-        if (loginAt.isEmpty() || (expiresAt == null)) {
-            return Optional.empty();
-        }
+      final var claimsSet = JwtClaimsSet
+          .builder()
+          .claims(claims -> claims.putAll(jwt.getClaims()))
+          .expiresAt(renewedExpiresAt)
+          .id(UUID.randomUUID().toString())
+          .issuedAt(now)
+          .claim(LOGIN_TIME_CLAIM, loginAt.get().getEpochSecond())
+          .build();
 
-        final var now = Instant.now();
-        final var expiresDuration = expiresDuration();
-        if (Duration.between(now, expiresAt).compareTo(expiresDuration.dividedBy(2)) >= 0) {
-            return Optional.empty();
-        }
+      return Optional.of(Map.entry(
+          buildToken(claimsSet),
+          renewedExpiresAt));
 
-        final var renewedExpiresAt = earlierOf(
-                now
-                        .plus(expiresDuration)
-                        .plus(EXPIRY_BUFFER),
-                loginAt
-                        .get()
-                        .plus(maxLoginDuration()));
-        if (!renewedExpiresAt.isAfter(expiresAt)) {
-            return Optional.empty();
-        }
-
-        try {
-
-            final var claimsSet = JwtClaimsSet
-                    .builder()
-                    .claims(claims -> claims.putAll(jwt.getClaims()))
-                    .expiresAt(renewedExpiresAt)
-                    .id(UUID.randomUUID().toString())
-                    .issuedAt(now)
-                    .claim(LOGIN_TIME_CLAIM, loginAt.get().getEpochSecond())
-                    .build();
-
-            return Optional.of(Map.entry(
-                    buildToken(claimsSet),
-                    renewedExpiresAt));
-
-        } catch (Exception e) {
-            getLogger().error("Could not renew JWT token", e);
-            return Optional.empty();
-        }
-
+    } catch (Exception e) {
+      getLogger().error("Could not renew JWT token", e);
+      return Optional.empty();
     }
 
-    private static Optional<Instant> loginTimeOf(
-            final Jwt jwt) {
+  }
 
-        final var loginTime = jwt.getClaims().get(LOGIN_TIME_CLAIM);
-        if (loginTime instanceof Number seconds) {
-            return Optional.of(Instant.ofEpochSecond(seconds.longValue()));
-        }
-        if (loginTime instanceof Instant instant) {
-            return Optional.of(instant);
-        }
-        return Optional.ofNullable(jwt.getIssuedAt());
+  private static Optional<Instant> loginTimeOf(
+      final Jwt jwt) {
 
+    final var loginTime = jwt.getClaims().get(LOGIN_TIME_CLAIM);
+    if (loginTime instanceof Number seconds) {
+      return Optional.of(Instant.ofEpochSecond(seconds.longValue()));
     }
-
-    private static Instant earlierOf(
-            final Instant first,
-            final Instant second) {
-
-        return first.isBefore(second) ? first : second;
-
+    if (loginTime instanceof Instant instant) {
+      return Optional.of(instant);
     }
+    return Optional.ofNullable(jwt.getIssuedAt());
 
-    private Duration expiresDuration() {
+  }
 
-        return Duration.parse(properties.getCookie().getExpiresDuration());
+  private static Instant earlierOf(
+      final Instant first,
+      final Instant second) {
 
-    }
+    return first.isBefore(second) ? first : second;
 
-    private Duration maxLoginDuration() {
+  }
 
-        return Duration.parse(properties.getCookie().getMaxLoginDuration());
+  private Duration expiresDuration() {
 
-    }
+    return Duration.parse(properties.getCookie().getExpiresDuration());
 
-    private String buildToken(
-            final JwtClaimsSet claimsSet) {
+  }
 
-        final var jwk = new OctetSequenceKey
-                .Builder(properties.getHmacSHA256())
-                .keyID(UUID.randomUUID().toString())
-                .algorithm(JWSAlgorithm.HS256)
-                .build();
+  private Duration maxLoginDuration() {
 
-        final var encoder = new NimbusJwtEncoder(
-                (jwkSelector, securityContext) -> List.of(jwk));
+    return Duration.parse(properties.getCookie().getMaxLoginDuration());
 
-        final var parameters = JwtEncoderParameters.from(
-                JwsHeader.with(MacAlgorithm.HS256).build(),
-                claimsSet);
+  }
 
-        return encoder
-                .encode(parameters)
-                .getTokenValue();
+  private String buildToken(
+      final JwtClaimsSet claimsSet) {
 
-    }
+    final var jwk = new OctetSequenceKey.Builder(properties.getHmacSHA256())
+        .keyID(UUID.randomUUID().toString())
+        .algorithm(JWSAlgorithm.HS256)
+        .build();
 
-    private Jwt buildJwt(
-            final String token) {
+    final var encoder = new NimbusJwtEncoder(
+        (
+            jwkSelector,
+            securityContext) -> List.of(jwk));
 
-        final var key = new SecretKeySpec(
-                properties.getHmacSHA256(), "HMACSHA256");
+    final var parameters = JwtEncoderParameters.from(
+        JwsHeader.with(MacAlgorithm.HS256).build(),
+        claimsSet);
 
-        final var decoder = NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
+    return encoder
+        .encode(parameters)
+        .getTokenValue();
 
-        return decoder.decode(token);
+  }
 
-    }
+  private Jwt buildJwt(
+      final String token) {
+
+    final var key = new SecretKeySpec(
+        properties.getHmacSHA256(), "HMACSHA256");
+
+    final var decoder = NimbusJwtDecoder
+        .withSecretKey(key)
+        .macAlgorithm(MacAlgorithm.HS256)
+        .build();
+
+    return decoder.decode(token);
+
+  }
 
 }

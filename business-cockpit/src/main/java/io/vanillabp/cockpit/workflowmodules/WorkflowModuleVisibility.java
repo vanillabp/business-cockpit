@@ -1,7 +1,8 @@
 package io.vanillabp.cockpit.workflowmodules;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import java.util.Collection;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 
 /**
  * Which workflow modules one view of the cockpit lets a user reach. The module list is built from
@@ -20,30 +21,30 @@ import java.util.Collection;
  *     module through
  */
 public record WorkflowModuleVisibility(
-        Collection<String> accessibleToGroups) {
+                                       Collection<String> accessibleToGroups) {
 
-    /**
-     * The modules registered for one of the user's groups, plus the ones open to everybody.
-     *
-     * @param user The user whose groups decide
-     * @return The visibility for that user
-     */
-    public static WorkflowModuleVisibility modulesAddressedTo(
-            final UserDetails user) {
+  /**
+   * The modules registered for one of the user's groups, plus the ones open to everybody.
+   *
+   * @param user The user whose groups decide
+   * @return The visibility for that user
+   */
+  public static WorkflowModuleVisibility modulesAddressedTo(
+      final UserDetails user) {
 
-        return new WorkflowModuleVisibility(user.getAuthorities());
+    return new WorkflowModuleVisibility(user.getAuthorities());
 
-    }
+  }
 
-    /**
-     * Every registered workflow module, whichever groups it named.
-     *
-     * @return The visibility which lets every module through
-     */
-    public static WorkflowModuleVisibility everyWorkflowModule() {
+  /**
+   * Every registered workflow module, whichever groups it named.
+   *
+   * @return The visibility which lets every module through
+   */
+  public static WorkflowModuleVisibility everyWorkflowModule() {
 
-        return new WorkflowModuleVisibility(null);
+    return new WorkflowModuleVisibility(null);
 
-    }
+  }
 
 }

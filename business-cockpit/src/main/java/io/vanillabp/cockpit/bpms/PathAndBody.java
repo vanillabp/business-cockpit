@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.bpms;
 
 import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,37 +17,37 @@ import org.slf4j.LoggerFactory;
  */
 public final class PathAndBody {
 
-    private static final Logger logger = LoggerFactory.getLogger(PathAndBody.class);
+  private static final Logger logger = LoggerFactory.getLogger(PathAndBody.class);
 
-    private PathAndBody() {
+  private PathAndBody() {
+  }
+
+  /**
+   * Checks that the id in the path and the id in the body of a report are the same.
+   *
+   * @param kindOfRecord What the id is about, for the log: "user task" or "workflow"
+   * @param idInPath The id the path of the report names
+   * @param idInBody The id the body of the report names
+   * @return Whether both name the same record. If not, the log says why the report is refused.
+   */
+  public static boolean nameTheSameRecord(
+      final String kindOfRecord,
+      final String idInPath,
+      final String idInBody) {
+
+    if (Objects.equals(idInPath, idInBody)) {
+      return true;
     }
 
-    /**
-     * Checks that the id in the path and the id in the body of a report are the same.
-     *
-     * @param kindOfRecord What the id is about, for the log: "user task" or "workflow"
-     * @param idInPath The id the path of the report names
-     * @param idInBody The id the body of the report names
-     * @return Whether both name the same record. If not, the log says why the report is refused.
-     */
-    public static boolean nameTheSameRecord(
-            final String kindOfRecord,
-            final String idInPath,
-            final String idInBody) {
+    logger.warn(
+        "Refusing a report about {} '{}': the path names '{}' and the body names '{}'. "
+            + "Send the report with the same id in both places.",
+        kindOfRecord,
+        idInPath,
+        idInPath,
+        idInBody);
+    return false;
 
-        if (Objects.equals(idInPath, idInBody)) {
-            return true;
-        }
-
-        logger.warn(
-                "Refusing a report about {} '{}': the path names '{}' and the body names '{}'. "
-                        + "Send the report with the same id in both places.",
-                kindOfRecord,
-                idInPath,
-                idInPath,
-                idInBody);
-        return false;
-
-    }
+  }
 
 }

@@ -3,10 +3,9 @@ package io.vanillabp.cockpit.notification.email;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vanillabp.cockpit.notification.NotificationProperties;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.IOException;
 import java.time.Duration;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.context.properties.bind.Bindable;
@@ -15,6 +14,9 @@ import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StringUtils;
+
+import io.vanillabp.cockpit.notification.NotificationProperties;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Pins down what the Spring profile 'mailpit' of {@code config/application-mailpit.yaml} is good
@@ -30,52 +32,54 @@ import org.springframework.util.StringUtils;
 @ExtendWith(SuppressOutputExtension.class)
 class MailpitProfileTest {
 
-    private static StandardEnvironment profile() throws IOException {
+  private static StandardEnvironment profile() throws IOException {
 
-        final var environment = new StandardEnvironment();
-        new YamlPropertySourceLoader()
-                .load("mailpit", new ClassPathResource("config/application-mailpit.yaml"))
-                .forEach(source -> environment.getPropertySources().addFirst(source));
-        return environment;
+    final var environment = new StandardEnvironment();
+    new YamlPropertySourceLoader()
+        .load("mailpit", new ClassPathResource("config/application-mailpit.yaml"))
+        .forEach(source -> environment.getPropertySources().addFirst(source));
+    return environment;
 
-    }
+  }
 
-    @Test
-    void theProfileEnablesTheEmailMediumAndSetsASender() throws IOException {
-        final var notification = Binder
-                .get(profile())
-                .bind(NotificationProperties.PREFIX, Bindable.of(NotificationProperties.class))
-                .orElseThrow(() -> new AssertionError("nothing bound below " + NotificationProperties.PREFIX));
+  @Test
+  void theProfileEnablesTheEmailMediumAndSetsASender() throws IOException {
+    final var notification = Binder
+        .get(profile())
+        .bind(NotificationProperties.PREFIX, Bindable.of(NotificationProperties.class))
+        .orElseThrow(() -> new AssertionError("nothing bound below "
+            + NotificationProperties.PREFIX));
 
-        assertTrue(notification.getSmtp().isEnabled());
-        // many SMTP servers reject a message without a sender. Mailpit does not, but a real one
-        // would
-        assertTrue(StringUtils.hasText(notification.getSmtp().getFrom()));
-    }
+    assertTrue(notification.getSmtp().isEnabled());
+    // many SMTP servers reject a message without a sender. Mailpit does not, but a real one
+    // would
+    assertTrue(StringUtils.hasText(notification.getSmtp().getFrom()));
+  }
 
-    @Test
-    void theProfileGatesTheEmailNotificationServiceBean() throws IOException {
-        // the very property @ConditionalOnProperty of EmailNotificationConfiguration keys on
-        assertEquals("true", profile().getProperty("business-cockpit.notification.smtp.enabled"));
-    }
+  @Test
+  void theProfileGatesTheEmailNotificationServiceBean() throws IOException {
+    // the very property @ConditionalOnProperty of EmailNotificationConfiguration keys on
+    assertEquals("true", profile().getProperty("business-cockpit.notification.smtp.enabled"));
+  }
 
-    @Test
-    void theProfilePointsAtTheMailpitContainerOfTheDockerCompose() throws IOException {
-        final var environment = profile();
+  @Test
+  void theProfilePointsAtTheMailpitContainerOfTheDockerCompose() throws IOException {
+    final var environment = profile();
 
-        assertEquals("localhost", environment.getProperty("spring.mail.host"));
-        assertEquals(1025, environment.getProperty("spring.mail.port", Integer.class));
-    }
+    assertEquals("localhost", environment.getProperty("spring.mail.host"));
+    assertEquals(1025, environment.getProperty("spring.mail.port", Integer.class));
+  }
 
-    @Test
-    void theProfileShortensThePollIntervalForManualTesting() throws IOException {
-        final var notification = Binder
-                .get(profile())
-                .bind(NotificationProperties.PREFIX, Bindable.of(NotificationProperties.class))
-                .get();
+  @Test
+  void theProfileShortensThePollIntervalForManualTesting() throws IOException {
+    final var notification = Binder
+        .get(profile())
+        .bind(NotificationProperties.PREFIX, Bindable.of(NotificationProperties.class))
+        .get();
 
-        assertTrue(notification.getInterval().compareTo(Duration.ofMinutes(1)) < 0,
-                "a manual test should not have to wait a minute: " + notification.getInterval());
-    }
+    assertTrue(notification.getInterval().compareTo(Duration.ofMinutes(1)) < 0,
+        "a manual test should not have to wait a minute: "
+            + notification.getInterval());
+  }
 
 }

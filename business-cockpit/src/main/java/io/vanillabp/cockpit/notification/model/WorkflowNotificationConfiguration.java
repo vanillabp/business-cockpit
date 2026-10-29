@@ -15,7 +15,7 @@ import java.util.Map;
  *                      back to the global setting.
  */
 public record WorkflowNotificationConfiguration(
-        boolean none,
-        Map<String, Boolean> allViaMedium) {
+                                                boolean none,
+                                                Map<String, Boolean> allViaMedium) {
 
 }

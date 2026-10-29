@@ -8,16 +8,16 @@ package io.vanillabp.spi.cockpit.usertask;
  */
 public enum NotificationDelivery {
 
-    /** Deliver according to each user's notification configuration (the default). */
-    USER_CONFIG,
+  /** Deliver according to each user's notification configuration (the default). */
+  USER_CONFIG,
 
-    /**
-     * Always notify, whatever the user configured. The notification is marked as forced, and
-     * this wins over {@link #SUPPRESS} and over the user configuration.
-     */
-    FORCE,
+  /**
+   * Always notify, whatever the user configured. The notification is marked as forced, and
+   * this wins over {@link #SUPPRESS} and over the user configuration.
+   */
+  FORCE,
 
-    /** Never notify from the cockpit. The workflow module notifies itself. */
-    SUPPRESS
+  /** Never notify from the cockpit. The workflow module notifies itself. */
+  SUPPRESS
 
 }

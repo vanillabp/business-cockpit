@@ -157,16 +157,19 @@ werden.
    neue Workflows nie einen Wecker, und seine Liste sähe aus wie hängengeblieben. Die Sicht kommt
    an derselben Stelle zum Strom wie die Kennungen für das Gedächtnis, also ohne neue Regel: die
    Ansicht hat sie ohnehin gerade benutzt.
+
 3. Gefiltert wird im Sammeltakt, nicht je Ereignis. Der Takt hat die Kennungen aller Ereignisse
    seit dem letzten Mal. Eine Abfrage je Strom und Takt, die nur Kennungen liest, sagt, welche
    davon die Person sehen darf. Die Abfrage ist dieselbe wie in `getUserTasksUpdated`
    (`tasklist/UserTaskService.java`, Zeilen 702 bis 726): `buildUserTasksCriteria(visibility, …)`
    plus `_id in (…)` und `query.fields().include("_id")`.
+
 4. Eine Kennung, die die Abfrage nicht hergibt, geht trotzdem durch, wenn der Browser dieser
    Person sie schon hat. Das ist der Entzug, und er verrät nichts: die Kennung ist dem Browser
    bekannt, und das Nachladen antwortet mit Abwesenheit. Alles andere fällt weg. Woher der Server
    weiß, was ein Browser hält, steht im Abschnitt
    [Was der Server dem Browser schon gegeben hat](#was-der-server-dem-browser-schon-gegeben-hat).
+
 5. Der Zugang braucht keinen Sonderfall. Wird eine Task jemandem zugewiesen, nennt die neue
    Sichtbarkeit diese Person, die Abfrage gibt die Kennung her, und der Wecker geht raus.
 
@@ -477,7 +480,7 @@ gesammelten Änderungen, die CPU-Zeit des Test-Prozesses und die CPU-Zeit des Mo
 
 ### Gedächtnis
 
-| Kennungen je Strom | Ströme | Heap     | Bytes je Kennung |
+| Kennungen je Strom | Ströme |   Heap   | Bytes je Kennung |
 |--------------------|--------|----------|------------------|
 | 500                | 450    | 27,2 MB  | 127              |
 | 2.000              | 450    | 104,6 MB | 122              |
@@ -486,7 +489,7 @@ Kennungen sind UUIDs mit 36 Zeichen. Die Schätzung im Review (110 MB bei 2.000)
 
 ### Filtertakt
 
-| Tasks   | Rate/s | Takt    | Takte mit Änderung | Abfragen/s | Takt p50 | p95    | max    | Server-CPU | MongoDB-CPU |
+|  Tasks  | Rate/s |  Takt   | Takte mit Änderung | Abfragen/s | Takt p50 |  p95   |  max   | Server-CPU | MongoDB-CPU |
 |---------|--------|---------|--------------------|------------|----------|--------|--------|------------|-------------|
 | 20.000  | 0,3    | 250 ms  | 6 %                | 101        | 109 ms   | 200 ms | 340 ms | 6 %        | 2 %         |
 | 20.000  | 3      | 250 ms  | 49 %               | 735        | 92 ms    | 105 ms | 107 ms | 13 %       | 8 %         |
@@ -555,7 +558,7 @@ vielen Kennungen, wie ein Takt der Zeile sammelt. Sie dauerte im Mittel 0,1 bis 
 1,8 ms. Danach entscheidet das Cockpit im Speicher, für 450 Ströme und eine Handvoll Dokumente, im
 Bereich von Mikrosekunden je Paar.
 
-| Rate/s | Takt    | Abfragen/s a) | Abfragen/s b), geschätzt | Takt a) p50 | Takt b), geschätzt |
+| Rate/s |  Takt   | Abfragen/s a) | Abfragen/s b), geschätzt | Takt a) p50 | Takt b), geschätzt |
 |--------|---------|---------------|--------------------------|-------------|--------------------|
 | 0,3    | 1000 ms | 97            | 0,2                      | 87 ms       | unter 5 ms         |
 | 3      | 1000 ms | 375           | 0,9                      | 99 ms       | unter 5 ms         |
@@ -607,7 +610,7 @@ Rechner. Die Tabelle für a) oben bleibt als Vergleich stehen. Neu ist die Spalt
 "Allokation je Takt": was der Faden des Takts an Speicher belegt, gemessen mit
 `ThreadMXBean.getCurrentThreadAllocatedBytes`, Median der Takte mit Änderung.
 
-| Tasks   | Rate/s | Takt    | Takte mit Änderung | Abfragen/s | Takt p50 | p95   | max   | Server-CPU | MongoDB-CPU | Allokation je Takt |
+|  Tasks  | Rate/s |  Takt   | Takte mit Änderung | Abfragen/s | Takt p50 |  p95  |  max  | Server-CPU | MongoDB-CPU | Allokation je Takt |
 |---------|--------|---------|--------------------|------------|----------|-------|-------|------------|-------------|--------------------|
 | 20.000  | 0,3    | 250 ms  | 6 %                | 0,2        | 8,5 ms   | 12 ms | 68 ms | 2 %        | 1 %         | 1,8 MB             |
 | 20.000  | 3      | 250 ms  | 42 %               | 1,7        | 5,0 ms   | 11 ms | 12 ms | 3 %        | 1 %         | 1,8 MB             |

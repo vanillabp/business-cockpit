@@ -1,9 +1,10 @@
 package io.vanillabp.cockpit.autoconfigure;
 
-import io.vanillabp.cockpit.notification.email.EmailNotificationConfiguration;
-import io.vanillabp.cockpit.notification.poller.NotificationPollerConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.Import;
+
+import io.vanillabp.cockpit.notification.email.EmailNotificationConfiguration;
+import io.vanillabp.cockpit.notification.poller.NotificationPollerConfiguration;
 
 /**
  * Telling a user about a task they have not seen: the poller which collects what is worth a message
@@ -16,16 +17,15 @@ import org.springframework.context.annotation.Import;
  */
 @AutoConfiguration
 @Import({
-    NotificationPollerConfiguration.class,
-    EmailNotificationConfiguration.class
+    NotificationPollerConfiguration.class, EmailNotificationConfiguration.class
 })
 public class BusinessCockpitNotificationAutoConfiguration {
 
-    /**
-     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
-     */
-    public BusinessCockpitNotificationAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+   */
+  public BusinessCockpitNotificationAutoConfiguration() {
 
-    }
+  }
 
 }

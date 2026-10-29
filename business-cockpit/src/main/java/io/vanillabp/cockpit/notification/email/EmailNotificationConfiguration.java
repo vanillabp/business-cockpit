@@ -1,13 +1,14 @@
 package io.vanillabp.cockpit.notification.email;
 
-import io.vanillabp.cockpit.config.properties.ApplicationProperties;
-import io.vanillabp.cockpit.notification.NotificationProperties;
-import io.vanillabp.cockpit.users.model.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
+
+import io.vanillabp.cockpit.config.properties.ApplicationProperties;
+import io.vanillabp.cockpit.notification.NotificationProperties;
+import io.vanillabp.cockpit.users.model.UserRepository;
 
 /**
  * Registers the reference e-mail {@link EmailNotificationService}, gated by
@@ -22,34 +23,34 @@ import org.springframework.mail.javamail.JavaMailSender;
 @Configuration
 public class EmailNotificationConfiguration {
 
-    /**
-     * Creates the configuration. Spring calls it while it reads the configuration classes.
-     */
-    public EmailNotificationConfiguration() {
-    }
+  /**
+   * Creates the configuration. Spring calls it while it reads the configuration classes.
+   */
+  public EmailNotificationConfiguration() {
+  }
 
-    /**
-     * The e-mail medium, unless the application declares an {@link EmailNotificationService} of
-     * its own.
-     *
-     * @param notificationProperties the notification settings, with the sender address
-     * @param userRepository         the users, which hold the e-mail address of each recipient
-     * @param mailSender             the Spring Boot mail sender the e-mails go through
-     * @param applicationProperties  the settings of the cockpit, with its default locale and its URL
-     * @return the e-mail medium
-     */
-    @Bean
-    @ConditionalOnProperty(prefix = "business-cockpit.notification.smtp", name = "enabled", havingValue = "true")
-    @ConditionalOnMissingBean(EmailNotificationService.class)
-    public EmailNotificationService emailNotificationService(
-            final NotificationProperties notificationProperties,
-            final UserRepository userRepository,
-            final JavaMailSender mailSender,
-            final ApplicationProperties applicationProperties) {
+  /**
+   * The e-mail medium, unless the application declares an {@link EmailNotificationService} of
+   * its own.
+   *
+   * @param notificationProperties the notification settings, with the sender address
+   * @param userRepository         the users, which hold the e-mail address of each recipient
+   * @param mailSender             the Spring Boot mail sender the e-mails go through
+   * @param applicationProperties  the settings of the cockpit, with its default locale and its URL
+   * @return the e-mail medium
+   */
+  @Bean
+  @ConditionalOnProperty(prefix = "business-cockpit.notification.smtp", name = "enabled", havingValue = "true")
+  @ConditionalOnMissingBean(EmailNotificationService.class)
+  public EmailNotificationService emailNotificationService(
+      final NotificationProperties notificationProperties,
+      final UserRepository userRepository,
+      final JavaMailSender mailSender,
+      final ApplicationProperties applicationProperties) {
 
-        return new EmailNotificationService(
-                notificationProperties, userRepository, mailSender, applicationProperties);
+    return new EmailNotificationService(
+        notificationProperties, userRepository, mailSender, applicationProperties);
 
-    }
+  }
 
 }

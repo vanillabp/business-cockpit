@@ -1,12 +1,8 @@
 package io.vanillabp.cockpit.devshell.simulator.usermanagement;
 
-import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
-import io.vanillabp.cockpit.devshell.simulator.config.Properties;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,6 +14,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.vanillabp.cockpit.commons.security.jwt.JwtProperties;
+import io.vanillabp.cockpit.devshell.simulator.config.Properties;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 /**
  * The REST endpoints the dev shell uses to list the made-up users and to switch between them.
  * Business applications use them too, to load the current user.
@@ -26,200 +28,196 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/dev-shell/user")
 public class UserController {
 
-    private final Properties properties;
+  private final Properties properties;
 
-    private final JwtServerSecurityContextRepository securityContextRepository;
+  private final JwtServerSecurityContextRepository securityContextRepository;
 
-    private final JwtProperties jwtProperties;
+  private final JwtProperties jwtProperties;
 
-    /**
-     * Creates the controller.
-     *
-     * @param properties The properties which list the users
-     * @param securityContextRepository Keeps the current user in a JWT cookie
-     * @param jwtProperties The settings of the JWT and its cookie
-     */
-    public UserController(
-            final Properties properties,
-            final JwtServerSecurityContextRepository securityContextRepository,
-            final JwtProperties jwtProperties) {
+  /**
+   * Creates the controller.
+   *
+   * @param properties The properties which list the users
+   * @param securityContextRepository Keeps the current user in a JWT cookie
+   * @param jwtProperties The settings of the JWT and its cookie
+   */
+  public UserController(
+      final Properties properties,
+      final JwtServerSecurityContextRepository securityContextRepository,
+      final JwtProperties jwtProperties) {
 
-        this.properties = properties;
-        this.securityContextRepository = securityContextRepository;
-        this.jwtProperties = jwtProperties;
+    this.properties = properties;
+    this.securityContextRepository = securityContextRepository;
+    this.jwtProperties = jwtProperties;
 
+  }
+
+  /**
+   * Used by the Dev-Shell to get the list of all user ids.
+   *
+   * @return The ids of all configured users
+   */
+  @GetMapping(value = "/all/id", produces = "application/json")
+  public ResponseEntity<List<String>> allUsersIds() {
+
+    return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
+
+  }
+
+  /**
+   * Used by the Dev-Shell to get the list of all user details.
+   *
+   * @return All configured users
+   */
+  @GetMapping(value = "/all", produces = "application/json")
+  public ResponseEntity<List<User>> allUsers() {
+
+    return ResponseEntity.ok(properties.getUsers());
+
+  }
+
+  /**
+   * Used by Dev-Shell to retrieve the user id based on the JWT.
+   *
+   * @param request The request, which carries the JWT cookie
+   * @return The id of the current user, or "not found" if nobody is logged in
+   */
+  @GetMapping(value = "/", produces = "text/plain")
+  public ResponseEntity<String> getUser(
+      final HttpServletRequest request) {
+
+    final var context = securityContextRepository
+        .loadDeferredContext(request)
+        .get();
+    if (context == null) {
+      return ResponseEntity.notFound().build();
+    }
+    final var auth = context.getAuthentication();
+    if (auth == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(auth.getName());
+
+  }
+
+  /**
+   * Used by business applications to load the current user based on the JWT.
+   *
+   * @param request The request, which carries the JWT cookie
+   * @return The current user, or "not found" if nobody is logged in or the user is unknown
+   */
+  @GetMapping(value = "/details", produces = "application/json")
+  public ResponseEntity<User> getUserDetails(
+      final HttpServletRequest request) {
+
+    final var context = securityContextRepository
+        .loadDeferredContext(request)
+        .get();
+    if (context == null) {
+      return ResponseEntity.notFound().build();
+    }
+    final var auth = context.getAuthentication();
+    if (auth == null) {
+      return ResponseEntity.notFound().build();
+    }
+    final var userId = auth.getName();
+    if (userId == null) {
+      return ResponseEntity.notFound().build();
+    }
+    final var user = properties.getUser(userId);
+    if (user == null) {
+      return ResponseEntity.notFound().build();
     }
 
-    /**
-     * Used by the Dev-Shell to get the list of all user ids.
-     *
-     * @return The ids of all configured users
-     */
-    @GetMapping(value = "/all/id", produces = "application/json")
-    public ResponseEntity<List<String>> allUsersIds() {
+    return ResponseEntity.ok(user);
 
-        return ResponseEntity.ok(properties.getUsers().stream().map(User::getId).toList());
+  }
 
+  /**
+   * Used by business applications to get user details by user id.
+   *
+   * @param userId The id of the user
+   * @return The user, or "not found" if the id is unknown
+   */
+  @GetMapping(value = "/{userId}", produces = "application/json")
+  public ResponseEntity<User> getUserById(
+      @PathVariable("userId") final String userId) {
+
+    return Optional
+        .ofNullable(properties.getUser(userId))
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
+
+  }
+
+  /**
+   * Used by Dev-Shell to change the user logged on. The user id {@code ---} logs the
+   * current user out.
+   *
+   * @param request The current request
+   * @param response The response, which gets the new JWT cookie
+   * @param userId The id of the user to switch to
+   * @return "bad request" if the id is empty, otherwise "ok"
+   */
+  @PostMapping(value = "/{userId}")
+  public ResponseEntity<Void> changeUser(
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      @PathVariable("userId") final String userId) {
+
+    if (!StringUtils.hasText(userId)) {
+      return ResponseEntity.badRequest().build();
     }
-
-    /**
-     * Used by the Dev-Shell to get the list of all user details.
-     *
-     * @return All configured users
-     */
-    @GetMapping(value = "/all", produces = "application/json")
-    public ResponseEntity<List<User>> allUsers() {
-
-        return ResponseEntity.ok(properties.getUsers());
-
+    if (userId.equals("---")) {
+      logout(response);
+    } else {
+      setJwtForChangedUser(request, response, userId);
     }
+    return ResponseEntity.ok().build();
 
-    /**
-     * Used by Dev-Shell to retrieve the user id based on the JWT.
-     *
-     * @param request The request, which carries the JWT cookie
-     * @return The id of the current user, or "not found" if nobody is logged in
-     */
-    @GetMapping(value = "/", produces = "text/plain")
-    public ResponseEntity<String> getUser(
-            final HttpServletRequest request) {
+  }
 
-        final var context = securityContextRepository
-                .loadDeferredContext(request)
-                .get();
-        if (context == null) {
-            return ResponseEntity.notFound().build();
-        }
-        final var auth = context.getAuthentication();
-        if (auth == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(auth.getName());
+  /**
+   * Used by Dev-Shell to logout the current user.
+   */
+  private void logout(
+      final HttpServletResponse response) {
 
+    final var cookie = new Cookie(jwtProperties.getCookie().getName(), "");
+    cookie.setMaxAge(0);
+    cookie.setPath(jwtProperties.getCookie().getPath());
+    cookie.setDomain(jwtProperties.getCookie().getDomain());
+    cookie.setSecure(jwtProperties.getCookie().isSecure());
+    cookie.setHttpOnly(true);
+    final var sameSite = getSecurityCookieSameSiteFromEnum();
+    if (sameSite != null) {
+      cookie.setAttribute("SameSite", sameSite);
     }
+    response.addCookie(cookie);
 
-    /**
-     * Used by business applications to load the current user based on the JWT.
-     *
-     * @param request The request, which carries the JWT cookie
-     * @return The current user, or "not found" if nobody is logged in or the user is unknown
-     */
-    @GetMapping(value = "/details", produces = "application/json")
-    public ResponseEntity<User> getUserDetails(
-            final HttpServletRequest request) {
+  }
 
-        final var context = securityContextRepository
-                .loadDeferredContext(request)
-                .get();
-        if (context == null) {
-            return ResponseEntity.notFound().build();
-        }
-        final var auth = context.getAuthentication();
-        if (auth == null) {
-            return ResponseEntity.notFound().build();
-        }
-        final var userId = auth.getName();
-        if (userId == null) {
-            return ResponseEntity.notFound().build();
-        }
-        final var user = properties.getUser(userId);
-        if (user == null) {
-            return ResponseEntity.notFound().build();
-        }
+  private void setJwtForChangedUser(
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      @PathVariable("userId") final String userId) {
 
-        return ResponseEntity.ok(user);
+    final var user = properties.getUser(userId);
+    final var authorities = Optional.ofNullable(user.getGroups())
+        .map(groups -> groups.stream().map(SimpleGrantedAuthority::new).toList())
+        .orElse(List.of());
+    final var userDetails = new org.springframework.security.core.userdetails.User(user.getId(), "", authorities);
+    final var context = new TransientSecurityContext(
+        new UsernamePasswordAuthenticationToken(userDetails, "", authorities));
+    securityContextRepository.saveContext(context, request, response);
 
-    }
+  }
 
-    /**
-     * Used by business applications to get user details by user id.
-     *
-     * @param userId The id of the user
-     * @return The user, or "not found" if the id is unknown
-     */
-    @GetMapping(value = "/{userId}", produces = "application/json")
-    public ResponseEntity<User> getUserById(
-            @PathVariable("userId")
-            final String userId) {
+  private String getSecurityCookieSameSiteFromEnum() {
 
-        return Optional
-                .ofNullable(properties.getUser(userId))
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    final var sameSite = this.jwtProperties.getCookie().getSameSite();
+    return sameSite == null ? null : sameSite.attributeValue();
 
-    }
-
-    /**
-     * Used by Dev-Shell to change the user logged on. The user id {@code ---} logs the
-     * current user out.
-     *
-     * @param request The current request
-     * @param response The response, which gets the new JWT cookie
-     * @param userId The id of the user to switch to
-     * @return "bad request" if the id is empty, otherwise "ok"
-     */
-    @PostMapping(value = "/{userId}")
-    public ResponseEntity<Void> changeUser(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            @PathVariable("userId") final String userId) {
-
-        if (!StringUtils.hasText(userId)) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (userId.equals("---")) {
-            logout(response);
-        } else {
-            setJwtForChangedUser(request, response, userId);
-        }
-        return ResponseEntity.ok().build();
-
-    }
-
-    /**
-     * Used by Dev-Shell to logout the current user.
-     */
-    private void logout(
-            final HttpServletResponse response) {
-
-        final var cookie = new Cookie(jwtProperties.getCookie().getName(), "");
-        cookie.setMaxAge(0);
-        cookie.setPath(jwtProperties.getCookie().getPath());
-        cookie.setDomain(jwtProperties.getCookie().getDomain());
-        cookie.setSecure(jwtProperties.getCookie().isSecure());
-        cookie.setHttpOnly(true);
-        final var sameSite = getSecurityCookieSameSiteFromEnum();
-        if (sameSite != null) {
-            cookie.setAttribute("SameSite", sameSite);
-        }
-        response.addCookie(cookie);
-
-    }
-
-    private void setJwtForChangedUser(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            @PathVariable("userId") final String userId) {
-
-        final var user = properties.getUser(userId);
-        final var authorities =
-                Optional.ofNullable(user.getGroups())
-                        .map(groups -> groups.stream().map(SimpleGrantedAuthority::new).toList())
-                        .orElse(List.of());
-        final var userDetails =
-                new org.springframework.security.core.userdetails.User(user.getId(), "", authorities);
-        final var context =
-                new TransientSecurityContext(
-                        new UsernamePasswordAuthenticationToken(userDetails, "", authorities));
-        securityContextRepository.saveContext(context, request, response);
-
-    }
-
-    private String getSecurityCookieSameSiteFromEnum() {
-
-        final var sameSite = this.jwtProperties.getCookie().getSameSite();
-        return sameSite == null ? null : sameSite.attributeValue();
-
-    }
+  }
 
 }

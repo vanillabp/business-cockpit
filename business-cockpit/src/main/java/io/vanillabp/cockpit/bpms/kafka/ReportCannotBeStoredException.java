@@ -14,18 +14,18 @@ import io.vanillabp.cockpit.bpms.OutcomeOfStoring;
  */
 public final class ReportCannotBeStoredException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    /**
-     * Creates the exception with the reason and the cause the outcome names.
-     *
-     * @param outcome What came of storing the report: a save which fails every time
-     */
-    public ReportCannotBeStoredException(
-            final OutcomeOfStoring outcome) {
+  /**
+   * Creates the exception with the reason and the cause the outcome names.
+   *
+   * @param outcome What came of storing the report: a save which fails every time
+   */
+  public ReportCannotBeStoredException(
+      final OutcomeOfStoring outcome) {
 
-        super(outcome.reason(), outcome.failure());
+    super(outcome.reason(), outcome.failure());
 
-    }
+  }
 
 }

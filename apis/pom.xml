@@ -9,28 +9,28 @@
   </parent>
 
   <artifactId>apis</artifactId>
-  <name>APIs needed in regards to the VanillaBP business cockpit</name>
   <packaging>pom</packaging>
-  
-   <modules>
+  <name>APIs needed in regards to the VanillaBP business cockpit</name>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <modules>
     <module>bpms-api</module>
     <module>workflow-provider-api</module>
     <module>official-gui-api</module>
   </modules>
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <id>VanillaBP</id>
-            <organization>Phactum Softwareentwicklung GmbH</organization>
-            <organizationUrl>https://www.phactum.at</organizationUrl>
-        </developer>
-    </developers>
 </project>

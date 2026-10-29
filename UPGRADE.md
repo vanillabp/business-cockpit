@@ -61,8 +61,8 @@ it, nothing writes it, and dropping it costs no data.
 
 The auto-configuration has a new fully qualified name.
 
-| before | now |
-|--------|-----|
+|                                   before                                   |                             now                             |
+|----------------------------------------------------------------------------|-------------------------------------------------------------|
 | `io.vanillabp.cockpit.commons.mongo.changesets.ChangesetAutoConfiguration` | `com.phactum.mongodb.changesets.ChangesetAutoConfiguration` |
 
 An application which switched the migration off by the old name switches nothing off any more, and
@@ -75,9 +75,9 @@ application which had it switched off. Replace the name.
 The annotations are called `DbChangeset` and `DbChangesetConfiguration`. They were called
 `Changeset` and `ChangesetConfiguration` until 0.9.0, and they sit in another package now.
 
-| before | now |
-|--------|-----|
-| `io.vanillabp.cockpit.commons.mongo.changesets.Changeset` | `com.phactum.mongodb.changesets.DbChangeset` |
+|                                 before                                 |                            now                            |
+|------------------------------------------------------------------------|-----------------------------------------------------------|
+| `io.vanillabp.cockpit.commons.mongo.changesets.Changeset`              | `com.phactum.mongodb.changesets.DbChangeset`              |
 | `io.vanillabp.cockpit.commons.mongo.changesets.ChangesetConfiguration` | `com.phactum.mongodb.changesets.DbChangesetConfiguration` |
 
 Nothing else about such a bean changes. It is still a Spring bean, its steps are still public

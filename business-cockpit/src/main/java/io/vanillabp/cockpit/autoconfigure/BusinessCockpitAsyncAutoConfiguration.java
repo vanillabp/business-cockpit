@@ -20,22 +20,19 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 public class BusinessCockpitAsyncAutoConfiguration {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(BusinessCockpitAsyncAutoConfiguration.class);
+  private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitAsyncAutoConfiguration.class);
 
-    /**
-     * Called by Spring Boot. Logs that {@code @EnableAsync} now applies to the whole
-     * application, and how to switch it off.
-     */
-    public BusinessCockpitAsyncAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Logs that {@code @EnableAsync} now applies to the whole
+   * application, and how to switch it off.
+   */
+  public BusinessCockpitAsyncAutoConfiguration() {
 
-        new WholeApplicationSwitch(
-                "@EnableAsync",
-                "every @Async method of this application returns at once and runs on a task executor. "
-                        + "The cockpit has no such method itself, so this is here for your code.",
-                "set 'business-cockpit.async.enabled: false'.")
-                .reportTo(logger);
+    new WholeApplicationSwitch(
+        "@EnableAsync", "every @Async method of this application returns at once and runs on a task executor. "
+            + "The cockpit has no such method itself, so this is here for your code.", "set 'business-cockpit.async.enabled: false'.")
+        .reportTo(logger);
 
-    }
+  }
 
 }

@@ -16,20 +16,20 @@ import org.slf4j.Logger;
  * @param howToDecideItYourself what to write to take the decision over
  */
 record WholeApplicationSwitch(
-        String annotation,
-        String whatItDoes,
-        String howToDecideItYourself) {
+                              String annotation,
+                              String whatItDoes,
+                              String howToDecideItYourself) {
 
-    void reportTo(
-            final Logger logger) {
+  void reportTo(
+      final Logger logger) {
 
-        logger.info(
-                "The Business Cockpit switched {} on for the whole application, not only for itself. {} "
-                        + "To decide it yourself: {}",
-                annotation,
-                whatItDoes,
-                howToDecideItYourself);
+    logger.info(
+        "The Business Cockpit switched {} on for the whole application, not only for itself. {} "
+            + "To decide it yourself: {}",
+        annotation,
+        whatItDoes,
+        howToDecideItYourself);
 
-    }
+  }
 
 }

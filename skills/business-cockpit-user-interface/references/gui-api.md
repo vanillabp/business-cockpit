@@ -10,16 +10,16 @@ das in keiner der beiden Dateien steht.
 Erzeuge dir deinen Client aus der OpenAPI-Beschreibung. Schreibe ihn nicht von Hand ab.
 
 1. [Anmelden und angemeldet bleiben](#anmelden-und-angemeldet-bleiben)
-1. [Die Endpunkte](#die-endpunkte)
-1. [Seitenweise lesen](#seitenweise-lesen)
-1. [Sortieren](#sortieren)
-1. [Filtern über gemeldete Geschäftsdaten](#filtern-über-gemeldete-geschäftsdaten)
-1. [Vorschläge für ein Suchfeld](#vorschläge-für-ein-suchfeld)
-1. [Welche Zeilen überhaupt kommen](#welche-zeilen-überhaupt-kommen)
-1. [Der Zeitstempel, der eine Liste stabil hält](#der-zeitstempel-der-eine-liste-stabil-hält)
-1. [Die zweite Form derselben Abfrage](#die-zweite-form-derselben-abfrage)
-1. [Live-Aktualisierung über Server-Sent-Events](#live-aktualisierung-über-server-sent-events)
-1. [Was das Cockpit ausliefert](#was-das-cockpit-ausliefert)
+2. [Die Endpunkte](#die-endpunkte)
+3. [Seitenweise lesen](#seitenweise-lesen)
+4. [Sortieren](#sortieren)
+5. [Filtern über gemeldete Geschäftsdaten](#filtern-über-gemeldete-geschäftsdaten)
+6. [Vorschläge für ein Suchfeld](#vorschläge-für-ein-suchfeld)
+7. [Welche Zeilen überhaupt kommen](#welche-zeilen-überhaupt-kommen)
+8. [Der Zeitstempel, der eine Liste stabil hält](#der-zeitstempel-der-eine-liste-stabil-hält)
+9. [Die zweite Form derselben Abfrage](#die-zweite-form-derselben-abfrage)
+10. [Live-Aktualisierung über Server-Sent-Events](#live-aktualisierung-über-server-sent-events)
+11. [Was das Cockpit ausliefert](#was-das-cockpit-ausliefert)
 
 ## Anmelden und angemeldet bleiben
 
@@ -76,11 +76,11 @@ Basispfaden. Welche Aufgaben jeder davon zeigt, entscheidet ein Controller der A
 die API, siehe
 [Building a custom Business Cockpit](https://github.com/vanillabp/business-cockpit/wiki/Building-a-custom-Business-Cockpit).
 
-| Basispfad | Was die Liste zeigt |
-|---|---|
-| `/gui/api/v1` | alles, was der Benutzer bearbeiten darf |
-| `/gui/api/v1/current-user` | nur was ihm persönlich zugewiesen ist |
-| `/gui/api/v1/user-roles` | was seine Gruppen übernehmen dürfen und niemandem zugewiesen ist |
+|         Basispfad          |                       Was die Liste zeigt                        |
+|----------------------------|------------------------------------------------------------------|
+| `/gui/api/v1`              | alles, was der Benutzer bearbeiten darf                          |
+| `/gui/api/v1/current-user` | nur was ihm persönlich zugewiesen ist                            |
+| `/gui/api/v1/user-roles`   | was seine Gruppen übernehmen dürfen und niemandem zugewiesen ist |
 
 Dein UI darf diese drei Pfade nicht als gegeben nehmen. Sie sind die Entscheidung der
 mitgelieferten Anwendung. Ein eigenes Cockpit darf andere Listen anbieten, und dann heißen die
@@ -88,26 +88,26 @@ Pfade anders.
 
 Die Endpunkte selbst, alle relativ zum Basispfad:
 
-| Aufruf | Wofür |
-|---|---|
-| `POST /usertask` | eine Seite der Aufgabenliste |
-| `PUT /usertask` | dieselbe Abfrage als Aktualisierung, siehe unten |
-| `OPTIONS /usertask` | Vorschläge für ein Suchfeld über Aufgaben |
-| `GET /usertask/{id}` | eine Aufgabe, mit `markAsRead` zugleich als gelesen markieren |
-| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim` | Bearbeiter setzen, mit `unclaim=true` zurückgeben |
-| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign` | eine Person als Kandidat hinzufügen, mit `unassign=true` wieder entfernen |
-| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read` | als gelesen markieren, mit `unread=true` zurücknehmen |
-| `PATCH /usertask/{id}/follow-up-date` | Wiedervorlage setzen oder löschen |
-| `POST /user` | Benutzer suchen, für die Zuweisung an eine Person |
-| `POST /workflow` | eine Seite der Fallliste |
-| `PUT /workflow` | dieselbe Abfrage als Aktualisierung |
-| `OPTIONS /workflow` | Vorschläge für ein Suchfeld über Fälle |
-| `GET /workflow/{id}` | ein Fall |
-| `POST /workflow/{id}/usertasks` | die Aufgaben eines Falls |
-| `GET /workflow-module`, `GET /workflow-module/{id}` | die Workflow-Module, die der Benutzer sehen darf |
-| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | die Benachrichtigungen des Benutzers |
-| `GET /app/info`, `GET /app/current-user` | die Anwendung und der Benutzer |
-| `GET /updates` | der Ereignisstrom, siehe unten |
+|                                  Aufruf                                  |                                   Wofür                                   |
+|--------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| `POST /usertask`                                                         | eine Seite der Aufgabenliste                                              |
+| `PUT /usertask`                                                          | dieselbe Abfrage als Aktualisierung, siehe unten                          |
+| `OPTIONS /usertask`                                                      | Vorschläge für ein Suchfeld über Aufgaben                                 |
+| `GET /usertask/{id}`                                                     | eine Aufgabe, mit `markAsRead` zugleich als gelesen markieren             |
+| `PATCH /usertask/{id}/claim`, `PATCH /usertask/claim`                    | Bearbeiter setzen, mit `unclaim=true` zurückgeben                         |
+| `PATCH /usertask/{id}/assign`, `PATCH /usertask/assign`                  | eine Person als Kandidat hinzufügen, mit `unassign=true` wieder entfernen |
+| `PATCH /usertask/{id}/mark-as-read`, `PATCH /usertask/mark-as-read`      | als gelesen markieren, mit `unread=true` zurücknehmen                     |
+| `PATCH /usertask/{id}/follow-up-date`                                    | Wiedervorlage setzen oder löschen                                         |
+| `POST /user`                                                             | Benutzer suchen, für die Zuweisung an eine Person                         |
+| `POST /workflow`                                                         | eine Seite der Fallliste                                                  |
+| `PUT /workflow`                                                          | dieselbe Abfrage als Aktualisierung                                       |
+| `OPTIONS /workflow`                                                      | Vorschläge für ein Suchfeld über Fälle                                    |
+| `GET /workflow/{id}`                                                     | ein Fall                                                                  |
+| `POST /workflow/{id}/usertasks`                                          | die Aufgaben eines Falls                                                  |
+| `GET /workflow-module`, `GET /workflow-module/{id}`                      | die Workflow-Module, die der Benutzer sehen darf                          |
+| `GET /notifications/media`, `/config`, `/recipient-config`, `/workflows` | die Benachrichtigungen des Benutzers                                      |
+| `GET /app/info`, `GET /app/current-user`                                 | die Anwendung und der Benutzer                                            |
+| `GET /updates`                                                           | der Ereignisstrom, siehe unten                                            |
 
 Die beiden Formen jeder Aktion, eine für eine Aufgabe und eine für eine Liste von Kennungen, machen
 dasselbe. Die Mehrfachform ist da, damit eine Mehrfachauswahl in der Liste nicht zu zwanzig Anfragen
@@ -246,20 +246,20 @@ den Benutzer bestimmt.
 
 Der Modus:
 
-| `mode` einer Aufgabenliste | Was kommt |
-|---|---|
-| `All` | alles, offen und abgeschlossen |
-| `OpenTasks` | was kein Ende hat |
-| `OpenTasksWithoutFollowUp` | offen, ohne Wiedervorlage oder mit einer, die fällig ist |
-| `OpenTaskOnlyFollowUp` | offen, mit einer Wiedervorlage in der Zukunft |
-| `OpenTasksWithFollowUp` | ein anderer Name für `OpenTasks`: dieselben Zeilen, mit und ohne Wiedervorlage |
-| `ClosedTasksOnly` | nur was ein Ende hat |
+| `mode` einer Aufgabenliste |                                   Was kommt                                    |
+|----------------------------|--------------------------------------------------------------------------------|
+| `All`                      | alles, offen und abgeschlossen                                                 |
+| `OpenTasks`                | was kein Ende hat                                                              |
+| `OpenTasksWithoutFollowUp` | offen, ohne Wiedervorlage oder mit einer, die fällig ist                       |
+| `OpenTaskOnlyFollowUp`     | offen, mit einer Wiedervorlage in der Zukunft                                  |
+| `OpenTasksWithFollowUp`    | ein anderer Name für `OpenTasks`: dieselben Zeilen, mit und ohne Wiedervorlage |
+| `ClosedTasksOnly`          | nur was ein Ende hat                                                           |
 
-| `mode` einer Fallliste | Was kommt |
-|---|---|
-| `All` | alles |
-| `Active` | was kein Ende hat |
-| `Inactive` | was ein Ende hat |
+| `mode` einer Fallliste |     Was kommt     |
+|------------------------|-------------------|
+| `All`                  | alles             |
+| `Active`               | was kein Ende hat |
+| `Inactive`             | was ein Ende hat  |
 
 Ohne `mode` nimmt der Server `All` bei `POST` und `OpenTasks` bzw. `Active` bei `PUT`. Das ist nicht
 dasselbe, also schicke den Modus immer selbst, wenn dir die Antwort wichtig ist.
@@ -335,11 +335,11 @@ Anmeldung nicht.
 
 Was darüber kommt:
 
-| Name des Ereignisses | Inhalt |
-|---|---|
-| `ping` | ein Objekt mit `id` und `name`, sonst nichts |
-| `UserTask` | eine Liste von Ereignissen, jedes mit `id`, `name` und `type` |
-| `Workflow` | dasselbe für Fälle |
+| Name des Ereignisses |                            Inhalt                             |
+|----------------------|---------------------------------------------------------------|
+| `ping`               | ein Objekt mit `id` und `name`, sonst nichts                  |
+| `UserTask`           | eine Liste von Ereignissen, jedes mit `id`, `name` und `type` |
+| `Workflow`           | dasselbe für Fälle                                            |
 
 `type` ist `INSERT`, `UPDATE`, `DELETE` oder `FOLLOWUP`. `id` ist die Kennung der Aufgabe oder des
 Falls. Mehr steht nicht drin, also sagt ein Ereignis nur, dass sich etwas geändert hat, und nicht

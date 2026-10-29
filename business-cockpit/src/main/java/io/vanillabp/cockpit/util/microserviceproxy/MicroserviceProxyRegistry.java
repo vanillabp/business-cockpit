@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions;
@@ -33,119 +34,123 @@ import org.springframework.web.servlet.function.ServerResponse;
  */
 public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse> {
 
-    private static final Logger logger = LoggerFactory.getLogger(
-            MicroserviceProxyRegistry.class);
+  private static final Logger logger = LoggerFactory.getLogger(
+      MicroserviceProxyRegistry.class);
 
-    /** The path below which the cockpit serves the workflow modules. The module id follows it. */
-    public static final String WORKFLOW_MODULES_PATH_PREFIX = "/wm/";
+  /** The path below which the cockpit serves the workflow modules. The module id follows it. */
+  public static final String WORKFLOW_MODULES_PATH_PREFIX = "/wm/";
 
-    /** Matches nothing. An empty gateway route builder would throw, so this is the initial state. */
-    private static final RouterFunction<ServerResponse> NO_ROUTES = request -> Optional.empty();
+  /** Matches nothing. An empty gateway route builder would throw, so this is the initial state. */
+  private static final RouterFunction<ServerResponse> NO_ROUTES = request -> Optional.empty();
 
-    private final Map<String, String> routes = new HashMap<>();
+  private final Map<String, String> routes = new HashMap<>();
 
-    private final AtomicReference<RouterFunction<ServerResponse>> currentRoutes =
-            new AtomicReference<>(NO_ROUTES);
+  private final AtomicReference<RouterFunction<ServerResponse>> currentRoutes = new AtomicReference<>(NO_ROUTES);
 
-    /**
-     * Starts with no routes. The workflow modules are added when they register.
-     */
-    public MicroserviceProxyRegistry() {
+  /**
+   * Starts with no routes. The workflow modules are added when they register.
+   */
+  public MicroserviceProxyRegistry() {
 
+  }
+
+  @Override
+  public Optional<HandlerFunction<ServerResponse>> route(
+      final ServerRequest request) {
+
+    return currentRoutes.get().route(request);
+
+  }
+
+  @Override
+  public void accept(
+      final RouterFunctions.Visitor visitor) {
+
+    currentRoutes.get().accept(visitor);
+
+  }
+
+  /**
+   * Adds a route for a workflow module, or changes the URI of its route. The routes are only
+   * built again if the URI is new.
+   *
+   * @param id The id of the workflow module
+   * @param uri The URI the workflow module is reached at
+   */
+  public synchronized void registerMicroservice(
+      final String id,
+      final String uri) {
+
+    final var previousUri = routes.put(id, uri);
+    if (uri.equals(previousUri)) {
+      return;
     }
 
-    @Override
-    public Optional<HandlerFunction<ServerResponse>> route(
-            final ServerRequest request) {
+    rebuildRoutes();
 
-        return currentRoutes.get().route(request);
+  }
 
+  /**
+   * Adds routes for several workflow modules at once. A module which already has a route keeps
+   * its URI.
+   *
+   * @param microserviceUris The URIs of the workflow modules, by the module id
+   */
+  public synchronized void registerMicroservices(
+      final Map<String, String> microserviceUris) {
+
+    final var numberOfPreviousKnownMicroservices = routes.size();
+
+    microserviceUris.forEach(routes::putIfAbsent);
+
+    if (routes.size() != numberOfPreviousKnownMicroservices) {
+      rebuildRoutes();
     }
 
-    @Override
-    public void accept(
-            final RouterFunctions.Visitor visitor) {
+  }
 
-        currentRoutes.get().accept(visitor);
+  private void rebuildRoutes() {
 
-    }
+    currentRoutes.set(routes
+        .entrySet()
+        .stream()
+        .peek(entry -> logger.info(
+            "Register microservice proxy for workflow module: {}",
+            entry.getKey()))
+        .map(entry -> buildRoute(entry.getKey(), entry.getValue()))
+        .reduce(RouterFunction::and)
+        .orElse(NO_ROUTES));
 
-    /**
-     * Adds a route for a workflow module, or changes the URI of its route. The routes are only
-     * built again if the URI is new.
-     *
-     * @param id The id of the workflow module
-     * @param uri The URI the workflow module is reached at
-     */
-    public synchronized void registerMicroservice(
-            final String id,
-            final String uri) {
+  }
 
-        final var previousUri = routes.put(id, uri);
-        if (uri.equals(previousUri)) {
-            return;
-        }
+  private RouterFunction<ServerResponse> buildRoute(
+      final String id,
+      final String uriAsString) {
 
-        rebuildRoutes();
+    final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX
+        + id
+        + "/";
+    final var uri = URI.create(uriAsString);
+    // the target URI contributes scheme, host and port only, so whatever path it carries has to
+    // become part of the rewritten path
+    final var targetPath = (uri.getPath() == null) || uri.getPath().isEmpty()
+        ? "/"
+        : uri.getPath().endsWith("/")
+            ? uri.getPath()
+            : uri.getPath()
+                + "/";
 
-    }
+    return GatewayRouterFunctions
+        .route(id)
+        .route(RequestPredicates.path(proxyPath
+            + "**"), HandlerFunctions.http())
+        .before(BeforeFilterFunctions.rewritePath(
+            "^"
+                + Pattern.quote(proxyPath),
+            Matcher.quoteReplacement(targetPath)))
+        .before(BeforeFilterFunctions.uri(uri))
+        .build();
 
-    /**
-     * Adds routes for several workflow modules at once. A module which already has a route keeps
-     * its URI.
-     *
-     * @param microserviceUris The URIs of the workflow modules, by the module id
-     */
-    public synchronized void registerMicroservices(
-            final Map<String, String> microserviceUris) {
-
-        final var numberOfPreviousKnownMicroservices = routes.size();
-
-        microserviceUris.forEach(routes::putIfAbsent);
-
-        if (routes.size() != numberOfPreviousKnownMicroservices) {
-            rebuildRoutes();
-        }
-
-    }
-
-    private void rebuildRoutes() {
-
-        currentRoutes.set(routes
-                .entrySet()
-                .stream()
-                .peek(entry -> logger.info(
-                        "Register microservice proxy for workflow module: {}",
-                        entry.getKey()))
-                .map(entry -> buildRoute(entry.getKey(), entry.getValue()))
-                .reduce(RouterFunction::and)
-                .orElse(NO_ROUTES));
-
-    }
-
-    private RouterFunction<ServerResponse> buildRoute(
-            final String id,
-            final String uriAsString) {
-
-        final var proxyPath = WORKFLOW_MODULES_PATH_PREFIX + id + "/";
-        final var uri = URI.create(uriAsString);
-        // the target URI contributes scheme, host and port only, so whatever path it carries has to
-        // become part of the rewritten path
-        final var targetPath = (uri.getPath() == null) || uri.getPath().isEmpty()
-                ? "/"
-                : uri.getPath().endsWith("/")
-                ? uri.getPath()
-                : uri.getPath() + "/";
-
-        return GatewayRouterFunctions
-                .route(id)
-                .route(RequestPredicates.path(proxyPath + "**"), HandlerFunctions.http())
-                .before(BeforeFilterFunctions.rewritePath(
-                        "^" + Pattern.quote(proxyPath),
-                        Matcher.quoteReplacement(targetPath)))
-                .before(BeforeFilterFunctions.uri(uri))
-                .build();
-
-    }
+  }
 
 }

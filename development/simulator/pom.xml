@@ -11,6 +11,22 @@
   <artifactId>simulator</artifactId>
   <name>A microservice simulating all bounded systems needed to run the business-cockpit for development.</name>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
   <properties>
     <m2e.apt.activation>jdt_apt</m2e.apt.activation>
   </properties>
@@ -28,29 +44,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven-plugin</artifactId>
-          <executions>
-            <execution>
-              <phase>package</phase>
-              <goals>
-                <goal>repackage</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <classifier>runnable</classifier>
-            <mainClass>io.vanillabp.cockpit.simulator.BusinessCockpitSimulator</mainClass>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 
   <dependencies>
     <dependency>
@@ -111,7 +104,8 @@
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka-test</artifactId>
-      <scope>compile</scope><!-- use embedded Kafka meant to be used for tests -->
+      <scope>compile</scope>
+      <!-- use embedded Kafka meant to be used for tests -->
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -126,33 +120,40 @@
     </dependency>
   </dependencies>
 
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <configuration>
+            <classifier>runnable</classifier>
+            <mainClass>io.vanillabp.cockpit.simulator.BusinessCockpitSimulator</mainClass>
+          </configuration>
+          <executions>
+            <execution>
+              <goals>
+                <goal>repackage</goal>
+              </goals>
+              <phase>package</phase>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
-
-    <profiles>
-        <profile>
-            <id>build-runnable-jars</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.springframework.boot</groupId>
-                        <artifactId>spring-boot-maven-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+  <profiles>
+    <profile>
+      <id>build-runnable-jars</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

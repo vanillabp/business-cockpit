@@ -1,14 +1,16 @@
 package io.vanillabp.cockpit.config.web;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import java.util.TimeZone;
+
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.cfg.DateTimeFeature;
-
-import java.util.TimeZone;
 
 /**
  * The Jackson 3 configuration of the GUI API.
@@ -38,45 +40,45 @@ import java.util.TimeZone;
 @Configuration
 public class JsonConfiguration {
 
-    /**
-     * Creates the configuration. Spring creates it because of {@code @Configuration}.
-     */
-    public JsonConfiguration() {
-    }
+  /**
+   * Creates the configuration. Spring creates it because of {@code @Configuration}.
+   */
+  public JsonConfiguration() {
+  }
 
-    /**
-     * Writes dates and times as ISO-8601 text in UTC, not as numbers.
-     *
-     * @return The customizer for dates and times
-     */
-    @Bean
-    public JsonMapperBuilderCustomizer jsonFormatDateTimes() {
+  /**
+   * Writes dates and times as ISO-8601 text in UTC, not as numbers.
+   *
+   * @return The customizer for dates and times
+   */
+  @Bean
+  public JsonMapperBuilderCustomizer jsonFormatDateTimes() {
 
-        return builder -> builder
-                .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .disable(DateTimeFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
-                .enable(DateTimeFeature.WRITE_DATES_WITH_CONTEXT_TIME_ZONE)
-                .defaultTimeZone(TimeZone.getTimeZone("UTC"));
+    return builder -> builder
+        .disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        .disable(DateTimeFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS)
+        .enable(DateTimeFeature.WRITE_DATES_WITH_CONTEXT_TIME_ZONE)
+        .defaultTimeZone(TimeZone.getTimeZone("UTC"));
 
-    }
+  }
 
-    /**
-     * Keeps the properties in the order they are declared, indents the output and leaves out
-     * {@code null} properties.
-     *
-     * @return The customizer for the shape of the output
-     */
-    @Bean
-    public JsonMapperBuilderCustomizer jsonMinimizeOutput() {
+  /**
+   * Keeps the properties in the order they are declared, indents the output and leaves out
+   * {@code null} properties.
+   *
+   * @return The customizer for the shape of the output
+   */
+  @Bean
+  public JsonMapperBuilderCustomizer jsonMinimizeOutput() {
 
-        return builder -> builder
-                // Jackson 3 sorts properties alphabetically by default; Jackson 2 used declaration order.
-                // Kept as it was so API responses stay byte-stable for anything that diffs or caches them.
-                .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
-                .enable(SerializationFeature.INDENT_OUTPUT)
-                .changeDefaultPropertyInclusion(
-                        inclusion -> inclusion.withValueInclusion(Include.NON_NULL));
+    return builder -> builder
+        // Jackson 3 sorts properties alphabetically by default; Jackson 2 used declaration order.
+        // Kept as it was so API responses stay byte-stable for anything that diffs or caches them.
+        .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY)
+        .enable(SerializationFeature.INDENT_OUTPUT)
+        .changeDefaultPropertyInclusion(
+            inclusion -> inclusion.withValueInclusion(Include.NON_NULL));
 
-    }
+  }
 
 }

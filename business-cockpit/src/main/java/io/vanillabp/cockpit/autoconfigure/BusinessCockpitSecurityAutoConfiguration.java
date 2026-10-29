@@ -1,12 +1,13 @@
 package io.vanillabp.cockpit.autoconfigure;
 
-import io.vanillabp.cockpit.config.web.WebSecurityConfiguration;
-import io.vanillabp.cockpit.users.UserLoginUpsertConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.context.annotation.Import;
+
+import io.vanillabp.cockpit.config.web.WebSecurityConfiguration;
+import io.vanillabp.cockpit.users.UserLoginUpsertConfiguration;
 
 /**
  * The two security chains of the cockpit, one for the user interface and one for the BPMS API, plus
@@ -22,16 +23,15 @@ import org.springframework.context.annotation.Import;
 @AutoConfiguration(before = UserDetailsServiceAutoConfiguration.class)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @Import({
-    WebSecurityConfiguration.class,
-    UserLoginUpsertConfiguration.class
+    WebSecurityConfiguration.class, UserLoginUpsertConfiguration.class
 })
 public class BusinessCockpitSecurityAutoConfiguration {
 
-    /**
-     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
-     */
-    public BusinessCockpitSecurityAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+   */
+  public BusinessCockpitSecurityAutoConfiguration() {
 
-    }
+  }
 
 }

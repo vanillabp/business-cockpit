@@ -17,13 +17,13 @@ sie nur noch in der Git-Historie. Diese drei sind Belege und Beispiele. Der Vert
 steht, und wo die drei auseinandergehen, steht es dabei.
 
 1. [Was eine Dev Shell leisten muss](#was-eine-dev-shell-leisten-muss)
-1. [Der Einstiegspunkt](#der-einstiegspunkt)
-1. [Was sie anzeigt und wie man umschaltet](#was-sie-anzeigt-und-wie-man-umschaltet)
-1. [Woher die Daten kommen](#woher-die-daten-kommen)
-1. [Der Dev Shell Simulator](#der-dev-shell-simulator)
-1. [Der Proxy des Dev-Servers](#der-proxy-des-dev-servers)
-1. [Wo sie absichtlich anders ist als das Cockpit](#wo-sie-absichtlich-anders-ist-als-das-cockpit)
-1. [Wo die drei vorhandenen Shells auseinandergehen](#wo-die-drei-vorhandenen-shells-auseinandergehen)
+2. [Der Einstiegspunkt](#der-einstiegspunkt)
+3. [Was sie anzeigt und wie man umschaltet](#was-sie-anzeigt-und-wie-man-umschaltet)
+4. [Woher die Daten kommen](#woher-die-daten-kommen)
+5. [Der Dev Shell Simulator](#der-dev-shell-simulator)
+6. [Der Proxy des Dev-Servers](#der-proxy-des-dev-servers)
+7. [Wo sie absichtlich anders ist als das Cockpit](#wo-sie-absichtlich-anders-ist-als-das-cockpit)
+8. [Wo die drei vorhandenen Shells auseinandergehen](#wo-die-drei-vorhandenen-shells-auseinandergehen)
 
 ## Was eine Dev Shell leisten muss
 
@@ -50,14 +50,14 @@ Cockpits und nicht der Werkbank.
 Der Entwickler übergibt seine Teile und eine Adresse, und die Shell baut daraus die Anwendung. Was
 übergeben wird, ist das eigentliche Stück Vertrag:
 
-| Was | Warum die Shell es braucht |
-|---|---|
-| die Adresse der GUI-API | daraus baut sie ihre Clients, im Beispiel `/official-api/v1` |
-| `UserTaskForm` | die Seite einer Aufgabe |
-| `WorkflowPage` | die Seite eines Falls |
-| weitere Teile unter ihrem Namen | für die eigenen Teile eines Moduls, siehe [module-federation.md](module-federation.md#eigene-teile) |
-| die Spaltenfunktionen und die Zellen | nur nötig, wenn die Shell eine Liste nachstellt |
-| das Workflow-Modul und das Thema | nur nötig, wenn die Shell einen Teil wie das Cockpit umrahmt |
+|                 Was                  |                                     Warum die Shell es braucht                                      |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+| die Adresse der GUI-API              | daraus baut sie ihre Clients, im Beispiel `/official-api/v1`                                        |
+| `UserTaskForm`                       | die Seite einer Aufgabe                                                                             |
+| `WorkflowPage`                       | die Seite eines Falls                                                                               |
+| weitere Teile unter ihrem Namen      | für die eigenen Teile eines Moduls, siehe [module-federation.md](module-federation.md#eigene-teile) |
+| die Spaltenfunktionen und die Zellen | nur nötig, wenn die Shell eine Liste nachstellt                                                     |
+| das Workflow-Modul und das Thema     | nur nötig, wenn die Shell einen Teil wie das Cockpit umrahmt                                        |
 
 Die React-Shell nimmt alles davon, in dieser Reihenfolge, und setzt die Anwendung in ein Element mit
 der angegebenen Kennung:
@@ -111,11 +111,11 @@ im Cockpit.
 Die Funktionen, die die Shell an `BcUserTask` und `BcWorkflow` hängt, darf sie nachstellen, und die
 drei tun das auf drei Weisen. Was du dabei entscheidest:
 
-| Funktion | Was die Shell damit tun kann |
-|---|---|
-| `open`, `navigateToWorkflow` | zur eigenen Seite dieser Aufgabe oder dieses Falls springen |
-| `assign`, `unassign`, `claim`, `unclaim` | wirklich die GUI-API rufen, oder nichts tun und es sagen |
-| `getUserTasks` | `POST /workflow/{id}/usertasks` rufen und die Aufgaben wieder verpacken |
+|                 Funktion                 |                      Was die Shell damit tun kann                       |
+|------------------------------------------|-------------------------------------------------------------------------|
+| `open`, `navigateToWorkflow`             | zur eigenen Seite dieser Aufgabe oder dieses Falls springen             |
+| `assign`, `unassign`, `claim`, `unclaim` | wirklich die GUI-API rufen, oder nichts tun und es sagen                |
+| `getUserTasks`                           | `POST /workflow/{id}/usertasks` rufen und die Aufgaben wieder verpacken |
 
 Nichts tun ist eine zulässige Entscheidung, solange der Entwickler es merkt. Die Angular-Shell zeigt
 dafür einen Hinweis im Browser, die React-Shell tut bei vier dieser Funktionen schlicht nichts, und
@@ -150,14 +150,14 @@ Wo der Schlüssel sonst noch stehen darf, steht im Wiki unter
 
 Dazu kommt eine eigene kleine Schnittstelle für die Shell, unter `/dev-shell/user`:
 
-| Aufruf | Für wen | Was er tut |
-|---|---|---|
-| `GET /dev-shell/user/all/id` | Shell | die Kennungen aller Benutzer |
-| `GET /dev-shell/user/all` | Shell | alle Benutzer mit Details |
-| `GET /dev-shell/user/` | Shell | die Kennung des gerade gewählten Benutzers, als Text |
-| `POST /dev-shell/user/{userId}` | Shell | den Benutzer wechseln, `---` meldet ab |
-| `GET /dev-shell/user/details` | Anwendung | der gerade gewählte Benutzer, aus dem Cookie |
-| `GET /dev-shell/user/{userId}` | Anwendung | ein Benutzer nach Kennung |
+|             Aufruf              |  Für wen  |                      Was er tut                      |
+|---------------------------------|-----------|------------------------------------------------------|
+| `GET /dev-shell/user/all/id`    | Shell     | die Kennungen aller Benutzer                         |
+| `GET /dev-shell/user/all`       | Shell     | alle Benutzer mit Details                            |
+| `GET /dev-shell/user/`          | Shell     | die Kennung des gerade gewählten Benutzers, als Text |
+| `POST /dev-shell/user/{userId}` | Shell     | den Benutzer wechseln, `---` meldet ab               |
+| `GET /dev-shell/user/details`   | Anwendung | der gerade gewählte Benutzer, aus dem Cookie         |
+| `GET /dev-shell/user/{userId}`  | Anwendung | ein Benutzer nach Kennung                            |
 
 Die vorgetäuschten Benutzer stehen in `development/dev-shell-simulator/users.yaml`, unter dem
 Schlüssel `dev-shell-simulator.users`. Je Benutzer `id`, `email`, `first-name`, `last-name`, `groups`
@@ -188,10 +188,10 @@ ruft, ruft ins Leere. Rechne damit, wenn du die Funktionen von `BcUserTask` echt
 Die Shell läuft auf dem Dev-Server des Frameworks, der Simulator auf Port 8079. Damit das Cookie
 mitreist und der Browser keine fremde Herkunft sieht, leitet der Dev-Server weiter:
 
-| Pfad | Ziel |
-|---|---|
+|        Pfad        |          Ziel           |
+|--------------------|-------------------------|
 | `/official-api/**` | `http://localhost:8079` |
-| `/dev-shell/**` | `http://localhost:8079` |
+| `/dev-shell/**`    | `http://localhost:8079` |
 
 Dazu der Rückfall auf die Startseite für unbekannte Pfade, denn die Shell ist eine
 Single-Page-Anwendung.
@@ -227,20 +227,20 @@ Texteintrag, der im Cockpit übersetzt wird, steht hier als Schlüssel da.
 Das sind Unterschiede der Beispiele und keine Regeln. Wer eine vierte Shell baut, entscheidet selbst,
 welcher Seite er folgt.
 
-| Punkt | React | Vue | Angular |
-|---|---|---|---|
-| Art des Einstiegs | Funktion, die in ein Element rendert | Komponente mit Eigenschaften | Konfigurationsfunktion plus Bootstrap |
-| Workflow-Modul und Thema als Parameter | ja | nein | nein |
-| Spalten und Zellen als Parameter | ja | nein | nein |
-| Listenansicht | gestellt, zwei Zeilen | keine | keine |
-| Symbolansicht | Platzhalter | keine | keine |
-| Eigene Teile bekommen `toast` | ja | nein | nein |
-| Übersetzung | eigene i18next-Instanz, `de` mit Rückfall `en` | keine | keine |
-| Thema | das vom Aufrufer übergebene Grommet-Thema | PrimeVue `Aura`, fest | keines |
-| `assign` und `claim` | tun nichts | rufen die echte API | zeigen einen Hinweis |
-| Beispiel im Repository | ja, aber veraltet | keines | ja, zwei |
-| README | ja | nein | ja, nennt aber das falsche Paket |
-| Proxy-Konfiguration im Repository | ja, ohne `/dev-shell` | keine | ja, ohne `/dev-shell` |
+|                 Punkt                  |                     React                      |             Vue              |                Angular                |
+|----------------------------------------|------------------------------------------------|------------------------------|---------------------------------------|
+| Art des Einstiegs                      | Funktion, die in ein Element rendert           | Komponente mit Eigenschaften | Konfigurationsfunktion plus Bootstrap |
+| Workflow-Modul und Thema als Parameter | ja                                             | nein                         | nein                                  |
+| Spalten und Zellen als Parameter       | ja                                             | nein                         | nein                                  |
+| Listenansicht                          | gestellt, zwei Zeilen                          | keine                        | keine                                 |
+| Symbolansicht                          | Platzhalter                                    | keine                        | keine                                 |
+| Eigene Teile bekommen `toast`          | ja                                             | nein                         | nein                                  |
+| Übersetzung                            | eigene i18next-Instanz, `de` mit Rückfall `en` | keine                        | keine                                 |
+| Thema                                  | das vom Aufrufer übergebene Grommet-Thema      | PrimeVue `Aura`, fest        | keines                                |
+| `assign` und `claim`                   | tun nichts                                     | rufen die echte API          | zeigen einen Hinweis                  |
+| Beispiel im Repository                 | ja, aber veraltet                              | keines                       | ja, zwei                              |
+| README                                 | ja                                             | nein                         | ja, nennt aber das falsche Paket      |
+| Proxy-Konfiguration im Repository      | ja, ohne `/dev-shell`                          | keine                        | ja, ohne `/dev-shell`                 |
 
 Eine Eigenart von Angular ist dabei keine Entscheidung, sondern eine Einschränkung des Werkzeugs:
 `npm link` funktioniert für Angular-Bibliotheken nicht, also muss jede Änderung in die lokale

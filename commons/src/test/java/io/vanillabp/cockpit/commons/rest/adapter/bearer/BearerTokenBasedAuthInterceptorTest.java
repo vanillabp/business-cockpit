@@ -1,16 +1,18 @@
 package io.vanillabp.cockpit.commons.rest.adapter.bearer;
 
+import java.util.Collection;
+import java.util.Map;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import feign.FeignException;
 import feign.Request;
 import feign.RequestTemplate;
 import feign.Response;
 import feign.RetryableException;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import java.util.Collection;
-import java.util.Map;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * What the interceptor does with a token which the server did not accept. An HTTP 401 has to
@@ -20,81 +22,82 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(SuppressOutputExtension.class)
 public class BearerTokenBasedAuthInterceptorTest {
 
-    private static final Map<String, Collection<String>> NO_HEADERS = Map.of();
+  private static final Map<String, Collection<String>> NO_HEADERS = Map.of();
 
-    private static class TestInterceptor extends BearerTokenBasedAuthInterceptor {
+  private static class TestInterceptor extends BearerTokenBasedAuthInterceptor {
 
-        int tokensCreated;
+    int tokensCreated;
 
-        @Override
-        protected String createToken() {
-            tokensCreated++;
-            return "token-" + tokensCreated;
-        }
-
+    @Override
+    protected String createToken() {
+      tokensCreated++;
+      return "token-"
+          + tokensCreated;
     }
 
-    private static Response responseWith(
-            final int status,
-            final String reason) {
+  }
 
-        final var request = Request.create(
-                Request.HttpMethod.GET,
-                "http://localhost/api/v1/usertask",
-                NO_HEADERS,
-                Request.Body.empty(),
-                new RequestTemplate());
+  private static Response responseWith(
+      final int status,
+      final String reason) {
 
-        return Response
-                .builder()
-                .status(status)
-                .reason(reason)
-                .request(request)
-                .headers(NO_HEADERS)
-                .build();
+    final var request = Request.create(
+        Request.HttpMethod.GET,
+        "http://localhost/api/v1/usertask",
+        NO_HEADERS,
+        Request.Body.empty(),
+        new RequestTemplate());
 
-    }
+    return Response
+        .builder()
+        .status(status)
+        .reason(reason)
+        .request(request)
+        .headers(NO_HEADERS)
+        .build();
 
-    @Test
-    public void testTheAuthorizationHeaderCarriesAFreshToken() {
+  }
 
-        final var interceptor = new TestInterceptor();
-        final var template = new RequestTemplate();
-        template.header("Authorization", "Bearer an-expired-one");
+  @Test
+  public void testTheAuthorizationHeaderCarriesAFreshToken() {
 
-        interceptor.apply(template);
+    final var interceptor = new TestInterceptor();
+    final var template = new RequestTemplate();
+    template.header("Authorization", "Bearer an-expired-one");
 
-        Assertions.assertThat(template.headers().get("Authorization")).containsExactly("Bearer token-1");
+    interceptor.apply(template);
 
-    }
+    Assertions.assertThat(template.headers().get("Authorization")).containsExactly("Bearer token-1");
 
-    @Test
-    public void testUnauthorizedIsWorthRetrying() {
+  }
 
-        final var exception = new TestInterceptor().decode("someMethodKey", responseWith(401, "Unauthorized"));
+  @Test
+  public void testUnauthorizedIsWorthRetrying() {
 
-        Assertions.assertThat(exception).isInstanceOf(RetryableException.class);
+    final var exception = new TestInterceptor().decode("someMethodKey", responseWith(401, "Unauthorized"));
 
-        final var retryable = (RetryableException) exception;
-        Assertions.assertThat(retryable.status()).isEqualTo(401);
-        Assertions.assertThat(retryable.method()).isEqualTo(Request.HttpMethod.GET);
+    Assertions.assertThat(exception).isInstanceOf(RetryableException.class);
 
-        // Feign waits until this moment before it retries, and there is nothing to wait for here
-        Assertions
-                .assertThat(retryable.retryAfter())
-                .isNotNull()
-                .isLessThanOrEqualTo(System.currentTimeMillis());
+    final var retryable = (RetryableException) exception;
+    Assertions.assertThat(retryable.status()).isEqualTo(401);
+    Assertions.assertThat(retryable.method()).isEqualTo(Request.HttpMethod.GET);
 
-    }
+    // Feign waits until this moment before it retries, and there is nothing to wait for here
+    Assertions
+        .assertThat(retryable.retryAfter())
+        .isNotNull()
+        .isLessThanOrEqualTo(System.currentTimeMillis());
 
-    @Test
-    public void testAnyOtherStatusIsAPlainFailure() {
+  }
 
-        final var exception = new TestInterceptor().decode("someMethodKey", responseWith(500, "Server Error"));
+  @Test
+  public void testAnyOtherStatusIsAPlainFailure() {
 
-        Assertions.assertThat(exception).isInstanceOf(FeignException.class);
-        Assertions.assertThat(exception).isNotInstanceOf(RetryableException.class);
+    final var exception = new TestInterceptor().decode("someMethodKey", responseWith(500, "Server Error"));
 
-    }
+    Assertions.assertThat(exception).isInstanceOf(FeignException.class);
+    Assertions.assertThat(exception).isNotInstanceOf(RetryableException.class);
+
+  }
 
 }

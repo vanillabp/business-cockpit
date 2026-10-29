@@ -6,90 +6,94 @@ package io.vanillabp.cockpit.commons.rest.adapter;
  */
 public class Authentication {
 
-	private boolean basic = false;
-	
-    private OauthAuthentication oauth;
+  private boolean basic = false;
 
-	private String username;
-	
-	private String password;
+  private OauthAuthentication oauth;
 
-    /**
-     * Creates empty settings, which means no authentication.
-     */
-    public Authentication() {
-    }
+  private String username;
 
-	/**
-	 * The user name for HTTP basic authentication.
-	 *
-	 * @return The user name
-	 */
-	public String getUsername() {
-		return username;
-	}
+  private String password;
 
-	/**
-	 * Sets the user name for HTTP basic authentication.
-	 *
-	 * @param username The user name
-	 */
-	public void setUsername(String username) {
-		this.username = username;
-	}
+  /**
+   * Creates empty settings, which means no authentication.
+   */
+  public Authentication() {
+  }
 
-	/**
-	 * The password for HTTP basic authentication.
-	 *
-	 * @return The password
-	 */
-	public String getPassword() {
-		return password;
-	}
+  /**
+   * The user name for HTTP basic authentication.
+   *
+   * @return The user name
+   */
+  public String getUsername() {
+    return username;
+  }
 
-	/**
-	 * Sets the password for HTTP basic authentication.
-	 *
-	 * @param password The password
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
-	/**
-	 * Tells whether HTTP basic authentication is used.
-	 *
-	 * @return Whether basic authentication is on
-	 */
-	public boolean isBasic() {
-		return basic;
-	}
-	
-	/**
-	 * Sets whether HTTP basic authentication is used.
-	 *
-	 * @param basic Whether basic authentication is on
-	 */
-	public void setBasic(boolean basic) {
-		this.basic = basic;
-	}
+  /**
+   * Sets the user name for HTTP basic authentication.
+   *
+   * @param username The user name
+   */
+  public void setUsername(
+      String username) {
+    this.username = username;
+  }
 
-    /**
-     * The settings to fetch an OAuth token, which is sent as bearer token.
-     *
-     * @return The OAuth settings, or {@code null} if OAuth is not used
-     */
-    public OauthAuthentication getOauth() {
-        return oauth;
-    }
+  /**
+   * The password for HTTP basic authentication.
+   *
+   * @return The password
+   */
+  public String getPassword() {
+    return password;
+  }
 
-    /**
-     * Sets the settings to fetch an OAuth token, which is sent as bearer token.
-     *
-     * @param oauth The OAuth settings
-     */
-    public void setOauth(OauthAuthentication oauth) {
-        this.oauth = oauth;
-    }
+  /**
+   * Sets the password for HTTP basic authentication.
+   *
+   * @param password The password
+   */
+  public void setPassword(
+      String password) {
+    this.password = password;
+  }
+
+  /**
+   * Tells whether HTTP basic authentication is used.
+   *
+   * @return Whether basic authentication is on
+   */
+  public boolean isBasic() {
+    return basic;
+  }
+
+  /**
+   * Sets whether HTTP basic authentication is used.
+   *
+   * @param basic Whether basic authentication is on
+   */
+  public void setBasic(
+      boolean basic) {
+    this.basic = basic;
+  }
+
+  /**
+   * The settings to fetch an OAuth token, which is sent as bearer token.
+   *
+   * @return The OAuth settings, or {@code null} if OAuth is not used
+   */
+  public OauthAuthentication getOauth() {
+    return oauth;
+  }
+
+  /**
+   * Sets the settings to fetch an OAuth token, which is sent as bearer token.
+   *
+   * @param oauth The OAuth settings
+   */
+  public void setOauth(
+      OauthAuthentication oauth) {
+    this.oauth = oauth;
+  }
 
 }

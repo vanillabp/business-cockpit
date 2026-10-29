@@ -1,12 +1,13 @@
 package io.vanillabp.cockpit.tasklist;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.model.Group;
-import io.vanillabp.cockpit.users.model.Person;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
 
 /**
  * Which user tasks one view of the cockpit lets a user reach. The list of that view is built from
@@ -64,224 +65,217 @@ import java.util.stream.Stream;
  * @param admittedUsers The user ids of which a visible task admits at least one, or {@code null}
  */
 public record UserTaskVisibility(
-        boolean includeDanglingTasks,
-        boolean notInAssignees,
-        Collection<String> assignees,
-        Collection<String> candidateUsers,
-        Collection<String> candidateGroups,
-        Collection<String> excludedCandidates,
-        Collection<String> admittedUsers) {
+                                 boolean includeDanglingTasks,
+                                 boolean notInAssignees,
+                                 Collection<String> assignees,
+                                 Collection<String> candidateUsers,
+                                 Collection<String> candidateGroups,
+                                 Collection<String> excludedCandidates,
+                                 Collection<String> admittedUsers) {
+
+  /**
+   * Everything the user could take a hand in: their own tasks, the ones naming them or one of
+   * their groups, the ones admitting them, and the ones addressed to nobody. A task naming the
+   * user as excluded is left out, unless the same task admits them.
+   *
+   * @param user The user
+   * @return The visibility
+   */
+  public static UserTaskVisibility everythingTheUserMayWorkOn(
+      final UserDetails user) {
+
+    return everythingTheUserMayWorkOn(user.getId(), user.getAuthorities());
+
+  }
+
+  /**
+   * The same view as {@link #everythingTheUserMayWorkOn(UserDetails)} for a caller which holds
+   * the user's id and groups instead of the user.
+   *
+   * @param userId The id of the user
+   * @param usersGroups The groups of the user
+   * @return The visibility
+   */
+  public static UserTaskVisibility everythingTheUserMayWorkOn(
+      final String userId,
+      final Collection<String> usersGroups) {
+
+    return new UserTaskVisibility(
+        true, false, List.of(userId), List.of(userId), usersGroups, List.of(userId), List.of(userId));
+
+  }
+
+  /**
+   * What is the user's own: assigned to them, or naming them personally. Their groups do not
+   * count here, neither do the tasks addressed to nobody, and neither does a task which only
+   * admits them. This view says what is addressed to the person today.
+   *
+   * @param user The user
+   * @return The visibility
+   */
+  public static UserTaskVisibility onlyWhatIsTheUsersOwn(
+      final UserDetails user) {
+
+    return new UserTaskVisibility(
+        false, false, List.of(user.getId()), List.of(user.getId()), null, List.of(user.getId()), null);
+
+  }
+
+  /**
+   * What the user's groups may take and the user has not taken yet, together with the tasks
+   * addressed to nobody. A task the user has already claimed is gone from this view, which is
+   * what makes it read as a pile of open work.
+   *
+   * <p>Being admitted to a task does not count here. This view says which work is theirs to take,
+   * and a task which only lets somebody read it offers them nothing.
+   *
+   * @param user The user
+   * @return The visibility
+   */
+  public static UserTaskVisibility whatTheUsersGroupsMayTake(
+      final UserDetails user) {
+
+    return new UserTaskVisibility(
+        true, true, List.of(user.getId()), null, user.getAuthorities(), List.of(user.getId()), null);
+
+  }
+
+  /**
+   * Every user task, whoever it addresses. Meant for the places which show what a workflow is up
+   * to rather than what the reader has to do.
+   *
+   * @return The visibility which restricts nothing
+   */
+  public static UserTaskVisibility everyUserTask() {
+
+    return new UserTaskVisibility(false, false, null, null, null, null, null);
+
+  }
+
+  /**
+   * Whether this visibility lets the task through. It is the rule of
+   * {@code UserTaskService.buildUserTasksCriteria}, for a list of every task, ended or not, and
+   * it has to give the same answer.
+   *
+   * @param task The facts of the task
+   * @return {@code true} if the task is visible
+   */
+  public boolean letsThrough(
+      final TaskFacts task) {
+
+    final var reasonsAnExclusionCancels = new java.util.ArrayList<Boolean>();
+    final var reasonsNoExclusionCancels = new java.util.ArrayList<Boolean>();
+    final var exclusions = new java.util.ArrayList<Boolean>();
+    final var restrictionsOnTheAssignee = new java.util.ArrayList<Boolean>();
+
+    if (isGiven(assignees)) {
+      final var assigneeMatches = (task.assignee() != null) && assignees.contains(task.assignee().getId());
+      if (notInAssignees) {
+        restrictionsOnTheAssignee.add(!assigneeMatches);
+      } else {
+        reasonsAnExclusionCancels.add(assigneeMatches);
+      }
+    } else if (notInAssignees) {
+      restrictionsOnTheAssignee.add(task.assignee() == null);
+    }
+    if (isGiven(candidateUsers)) {
+      reasonsAnExclusionCancels.add(namesOneOf(task.candidateUsers(), candidateUsers));
+    }
+    if (isGiven(candidateGroups)) {
+      reasonsAnExclusionCancels.add(
+          idsOf(task.candidateGroups(), Group::getId).anyMatch(candidateGroups::contains));
+    }
+    if (isGiven(admittedUsers)) {
+      reasonsNoExclusionCancels.add(namesOneOf(task.admittedUsers(), admittedUsers));
+    }
+    if (isGiven(excludedCandidates)) {
+      exclusions.add(!namesOneOf(task.excludedCandidateUsers(), excludedCandidates));
+    }
+
+    if (restrictionsOnTheAssignee.isEmpty() && reasonsAnExclusionCancels.isEmpty() && reasonsNoExclusionCancels
+        .isEmpty() && exclusions.isEmpty()) {
+      return true;
+    }
+    if (includeDanglingTasks) {
+      reasonsAnExclusionCancels.add(Boolean.TRUE.equals(task.dangling()));
+    }
+
+    final var reasonsToBeVisible = new java.util.ArrayList<Boolean>();
+    if (!reasonsAnExclusionCancels.isEmpty() || !exclusions.isEmpty()) {
+      final var notCancelled = exclusions.stream().allMatch(Boolean::booleanValue);
+      final var aReason = reasonsAnExclusionCancels.isEmpty() || reasonsAnExclusionCancels.stream()
+          .anyMatch(Boolean::booleanValue);
+      reasonsToBeVisible.add(aReason && notCancelled);
+    }
+    reasonsToBeVisible.addAll(reasonsNoExclusionCancels);
+
+    final var visible = reasonsToBeVisible.isEmpty() || reasonsToBeVisible.stream().anyMatch(Boolean::booleanValue);
+    return visible && restrictionsOnTheAssignee.stream().allMatch(Boolean::booleanValue);
+
+  }
+
+  private static boolean isGiven(
+      final Collection<String> values) {
+
+    return (values != null) && !values.isEmpty();
+
+  }
+
+  private static boolean namesOneOf(
+      final List<Person> people,
+      final Collection<String> ids) {
+
+    return idsOf(people, Person::getId).anyMatch(ids::contains);
+
+  }
+
+  private static <T> Stream<String> idsOf(
+      final List<T> entries,
+      final java.util.function.Function<T, String> id) {
+
+    return entries == null
+        ? Stream.empty()
+        : entries.stream().filter(Objects::nonNull).map(id);
+
+  }
+
+  /**
+   * What {@link #letsThrough(TaskFacts)} reads of a task, and nothing else. The update streams
+   * read exactly these fields of a changed task from the database. {@code dangling} is the value
+   * stored in the document, which is what the query compares, and not the one the task would
+   * compute from its fields now.
+   *
+   * @param id The id of the task
+   * @param assignee The person the task is assigned to, or {@code null}
+   * @param candidateUsers The users who may work on the task
+   * @param candidateGroups The groups whose members may work on the task
+   * @param excludedCandidateUsers The users kept out of the task
+   * @param admittedUsers The users who may reach the task for a reason of the business
+   * @param dangling Whether the task addresses nobody, as stored in the document
+   */
+  public record TaskFacts(
+                          String id,
+                          Person assignee,
+                          List<Person> candidateUsers,
+                          List<Group> candidateGroups,
+                          List<Person> excludedCandidateUsers,
+                          List<Person> admittedUsers,
+                          Boolean dangling) {
 
     /**
-     * Everything the user could take a hand in: their own tasks, the ones naming them or one of
-     * their groups, the ones admitting them, and the ones addressed to nobody. A task naming the
-     * user as excluded is left out, unless the same task admits them.
+     * The names of the fields, which are the fields the update streams read.
      *
-     * @param user The user
-     * @return The visibility
+     * @return The names of the fields
      */
-    public static UserTaskVisibility everythingTheUserMayWorkOn(
-            final UserDetails user) {
+    public static List<String> fieldNames() {
 
-        return everythingTheUserMayWorkOn(user.getId(), user.getAuthorities());
-
-    }
-
-    /**
-     * The same view as {@link #everythingTheUserMayWorkOn(UserDetails)} for a caller which holds
-     * the user's id and groups instead of the user.
-     *
-     * @param userId The id of the user
-     * @param usersGroups The groups of the user
-     * @return The visibility
-     */
-    public static UserTaskVisibility everythingTheUserMayWorkOn(
-            final String userId,
-            final Collection<String> usersGroups) {
-
-        return new UserTaskVisibility(
-                true, false, List.of(userId), List.of(userId), usersGroups, List.of(userId),
-                List.of(userId));
+      return Stream
+          .of(TaskFacts.class.getRecordComponents())
+          .map(java.lang.reflect.RecordComponent::getName)
+          .toList();
 
     }
 
-    /**
-     * What is the user's own: assigned to them, or naming them personally. Their groups do not
-     * count here, neither do the tasks addressed to nobody, and neither does a task which only
-     * admits them. This view says what is addressed to the person today.
-     *
-     * @param user The user
-     * @return The visibility
-     */
-    public static UserTaskVisibility onlyWhatIsTheUsersOwn(
-            final UserDetails user) {
-
-        return new UserTaskVisibility(
-                false, false, List.of(user.getId()), List.of(user.getId()), null,
-                List.of(user.getId()), null);
-
-    }
-
-    /**
-     * What the user's groups may take and the user has not taken yet, together with the tasks
-     * addressed to nobody. A task the user has already claimed is gone from this view, which is
-     * what makes it read as a pile of open work.
-     *
-     * <p>Being admitted to a task does not count here. This view says which work is theirs to take,
-     * and a task which only lets somebody read it offers them nothing.
-     *
-     * @param user The user
-     * @return The visibility
-     */
-    public static UserTaskVisibility whatTheUsersGroupsMayTake(
-            final UserDetails user) {
-
-        return new UserTaskVisibility(
-                true, true, List.of(user.getId()), null, user.getAuthorities(),
-                List.of(user.getId()), null);
-
-    }
-
-    /**
-     * Every user task, whoever it addresses. Meant for the places which show what a workflow is up
-     * to rather than what the reader has to do.
-     *
-     * @return The visibility which restricts nothing
-     */
-    public static UserTaskVisibility everyUserTask() {
-
-        return new UserTaskVisibility(false, false, null, null, null, null, null);
-
-    }
-
-    /**
-     * Whether this visibility lets the task through. It is the rule of
-     * {@code UserTaskService.buildUserTasksCriteria}, for a list of every task, ended or not, and
-     * it has to give the same answer.
-     *
-     * @param task The facts of the task
-     * @return {@code true} if the task is visible
-     */
-    public boolean letsThrough(
-            final TaskFacts task) {
-
-        final var reasonsAnExclusionCancels = new java.util.ArrayList<Boolean>();
-        final var reasonsNoExclusionCancels = new java.util.ArrayList<Boolean>();
-        final var exclusions = new java.util.ArrayList<Boolean>();
-        final var restrictionsOnTheAssignee = new java.util.ArrayList<Boolean>();
-
-        if (isGiven(assignees)) {
-            final var assigneeMatches = (task.assignee() != null)
-                    && assignees.contains(task.assignee().getId());
-            if (notInAssignees) {
-                restrictionsOnTheAssignee.add(!assigneeMatches);
-            } else {
-                reasonsAnExclusionCancels.add(assigneeMatches);
-            }
-        } else if (notInAssignees) {
-            restrictionsOnTheAssignee.add(task.assignee() == null);
-        }
-        if (isGiven(candidateUsers)) {
-            reasonsAnExclusionCancels.add(namesOneOf(task.candidateUsers(), candidateUsers));
-        }
-        if (isGiven(candidateGroups)) {
-            reasonsAnExclusionCancels.add(
-                    idsOf(task.candidateGroups(), Group::getId).anyMatch(candidateGroups::contains));
-        }
-        if (isGiven(admittedUsers)) {
-            reasonsNoExclusionCancels.add(namesOneOf(task.admittedUsers(), admittedUsers));
-        }
-        if (isGiven(excludedCandidates)) {
-            exclusions.add(!namesOneOf(task.excludedCandidateUsers(), excludedCandidates));
-        }
-
-        if (restrictionsOnTheAssignee.isEmpty()
-                && reasonsAnExclusionCancels.isEmpty()
-                && reasonsNoExclusionCancels.isEmpty()
-                && exclusions.isEmpty()) {
-            return true;
-        }
-        if (includeDanglingTasks) {
-            reasonsAnExclusionCancels.add(Boolean.TRUE.equals(task.dangling()));
-        }
-
-        final var reasonsToBeVisible = new java.util.ArrayList<Boolean>();
-        if (!reasonsAnExclusionCancels.isEmpty() || !exclusions.isEmpty()) {
-            final var notCancelled = exclusions.stream().allMatch(Boolean::booleanValue);
-            final var aReason = reasonsAnExclusionCancels.isEmpty()
-                    || reasonsAnExclusionCancels.stream().anyMatch(Boolean::booleanValue);
-            reasonsToBeVisible.add(aReason && notCancelled);
-        }
-        reasonsToBeVisible.addAll(reasonsNoExclusionCancels);
-
-        final var visible = reasonsToBeVisible.isEmpty()
-                || reasonsToBeVisible.stream().anyMatch(Boolean::booleanValue);
-        return visible && restrictionsOnTheAssignee.stream().allMatch(Boolean::booleanValue);
-
-    }
-
-    private static boolean isGiven(
-            final Collection<String> values) {
-
-        return (values != null) && !values.isEmpty();
-
-    }
-
-    private static boolean namesOneOf(
-            final List<Person> people,
-            final Collection<String> ids) {
-
-        return idsOf(people, Person::getId).anyMatch(ids::contains);
-
-    }
-
-    private static <T> Stream<String> idsOf(
-            final List<T> entries,
-            final java.util.function.Function<T, String> id) {
-
-        return entries == null
-                ? Stream.empty()
-                : entries.stream().filter(Objects::nonNull).map(id);
-
-    }
-
-    /**
-     * What {@link #letsThrough(TaskFacts)} reads of a task, and nothing else. The update streams
-     * read exactly these fields of a changed task from the database. {@code dangling} is the value
-     * stored in the document, which is what the query compares, and not the one the task would
-     * compute from its fields now.
-     *
-     * @param id The id of the task
-     * @param assignee The person the task is assigned to, or {@code null}
-     * @param candidateUsers The users who may work on the task
-     * @param candidateGroups The groups whose members may work on the task
-     * @param excludedCandidateUsers The users kept out of the task
-     * @param admittedUsers The users who may reach the task for a reason of the business
-     * @param dangling Whether the task addresses nobody, as stored in the document
-     */
-    public record TaskFacts(
-            String id,
-            Person assignee,
-            List<Person> candidateUsers,
-            List<Group> candidateGroups,
-            List<Person> excludedCandidateUsers,
-            List<Person> admittedUsers,
-            Boolean dangling) {
-
-        /**
-         * The names of the fields, which are the fields the update streams read.
-         *
-         * @return The names of the fields
-         */
-        public static List<String> fieldNames() {
-
-            return Stream
-                    .of(TaskFacts.class.getRecordComponents())
-                    .map(java.lang.reflect.RecordComponent::getName)
-                    .toList();
-
-        }
-
-    }
+  }
 
 }

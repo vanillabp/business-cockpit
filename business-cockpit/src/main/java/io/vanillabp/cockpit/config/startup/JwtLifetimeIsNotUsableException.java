@@ -13,39 +13,41 @@ import java.util.List;
  */
 public class JwtLifetimeIsNotUsableException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    private static final String WHAT_TO_DO = "Write each value as an ISO-8601 duration greater than zero, "
-            + "for example 'PT12H' for twelve hours or 'P7D' for seven days, or leave the property out "
-            + "to use its default.";
+  private static final String WHAT_TO_DO = "Write each value as an ISO-8601 duration greater than zero, "
+      + "for example 'PT12H' for twelve hours or 'P7D' for seven days, or leave the property out "
+      + "to use its default.";
 
-    /**
-     * Which value cannot be used and why, for the description of the failure report.
-     */
-    private final String whatIsWrong;
+  /**
+   * Which value cannot be used and why, for the description of the failure report.
+   */
+  private final String whatIsWrong;
 
-    JwtLifetimeIsNotUsableException(
-            final List<MissingConfiguration> unusable) {
+  JwtLifetimeIsNotUsableException(
+      final List<MissingConfiguration> unusable) {
 
-        super(whatIsWrong(unusable) + "\n\n" + WHAT_TO_DO);
-        this.whatIsWrong = whatIsWrong(unusable);
+    super(whatIsWrong(unusable)
+        + "\n\n"
+        + WHAT_TO_DO);
+    this.whatIsWrong = whatIsWrong(unusable);
 
-    }
+  }
 
-    private static String whatIsWrong(
-            final List<MissingConfiguration> unusable) {
+  private static String whatIsWrong(
+      final List<MissingConfiguration> unusable) {
 
-        return "The Business Cockpit cannot use the lifetime of its login token:\n\n"
-                + MissingConfiguration.asMessageBlocks(unusable);
+    return "The Business Cockpit cannot use the lifetime of its login token:\n\n"
+        + MissingConfiguration.asMessageBlocks(unusable);
 
-    }
+  }
 
-    String describeWhatIsWrong() {
-        return whatIsWrong;
-    }
+  String describeWhatIsWrong() {
+    return whatIsWrong;
+  }
 
-    String describeWhatToDo() {
-        return WHAT_TO_DO;
-    }
+  String describeWhatToDo() {
+    return WHAT_TO_DO;
+  }
 
 }

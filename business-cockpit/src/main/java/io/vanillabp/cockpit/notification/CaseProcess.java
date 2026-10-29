@@ -1,15 +1,17 @@
 package io.vanillabp.cockpit.notification;
 
-import io.vanillabp.cockpit.tasklist.model.UserTask;
-import io.vanillabp.cockpit.workflowlist.model.Workflow;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+
+import io.vanillabp.cockpit.tasklist.model.UserTask;
+import io.vanillabp.cockpit.workflowlist.model.Workflow;
 
 /**
  * The BPMN process of the business case a user task belongs to. A user sets notifications per
@@ -36,59 +38,61 @@ import org.springframework.data.mongodb.core.query.Query;
  * @param bpmnProcessId The BPMN process of the case
  */
 public record CaseProcess(
-        String workflowModuleId,
-        String bpmnProcessId) {
+                          String workflowModuleId,
+                          String bpmnProcessId) {
 
-    /**
-     * The case of a task the cockpit holds no workflow for: the process the task sits in.
-     *
-     * @param task The user task
-     * @return Its own workflow module and BPMN process
-     */
-    public static CaseProcess ofTheTaskItself(
-            final UserTask task) {
+  /**
+   * The case of a task the cockpit holds no workflow for: the process the task sits in.
+   *
+   * @param task The user task
+   * @return Its own workflow module and BPMN process
+   */
+  public static CaseProcess ofTheTaskItself(
+      final UserTask task) {
 
-        return new CaseProcess(task.getWorkflowModuleId(), task.getBpmnProcessId());
+    return new CaseProcess(task.getWorkflowModuleId(), task.getBpmnProcessId());
 
+  }
+
+  /**
+   * Reads the cases of several user tasks with one query.
+   *
+   * @param mongoTemplate Where the workflows are stored
+   * @param tasks The user tasks
+   * @return The case process of each of these tasks
+   */
+  public static Function<UserTask, CaseProcess> of(
+      final MongoTemplate mongoTemplate,
+      final Collection<UserTask> tasks) {
+
+    final var workflowIds = tasks
+        .stream()
+        .map(UserTask::getWorkflowId)
+        .filter(Objects::nonNull)
+        .distinct()
+        .toList();
+    if (workflowIds.isEmpty()) {
+      return CaseProcess::ofTheTaskItself;
     }
+    final var query = Query.query(Criteria.where("_id").in(workflowIds));
+    query.fields().include("workflowModuleId", "bpmnProcessId");
+    final var found = mongoTemplate.find(query, Workflow.class);
+    final Map<String, CaseProcess> byWorkflowId = found == null
+        ? Map.of()
+        : found
+            .stream()
+            .filter(workflow -> workflow.getBpmnProcessId() != null)
+            .collect(Collectors.toMap(
+                Workflow::getId,
+                workflow -> new CaseProcess(
+                    workflow.getWorkflowModuleId(), workflow.getBpmnProcessId()),
+                (
+                    first,
+                    second) -> first));
+    return task -> task.getWorkflowId() == null
+        ? ofTheTaskItself(task)
+        : byWorkflowId.getOrDefault(task.getWorkflowId(), ofTheTaskItself(task));
 
-    /**
-     * Reads the cases of several user tasks with one query.
-     *
-     * @param mongoTemplate Where the workflows are stored
-     * @param tasks The user tasks
-     * @return The case process of each of these tasks
-     */
-    public static Function<UserTask, CaseProcess> of(
-            final MongoTemplate mongoTemplate,
-            final Collection<UserTask> tasks) {
-
-        final var workflowIds = tasks
-                .stream()
-                .map(UserTask::getWorkflowId)
-                .filter(Objects::nonNull)
-                .distinct()
-                .toList();
-        if (workflowIds.isEmpty()) {
-            return CaseProcess::ofTheTaskItself;
-        }
-        final var query = Query.query(Criteria.where("_id").in(workflowIds));
-        query.fields().include("workflowModuleId", "bpmnProcessId");
-        final var found = mongoTemplate.find(query, Workflow.class);
-        final Map<String, CaseProcess> byWorkflowId = found == null
-                ? Map.of()
-                : found
-                        .stream()
-                        .filter(workflow -> workflow.getBpmnProcessId() != null)
-                        .collect(Collectors.toMap(
-                                Workflow::getId,
-                                workflow -> new CaseProcess(
-                                        workflow.getWorkflowModuleId(), workflow.getBpmnProcessId()),
-                                (first, second) -> first));
-        return task -> task.getWorkflowId() == null
-                ? ofTheTaskItself(task)
-                : byWorkflowId.getOrDefault(task.getWorkflowId(), ofTheTaskItself(task));
-
-    }
+  }
 
 }

@@ -1,6 +1,7 @@
 package io.vanillabp.cockpit.config.startup;
 
 import java.util.Optional;
+
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
@@ -20,198 +21,196 @@ import org.springframework.util.StringUtils;
  */
 public final class CockpitConfiguration {
 
-    /**
-     * Where the database lives. Spring Boot 4 moved these keys out of {@code spring.data.mongodb}.
-     */
-    public static final String MONGODB_URI = "spring.mongodb.uri";
+  /**
+   * Where the database lives. Spring Boot 4 moved these keys out of {@code spring.data.mongodb}.
+   */
+  public static final String MONGODB_URI = "spring.mongodb.uri";
 
-    /**
-     * The host of the database. It is the other way to say where the database lives, if no URI is
-     * given.
-     */
-    public static final String MONGODB_HOST = "spring.mongodb.host";
+  /**
+   * The host of the database. It is the other way to say where the database lives, if no URI is
+   * given.
+   */
+  public static final String MONGODB_HOST = "spring.mongodb.host";
 
-    /**
-     * The 'w' of the write concern the cockpit writes with. It belongs on the cockpit's
-     * MongoTemplate and not into the connection string, which {@link WriteConcernCheck} explains.
-     */
-    public static final String MONGODB_WRITE_CONCERN = "mongodb.write-concern";
+  /**
+   * The 'w' of the write concern the cockpit writes with. It belongs on the cockpit's
+   * MongoTemplate and not into the connection string, which {@link WriteConcernCheck} explains.
+   */
+  public static final String MONGODB_WRITE_CONCERN = "mongodb.write-concern";
 
-    /**
-     * Whether a write counts as done only after it is in the journal of the database. It belongs
-     * on the cockpit's MongoTemplate as well, next to {@link #MONGODB_WRITE_CONCERN}.
-     */
-    public static final String MONGODB_WRITE_CONCERN_JOURNAL = "mongodb.write-concern-journal";
+  /**
+   * Whether a write counts as done only after it is in the journal of the database. It belongs
+   * on the cockpit's MongoTemplate as well, next to {@link #MONGODB_WRITE_CONCERN}.
+   */
+  public static final String MONGODB_WRITE_CONCERN_JOURNAL = "mongodb.write-concern-journal";
 
-    /**
-     * What the cockpit writes instead of a dot in a key of the business data. Unset by default,
-     * and {@link MapKeyDotReplacement} says what setting it costs.
-     */
-    public static final String MONGODB_MAP_KEY_DOT_REPLACEMENT = "business-cockpit.mongodb.map-key-dot-replacement";
+  /**
+   * What the cockpit writes instead of a dot in a key of the business data. Unset by default,
+   * and {@link MapKeyDotReplacement} says what setting it costs.
+   */
+  public static final String MONGODB_MAP_KEY_DOT_REPLACEMENT = "business-cockpit.mongodb.map-key-dot-replacement";
 
-    /**
-     * How many indexes for sorting a list the cockpit creates per collection at most. Read by
-     * {@link SortIndexLimit}.
-     */
-    public static final String MONGODB_SORT_INDEXES_PER_COLLECTION =
-            "business-cockpit.mongodb.sort-indexes-per-collection";
+  /**
+   * How many indexes for sorting a list the cockpit creates per collection at most. Read by
+   * {@link SortIndexLimit}.
+   */
+  public static final String MONGODB_SORT_INDEXES_PER_COLLECTION = "business-cockpit.mongodb.sort-indexes-per-collection";
 
-    /**
-     * The short title of the application, shown in the header of the user interface.
-     */
-    public static final String TITLE_SHORT = "business-cockpit.title-short";
+  /**
+   * The short title of the application, shown in the header of the user interface.
+   */
+  public static final String TITLE_SHORT = "business-cockpit.title-short";
 
-    /**
-     * The long title of the application, shown where there is room for it.
-     */
-    public static final String TITLE_LONG = "business-cockpit.title-long";
+  /**
+   * The long title of the application, shown where there is room for it.
+   */
+  public static final String TITLE_LONG = "business-cockpit.title-long";
 
-    /**
-     * The version of the application, shown to the user.
-     */
-    public static final String APPLICATION_VERSION = "business-cockpit.application-version";
+  /**
+   * The version of the application, shown to the user.
+   */
+  public static final String APPLICATION_VERSION = "business-cockpit.application-version";
 
-    /**
-     * The address under which users reach the cockpit. Notifications build their links on it.
-     */
-    public static final String APPLICATION_URI = "business-cockpit.application-uri";
+  /**
+   * The address under which users reach the cockpit. Notifications build their links on it.
+   */
+  public static final String APPLICATION_URI = "business-cockpit.application-uri";
 
-    /**
-     * The key which signs the login token, an HMAC-SHA256 key in Base64.
-     */
-    public static final String JWT_KEY = "business-cockpit.jwt.hmacSHA256-base64";
+  /**
+   * The key which signs the login token, an HMAC-SHA256 key in Base64.
+   */
+  public static final String JWT_KEY = "business-cockpit.jwt.hmacSHA256-base64";
 
-    /**
-     * How long a login token lives after its last renewal. Unset means the default of the
-     * properties, twelve hours.
-     */
-    public static final String JWT_EXPIRES_DURATION = "business-cockpit.jwt.cookie.expires-duration";
+  /**
+   * How long a login token lives after its last renewal. Unset means the default of the
+   * properties, twelve hours.
+   */
+  public static final String JWT_EXPIRES_DURATION = "business-cockpit.jwt.cookie.expires-duration";
 
-    /**
-     * How long a login lasts at most, however often its token is renewed. Unset means the default
-     * of the properties, seven days.
-     */
-    public static final String JWT_MAX_LOGIN_DURATION = "business-cockpit.jwt.cookie.max-login-duration";
+  /**
+   * How long a login lasts at most, however often its token is renewed. Unset means the default
+   * of the properties, seven days.
+   */
+  public static final String JWT_MAX_LOGIN_DURATION = "business-cockpit.jwt.cookie.max-login-duration";
 
-    /**
-     * The realm of the HTTP basic authentication which protects the BPMS API.
-     */
-    public static final String BPMS_API_REALM_NAME = "bpms-api.realm-name";
+  /**
+   * The realm of the HTTP basic authentication which protects the BPMS API.
+   */
+  public static final String BPMS_API_REALM_NAME = "bpms-api.realm-name";
 
-    /**
-     * The user name a BPMS adapter logs in with when it calls the BPMS API.
-     */
-    public static final String BPMS_API_USERNAME = "bpms-api.username";
+  /**
+   * The user name a BPMS adapter logs in with when it calls the BPMS API.
+   */
+  public static final String BPMS_API_USERNAME = "bpms-api.username";
 
-    /**
-     * The password a BPMS adapter logs in with when it calls the BPMS API.
-     */
-    public static final String BPMS_API_PASSWORD = "bpms-api.password";
+  /**
+   * The password a BPMS adapter logs in with when it calls the BPMS API.
+   */
+  public static final String BPMS_API_PASSWORD = "bpms-api.password";
 
-    /**
-     * The Kafka topic the cockpit reads the reports about user tasks from.
-     */
-    public static final String KAFKA_TOPIC_USER_TASK = "bpms-api.kafka.topics.user-task";
+  /**
+   * The Kafka topic the cockpit reads the reports about user tasks from.
+   */
+  public static final String KAFKA_TOPIC_USER_TASK = "bpms-api.kafka.topics.user-task";
 
-    /**
-     * The Kafka topic the cockpit reads the reports about workflows from.
-     */
-    public static final String KAFKA_TOPIC_WORKFLOW = "bpms-api.kafka.topics.workflow";
+  /**
+   * The Kafka topic the cockpit reads the reports about workflows from.
+   */
+  public static final String KAFKA_TOPIC_WORKFLOW = "bpms-api.kafka.topics.workflow";
 
-    /**
-     * The Kafka topic the cockpit reads the reports about workflow modules from.
-     */
-    public static final String KAFKA_TOPIC_WORKFLOW_MODULE = "bpms-api.kafka.topics.workflow-module";
+  /**
+   * The Kafka topic the cockpit reads the reports about workflow modules from.
+   */
+  public static final String KAFKA_TOPIC_WORKFLOW_MODULE = "bpms-api.kafka.topics.workflow-module";
 
-    /**
-     * The end of the Kafka consumer group ids. It keeps the groups of two cockpits on the same
-     * Kafka apart.
-     */
-    public static final String KAFKA_GROUP_ID_SUFFIX = "bpms-api.kafka.group-id-suffix";
+  /**
+   * The end of the Kafka consumer group ids. It keeps the groups of two cockpits on the same
+   * Kafka apart.
+   */
+  public static final String KAFKA_GROUP_ID_SUFFIX = "bpms-api.kafka.group-id-suffix";
 
-    /**
-     * Not a relaxed-bound property but a plain placeholder read by {@code @Value}, so it is spelled
-     * in camel case and has to be looked up exactly like that.
-     */
-    public static final String WORKER_ID = "workerId";
+  /**
+   * Not a relaxed-bound property but a plain placeholder read by {@code @Value}, so it is spelled
+   * in camel case and has to be looked up exactly like that.
+   */
+  public static final String WORKER_ID = "workerId";
 
-    /**
-     * Whether the cockpit sends notifications by email.
-     */
-    public static final String SMTP_ENABLED = "business-cockpit.notification.smtp.enabled";
+  /**
+   * Whether the cockpit sends notifications by email.
+   */
+  public static final String SMTP_ENABLED = "business-cockpit.notification.smtp.enabled";
 
-    /**
-     * The sender address of the notification emails.
-     */
-    public static final String SMTP_FROM = "business-cockpit.notification.smtp.from";
+  /**
+   * The sender address of the notification emails.
+   */
+  public static final String SMTP_FROM = "business-cockpit.notification.smtp.from";
 
-    private CockpitConfiguration() {
-    }
+  private CockpitConfiguration() {
+  }
 
-    /**
-     * The configured value, or empty when the property is absent or holds nothing but whitespace.
-     * A property set to an empty string is treated as unset on purpose: an empty realm name or an
-     * empty password is never what somebody meant to configure.
-     *
-     * @param environment The environment to read from
-     * @param propertyName The name of the property
-     * @return The value, or empty if there is none
-     */
-    public static Optional<String> valueOf(
-            final Environment environment,
-            final String propertyName) {
+  /**
+   * The configured value, or empty when the property is absent or holds nothing but whitespace.
+   * A property set to an empty string is treated as unset on purpose: an empty realm name or an
+   * empty password is never what somebody meant to configure.
+   *
+   * @param environment The environment to read from
+   * @param propertyName The name of the property
+   * @return The value, or empty if there is none
+   */
+  public static Optional<String> valueOf(
+      final Environment environment,
+      final String propertyName) {
 
-        final var value = Binder
-                .get(environment)
-                .bind(ConfigurationPropertyName.adapt(propertyName, '.'), Bindable.of(String.class))
-                .orElse(null);
-        return StringUtils.hasText(value) ? Optional.of(value) : Optional.empty();
+    final var value = Binder
+        .get(environment)
+        .bind(ConfigurationPropertyName.adapt(propertyName, '.'), Bindable.of(String.class))
+        .orElse(null);
+    return StringUtils.hasText(value) ? Optional.of(value) : Optional.empty();
 
-    }
+  }
 
-    /**
-     * Whether the property is absent or holds nothing but whitespace, as {@link #valueOf} sees it.
-     *
-     * @param environment The environment to read from
-     * @param propertyName The name of the property
-     * @return {@code true} if the property has no usable value
-     */
-    public static boolean isMissing(
-            final Environment environment,
-            final String propertyName) {
+  /**
+   * Whether the property is absent or holds nothing but whitespace, as {@link #valueOf} sees it.
+   *
+   * @param environment The environment to read from
+   * @param propertyName The name of the property
+   * @return {@code true} if the property has no usable value
+   */
+  public static boolean isMissing(
+      final Environment environment,
+      final String propertyName) {
 
-        return valueOf(environment, propertyName).isEmpty();
+    return valueOf(environment, propertyName).isEmpty();
 
-    }
+  }
 
-    /**
-     * Whether the BPMS API can be served. It authenticates every request by HTTP basic, which
-     * needs all three: realm, user and password.
-     *
-     * @param environment The environment to read from
-     * @return {@code true} if realm, user and password are all set
-     */
-    public static boolean isBpmsApiConfigured(
-            final Environment environment) {
+  /**
+   * Whether the BPMS API can be served. It authenticates every request by HTTP basic, which
+   * needs all three: realm, user and password.
+   *
+   * @param environment The environment to read from
+   * @return {@code true} if realm, user and password are all set
+   */
+  public static boolean isBpmsApiConfigured(
+      final Environment environment) {
 
-        return !isMissing(environment, BPMS_API_REALM_NAME)
-                && !isMissing(environment, BPMS_API_USERNAME)
-                && !isMissing(environment, BPMS_API_PASSWORD);
+    return !isMissing(environment, BPMS_API_REALM_NAME) && !isMissing(environment,
+        BPMS_API_USERNAME) && !isMissing(environment, BPMS_API_PASSWORD);
 
-    }
+  }
 
-    /**
-     * Whether the worker id is missing. The worker id is read as a plain placeholder, so
-     * relaxed binding does not apply to it.
-     *
-     * @param environment The environment to read from
-     * @return {@code true} if no worker id is set
-     */
-    public static boolean isWorkerIdMissing(
-            final Environment environment) {
+  /**
+   * Whether the worker id is missing. The worker id is read as a plain placeholder, so
+   * relaxed binding does not apply to it.
+   *
+   * @param environment The environment to read from
+   * @return {@code true} if no worker id is set
+   */
+  public static boolean isWorkerIdMissing(
+      final Environment environment) {
 
-        return !StringUtils.hasText(environment.getProperty(WORKER_ID));
+    return !StringUtils.hasText(environment.getProperty(WORKER_ID));
 
-    }
+  }
 
 }

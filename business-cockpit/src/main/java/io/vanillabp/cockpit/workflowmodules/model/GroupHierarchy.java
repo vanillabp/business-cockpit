@@ -9,6 +9,6 @@ import java.util.List;
  * @param targets The groups a member of {@code group} is a member of as well
  */
 public record GroupHierarchy(
-        String group,
-        List<String> targets) {
+                             String group,
+                             List<String> targets) {
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
@@ -21,90 +22,90 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
  */
 public final class WhatAnEndReports {
 
-    private WhatAnEndReports() {
-    }
+  private WhatAnEndReports() {
+  }
 
-    /**
-     * Copies what is stored before a mapping runs.
-     * <p>
-     * A generated mapper updates a map in place. It empties the map the stored object holds and
-     * fills it again. Read that map after the mapping and you read what the event brought, so read
-     * it before.
-     *
-     * @param stored What the cockpit holds about the task or the case
-     * @param <V> What the map holds
-     * @return A copy, or <code>null</code> where nothing is stored
-     */
-    public static <V> Map<String, V> before(
-            final Map<String, V> stored) {
+  /**
+   * Copies what is stored before a mapping runs.
+   * <p>
+   * A generated mapper updates a map in place. It empties the map the stored object holds and
+   * fills it again. Read that map after the mapping and you read what the event brought, so read
+   * it before.
+   *
+   * @param stored What the cockpit holds about the task or the case
+   * @param <V> What the map holds
+   * @return A copy, or <code>null</code> where nothing is stored
+   */
+  public static <V> Map<String, V> before(
+      final Map<String, V> stored) {
 
-        return stored == null ? null : new LinkedHashMap<>(stored);
+    return stored == null ? null : new LinkedHashMap<>(stored);
 
-    }
+  }
 
-    /**
-     * Copies a stored list before a mapping runs, for the same reason as the map.
-     *
-     * @param stored What the cockpit holds about the task or the case
-     * @param <V> What the list holds
-     * @return A copy, or <code>null</code> where nothing is stored
-     * @see #before(Map)
-     */
-    public static <V> List<V> before(
-            final List<V> stored) {
+  /**
+   * Copies a stored list before a mapping runs, for the same reason as the map.
+   *
+   * @param stored What the cockpit holds about the task or the case
+   * @param <V> What the list holds
+   * @return A copy, or <code>null</code> where nothing is stored
+   * @see #before(Map)
+   */
+  public static <V> List<V> before(
+      final List<V> stored) {
 
-        return stored == null ? null : new ArrayList<>(stored);
+    return stored == null ? null : new ArrayList<>(stored);
 
-    }
+  }
 
-    /**
-     * Chooses the map to store. An empty map in the report of an end means nothing was reported,
-     * so the stored one stays.
-     *
-     * @param reported What the end carried
-     * @param stored What the cockpit holds about the task or the case
-     * @param <V> What the map holds
-     * @return What to store
-     */
-    public static <V> Map<String, V> whatToStore(
-            final Map<String, V> reported,
-            final Map<String, V> stored) {
+  /**
+   * Chooses the map to store. An empty map in the report of an end means nothing was reported,
+   * so the stored one stays.
+   *
+   * @param reported What the end carried
+   * @param stored What the cockpit holds about the task or the case
+   * @param <V> What the map holds
+   * @return What to store
+   */
+  public static <V> Map<String, V> whatToStore(
+      final Map<String, V> reported,
+      final Map<String, V> stored) {
 
-        return (reported == null) || reported.isEmpty() ? stored : reported;
+    return (reported == null) || reported.isEmpty() ? stored : reported;
 
-    }
+  }
 
-    /**
-     * Chooses the list to store. An empty list in the report of an end means nothing was reported,
-     * so the stored one stays.
-     *
-     * @param reported What the end carried
-     * @param stored What the cockpit holds about the task or the case
-     * @param <V> What the list holds
-     * @return What to store
-     */
-    public static <V> List<V> whatToStore(
-            final List<V> reported,
-            final List<V> stored) {
+  /**
+   * Chooses the list to store. An empty list in the report of an end means nothing was reported,
+   * so the stored one stays.
+   *
+   * @param reported What the end carried
+   * @param stored What the cockpit holds about the task or the case
+   * @param <V> What the list holds
+   * @return What to store
+   */
+  public static <V> List<V> whatToStore(
+      final List<V> reported,
+      final List<V> stored) {
 
-        return (reported == null) || reported.isEmpty() ? stored : reported;
+    return (reported == null) || reported.isEmpty() ? stored : reported;
 
-    }
+  }
 
-    /**
-     * Chooses the words to store for the fulltext search. Blank words in the report of an end
-     * mean nothing was reported, so the stored ones stay.
-     *
-     * @param reported The words the end carried for the fulltext search
-     * @param stored What the cockpit holds about the task or the case
-     * @return What to store
-     */
-    public static String whatToStore(
-            final String reported,
-            final String stored) {
+  /**
+   * Chooses the words to store for the fulltext search. Blank words in the report of an end
+   * mean nothing was reported, so the stored ones stay.
+   *
+   * @param reported The words the end carried for the fulltext search
+   * @param stored What the cockpit holds about the task or the case
+   * @return What to store
+   */
+  public static String whatToStore(
+      final String reported,
+      final String stored) {
 
-        return (reported == null) || reported.isBlank() ? stored : reported;
+    return (reported == null) || reported.isBlank() ? stored : reported;
 
-    }
+  }
 
 }

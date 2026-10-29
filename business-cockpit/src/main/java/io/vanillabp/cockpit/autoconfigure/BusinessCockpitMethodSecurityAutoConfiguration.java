@@ -20,24 +20,21 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 @EnableMethodSecurity(securedEnabled = true)
 public class BusinessCockpitMethodSecurityAutoConfiguration {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(BusinessCockpitMethodSecurityAutoConfiguration.class);
+  private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitMethodSecurityAutoConfiguration.class);
 
-    /**
-     * Called by Spring Boot. Logs that {@code @EnableMethodSecurity} now applies to the whole
-     * application, and how to switch it off.
-     */
-    public BusinessCockpitMethodSecurityAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Logs that {@code @EnableMethodSecurity} now applies to the whole
+   * application, and how to switch it off.
+   */
+  public BusinessCockpitMethodSecurityAutoConfiguration() {
 
-        new WholeApplicationSwitch(
-                "@EnableMethodSecurity(securedEnabled = true)",
-                "@Secured is enforced on every bean of this application, yours included. The cockpit "
-                        + "needs it for the BPMS API, whose controllers carry @Secured.",
-                "set 'business-cockpit.method-security.enabled: false' and write @EnableMethodSecurity "
-                        + "yourself. Without it the BPMS API is left with what its own security chain "
-                        + "protects.")
-                .reportTo(logger);
+    new WholeApplicationSwitch(
+        "@EnableMethodSecurity(securedEnabled = true)", "@Secured is enforced on every bean of this application, yours included. The cockpit "
+            + "needs it for the BPMS API, whose controllers carry @Secured.", "set 'business-cockpit.method-security.enabled: false' and write @EnableMethodSecurity "
+                + "yourself. Without it the BPMS API is left with what its own security chain "
+                + "protects.")
+        .reportTo(logger);
 
-    }
+  }
 
 }

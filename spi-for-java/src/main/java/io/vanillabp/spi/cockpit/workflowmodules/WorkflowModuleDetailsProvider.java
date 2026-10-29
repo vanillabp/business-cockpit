@@ -16,20 +16,20 @@ import java.util.List;
  */
 public interface WorkflowModuleDetailsProvider {
 
-    /**
-     * The groups whose members may see the workflow module. An empty list makes the module visible
-     * to everybody.
-     *
-     * @return The group ids
-     */
-    List<String> getAccessibleToGroups();
+  /**
+   * The groups whose members may see the workflow module. An empty list makes the module visible
+   * to everybody.
+   *
+   * @return The group ids
+   */
+  List<String> getAccessibleToGroups();
 
-    /**
-     * The id of the workflow module this bean answers for, the same id the module is configured
-     * with.
-     *
-     * @return The workflow module id
-     */
-    String getWorkflowModuleId();
+  /**
+   * The id of the workflow module this bean answers for, the same id the module is configured
+   * with.
+   *
+   * @return The workflow module id
+   */
+  String getWorkflowModuleId();
 
 }

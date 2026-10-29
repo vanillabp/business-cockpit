@@ -20,10 +20,10 @@ What an application has to change when it moves to a new version of the cockpit 
 **Contents:**
 
 1. [Building it](#building-it)
-1. [Test coverage](#test-coverage)
-1. [The modules](#the-modules)
-1. [Noteworthy & Contributors](#noteworthy--contributors)
-1. [License](#license)
+2. [Test coverage](#test-coverage)
+3. [The modules](#the-modules)
+4. [Noteworthy & Contributors](#noteworthy--contributors)
+5. [License](#license)
 
 ## Building it
 
@@ -98,9 +98,9 @@ next to the business code, on Spring Boot and on Quarkus. The tests of each plat
 glue code of that platform. So the gap between the two numbers shows the features which one of the
 two platforms never runs.
 
-|                            | Spring Boot | Quarkus |
-|----------------------------|-------------|---------|
-| Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report) | |
+|                            |                                                                                                                                                                               Spring Boot                                                                                                                                                                                |                                                                                                                                                                             Quarkus                                                                                                                                                                              |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Business cockpit container | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fapplication-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/application-spring-boot-report)               |                                                                                                                                                                                                                                                                                                                                                                  |
 | Extension commons          | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-spring-boot-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-spring-boot-report) | [![Coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fvanillabp.github.io%2Fbusiness-cockpit%2Fextensions-commons-quarkus-report%2Findex.html&search=Total.*%3F.([0-9]%2B)[^0-9]*%3F%25&replace=%241%25&flags=m&label=Coverage&color=green&cacheSeconds=60)](https://vanillabp.github.io/business-cockpit/extensions-commons-quarkus-report) |
 
 Each badge reads the report it links to, so the number shown here and the number in the report
@@ -114,12 +114,12 @@ In the order they build on each other:
 
 1. **[commons](./commons)**:<br>Spring Boot functionality used by the cockpit, and usable next to it:
    the JWT handling, the Kafka settings and the small utilities several modules share.
-1. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
+2. **[apis](./apis)**:<br>The generated clients and servers of the three interfaces the cockpit has:
    `bpms-api` for what workflow modules report, `official-gui-api` for what a user interface reads,
    `workflow-provider-api` for what a workflow module may implement to change the cockpit's behaviour.
-1. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
+3. **[spi-for-java](./spi-for-java)**:<br>The annotations and interfaces a workflow module's business
    code is written with to report business data about its user tasks and workflows.
-1. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
+4. **[extensions-commons](./extensions-commons)**:<br>The platform-neutral half of the integration
    into VanillaBP Version 2, on Spring Boot and on Quarkus. The four halves which know a BPMS live in
    their own repositories and consume this one as a published artifact:
    [businesscockpit-camunda7-adapter](https://github.com/vanillabp/businesscockpit-camunda7-adapter),
@@ -127,14 +127,14 @@ In the order they build on each other:
    [businesscockpit-operaton-adapter](https://github.com/vanillabp/businesscockpit-operaton-adapter)
    and
    [businesscockpit-process-engine-api-adapter](https://github.com/vanillabp/businesscockpit-process-engine-api-adapter).
-1. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
+5. **[business-cockpit](./business-cockpit)**:<br>The cockpit as a library: services, persistence, GUI
    API, security extension points and ingestion of what workflow modules report. It builds no
    runnable jar.
-1. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
+6. **[container](./container)**:<br>The runnable microservice, built from the library plus a main
    class, the concrete GUI API controllers and the defaults of a standalone deployment.
-1. **[development](./development)**:<br>The local development environment, and the tools which support
+7. **[development](./development)**:<br>The local development environment, and the tools which support
    developing a workflow module: the dev shell simulator and the simulator.
-1. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
+8. **[test-coverage-report](./test-coverage-report)**:<br>The aggregated coverage reports and the
    gate which judges them. A build writes each report to `report` below its own directory here, and
    the default branch publishes them as the pages the [coverage badges](#test-coverage) read. The
    thresholds are properties of the root `pom.xml`, in percent of covered instructions, which is the

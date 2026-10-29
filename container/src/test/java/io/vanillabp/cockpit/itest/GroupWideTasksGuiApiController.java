@@ -1,10 +1,11 @@
 package io.vanillabp.cockpit.itest;
 
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.tasklist.UserTaskVisibility;
 import io.vanillabp.cockpit.tasklist.api.v1.AbstractUserTaskListGuiApiController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Stands in for an application built on this library which needs a view none of the delivered ones
@@ -23,13 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/gui/api/v1/itest-group-wide")
 public class GroupWideTasksGuiApiController extends AbstractUserTaskListGuiApiController {
 
-    @Override
-    protected UserTaskVisibility userTasksVisibleTo(
-            final UserDetails currentUser) {
+  @Override
+  protected UserTaskVisibility userTasksVisibleTo(
+      final UserDetails currentUser) {
 
-        return new UserTaskVisibility(
-                false, false, null, null, currentUser.getAuthorities(), null, null);
+    return new UserTaskVisibility(
+        false, false, null, null, currentUser.getAuthorities(), null, null);
 
-    }
+  }
 
 }

@@ -11,6 +11,22 @@
   <artifactId>commons</artifactId>
   <name>Common classes and utilities which may be also used by other Spring Boot applications like workflow modules.</name>
 
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -161,20 +177,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
 </project>

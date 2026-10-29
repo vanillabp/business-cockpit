@@ -9,24 +9,24 @@ import com.devskiller.jfairy.Fairy;
  */
 public class FairyHelper {
 
-    private FairyHelper() {
-        // only static methods
-    }
+  private FairyHelper() {
+    // only static methods
+  }
 
-    /**
-     * Builds a generator for one language. The seed is taken from the clock, so every call
-     * produces other data.
-     *
-     * @param language The language tag, e.g. {@code de} or {@code en}
-     * @return The generator
-     */
-    public static Fairy buildFairy(
-            final String language) {
+  /**
+   * Builds a generator for one language. The seed is taken from the clock, so every call
+   * produces other data.
+   *
+   * @param language The language tag, e.g. {@code de} or {@code en}
+   * @return The generator
+   */
+  public static Fairy buildFairy(
+      final String language) {
 
-        return Fairy.builder()
-                    .withLocale(Locale.forLanguageTag(language))
-                    .withRandomSeed((int) System.currentTimeMillis())
-                    .build();
+    return Fairy.builder()
+        .withLocale(Locale.forLanguageTag(language))
+        .withRandomSeed((int) System.currentTimeMillis())
+        .build();
 
-    }
+  }
 }

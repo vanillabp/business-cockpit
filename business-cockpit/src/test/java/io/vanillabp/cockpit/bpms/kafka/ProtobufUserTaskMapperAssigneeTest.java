@@ -6,6 +6,13 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
 import io.vanillabp.cockpit.tasklist.model.UserTask;
@@ -13,11 +20,6 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * The assignment of a user task belongs to the cockpit. A task is taken over there, so no workflow
@@ -32,145 +34,145 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(SuppressOutputExtension.class)
 class ProtobufUserTaskMapperAssigneeTest {
 
-    private ProtobufUserTaskMapper mapper;
+  private ProtobufUserTaskMapper mapper;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        final var impl = new ProtobufUserTaskMapperImpl();
-        final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
-        when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
-            final var person = new Person();
-            person.setId(invocation.getArgument(0));
-            return person;
-        });
-        when(personAndGroupMapper.toModelGroup(anyString())).thenAnswer(invocation -> {
-            final var group = new Group();
-            group.setId(invocation.getArgument(0));
-            return group;
-        });
-        final var field = ProtobufUserTaskMapper.class.getDeclaredField("personAndGroupMapper");
-        field.setAccessible(true);
-        field.set(impl, personAndGroupMapper);
-        mapper = impl;
-    }
+  @BeforeEach
+  void setUp() throws Exception {
+    final var impl = new ProtobufUserTaskMapperImpl();
+    final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
+    when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
+      final var person = new Person();
+      person.setId(invocation.getArgument(0));
+      return person;
+    });
+    when(personAndGroupMapper.toModelGroup(anyString())).thenAnswer(invocation -> {
+      final var group = new Group();
+      group.setId(invocation.getArgument(0));
+      return group;
+    });
+    final var field = ProtobufUserTaskMapper.class.getDeclaredField("personAndGroupMapper");
+    field.setAccessible(true);
+    field.set(impl, personAndGroupMapper);
+    mapper = impl;
+  }
 
-    private static UserTask takenOverTask() {
-        final var task = new UserTask();
-        task.setId("task-1");
-        final var assignee = new Person();
-        assignee.setId("taskOwner");
-        task.setAssignee(assignee);
-        final var candidate = new Person();
-        candidate.setId("candidate");
-        task.setCandidateUsers(new ArrayList<>(List.of(candidate)));
-        final var candidateGroup = new Group();
-        candidateGroup.setId("engineGroup");
-        task.setCandidateGroups(new ArrayList<>(List.of(candidateGroup)));
-        return task;
-    }
+  private static UserTask takenOverTask() {
+    final var task = new UserTask();
+    task.setId("task-1");
+    final var assignee = new Person();
+    assignee.setId("taskOwner");
+    task.setAssignee(assignee);
+    final var candidate = new Person();
+    candidate.setId("candidate");
+    task.setCandidateUsers(new ArrayList<>(List.of(candidate)));
+    final var candidateGroup = new Group();
+    candidateGroup.setId("engineGroup");
+    task.setCandidateGroups(new ArrayList<>(List.of(candidateGroup)));
+    return task;
+  }
 
-    private UserTask changed(
-            final UserTaskCreatedOrUpdatedEvent event,
-            final UserTask stored) {
-        WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "change", task -> mapper.toUpdatedTask(event, task));
-        return stored;
-    }
+  private UserTask changed(
+      final UserTaskCreatedOrUpdatedEvent event,
+      final UserTask stored) {
+    WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "change", task -> mapper.toUpdatedTask(event, task));
+    return stored;
+  }
 
-    private UserTask ended(
-            final UserTaskCreatedOrUpdatedEvent event,
-            final UserTask stored) {
-        WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "end", task -> mapper.toEndedTask(event, task));
-        return stored;
-    }
+  private UserTask ended(
+      final UserTaskCreatedOrUpdatedEvent event,
+      final UserTask stored) {
+    WhoSeesAUserTask.keepWhoSeesTheStoredTask(stored, "end", task -> mapper.toEndedTask(event, task));
+    return stored;
+  }
 
-    private static UserTaskCreatedOrUpdatedEvent.Builder event() {
-        return UserTaskCreatedOrUpdatedEvent
-                .newBuilder()
-                .setId("evt-1")
-                .setUserTaskId("task-1")
-                .setUiUriType("EXTERNAL")
-                .setUpdated(true);
-    }
+  private static UserTaskCreatedOrUpdatedEvent.Builder event() {
+    return UserTaskCreatedOrUpdatedEvent
+        .newBuilder()
+        .setId("evt-1")
+        .setUserTaskId("task-1")
+        .setUiUriType("EXTERNAL")
+        .setUpdated(true);
+  }
 
-    @Test
-    void toEndedTask_keepsAssigneeAndCandidates() {
-        final var task = takenOverTask();
+  @Test
+  void toEndedTask_keepsAssigneeAndCandidates() {
+    final var task = takenOverTask();
 
-        final var result = ended(event().build(), task);
+    final var result = ended(event().build(), task);
 
-        assertEquals("taskOwner", result.getAssignee().getId());
-        assertEquals(List.of("candidate"),
-                result.getCandidateUsers().stream().map(Person::getId).toList());
-    }
+    assertEquals("taskOwner", result.getAssignee().getId());
+    assertEquals(List.of("candidate"),
+        result.getCandidateUsers().stream().map(Person::getId).toList());
+  }
 
-    @Test
-    void toEndedTask_mapsInitiator() {
-        final var result = mapper.toEndedTask(
-                event().setInitiator("completingUser").build(), takenOverTask());
+  @Test
+  void toEndedTask_mapsInitiator() {
+    final var result = mapper.toEndedTask(
+        event().setInitiator("completingUser").build(), takenOverTask());
 
-        assertEquals("completingUser", result.getInitiator());
-    }
+    assertEquals("completingUser", result.getInitiator());
+  }
 
-    @Test
-    void toEndedTask_withoutInitiator_clearsIt() {
-        final var task = takenOverTask();
-        task.setInitiator("someoneFromAnEarlierEvent");
+  @Test
+  void toEndedTask_withoutInitiator_clearsIt() {
+    final var task = takenOverTask();
+    task.setInitiator("someoneFromAnEarlierEvent");
 
-        final var result = mapper.toEndedTask(event().build(), task);
+    final var result = mapper.toEndedTask(event().build(), task);
 
-        assertNull(result.getInitiator(), "no initiator reported means 'caused by the process'");
-    }
+    assertNull(result.getInitiator(), "no initiator reported means 'caused by the process'");
+  }
 
-    @Test
-    void toNewTask_withoutAssignee_leavesItUnassigned() {
-        // protobuf tells an omitted assignee from an empty one, so this path never built the
-        // person carrying a null id which the REST ingress produced
-        assertNull(mapper.toNewTask(event().build()).getAssignee());
-    }
+  @Test
+  void toNewTask_withoutAssignee_leavesItUnassigned() {
+    // protobuf tells an omitted assignee from an empty one, so this path never built the
+    // person carrying a null id which the REST ingress produced
+    assertNull(mapper.toNewTask(event().build()).getAssignee());
+  }
 
-    @Test
-    void toUpdatedTask_withoutAssignee_keepsTheTakeover() {
-        final var result = changed(event().build(), takenOverTask());
+  @Test
+  void toUpdatedTask_withoutAssignee_keepsTheTakeover() {
+    final var result = changed(event().build(), takenOverTask());
 
-        assertEquals("taskOwner", result.getAssignee().getId());
-    }
+    assertEquals("taskOwner", result.getAssignee().getId());
+  }
 
-    @Test
-    void toUpdatedTask_withAssignee_keepsTheTakeoverAsWell() {
-        // only the report which created the task says who sees it
-        final var result = changed(
-                event().setAssignee("otherUser").build(), takenOverTask());
+  @Test
+  void toUpdatedTask_withAssignee_keepsTheTakeoverAsWell() {
+    // only the report which created the task says who sees it
+    final var result = changed(
+        event().setAssignee("otherUser").build(), takenOverTask());
 
-        assertEquals("taskOwner", result.getAssignee().getId());
-    }
+    assertEquals("taskOwner", result.getAssignee().getId());
+  }
 
-    @Test
-    void toUpdatedTask_keepsCandidateUsersReportedByNobody() {
-        // an assignment made in the cockpit is not part of any event
-        final var result = changed(event().build(), takenOverTask());
+  @Test
+  void toUpdatedTask_keepsCandidateUsersReportedByNobody() {
+    // an assignment made in the cockpit is not part of any event
+    final var result = changed(event().build(), takenOverTask());
 
-        assertEquals(List.of("candidate"),
-                result.getCandidateUsers().stream().map(Person::getId).toList());
-    }
+    assertEquals(List.of("candidate"),
+        result.getCandidateUsers().stream().map(Person::getId).toList());
+  }
 
-    @Test
-    void toUpdatedTask_keepsCandidateUsersEvenIfTheEventReportsOthers() {
-        // the event carries the candidates known to the engine, never the cockpit-side assignment
-        final var result = changed(
-                event().addCandidateUsers("someoneFromTheEngine").build(), takenOverTask());
+  @Test
+  void toUpdatedTask_keepsCandidateUsersEvenIfTheEventReportsOthers() {
+    // the event carries the candidates known to the engine, never the cockpit-side assignment
+    final var result = changed(
+        event().addCandidateUsers("someoneFromTheEngine").build(), takenOverTask());
 
-        assertEquals(List.of("candidate"),
-                result.getCandidateUsers().stream().map(Person::getId).toList());
-    }
+    assertEquals(List.of("candidate"),
+        result.getCandidateUsers().stream().map(Person::getId).toList());
+  }
 
-    @Test
-    void toUpdatedTask_keepsTheCandidateGroupsAsWell() {
-        // only the report which created the task says who sees it
-        final var result = changed(
-                event().addCandidateGroups("newGroup").build(), takenOverTask());
+  @Test
+  void toUpdatedTask_keepsTheCandidateGroupsAsWell() {
+    // only the report which created the task says who sees it
+    final var result = changed(
+        event().addCandidateGroups("newGroup").build(), takenOverTask());
 
-        assertEquals(List.of("engineGroup"),
-                result.getCandidateGroups().stream().map(Group::getId).toList());
-    }
+    assertEquals(List.of("engineGroup"),
+        result.getCandidateGroups().stream().map(Group::getId).toList());
+  }
 
 }

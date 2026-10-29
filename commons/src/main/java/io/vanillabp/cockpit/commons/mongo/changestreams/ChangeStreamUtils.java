@@ -35,196 +35,197 @@ import io.vanillabp.cockpit.commons.mongo.MongoDbProperties.Mode;
  */
 public class ChangeStreamUtils {
 
-    private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
+  private static final String COLLECTION_NAME_PROPERTY = "COLLECTION_NAME";
 
-    /** What a log message says where a change event does not carry the value. */
-    private static final String UNKNOWN = "unknown";
-    
-    @Autowired
-    private Logger logger;
-    
-    @Autowired
-    private MongoDbProperties properties;
+  /** What a log message says where a change event does not carry the value. */
+  private static final String UNKNOWN = "unknown";
 
-    @Autowired
-    private MessageListenerContainer messageListenerContainer;
+  @Autowired
+  private Logger logger;
 
-    /**
-     * Creates the helper. Spring injects the logger, the settings and the listener container
-     * afterwards.
-     */
-    public ChangeStreamUtils() {
+  @Autowired
+  private MongoDbProperties properties;
+
+  @Autowired
+  private MessageListenerContainer messageListenerContainer;
+
+  /**
+   * Creates the helper. Spring injects the logger, the settings and the listener container
+   * afterwards.
+   */
+  public ChangeStreamUtils() {
+  }
+
+  /**
+   * Subscribes to the changes of the collection an entity class is stored in. An update brings the
+   * document only on Azure Cosmos DB, where the full document is always looked up.
+   *
+   * @param <T>                    The entity class
+   * @param entityClass            The entity class, which names its collection in a public static
+   *                               field {@code COLLECTION_NAME}
+   * @param listener               Gets each change. If it throws, the change is logged and lost,
+   *                               and the stream keeps running.
+   * @param watchingOperationTypes The kinds of changes to get, or none for all of them
+   * @return The subscription, which {@link #unsubscribe(Subscription)} ends
+   */
+  public <T> Subscription subscribe(
+      final Class<T> entityClass,
+      final MessageListener<ChangeStreamDocument<Document>, T> listener,
+      final OperationType... watchingOperationTypes) {
+
+    return subscribe(entityClass, false, listener, watchingOperationTypes);
+
+  }
+
+  /**
+   * Subscribes to the changes of the collection an entity class is stored in.
+   *
+   * @param <T>                    The entity class
+   * @param entityClass            The entity class, which names its collection in a public static
+   *                               field {@code COLLECTION_NAME}
+   * @param fullDocument           Whether an update brings the whole document after the change. On
+   *                               Azure Cosmos DB it always does.
+   * @param listener               Gets each change. If it throws, the change is logged and lost,
+   *                               and the stream keeps running.
+   * @param watchingOperationTypes The kinds of changes to get, or none for all of them. Azure Cosmos
+   *                               DB reports no deletions, so they are left out there.
+   * @return The subscription, which {@link #unsubscribe(Subscription)} ends
+   */
+  public <T> Subscription subscribe(
+      final Class<T> entityClass,
+      final boolean fullDocument,
+      final MessageListener<ChangeStreamDocument<Document>, T> listener,
+      final OperationType... watchingOperationTypes) {
+
+    // get collection name from entity class
+    final String collectionName;
+    try {
+      collectionName = entityClass
+          .getField(COLLECTION_NAME_PROPERTY)
+          .get(null)
+          .toString();
+    } catch (Exception e) {
+      throw new RuntimeException("Could not access public static propery '"
+          + entityClass.getName()
+          + "."
+          + COLLECTION_NAME_PROPERTY
+          + "'", e);
     }
 
-    /**
-     * Subscribes to the changes of the collection an entity class is stored in. An update brings the
-     * document only on Azure Cosmos DB, where the full document is always looked up.
-     *
-     * @param <T>                    The entity class
-     * @param entityClass            The entity class, which names its collection in a public static
-     *                               field {@code COLLECTION_NAME}
-     * @param listener               Gets each change. If it throws, the change is logged and lost,
-     *                               and the stream keeps running.
-     * @param watchingOperationTypes The kinds of changes to get, or none for all of them
-     * @return The subscription, which {@link #unsubscribe(Subscription)} ends
-     */
-    public <T> Subscription subscribe(
-            final Class<T> entityClass,
-            final MessageListener<ChangeStreamDocument<Document>, T> listener,
-            final OperationType... watchingOperationTypes) {
-        
-        return subscribe(entityClass, false, listener, watchingOperationTypes);
-        
+    final List<String> operationTypes;
+    if ((watchingOperationTypes == null) || (watchingOperationTypes.length == 0)) {
+      operationTypes = OperationType.ANY.getMongoTypes();
+    } else {
+      operationTypes = new LinkedList<String>();
+      Arrays
+          .stream(watchingOperationTypes)
+          .forEach(type -> operationTypes.addAll(type.getMongoTypes()));
     }
 
-    /**
-     * Subscribes to the changes of the collection an entity class is stored in.
-     *
-     * @param <T>                    The entity class
-     * @param entityClass            The entity class, which names its collection in a public static
-     *                               field {@code COLLECTION_NAME}
-     * @param fullDocument           Whether an update brings the whole document after the change. On
-     *                               Azure Cosmos DB it always does.
-     * @param listener               Gets each change. If it throws, the change is logged and lost,
-     *                               and the stream keeps running.
-     * @param watchingOperationTypes The kinds of changes to get, or none for all of them. Azure Cosmos
-     *                               DB reports no deletions, so they are left out there.
-     * @return The subscription, which {@link #unsubscribe(Subscription)} ends
-     */
-    public <T> Subscription subscribe(
-            final Class<T> entityClass,
-            final boolean fullDocument,
-            final MessageListener<ChangeStreamDocument<Document>, T> listener,
-            final OperationType... watchingOperationTypes) {
-
-        // get collection name from entity class
-        final String collectionName;
-        try {
-            collectionName = entityClass
-                    .getField(COLLECTION_NAME_PROPERTY)
-                    .get(null)
-                    .toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Could not access public static propery '"
-                    + entityClass.getName() + "." + COLLECTION_NAME_PROPERTY + "'", e);
-        }
-        
-        final List<String> operationTypes;
-        if ((watchingOperationTypes == null)
-                || (watchingOperationTypes.length == 0)) {
-            operationTypes = OperationType.ANY.getMongoTypes();
-        } else {
-            operationTypes = new LinkedList<String>();
-            Arrays
-                    .stream(watchingOperationTypes)
-                    .forEach(type -> operationTypes.addAll(type.getMongoTypes()));
-        }
-        
-        final var aggregations = new LinkedList<AggregationOperation>();
-        if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
-            if (operationTypes.containsAll(OperationType.DELETE.getMongoTypes())) {
-                operationTypes.removeAll(OperationType.DELETE.getMongoTypes());
-            }
-            aggregations.add(match(where("operationType").in(operationTypes)));
-            aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
-        } else {
-            aggregations.add(match(where("operationType").in(operationTypes)));
-        }
-        
-        // build MongoDb request for change stream
-        final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
-                .builder(catchExceptionsListener(listener, collectionName))
-                .fullDocumentLookup(
-                        fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
-                                ? FullDocument.UPDATE_LOOKUP // required for Cosmos
-                                : FullDocument.DEFAULT)
-                .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
-                .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new)))
-                // also the upper bound the shutdown waits per subscription, see MongoDbProperties
-                .maxAwaitTime(Duration.parse(properties.getChangeStreamMaxAwaitTime()))
-                .collection(collectionName)
-                .build();
-        
-        // hook up to message listener backed by its own thread pool
-        return messageListenerContainer
-                .register(requestForChangeEvents, entityClass);     
-        
-    }
-    
-    /**
-     * Keeps the stream running when a listener fails, and says which single change was lost.
-     * <p>
-     * This is the only place which reports such a failure, so it names everything needed to find
-     * the change again: the collection, the key of the document and the operation. A listener
-     * therefore does not catch and log on its own; whatever it throws ends up here.
-     */
-    private <T> MessageListener<ChangeStreamDocument<Document>, T> catchExceptionsListener(
-            final MessageListener<ChangeStreamDocument<Document>, T> listener,
-            final String collectionName) {
-
-        return (message) -> {
-            try {
-                listener.onMessage(message);
-            } catch (Throwable e) {
-                logger.warn(
-                        "Change-stream listener of collection '{}' failed on document '{}', "
-                        + "operation '{}'! The stream keeps running, so this one change was not "
-                        + "processed and whatever waits for it is not going to hear about it.",
-                        collectionName,
-                        documentKeyOf(message),
-                        operationOf(message),
-                        e);
-            }
-        };
-
+    final var aggregations = new LinkedList<AggregationOperation>();
+    if (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2) {
+      if (operationTypes.containsAll(OperationType.DELETE.getMongoTypes())) {
+        operationTypes.removeAll(OperationType.DELETE.getMongoTypes());
+      }
+      aggregations.add(match(where("operationType").in(operationTypes)));
+      aggregations.add(project("_id", "ns", "documentKey", "fullDocument"));
+    } else {
+      aggregations.add(match(where("operationType").in(operationTypes)));
     }
 
-    /**
-     * The key of the document a change event is about, which every operation type carries. It is
-     * the only thing an {@code update} brings along without a lookup of the full document.
-     */
-    private static String documentKeyOf(
-            final Message<ChangeStreamDocument<Document>, ?> message) {
+    // build MongoDb request for change stream
+    final ChangeStreamRequest<T> requestForChangeEvents = ChangeStreamRequest
+        .builder(catchExceptionsListener(listener, collectionName))
+        .fullDocumentLookup(
+            fullDocument || (properties.getMode() == Mode.AZURE_COSMOS_MONGO_4_2)
+                ? FullDocument.UPDATE_LOOKUP // required for Cosmos
+                : FullDocument.DEFAULT)
+        .fullDocumentBeforeChangeLookup(FullDocumentBeforeChange.OFF)
+        .filter(newAggregation(aggregations.toArray(AggregationOperation[]::new)))
+        // also the upper bound the shutdown waits per subscription, see MongoDbProperties
+        .maxAwaitTime(Duration.parse(properties.getChangeStreamMaxAwaitTime()))
+        .collection(collectionName)
+        .build();
 
-        final var raw = message.getRaw();
-        if ((raw == null)
-                || (raw.getDocumentKey() == null)
-                || raw.getDocumentKey().isEmpty()) {
-            return UNKNOWN;
-        }
-        final var key = raw.getDocumentKey();
-        final var value = key.get(key.getFirstKey());
-        return value.isString()
-                ? value.asString().getValue()
-                : value.toString();
+    // hook up to message listener backed by its own thread pool
+    return messageListenerContainer
+        .register(requestForChangeEvents, entityClass);
 
+  }
+
+  /**
+   * Keeps the stream running when a listener fails, and says which single change was lost.
+   * <p>
+   * This is the only place which reports such a failure, so it names everything needed to find
+   * the change again: the collection, the key of the document and the operation. A listener
+   * therefore does not catch and log on its own; whatever it throws ends up here.
+   */
+  private <T> MessageListener<ChangeStreamDocument<Document>, T> catchExceptionsListener(
+      final MessageListener<ChangeStreamDocument<Document>, T> listener,
+      final String collectionName) {
+
+    return (
+        message) -> {
+      try {
+        listener.onMessage(message);
+      } catch (Throwable e) {
+        logger.warn(
+            "Change-stream listener of collection '{}' failed on document '{}', "
+                + "operation '{}'! The stream keeps running, so this one change was not "
+                + "processed and whatever waits for it is not going to hear about it.",
+            collectionName,
+            documentKeyOf(message),
+            operationOf(message),
+            e);
+      }
+    };
+
+  }
+
+  /**
+   * The key of the document a change event is about, which every operation type carries. It is
+   * the only thing an {@code update} brings along without a lookup of the full document.
+   */
+  private static String documentKeyOf(
+      final Message<ChangeStreamDocument<Document>, ?> message) {
+
+    final var raw = message.getRaw();
+    if ((raw == null) || (raw.getDocumentKey() == null) || raw.getDocumentKey().isEmpty()) {
+      return UNKNOWN;
     }
+    final var key = raw.getDocumentKey();
+    final var value = key.get(key.getFirstKey());
+    return value.isString()
+        ? value.asString().getValue()
+        : value.toString();
 
-    /**
-     * The operation behind a change event, as MongoDB names it. Azure Cosmos DB for MongoDB does
-     * not report it at all, which is why this can be unknown.
-     */
-    private static String operationOf(
-            final Message<ChangeStreamDocument<Document>, ?> message) {
+  }
 
-        final var raw = message.getRaw();
-        return (raw == null) || (raw.getOperationTypeString() == null)
-                ? UNKNOWN
-                : raw.getOperationTypeString();
+  /**
+   * The operation behind a change event, as MongoDB names it. Azure Cosmos DB for MongoDB does
+   * not report it at all, which is why this can be unknown.
+   */
+  private static String operationOf(
+      final Message<ChangeStreamDocument<Document>, ?> message) {
 
-    }
+    final var raw = message.getRaw();
+    return (raw == null) || (raw.getOperationTypeString() == null)
+        ? UNKNOWN
+        : raw.getOperationTypeString();
 
-    /**
-     * Ends a subscription. No more changes reach its listener.
-     *
-     * @param subscription The subscription to end
-     */
-    public void unsubscribe(
-            final Subscription subscription) {
-        
-        messageListenerContainer
-                .remove(subscription);
-        
-    }
-    
+  }
+
+  /**
+   * Ends a subscription. No more changes reach its listener.
+   *
+   * @param subscription The subscription to end
+   */
+  public void unsubscribe(
+      final Subscription subscription) {
+
+    messageListenerContainer
+        .remove(subscription);
+
+  }
+
 }

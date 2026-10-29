@@ -3,16 +3,11 @@ package io.vanillabp.cockpit.itest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.google.protobuf.Timestamp;
-import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
-import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
-import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
@@ -22,6 +17,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import com.google.protobuf.Timestamp;
+
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.BcEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.UserTaskCreatedOrUpdatedEvent;
+import io.vanillabp.cockpit.bpms.api.protobuf.v1.WorkflowCreatedOrUpdatedEvent;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Feeds protobuf events into the Kafka topics the container consumes and verifies the read side
@@ -33,270 +36,276 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class KafkaIngestionTest extends ItestBase {
 
-    private static KafkaProducer<String, byte[]> producer;
+  private static KafkaProducer<String, byte[]> producer;
 
-    private String moduleId;
-    private String token;
-    private String cookie;
+  private String moduleId;
+  private String token;
+  private String cookie;
 
-    @BeforeAll
-    static void startProducer() {
-        producer = new KafkaProducer<>(Map.of(
-                "bootstrap.servers", kafkaBootstrapServers(),
-                "key.serializer", StringSerializer.class.getName(),
-                "value.serializer", ByteArraySerializer.class.getName()));
+  @BeforeAll
+  static void startProducer() {
+    producer = new KafkaProducer<>(Map.of(
+        "bootstrap.servers", kafkaBootstrapServers(),
+        "key.serializer", StringSerializer.class.getName(),
+        "value.serializer", ByteArraySerializer.class.getName()));
+  }
+
+  @AfterAll
+  static void stopProducer() {
+    producer.close();
+  }
+
+  @BeforeEach
+  void registerModuleAndLogin() {
+    moduleId = unique("kafka-module");
+    token = unique("token");
+    registerWorkflowModule(moduleId, "http://localhost:65000");
+    cookie = loginToGui(USER_MARTIN);
+  }
+
+  private static void produce(
+      final String topic,
+      final String key,
+      final BcEvent event) {
+
+    try {
+      producer.send(new ProducerRecord<>(topic, key, event.toByteArray())).get();
+    } catch (Exception e) {
+      throw new IllegalStateException("Could not produce Kafka event", e);
     }
 
-    @AfterAll
-    static void stopProducer() {
-        producer.close();
-    }
+  }
 
-    @BeforeEach
-    void registerModuleAndLogin() {
-        moduleId = unique("kafka-module");
-        token = unique("token");
-        registerWorkflowModule(moduleId, "http://localhost:65000");
-        cookie = loginToGui(USER_MARTIN);
-    }
+  private static Timestamp now() {
+    final var instant = Instant.now();
+    return Timestamp
+        .newBuilder()
+        .setSeconds(instant.getEpochSecond())
+        .setNanos(instant.getNano())
+        .build();
+  }
 
-    private static void produce(
-            final String topic,
-            final String key,
-            final BcEvent event) {
+  private UserTaskCreatedOrUpdatedEvent.Builder userTaskEvent(
+      final String userTaskId) {
 
-        try {
-            producer.send(new ProducerRecord<>(topic, key, event.toByteArray())).get();
-        } catch (Exception e) {
-            throw new IllegalStateException("Could not produce Kafka event", e);
-        }
+    return UserTaskCreatedOrUpdatedEvent
+        .newBuilder()
+        .setId(UUID.randomUUID().toString())
+        .setApiVersion("1.1")
+        .setUserTaskId(userTaskId)
+        .setTimestamp(now())
+        .setBpmnProcessId("taxi-ride")
+        .setTaskDefinition("do-ride")
+        .putTitle("en", "Do ride (via Kafka)")
+        .setWorkflowModuleId(moduleId)
+        .setUiUriPath("/remoteEntry.js")
+        .setUiUriType("WEBPACK_MF_REACT")
+        .setAssignee(USER_MARTIN)
+        .setDetailsFulltextSearch(token);
 
-    }
+  }
 
-    private static Timestamp now() {
-        final var instant = Instant.now();
-        return Timestamp
-                .newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
-    }
+  @Test
+  void userTaskCreatedEventShowsUpInTasklist() {
 
-    private UserTaskCreatedOrUpdatedEvent.Builder userTaskEvent(
-            final String userTaskId) {
+    final var userTaskId = unique("task");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCreatedV11(userTaskEvent(userTaskId)
+            .addCandidateGroups(GROUP_OF_MARTIN))
+        .build());
 
-        return UserTaskCreatedOrUpdatedEvent
-                .newBuilder()
-                .setId(UUID.randomUUID().toString())
-                .setApiVersion("1.1")
-                .setUserTaskId(userTaskId)
-                .setTimestamp(now())
-                .setBpmnProcessId("taxi-ride")
-                .setTaskDefinition("do-ride")
-                .putTitle("en", "Do ride (via Kafka)")
-                .setWorkflowModuleId(moduleId)
-                .setUiUriPath("/remoteEntry.js")
-                .setUiUriType("WEBPACK_MF_REACT")
-                .setAssignee(USER_MARTIN)
-                .setDetailsFulltextSearch(token);
+    await().untilAsserted(() -> {
+      final var list = userTaskList(cookie, token, "OpenTasks");
+      assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
+    });
 
-    }
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride (via Kafka)");
+    assertThat(task.read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
+    assertThat(task.read("$.candidateGroups[*].id", List.class))
+        .containsExactly(GROUP_OF_MARTIN);
+    assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
 
-    @Test
-    void userTaskCreatedEventShowsUpInTasklist() {
+  }
 
-        final var userTaskId = unique("task");
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCreatedV11(userTaskEvent(userTaskId)
-                        .addCandidateGroups(GROUP_OF_MARTIN))
-                .build());
+  @Test
+  void userTaskUpdatedEventChangesTheTask() {
 
-        await().untilAsserted(() -> {
-            final var list = userTaskList(cookie, token, "OpenTasks");
-            assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
-        });
+    final var userTaskId = unique("task");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCreatedV11(userTaskEvent(userTaskId))
+        .build());
+    await().untilAsserted(() -> assertThat(guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode()).isEqualTo(200));
 
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride (via Kafka)");
-        assertThat(task.read("$.assignee.id", String.class)).isEqualTo(USER_MARTIN);
-        assertThat(task.read("$.candidateGroups[*].id", List.class))
-                .containsExactly(GROUP_OF_MARTIN);
-        assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskUpdatedV11(userTaskEvent(userTaskId)
+            .setUpdated(true)
+            .putTitle("en", "Do ride (updated via Kafka)"))
+        .build());
 
-    }
+    await().untilAsserted(() -> assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.title.en", String.class))
+        .isEqualTo("Do ride (updated via Kafka)"));
 
-    @Test
-    void userTaskUpdatedEventChangesTheTask() {
+  }
 
-        final var userTaskId = unique("task");
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCreatedV11(userTaskEvent(userTaskId))
-                .build());
-        await().untilAsserted(() ->
-                assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(200));
+  @Test
+  void userTaskCompletedEventEndsTheTask() {
 
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskUpdatedV11(userTaskEvent(userTaskId)
-                        .setUpdated(true)
-                        .putTitle("en", "Do ride (updated via Kafka)"))
-                .build());
+    final var userTaskId = unique("task");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCreatedV11(userTaskEvent(userTaskId))
+        .build());
+    await().untilAsserted(() -> assertThat(guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode()).isEqualTo(200));
 
-        await().untilAsserted(() ->
-                assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                        .read("$.title.en", String.class))
-                        .isEqualTo("Do ride (updated via Kafka)"));
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCompletedV11(userTaskEvent(userTaskId).setUpdated(true))
+        .build());
 
-    }
+    await().untilAsserted(() -> assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.endedAt", String.class))
+        .isNotNull());
 
-    @Test
-    void userTaskCompletedEventEndsTheTask() {
+  }
 
-        final var userTaskId = unique("task");
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCreatedV11(userTaskEvent(userTaskId))
-                .build());
-        await().untilAsserted(() ->
-                assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(200));
+  @Test
+  void userTaskCancelledEventEndsTheTask() {
 
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCompletedV11(userTaskEvent(userTaskId).setUpdated(true))
-                .build());
+    final var userTaskId = unique("task");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCreatedV11(userTaskEvent(userTaskId))
+        .build());
+    await().untilAsserted(() -> assertThat(guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode()).isEqualTo(200));
 
-        await().untilAsserted(() ->
-                assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                        .read("$.endedAt", String.class))
-                        .isNotNull());
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCancelledV11(userTaskEvent(userTaskId)
+            .setUpdated(true)
+            .setComment("cancelled via Kafka"))
+        .build());
 
-    }
+    await().untilAsserted(() -> assertThat(json(guiGet(cookie, "/usertask/"
+        + userTaskId))
+        .read("$.endedAt", String.class))
+        .isNotNull());
 
-    @Test
-    void userTaskCancelledEventEndsTheTask() {
+  }
 
-        final var userTaskId = unique("task");
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCreatedV11(userTaskEvent(userTaskId))
-                .build());
-        await().untilAsserted(() ->
-                assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(200));
+  @Test
+  void workflowCreatedEventShowsUpInWorkflowlist() {
 
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCancelledV11(userTaskEvent(userTaskId)
-                        .setUpdated(true)
-                        .setComment("cancelled via Kafka"))
-                .build());
+    final var workflowId = unique("workflow");
+    produce(KAFKA_WORKFLOW_TOPIC, workflowId, BcEvent
+        .newBuilder()
+        .setWorkflowCreatedV11(WorkflowCreatedOrUpdatedEvent
+            .newBuilder()
+            .setId(UUID.randomUUID().toString())
+            .setApiVersion("1.1")
+            .setWorkflowId(workflowId)
+            .setTimestamp(now())
+            .setBpmnProcessId("taxi-ride")
+            .putTitle("en", "Ride request (via Kafka)")
+            .setWorkflowModuleId(moduleId)
+            .setUiUriPath("/remoteEntry.js")
+            .setUiUriType("WEBPACK_MF_REACT")
+            .setDetailsFulltextSearch(token))
+        .build());
 
-        await().untilAsserted(() ->
-                assertThat(json(guiGet(cookie, "/usertask/" + userTaskId))
-                        .read("$.endedAt", String.class))
-                        .isNotNull());
+    await().untilAsserted(() -> {
+      final var list = workflowList(cookie, token, "Active");
+      assertThat(list.read("$.workflows[*].id", List.class)).containsExactly(workflowId);
+    });
+    assertThat(json(guiGet(cookie, "/workflow/"
+        + workflowId))
+        .read("$.title.en", String.class))
+        .isEqualTo("Ride request (via Kafka)");
 
-    }
+  }
 
-    @Test
-    void workflowCreatedEventShowsUpInWorkflowlist() {
+  /**
+   * The type and the address of an item worked on in another application travel over Kafka the
+   * same way they travel over REST, and the cockpit hands the address out untouched.
+   */
+  @Test
+  void externalItemsKeepTheAddressTheyWereReportedWith() {
 
-        final var workflowId = unique("workflow");
-        produce(KAFKA_WORKFLOW_TOPIC, workflowId, BcEvent
-                .newBuilder()
-                .setWorkflowCreatedV11(WorkflowCreatedOrUpdatedEvent
-                        .newBuilder()
-                        .setId(UUID.randomUUID().toString())
-                        .setApiVersion("1.1")
-                        .setWorkflowId(workflowId)
-                        .setTimestamp(now())
-                        .setBpmnProcessId("taxi-ride")
-                        .putTitle("en", "Ride request (via Kafka)")
-                        .setWorkflowModuleId(moduleId)
-                        .setUiUriPath("/remoteEntry.js")
-                        .setUiUriType("WEBPACK_MF_REACT")
-                        .setDetailsFulltextSearch(token))
-                .build());
+    final var userTaskId = unique("task");
+    produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
+        .newBuilder()
+        .setUserTaskCreatedV11(userTaskEvent(userTaskId)
+            .setUiUriType("EXTERNAL")
+            .setUiUriPath("https://tickets.example.com/ticket/4711"))
+        .build());
 
-        await().untilAsserted(() -> {
-            final var list = workflowList(cookie, token, "Active");
-            assertThat(list.read("$.workflows[*].id", List.class)).containsExactly(workflowId);
-        });
-        assertThat(json(guiGet(cookie, "/workflow/" + workflowId))
-                .read("$.title.en", String.class))
-                .isEqualTo("Ride request (via Kafka)");
+    await().untilAsserted(() -> assertThat(guiGet(cookie, "/usertask/"
+        + userTaskId).statusCode()).isEqualTo(200));
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+    assertThat(task.read("$.uiUri", String.class))
+        .isEqualTo("https://tickets.example.com/ticket/4711");
 
-    }
+    final var workflowId = unique("workflow");
+    produce(KAFKA_WORKFLOW_TOPIC, workflowId, BcEvent
+        .newBuilder()
+        .setWorkflowCreatedV11(WorkflowCreatedOrUpdatedEvent
+            .newBuilder()
+            .setId(UUID.randomUUID().toString())
+            .setApiVersion("1.1")
+            .setWorkflowId(workflowId)
+            .setTimestamp(now())
+            .setBpmnProcessId("taxi-ride")
+            .putTitle("en", "Ride request (via Kafka)")
+            .setWorkflowModuleId(moduleId)
+            .setUiUriPath("https://orders.example.com/order/4711")
+            .setUiUriType("EXTERNAL")
+            .setDetailsFulltextSearch(token))
+        .build());
 
-    /**
-     * The type and the address of an item worked on in another application travel over Kafka the
-     * same way they travel over REST, and the cockpit hands the address out untouched.
-     */
-    @Test
-    void externalItemsKeepTheAddressTheyWereReportedWith() {
+    await().untilAsserted(() -> assertThat(guiGet(cookie, "/workflow/"
+        + workflowId).statusCode()).isEqualTo(200));
+    final var workflow = json(guiGet(cookie, "/workflow/"
+        + workflowId));
+    assertThat(workflow.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+    assertThat(workflow.read("$.uiUri", String.class))
+        .isEqualTo("https://orders.example.com/order/4711");
 
-        final var userTaskId = unique("task");
-        produce(KAFKA_USER_TASK_TOPIC, userTaskId, BcEvent
-                .newBuilder()
-                .setUserTaskCreatedV11(userTaskEvent(userTaskId)
-                        .setUiUriType("EXTERNAL")
-                        .setUiUriPath("https://tickets.example.com/ticket/4711"))
-                .build());
+  }
 
-        await().untilAsserted(() ->
-                assertThat(guiGet(cookie, "/usertask/" + userTaskId).statusCode()).isEqualTo(200));
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
-        assertThat(task.read("$.uiUri", String.class))
-                .isEqualTo("https://tickets.example.com/ticket/4711");
+  @Test
+  void workflowModuleRegistrationEventRegistersTheModule() {
 
-        final var workflowId = unique("workflow");
-        produce(KAFKA_WORKFLOW_TOPIC, workflowId, BcEvent
-                .newBuilder()
-                .setWorkflowCreatedV11(WorkflowCreatedOrUpdatedEvent
-                        .newBuilder()
-                        .setId(UUID.randomUUID().toString())
-                        .setApiVersion("1.1")
-                        .setWorkflowId(workflowId)
-                        .setTimestamp(now())
-                        .setBpmnProcessId("taxi-ride")
-                        .putTitle("en", "Ride request (via Kafka)")
-                        .setWorkflowModuleId(moduleId)
-                        .setUiUriPath("https://orders.example.com/order/4711")
-                        .setUiUriType("EXTERNAL")
-                        .setDetailsFulltextSearch(token))
-                .build());
+    final var kafkaModuleId = unique("kafka-registered-module");
+    produce(KAFKA_WORKFLOW_MODULE_TOPIC, kafkaModuleId, BcEvent
+        .newBuilder()
+        .setRegisterWorkflowModule(RegisterWorkflowModuleEvent
+            .newBuilder()
+            .setWorkflowModuleId(kafkaModuleId)
+            .setUri("http://localhost:65001")
+            .setTaskProviderApiUriPath("/task-provider/v1"))
+        .build());
 
-        await().untilAsserted(() ->
-                assertThat(guiGet(cookie, "/workflow/" + workflowId).statusCode()).isEqualTo(200));
-        final var workflow = json(guiGet(cookie, "/workflow/" + workflowId));
-        assertThat(workflow.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
-        assertThat(workflow.read("$.uiUri", String.class))
-                .isEqualTo("https://orders.example.com/order/4711");
+    await().untilAsserted(() -> {
+      final var response = guiGet(cookie, "/workflow-module/"
+          + kafkaModuleId);
+      assertThat(response.statusCode()).isEqualTo(200);
+      assertThat(json(response).read("$.uri", String.class))
+          .isEqualTo("/wm/"
+              + kafkaModuleId);
+    });
 
-    }
-
-    @Test
-    void workflowModuleRegistrationEventRegistersTheModule() {
-
-        final var kafkaModuleId = unique("kafka-registered-module");
-        produce(KAFKA_WORKFLOW_MODULE_TOPIC, kafkaModuleId, BcEvent
-                .newBuilder()
-                .setRegisterWorkflowModule(RegisterWorkflowModuleEvent
-                        .newBuilder()
-                        .setWorkflowModuleId(kafkaModuleId)
-                        .setUri("http://localhost:65001")
-                        .setTaskProviderApiUriPath("/task-provider/v1"))
-                .build());
-
-        await().untilAsserted(() -> {
-            final var response = guiGet(cookie, "/workflow-module/" + kafkaModuleId);
-            assertThat(response.statusCode()).isEqualTo(200);
-            assertThat(json(response).read("$.uri", String.class))
-                    .isEqualTo("/wm/" + kafkaModuleId);
-        });
-
-    }
+  }
 
 }

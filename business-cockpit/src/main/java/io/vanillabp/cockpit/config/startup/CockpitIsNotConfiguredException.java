@@ -10,51 +10,56 @@ import java.util.List;
  */
 public class CockpitIsNotConfiguredException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    private static final String REMEDY =
-            "Add the values shown above to the application's configuration (e.g. 'application.yaml') "
-            + "and start again.";
+  private static final String REMEDY = "Add the values shown above to the application's configuration (e.g. 'application.yaml') "
+      + "and start again.";
 
-    /**
-     * The list of the missing values, for the description of the failure report.
-     */
-    private final String whatIsMissing;
+  /**
+   * The list of the missing values, for the description of the failure report.
+   */
+  private final String whatIsMissing;
 
-    /**
-     * What the developer has to do, for the action of the failure report.
-     */
-    private final String whatToDo;
+  /**
+   * What the developer has to do, for the action of the failure report.
+   */
+  private final String whatToDo;
 
-    CockpitIsNotConfiguredException(
-            final List<MissingConfiguration> missing) {
+  CockpitIsNotConfiguredException(
+      final List<MissingConfiguration> missing) {
 
-        super("The Business Cockpit cannot start. It is missing " + countOf(missing) + ":\n\n"
-                + MissingConfiguration.asMessageBlocks(missing)
-                + "\n\n" + REMEDY);
-        this.whatIsMissing = "The Business Cockpit is missing " + countOf(missing) + ":\n\n"
-                + MissingConfiguration.asMessageBlocks(missing);
-        this.whatToDo = REMEDY
-                + " Every other setting the cockpit needs is reported as a warning once the "
-                + "application boots.";
+    super("The Business Cockpit cannot start. It is missing "
+        + countOf(missing)
+        + ":\n\n"
+        + MissingConfiguration.asMessageBlocks(missing)
+        + "\n\n"
+        + REMEDY);
+    this.whatIsMissing = "The Business Cockpit is missing "
+        + countOf(missing)
+        + ":\n\n"
+        + MissingConfiguration.asMessageBlocks(missing);
+    this.whatToDo = REMEDY
+        + " Every other setting the cockpit needs is reported as a warning once the "
+        + "application boots.";
 
-    }
+  }
 
-    private static String countOf(
-            final List<MissingConfiguration> missing) {
+  private static String countOf(
+      final List<MissingConfiguration> missing) {
 
-        return missing.size() == 1
-                ? "one mandatory configuration value"
-                : missing.size() + " mandatory configuration values";
+    return missing.size() == 1
+        ? "one mandatory configuration value"
+        : missing.size()
+            + " mandatory configuration values";
 
-    }
+  }
 
-    String describeWhatIsMissing() {
-        return whatIsMissing;
-    }
+  String describeWhatIsMissing() {
+    return whatIsMissing;
+  }
 
-    String describeWhatToDo() {
-        return whatToDo;
-    }
+  String describeWhatToDo() {
+    return whatToDo;
+  }
 
 }

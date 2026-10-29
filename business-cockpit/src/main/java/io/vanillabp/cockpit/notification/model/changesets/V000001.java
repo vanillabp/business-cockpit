@@ -1,12 +1,14 @@
 package io.vanillabp.cockpit.notification.model.changesets;
 
-import com.phactum.mongodb.changesets.DbChangeset;
-import com.phactum.mongodb.changesets.DbChangesetConfiguration;
-import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
+
+import com.phactum.mongodb.changesets.DbChangeset;
+import com.phactum.mongodb.changesets.DbChangesetConfiguration;
+
+import io.vanillabp.cockpit.notification.model.NotificationOutboxEntry;
 
 /**
  * Creates the {@code notification_outbox} collection, with the unique index which makes an insert
@@ -17,50 +19,52 @@ import org.springframework.stereotype.Component;
 @DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
-    private static final String INDEX_OUTBOX_UNIQUE = "_outboxUnique";
-    private static final String INDEX_OUTBOX_PENDING = "_outboxPending";
+  private static final String INDEX_OUTBOX_UNIQUE = "_outboxUnique";
+  private static final String INDEX_OUTBOX_PENDING = "_outboxPending";
 
-    /**
-     * Creates the changeset. Spring creates it as a bean and the changeset runner calls it.
-     */
-    public V000001() {
-    }
+  /**
+   * Creates the changeset. Spring creates it as a bean and the changeset runner calls it.
+   */
+  public V000001() {
+  }
 
-    /**
-     * Creates the outbox collection and its two indexes. The unique one keeps a notification
-     * from being stored twice. The other one speeds up the search for entries still to be sent.
-     *
-     * @param mongo the template to change the database with
-     * @return the command which undoes this changeset
-     */
-    @DbChangeset(order = 3000)
-    public String createNotificationOutboxCollection(
-            final MongoTemplate mongo) {
+  /**
+   * Creates the outbox collection and its two indexes. The unique one keeps a notification
+   * from being stored twice. The other one speeds up the search for entries still to be sent.
+   *
+   * @param mongo the template to change the database with
+   * @return the command which undoes this changeset
+   */
+  @DbChangeset(order = 3000)
+  public String createNotificationOutboxCollection(
+      final MongoTemplate mongo) {
 
-        mongo
-                .createCollection(NotificationOutboxEntry.COLLECTION_NAME);
+    mongo
+        .createCollection(NotificationOutboxEntry.COLLECTION_NAME);
 
-        // idempotency: at most one notification per (user task, type, recipient, medium)
-        mongo
-                .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
-                .createIndex(new Index()
-                        .on("userTaskId", Direction.ASC)
-                        .on("notificationType", Direction.ASC)
-                        .on("recipientUserId", Direction.ASC)
-                        .on("medium", Direction.ASC)
-                        .named(INDEX_OUTBOX_UNIQUE)
-                        .unique());
+    // idempotency: at most one notification per (user task, type, recipient, medium)
+    mongo
+        .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
+        .createIndex(new Index()
+            .on("userTaskId", Direction.ASC)
+            .on("notificationType", Direction.ASC)
+            .on("recipientUserId", Direction.ASC)
+            .on("medium", Direction.ASC)
+            .named(INDEX_OUTBOX_UNIQUE)
+            .unique());
 
-        // accelerates draining of pending entries
-        mongo
-                .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
-                .createIndex(new Index()
-                        .on("sentAt", Direction.ASC)
-                        .on("createdAt", Direction.ASC)
-                        .named(INDEX_OUTBOX_PENDING));
+    // accelerates draining of pending entries
+    mongo
+        .indexOps(NotificationOutboxEntry.COLLECTION_NAME)
+        .createIndex(new Index()
+            .on("sentAt", Direction.ASC)
+            .on("createdAt", Direction.ASC)
+            .named(INDEX_OUTBOX_PENDING));
 
-        return "{ drop: '" + NotificationOutboxEntry.COLLECTION_NAME + "' }";
+    return "{ drop: '"
+        + NotificationOutboxEntry.COLLECTION_NAME
+        + "' }";
 
-    }
+  }
 
 }

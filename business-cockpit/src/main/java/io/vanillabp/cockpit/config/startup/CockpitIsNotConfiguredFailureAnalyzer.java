@@ -11,25 +11,22 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
  * Registered in {@code META-INF/spring.factories}, which is where Spring Boot looks for failure
  * analyzers.
  */
-public class CockpitIsNotConfiguredFailureAnalyzer
-        extends AbstractFailureAnalyzer<CockpitIsNotConfiguredException> {
+public class CockpitIsNotConfiguredFailureAnalyzer extends AbstractFailureAnalyzer<CockpitIsNotConfiguredException> {
 
-    /**
-     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
-     */
-    public CockpitIsNotConfiguredFailureAnalyzer() {
-    }
+  /**
+   * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+   */
+  public CockpitIsNotConfiguredFailureAnalyzer() {
+  }
 
-    @Override
-    protected FailureAnalysis analyze(
-            final Throwable rootFailure,
-            final CockpitIsNotConfiguredException cause) {
+  @Override
+  protected FailureAnalysis analyze(
+      final Throwable rootFailure,
+      final CockpitIsNotConfiguredException cause) {
 
-        return new FailureAnalysis(
-                cause.describeWhatIsMissing(),
-                cause.describeWhatToDo(),
-                cause);
+    return new FailureAnalysis(
+        cause.describeWhatIsMissing(), cause.describeWhatToDo(), cause);
 
-    }
+  }
 
 }

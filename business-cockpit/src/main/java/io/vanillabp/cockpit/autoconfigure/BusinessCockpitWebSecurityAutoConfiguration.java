@@ -24,23 +24,20 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableWebSecurity
 public class BusinessCockpitWebSecurityAutoConfiguration {
 
-    private static final Logger logger =
-            LoggerFactory.getLogger(BusinessCockpitWebSecurityAutoConfiguration.class);
+  private static final Logger logger = LoggerFactory.getLogger(BusinessCockpitWebSecurityAutoConfiguration.class);
 
-    /**
-     * Called by Spring Boot. Logs that {@code @EnableWebSecurity} now applies to the whole
-     * application, and how to switch it off.
-     */
-    public BusinessCockpitWebSecurityAutoConfiguration() {
+  /**
+   * Called by Spring Boot. Logs that {@code @EnableWebSecurity} now applies to the whole
+   * application, and how to switch it off.
+   */
+  public BusinessCockpitWebSecurityAutoConfiguration() {
 
-        new WholeApplicationSwitch(
-                "@EnableWebSecurity",
-                "Spring Security builds its filter chain, and every request of this application passes it.",
-                "write @EnableWebSecurity on your own application class. Spring Boot adds the annotation "
-                        + "as well when nobody else does, so a servlet application with Spring Security on "
-                        + "its classpath has it either way.")
-                .reportTo(logger);
+    new WholeApplicationSwitch(
+        "@EnableWebSecurity", "Spring Security builds its filter chain, and every request of this application passes it.", "write @EnableWebSecurity on your own application class. Spring Boot adds the annotation "
+            + "as well when nobody else does, so a servlet application with Spring Security on "
+            + "its classpath has it either way.")
+        .reportTo(logger);
 
-    }
+  }
 
 }

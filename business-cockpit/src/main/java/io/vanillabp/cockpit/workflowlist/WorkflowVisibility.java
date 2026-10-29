@@ -1,12 +1,13 @@
 package io.vanillabp.cockpit.workflowlist;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.users.model.Group;
-import io.vanillabp.cockpit.users.model.Person;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.users.model.Group;
+import io.vanillabp.cockpit.users.model.Person;
 
 /**
  * Which workflows one view of the cockpit lets a user reach. The list of that view is built from
@@ -36,105 +37,105 @@ import java.util.stream.Stream;
  *        {@code null}
  */
 public record WorkflowVisibility(
-        boolean includeDanglingWorkflows,
-        Collection<String> accessibleToUsers,
-        Collection<String> accessibleToGroups) {
+                                 boolean includeDanglingWorkflows,
+                                 Collection<String> accessibleToUsers,
+                                 Collection<String> accessibleToGroups) {
+
+  /**
+   * The workflows addressed to the user, either by name or through one of their groups, plus the
+   * ones which address nobody and are therefore open to everybody.
+   *
+   * @param user The user
+   * @return The visibility
+   */
+  public static WorkflowVisibility workflowsAddressedTo(
+      final UserDetails user) {
+
+    return new WorkflowVisibility(true, List.of(user.getId()), user.getAuthorities());
+
+  }
+
+  /**
+   * Every workflow, whoever it addresses.
+   *
+   * @return The visibility which restricts nothing
+   */
+  public static WorkflowVisibility everyWorkflow() {
+
+    return new WorkflowVisibility(false, null, null);
+
+  }
+
+  /**
+   * Whether this visibility lets the workflow through. It is the rule of
+   * {@code WorkflowlistService.buildWorkflowlistCriteria}, for a list of every workflow, ended or
+   * not, and it has to give the same answer.
+   *
+   * @param workflow The facts of the workflow
+   * @return {@code true} if the workflow is visible
+   */
+  public boolean letsThrough(
+      final WorkflowFacts workflow) {
+
+    final var reasons = new java.util.ArrayList<Boolean>();
+    if ((accessibleToUsers != null) && !accessibleToUsers.isEmpty()) {
+      reasons.add(idsOf(workflow.accessibleToUsers(), Person::getId)
+          .anyMatch(accessibleToUsers::contains));
+    }
+    if ((accessibleToGroups != null) && !accessibleToGroups.isEmpty()) {
+      reasons.add(idsOf(workflow.accessibleToGroups(), Group::getId)
+          .anyMatch(accessibleToGroups::contains));
+    }
+    if (reasons.isEmpty()) {
+      return true;
+    }
+    if (includeDanglingWorkflows) {
+      reasons.add(Boolean.TRUE.equals(workflow.dangling()));
+    }
+    return reasons.stream().anyMatch(Boolean::booleanValue);
+
+  }
+
+  private static <T> Stream<String> idsOf(
+      final List<T> entries,
+      final java.util.function.Function<T, String> id) {
+
+    return entries == null
+        ? Stream.empty()
+        : entries.stream().filter(Objects::nonNull).map(id);
+
+  }
+
+  /**
+   * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and nothing else. The update
+   * streams read exactly these fields of a changed workflow from the database. {@code dangling}
+   * is the value stored in the document, which is what the query compares.
+   *
+   * @param id The id of the workflow
+   * @param accessibleToUsers The users the workflow is accessible to
+   * @param accessibleToGroups The groups the workflow is accessible to
+   * @param dangling Whether the workflow names neither users nor groups
+   */
+  public record WorkflowFacts(
+                              String id,
+                              List<Person> accessibleToUsers,
+                              List<Group> accessibleToGroups,
+                              Boolean dangling) {
 
     /**
-     * The workflows addressed to the user, either by name or through one of their groups, plus the
-     * ones which address nobody and are therefore open to everybody.
+     * The names of the fields, which are the fields the update streams read.
      *
-     * @param user The user
-     * @return The visibility
+     * @return The names of the fields
      */
-    public static WorkflowVisibility workflowsAddressedTo(
-            final UserDetails user) {
+    public static List<String> fieldNames() {
 
-        return new WorkflowVisibility(true, List.of(user.getId()), user.getAuthorities());
-
-    }
-
-    /**
-     * Every workflow, whoever it addresses.
-     *
-     * @return The visibility which restricts nothing
-     */
-    public static WorkflowVisibility everyWorkflow() {
-
-        return new WorkflowVisibility(false, null, null);
+      return Stream
+          .of(WorkflowFacts.class.getRecordComponents())
+          .map(java.lang.reflect.RecordComponent::getName)
+          .toList();
 
     }
 
-    /**
-     * Whether this visibility lets the workflow through. It is the rule of
-     * {@code WorkflowlistService.buildWorkflowlistCriteria}, for a list of every workflow, ended or
-     * not, and it has to give the same answer.
-     *
-     * @param workflow The facts of the workflow
-     * @return {@code true} if the workflow is visible
-     */
-    public boolean letsThrough(
-            final WorkflowFacts workflow) {
-
-        final var reasons = new java.util.ArrayList<Boolean>();
-        if ((accessibleToUsers != null) && !accessibleToUsers.isEmpty()) {
-            reasons.add(idsOf(workflow.accessibleToUsers(), Person::getId)
-                    .anyMatch(accessibleToUsers::contains));
-        }
-        if ((accessibleToGroups != null) && !accessibleToGroups.isEmpty()) {
-            reasons.add(idsOf(workflow.accessibleToGroups(), Group::getId)
-                    .anyMatch(accessibleToGroups::contains));
-        }
-        if (reasons.isEmpty()) {
-            return true;
-        }
-        if (includeDanglingWorkflows) {
-            reasons.add(Boolean.TRUE.equals(workflow.dangling()));
-        }
-        return reasons.stream().anyMatch(Boolean::booleanValue);
-
-    }
-
-    private static <T> Stream<String> idsOf(
-            final List<T> entries,
-            final java.util.function.Function<T, String> id) {
-
-        return entries == null
-                ? Stream.empty()
-                : entries.stream().filter(Objects::nonNull).map(id);
-
-    }
-
-    /**
-     * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and nothing else. The update
-     * streams read exactly these fields of a changed workflow from the database. {@code dangling}
-     * is the value stored in the document, which is what the query compares.
-     *
-     * @param id The id of the workflow
-     * @param accessibleToUsers The users the workflow is accessible to
-     * @param accessibleToGroups The groups the workflow is accessible to
-     * @param dangling Whether the workflow names neither users nor groups
-     */
-    public record WorkflowFacts(
-            String id,
-            List<Person> accessibleToUsers,
-            List<Group> accessibleToGroups,
-            Boolean dangling) {
-
-        /**
-         * The names of the fields, which are the fields the update streams read.
-         *
-         * @return The names of the fields
-         */
-        public static List<String> fieldNames() {
-
-            return Stream
-                    .of(WorkflowFacts.class.getRecordComponents())
-                    .map(java.lang.reflect.RecordComponent::getName)
-                    .toList();
-
-        }
-
-    }
+  }
 
 }

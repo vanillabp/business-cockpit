@@ -1,16 +1,16 @@
 package io.vanillabp.cockpit.commons.exceptions;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.io.InputStream;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.MediaType;
-import org.springframework.core.MethodParameter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -18,6 +18,8 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * The status code every kind of exception turns into. These numbers are part of what a
@@ -27,157 +29,161 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 @ExtendWith(SuppressOutputExtension.class)
 public class RestfulExceptionHandlerTest {
 
-    private RestfulExceptionHandler handler;
+  private RestfulExceptionHandler handler;
 
-    @BeforeEach
-    public void buildHandler() throws Exception {
+  @BeforeEach
+  public void buildHandler() throws Exception {
 
-        handler = new RestfulExceptionHandler();
+    handler = new RestfulExceptionHandler();
 
-        // the handler gets its logger injected into a field, so the test fills that field itself
-        final var loggerField = RestfulExceptionHandler.class.getDeclaredField("logger");
-        loggerField.setAccessible(true);
-        loggerField.set(handler, LoggerFactory.getLogger(RestfulExceptionHandlerTest.class));
+    // the handler gets its logger injected into a field, so the test fills that field itself
+    final var loggerField = RestfulExceptionHandler.class.getDeclaredField("logger");
+    loggerField.setAccessible(true);
+    loggerField.set(handler, LoggerFactory.getLogger(RestfulExceptionHandlerTest.class));
 
-    }
+  }
 
-    @Test
-    public void testValidationFailureIsBadRequestAndCarriesTheViolations() {
+  @Test
+  public void testValidationFailureIsBadRequestAndCarriesTheViolations() {
 
-        final var exception = new BcValidationException("title is missing");
+    final var exception = new BcValidationException("title is missing");
 
-        final var response = handler.handleValidationException(exception);
+    final var response = handler.handleValidationException(exception);
 
-        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
-        Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
-        Assertions.assertThat(response.getBody()).isEqualTo(exception.getViolations());
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+    Assertions.assertThat(response.getBody()).isEqualTo(exception.getViolations());
 
-    }
+  }
 
-    @Test
-    public void testUserMessageIsUnprocessableContentAndCarriesTheMessage() {
+  @Test
+  public void testUserMessageIsUnprocessableContentAndCarriesTheMessage() {
 
-        final var response = handler.handleUserMessageException(
-                new BcUserMessageException("this task was completed by somebody else"));
+    final var response = handler.handleUserMessageException(
+        new BcUserMessageException("this task was completed by somebody else"));
 
-        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(422);
-        Assertions.assertThat(response.getBody()).isEqualTo("this task was completed by somebody else");
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(422);
+    Assertions.assertThat(response.getBody()).isEqualTo("this task was completed by somebody else");
 
-    }
+  }
 
-    @Test
-    public void testForbiddenKeepsItsMessage() {
+  @Test
+  public void testForbiddenKeepsItsMessage() {
 
-        Assertions
-                .assertThat(handler.handleForbiddenException(new BcForbiddenException("no")).getStatusCode().value())
-                .isEqualTo(403);
+    Assertions
+        .assertThat(handler.handleForbiddenException(new BcForbiddenException("no")).getStatusCode().value())
+        .isEqualTo(403);
 
-        Assertions
-                .assertThat(handler.handleForbiddenException(new AccessDeniedException("no")).getBody())
-                .isEqualTo("no");
+    Assertions
+        .assertThat(handler.handleForbiddenException(new AccessDeniedException("no")).getBody())
+        .isEqualTo("no");
 
-    }
+  }
 
-    @Test
-    public void testMissingCredentialsAreUnauthorized() {
+  @Test
+  public void testMissingCredentialsAreUnauthorized() {
 
-        Assertions
-                .assertThat(handler.handleUnauthorizedException(new BcUnauthorizedException("who?")).getStatusCode()
-                        .value())
-                .isEqualTo(401);
+    Assertions
+        .assertThat(handler.handleUnauthorizedException(new BcUnauthorizedException("who?")).getStatusCode()
+            .value())
+        .isEqualTo(401);
 
-        Assertions
-                .assertThat(handler
-                        .handleUnauthorizedException(new AuthenticationCredentialsNotFoundException("who?")).getBody())
-                .isEqualTo("who?");
+    Assertions
+        .assertThat(handler
+            .handleUnauthorizedException(new AuthenticationCredentialsNotFoundException("who?")).getBody())
+        .isEqualTo("who?");
 
-    }
+  }
 
-    /** A report as a controller would take it, for the parameter the validation is about. */
-    public static class Report {
+  /** A report as a controller would take it, for the parameter the validation is about. */
+  public static class Report {
 
-        public String timestamp;
+    public String timestamp;
 
-        public String details;
+    public String details;
 
-    }
+  }
 
-    @SuppressWarnings("unused")
-    private void receive(
-            final Report report) {
-    }
+  @SuppressWarnings("unused")
+  private void receive(
+      final Report report) {
+  }
 
-    @Test
-    public void anInvalidBodyIsBadRequestAndNamesEveryFieldButNoValue() throws Exception {
+  @Test
+  public void anInvalidBodyIsBadRequestAndNamesEveryFieldButNoValue() throws Exception {
 
-        final var report = new Report();
-        report.details = "a value the answer must not repeat";
-        final var errors = new BeanPropertyBindingResult(report, "report");
-        errors.addError(new FieldError(
-                "report", "timestamp", null, false, new String[] { "NotNull.report.timestamp", "NotNull" },
-                null, "darf nicht null sein"));
-        errors.addError(new FieldError(
-                "report", "details", report.details, false, new String[] { "Size.report.details", "Size" },
-                null, "size must be between 0 and 3"));
-        errors.addError(new ObjectError("report", new String[] { "SameIds" }, null, "ids differ"));
-        errors.addError(new FieldError("report", "details", null, false, null, null, "no code at all"));
-        final var parameter = new MethodParameter(
-                RestfulExceptionHandlerTest.class.getDeclaredMethod("receive", Report.class), 0);
+    final var report = new Report();
+    report.details = "a value the answer must not repeat";
+    final var errors = new BeanPropertyBindingResult(report, "report");
+    errors.addError(new FieldError(
+        "report", "timestamp", null, false, new String[]{
+            "NotNull.report.timestamp", "NotNull"
+        }, null, "darf nicht null sein"));
+    errors.addError(new FieldError(
+        "report", "details", report.details, false, new String[]{
+            "Size.report.details", "Size"
+        }, null, "size must be between 0 and 3"));
+    errors.addError(new ObjectError("report", new String[]{
+        "SameIds"
+    }, null, "ids differ"));
+    errors.addError(new FieldError("report", "details", null, false, null, null, "no code at all"));
+    final var parameter = new MethodParameter(
+        RestfulExceptionHandlerTest.class.getDeclaredMethod("receive", Report.class), 0);
 
-        final var response = handler.handleInvalidRequestBody(new MethodArgumentNotValidException(parameter, errors));
+    final var response = handler.handleInvalidRequestBody(new MethodArgumentNotValidException(parameter, errors));
 
-        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
-        Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
-        Assertions.assertThat(response.getBody()).isEqualTo(
-                "The request is not valid: 'details' breaks the rule @Size, 'details' is not valid, "
-                        + "'report' breaks the rule @SameIds, 'timestamp' is missing.");
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+    Assertions.assertThat(response.getBody()).isEqualTo(
+        "The request is not valid: 'details' breaks the rule @Size, 'details' is not valid, "
+            + "'report' breaks the rule @SameIds, 'timestamp' is missing.");
 
-    }
+  }
 
-    @Test
-    public void aMistakeAControllerFoundIsAnsweredLikeABrokenSchema() {
+  @Test
+  public void aMistakeAControllerFoundIsAnsweredLikeABrokenSchema() {
 
-        final var response = handler.handleInvalidRequest(
-                new BcInvalidRequestException("'pageSize' is missing", "'details' is not valid"));
+    final var response = handler.handleInvalidRequest(
+        new BcInvalidRequestException("'pageSize' is missing", "'details' is not valid"));
 
-        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
-        Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
-        Assertions.assertThat(response.getBody()).isEqualTo(
-                "The request is not valid: 'details' is not valid, 'pageSize' is missing.");
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(400);
+    Assertions.assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.TEXT_PLAIN);
+    Assertions.assertThat(response.getBody()).isEqualTo(
+        "The request is not valid: 'details' is not valid, 'pageSize' is missing.");
 
-    }
+  }
 
-    @Test
-    public void testAnythingElseIsAnInternalServerError() {
+  @Test
+  public void testAnythingElseIsAnInternalServerError() {
 
-        final var response = handler.handleUnexpectedException(new RuntimeException("boom"));
+    final var response = handler.handleUnexpectedException(new RuntimeException("boom"));
 
-        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(500);
-        Assertions.assertThat(response.getBody()).isEqualTo("boom");
+    Assertions.assertThat(response.getStatusCode().value()).isEqualTo(500);
+    Assertions.assertThat(response.getBody()).isEqualTo("boom");
 
-    }
+  }
 
-    @Test
-    public void testAnUnreadableBodyIsAnsweredWithoutOne() {
+  @Test
+  public void testAnUnreadableBodyIsAnsweredWithoutOne() {
 
-        final var emptyRequest = new HttpInputMessage() {
-            @Override
-            public InputStream getBody() {
-                return InputStream.nullInputStream();
-            }
+    final var emptyRequest = new HttpInputMessage() {
+      @Override
+      public InputStream getBody() {
+        return InputStream.nullInputStream();
+      }
 
-            @Override
-            public HttpHeaders getHeaders() {
-                return new HttpHeaders();
-            }
-        };
+      @Override
+      public HttpHeaders getHeaders() {
+        return new HttpHeaders();
+      }
+    };
 
-        // the status comes from the annotation on the method, all the method itself does is log
-        Assertions
-                .assertThatNoException()
-                .isThrownBy(() -> handler.handle(
-                        new HttpMessageNotReadableException("no JSON in here", emptyRequest)));
+    // the status comes from the annotation on the method, all the method itself does is log
+    Assertions
+        .assertThatNoException()
+        .isThrownBy(() -> handler.handle(
+            new HttpMessageNotReadableException("no JSON in here", emptyRequest)));
 
-    }
+  }
 
 }

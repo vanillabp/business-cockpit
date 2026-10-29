@@ -10,25 +10,22 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
  * Registered in {@code META-INF/spring.factories}, which is where Spring Boot looks for failure
  * analyzers.
  */
-public class MapKeyDotReplacementIsNotUsableFailureAnalyzer
-        extends AbstractFailureAnalyzer<MapKeyDotReplacementIsNotUsableException> {
+public class MapKeyDotReplacementIsNotUsableFailureAnalyzer extends AbstractFailureAnalyzer<MapKeyDotReplacementIsNotUsableException> {
 
-    /**
-     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
-     */
-    public MapKeyDotReplacementIsNotUsableFailureAnalyzer() {
-    }
+  /**
+   * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+   */
+  public MapKeyDotReplacementIsNotUsableFailureAnalyzer() {
+  }
 
-    @Override
-    protected FailureAnalysis analyze(
-            final Throwable rootFailure,
-            final MapKeyDotReplacementIsNotUsableException cause) {
+  @Override
+  protected FailureAnalysis analyze(
+      final Throwable rootFailure,
+      final MapKeyDotReplacementIsNotUsableException cause) {
 
-        return new FailureAnalysis(
-                cause.describeWhatIsWrong(),
-                cause.describeWhatToDo(),
-                cause);
+    return new FailureAnalysis(
+        cause.describeWhatIsWrong(), cause.describeWhatToDo(), cause);
 
-    }
+  }
 
 }

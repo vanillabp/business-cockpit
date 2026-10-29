@@ -2,16 +2,19 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.phactum.mongodb.changesets.ChangesetApplier;
-import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
-import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
-import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
+
+import com.phactum.mongodb.changesets.ChangesetApplier;
+import com.phactum.mongodb.changesets.ChangesetAutoConfiguration;
+
+import io.vanillabp.cockpit.commons.mongo.changestreams.ChangeStreamUtils;
+import io.vanillabp.cockpit.util.microserviceproxy.MicroserviceProxyRegistry;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Two beans of the cockpit may only be built after the MongoDB migration has run. The change
@@ -30,67 +33,67 @@ import org.springframework.context.ConfigurableApplicationContext;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class ChangesetsRunBeforeWhatNeedsThemTest extends ItestBase {
 
-    @Autowired
-    private ConfigurableApplicationContext context;
+  @Autowired
+  private ConfigurableApplicationContext context;
 
-    /**
-     * The names of the singletons in the order the bean factory built them.
-     */
-    private List<String> orderTheBeansWereBuiltIn() {
+  /**
+   * The names of the singletons in the order the bean factory built them.
+   */
+  private List<String> orderTheBeansWereBuiltIn() {
 
-        return List.of(context.getBeanFactory().getSingletonNames());
+    return List.of(context.getBeanFactory().getSingletonNames());
 
-    }
+  }
 
-    private String theOnlyBeanOfType(
-            final Class<?> type) {
+  private String theOnlyBeanOfType(
+      final Class<?> type) {
 
-        final var names = context.getBeanNamesForType(type);
-        assertThat(names)
-                .describedAs("beans of type %s", type.getName())
-                .hasSize(1);
-        return names[0];
+    final var names = context.getBeanNamesForType(type);
+    assertThat(names)
+        .describedAs("beans of type %s", type.getName())
+        .hasSize(1);
+    return names[0];
 
-    }
+  }
 
-    private void assertBuiltAfterTheMigration(
-            final Class<?> type) {
+  private void assertBuiltAfterTheMigration(
+      final Class<?> type) {
 
-        final var applier = theOnlyBeanOfType(ChangesetApplier.class);
-        final var waiting = theOnlyBeanOfType(type);
-        final var order = orderTheBeansWereBuiltIn();
+    final var applier = theOnlyBeanOfType(ChangesetApplier.class);
+    final var waiting = theOnlyBeanOfType(type);
+    final var order = orderTheBeansWereBuiltIn();
 
-        assertThat(order.indexOf(applier))
-                .describedAs("""
-                        Position of the bean which applies the changesets, and position of %s. \
-                        The migration has to be the earlier one of the two."""
-                        .formatted(waiting))
-                .isGreaterThanOrEqualTo(0)
-                .isLessThan(order.indexOf(waiting));
+    assertThat(order.indexOf(applier))
+        .describedAs("""
+            Position of the bean which applies the changesets, and position of %s. \
+            The migration has to be the earlier one of the two."""
+            .formatted(waiting))
+        .isGreaterThanOrEqualTo(0)
+        .isLessThan(order.indexOf(waiting));
 
-        assertThat(context.getBeanFactory().getDependenciesForBean(waiting))
-                .describedAs("""
-                        The beans %s was built from. It has to be the changeset applier which is \
-                        named here. The auto-configuration exists before the applier does, so a \
-                        parameter of that type would leave this assertion failing and the \
-                        application starting.""".formatted(waiting))
-                .contains(applier)
-                .doesNotContain(theOnlyBeanOfType(ChangesetAutoConfiguration.class));
+    assertThat(context.getBeanFactory().getDependenciesForBean(waiting))
+        .describedAs("""
+            The beans %s was built from. It has to be the changeset applier which is \
+            named here. The auto-configuration exists before the applier does, so a \
+            parameter of that type would leave this assertion failing and the \
+            application starting.""".formatted(waiting))
+        .contains(applier)
+        .doesNotContain(theOnlyBeanOfType(ChangesetAutoConfiguration.class));
 
-    }
+  }
 
-    @Test
-    void theChangeStreamsAreOpenedAfterTheMigrationHasRun() {
+  @Test
+  void theChangeStreamsAreOpenedAfterTheMigrationHasRun() {
 
-        assertBuiltAfterTheMigration(ChangeStreamUtils.class);
+    assertBuiltAfterTheMigration(ChangeStreamUtils.class);
 
-    }
+  }
 
-    @Test
-    void theProxyRegistryIsFilledAfterTheMigrationHasRun() {
+  @Test
+  void theProxyRegistryIsFilledAfterTheMigrationHasRun() {
 
-        assertBuiltAfterTheMigration(MicroserviceProxyRegistry.class);
+    assertBuiltAfterTheMigration(MicroserviceProxyRegistry.class);
 
-    }
+  }
 
 }

@@ -1,8 +1,10 @@
 package io.vanillabp.cockpit.devshell.simulator.businesscockpit.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,19 +15,19 @@ import lombok.Setter;
 @Setter
 public class Group {
 
-    /**
-     * Creates an empty group.
-     */
-    public Group() {
-    }
+  /**
+   * Creates an empty group.
+   */
+  public Group() {
+  }
 
-    @JsonProperty("id")
-    private String id;
+  @JsonProperty("id")
+  private String id;
 
-    @JsonProperty("display")
-    private String display;
+  @JsonProperty("display")
+  private String display;
 
-    @JsonProperty("details")
-    private Map<String, Object> details = new HashMap<>();
+  @JsonProperty("details")
+  private Map<String, Object> details = new HashMap<>();
 
 }

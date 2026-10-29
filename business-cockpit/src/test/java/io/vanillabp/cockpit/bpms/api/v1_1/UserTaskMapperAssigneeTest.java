@@ -6,13 +6,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import io.vanillabp.cockpit.bpms.WhoSeesAUserTask;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.integration.test.utils.SuppressOutputExtension;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * A reporting system may leave the assignee out, which has to reach the stored task as no assignee
@@ -23,68 +24,68 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(SuppressOutputExtension.class)
 class UserTaskMapperAssigneeTest {
 
-    private UserTaskMapper mapper;
+  private UserTaskMapper mapper;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        final var impl = new UserTaskMapperV1_1Impl();
-        final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
-        when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
-            final var person = new Person();
-            person.setId(invocation.getArgument(0));
-            return person;
-        });
-        final var field = UserTaskMapper.class.getDeclaredField("personAndGroupMapper");
-        field.setAccessible(true);
-        field.set(impl, personAndGroupMapper);
-        mapper = impl;
-    }
+  @BeforeEach
+  void setUp() throws Exception {
+    final var impl = new UserTaskMapperV1_1Impl();
+    final var personAndGroupMapper = mock(PersonAndGroupMapper.class);
+    when(personAndGroupMapper.toModelPerson(anyString())).thenAnswer(invocation -> {
+      final var person = new Person();
+      person.setId(invocation.getArgument(0));
+      return person;
+    });
+    final var field = UserTaskMapper.class.getDeclaredField("personAndGroupMapper");
+    field.setAccessible(true);
+    field.set(impl, personAndGroupMapper);
+    mapper = impl;
+  }
 
-    private static UserTaskCreatedEvent createdEvent() {
-        final var event = new UserTaskCreatedEvent();
-        event.setId("evt-1");
-        event.setUserTaskId("task-1");
-        return event;
-    }
+  private static UserTaskCreatedEvent createdEvent() {
+    final var event = new UserTaskCreatedEvent();
+    event.setId("evt-1");
+    event.setUserTaskId("task-1");
+    return event;
+  }
 
-    private static UserTaskUpdatedEvent updatedEvent() {
-        final var event = new UserTaskUpdatedEvent();
-        event.setId("evt-2");
-        event.setUserTaskId("task-1");
-        return event;
-    }
+  private static UserTaskUpdatedEvent updatedEvent() {
+    final var event = new UserTaskUpdatedEvent();
+    event.setId("evt-2");
+    event.setUserTaskId("task-1");
+    return event;
+  }
 
-    @Test
-    void toNewTask_withoutAssignee_leavesItUnassigned() {
-        assertNull(mapper.toNewTask(createdEvent()).getAssignee());
-    }
+  @Test
+  void toNewTask_withoutAssignee_leavesItUnassigned() {
+    assertNull(mapper.toNewTask(createdEvent()).getAssignee());
+  }
 
-    @Test
-    void toNewTask_withAssignee_mapsThePerson() {
-        final var event = createdEvent();
-        event.setAssignee("martin");
+  @Test
+  void toNewTask_withAssignee_mapsThePerson() {
+    final var event = createdEvent();
+    event.setAssignee("martin");
 
-        assertEquals("martin", mapper.toNewTask(event).getAssignee().getId());
-    }
+    assertEquals("martin", mapper.toNewTask(event).getAssignee().getId());
+  }
 
-    @Test
-    void toNewTask_ofAnUpdateEventWithoutAssignee_leavesItUnassigned() {
-        // an update event for an unknown task creates it, so it takes the same path
-        assertNull(mapper.toNewTask(updatedEvent()).getAssignee());
-    }
+  @Test
+  void toNewTask_ofAnUpdateEventWithoutAssignee_leavesItUnassigned() {
+    // an update event for an unknown task creates it, so it takes the same path
+    assertNull(mapper.toNewTask(updatedEvent()).getAssignee());
+  }
 
-    @Test
-    void toUpdatedTask_withoutAssignee_keepsTheStoredOne() {
-        final var stored = mapper.toNewTask(createdEvent());
-        final var assignee = new Person();
-        assignee.setId("takenOverInTheCockpit");
-        stored.setAssignee(assignee);
+  @Test
+  void toUpdatedTask_withoutAssignee_keepsTheStoredOne() {
+    final var stored = mapper.toNewTask(createdEvent());
+    final var assignee = new Person();
+    assignee.setId("takenOverInTheCockpit");
+    stored.setAssignee(assignee);
 
-        // the mapper maps who sees the task, and the service puts the stored values back
-        WhoSeesAUserTask.keepWhoSeesTheStoredTask(
-                stored, "change", task -> mapper.toUpdatedTask(updatedEvent(), task));
+    // the mapper maps who sees the task, and the service puts the stored values back
+    WhoSeesAUserTask.keepWhoSeesTheStoredTask(
+        stored, "change", task -> mapper.toUpdatedTask(updatedEvent(), task));
 
-        assertEquals("takenOverInTheCockpit", stored.getAssignee().getId());
-    }
+    assertEquals("takenOverInTheCockpit", stored.getAssignee().getId());
+  }
 
 }

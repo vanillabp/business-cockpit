@@ -5,11 +5,11 @@ package io.vanillabp.cockpit.commons.rest.adapter.versioning;
  */
 public interface ApiVersionAware {
 
-    /**
-     * The version of the API.
-     *
-     * @return The version
-     */
-    String getApiVersion();
-    
+  /**
+   * The version of the API.
+   *
+   * @return The version
+   */
+  String getApiVersion();
+
 }

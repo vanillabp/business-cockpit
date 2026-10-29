@@ -1104,11 +1104,11 @@ more, and the change stream is not asked to look the document up.
 `ChangeStreamNotificationsTest` writes the same document three times and counts what arrives at a
 stream subscribed the way the two services subscribe, without a lookup:
 
-| write                                            | MongoDB operation | document in the event | notification before | after |
+|                      write                       | MongoDB operation | document in the event | notification before | after |
 |--------------------------------------------------|-------------------|-----------------------|---------------------|-------|
-| a newly reported task                            | `insert`          | yes                   | yes                 | yes |
-| a claim, which Spring Data sends as `replaceOne` | `replace`         | yes                   | yes                 | yes |
-| giving the task back, an `$unset`                | `update`          | no                    | no                  | yes |
+| a newly reported task                            | `insert`          | yes                   | yes                 | yes   |
+| a claim, which Spring Data sends as `replaceOne` | `replace`         | yes                   | yes                 | yes   |
+| giving the task back, an `$unset`                | `update`          | no                    | no                  | yes   |
 
 Two of three before, three of three after. The workflow side counted three of three before as well,
 because `WorkflowChangedNotification.build` already passed `null` for the target groups and never
@@ -1264,12 +1264,12 @@ stay out of the way.
 
 ### What points at this
 
-| place                                 | what it says |
-|---------------------------------------|--------------|
-| `pom.xml`, the `skip.npm` properties  | the switch, and that the other skips must keep deriving from it |
-| `pom.xml`, the profile `java-install` | what the switch is for and which three modules need it |
+|                 place                 |                                 what it says                                  |
+|---------------------------------------|-------------------------------------------------------------------------------|
+| `pom.xml`, the `skip.npm` properties  | the switch, and that the other skips must keep deriving from it               |
+| `pom.xml`, the profile `java-install` | what the switch is for and which three modules need it                        |
 | `AGENTS.md`, section `Building`       | pass it for a single module as well, and what the errors look like without it |
-| `README.md`, section `Building it`    | the registry belongs to a frontend build, not to building this repository |
+| `README.md`, section `Building it`    | the registry belongs to a frontend build, not to building this repository     |
 
 ### 34. A wait for a report has to name the report
 
@@ -1325,12 +1325,12 @@ kind and what happened. So a suffix of two parts collects, and a longer one name
 
 #### What it covers
 
-| repository                                   | collecting waits before | after |
+|                  repository                  | collecting waits before | after |
 |----------------------------------------------|-------------------------|-------|
-| `business-cockpit`                           | 0                       | 0 |
-| `businesscockpit-process-engine-api-adapter` | 17                      | 0 |
-| `businesscockpit-camunda7-adapter`           | 9                       | 0 |
-| `businesscockpit-camunda8-adapter`           | 0                       | 0 |
+| `business-cockpit`                           | 0                       | 0     |
+| `businesscockpit-process-engine-api-adapter` | 17                      | 0     |
+| `businesscockpit-camunda7-adapter`           | 9                       | 0     |
+| `businesscockpit-camunda8-adapter`           | 0                       | 0     |
 
 The main repository was already clean. The commit which added `awaitRequestOf` moved the four waits
 of `BusinessCockpitExtensionTest` to it at the same time. The six `awaitAnyRequest` calls left in
@@ -1409,15 +1409,15 @@ nothing.
 A pin is compared when its value has to be the same for a reason. The script carries one sentence
 per pin:
 
-| pin                            | why the four have to agree |
-|--------------------------------|----------------------------|
-| release parent                 | it decides the plugins, the Javadoc gate and how a release is cut, and the four are released together |
-| Java                           | the lowest Java an application needs is the highest of the four |
-| Spring Boot                    | the extension and its BPMS half run in the same Spring Boot application |
-| Quarkus                        | both are Quarkus extensions of the same application, and an extension is built for one Quarkus version |
+|              pin               |                                       why the four have to agree                                        |
+|--------------------------------|---------------------------------------------------------------------------------------------------------|
+| release parent                 | it decides the plugins, the Javadoc gate and how a release is cut, and the four are released together   |
+| Java                           | the lowest Java an application needs is the highest of the four                                         |
+| Spring Boot                    | the extension and its BPMS half run in the same Spring Boot application                                 |
+| Quarkus                        | both are Quarkus extensions of the same application, and an extension is built for one Quarkus version  |
 | JaCoCo                         | the coverage gate is the same number everywhere, and means the same only when the same JaCoCo counts it |
-| VanillaBP platform             | the extension and its BPMS half join the same platform in one application |
-| `business-cockpit` in adapters | an adapter has to build against the extension this repository builds |
+| VanillaBP platform             | the extension and its BPMS half join the same platform in one application                               |
+| `business-cockpit` in adapters | an adapter has to build against the extension this repository builds                                    |
 
 Not compared, and the report says so every night:
 
@@ -1540,6 +1540,7 @@ case.
   The sender gives up a 422, as it gives up any status from 400 to 499 except 408 and 429
   (decision 11). The body names the record and the reason. It never repeats a value of the report.
   For a key with a dot it does repeat the key, because the sender needs it to find what to change.
+
 - `400 Bad Request` for a report whose path and body name different records (decision 37). That
   check runs before anything is stored, so it answers 400 even while MongoDB is gone.
 
@@ -2578,14 +2579,14 @@ deletes old npm snapshots on GitHub Packages.
 
 #### What points at this
 
-| place                                                                   | what it says |
-|-------------------------------------------------------------------------|--------------|
-| `pom.xml`, above the modules                                            | no module runs npm |
+|                                  place                                  |                 what it says                 |
+|-------------------------------------------------------------------------|----------------------------------------------|
+| `pom.xml`, above the modules                                            | no module runs npm                           |
 | `business-cockpit/pom.xml`, the OpenAPI generator                       | the TypeScript client is no longer generated |
-| `SpaNoHandlerFoundExceptionHandler`                                     | 404 when the application has no shell |
-| `.github/workflows/build.yaml`, `publish-snapshots.yaml`, `release.yml` | no npm step |
-| `renovate.json`                                                         | no pin of the OpenAPI generator |
-| `README.md`, `AGENTS.md`, `development/README.md`                       | building without npm |
+| `SpaNoHandlerFoundExceptionHandler`                                     | 404 when the application has no shell        |
+| `.github/workflows/build.yaml`, `publish-snapshots.yaml`, `release.yml` | no npm step                                  |
+| `renovate.json`                                                         | no pin of the OpenAPI generator              |
+| `README.md`, `AGENTS.md`, `development/README.md`                       | building without npm                         |
 
 ### 63. The repository holds no user interface and no npm package
 
@@ -2630,13 +2631,13 @@ from here.
 
 #### What points at this
 
-| place                                                                 | what it says |
-|-----------------------------------------------------------------------|--------------|
+|                                 place                                 |               what it says                |
+|-----------------------------------------------------------------------|-------------------------------------------|
 | `pom.xml`, above the modules                                          | no user interface and no npm package here |
-| `business-cockpit/pom.xml`, the OpenAPI generator                     | the TypeScript client is gone |
-| `.github/workflows/publish-snapshots.yaml`, `release.yml`             | Java artifacts only |
-| `UnknownPathsTest`, `ApplicationWithoutTheBaseClassTest`              | 404 for an unknown path |
-| `README.md`, `AGENTS.md`, `UPGRADE.md`, the module READMEs, the skill | no user interface here |
+| `business-cockpit/pom.xml`, the OpenAPI generator                     | the TypeScript client is gone             |
+| `.github/workflows/publish-snapshots.yaml`, `release.yml`             | Java artifacts only                       |
+| `UnknownPathsTest`, `ApplicationWithoutTheBaseClassTest`              | 404 for an unknown path                   |
+| `README.md`, `AGENTS.md`, `UPGRADE.md`, the module READMEs, the skill | no user interface here                    |
 
 ### 64. The version a start deployed needs a details provider which covers it
 
@@ -2827,7 +2828,6 @@ the stored record of order 2000 from `{ drop: 'workflow' }` to `{ drop: 'modules
 old and new databases alike, because a new database gets the wrong command from order 2000 too. A
 record with any other command is left alone, and a database without the record gets none.
 
-
 ### 68. Changeset 1008 is fixed in place
 
 Decided on 2026-10-29 by the maintainer, story 1514.
@@ -2864,7 +2864,6 @@ rollback commands of story 1513.
   stays without groups, and only users named in `accessibleToUsers` see it.
 - Two databases which both ran 1008 may differ, depending on the release they ran it with. Only
   databases from 0.0.3 are affected.
-
 
 ### 69. The cookie which logs out carries the attributes of the login cookie
 

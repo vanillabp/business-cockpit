@@ -1,6 +1,18 @@
 package io.vanillabp.cockpit.simulator.usertask.testdata;
 
+import java.time.OffsetDateTime;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.devskiller.jfairy.Fairy;
+
 import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
 import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskActivatedEvent;
@@ -10,15 +22,6 @@ import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskCreatedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskSuspendedEvent;
 import io.vanillabp.cockpit.bpms.api.v1_1.UserTaskUpdatedEvent;
 import io.vanillabp.cockpit.simulator.common.FairyHelper;
-import java.time.OffsetDateTime;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Sends random user task events to the Business Cockpit. It first registers the workflow module
@@ -27,488 +30,494 @@ import org.slf4j.LoggerFactory;
  */
 public class UserTaskTestDataGenerator implements Runnable {
 
-    /**
-     * Set to {@code true} when the application shuts down, so all generators stop.
-     */
-    public static volatile boolean shutdown = false;
-    
-    private Random random;
-    
-    private int noOfEvents;
-    
-    private BpmsApi bpmsApi;
-    
-    private String[] users;
-    
-    private String[] groups;
-    
-    private Map<String, Fairy> fairies;
-    
-    private UserTaskTestDataParameters parameters;
-    
-    private List<UserTaskCreatedEvent> created = new LinkedList<>();
+  /**
+   * Set to {@code true} when the application shuts down, so all generators stop.
+   */
+  public static volatile boolean shutdown = false;
 
-    private Logger logger;
-    
-    /**
-     * Creates a generator.
-     *
-     * @param offset The number of events the generators before this one send. It names the
-     *               logger and is part of the random seed.
-     * @param noOfEvents The number of events this generator sends
-     * @param bpmsApi The client of the Business Cockpit
-     * @param users The users to assign tasks to
-     * @param groups The groups to offer tasks to
-     * @param fairies The generators of random texts, by language
-     * @param parameters The parameters from the form
-     */
-    public UserTaskTestDataGenerator(
-            final int offset,
-            final int noOfEvents,
-            final BpmsApi bpmsApi,
-            final String[] users,
-            final String[] groups,
-            final Map<String, Fairy> fairies,
-            final UserTaskTestDataParameters parameters) {
+  private Random random;
 
-        
-        this.logger = LoggerFactory.getLogger(
-                UserTaskTestDataGenerator.class.getSimpleName()
-                + "#"
-                + offset);
-        this.noOfEvents = noOfEvents;
-        this.random = new Random(System.currentTimeMillis() * offset);
-        this.bpmsApi = bpmsApi;
-        this.users = users;
-        this.groups = groups;
-        this.fairies = fairies;
-        this.parameters = parameters;
-        
-    }
+  private int noOfEvents;
 
-    @Override
-    public void run() {
-        
-        var current = 0;
+  private BpmsApi bpmsApi;
 
-        bpmsApi.registerWorkflowModule(
-                "TestModule",
-                new RegisterWorkflowModuleEvent()
-                        .uri("http://localhost:8079/TestModule")
-                        .taskProviderApiUriPath("/task-provider/v1")
-                        .workflowProviderApiUriPath("/workflow-details-provider/v1"));
+  private String[] users;
 
-        while (!shutdown) {
-            
-            ++current;
-            
-            final var onlyUpdatesLeft =
-                    (created.size() * 100 / noOfEvents) > (100 - parameters.getPercentageUpdates());
-            final var updateWanted = created.size() > 0
-                    && random.nextInt(100) < parameters.getPercentageUpdates();
-            if (onlyUpdatesLeft || updateWanted) {
-                
-                final var createdEvent = created.get(
-                        random.nextInt(created.size()));
-                
-                final var doUpdate = true; // random.nextBoolean();
-                if (doUpdate) {
-                    
-                    final var updatedEvent = buildUpdatedEvent(createdEvent);
-                    bpmsApi.userTaskUpdatedEvent(
-                            createdEvent.getUserTaskId(), updatedEvent);
-                    
-                } else {
-                    
-                    final var typeOfEvent = random.nextInt();
-                    switch (typeOfEvent) {
-                    case 0:
-                            bpmsApi.userTaskCompletedEvent(
-                                    createdEvent.getUserTaskId(),
-                                    buildCompletedEvent(createdEvent));
-                            break;
-                    case 1:
-                            bpmsApi.userTaskCancelledEvent(
-                                    createdEvent.getUserTaskId(),
-                                    buildCancelledEvent(createdEvent));
-                            break;
-                    case 2:
-                            bpmsApi.userTaskSuspendedEvent(
-                                    createdEvent.getUserTaskId(),
-                                    buildSuspendedEvent(createdEvent));
-                            break;
-                    default:
-                            bpmsApi.userTaskActivatedEvent(
-                                    createdEvent.getUserTaskId(),
-                                    buildActivatedEvent(createdEvent));
-                    }
-                    
-                }
-                
-            } else {
-                
-                final var event = buildCreatedEvent();
-                if (event == null) {
-                    return;
-                }
-                created.add(event);
-                bpmsApi.userTaskCreatedEvent(event);
-                
-            }
-            
-            if (current % 100 == 0) {
-                logger.info("Progress: {}%", (current * 100 / noOfEvents));
-            }
-            
-            if (current == noOfEvents) {
-                logger.info("Created {} tasks", created.size());
-                return;
-            }
-            
-            try {
-                Thread.sleep(parameters.getThrottling());
-            } catch (InterruptedException e) {
-                return;
-            }
-            
-        }
-        
-    }
-    
-    private static String getProcessTitle(
-            final String language,
-            final int process) {
-        
-        if ("de".equals(language)) {
-            
-            return switch (process) {
-                case 0 -> "Taxifahrt";
-                case 1 -> "Bezahlung";
-                case 2 -> "Fahrzeug laden";
-                default -> "Test"; 
-                };
-            
-        }
+  private String[] groups;
 
-        return switch (process) {
-            case 0 -> "Taxi ride";
-            case 1 -> "Payment";
-            case 2 -> "Charge car";
-            default -> "Test";
-            };
+  private Map<String, Fairy> fairies;
 
-    }
-    
-    private static String getBpmnProcessId(
-            final int process) {
-        
-        return switch (process) {
-                case 0 -> "TaxiRide";
-                case 1 -> "Payment";
-                case 2 -> "ChargeCar";
-                default -> "Test"; 
-                };
-        
-    }
+  private UserTaskTestDataParameters parameters;
 
-    private UserTaskUpdatedEvent buildUpdatedEvent(
-            final UserTaskCreatedEvent createdEvent) {
-        
-        final var result = new UserTaskUpdatedEvent();
-        result.setDetails(createdEvent.getDetails());
-        result.setAssignee(createdEvent.getAssignee());
-        result.setCandidateUsers(createdEvent.getCandidateUsers());
-        result.setCandidateGroups(createdEvent.getCandidateGroups());
-        result.setDueDate(createdEvent.getDueDate());
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setComment(createdEvent.getComment());
-        result.setSource(createdEvent.getSource());
-        result.setTaskDefinition(createdEvent.getTaskDefinition());
-        result.setDetailsFulltextSearch(createdEvent.getDetailsFulltextSearch());
-        result.setWorkflowTitle(createdEvent.getWorkflowTitle());
-        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
-        result.setUserTaskId(createdEvent.getUserTaskId());
-        result.setTimestamp(createdEvent.getTimestamp());
-        result.setInitiator(createdEvent.getInitiator());
-        result.setExcludedCandidateUsers(createdEvent.getExcludedCandidateUsers());
+  private List<UserTaskCreatedEvent> created = new LinkedList<>();
 
-        result.setId(UUID.randomUUID().toString());
-        result.setTimestamp(OffsetDateTime.now());
-        result.setUpdated(Boolean.TRUE);
-        
-        result.setTitle(
-                fairies
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(
-                                entry.getKey(),
-                                entry.getValue().textProducer().sentence(5)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+  private Logger logger;
 
-        return result;
-        
-    }
-
-    private UserTaskCancelledEvent buildCancelledEvent(
-            final UserTaskCreatedEvent createdEvent) {
-        
-        final var result = new UserTaskCancelledEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        // an end of this API version carries the fields of a change, and the cockpit refuses a
-        // report whose body names another task than its path
-        result.setUserTaskId(createdEvent.getUserTaskId());
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
-        result.setTaskDefinition(createdEvent.getTaskDefinition());
-        result.setTitle(createdEvent.getTitle());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+  /**
+   * Creates a generator.
+   *
+   * @param offset The number of events the generators before this one send. It names the
+   *               logger and is part of the random seed.
+   * @param noOfEvents The number of events this generator sends
+   * @param bpmsApi The client of the Business Cockpit
+   * @param users The users to assign tasks to
+   * @param groups The groups to offer tasks to
+   * @param fairies The generators of random texts, by language
+   * @param parameters The parameters from the form
+   */
+  public UserTaskTestDataGenerator(
+      final int offset,
+      final int noOfEvents,
+      final BpmsApi bpmsApi,
+      final String[] users,
+      final String[] groups,
+      final Map<String, Fairy> fairies,
+      final UserTaskTestDataParameters parameters) {
 
 
-    private UserTaskCompletedEvent buildCompletedEvent(
-            final UserTaskCreatedEvent createdEvent) {
-        
-        final var result = new UserTaskCompletedEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        // an end of this API version carries the fields of a change, and the cockpit refuses a
-        // report whose body names another task than its path
-        result.setUserTaskId(createdEvent.getUserTaskId());
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setBpmnTaskId(createdEvent.getBpmnTaskId());
-        result.setTaskDefinition(createdEvent.getTaskDefinition());
-        result.setTitle(createdEvent.getTitle());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+    this.logger = LoggerFactory.getLogger(
+        UserTaskTestDataGenerator.class.getSimpleName()
+            + "#"
+            + offset);
+    this.noOfEvents = noOfEvents;
+    this.random = new Random(System.currentTimeMillis() * offset);
+    this.bpmsApi = bpmsApi;
+    this.users = users;
+    this.groups = groups;
+    this.fairies = fairies;
+    this.parameters = parameters;
 
+  }
 
-    private UserTaskActivatedEvent buildActivatedEvent(
-            final UserTaskCreatedEvent createdEvent) {
-        
-        final var result = new UserTaskActivatedEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        // the cockpit refuses a report whose body names another task than its path
-        result.setUserTaskId(createdEvent.getUserTaskId());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+  @Override
+  public void run() {
 
+    var current = 0;
 
-    private UserTaskSuspendedEvent buildSuspendedEvent(
-            final UserTaskCreatedEvent createdEvent) {
-        
-        final var result = new UserTaskSuspendedEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        // the cockpit refuses a report whose body names another task than its path
-        result.setUserTaskId(createdEvent.getUserTaskId());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+    bpmsApi.registerWorkflowModule(
+        "TestModule",
+        new RegisterWorkflowModuleEvent()
+            .uri("http://localhost:8079/TestModule")
+            .taskProviderApiUriPath("/task-provider/v1")
+            .workflowProviderApiUriPath("/workflow-details-provider/v1"));
 
-    private UserTaskCreatedEvent buildCreatedEvent() {
-        
-        final String assignee;
-        if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
-            assignee = users[random.nextInt(users.length)];
+    while (!shutdown) {
+
+      ++current;
+
+      final var onlyUpdatesLeft = (created.size() * 100 / noOfEvents) > (100 - parameters.getPercentageUpdates());
+      final var updateWanted = created.size() > 0 && random.nextInt(100) < parameters.getPercentageUpdates();
+      if (onlyUpdatesLeft || updateWanted) {
+
+        final var createdEvent = created.get(
+            random.nextInt(created.size()));
+
+        final var doUpdate = true; // random.nextBoolean();
+        if (doUpdate) {
+
+          final var updatedEvent = buildUpdatedEvent(createdEvent);
+          bpmsApi.userTaskUpdatedEvent(
+              createdEvent.getUserTaskId(), updatedEvent);
+
         } else {
-            assignee = null;
+
+          final var typeOfEvent = random.nextInt();
+          switch (typeOfEvent) {
+            case 0:
+              bpmsApi.userTaskCompletedEvent(
+                  createdEvent.getUserTaskId(),
+                  buildCompletedEvent(createdEvent));
+              break;
+            case 1:
+              bpmsApi.userTaskCancelledEvent(
+                  createdEvent.getUserTaskId(),
+                  buildCancelledEvent(createdEvent));
+              break;
+            case 2:
+              bpmsApi.userTaskSuspendedEvent(
+                  createdEvent.getUserTaskId(),
+                  buildSuspendedEvent(createdEvent));
+              break;
+            default:
+              bpmsApi.userTaskActivatedEvent(
+                  createdEvent.getUserTaskId(),
+                  buildActivatedEvent(createdEvent));
+          }
+
         }
 
-        final List<String> candidateUsers;
-        if ((assignee != null)
-                && (random.nextInt(100) < parameters.getPercentageUserCandidates())) {
-            candidateUsers = List.of(assignee);
-        } else {
-            candidateUsers = null;
+      } else {
+
+        final var event = buildCreatedEvent();
+        if (event == null) {
+          return;
         }
+        created.add(event);
+        bpmsApi.userTaskCreatedEvent(event);
 
-        final List<String> candidateGroups;
-        if (random.nextInt(100) < parameters.getPercentageGroupCandidates()) {
-            if (random.nextBoolean() || (groups.length < 2)) {
-                candidateGroups = List.of(
-                        groups[random.nextInt(groups.length)]);
-            } else {
-                final var firstGroup = groups[random.nextInt(groups.length)];
-                String secondGroup;
-                while ((secondGroup = groups[random.nextInt(groups.length)]).equals(firstGroup)) { }
-                candidateGroups = List.of(firstGroup, secondGroup);
-            }
-        } else {
-            candidateGroups = null;
-        }
-        
-        return buildCreatedEvent(
-                random,
-                fairies,
-                assignee,
-                candidateUsers,
-                candidateGroups);
-        
-    }
-    /**
-     * Builds the event of a new random user task. The task gets a title in every language of
-     * {@code fairies} and random details.
-     *
-     * @param random The source of random numbers
-     * @param fairies The generators of random texts, by language
-     * @param assignee The user the task is assigned to, or {@code null}
-     * @param candidateUsers The users who may work on the task, or {@code null}
-     * @param candidateGroups The groups which may work on the task, or {@code null}
-     * @return The event
-     */
-    public static UserTaskCreatedEvent buildCreatedEvent(
-            final Random random,
-            final Map<String, Fairy> fairies,
-            final String assignee,
-            final List<String> candidateUsers,
-            final List<String> candidateGroups) {
-        
-        final var result = new UserTaskCreatedEvent();
-        result.setUpdated(Boolean.FALSE);
-        
-        final var process = random.nextInt(10);
-        
-        result.setId(UUID.randomUUID().toString());
-        result.setUserTaskId(UUID.randomUUID().toString());
-        result.setBusinessId(UUID.randomUUID().toString());
-        result.setBpmnProcessId(getBpmnProcessId(process));
-        result.setWorkflowTitle(
-                fairies
-                        .keySet()
-                        .stream()
-                        .map(language -> Map.entry(language, getProcessTitle(language, process)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-        
-        result.setBpmnProcessVersion("0");
-        final var formDef = random.nextInt(4);
-        result.setTaskDefinition(
-                switch (formDef) {
-                case 0 -> "TestForm1";
-                case 1 -> "TestForm2";
-                case 2 -> "TestForm3";
-                default -> "TestForm4"; 
-                });
-        result.setBpmnTaskId(
-                result.getTaskDefinition());
-        result.setTimestamp(OffsetDateTime.now());
-        
-        result.setWorkflowModuleId("TestModule");
-        result.setUiUriPath("/remoteEntry.js");
-        result.setUiUriType("WEBPACK_MF_REACT");
+      }
 
-        result.setTitle(
-                fairies
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(
-                                entry.getKey(),
-                                entry.getValue().textProducer().sentence(5)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-        
-        result.setAssignee(assignee);
-        result.setCandidateUsers(candidateUsers);
-        result.setCandidateGroups(candidateGroups);
+      if (current % 100 == 0) {
+        logger.info("Progress: {}%", (current * 100 / noOfEvents));
+      }
 
-        if (formDef % 2 == 0) {
-            result.setDueDate(OffsetDateTime.now().plusHours(
-                    random.nextInt(48) - 6));
-        }
+      if (current == noOfEvents) {
+        logger.info("Created {} tasks", created.size());
+        return;
+      }
 
-        final var projectData = new ProjectData();
-        final var textProducer = FairyHelper.buildFairy("de").textProducer();
-        projectData.setProjectPk(textProducer.randomString(12));
-        projectData.setName(textProducer.word(3));
+      try {
+        Thread.sleep(parameters.getThrottling());
+      } catch (InterruptedException e) {
+        return;
+      }
 
-        if (formDef % 2 == 0) {
-            final var testData1 = new TestData1();
-            testData1.setTestId1(Integer.toString(random.nextInt(5)));
-            testData1.setTestId2(random.nextInt(10000));
-            result.setDetails(
-                    Map.of("test1", testData1,
-                            "project", projectData));
-        } else {
-            final var testData1 = new TestData1();
-            testData1.setTestId1(Integer.toString(random.nextInt(5)));
-            testData1.setTestId2(random.nextInt(10000));
-            final var testData2 = new TestData2();
-            testData2.setTestId3(Integer.toString(random.nextInt(5)));
-            testData2.setTestId2(random.nextInt(10000));
-            result.setDetails(
-                    Map.of("test1", testData1,
-                            "test2", testData2,
-                            "project", projectData));
-        }
-
-        result.setDetailsFulltextSearch(collectFulltextTerms(result));
-
-        return result;
-        
     }
 
-    private static String collectFulltextTerms(final UserTaskCreatedEvent event) {
-        final var fulltextSb = new StringBuilder();
-        if (event.getWorkflowTitle() != null) {
-            event.getWorkflowTitle().forEach((String k, String v) -> {
-                fulltextSb.append(v);
-                fulltextSb.append(" ");
-            });
-        }
-        if (event.getTitle() != null) {
-            event.getTitle().forEach((String k, String v) -> {
-                if (v != null) {
-                    fulltextSb.append(v);
-                    fulltextSb.append(" ");
-                }
-            });
-        }
-        if (event.getDetails() != null) {
-            event.getDetails().forEach((String k, Object v) -> {
-                if (v instanceof String || v instanceof Integer) {
-                    fulltextSb.append(v);
-                    fulltextSb.append(" ");
-                }
-            });
-        }
-        if (event.getAssignee() != null) {
-            fulltextSb.append(event.getAssignee());
-            fulltextSb.append(" ");
-        }
-        return fulltextSb.toString();
+  }
+
+  private static String getProcessTitle(
+      final String language,
+      final int process) {
+
+    if ("de".equals(language)) {
+
+      return switch (process) {
+        case 0 -> "Taxifahrt";
+        case 1 -> "Bezahlung";
+        case 2 -> "Fahrzeug laden";
+        default -> "Test";
+      };
+
     }
+
+    return switch (process) {
+      case 0 -> "Taxi ride";
+      case 1 -> "Payment";
+      case 2 -> "Charge car";
+      default -> "Test";
+    };
+
+  }
+
+  private static String getBpmnProcessId(
+      final int process) {
+
+    return switch (process) {
+      case 0 -> "TaxiRide";
+      case 1 -> "Payment";
+      case 2 -> "ChargeCar";
+      default -> "Test";
+    };
+
+  }
+
+  private UserTaskUpdatedEvent buildUpdatedEvent(
+      final UserTaskCreatedEvent createdEvent) {
+
+    final var result = new UserTaskUpdatedEvent();
+    result.setDetails(createdEvent.getDetails());
+    result.setAssignee(createdEvent.getAssignee());
+    result.setCandidateUsers(createdEvent.getCandidateUsers());
+    result.setCandidateGroups(createdEvent.getCandidateGroups());
+    result.setDueDate(createdEvent.getDueDate());
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setComment(createdEvent.getComment());
+    result.setSource(createdEvent.getSource());
+    result.setTaskDefinition(createdEvent.getTaskDefinition());
+    result.setDetailsFulltextSearch(createdEvent.getDetailsFulltextSearch());
+    result.setWorkflowTitle(createdEvent.getWorkflowTitle());
+    result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+    result.setUserTaskId(createdEvent.getUserTaskId());
+    result.setTimestamp(createdEvent.getTimestamp());
+    result.setInitiator(createdEvent.getInitiator());
+    result.setExcludedCandidateUsers(createdEvent.getExcludedCandidateUsers());
+
+    result.setId(UUID.randomUUID().toString());
+    result.setTimestamp(OffsetDateTime.now());
+    result.setUpdated(Boolean.TRUE);
+
+    result.setTitle(
+        fairies
+            .entrySet()
+            .stream()
+            .map(entry -> Map.entry(
+                entry.getKey(),
+                entry.getValue().textProducer().sentence(5)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+    return result;
+
+  }
+
+  private UserTaskCancelledEvent buildCancelledEvent(
+      final UserTaskCreatedEvent createdEvent) {
+
+    final var result = new UserTaskCancelledEvent();
+
+    result.setId(UUID.randomUUID().toString());
+    // an end of this API version carries the fields of a change, and the cockpit refuses a
+    // report whose body names another task than its path
+    result.setUserTaskId(createdEvent.getUserTaskId());
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+    result.setTaskDefinition(createdEvent.getTaskDefinition());
+    result.setTitle(createdEvent.getTitle());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
+
+    return result;
+
+  }
+
+
+  private UserTaskCompletedEvent buildCompletedEvent(
+      final UserTaskCreatedEvent createdEvent) {
+
+    final var result = new UserTaskCompletedEvent();
+
+    result.setId(UUID.randomUUID().toString());
+    // an end of this API version carries the fields of a change, and the cockpit refuses a
+    // report whose body names another task than its path
+    result.setUserTaskId(createdEvent.getUserTaskId());
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setBpmnTaskId(createdEvent.getBpmnTaskId());
+    result.setTaskDefinition(createdEvent.getTaskDefinition());
+    result.setTitle(createdEvent.getTitle());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
+
+    return result;
+
+  }
+
+
+  private UserTaskActivatedEvent buildActivatedEvent(
+      final UserTaskCreatedEvent createdEvent) {
+
+    final var result = new UserTaskActivatedEvent();
+
+    result.setId(UUID.randomUUID().toString());
+    // the cockpit refuses a report whose body names another task than its path
+    result.setUserTaskId(createdEvent.getUserTaskId());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
+
+    return result;
+
+  }
+
+
+  private UserTaskSuspendedEvent buildSuspendedEvent(
+      final UserTaskCreatedEvent createdEvent) {
+
+    final var result = new UserTaskSuspendedEvent();
+
+    result.setId(UUID.randomUUID().toString());
+    // the cockpit refuses a report whose body names another task than its path
+    result.setUserTaskId(createdEvent.getUserTaskId());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
+
+    return result;
+
+  }
+
+  private UserTaskCreatedEvent buildCreatedEvent() {
+
+    final String assignee;
+    if (random.nextInt(100) < parameters.getPercentageUserAssignments()) {
+      assignee = users[random.nextInt(users.length)];
+    } else {
+      assignee = null;
+    }
+
+    final List<String> candidateUsers;
+    if ((assignee != null) && (random.nextInt(100) < parameters.getPercentageUserCandidates())) {
+      candidateUsers = List.of(assignee);
+    } else {
+      candidateUsers = null;
+    }
+
+    final List<String> candidateGroups;
+    if (random.nextInt(100) < parameters.getPercentageGroupCandidates()) {
+      if (random.nextBoolean() || (groups.length < 2)) {
+        candidateGroups = List.of(
+            groups[random.nextInt(groups.length)]);
+      } else {
+        final var firstGroup = groups[random.nextInt(groups.length)];
+        String secondGroup;
+        while ((secondGroup = groups[random.nextInt(groups.length)]).equals(firstGroup)) {
+        }
+        candidateGroups = List.of(firstGroup, secondGroup);
+      }
+    } else {
+      candidateGroups = null;
+    }
+
+    return buildCreatedEvent(
+        random,
+        fairies,
+        assignee,
+        candidateUsers,
+        candidateGroups);
+
+  }
+
+  /**
+   * Builds the event of a new random user task. The task gets a title in every language of
+   * {@code fairies} and random details.
+   *
+   * @param random The source of random numbers
+   * @param fairies The generators of random texts, by language
+   * @param assignee The user the task is assigned to, or {@code null}
+   * @param candidateUsers The users who may work on the task, or {@code null}
+   * @param candidateGroups The groups which may work on the task, or {@code null}
+   * @return The event
+   */
+  public static UserTaskCreatedEvent buildCreatedEvent(
+      final Random random,
+      final Map<String, Fairy> fairies,
+      final String assignee,
+      final List<String> candidateUsers,
+      final List<String> candidateGroups) {
+
+    final var result = new UserTaskCreatedEvent();
+    result.setUpdated(Boolean.FALSE);
+
+    final var process = random.nextInt(10);
+
+    result.setId(UUID.randomUUID().toString());
+    result.setUserTaskId(UUID.randomUUID().toString());
+    result.setBusinessId(UUID.randomUUID().toString());
+    result.setBpmnProcessId(getBpmnProcessId(process));
+    result.setWorkflowTitle(
+        fairies
+            .keySet()
+            .stream()
+            .map(language -> Map.entry(language, getProcessTitle(language, process)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+    result.setBpmnProcessVersion("0");
+    final var formDef = random.nextInt(4);
+    result.setTaskDefinition(
+        switch (formDef) {
+          case 0 -> "TestForm1";
+          case 1 -> "TestForm2";
+          case 2 -> "TestForm3";
+          default -> "TestForm4";
+        });
+    result.setBpmnTaskId(
+        result.getTaskDefinition());
+    result.setTimestamp(OffsetDateTime.now());
+
+    result.setWorkflowModuleId("TestModule");
+    result.setUiUriPath("/remoteEntry.js");
+    result.setUiUriType("WEBPACK_MF_REACT");
+
+    result.setTitle(
+        fairies
+            .entrySet()
+            .stream()
+            .map(entry -> Map.entry(
+                entry.getKey(),
+                entry.getValue().textProducer().sentence(5)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+    result.setAssignee(assignee);
+    result.setCandidateUsers(candidateUsers);
+    result.setCandidateGroups(candidateGroups);
+
+    if (formDef % 2 == 0) {
+      result.setDueDate(OffsetDateTime.now().plusHours(
+          random.nextInt(48) - 6));
+    }
+
+    final var projectData = new ProjectData();
+    final var textProducer = FairyHelper.buildFairy("de").textProducer();
+    projectData.setProjectPk(textProducer.randomString(12));
+    projectData.setName(textProducer.word(3));
+
+    if (formDef % 2 == 0) {
+      final var testData1 = new TestData1();
+      testData1.setTestId1(Integer.toString(random.nextInt(5)));
+      testData1.setTestId2(random.nextInt(10000));
+      result.setDetails(
+          Map.of("test1", testData1,
+              "project", projectData));
+    } else {
+      final var testData1 = new TestData1();
+      testData1.setTestId1(Integer.toString(random.nextInt(5)));
+      testData1.setTestId2(random.nextInt(10000));
+      final var testData2 = new TestData2();
+      testData2.setTestId3(Integer.toString(random.nextInt(5)));
+      testData2.setTestId2(random.nextInt(10000));
+      result.setDetails(
+          Map.of("test1", testData1,
+              "test2", testData2,
+              "project", projectData));
+    }
+
+    result.setDetailsFulltextSearch(collectFulltextTerms(result));
+
+    return result;
+
+  }
+
+  private static String collectFulltextTerms(
+      final UserTaskCreatedEvent event) {
+    final var fulltextSb = new StringBuilder();
+    if (event.getWorkflowTitle() != null) {
+      event.getWorkflowTitle().forEach((
+          String k,
+          String v) -> {
+        fulltextSb.append(v);
+        fulltextSb.append(" ");
+      });
+    }
+    if (event.getTitle() != null) {
+      event.getTitle().forEach((
+          String k,
+          String v) -> {
+        if (v != null) {
+          fulltextSb.append(v);
+          fulltextSb.append(" ");
+        }
+      });
+    }
+    if (event.getDetails() != null) {
+      event.getDetails().forEach((
+          String k,
+          Object v) -> {
+        if (v instanceof String || v instanceof Integer) {
+          fulltextSb.append(v);
+          fulltextSb.append(" ");
+        }
+      });
+    }
+    if (event.getAssignee() != null) {
+      fulltextSb.append(event.getAssignee());
+      fulltextSb.append(" ");
+    }
+    return fulltextSb.toString();
+  }
 
 }

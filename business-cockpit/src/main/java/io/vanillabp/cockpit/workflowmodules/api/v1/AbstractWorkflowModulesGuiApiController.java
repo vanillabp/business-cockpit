@@ -1,5 +1,8 @@
 package io.vanillabp.cockpit.workflowmodules.api.v1;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowModulesApi;
@@ -7,8 +10,6 @@ import io.vanillabp.cockpit.gui.api.v1.WorkflowModule;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowModules;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleService;
 import io.vanillabp.cockpit.workflowmodules.WorkflowModuleVisibility;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 
 /**
  * Turns the workflow-module requests of the GUI API into calls of {@link WorkflowModuleService} and
@@ -22,59 +23,59 @@ import org.springframework.http.ResponseEntity;
  */
 public abstract class AbstractWorkflowModulesGuiApiController implements OfficialWorkflowModulesApi {
 
-    /** Reads the registered workflow modules. */
-    @Autowired
-    protected WorkflowModuleService service;
+  /** Reads the registered workflow modules. */
+  @Autowired
+  protected WorkflowModuleService service;
 
-    /** Turns a stored workflow module into the one of the GUI API. */
-    @Autowired
-    protected GuiApiMapper mapper;
+  /** Turns a stored workflow module into the one of the GUI API. */
+  @Autowired
+  protected GuiApiMapper mapper;
 
-    /** Tells who makes the current request. */
-    @Autowired
-    protected UserContext userContext;
+  /** Tells who makes the current request. */
+  @Autowired
+  protected UserContext userContext;
 
-    /** Creates the controller. Spring fills the fields. */
-    public AbstractWorkflowModulesGuiApiController() {
-    }
+  /** Creates the controller. Spring fills the fields. */
+  public AbstractWorkflowModulesGuiApiController() {
+  }
 
-    /**
-     * The workflow modules this view lets the given user reach, which is the only thing a subclass
-     * has to decide.
-     *
-     * @param currentUser The user who makes the request
-     * @return The modules this user may reach in this view
-     */
-    protected abstract WorkflowModuleVisibility workflowModulesVisibleTo(
-            final UserDetails currentUser);
+  /**
+   * The workflow modules this view lets the given user reach, which is the only thing a subclass
+   * has to decide.
+   *
+   * @param currentUser The user who makes the request
+   * @return The modules this user may reach in this view
+   */
+  protected abstract WorkflowModuleVisibility workflowModulesVisibleTo(
+      final UserDetails currentUser);
 
-    @Override
-    public ResponseEntity<WorkflowModule> getWorkflowModule(
-            final String workflowModuleId) {
+  @Override
+  public ResponseEntity<WorkflowModule> getWorkflowModule(
+      final String workflowModuleId) {
 
-        final var visibility = workflowModulesVisibleTo(userContext.getUserLoggedInDetails());
+    final var visibility = workflowModulesVisibleTo(userContext.getUserLoggedInDetails());
 
-        final var workflowModule = service.getWorkflowModule(visibility, workflowModuleId);
+    final var workflowModule = service.getWorkflowModule(visibility, workflowModuleId);
 
-        return workflowModule == null
-                ? ResponseEntity.notFound().build()
-                : ResponseEntity.ok(mapper.toApi(workflowModule));
+    return workflowModule == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok(mapper.toApi(workflowModule));
 
-    }
+  }
 
-    @Override
-    public ResponseEntity<WorkflowModules> getWorkflowModules() {
+  @Override
+  public ResponseEntity<WorkflowModules> getWorkflowModules() {
 
-        final var visibility = workflowModulesVisibleTo(userContext.getUserLoggedInDetails());
+    final var visibility = workflowModulesVisibleTo(userContext.getUserLoggedInDetails());
 
-        final var modules = service
-                .getWorkflowModules(visibility)
-                .stream()
-                .map(mapper::toApi)
-                .toList();
+    final var modules = service
+        .getWorkflowModules(visibility)
+        .stream()
+        .map(mapper::toApi)
+        .toList();
 
-        return ResponseEntity.ok(new WorkflowModules().modules(modules));
+    return ResponseEntity.ok(new WorkflowModules().modules(modules));
 
-    }
+  }
 
 }

@@ -11,58 +11,21 @@
   <artifactId>bpms-api-client</artifactId>
   <name>REST client to access the BPMS API</name>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.openapitools</groupId>
-        <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>7.24.0</version>
-        <configuration>
-          <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
-          <generatorName>java</generatorName>
-          <apiPackage>io.vanillabp.cockpit.bpms.api.v1</apiPackage>
-          <modelPackage>io.vanillabp.cockpit.bpms.api.v1</modelPackage>
-          <invokerPackage>io.vanillabp.cockpit.bpms.api.v1</invokerPackage>
-          <generateSupportingFiles>true</generateSupportingFiles>
-          <configOptions>
-            <!-- openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS). The
-                 wire values come from the spec either way, but the constant names are part of the
-                 published Java API - 'legacy' keeps them as they were. -->
-            <enumPropertyNaming>legacy</enumPropertyNaming>
-            <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
-                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
-                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
-            <containerDefaultToNull>true</containerDefaultToNull>
-              <useTags>true</useTags>
-              <interfaceOnly>true</interfaceOnly>
-              <ensureUniqueParams>false</ensureUniqueParams>
-              <useGzipFeature>true</useGzipFeature>
-              <useJakartaEe>true</useJakartaEe>
-          </configOptions>
-          <library>feign</library>
-          <addCompileSourceRoot>true</addCompileSourceRoot>
-          <generateApiTests>false</generateApiTests>
-          <generateModelTests>false</generateModelTests>
-          <!-- RFC3339JavaTimeModule was added by openapi-generator 7.x; ApiClient references it -->
-          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
-        </configuration>
-        <executions>
-            <execution>
-                <id>generate-api-client-v1.1</id>
-                <goals>
-                    <goal>generate</goal>
-                </goals>
-                <configuration>
-                    <inputSpec>${project.basedir}/../openapi/v1_1.yaml</inputSpec>
-                    <apiPackage>io.vanillabp.cockpit.bpms.api.v1_1</apiPackage>
-                    <modelPackage>io.vanillabp.cockpit.bpms.api.v1_1</modelPackage>
-                    <invokerPackage>io.vanillabp.cockpit.bpms.api.v1_1</invokerPackage>
-                </configuration>
-            </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
 
   <dependencies>
     <dependency>
@@ -119,19 +82,56 @@
     </dependency>
   </dependencies>
 
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>7.24.0</version>
+        <configuration>
+          <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
+          <generatorName>java</generatorName>
+          <apiPackage>io.vanillabp.cockpit.bpms.api.v1</apiPackage>
+          <modelPackage>io.vanillabp.cockpit.bpms.api.v1</modelPackage>
+          <invokerPackage>io.vanillabp.cockpit.bpms.api.v1</invokerPackage>
+          <generateSupportingFiles>true</generateSupportingFiles>
+          <configOptions>
+            <!-- openapi-generator 7.x snake-cases enum constants (OPEN_TASKS), 6.x did not (OPENTASKS). The
+                 wire values come from the spec either way, but the constant names are part of the
+                 published Java API - 'legacy' keeps them as they were. -->
+            <enumPropertyNaming>legacy</enumPropertyNaming>
+            <!-- openapi-generator 7.x initialises optional containers with an empty collection instead of
+                 leaving them null. That would turn absent fields into "{}"/"[]" on the wire, because the
+                 ObjectMapper only suppresses nulls - so keep the 6.x behaviour. -->
+            <containerDefaultToNull>true</containerDefaultToNull>
+            <useTags>true</useTags>
+            <interfaceOnly>true</interfaceOnly>
+            <ensureUniqueParams>false</ensureUniqueParams>
+            <useGzipFeature>true</useGzipFeature>
+            <useJakartaEe>true</useJakartaEe>
+          </configOptions>
+          <library>feign</library>
+          <addCompileSourceRoot>true</addCompileSourceRoot>
+          <generateApiTests>false</generateApiTests>
+          <generateModelTests>false</generateModelTests>
+          <!-- RFC3339JavaTimeModule was added by openapi-generator 7.x; ApiClient references it -->
+          <supportingFilesToGenerate>RFC3339DateFormat.java,RFC3339JavaTimeModule.java,RFC3339InstantDeserializer.java,StringUtil.java,ApiResponse.java,ApiClient.java,EncodingUtils.java,HttpBasicAuth.java,ApiResponseDecoder.java,ApiKeyAuth.java,HttpBearerAuth.java</supportingFilesToGenerate>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-api-client-v1.1</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../openapi/v1_1.yaml</inputSpec>
+              <apiPackage>io.vanillabp.cockpit.bpms.api.v1_1</apiPackage>
+              <modelPackage>io.vanillabp.cockpit.bpms.api.v1_1</modelPackage>
+              <invokerPackage>io.vanillabp.cockpit.bpms.api.v1_1</invokerPackage>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -1,9 +1,10 @@
 package io.vanillabp.cockpit.workflowmodules.api.v1;
 
-import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
-import io.vanillabp.cockpit.workflowmodules.WorkflowModuleVisibility;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.workflowmodules.WorkflowModuleVisibility;
 
 /**
  * The module list of the delivered application, holding the modules registered for one of the
@@ -13,18 +14,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/gui/api/v1")
 public class GuiApiController extends AbstractWorkflowModulesGuiApiController {
 
-    /**
-     * Called by Spring, which finds this controller by its component scan and creates it.
-     */
-    public GuiApiController() {
-    }
+  /**
+   * Called by Spring, which finds this controller by its component scan and creates it.
+   */
+  public GuiApiController() {
+  }
 
-    @Override
-    protected WorkflowModuleVisibility workflowModulesVisibleTo(
-            final UserDetails currentUser) {
+  @Override
+  protected WorkflowModuleVisibility workflowModulesVisibleTo(
+      final UserDetails currentUser) {
 
-        return WorkflowModuleVisibility.modulesAddressedTo(currentUser);
+    return WorkflowModuleVisibility.modulesAddressedTo(currentUser);
 
-    }
+  }
 
 }

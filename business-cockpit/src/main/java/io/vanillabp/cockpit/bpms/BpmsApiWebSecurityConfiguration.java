@@ -2,8 +2,6 @@ package io.vanillabp.cockpit.bpms;
 
 import static org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher.pathPattern;
 
-import io.vanillabp.cockpit.config.startup.BpmsApiIsConfigured;
-import io.vanillabp.cockpit.config.startup.BpmsApiIsNotConfigured;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
@@ -19,6 +17,9 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
+import io.vanillabp.cockpit.config.startup.BpmsApiIsConfigured;
+import io.vanillabp.cockpit.config.startup.BpmsApiIsNotConfigured;
+
 /**
  * Secures the BPMS API by HTTP basic against the one client the application configures for its BPMS
  * adapters.
@@ -30,98 +31,101 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher;
  */
 public class BpmsApiWebSecurityConfiguration {
 
-    /**
-     * The role of the one user of the BPMS API.
-     */
-    public static final String BPMS_API_ROLE = "BPMS-API";
+  /**
+   * The role of the one user of the BPMS API.
+   */
+  public static final String BPMS_API_ROLE = "BPMS-API";
 
-    /**
-     * The authority Spring Security makes of {@link #BPMS_API_ROLE}. The BPMS API controllers ask
-     * for it.
-     */
-    public static final String BPMS_API_AUTHORITY = "ROLE_" + BPMS_API_ROLE;
+  /**
+   * The authority Spring Security makes of {@link #BPMS_API_ROLE}. The BPMS API controllers ask
+   * for it.
+   */
+  public static final String BPMS_API_AUTHORITY = "ROLE_"
+      + BPMS_API_ROLE;
 
-    /**
-     * Creates the configuration. Spring creates it, because the web security configuration imports
-     * it.
-     */
-    public BpmsApiWebSecurityConfiguration() {
-    }
+  /**
+   * Creates the configuration. Spring creates it, because the web security configuration imports
+   * it.
+   */
+  public BpmsApiWebSecurityConfiguration() {
+  }
 
-	@Autowired
-	private BpmsApiProperties properties;
+  @Autowired
+  private BpmsApiProperties properties;
 
-    /**
-     * The filter chain for the paths of the BPMS API. It comes before the chain of the GUI and
-     * asks for HTTP basic credentials on every request.
-     *
-     * @param http The builder Spring Security gives to every chain
-     * @return The chain for the BPMS API
-     * @throws Exception If Spring Security cannot build the chain
-     */
-    @Bean
-    @Order(1)
-    @Conditional(BpmsApiIsConfigured.class)
-    public SecurityFilterChain bpmsApiHttpSecurity(
-            final HttpSecurity http) throws Exception {
+  /**
+   * The filter chain for the paths of the BPMS API. It comes before the chain of the GUI and
+   * asks for HTTP basic credentials on every request.
+   *
+   * @param http The builder Spring Security gives to every chain
+   * @return The chain for the BPMS API
+   * @throws Exception If Spring Security cannot build the chain
+   */
+  @Bean
+  @Order(1)
+  @Conditional(BpmsApiIsConfigured.class)
+  public SecurityFilterChain bpmsApiHttpSecurity(
+      final HttpSecurity http) throws Exception {
 
-        final var basicEntryPoint = new BasicAuthenticationEntryPoint();
-        basicEntryPoint.setRealmName(properties.getRealmName());
-        basicEntryPoint.afterPropertiesSet();
+    final var basicEntryPoint = new BasicAuthenticationEntryPoint();
+    basicEntryPoint.setRealmName(properties.getRealmName());
+    basicEntryPoint.afterPropertiesSet();
 
-        return http
-                .securityMatcher(new OrRequestMatcher(
-                        pathPattern(io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.BPMS_API_URL_PREFIX + "/**"),
-                        pathPattern(io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.BPMS_API_URL_PREFIX + "/**")))
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(requests -> requests
-                        .anyRequest()
-                        .authenticated())
-                .authenticationManager(new ProviderManager(
-                        new DaoAuthenticationProvider(bpmsApiUserDetailsService())))
-                .httpBasic(basic -> basic
-                        // reporting systems authenticate on every single request, so nothing is
-                        // carried over between them
-                        .securityContextRepository(new NullSecurityContextRepository())
-                        .authenticationEntryPoint(basicEntryPoint))
-                .build();
+    return http
+        .securityMatcher(new OrRequestMatcher(
+            pathPattern(io.vanillabp.cockpit.bpms.api.v1.BpmsApiController.BPMS_API_URL_PREFIX
+                + "/**"), pathPattern(
+                    io.vanillabp.cockpit.bpms.api.v1_1.BpmsApiController.BPMS_API_URL_PREFIX
+                        + "/**")))
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(requests -> requests
+            .anyRequest()
+            .authenticated())
+        .authenticationManager(new ProviderManager(
+            new DaoAuthenticationProvider(bpmsApiUserDetailsService())))
+        .httpBasic(basic -> basic
+            // reporting systems authenticate on every single request, so nothing is
+            // carried over between them
+            .securityContextRepository(new NullSecurityContextRepository())
+            .authenticationEntryPoint(basicEntryPoint))
+        .build();
 
-    }
+  }
 
-    /**
-     * Holds the one user of the BPMS API, built from the configured user name and password.
-     *
-     * @return The user store of the BPMS API
-     */
-    @Bean
-    @Conditional(BpmsApiIsConfigured.class)
-    public InMemoryUserDetailsManager bpmsApiUserDetailsService() {
+  /**
+   * Holds the one user of the BPMS API, built from the configured user name and password.
+   *
+   * @return The user store of the BPMS API
+   */
+  @Bean
+  @Conditional(BpmsApiIsConfigured.class)
+  public InMemoryUserDetailsManager bpmsApiUserDetailsService() {
 
-        final var user = User.builder()
-                .username(properties.getUsername())
-                .password(properties.getPassword())
-                .roles(BPMS_API_ROLE)
-                .build();
-        return new InMemoryUserDetailsManager(user);
+    final var user = User.builder()
+        .username(properties.getUsername())
+        .password(properties.getPassword())
+        .roles(BPMS_API_ROLE)
+        .build();
+    return new InMemoryUserDetailsManager(user);
 
-    }
+  }
 
-    /**
-     * Stands in for the BPMS API's user as long as that user is not configured. With no
-     * {@code UserDetailsService} in the context, Spring Boot invents a user, prints its generated
-     * password and warns about running that way in production. Those three lines say nothing about
-     * the configuration the startup check asks for, and they hide it. Nobody authenticates against
-     * the empty manager: the GUI chain brings its own users.
-     *
-     * @return A user store without users
-     */
-    @Bean
-    @Conditional(BpmsApiIsNotConfigured.class)
-    public InMemoryUserDetailsManager noUsersUntilTheBpmsApiIsConfigured() {
+  /**
+   * Stands in for the BPMS API's user as long as that user is not configured. With no
+   * {@code UserDetailsService} in the context, Spring Boot invents a user, prints its generated
+   * password and warns about running that way in production. Those three lines say nothing about
+   * the configuration the startup check asks for, and they hide it. Nobody authenticates against
+   * the empty manager: the GUI chain brings its own users.
+   *
+   * @return A user store without users
+   */
+  @Bean
+  @Conditional(BpmsApiIsNotConfigured.class)
+  public InMemoryUserDetailsManager noUsersUntilTheBpmsApiIsConfigured() {
 
-        return new InMemoryUserDetailsManager();
+    return new InMemoryUserDetailsManager();
 
-    }
+  }
 
 }

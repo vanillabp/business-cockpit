@@ -1,14 +1,26 @@
 package io.vanillabp.cockpit.tasklist.api.v1;
 
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
+import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
-import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
@@ -22,16 +34,6 @@ import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
 
 /**
  * Turns the tasklist requests of the GUI API into calls of {@link UserTaskService} and maps the
@@ -52,458 +54,457 @@ import org.springframework.util.StringUtils;
  */
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
-	/** Tells who is logged in. */
-	@Autowired
-	protected UserContext userContext;
+  /** Tells who is logged in. */
+  @Autowired
+  protected UserContext userContext;
 
-	/** Turns stored tasks into what the GUI API answers, and request values into model values. */
-	@Autowired
-	protected GuiApiMapper mapper;
+  /** Turns stored tasks into what the GUI API answers, and request values into model values. */
+  @Autowired
+  protected GuiApiMapper mapper;
 
-	/** Turns persons and groups into what the GUI API answers. */
-	@Autowired
-	protected PersonAndGroupApiMapper personAndGroupMapper;
+  /** Turns persons and groups into what the GUI API answers. */
+  @Autowired
+  protected PersonAndGroupApiMapper personAndGroupMapper;
 
-	/** Turns users and ids into the persons stored with a task. */
-	@Autowired
-	protected PersonAndGroupMapper personAndGroupModelMapper;
+  /** Turns users and ids into the persons stored with a task. */
+  @Autowired
+  protected PersonAndGroupMapper personAndGroupModelMapper;
 
-	/** The directory of the users, for the search for a user to assign. */
-	@Autowired
-	protected UserDetailsProvider userDetailsProvider;
+  /** The directory of the users, for the search for a user to assign. */
+  @Autowired
+  protected UserDetailsProvider userDetailsProvider;
 
-	/** Reads and changes the stored tasks. */
-	@Autowired
-	protected UserTaskService userTaskService;
+  /** Reads and changes the stored tasks. */
+  @Autowired
+  protected UserTaskService userTaskService;
 
-	/** Learns which tasks a browser shows, so it can tell the browser about their changes. */
-	@Autowired
-	protected UpdateStreams updateStreams;
+  /** Learns which tasks a browser shows, so it can tell the browser about their changes. */
+  @Autowired
+  protected UpdateStreams updateStreams;
 
-	/**
-	 * Used by the subclasses.
-	 */
-	public AbstractUserTaskListGuiApiController() {
+  /**
+   * Used by the subclasses.
+   */
+  public AbstractUserTaskListGuiApiController() {
 
-	}
+  }
 
-	/**
-	 * The user tasks this view lets the given user reach, which is the only thing a subclass has to
-	 * decide. It is asked once per request and used for the list as well as for everything naming a
-	 * single task.
-	 *
-	 * @param currentUser The user who makes the request
-	 * @return The tasks the user may reach in this view
-	 */
-	protected abstract UserTaskVisibility userTasksVisibleTo(
-			final UserDetails currentUser);
+  /**
+   * The user tasks this view lets the given user reach, which is the only thing a subclass has to
+   * decide. It is asked once per request and used for the list as well as for everything naming a
+   * single task.
+   *
+   * @param currentUser The user who makes the request
+   * @return The tasks the user may reach in this view
+   */
+  protected abstract UserTaskVisibility userTasksVisibleTo(
+      final UserDetails currentUser);
 
-	/**
-	 * One page of the list. A subclass may override it to read the tasks in another way.
-	 *
-	 * @param visibility Which tasks the user may reach
-	 * @param pageNumber The number of the page, starting at 0
-	 * @param pageSize How many tasks a page holds
-	 * @param initialTimestamp When the user started to page through the list
-	 * @param searchQueries The filters of the list, or {@code null}
-	 * @param sort The paths to sort by, separated by commas, or {@code null}
-	 * @param sortAscending Whether to sort in ascending order
-	 * @param mode Which tasks the list holds
-	 * @return The page
-	 */
-	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
-			final UserTaskVisibility visibility,
-			final int pageNumber,
-			final int pageSize,
-			final OffsetDateTime initialTimestamp,
-			final Collection<SearchQuery> searchQueries,
-			final String sort,
-			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+  /**
+   * One page of the list. A subclass may override it to read the tasks in another way.
+   *
+   * @param visibility Which tasks the user may reach
+   * @param pageNumber The number of the page, starting at 0
+   * @param pageSize How many tasks a page holds
+   * @param initialTimestamp When the user started to page through the list
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param sort The paths to sort by, separated by commas, or {@code null}
+   * @param sortAscending Whether to sort in ascending order
+   * @param mode Which tasks the list holds
+   * @return The page
+   */
+  protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
+      final UserTaskVisibility visibility,
+      final int pageNumber,
+      final int pageSize,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final String sort,
+      final boolean sortAscending,
+      final UserTaskService.RetrieveItemsMode mode) {
 
-		return userTaskService.getUserTasks(
-				visibility,
-				pageNumber,
-				pageSize,
-				initialTimestamp,
-				searchQueries,
-				sort,
-				sortAscending,
-				mode);
+    return userTaskService.getUserTasks(
+        visibility,
+        pageNumber,
+        pageSize,
+        initialTimestamp,
+        searchQueries,
+        sort,
+        sortAscending,
+        mode);
 
-	}
+  }
 
-    @Override
-    public ResponseEntity<UserTasks> getUserTasks(
-			final UserTasksRequest userTasksRequest,
-            final OffsetDateTime initialTimestamp) {
+  @Override
+  public ResponseEntity<UserTasks> getUserTasks(
+      final UserTasksRequest userTasksRequest,
+      final OffsetDateTime initialTimestamp) {
 
-        final var timestamp = initialTimestamp != null
-                ? initialTimestamp
-                : OffsetDateTime.now();
+    final var timestamp = initialTimestamp != null
+        ? initialTimestamp
+        : OffsetDateTime.now();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
+    final var currentUser = userContext.getUserLoggedInDetails();
 
-		final var visibility = userTasksVisibleTo(currentUser);
-		final var userTasks = getUserTasks(
-				visibility,
-				ListPaging.pageNumber(userTasksRequest.getPageNumber()),
-				ListPaging.pageSize(userTasksRequest.getPageSize()),
-				timestamp,
-				mapper.toModel(userTasksRequest.getSearchQueries()),
-				userTasksRequest.getSort(),
-				ListPaging.sortAscending(userTasksRequest.getSortAscending()),
-				userTasksRequest.getMode() != null
-						? mapper.toModel(userTasksRequest.getMode())
-						: UserTaskService.RetrieveItemsMode.All);
+    final var visibility = userTasksVisibleTo(currentUser);
+    final var userTasks = getUserTasks(
+        visibility,
+        ListPaging.pageNumber(userTasksRequest.getPageNumber()),
+        ListPaging.pageSize(userTasksRequest.getPageSize()),
+        timestamp,
+        mapper.toModel(userTasksRequest.getSearchQueries()),
+        userTasksRequest.getSort(),
+        ListPaging.sortAscending(userTasksRequest.getSortAscending()),
+        userTasksRequest.getMode() != null
+            ? mapper.toModel(userTasksRequest.getMode())
+            : UserTaskService.RetrieveItemsMode.All);
 
-		tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
+    tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
-		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
+    return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
 
-	}
+  }
 
-	/**
-	 * The first tasks of the list again, for a browser which shows some of them already. A
-	 * subclass may override it to read the tasks in another way.
-	 *
-	 * @param visibility Which tasks the user may reach
-	 * @param size How many tasks to return at most
-	 * @param knownUserTasksIds The ids of the tasks the browser shows already
-	 * @param initialTimestamp When the user started to page through the list
-	 * @param searchQueries The filters of the list, or {@code null}
-	 * @param sort The paths to sort by, separated by commas, or {@code null}
-	 * @param sortAscending Whether to sort in ascending order
-	 * @param mode Which tasks the list holds
-	 * @return The tasks as one page
-	 */
-	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
-			final UserTaskVisibility visibility,
-			final int size,
-			final Collection<String> knownUserTasksIds,
-			final OffsetDateTime initialTimestamp,
-			final Collection<SearchQuery> searchQueries,
-			final String sort,
-			final boolean sortAscending,
-			final UserTaskService.RetrieveItemsMode mode) {
+  /**
+   * The first tasks of the list again, for a browser which shows some of them already. A
+   * subclass may override it to read the tasks in another way.
+   *
+   * @param visibility Which tasks the user may reach
+   * @param size How many tasks to return at most
+   * @param knownUserTasksIds The ids of the tasks the browser shows already
+   * @param initialTimestamp When the user started to page through the list
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param sort The paths to sort by, separated by commas, or {@code null}
+   * @param sortAscending Whether to sort in ascending order
+   * @param mode Which tasks the list holds
+   * @return The tasks as one page
+   */
+  protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
+      final UserTaskVisibility visibility,
+      final int size,
+      final Collection<String> knownUserTasksIds,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final String sort,
+      final boolean sortAscending,
+      final UserTaskService.RetrieveItemsMode mode) {
 
-		return userTaskService.getUserTasksUpdated(
-				visibility,
-				size,
-				knownUserTasksIds,
-				initialTimestamp,
-				searchQueries,
-				sort,
-				sortAscending,
-				mode);
+    return userTaskService.getUserTasksUpdated(
+        visibility,
+        size,
+        knownUserTasksIds,
+        initialTimestamp,
+        searchQueries,
+        sort,
+        sortAscending,
+        mode);
 
-	}
+  }
 
-	@Override
-	public ResponseEntity<UserTasks> getUserTasksUpdate(
-			final UserTasksUpdateRequest userTasksUpdateRequest,
-			final OffsetDateTime initialTimestamp) {
+  @Override
+  public ResponseEntity<UserTasks> getUserTasksUpdate(
+      final UserTasksUpdateRequest userTasksUpdateRequest,
+      final OffsetDateTime initialTimestamp) {
 
-		final var timestamp = initialTimestamp != null
-				? initialTimestamp
-				: OffsetDateTime.now();
+    final var timestamp = initialTimestamp != null
+        ? initialTimestamp
+        : OffsetDateTime.now();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
+    final var currentUser = userContext.getUserLoggedInDetails();
 
-		final var visibility = userTasksVisibleTo(currentUser);
-		final var userTasks = getUserTasksUpdated(
-				visibility,
-				userTasksUpdateRequest.getSize(),
-				userTasksUpdateRequest.getKnownUserTasksIds(),
-				timestamp,
-				mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
-				userTasksUpdateRequest.getSort(),
-				ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
-				userTasksUpdateRequest.getMode() != null
-						? mapper.toModel(userTasksUpdateRequest.getMode())
-						: UserTaskService.RetrieveItemsMode.OpenTasks);
+    final var visibility = userTasksVisibleTo(currentUser);
+    final var userTasks = getUserTasksUpdated(
+        visibility,
+        userTasksUpdateRequest.getSize(),
+        userTasksUpdateRequest.getKnownUserTasksIds(),
+        timestamp,
+        mapper.toModel(userTasksUpdateRequest.getSearchQueries()),
+        userTasksUpdateRequest.getSort(),
+        ListPaging.sortAscending(userTasksUpdateRequest.getSortAscending()),
+        userTasksUpdateRequest.getMode() != null
+            ? mapper.toModel(userTasksUpdateRequest.getMode())
+            : UserTaskService.RetrieveItemsMode.OpenTasks);
 
-		tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
+    tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
-		return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
+    return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
 
-	}
+  }
 
-	/**
-	 * The update streams of this person remember which tasks their browser shows now. That is how a
-	 * stream learns to wake up a list for a task the person may no longer see, see
-	 * {@link UpdateStreams}.
-	 */
-	private void tellTheUpdateStreamsWhatIsShown(
-			final UserDetails currentUser,
-			final UserTaskVisibility visibility,
-			final Page<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks) {
+  /**
+   * The update streams of this person remember which tasks their browser shows now. That is how a
+   * stream learns to wake up a list for a task the person may no longer see, see
+   * {@link UpdateStreams}.
+   */
+  private void tellTheUpdateStreamsWhatIsShown(
+      final UserDetails currentUser,
+      final UserTaskVisibility visibility,
+      final Page<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks) {
 
-		updateStreams.listAnswered(
-				UserTaskStreamAudience.KIND_OF_ENTITY,
-				currentUser,
-				visibility,
-				userTasks
-						.getContent()
-						.stream()
-						.map(io.vanillabp.cockpit.tasklist.model.UserTask::getId)
-						.toList());
+    updateStreams.listAnswered(
+        UserTaskStreamAudience.KIND_OF_ENTITY,
+        currentUser,
+        visibility,
+        userTasks
+            .getContent()
+            .stream()
+            .map(io.vanillabp.cockpit.tasklist.model.UserTask::getId)
+            .toList());
 
-	}
+  }
 
-    /**
-     * Suggestions for a search field of the list. A subclass may override it to search in another
-     * way.
-     *
-     * @param visibility Which tasks the user may reach
-     * @param endedSince When the user started to page through the list
-     * @param searchQueries The filters the user set in the list
-     * @param path The field to look for words in
-     * @param query The text typed so far
-     * @return The words found
-     */
-    protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
-            final UserTaskVisibility visibility,
-            final OffsetDateTime endedSince,
-            final List<SearchQuery> searchQueries,
-            final String path,
-            final String query) {
+  /**
+   * Suggestions for a search field of the list. A subclass may override it to search in another
+   * way.
+   *
+   * @param visibility Which tasks the user may reach
+   * @param endedSince When the user started to page through the list
+   * @param searchQueries The filters the user set in the list
+   * @param path The field to look for words in
+   * @param query The text typed so far
+   * @return The words found
+   */
+  protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
+      final UserTaskVisibility visibility,
+      final OffsetDateTime endedSince,
+      final List<SearchQuery> searchQueries,
+      final String path,
+      final String query) {
 
-        return userTaskService.kwic(visibility, endedSince, searchQueries, path, query);
+    return userTaskService.kwic(visibility, endedSince, searchQueries, path, query);
 
+  }
+
+  @Override
+  public ResponseEntity<KwicResults> getUserTaskKwicResults(
+      final KwicRequest kwicRequest,
+      final OffsetDateTime initialTimestamp,
+      final String path,
+      final String query) {
+
+    final var effectivePath = StringUtils.hasText(path)
+        ? path
+        : "detailsFulltextSearch";
+
+    final var timestamp = initialTimestamp != null
+        ? initialTimestamp
+        : OffsetDateTime.now();
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+
+    final var searchQueries = Optional
+        .ofNullable(kwicRequest.getSearchQueries())
+        .orElse(List.of())
+        .stream()
+        .map(mapper::toModel)
+        .toList();
+
+    final var result = kwic(userTasksVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
+        .stream()
+        .map(mapper::toApi)
+        .toList();
+
+    return ResponseEntity.ok(new KwicResults().result(result));
+
+  }
+
+  @Override
+  public ResponseEntity<UserTask> getUserTask(
+      final String userTaskId,
+      final Boolean markAsRead) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var visibility = userTasksVisibleTo(currentUser);
+
+    final var found = userTaskService.getUserTask(visibility, userTaskId);
+    if (found == null) {
+      return ResponseEntity.notFound().build();
     }
 
-    @Override
-    public ResponseEntity<KwicResults> getUserTaskKwicResults(
-            final KwicRequest kwicRequest,
-            final OffsetDateTime initialTimestamp,
-            final String path,
-            final String query) {
-
-        final var effectivePath = StringUtils.hasText(path)
-                ? path
-                : "detailsFulltextSearch";
-
-        final var timestamp = initialTimestamp != null
-                ? initialTimestamp
-                : OffsetDateTime.now();
-
-        final var currentUser = userContext.getUserLoggedInDetails();
-
-        final var searchQueries = Optional
-                .ofNullable(kwicRequest.getSearchQueries())
-                .orElse(List.of())
-                .stream()
-                .map(mapper::toModel)
-                .toList();
-
-        final var result =
-                kwic(userTasksVisibleTo(currentUser), timestamp, searchQueries, effectivePath, query)
-                .stream()
-                .map(mapper::toApi)
-                .toList();
-
-        return ResponseEntity.ok(new KwicResults().result(result));
-
+    final var readAt = found.getReadAt(currentUser.getId());
+    final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
+    if ((markAsRead == null)        // not required to
+        || !markAsRead          // mark as read or
+        || (readAt != null)) {  // already read by current user
+      userTask = found;
+    } else {                        // to be marked as read by current user
+      userTask = userTaskService.markAsRead(visibility, found.getId(), currentUser.getId());
+    }
+    if (userTask == null) {
+      return ResponseEntity.notFound().build();
     }
 
-	@Override
-    public ResponseEntity<UserTask> getUserTask(
-            final String userTaskId,
-			final Boolean markAsRead) {
+    return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-		final var visibility = userTasksVisibleTo(currentUser);
+  }
 
-		final var found = userTaskService.getUserTask(visibility, userTaskId);
-		if (found == null) {
-			return ResponseEntity.notFound().build();
-		}
+  @Override
+  public ResponseEntity<Void> markTaskAsRead(
+      final String userTaskId,
+      final Boolean unread) {
 
-		final var readAt = found.getReadAt(currentUser.getId());
-		final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
-		if ((markAsRead == null)        // not required to
-				|| !markAsRead          // mark as read or
-				|| (readAt != null)) {  // already read by current user
-			userTask = found;
-		} else {                        // to be marked as read by current user
-			userTask = userTaskService.markAsRead(visibility, found.getId(), currentUser.getId());
-		}
-		if (userTask == null) {
-			return ResponseEntity.notFound().build();
-		}
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var visibility = userTasksVisibleTo(currentUser);
 
-		return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
+    final var result = (unread != null) && unread
+        ? userTaskService.markAsUnread(visibility, userTaskId, currentUser.getId())
+        : userTaskService.markAsRead(visibility, userTaskId, currentUser.getId());
 
+    return result == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok().build();
+
+  }
+
+  @Override
+  public ResponseEntity<Void> markTasksAsRead(
+      final UserTaskIds userTaskIds,
+      final Boolean unread) {
+
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var visibility = userTasksVisibleTo(currentUser);
+
+    if ((unread != null) && unread) {
+      userTaskService.markAsUnread(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
+    } else {
+      userTaskService.markAsRead(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
     }
 
-	@Override
-	public ResponseEntity<Void> markTaskAsRead(
-			final String userTaskId,
-			final Boolean unread) {
+    return ResponseEntity.ok().build();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-		final var visibility = userTasksVisibleTo(currentUser);
+  }
 
-		final var result = (unread != null) && unread
-				? userTaskService.markAsUnread(visibility, userTaskId, currentUser.getId())
-				: userTaskService.markAsRead(visibility, userTaskId, currentUser.getId());
+  @Override
+  public ResponseEntity<Void> claimTask(
+      final String userTaskId,
+      final Boolean unclaim) {
 
-		return result == null
-				? ResponseEntity.notFound().build()
-				: ResponseEntity.ok().build();
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var visibility = userTasksVisibleTo(currentUser);
+    final var currentUserId = currentUser.getId();
 
-	}
+    final var result = (unclaim != null) && unclaim
+        ? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
+        : userTaskService.claimTask(
+            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
 
-	@Override
-	public ResponseEntity<Void> markTasksAsRead(
-			final UserTaskIds userTaskIds,
-			final Boolean unread) {
+    return result == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok().build();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-		final var visibility = userTasksVisibleTo(currentUser);
+  }
 
-		if ((unread != null) && unread) {
-			userTaskService.markAsUnread(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
-		} else {
-			userTaskService.markAsRead(visibility, userTaskIds.getUserTaskIds(), currentUser.getId());
-		}
+  @Override
+  public ResponseEntity<Void> claimTasks(
+      final UserTaskIds userTaskIds,
+      final Boolean unclaim) {
 
-		return ResponseEntity.ok().build();
+    final var currentUser = userContext.getUserLoggedInDetails();
+    final var visibility = userTasksVisibleTo(currentUser);
+    final var currentUserId = currentUser.getId();
 
-	}
+    if ((unclaim != null) && unclaim) {
+      userTaskService.unclaimTask(
+          visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
+    } else {
+      userTaskService.claimTask(
+          visibility,
+          userTaskIds.getUserTaskIds(),
+          personAndGroupModelMapper.toModelPerson(currentUser));
+    }
 
-	@Override
-	public ResponseEntity<Void> claimTask(
-			final String userTaskId,
-			final Boolean unclaim) {
+    return ResponseEntity.ok().build();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-		final var visibility = userTasksVisibleTo(currentUser);
-		final var currentUserId = currentUser.getId();
+  }
 
-		final var result = (unclaim != null) && unclaim
-				? userTaskService.unclaimTask(visibility, currentUserId, userTaskId, currentUserId)
-				: userTaskService.claimTask(
-						visibility, userTaskId, personAndGroupModelMapper.toModelPerson(currentUser));
+  @Override
+  public ResponseEntity<Void> assignTask(
+      final String userTaskId,
+      final Boolean unassign,
+      final String userId) {
 
-		return result == null
-				? ResponseEntity.notFound().build()
-				: ResponseEntity.ok().build();
+    final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-	}
+    final var result = (unassign != null) && unassign
+        ? userTaskService.unassignTask(visibility, userTaskId, userId)
+        : userTaskService.assignTask(
+            visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
 
-	@Override
-	public ResponseEntity<Void> claimTasks(
-			final UserTaskIds userTaskIds,
-			final Boolean unclaim) {
+    return result == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok().build();
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-		final var visibility = userTasksVisibleTo(currentUser);
-		final var currentUserId = currentUser.getId();
+  }
 
-		if ((unclaim != null) && unclaim) {
-			userTaskService.unclaimTask(
-					visibility, currentUserId, userTaskIds.getUserTaskIds(), currentUserId);
-		} else {
-			userTaskService.claimTask(
-					visibility,
-					userTaskIds.getUserTaskIds(),
-					personAndGroupModelMapper.toModelPerson(currentUser));
-		}
+  @Override
+  public ResponseEntity<Void> assignTasks(
+      final UserTaskIds body,
+      final Boolean unassign,
+      final String userId) {
 
-		return ResponseEntity.ok().build();
+    final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
 
-	}
+    if ((unassign != null) && unassign) {
+      userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
+    } else {
+      userTaskService.assignTask(
+          visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
+    }
 
-	@Override
-	public ResponseEntity<Void> assignTask(
-			final String userTaskId,
-			final Boolean unassign,
-			final String userId) {
+    return ResponseEntity.ok().build();
 
-		final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+  }
 
-		final var result = (unassign != null) && unassign
-				? userTaskService.unassignTask(visibility, userTaskId, userId)
-				: userTaskService.assignTask(
-						visibility, userTaskId, personAndGroupModelMapper.toModelPerson(userId));
+  @Override
+  public ResponseEntity<UserTask> setFollowUpDate(
+      final String userTaskId,
+      final FollowUpDateRequest followUpDateRequest) {
 
-		return result == null
-				? ResponseEntity.notFound().build()
-				: ResponseEntity.ok().build();
+    final var request = followUpDateRequest != null
+        ? followUpDateRequest
+        : new FollowUpDateRequest();
 
-	}
+    final var currentUser = userContext.getUserLoggedInDetails();
 
-	@Override
-	public ResponseEntity<Void> assignTasks(
-			final UserTaskIds body,
-			final Boolean unassign,
-			final String userId) {
+    final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
+    try {
+      userTask = userTaskService.setFollowUpDate(
+          userTasksVisibleTo(currentUser), userTaskId, request.getTimestamp());
+    } catch (UserTaskAlreadyCompletedException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).build();
+    }
+    if (userTask == null) {
+      return ResponseEntity.notFound().build();
+    }
 
-		final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+    return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
 
-		if ((unassign != null) && unassign) {
-			userTaskService.unassignTask(visibility, body.getUserTaskIds(), userId);
-		} else {
-			userTaskService.assignTask(
-					visibility, body.getUserTaskIds(), personAndGroupModelMapper.toModelPerson(userId));
-		}
+  }
 
-		return ResponseEntity.ok().build();
+  @Override
+  public ResponseEntity<UserSearchResult> findUsers(
+      final String query,
+      final Integer limit) {
 
-	}
+    final var trimmedQuery = StringUtils.trimAllWhitespace(query);
+    final Collection<UserDetails> users;
+    if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
+      users = userDetailsProvider.getAllUsers();
+    } else {
+      users = userDetailsProvider.findUsers(trimmedQuery);
+    }
 
-	@Override
-	public ResponseEntity<UserTask> setFollowUpDate(
-			final String userTaskId,
-			final FollowUpDateRequest followUpDateRequest) {
+    final var result = new UserSearchResult();
+    result.setUsers(new ArrayList<>());
+    users
+        .stream()
+        .limit(limit)
+        .map(UserDetails::getId)
+        .map(personAndGroupMapper::toApiPerson)
+        .forEach(result::addUsersItem);
 
-		final var request = followUpDateRequest != null
-				? followUpDateRequest
-				: new FollowUpDateRequest();
+    return ResponseEntity.ok(result);
 
-		final var currentUser = userContext.getUserLoggedInDetails();
-
-		final io.vanillabp.cockpit.tasklist.model.UserTask userTask;
-		try {
-			userTask = userTaskService.setFollowUpDate(
-					userTasksVisibleTo(currentUser), userTaskId, request.getTimestamp());
-		} catch (UserTaskAlreadyCompletedException e) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).build();
-		}
-		if (userTask == null) {
-			return ResponseEntity.notFound().build();
-		}
-
-		return ResponseEntity.ok(mapper.toApi(userTask, currentUser.getId()));
-
-	}
-
-	@Override
-	public ResponseEntity<UserSearchResult> findUsers(
-			final String query,
-			final Integer limit) {
-
-		final var trimmedQuery = StringUtils.trimAllWhitespace(query);
-		final Collection<UserDetails> users;
-		if (!StringUtils.hasText(trimmedQuery) || (trimmedQuery.length() < 3)) {
-			users = userDetailsProvider.getAllUsers();
-		} else {
-			users = userDetailsProvider.findUsers(trimmedQuery);
-		}
-
-		final var result = new UserSearchResult();
-		result.setUsers(new ArrayList<>());
-		users
-				.stream()
-				.limit(limit)
-				.map(UserDetails::getId)
-				.map(personAndGroupMapper::toApiPerson)
-				.forEach(result::addUsersItem);
-
-		return ResponseEntity.ok(result);
-
-	}
+  }
 
 }

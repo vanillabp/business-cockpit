@@ -7,5 +7,5 @@ package io.vanillabp.cockpit.util;
  * @param query The regular expression the field has to match
  * @param caseInsensitive Whether the match ignores case
  */
-public record SearchQuery (String path, String query, boolean caseInsensitive) {
+public record SearchQuery(String path, String query, boolean caseInsensitive) {
 }

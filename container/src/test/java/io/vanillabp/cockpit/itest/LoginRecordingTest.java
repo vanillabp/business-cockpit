@@ -2,12 +2,13 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.cockpit.users.model.User;
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+
+import io.vanillabp.cockpit.users.model.User;
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Signing in has to leave a {@code users} document behind, because notifications are only sent to
@@ -20,19 +21,19 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class LoginRecordingTest extends ItestBase {
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
+  @Autowired
+  private MongoTemplate mongoTemplate;
 
-    @Test
-    void signingInRecordsTheUser() {
+  @Test
+  void signingInRecordsTheUser() {
 
-        final var cookie = loginToGui(USER_PETRA);
-        assertThat(guiGet(cookie, "/app/current-user").statusCode()).isEqualTo(200);
+    final var cookie = loginToGui(USER_PETRA);
+    assertThat(guiGet(cookie, "/app/current-user").statusCode()).isEqualTo(200);
 
-        final var user = mongoTemplate.findById(USER_PETRA, User.class);
-        assertThat(user).isNotNull();
-        assertThat(user.getLastLoggedIn()).isNotNull();
+    final var user = mongoTemplate.findById(USER_PETRA, User.class);
+    assertThat(user).isNotNull();
+    assertThat(user.getLastLoggedIn()).isNotNull();
 
-    }
+  }
 
 }

@@ -1,13 +1,5 @@
 package io.vanillabp.cockpit.simulator.workflow.testdata;
 
-import com.devskiller.jfairy.Fairy;
-import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
-import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
-import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
-import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
-import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
-import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
-import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,8 +8,19 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.devskiller.jfairy.Fairy;
+
+import io.vanillabp.cockpit.bpms.api.v1_1.BpmsApi;
+import io.vanillabp.cockpit.bpms.api.v1_1.RegisterWorkflowModuleEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCancelledEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCompletedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowCreatedEvent;
+import io.vanillabp.cockpit.bpms.api.v1_1.WorkflowUpdatedEvent;
+import io.vanillabp.cockpit.simulator.usertask.testdata.TestData1;
 
 /**
  * Sends random workflow events to the Business Cockpit. It first registers the workflow module
@@ -26,318 +29,323 @@ import org.slf4j.LoggerFactory;
  */
 public class WorkflowTestDataGenerator implements Runnable {
 
-    /**
-     * Set to {@code true} when the application shuts down, so all generators stop.
-     */
-    public static volatile boolean shutdown = false;
+  /**
+   * Set to {@code true} when the application shuts down, so all generators stop.
+   */
+  public static volatile boolean shutdown = false;
 
-    private Random random;
+  private Random random;
 
-    private int noOfEvents;
+  private int noOfEvents;
 
-    private BpmsApi bpmsApi;
+  private BpmsApi bpmsApi;
 
-    private Map<String, Fairy> fairies;
+  private Map<String, Fairy> fairies;
 
-    private WorkflowTestDataParameters parameters;
+  private WorkflowTestDataParameters parameters;
 
-    private List<WorkflowCreatedEvent> created = new LinkedList<>();
+  private List<WorkflowCreatedEvent> created = new LinkedList<>();
 
-    private Logger logger;
+  private Logger logger;
 
-    /**
-     * Creates a generator.
-     *
-     * @param offset The number of events the generators before this one send. It names the
-     *               logger and is part of the random seed.
-     * @param noOfEvents The number of events this generator sends
-     * @param bpmsApi The client of the Business Cockpit
-     * @param fairies The generators of random texts, by language
-     * @param parameters The parameters from the form
-     */
-    public WorkflowTestDataGenerator(
-            final int offset,
-            final int noOfEvents,
-            final BpmsApi bpmsApi,
-            final Map<String, Fairy> fairies,
-            final WorkflowTestDataParameters parameters) {
-        this.logger = LoggerFactory.getLogger(
-                WorkflowTestDataGenerator.class.getSimpleName()
-                + "#"
-                + offset);
-        this.noOfEvents = noOfEvents;
-        this.random = new Random(System.currentTimeMillis() * offset);
-        this.bpmsApi = bpmsApi;
-        this.fairies = fairies;
-        this.parameters = parameters;
-    }
+  /**
+   * Creates a generator.
+   *
+   * @param offset The number of events the generators before this one send. It names the
+   *               logger and is part of the random seed.
+   * @param noOfEvents The number of events this generator sends
+   * @param bpmsApi The client of the Business Cockpit
+   * @param fairies The generators of random texts, by language
+   * @param parameters The parameters from the form
+   */
+  public WorkflowTestDataGenerator(
+      final int offset,
+      final int noOfEvents,
+      final BpmsApi bpmsApi,
+      final Map<String, Fairy> fairies,
+      final WorkflowTestDataParameters parameters) {
+    this.logger = LoggerFactory.getLogger(
+        WorkflowTestDataGenerator.class.getSimpleName()
+            + "#"
+            + offset);
+    this.noOfEvents = noOfEvents;
+    this.random = new Random(System.currentTimeMillis() * offset);
+    this.bpmsApi = bpmsApi;
+    this.fairies = fairies;
+    this.parameters = parameters;
+  }
 
-    @Override
-    public void run() {
-        var current = 0;
+  @Override
+  public void run() {
+    var current = 0;
 
-        bpmsApi.registerWorkflowModule(
-                "TestModule",
-                new RegisterWorkflowModuleEvent()
-                        .uri("http://localhost:8079/TestModule")
-                        .taskProviderApiUriPath("/task-provider/v1")
-                        .workflowProviderApiUriPath("/workflow-details-provider/v1"));
+    bpmsApi.registerWorkflowModule(
+        "TestModule",
+        new RegisterWorkflowModuleEvent()
+            .uri("http://localhost:8079/TestModule")
+            .taskProviderApiUriPath("/task-provider/v1")
+            .workflowProviderApiUriPath("/workflow-details-provider/v1"));
 
-        while (!shutdown) {
-            ++current;
-            final var onlyUpdatesLeft =
-                    (created.size() * 100 / noOfEvents) > (100 - parameters.getPercentageUpdates());
-            final var updateWanted = created.size() > 0
-                    && random.nextInt(100) < parameters.getPercentageUpdates();
-            if (onlyUpdatesLeft || updateWanted) {
-                final var createdEvent = created.get(
-                        random.nextInt(created.size()));
-                final var doUpdate = random.nextBoolean();
-                if (doUpdate) {
-                    final var updatedEvent = buildUpdatedEvent(createdEvent);
-                    bpmsApi.workflowUpdatedEvent(
-                            createdEvent.getWorkflowId(), updatedEvent);
-                } else {
-                    final var typeOfEvent = random.nextInt(2);
-                    if (typeOfEvent == 0) {
-                        bpmsApi.workflowCompletedEvent(
-                                createdEvent.getWorkflowId(),
-                                buildCompletedEvent(createdEvent));
-                    } else {
-                        bpmsApi.workflowCancelledEvent(
-                                createdEvent.getWorkflowId(),
-                                buildCancelledEvent(createdEvent));
-                    }
-                }
-            } else {
-                final var event = buildCreatedEvent();
-                if (event == null) {
-                    return;
-                }
-                created.add(event);
-                bpmsApi.workflowCreatedEvent(event);
-                
-            }
-            
-            if (current % 100 == 0) {
-                logger.info("Progress: {}%", (current * 100 / noOfEvents));
-            }
-            
-            if (current == noOfEvents) {
-                logger.info("Created {} tasks", created.size());
-                return;
-            }
-            
-            try {
-                Thread.sleep(parameters.getThrottling());
-            } catch (InterruptedException e) {
-                return;
-            }
-            
+    while (!shutdown) {
+      ++current;
+      final var onlyUpdatesLeft = (created.size() * 100 / noOfEvents) > (100 - parameters.getPercentageUpdates());
+      final var updateWanted = created.size() > 0 && random.nextInt(100) < parameters.getPercentageUpdates();
+      if (onlyUpdatesLeft || updateWanted) {
+        final var createdEvent = created.get(
+            random.nextInt(created.size()));
+        final var doUpdate = random.nextBoolean();
+        if (doUpdate) {
+          final var updatedEvent = buildUpdatedEvent(createdEvent);
+          bpmsApi.workflowUpdatedEvent(
+              createdEvent.getWorkflowId(), updatedEvent);
+        } else {
+          final var typeOfEvent = random.nextInt(2);
+          if (typeOfEvent == 0) {
+            bpmsApi.workflowCompletedEvent(
+                createdEvent.getWorkflowId(),
+                buildCompletedEvent(createdEvent));
+          } else {
+            bpmsApi.workflowCancelledEvent(
+                createdEvent.getWorkflowId(),
+                buildCancelledEvent(createdEvent));
+          }
         }
-        
-    }
-    
-    private static String getProcessTitle(
-            final String language,
-            final int process) {
-        
-        if ("de".equals(language)) {
-            
-            return switch (process) {
-                case 0 -> "Taxifahrt";
-                case 1 -> "Bezahlung";
-                case 2 -> "Fahrzeug laden";
-                default -> "Test"; 
-                };
-            
+      } else {
+        final var event = buildCreatedEvent();
+        if (event == null) {
+          return;
         }
+        created.add(event);
+        bpmsApi.workflowCreatedEvent(event);
 
-        return switch (process) {
-            case 0 -> "Taxi ride";
-            case 1 -> "Payment";
-            case 2 -> "Charge car";
-            default -> "Test";
-            };
+      }
+
+      if (current % 100 == 0) {
+        logger.info("Progress: {}%", (current * 100 / noOfEvents));
+      }
+
+      if (current == noOfEvents) {
+        logger.info("Created {} tasks", created.size());
+        return;
+      }
+
+      try {
+        Thread.sleep(parameters.getThrottling());
+      } catch (InterruptedException e) {
+        return;
+      }
 
     }
-    
-    private static String getBpmnProcessId(
-            final int process) {
-        
-        return switch (process) {
-                case 0 -> "TaxiRide";
-                case 1 -> "Payment";
-                case 2 -> "ChargeCar";
-                default -> "Test"; 
-                };
-        
+
+  }
+
+  private static String getProcessTitle(
+      final String language,
+      final int process) {
+
+    if ("de".equals(language)) {
+
+      return switch (process) {
+        case 0 -> "Taxifahrt";
+        case 1 -> "Bezahlung";
+        case 2 -> "Fahrzeug laden";
+        default -> "Test";
+      };
+
     }
 
-    private WorkflowUpdatedEvent buildUpdatedEvent(
-            final WorkflowCreatedEvent createdEvent) {
-        
-        final var result = new WorkflowUpdatedEvent();
-        result.setDetails(createdEvent.getDetails());
-        result.setAccessibleToGroups(createdEvent.getAccessibleToGroups());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setDetailsFulltextSearch(collectFulltextTerms(createdEvent));
-        result.setAccessibleToUsers(createdEvent.getAccessibleToUsers());
-        result.setInitiator(createdEvent.getInitiator());
-        result.setComment(createdEvent.getComment());
-        result.setSource(createdEvent.getSource());
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    return switch (process) {
+      case 0 -> "Taxi ride";
+      case 1 -> "Payment";
+      case 2 -> "Charge car";
+      default -> "Test";
+    };
 
-        result.setId(UUID.randomUUID().toString());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        result.setTimestamp(OffsetDateTime.now());
-        result.setUpdated(Boolean.TRUE);
-        
-        result.setTitle(
-                fairies
-                        .entrySet()
-                        .stream()
-                        .map(entry -> Map.entry(
-                                entry.getKey(),
-                                "Workflow " + entry.getValue().textProducer().sentence(4)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+  }
 
-        return result;
-        
-    }
+  private static String getBpmnProcessId(
+      final int process) {
 
-    private WorkflowCancelledEvent buildCancelledEvent(
-            final WorkflowCreatedEvent createdEvent) {
-        
-        final var result = new WorkflowCancelledEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        // the schema of an end asks for these as well, and the cockpit refuses an end without them
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+    return switch (process) {
+      case 0 -> "TaxiRide";
+      case 1 -> "Payment";
+      case 2 -> "ChargeCar";
+      default -> "Test";
+    };
+
+  }
+
+  private WorkflowUpdatedEvent buildUpdatedEvent(
+      final WorkflowCreatedEvent createdEvent) {
+
+    final var result = new WorkflowUpdatedEvent();
+    result.setDetails(createdEvent.getDetails());
+    result.setAccessibleToGroups(createdEvent.getAccessibleToGroups());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setDetailsFulltextSearch(collectFulltextTerms(createdEvent));
+    result.setAccessibleToUsers(createdEvent.getAccessibleToUsers());
+    result.setInitiator(createdEvent.getInitiator());
+    result.setComment(createdEvent.getComment());
+    result.setSource(createdEvent.getSource());
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+
+    result.setId(UUID.randomUUID().toString());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    result.setTimestamp(OffsetDateTime.now());
+    result.setUpdated(Boolean.TRUE);
+
+    result.setTitle(
+        fairies
+            .entrySet()
+            .stream()
+            .map(entry -> Map.entry(
+                entry.getKey(),
+                "Workflow "
+                    + entry.getValue().textProducer().sentence(4)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+    return result;
+
+  }
+
+  private WorkflowCancelledEvent buildCancelledEvent(
+      final WorkflowCreatedEvent createdEvent) {
+
+    final var result = new WorkflowCancelledEvent();
+
+    result.setId(UUID.randomUUID().toString());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    // the schema of an end asks for these as well, and the cockpit refuses an end without them
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
+
+    return result;
+
+  }
 
 
-    private WorkflowCompletedEvent buildCompletedEvent(
-            final WorkflowCreatedEvent createdEvent) {
-        
-        final var result = new WorkflowCompletedEvent();
-        
-        result.setId(UUID.randomUUID().toString());
-        result.setWorkflowId(createdEvent.getWorkflowId());
-        // the schema of an end asks for these as well, and the cockpit refuses an end without them
-        result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
-        result.setBusinessId(createdEvent.getBusinessId());
-        result.setBpmnProcessId(createdEvent.getBpmnProcessId());
-        result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
-        result.setUiUriPath(createdEvent.getUiUriPath());
-        result.setUiUriType(createdEvent.getUiUriType());
-        result.setComment(fairies.values().iterator().next().textProducer().word(3));
-        result.setTimestamp(OffsetDateTime.now());
-        
-        return result;
-        
-    }
+  private WorkflowCompletedEvent buildCompletedEvent(
+      final WorkflowCreatedEvent createdEvent) {
 
-    private WorkflowCreatedEvent buildCreatedEvent() {
-        return buildCreatedEvent(
-                random,
-                fairies);
-        
-    }
-    /**
-     * Builds the event of a new random workflow of the workflow module {@code TestModule}. The
-     * workflow gets a title in every language of {@code fairies} and random details.
-     *
-     * @param random The source of random numbers
-     * @param fairies The generators of random texts, by language
-     * @return The event
-     */
-    public static WorkflowCreatedEvent buildCreatedEvent(
-            final Random random,
-            final Map<String, Fairy> fairies) {
-        
-        final var result = new WorkflowCreatedEvent();
-        result.setUpdated(Boolean.FALSE);
-        final var process = random.nextInt(10);
-        result.setId(UUID.randomUUID().toString());
-        result.setWorkflowId(UUID.randomUUID().toString());
-        result.setBusinessId(UUID.randomUUID().toString());
-        result.setBpmnProcessId(getBpmnProcessId(process));
-        result.setTitle(
-                fairies
-                        .keySet()
-                        .stream()
-                        .map(language -> Map.entry(language, getProcessTitle(language, process)))
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-        result.setBpmnProcessVersion("0");
+    final var result = new WorkflowCompletedEvent();
 
-        result.setTimestamp(OffsetDateTime.now());
-        result.setWorkflowModuleId("TestModule");
-        result.setUiUriPath("/remoteEntry.js");
-        result.setUiUriType("WEBPACK_MF_REACT");
+    result.setId(UUID.randomUUID().toString());
+    result.setWorkflowId(createdEvent.getWorkflowId());
+    // the schema of an end asks for these as well, and the cockpit refuses an end without them
+    result.setWorkflowModuleId(createdEvent.getWorkflowModuleId());
+    result.setBusinessId(createdEvent.getBusinessId());
+    result.setBpmnProcessId(createdEvent.getBpmnProcessId());
+    result.setBpmnProcessVersion(createdEvent.getBpmnProcessVersion());
+    result.setUiUriPath(createdEvent.getUiUriPath());
+    result.setUiUriType(createdEvent.getUiUriType());
+    result.setComment(fairies.values().iterator().next().textProducer().word(3));
+    result.setTimestamp(OffsetDateTime.now());
 
-        final var testData1 = new TestData1();
-        testData1.setTestId1(Integer.toString(random.nextInt(5)));
-        testData1.setTestId2(random.nextInt(10000));
-        result.setDetails(
-                Map.of("test1", testData1));
+    return result;
 
-        result.setDetailsFulltextSearch(collectFulltextTerms(result));
+  }
 
-        return result;
-    }
+  private WorkflowCreatedEvent buildCreatedEvent() {
+    return buildCreatedEvent(
+        random,
+        fairies);
 
-    private static String collectFulltextTerms(final WorkflowCreatedEvent event) {
-        final var fulltextSb = new StringBuilder();
-        if (event.getTitle() != null) {
-            event.getTitle().forEach((String k, String v) -> {
-                if (v != null) {
-                    fulltextSb.append(v);
-                    fulltextSb.append(" ");
-                }
-            });
+  }
+
+  /**
+   * Builds the event of a new random workflow of the workflow module {@code TestModule}. The
+   * workflow gets a title in every language of {@code fairies} and random details.
+   *
+   * @param random The source of random numbers
+   * @param fairies The generators of random texts, by language
+   * @return The event
+   */
+  public static WorkflowCreatedEvent buildCreatedEvent(
+      final Random random,
+      final Map<String, Fairy> fairies) {
+
+    final var result = new WorkflowCreatedEvent();
+    result.setUpdated(Boolean.FALSE);
+    final var process = random.nextInt(10);
+    result.setId(UUID.randomUUID().toString());
+    result.setWorkflowId(UUID.randomUUID().toString());
+    result.setBusinessId(UUID.randomUUID().toString());
+    result.setBpmnProcessId(getBpmnProcessId(process));
+    result.setTitle(
+        fairies
+            .keySet()
+            .stream()
+            .map(language -> Map.entry(language, getProcessTitle(language, process)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    result.setBpmnProcessVersion("0");
+
+    result.setTimestamp(OffsetDateTime.now());
+    result.setWorkflowModuleId("TestModule");
+    result.setUiUriPath("/remoteEntry.js");
+    result.setUiUriType("WEBPACK_MF_REACT");
+
+    final var testData1 = new TestData1();
+    testData1.setTestId1(Integer.toString(random.nextInt(5)));
+    testData1.setTestId2(random.nextInt(10000));
+    result.setDetails(
+        Map.of("test1", testData1));
+
+    result.setDetailsFulltextSearch(collectFulltextTerms(result));
+
+    return result;
+  }
+
+  private static String collectFulltextTerms(
+      final WorkflowCreatedEvent event) {
+    final var fulltextSb = new StringBuilder();
+    if (event.getTitle() != null) {
+      event.getTitle().forEach((
+          String k,
+          String v) -> {
+        if (v != null) {
+          fulltextSb.append(v);
+          fulltextSb.append(" ");
         }
-        if (event.getDetails() != null) {
-            event.getDetails().forEach((String k, Object v) -> {
-                if (v instanceof String || v instanceof Integer) {
-                    fulltextSb.append(v);
-                    fulltextSb.append(" ");
-                }
-            });
+      });
+    }
+    if (event.getDetails() != null) {
+      event.getDetails().forEach((
+          String k,
+          Object v) -> {
+        if (v instanceof String || v instanceof Integer) {
+          fulltextSb.append(v);
+          fulltextSb.append(" ");
         }
-        return fulltextSb.toString();
+      });
     }
+    return fulltextSb.toString();
+  }
 
-    /**
-     * Builds a generator of random texts for one language. The seed is taken from the clock.
-     *
-     * @param language The language tag, e.g. {@code de} or {@code en}
-     * @return The generator
-     */
-    public static Fairy buildFairy(
-            final String language) {
-        
-        return Fairy.builder()
-                .withLocale(Locale.forLanguageTag(language))
-                .withRandomSeed((int) System.currentTimeMillis())
-                .build();
-        
-    }
-    
+  /**
+   * Builds a generator of random texts for one language. The seed is taken from the clock.
+   *
+   * @param language The language tag, e.g. {@code de} or {@code en}
+   * @return The generator
+   */
+  public static Fairy buildFairy(
+      final String language) {
+
+    return Fairy.builder()
+        .withLocale(Locale.forLanguageTag(language))
+        .withRandomSeed((int) System.currentTimeMillis())
+        .build();
+
+  }
+
 }

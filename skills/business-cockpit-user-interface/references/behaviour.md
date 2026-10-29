@@ -7,14 +7,14 @@ steht, ist das Verhalten, das die Benutzer des mitgelieferten UIs kennen und das
 voraussetzt.
 
 1. [Die Bildschirme](#die-bildschirme)
-1. [Wie die Spalten einer Liste entstehen](#wie-die-spalten-einer-liste-entstehen)
-1. [Eine Zelle zeichnen](#eine-zelle-zeichnen)
-1. [Was eine Liste live tut](#was-eine-liste-live-tut)
-1. [Blättern](#blättern)
-1. [Sortieren und suchen](#sortieren-und-suchen)
-1. [Die Aktionen auf einer Aufgabe](#die-aktionen-auf-einer-aufgabe)
-1. [Eine Aufgabe und einen Fall öffnen](#eine-aufgabe-und-einen-fall-öffnen)
-1. [Sprache](#sprache)
+2. [Wie die Spalten einer Liste entstehen](#wie-die-spalten-einer-liste-entstehen)
+3. [Eine Zelle zeichnen](#eine-zelle-zeichnen)
+4. [Was eine Liste live tut](#was-eine-liste-live-tut)
+5. [Blättern](#blättern)
+6. [Sortieren und suchen](#sortieren-und-suchen)
+7. [Die Aktionen auf einer Aufgabe](#die-aktionen-auf-einer-aufgabe)
+8. [Eine Aufgabe und einen Fall öffnen](#eine-aufgabe-und-einen-fall-öffnen)
+9. [Sprache](#sprache)
 
 ## Die Bildschirme
 
@@ -22,15 +22,15 @@ Das mitgelieferte UI hat vier Listen. Drei davon sind Aufgabenlisten und untersc
 Basispfad, den sie rufen, siehe [gui-api.md](gui-api.md#die-endpunkte). Die vierte ist die Liste der
 Geschäftsfälle.
 
-| Bildschirm | Pfad im mitgelieferten UI | Was er zeigt |
-|---|---|---|
-| Aufgabenliste | `/tasks` | alles, was der Benutzer bearbeiten darf |
-| meine Aufgaben | `/tasks/mine` | was ihm persönlich zugewiesen ist |
-| Aufgaben meiner Rollen | `/tasks/for-my-roles` | was seine Gruppen übernehmen dürfen |
-| Fallliste | `/workflows` | die Geschäftsfälle |
-| Seite eines Falls | `/workflows/<id>` | die Seite aus dem Workflow-Modul |
-| Seite einer Aufgabe | `/task/<id>` | das Formular aus dem Workflow-Modul, in eigenem Fenster |
-| Benachrichtigungen | `/notifications` | was der Benutzer wie benachrichtigt bekommen will |
+|       Bildschirm       | Pfad im mitgelieferten UI |                      Was er zeigt                       |
+|------------------------|---------------------------|---------------------------------------------------------|
+| Aufgabenliste          | `/tasks`                  | alles, was der Benutzer bearbeiten darf                 |
+| meine Aufgaben         | `/tasks/mine`             | was ihm persönlich zugewiesen ist                       |
+| Aufgaben meiner Rollen | `/tasks/for-my-roles`     | was seine Gruppen übernehmen dürfen                     |
+| Fallliste              | `/workflows`              | die Geschäftsfälle                                      |
+| Seite eines Falls      | `/workflows/<id>`         | die Seite aus dem Workflow-Modul                        |
+| Seite einer Aufgabe    | `/task/<id>`              | das Formular aus dem Workflow-Modul, in eigenem Fenster |
+| Benachrichtigungen     | `/notifications`          | was der Benutzer wie benachrichtigt bekommen will       |
 
 Die Pfade sind übersetzt. Auf Deutsch heißen sie `/aufgaben`, `/vorgaenge`, `/aufgabe/<id>` und
 `/benachrichtigungen`. Das ist eine Entscheidung des mitgelieferten UIs und kein Vertrag.
@@ -59,12 +59,12 @@ Spalten es will. Der Ablauf:
 Was das mitgelieferte UI in einer Aufgabenliste selbst ergänzt, jeweils nur wenn kein Modul diesen
 `path` schon belegt hat:
 
-| `path` | `priority` | `type` | Breite | Was drin steht |
-|---|---|---|---|---|
-| `id` | -1 | | 2.2rem | das Auswahlkästchen der Zeile |
-| `title` | 0 | `i18n` | der Rest | der Titel, als Link, der die Aufgabe öffnet |
-| `assignee` | 1 | `person` | 10rem | der Bearbeiter, mit Übernehmen und Zurückgeben beim Überfahren |
-| `candidateUsers` | 2 | | 3rem | die Kandidaten, aufklappbar, mit Entziehen je Person |
+|      `path`      | `priority` |  `type`  |  Breite  |                         Was drin steht                         |
+|------------------|------------|----------|----------|----------------------------------------------------------------|
+| `id`             | -1         |          | 2.2rem   | das Auswahlkästchen der Zeile                                  |
+| `title`          | 0          | `i18n`   | der Rest | der Titel, als Link, der die Aufgabe öffnet                    |
+| `assignee`       | 1          | `person` | 10rem    | der Bearbeiter, mit Übernehmen und Zurückgeben beim Überfahren |
+| `candidateUsers` | 2          |          | 3rem     | die Kandidaten, aufklappbar, mit Entziehen je Person           |
 
 In einer Fallliste ergänzt es nur `id` und `title`, und `title` öffnet dort die Seite des Falls.
 
@@ -98,14 +98,14 @@ Der Wert einer Zelle ist `column.path`, aufgelöst gegen die Zeile, mit Punkten 
 
 Was die Standardzelle je `type` daraus macht:
 
-| `type` | Was gezeichnet wird |
-|---|---|
-| `i18n` | der Pfad wird um `.<Sprache>` verlängert; fehlt die Sprache, bleibt die Zelle leer |
-| `date` | das Datum in der Sprache des Benutzers, rechtsbündig, mit Datum und Zeit im Tooltip |
-| `time` | die Uhrzeit, rechtsbündig |
-| `date-time` | Datum und Uhrzeit, rechtsbündig |
-| `person` | Kurzname, sonst E-Mail, sonst Kennung, mit den Details im Tooltip |
-| `value` oder nichts | nach dem Typ des Werts, siehe unten |
+|       `type`        |                                 Was gezeichnet wird                                 |
+|---------------------|-------------------------------------------------------------------------------------|
+| `i18n`              | der Pfad wird um `.<Sprache>` verlängert; fehlt die Sprache, bleibt die Zelle leer  |
+| `date`              | das Datum in der Sprache des Benutzers, rechtsbündig, mit Datum und Zeit im Tooltip |
+| `time`              | die Uhrzeit, rechtsbündig                                                           |
+| `date-time`         | Datum und Uhrzeit, rechtsbündig                                                     |
+| `person`            | Kurzname, sonst E-Mail, sonst Kennung, mit den Details im Tooltip                   |
+| `value` oder nichts | nach dem Typ des Werts, siehe unten                                                 |
 
 Ohne `type` entscheidet der Wert: eine Zahl wird in der Sprache des Benutzers formatiert und
 rechtsbündig gesetzt, ein Wahrheitswert wird über die Texte `boolean-true` und `boolean-false`
@@ -172,10 +172,10 @@ Was dabei als `sort` an den Server geht, hängt am `type` der Spalte, und das is
 unauffälligsten Stellen des ganzen Vertrags:
 
 | `type` der Spalte | Was als `sort` geschickt wird |
-|---|---|
-| `i18n` | `<path>.<Sprache>` |
-| `person` | `<path>.sort,<path>.id` |
-| alles andere | `<path>` |
+|-------------------|-------------------------------|
+| `i18n`            | `<path>.<Sprache>`            |
+| `person`          | `<path>.sort,<path>.id`       |
+| alles andere      | `<path>`                      |
 
 Der Grund für den zweiten Fall: eine Person liegt im gespeicherten Dokument mit den Feldern `id`,
 `fulltext` und `sort`, und `sort` ist der Wert, nach dem sortiert werden soll. Die Anwendung baut ihn
@@ -200,14 +200,14 @@ muss.
 
 Für eine Zeile oder für die Auswahl mehrerer Zeilen:
 
-| Aktion | Was sie bedeutet |
-|---|---|
-| Übernehmen | der Benutzer wird Bearbeiter |
-| Zurückgeben | der Bearbeiter wird entfernt |
-| Zuweisen | eine gesuchte Person wird Kandidat |
-| Entziehen | eine Person wird aus den Kandidaten entfernt |
-| Als gelesen markieren | setzt `read`, der Titel wird nicht mehr fett |
-| Als ungelesen markieren | nimmt `read` zurück |
+|         Aktion          |               Was sie bedeutet               |
+|-------------------------|----------------------------------------------|
+| Übernehmen              | der Benutzer wird Bearbeiter                 |
+| Zurückgeben             | der Bearbeiter wird entfernt                 |
+| Zuweisen                | eine gesuchte Person wird Kandidat           |
+| Entziehen               | eine Person wird aus den Kandidaten entfernt |
+| Als gelesen markieren   | setzt `read`, der Titel wird nicht mehr fett |
+| Als ungelesen markieren | nimmt `read` zurück                          |
 
 Beim Zuweisen sucht der Benutzer in einem Feld nach Personen, und das UI ruft dafür `POST /user` mit
 einer Höchstzahl von Treffern.

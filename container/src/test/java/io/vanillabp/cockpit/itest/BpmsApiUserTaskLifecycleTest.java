@@ -2,14 +2,16 @@ package io.vanillabp.cockpit.itest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vanillabp.integration.test.utils.SuppressOutputExtension;
 
 /**
  * Exercises the BPMS API v1.1 user task events over plain HTTP and verifies the outcome through
@@ -19,498 +21,542 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @SuppressOutputExtension.SuppressBackgroundOutput
 class BpmsApiUserTaskLifecycleTest extends ItestBase {
 
-    private String moduleId;
-    private String token;
-    private String cookie;
-
-    @BeforeEach
-    void registerModuleAndLogin() {
-        moduleId = unique("ride-module");
-        token = unique("token");
-        registerWorkflowModule(moduleId, "http://localhost:65000");
-        cookie = loginToGui(USER_MARTIN);
-    }
-
-    private String userTaskCreatedPayload(
-            final String userTaskId,
-            final String timestamp,
-            final String extraFields) {
-
-        return """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "bpmnProcessVersion": "1",
-                  "businessId": "ride-4711",
-                  "title": { "de": "Fahrt 4711 durchführen", "en": "Do ride 4711" },
-                  "taskDefinition": "do-ride",
-                  "taskDefinitionTitle": { "de": "Fahrt durchführen", "en": "Do ride" },
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s"%s
-                }
-                """.formatted(unique("event"), userTaskId, timestamp, moduleId, token,
-                extraFields.isEmpty() ? "" : ",\n" + extraFields);
-
-    }
-
-    @Test
-    void createdUserTaskShowsUpInTasklistWithAllReportedFields() {
-
-        final var userTaskId = unique("task");
-        final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30+02:00");
-        final var dueDate = OffsetDateTime.parse("2026-09-10T12:00:00+02:00");
-
-        final var created = bpmsV1_1("/usertask/created", userTaskCreatedPayload(
-                userTaskId,
-                createdAt.toString(),
-                """
-                "assignee": "martin",
-                "candidateUsers": [ "petra" ],
-                "candidateGroups": [ "accounting" ],
-                "dueDate": "%s",
-                "details": { "customer": "passenger A" }
-                """.formatted(dueDate)));
-        assertThat(created.statusCode()).isEqualTo(200);
-
-        final var list = userTaskList(cookie, token, "OpenTasks");
-        assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
-        assertThat(list.read("$.page.totalElements", Integer.class)).isEqualTo(1);
-
-        final var detailResponse = guiGet(cookie, "/usertask/" + userTaskId);
-        assertThat(detailResponse.statusCode()).isEqualTo(200);
-        final var task = json(detailResponse);
-        assertThat(task.read("$.id", String.class)).isEqualTo(userTaskId);
-        assertThat(task.read("$.title.de", String.class)).isEqualTo("Fahrt 4711 durchführen");
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride 4711");
-        assertThat(task.read("$.taskDefinition", String.class)).isEqualTo("do-ride");
-        assertThat(task.read("$.taskDefinitionTitle.en", String.class)).isEqualTo("Do ride");
-        assertThat(task.read("$.bpmnProcessId", String.class)).isEqualTo("taxi-ride");
-        assertThat(task.read("$.businessId", String.class)).isEqualTo("ride-4711");
-        assertThat(task.read("$.workflowModuleId", String.class)).isEqualTo(moduleId);
-        assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
-        assertThat(task.read("$.uiUriType", String.class)).isEqualTo("WEBPACK_MF_REACT");
-        assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
-        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
-        assertThat(task.read("$.candidateUsers[*].id", List.class)).containsExactly("petra");
-        assertThat(task.read("$.candidateGroups[*].id", List.class)).containsExactly("accounting");
-        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
-                .isEqualTo(createdAt.toInstant());
-        assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
-                .isEqualTo(dueDate.toInstant());
-        assertThat(task.read("$.details.customer", String.class)).isEqualTo("passenger A");
-        assertThat(task.read("$.endedAt", String.class)).isNull();
-
-    }
-
-    /**
-     * A task which is worked on in another application is not served through the cockpit's proxy,
-     * so the address the workflow module reported is what the user interface is told to open.
-     */
-    @Test
-    void anExternalTaskKeepsTheAddressItWasReportedWith() {
-
-        final var userTaskId = unique("task");
-        final var created = bpmsV1_1("/usertask/created", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "bpmnProcessVersion": "1",
-                  "title": { "en": "Check the ticket" },
-                  "taskDefinition": "check-ticket",
-                  "uiUriPath": "https://tickets.example.com/ticket/4711",
-                  "uiUriType": "EXTERNAL",
-                  "candidateUsers": [ "martin" ],
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
-        assertThat(created.statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
-        assertThat(task.read("$.uiUri", String.class))
-                .isEqualTo("https://tickets.example.com/ticket/4711");
-        assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/" + moduleId);
-
-    }
-
-    /**
-     * The report which creates a task says who sees it. An update changes the title and the due
-     * date, but it does not hand the task over to somebody else.
-     */
-    @Test
-    void updateEventChangesTitleAndDueDateButNotTheAssignee() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
-                "assignee": "martin"
-                """));
-
-        final var newDueDate = OffsetDateTime.parse("2026-10-01T08:00:00Z");
-        final var updated = bpmsV1_1("/usertask/" + userTaskId + "/updated",
-                userTaskUpdatedPayload(userTaskId, newDueDate, "petra"));
-        assertThat(updated.statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
-        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
-        assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
-                .isEqualTo(newDueDate.toInstant());
-        assertThat(guiGet(loginToGui(USER_PETRA), "/usertask/" + userTaskId).statusCode())
-                .as("the update did not hand the task over to petra")
-                .isEqualTo(404);
-
-    }
-
-    /**
-     * Taking over a task is done in the cockpit, and no workflow module reports it back. An update
-     * which names somebody else, or nobody, leaves the takeover as it is.
-     */
-    @Test
-    void aTakeoverInTheCockpitSurvivesAnUpdate() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
-                "candidateGroups": [ "%s" ]
-                """.formatted(GROUP_OF_MARTIN)));
-        assertThat(guiPatch(cookie, "/usertask/" + userTaskId + "/claim", null).statusCode())
-                .isEqualTo(200);
-
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/updated",
-                userTaskUpdatedPayload(userTaskId, OffsetDateTime.parse("2026-10-01T08:00:00Z"), "petra"))
-                .statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
-        assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
-
-    }
-
-    private String userTaskUpdatedPayload(
-            final String userTaskId,
-            final OffsetDateTime dueDate,
-            final String assignee) {
-
-        return """
-                {
-                  "id": "%s",
-                  "updated": true,
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "de": "Fahrt 4711 prüfen", "en": "Check ride 4711" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "assignee": "%s",
-                  "dueDate": "%s",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, assignee, dueDate, token);
-
-    }
-
-    /**
-     * An update event for a task the cockpit never saw creates it, so a cockpit added to a running
-     * system does not stay blind to the tasks which existed before. While the application was
-     * reactive this fallback answered HTTP 500, because it read the already consumed request body a
-     * second time. Reading the body once into an object removed the problem.
-     */
-    @Test
-    void updateEventForUnknownTaskCreatesIt() {
-
-        final var userTaskId = unique("task");
-        final var response = bpmsV1_1("/usertask/" + userTaskId + "/updated",
-                userTaskCreatedPayload(userTaskId, isoNow(), """
-                        "assignee": "martin"
-                        """));
-        assertThat(response.statusCode()).isEqualTo(200);
-
-        final var detailResponse = guiGet(cookie, "/usertask/" + userTaskId);
-        assertThat(detailResponse.statusCode()).isEqualTo(200);
-        assertThat(json(detailResponse).read("$.assignee.id", String.class)).isEqualTo("martin");
-
-    }
-
-    @Test
-    void completedEventEndsTheTaskAndMovesItToClosedTasks() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
-                "assignee": "martin"
-                """));
-
-        final var endedAt = isoNow();
-        final var completed = bpmsV1_1("/usertask/" + userTaskId + "/completed", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "initiator": "martin",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride 4711" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, endedAt, moduleId, token));
-        assertThat(completed.statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.endedAt", String.class)).isNotNull();
-
-        assertThat(userTaskList(cookie, token, "OpenTasks")
-                .read("$.userTasks[*].id", List.class)).isEmpty();
-        assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
-                .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
-
-    }
-
-    @Test
-    void cancelledEventEndsTheTaskWithComment() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
-                "assignee": "martin"
-                """));
-
-        final var cancelled = bpmsV1_1("/usertask/" + userTaskId + "/cancelled", """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "comment": "ride withdrawn",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride 4711" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
-        assertThat(cancelled.statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.endedAt", String.class)).isNotNull();
-        assertThat(userTaskList(cookie, token, "OpenTasks")
-                .read("$.userTasks[*].id", List.class)).isEmpty();
-
-    }
-
-    private String userTaskEndPayload(
-            final String userTaskId,
-            final String timestamp) {
-
-        return """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s",
-                  "initiator": "martin",
-                  "workflowModuleId": "%s",
-                  "bpmnProcessId": "taxi-ride",
-                  "title": { "en": "Do ride 4711" },
-                  "taskDefinition": "do-ride",
-                  "uiUriPath": "/remoteEntry.js",
-                  "uiUriType": "WEBPACK_MF_REACT",
-                  "detailsFulltextSearch": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, timestamp, moduleId, token);
-
-    }
-
-    /**
-     * The outbox of a workflow module gives its entries no order, so a completion can reach the
-     * cockpit before the creation it completes. The cockpit used to answer 200 and store nothing,
-     * and the creation arriving afterwards then left a task which was open for good.
-     */
-    @Test
-    void completionArrivingBeforeTheCreationLeavesAClosedTask() {
-
-        final var userTaskId = unique("task");
-        final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30Z");
-        final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
-
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/completed",
-                userTaskEndPayload(userTaskId, endedAt.toString())).statusCode()).isEqualTo(200);
-        assertThat(bpmsV1_1("/usertask/created", userTaskCreatedPayload(
-                userTaskId,
-                createdAt.toString(),
-                """
-                "assignee": "martin",
-                "details": { "customer": "passenger A" }
-                """)).statusCode()).isEqualTo(200);
-
-        assertThat(userTaskList(cookie, token, "OpenTasks")
-                .read("$.userTasks[*].id", List.class)).isEmpty();
-        assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
-                .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
-
-        // and the creation filled in what the completion could not report
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(OffsetDateTime.parse(task.read("$.endedAt", String.class)).toInstant())
-                .isEqualTo(endedAt.toInstant());
-        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
-                .isEqualTo(createdAt.toInstant());
-        assertThat(task.read("$.details.customer", String.class)).isEqualTo("passenger A");
-
-    }
-
-    /**
-     * A completion which arrives without its creation and without a start of its own. The task
-     * then starts at its end, because the user interface needs a start for every task. A creation
-     * which still arrives sets the start it reports.
-     */
-    @Test
-    void aCompletionWhichArrivesAloneStartsTheTaskAtItsEnd() {
-
-        final var userTaskId = unique("task");
-        final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
-
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/completed",
-                userTaskEndPayload(userTaskId, endedAt.toString())).statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.createdAt", String.class))
-                .as("the user interface's schema requires a start")
-                .isNotNull();
-        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
-                .isEqualTo(endedAt.toInstant());
-        final var listed = userTaskList(cookie, token, "ClosedTasksOnly");
-        assertThat(listed.read("$.userTasks[0].createdAt", String.class)).isNotNull();
-
-    }
-
-    /**
-     * A completion which arrives without its creation, but says when the task was created. The
-     * task starts then, and a creation which arrives later changes nothing about that start.
-     */
-    @Test
-    void aCompletionWhichArrivesAloneStartsTheTaskWhenItSays() {
-
-        final var userTaskId = unique("task");
-        final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30Z");
-        final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
-
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/completed",
-                userTaskEndPayload(userTaskId, endedAt.toString())
-                        .replace("\"initiator\"", "\"createdAt\": \"" + createdAt + "\",\n  \"initiator\""))
-                .statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
-                .isEqualTo(createdAt.toInstant());
-
-        assertThat(bpmsV1_1("/usertask/created", userTaskCreatedPayload(
-                userTaskId,
-                createdAt.toString(),
-                """
-                "details": { "customer": "passenger A" }
-                """)).statusCode()).isEqualTo(200);
-
-        final var filledIn = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(OffsetDateTime.parse(filledIn.read("$.createdAt", String.class)).toInstant())
-                .isEqualTo(createdAt.toInstant());
-        assertThat(OffsetDateTime.parse(filledIn.read("$.endedAt", String.class)).toInstant())
-                .isEqualTo(endedAt.toInstant());
-        assertThat(filledIn.read("$.details.customer", String.class))
-                .as("the creation still fills in what the end could not report")
-                .isEqualTo("passenger A");
-
-    }
-
-    /**
-     * Two changes of one task can reach the cockpit the other way round. The timestamp of the event
-     * decides which of them the cockpit keeps, not the moment it arrived.
-     */
-    @Test
-    void anUpdateOlderThanTheStoredStateChangesNothing() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(
-                userTaskId,
-                OffsetDateTime.parse("2026-09-01T10:00:00Z").toString(),
-                """
-                "assignee": "martin"
-                """));
-
-        final var younger = bpmsV1_1("/usertask/" + userTaskId + "/updated",
-                userTaskCreatedPayload(userTaskId, "2026-09-01T12:00:00Z", """
-                        "assignee": "martin"
-                        """)
-                        .replace("Do ride 4711", "Do ride 4711 as agreed"));
-        assertThat(younger.statusCode()).isEqualTo(200);
-
-        final var older = bpmsV1_1("/usertask/" + userTaskId + "/updated",
-                userTaskCreatedPayload(userTaskId, "2026-09-01T11:00:00Z", """
-                        "assignee": "martin"
-                        """)
-                        .replace("Do ride 4711", "Do ride 4711 the old way"));
-        assertThat(older.statusCode()).isEqualTo(200);
-
-        final var task = json(guiGet(cookie, "/usertask/" + userTaskId));
-        assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride 4711 as agreed");
-
-    }
-
-    /**
-     * The v1.1 API declares endpoints to suspend and to activate, but the container does not
-     * implement them. The generated fallback answers 501. This test pins the current behavior down,
-     * so that nobody changes it without noticing.
-     */
-    @Test
-    void suspendAndActivateAreNotImplemented() {
-
-        final var userTaskId = unique("task");
-        bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
-                "assignee": "martin"
-                """));
-
-        final var lifecycleEvent = """
-                {
-                  "id": "%s",
-                  "userTaskId": "%s",
-                  "timestamp": "%s"
-                }
-                """.formatted(unique("event"), userTaskId, isoNow());
-
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/suspended", lifecycleEvent).statusCode())
-                .isEqualTo(501);
-        assertThat(bpmsV1_1("/usertask/" + userTaskId + "/activated", lifecycleEvent).statusCode())
-                .isEqualTo(501);
-
-    }
-
-    @Test
-    void bpmsApiRejectsMissingAndWrongCredentials() {
-
-        final var payload = userTaskCreatedPayload(unique("task"), isoNow(), "");
-
-        final var withoutAuth = send(HttpRequest
-                .newBuilder(URI.create(url("/bpms/api/v1_1/usertask/created")))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(payload))
-                .build());
-        assertThat(withoutAuth.statusCode()).isEqualTo(401);
-
-        final var wrongPassword = send(HttpRequest
-                .newBuilder(URI.create(url("/bpms/api/v1_1/usertask/created")))
-                .header("Authorization", basicAuth(BPMS_API_USER, "wrong"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(payload))
-                .build());
-        assertThat(wrongPassword.statusCode()).isEqualTo(401);
-
-    }
+  private String moduleId;
+  private String token;
+  private String cookie;
+
+  @BeforeEach
+  void registerModuleAndLogin() {
+    moduleId = unique("ride-module");
+    token = unique("token");
+    registerWorkflowModule(moduleId, "http://localhost:65000");
+    cookie = loginToGui(USER_MARTIN);
+  }
+
+  private String userTaskCreatedPayload(
+      final String userTaskId,
+      final String timestamp,
+      final String extraFields) {
+
+    return """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "bpmnProcessVersion": "1",
+          "businessId": "ride-4711",
+          "title": { "de": "Fahrt 4711 durchführen", "en": "Do ride 4711" },
+          "taskDefinition": "do-ride",
+          "taskDefinitionTitle": { "de": "Fahrt durchführen", "en": "Do ride" },
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "detailsFulltextSearch": "%s"%s
+        }
+        """.formatted(unique("event"), userTaskId, timestamp, moduleId, token,
+        extraFields.isEmpty() ? "" : ",\n"
+            + extraFields);
+
+  }
+
+  @Test
+  void createdUserTaskShowsUpInTasklistWithAllReportedFields() {
+
+    final var userTaskId = unique("task");
+    final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30+02:00");
+    final var dueDate = OffsetDateTime.parse("2026-09-10T12:00:00+02:00");
+
+    final var created = bpmsV1_1("/usertask/created", userTaskCreatedPayload(
+        userTaskId,
+        createdAt.toString(),
+        """
+            "assignee": "martin",
+            "candidateUsers": [ "petra" ],
+            "candidateGroups": [ "accounting" ],
+            "dueDate": "%s",
+            "details": { "customer": "passenger A" }
+            """.formatted(dueDate)));
+    assertThat(created.statusCode()).isEqualTo(200);
+
+    final var list = userTaskList(cookie, token, "OpenTasks");
+    assertThat(list.read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
+    assertThat(list.read("$.page.totalElements", Integer.class)).isEqualTo(1);
+
+    final var detailResponse = guiGet(cookie, "/usertask/"
+        + userTaskId);
+    assertThat(detailResponse.statusCode()).isEqualTo(200);
+    final var task = json(detailResponse);
+    assertThat(task.read("$.id", String.class)).isEqualTo(userTaskId);
+    assertThat(task.read("$.title.de", String.class)).isEqualTo("Fahrt 4711 durchführen");
+    assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride 4711");
+    assertThat(task.read("$.taskDefinition", String.class)).isEqualTo("do-ride");
+    assertThat(task.read("$.taskDefinitionTitle.en", String.class)).isEqualTo("Do ride");
+    assertThat(task.read("$.bpmnProcessId", String.class)).isEqualTo("taxi-ride");
+    assertThat(task.read("$.businessId", String.class)).isEqualTo("ride-4711");
+    assertThat(task.read("$.workflowModuleId", String.class)).isEqualTo(moduleId);
+    assertThat(task.read("$.uiUri", String.class)).isEqualTo("/remoteEntry.js");
+    assertThat(task.read("$.uiUriType", String.class)).isEqualTo("WEBPACK_MF_REACT");
+    assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/"
+        + moduleId);
+    assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
+    assertThat(task.read("$.candidateUsers[*].id", List.class)).containsExactly("petra");
+    assertThat(task.read("$.candidateGroups[*].id", List.class)).containsExactly("accounting");
+    assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+        .isEqualTo(createdAt.toInstant());
+    assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
+        .isEqualTo(dueDate.toInstant());
+    assertThat(task.read("$.details.customer", String.class)).isEqualTo("passenger A");
+    assertThat(task.read("$.endedAt", String.class)).isNull();
+
+  }
+
+  /**
+   * A task which is worked on in another application is not served through the cockpit's proxy,
+   * so the address the workflow module reported is what the user interface is told to open.
+   */
+  @Test
+  void anExternalTaskKeepsTheAddressItWasReportedWith() {
+
+    final var userTaskId = unique("task");
+    final var created = bpmsV1_1("/usertask/created", """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "bpmnProcessVersion": "1",
+          "title": { "en": "Check the ticket" },
+          "taskDefinition": "check-ticket",
+          "uiUriPath": "https://tickets.example.com/ticket/4711",
+          "uiUriType": "EXTERNAL",
+          "candidateUsers": [ "martin" ],
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+    assertThat(created.statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.uiUriType", String.class)).isEqualTo("EXTERNAL");
+    assertThat(task.read("$.uiUri", String.class))
+        .isEqualTo("https://tickets.example.com/ticket/4711");
+    assertThat(task.read("$.workflowModuleUri", String.class)).isEqualTo("/wm/"
+        + moduleId);
+
+  }
+
+  /**
+   * The report which creates a task says who sees it. An update changes the title and the due
+   * date, but it does not hand the task over to somebody else.
+   */
+  @Test
+  void updateEventChangesTitleAndDueDateButNotTheAssignee() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+        "assignee": "martin"
+        """));
+
+    final var newDueDate = OffsetDateTime.parse("2026-10-01T08:00:00Z");
+    final var updated = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        userTaskUpdatedPayload(userTaskId, newDueDate, "petra"));
+    assertThat(updated.statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
+    assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
+    assertThat(OffsetDateTime.parse(task.read("$.dueDate", String.class)).toInstant())
+        .isEqualTo(newDueDate.toInstant());
+    assertThat(guiGet(loginToGui(USER_PETRA), "/usertask/"
+        + userTaskId).statusCode())
+        .as("the update did not hand the task over to petra")
+        .isEqualTo(404);
+
+  }
+
+  /**
+   * Taking over a task is done in the cockpit, and no workflow module reports it back. An update
+   * which names somebody else, or nobody, leaves the takeover as it is.
+   */
+  @Test
+  void aTakeoverInTheCockpitSurvivesAnUpdate() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+        "candidateGroups": [ "%s" ]
+        """.formatted(GROUP_OF_MARTIN)));
+    assertThat(guiPatch(cookie, "/usertask/"
+        + userTaskId
+        + "/claim", null).statusCode())
+        .isEqualTo(200);
+
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        userTaskUpdatedPayload(userTaskId, OffsetDateTime.parse("2026-10-01T08:00:00Z"), "petra"))
+        .statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.title.en", String.class)).isEqualTo("Check ride 4711");
+    assertThat(task.read("$.assignee.id", String.class)).isEqualTo("martin");
+
+  }
+
+  private String userTaskUpdatedPayload(
+      final String userTaskId,
+      final OffsetDateTime dueDate,
+      final String assignee) {
+
+    return """
+        {
+          "id": "%s",
+          "updated": true,
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "de": "Fahrt 4711 prüfen", "en": "Check ride 4711" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "assignee": "%s",
+          "dueDate": "%s",
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow(), moduleId, assignee, dueDate, token);
+
+  }
+
+  /**
+   * An update event for a task the cockpit never saw creates it, so a cockpit added to a running
+   * system does not stay blind to the tasks which existed before. While the application was
+   * reactive this fallback answered HTTP 500, because it read the already consumed request body a
+   * second time. Reading the body once into an object removed the problem.
+   */
+  @Test
+  void updateEventForUnknownTaskCreatesIt() {
+
+    final var userTaskId = unique("task");
+    final var response = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        userTaskCreatedPayload(userTaskId, isoNow(), """
+            "assignee": "martin"
+            """));
+    assertThat(response.statusCode()).isEqualTo(200);
+
+    final var detailResponse = guiGet(cookie, "/usertask/"
+        + userTaskId);
+    assertThat(detailResponse.statusCode()).isEqualTo(200);
+    assertThat(json(detailResponse).read("$.assignee.id", String.class)).isEqualTo("martin");
+
+  }
+
+  @Test
+  void completedEventEndsTheTaskAndMovesItToClosedTasks() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+        "assignee": "martin"
+        """));
+
+    final var endedAt = isoNow();
+    final var completed = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "initiator": "martin",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride 4711" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, endedAt, moduleId, token));
+    assertThat(completed.statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.endedAt", String.class)).isNotNull();
+
+    assertThat(userTaskList(cookie, token, "OpenTasks")
+        .read("$.userTasks[*].id", List.class)).isEmpty();
+    assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
+        .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
+
+  }
+
+  @Test
+  void cancelledEventEndsTheTaskWithComment() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+        "assignee": "martin"
+        """));
+
+    final var cancelled = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/cancelled", """
+            {
+              "id": "%s",
+              "userTaskId": "%s",
+              "timestamp": "%s",
+              "comment": "ride withdrawn",
+              "workflowModuleId": "%s",
+              "bpmnProcessId": "taxi-ride",
+              "title": { "en": "Do ride 4711" },
+              "taskDefinition": "do-ride",
+              "uiUriPath": "/remoteEntry.js",
+              "uiUriType": "WEBPACK_MF_REACT",
+              "detailsFulltextSearch": "%s"
+            }
+            """.formatted(unique("event"), userTaskId, isoNow(), moduleId, token));
+    assertThat(cancelled.statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.endedAt", String.class)).isNotNull();
+    assertThat(userTaskList(cookie, token, "OpenTasks")
+        .read("$.userTasks[*].id", List.class)).isEmpty();
+
+  }
+
+  private String userTaskEndPayload(
+      final String userTaskId,
+      final String timestamp) {
+
+    return """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s",
+          "initiator": "martin",
+          "workflowModuleId": "%s",
+          "bpmnProcessId": "taxi-ride",
+          "title": { "en": "Do ride 4711" },
+          "taskDefinition": "do-ride",
+          "uiUriPath": "/remoteEntry.js",
+          "uiUriType": "WEBPACK_MF_REACT",
+          "detailsFulltextSearch": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, timestamp, moduleId, token);
+
+  }
+
+  /**
+   * The outbox of a workflow module gives its entries no order, so a completion can reach the
+   * cockpit before the creation it completes. The cockpit used to answer 200 and store nothing,
+   * and the creation arriving afterwards then left a task which was open for good.
+   */
+  @Test
+  void completionArrivingBeforeTheCreationLeavesAClosedTask() {
+
+    final var userTaskId = unique("task");
+    final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30Z");
+    final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
+
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed",
+        userTaskEndPayload(userTaskId, endedAt.toString())).statusCode()).isEqualTo(200);
+    assertThat(bpmsV1_1("/usertask/created", userTaskCreatedPayload(
+        userTaskId,
+        createdAt.toString(),
+        """
+            "assignee": "martin",
+            "details": { "customer": "passenger A" }
+            """)).statusCode()).isEqualTo(200);
+
+    assertThat(userTaskList(cookie, token, "OpenTasks")
+        .read("$.userTasks[*].id", List.class)).isEmpty();
+    assertThat(userTaskList(cookie, token, "ClosedTasksOnly")
+        .read("$.userTasks[*].id", List.class)).containsExactly(userTaskId);
+
+    // and the creation filled in what the completion could not report
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(OffsetDateTime.parse(task.read("$.endedAt", String.class)).toInstant())
+        .isEqualTo(endedAt.toInstant());
+    assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+        .isEqualTo(createdAt.toInstant());
+    assertThat(task.read("$.details.customer", String.class)).isEqualTo("passenger A");
+
+  }
+
+  /**
+   * A completion which arrives without its creation and without a start of its own. The task
+   * then starts at its end, because the user interface needs a start for every task. A creation
+   * which still arrives sets the start it reports.
+   */
+  @Test
+  void aCompletionWhichArrivesAloneStartsTheTaskAtItsEnd() {
+
+    final var userTaskId = unique("task");
+    final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
+
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed",
+        userTaskEndPayload(userTaskId, endedAt.toString())).statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.createdAt", String.class))
+        .as("the user interface's schema requires a start")
+        .isNotNull();
+    assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+        .isEqualTo(endedAt.toInstant());
+    final var listed = userTaskList(cookie, token, "ClosedTasksOnly");
+    assertThat(listed.read("$.userTasks[0].createdAt", String.class)).isNotNull();
+
+  }
+
+  /**
+   * A completion which arrives without its creation, but says when the task was created. The
+   * task starts then, and a creation which arrives later changes nothing about that start.
+   */
+  @Test
+  void aCompletionWhichArrivesAloneStartsTheTaskWhenItSays() {
+
+    final var userTaskId = unique("task");
+    final var createdAt = OffsetDateTime.parse("2026-09-01T10:15:30Z");
+    final var endedAt = OffsetDateTime.parse("2026-09-01T10:20:00Z");
+
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/completed",
+        userTaskEndPayload(userTaskId, endedAt.toString())
+            .replace("\"initiator\"", "\"createdAt\": \""
+                + createdAt
+                + "\",\n  \"initiator\""))
+        .statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(OffsetDateTime.parse(task.read("$.createdAt", String.class)).toInstant())
+        .isEqualTo(createdAt.toInstant());
+
+    assertThat(bpmsV1_1("/usertask/created", userTaskCreatedPayload(
+        userTaskId,
+        createdAt.toString(),
+        """
+            "details": { "customer": "passenger A" }
+            """)).statusCode()).isEqualTo(200);
+
+    final var filledIn = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(OffsetDateTime.parse(filledIn.read("$.createdAt", String.class)).toInstant())
+        .isEqualTo(createdAt.toInstant());
+    assertThat(OffsetDateTime.parse(filledIn.read("$.endedAt", String.class)).toInstant())
+        .isEqualTo(endedAt.toInstant());
+    assertThat(filledIn.read("$.details.customer", String.class))
+        .as("the creation still fills in what the end could not report")
+        .isEqualTo("passenger A");
+
+  }
+
+  /**
+   * Two changes of one task can reach the cockpit the other way round. The timestamp of the event
+   * decides which of them the cockpit keeps, not the moment it arrived.
+   */
+  @Test
+  void anUpdateOlderThanTheStoredStateChangesNothing() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(
+        userTaskId,
+        OffsetDateTime.parse("2026-09-01T10:00:00Z").toString(),
+        """
+            "assignee": "martin"
+            """));
+
+    final var younger = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        userTaskCreatedPayload(userTaskId, "2026-09-01T12:00:00Z", """
+            "assignee": "martin"
+            """)
+            .replace("Do ride 4711", "Do ride 4711 as agreed"));
+    assertThat(younger.statusCode()).isEqualTo(200);
+
+    final var older = bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/updated",
+        userTaskCreatedPayload(userTaskId, "2026-09-01T11:00:00Z", """
+            "assignee": "martin"
+            """)
+            .replace("Do ride 4711", "Do ride 4711 the old way"));
+    assertThat(older.statusCode()).isEqualTo(200);
+
+    final var task = json(guiGet(cookie, "/usertask/"
+        + userTaskId));
+    assertThat(task.read("$.title.en", String.class)).isEqualTo("Do ride 4711 as agreed");
+
+  }
+
+  /**
+   * The v1.1 API declares endpoints to suspend and to activate, but the container does not
+   * implement them. The generated fallback answers 501. This test pins the current behavior down,
+   * so that nobody changes it without noticing.
+   */
+  @Test
+  void suspendAndActivateAreNotImplemented() {
+
+    final var userTaskId = unique("task");
+    bpmsV1_1("/usertask/created", userTaskCreatedPayload(userTaskId, isoNow(), """
+        "assignee": "martin"
+        """));
+
+    final var lifecycleEvent = """
+        {
+          "id": "%s",
+          "userTaskId": "%s",
+          "timestamp": "%s"
+        }
+        """.formatted(unique("event"), userTaskId, isoNow());
+
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/suspended", lifecycleEvent).statusCode())
+        .isEqualTo(501);
+    assertThat(bpmsV1_1("/usertask/"
+        + userTaskId
+        + "/activated", lifecycleEvent).statusCode())
+        .isEqualTo(501);
+
+  }
+
+  @Test
+  void bpmsApiRejectsMissingAndWrongCredentials() {
+
+    final var payload = userTaskCreatedPayload(unique("task"), isoNow(), "");
+
+    final var withoutAuth = send(HttpRequest
+        .newBuilder(URI.create(url("/bpms/api/v1_1/usertask/created")))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(payload))
+        .build());
+    assertThat(withoutAuth.statusCode()).isEqualTo(401);
+
+    final var wrongPassword = send(HttpRequest
+        .newBuilder(URI.create(url("/bpms/api/v1_1/usertask/created")))
+        .header("Authorization", basicAuth(BPMS_API_USER, "wrong"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(payload))
+        .build());
+    assertThat(wrongPassword.statusCode()).isEqualTo(401);
+
+  }
 
 }

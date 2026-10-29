@@ -8,34 +8,36 @@ package io.vanillabp.cockpit.config.startup;
  */
 public class WritesAreNotAcknowledgedException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    /**
-     * Which value cannot be used and why, for the description of the failure report.
-     */
-    private final String whatIsWrong;
+  /**
+   * Which value cannot be used and why, for the description of the failure report.
+   */
+  private final String whatIsWrong;
 
-    /**
-     * What the developer has to do, for the action of the failure report.
-     */
-    private final String whatToDo;
+  /**
+   * What the developer has to do, for the action of the failure report.
+   */
+  private final String whatToDo;
 
-    WritesAreNotAcknowledgedException(
-            final String whatIsWrong,
-            final String whatToDo) {
+  WritesAreNotAcknowledgedException(
+      final String whatIsWrong,
+      final String whatToDo) {
 
-        super(whatIsWrong + "\n\n" + whatToDo);
-        this.whatIsWrong = whatIsWrong;
-        this.whatToDo = whatToDo;
+    super(whatIsWrong
+        + "\n\n"
+        + whatToDo);
+    this.whatIsWrong = whatIsWrong;
+    this.whatToDo = whatToDo;
 
-    }
+  }
 
-    String describeWhatIsWrong() {
-        return whatIsWrong;
-    }
+  String describeWhatIsWrong() {
+    return whatIsWrong;
+  }
 
-    String describeWhatToDo() {
-        return whatToDo;
-    }
+  String describeWhatToDo() {
+    return whatToDo;
+  }
 
 }

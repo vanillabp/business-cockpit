@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -12,6 +13,44 @@
   <version>0.9.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>VanillaBP business cockpit</name>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>VanillaBP</id>
+      <organization>Phactum Softwareentwicklung GmbH</organization>
+      <organizationUrl>https://www.phactum.at</organizationUrl>
+    </developer>
+  </developers>
+
+  <!--
+    The repository holds the Java side only. No user interface and no npm package lives here.
+    See decision 63 in the repository's DECISIONS.md.
+  -->
+  <modules>
+    <module>commons</module>
+    <module>apis</module>
+    <module>business-cockpit</module>
+    <module>container</module>
+    <module>development</module>
+    <module>spi-for-java</module>
+    <module>extensions-commons</module>
+    <!-- last: it aggregates and judges what all modules above produced -->
+    <module>test-coverage-report</module>
+  </modules>
+
+  <scm>
+    <connection>scm:git:https://github.com/vanillabp/business-cockpit.git</connection>
+    <developerConnection>scm:git:https://github.com/vanillabp/business-cockpit.git</developerConnection>
+    <url>https://github.com/vanillabp/business-cockpit/tree/main</url>
+  </scm>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -49,21 +88,93 @@
     <coverage.rule>90</coverage.rule>
   </properties>
 
-  <!--
-    The repository holds the Java side only. No user interface and no npm package lives here.
-    See decision 63 in the repository's DECISIONS.md.
-  -->
-  <modules>
-    <module>commons</module>
-    <module>apis</module>
-    <module>business-cockpit</module>
-    <module>container</module>
-    <module>development</module>
-    <module>spi-for-java</module>
-    <module>extensions-commons</module>
-    <!-- last: it aggregates and judges what all modules above produced -->
-    <module>test-coverage-report</module>
-  </modules>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!--
+          Imported before the other BOMs so it wins, and imported at all because naming the aggregator
+          'org.junit.jupiter:junit-jupiter' below does not move JUnit on its own. That artifact carries
+          no classes. The API, the engine and the parameterized-test module are coordinates of their
+          own, and the Spring Boot BOM manages all three through a junit-bom of its own. Without this
+          import the version named below reaches the aggregator and nothing else, and the tests run on
+          whatever engine Spring Boot brings.
+        -->
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${version.jupiter}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!--
+          Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
+          and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
+          which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
+          fails at runtime with NoClassDefFoundError: feign/codec/JsonDecoder as soon as a client is built.
+          The BOM keeps every feign artifact on one version.
+        -->
+        <groupId>io.github.openfeign</groupId>
+        <artifactId>feign-bom</artifactId>
+        <version>13.14</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>4.1.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <!--
+          2025.1.x is the first train built against Spring Boot 4. It pins spring-boot.version to 4.0.7,
+          this project runs 4.1.0 - the Boot BOM is imported above, so it wins for everything the two have
+          in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
+          test recipe rather than by Spring Cloud's own compatibility matrix.
+        -->
+        <version>2025.1.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <!--
+          The MongoDB migration this repository used to carry itself, in commons, under
+          io.vanillabp.cockpit.commons.mongo.changesets. Its snapshots are read from the GitHub
+          Packages of Phactum/mongodb-changesets, which .github/workflows/github-packages-settings.xml
+          names. A local build needs the same repository in its own settings.xml, see README.md.
+        -->
+        <groupId>com.phactum.mongodb</groupId>
+        <artifactId>mongodb-changesets</artifactId>
+        <version>${version.mongodb-changesets}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>${version.org.mapstruct}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${version.protobuf}</version>
+      </dependency>
+      <dependency>
+        <!-- the test scope is what this entry adds: two modules name the aggregator without one.
+             The version repeats the property the junit-bom above reads, so the two cannot drift. -->
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${version.jupiter}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <pluginManagement>
@@ -287,115 +398,5 @@
       </plugin>
     </plugins>
   </build>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!--
-          Imported before the other BOMs so it wins, and imported at all because naming the aggregator
-          'org.junit.jupiter:junit-jupiter' below does not move JUnit on its own. That artifact carries
-          no classes. The API, the engine and the parameterized-test module are coordinates of their
-          own, and the Spring Boot BOM manages all three through a junit-bom of its own. Without this
-          import the version named below reaches the aggregator and nothing else, and the tests run on
-          whatever engine Spring Boot brings.
-        -->
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>${version.jupiter}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <!--
-          Imported before the other BOMs so it wins: Spring Cloud pins the OpenFeign artifacts to 13.6.1,
-          and feign-jackson3 - the Jackson 3 codec used in commons - implements feign.codec.JsonDecoder,
-          which only exists from feign-core 13.10 on. Mixing the two compiles and unit-tests fine and then
-          fails at runtime with NoClassDefFoundError: feign/codec/JsonDecoder as soon as a client is built.
-          The BOM keeps every feign artifact on one version.
-        -->
-        <groupId>io.github.openfeign</groupId>
-        <artifactId>feign-bom</artifactId>
-        <version>13.14</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>4.1.2</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.cloud</groupId>
-        <artifactId>spring-cloud-dependencies</artifactId>
-        <!--
-          2025.1.x is the first train built against Spring Boot 4. It pins spring-boot.version to 4.0.7,
-          this project runs 4.1.0 - the Boot BOM is imported above, so it wins for everything the two have
-          in common. There is no train targeting 4.1 yet; the combination is verified by the gateway proxy
-          test recipe rather than by Spring Cloud's own compatibility matrix.
-        -->
-        <version>2025.1.4</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <!--
-          The MongoDB migration this repository used to carry itself, in commons, under
-          io.vanillabp.cockpit.commons.mongo.changesets. Its snapshots are read from the GitHub
-          Packages of Phactum/mongodb-changesets, which .github/workflows/github-packages-settings.xml
-          names. A local build needs the same repository in its own settings.xml, see README.md.
-        -->
-        <groupId>com.phactum.mongodb</groupId>
-        <artifactId>mongodb-changesets</artifactId>
-        <version>${version.mongodb-changesets}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.mapstruct</groupId>
-        <artifactId>mapstruct</artifactId>
-        <version>${version.org.mapstruct}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java-util</artifactId>
-        <version>${version.protobuf}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>${version.protobuf}</version>
-      </dependency>
-      <dependency>
-        <!-- the test scope is what this entry adds: two modules name the aggregator without one.
-             The version repeats the property the junit-bom above reads, so the two cannot drift. -->
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <scope>test</scope>
-        <version>${version.jupiter}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <licenses>
-    <license>
-      <name>Apache License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <developers>
-    <developer>
-      <id>VanillaBP</id>
-      <organization>Phactum Softwareentwicklung GmbH</organization>
-      <organizationUrl>https://www.phactum.at</organizationUrl>
-    </developer>
-  </developers>
-
-  <scm>
-    <connection>scm:git:https://github.com/vanillabp/business-cockpit.git</connection>
-    <developerConnection>scm:git:https://github.com/vanillabp/business-cockpit.git</developerConnection>
-    <url>https://github.com/vanillabp/business-cockpit/tree/main</url>
-  </scm>
 
 </project>
