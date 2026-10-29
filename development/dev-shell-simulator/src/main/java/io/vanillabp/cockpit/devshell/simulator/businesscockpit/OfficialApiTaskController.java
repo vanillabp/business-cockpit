@@ -5,7 +5,6 @@ import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
 import java.time.OffsetDateTime;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
  * Allows retrieving UserTasks.
  */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/official-api/v1")
 public class OfficialApiTaskController implements OfficialTasklistApi {
 
@@ -25,6 +23,21 @@ public class OfficialApiTaskController implements OfficialTasklistApi {
     private final TaskService taskService;
 
     private final OfficialApiMapper mapper;
+
+    /**
+     * Creates the controller. Spring creates it, nobody else does.
+     *
+     * @param taskService Keeps the user tasks
+     * @param mapper Converts the user tasks for the official API
+     */
+    public OfficialApiTaskController(
+            final TaskService taskService,
+            final OfficialApiMapper mapper) {
+
+        this.taskService = taskService;
+        this.mapper = mapper;
+
+    }
 
     /**
      * Retrieves a UserTask by its ID.

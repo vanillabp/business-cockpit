@@ -6,9 +6,18 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * A person as the simulator stores it: the id, display names, an email address, an avatar and free details.
+ */
 @Getter
 @Setter
 public class Person {
+
+    /**
+     * Creates an empty person.
+     */
+    public Person() {
+    }
 
     @JsonProperty("id")
     private String id;

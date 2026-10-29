@@ -12,16 +12,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Service class for managing Workflows.
- * Contains the Map {@code workflows} to store and retrieve tasks.
+ * Keeps the workflows the simulator received. They are stored in the simulator's in-memory
+ * database.
  */
 @Service
 @Transactional
 public class WorkflowService {
 
+    /**
+     * Which workflows a query returns.
+     */
     public enum RetrieveMode {
+        /** All workflows, running and ended. */
         ALL,
+        /** Only the workflows which have not ended yet. */
         ACTIVE,
+        /** Only the workflows which have ended. */
         INACTIVE
     };
 
@@ -29,9 +35,16 @@ public class WorkflowService {
     private WorkflowRepository workflows;
 
     /**
-     * Creates a new Workflow from details and adds it to the workflow map.
+     * Creates the service. Spring creates it, nobody else does.
+     */
+    public WorkflowService() {
+    }
+
+    /**
+     * Stores a new workflow.
      *
      * @param workflowId The ID of the Workflow to be created.
+     * @param workflow The workflow to store
      */
     public void createWorkflow(
             final String workflowId,
@@ -46,7 +59,7 @@ public class WorkflowService {
     }
 
     /**
-     * Updates an existing Workflow in the workflow map.
+     * Updates a workflow which is stored already.
      *
      * @param workflowId The ID of the Workflow to update.
      * @param mapOnto    Mapper
@@ -73,7 +86,7 @@ public class WorkflowService {
     }
 
     /**
-     * Retrieves all workflows from the HashMap.
+     * Reads all workflows.
      *
      * @return List of all stored Workflow objects.
      */
@@ -85,7 +98,7 @@ public class WorkflowService {
     }
 
     /**
-     * Gets a specific workflow from the workflow map based on ID.
+     * Reads one workflow.
      *
      * @param workflowId Unique ID for each workflow.
      * @return Returns the requested workflow object based on ID.
@@ -104,11 +117,19 @@ public class WorkflowService {
     }
 
     /**
-     * Retrieves a paginated list of workflows based on the provided request parameters.
+     * Reads one page of the workflows.
      *
      * <p>This method applies pagination to the full list of workflows. It also sets default values
      * if pagination parameters are not provided. The method returns only the current page of workflows
      * along with metadata like page size, number, and total pages.</p>
+     *
+     * @param retrieveMode Which workflows to return: all, only running ones or only ended ones
+     * @param businessIds Only workflows with one of these business ids. All if {@code null} or empty.
+     * @param sortField The field to sort by, {@code createdAt} if {@code null}
+     * @param sortAscending {@code true} to sort ascending, otherwise descending
+     * @param pageNumberRequested The number of the page, starting at 0. 0 if {@code null}.
+     * @param pageSizeRequested The number of workflows of a page. 20 if {@code null}.
+     * @return The page of workflows
      */
     public Page<Workflow> getWorkflows(
             final RetrieveMode retrieveMode,
@@ -163,9 +184,9 @@ public class WorkflowService {
     }
 
     /**
-     * Updates an existing Workflow in the workflow map.
+     * Marks a workflow as completed.
      *
-     * @param workflowId The ID of the Workflow to update.
+     * @param workflowId The ID of the Workflow to complete.
      * @param mapOnto    Mapper
      */
     public void completeWorkflow(
@@ -186,9 +207,10 @@ public class WorkflowService {
 
     }
 
-    /** Updates an existing Workflow in the workflow map.
+    /**
+     * Marks a workflow as cancelled. An unknown workflow is ignored.
      *
-     * @param workflowId The ID of the Workflow to update.
+     * @param workflowId The ID of the Workflow to cancel.
      * @param mapOnto    Mapper
      */
     public void cancelWorkflow(

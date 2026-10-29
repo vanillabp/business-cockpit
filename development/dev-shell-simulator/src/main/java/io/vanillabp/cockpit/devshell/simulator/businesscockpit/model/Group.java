@@ -6,9 +6,18 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * A group as the simulator stores it: the id, a display name and free details.
+ */
 @Getter
 @Setter
 public class Group {
+
+    /**
+     * Creates an empty group.
+     */
+    public Group() {
+    }
 
     @JsonProperty("id")
     private String id;

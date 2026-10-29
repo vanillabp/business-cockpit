@@ -8,7 +8,6 @@ import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import java.time.OffsetDateTime;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * REST controller for the official workflow API.
- * Allows retrieving UserTasks.
+ * Allows retrieving workflows and their user tasks.
  */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/official-api/v1")
 public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
 
@@ -33,12 +31,30 @@ public class OfficialApiWorkflowController implements OfficialWorkflowlistApi {
     private final OfficialApiMapper mapper;
 
     /**
+     * Creates the controller. Spring creates it, nobody else does.
+     *
+     * @param workflowService Keeps the workflows
+     * @param taskService Keeps the user tasks
+     * @param mapper Converts the workflows and user tasks for the official API
+     */
+    public OfficialApiWorkflowController(
+            final WorkflowService workflowService,
+            final TaskService taskService,
+            final OfficialApiMapper mapper) {
+
+        this.workflowService = workflowService;
+        this.taskService = taskService;
+        this.mapper = mapper;
+
+    }
+
+    /**
      * Method that returns a List of UserTasks of a specific Workflow.
      *
      * @param workflowId       unique Id for each workflow. (required)
      * @param llatcup          limitListAccordingToCurrentUsersPermissions (required)
      * @param userTasksRequest (required)
-     * @return
+     * @return The user tasks of the workflow
      */
     @Override
     public ResponseEntity<List<UserTask>> getUserTasksOfWorkflow(

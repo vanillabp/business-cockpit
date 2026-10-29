@@ -31,6 +31,12 @@ public class JwtServerSecurityContextRepository implements SecurityContextReposi
 
     private final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper;
 
+    /**
+     * Creates the repository.
+     *
+     * @param properties The settings of the JWT and its cookie
+     * @param jwtMapper Turns the JWT into a security context and back
+     */
     public JwtServerSecurityContextRepository(
             JwtProperties properties, JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
 

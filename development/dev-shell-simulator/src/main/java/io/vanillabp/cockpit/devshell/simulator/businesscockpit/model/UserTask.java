@@ -11,17 +11,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * A user task as the simulator stores it, built from the events of the BPMS API.
+ */
 @Getter
 @Setter
-@NoArgsConstructor
 @Entity
 @Table(name = "SIMULATOR_USERTASK")
 public class UserTask {
+
+    /**
+     * Creates an empty user task. JPA and the mapper need it.
+     */
+    public UserTask() {
+    }
 
     @Id
     @Column(name = "ID")
