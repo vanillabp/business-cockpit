@@ -49,8 +49,12 @@ Every push to `main` publishes the snapshot of this repository to the same snaps
 Maven Central.
 
 ```sh
+mvn spotless:apply
 mvn install
 ```
+
+Every build also checks the format with Spotless, and a violation fails it. So run
+`spotless:apply` before you commit.
 
 A pull request is checked by one job. It builds and tests the whole reactor with `install`.
 

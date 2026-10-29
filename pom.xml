@@ -162,6 +162,86 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <!-- the same formatter, version and rules as every other VanillaBP repository.
+           It runs on every module and fails the build on a violation. Before a commit,
+           'mvn spotless:apply' at the root formats everything. -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>3.10.4</version>
+        <configuration>
+          <pom>
+            <includes>
+              <include>**/pom.xml</include>
+            </includes>
+            <excludes>
+              <exclude>**/target/**/</exclude>
+              <exclude>**/node_modules/**/</exclude>
+              <exclude>**/.github/**/</exclude>
+            </excludes>
+            <sortPom>
+              <quiet>true</quiet>
+            </sortPom>
+          </pom>
+          <markdown>
+            <includes>
+              <include>**/*.md</include>
+            </includes>
+            <excludes>
+              <exclude>**/target/**/</exclude>
+              <exclude>**/node_modules/**/</exclude>
+              <exclude>**/.github/**/</exclude>
+            </excludes>
+            <flexmark/>
+          </markdown>
+          <yaml>
+            <includes>
+              <include>**/*.yaml</include>
+            </includes>
+            <excludes>
+              <exclude>**/target/**/</exclude>
+              <exclude>**/node_modules/**/</exclude>
+              <!-- the workflows carry comments, and the YAML formatter round-trips
+                   through Jackson, which drops them -->
+              <exclude>**/.github/**/</exclude>
+              <!-- the same reason, and one more: Jackson writes '1.0' as 1.0 and
+                   "1025:1025" as 1025:1025, so a string turns into a number. The OpenAPI
+                   specs, the Spring configuration below 'config' and the Docker Compose
+                   file carry comments and such values. -->
+              <exclude>**/openapi/**/</exclude>
+              <exclude>**/src/main/resources/api/**/</exclude>
+              <exclude>**/src/main/resources/config/**/</exclude>
+              <exclude>**/docker-compose.yaml</exclude>
+            </excludes>
+            <jackson>
+              <yamlFeatures>
+                <MINIMIZE_QUOTES>true</MINIMIZE_QUOTES>
+                <WRITE_DOC_START_MARKER>false</WRITE_DOC_START_MARKER>
+                <INDENT_ARRAYS_WITH_INDICATOR>true</INDENT_ARRAYS_WITH_INDICATOR>
+              </yamlFeatures>
+            </jackson>
+          </yaml>
+          <java>
+            <eclipse>
+              <!-- https://help.eclipse.org/latest/index.jsp?topic=%2Forg.eclipse.jdt.doc.isv%2Freference%2Fapi%2Forg%2Feclipse%2Fjdt%2Fcore%2Fformatter%2FDefaultCodeFormatterConstants.html -->
+              <file>${maven.multiModuleProjectDirectory}/formatting_conventions.xml</file>
+              <version>4.35</version>
+            </eclipse>
+            <removeUnusedImports/>
+            <importOrder>
+              <order>java,javax,org,com,at.phactum</order>
+            </importOrder>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <phase>process-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
       <!-- the sources jar every build attaches. The release parent binds this plugin
            only in its 'release' profile, and a snapshot is deployed without that profile,
            so a snapshot could go out with no sources and show decompiled code in the IDE

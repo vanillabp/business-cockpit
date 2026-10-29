@@ -34,4 +34,5 @@ Hub, which asks you to sign its contributor license agreement on your first pull
 Read [`README.md`](./README.md) first. It says what each module holds and how to build.
 [`DECISIONS.md`](./DECISIONS.md) holds the decisions several places rely on. Read it before you
 change behavior, and ask before a change makes one of its entries untrue.
-[`AGENTS.md`](./AGENTS.md) holds the rules a change follows, in the form an agent reads.
+[`AGENTS.md`](./AGENTS.md) holds the rules a change follows, in the form an agent reads. Run
+`mvn spotless:apply` before every commit. The build fails on code which is not formatted.
