@@ -15,9 +15,12 @@ public class BcInvalidRequestException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
+    /** What is wrong with the request, one entry per field. */
     private final List<String> violations;
 
     /**
+     * Creates the exception out of the list of what is wrong with the request.
+     *
      * @param violations What is wrong, one entry per field, each one naming the field in quotes,
      *        like {@code 'pageSize' is missing}. Never a value the request sent.
      */
@@ -29,6 +32,11 @@ public class BcInvalidRequestException extends RuntimeException {
 
     }
 
+    /**
+     * What is wrong with the request, one entry per field.
+     *
+     * @return The violations in the order they were given
+     */
     public List<String> getViolations() {
         return violations;
     }

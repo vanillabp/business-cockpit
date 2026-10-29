@@ -5,8 +5,23 @@ import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
+/**
+ * Builds the TLS helpers a REST client needs: trust managers and key managers out of a PKCS12
+ * file, and helpers which turn off the certificate and host name checks.
+ */
 public class TlsTruststoreUtil {
 
+    /**
+     * There is no instance, the class only has static methods.
+     */
+    private TlsTruststoreUtil() {
+    }
+
+    /**
+     * Builds a trust manager which trusts every certificate. Use it only for tests.
+     *
+     * @return The trust manager
+     */
     public static X509TrustManager noCertificateCheckTrustManager() {
 
         return new X509TrustManager() {
@@ -28,6 +43,13 @@ public class TlsTruststoreUtil {
 
     }
 
+    /**
+     * Builds trust managers which trust the certificates in a PKCS12 file.
+     *
+     * @param filename         The path of the PKCS12 file
+     * @param keystorePassword The password of the file
+     * @return The trust managers
+     */
     @SuppressWarnings("resource")
     public static TrustManager[] clientCertificateCheckTrustManagers(
             final String filename,
@@ -44,6 +66,13 @@ public class TlsTruststoreUtil {
     	}
     }
 
+    /**
+     * Builds key managers out of a PKCS12 file, so the client can show its own client certificate.
+     *
+     * @param filename         The path of the PKCS12 file
+     * @param keystorePassword The password of the file and of the private key in it
+     * @return The key managers
+     */
     @SuppressWarnings("resource")
     public static KeyManager[] clientCertificateCheckKeyManagers(
             final String filename,
@@ -61,6 +90,11 @@ public class TlsTruststoreUtil {
 
     }
 
+    /**
+     * Builds a host name verifier which accepts every host name. Use it only for tests.
+     *
+     * @return The verifier
+     */
     public static HostnameVerifier noHostnameCheckVerifier() {
 
         return new HostnameVerifier() {

@@ -12,6 +12,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.event.BeforeConvertCallback;
 import org.springframework.stereotype.Component;
 
+/**
+ * Sets who changed a document and when, right before Spring Data writes it. Only documents which
+ * implement {@link UpdateInformationAware} are touched.
+ */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @Component
 @ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
@@ -19,6 +23,12 @@ public class UpdateInformationEventListener implements BeforeConvertCallback<Obj
 
     @Autowired
     private UserContext currentUser;
+
+    /**
+     * Creates the listener. Spring injects the user context afterwards.
+     */
+    public UpdateInformationEventListener() {
+    }
 
     @Override
     public Object onBeforeConvert(

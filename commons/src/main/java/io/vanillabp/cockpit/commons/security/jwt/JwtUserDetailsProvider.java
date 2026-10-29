@@ -4,7 +4,16 @@ import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider;
 import org.springframework.security.core.Authentication;
 
+/**
+ * Finds the details of a user logged in with a login token (a JSON Web Token, JWT).
+ */
 public class JwtUserDetailsProvider implements UserDetailsProvider {
+
+    /**
+     * Creates the provider.
+     */
+    public JwtUserDetailsProvider() {
+    }
 
     @Override
     public UserDetails getUserDetails(

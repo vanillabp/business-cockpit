@@ -26,8 +26,18 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * Turns a login token (a JSON Web Token, JWT) into a Spring Security authentication and back. The
+ * tokens are signed with the HMAC key of the settings. Subclasses say which claims a token carries
+ * and which authentication comes out of it.
+ *
+ * @param <D> The kind of authentication a token turns into
+ */
 public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
+    /**
+     * The claim which holds the groups and other authorities of the user.
+     */
     public static final String AUTHORITIES_CLAIM = "authorities";
 
     /**
@@ -44,6 +54,11 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
     private final JwtProperties properties;
 
+    /**
+     * Creates the mapper.
+     *
+     * @param properties The token settings
+     */
     public JwtMapper(
             final JwtProperties properties) {
 
@@ -51,12 +66,32 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
     }
 
+    /**
+     * The logger the mapper writes its errors to, so they appear under the name of the subclass.
+     *
+     * @return The logger
+     */
     protected abstract Logger getLogger();
 
+    /**
+     * Builds the authentication out of a checked token.
+     *
+     * @param jwt           The checked token
+     * @param bcAuthorities The authorities found so far, which already hold the user itself. The
+     *                      subclass may add more.
+     * @return The authentication
+     */
     protected abstract D buildAuthenticationToken(
             final Jwt jwt,
             final Collection<GrantedAuthority> bcAuthorities);
 
+    /**
+     * Checks a token and turns it into an authentication. The authentication always holds the
+     * authority {@code USER_} plus the user id.
+     *
+     * @param token The token as sent in the cookie
+     * @return The authentication, or {@code null} if there is no token
+     */
     public D toAuth(
             final String token) {
 
@@ -72,6 +107,12 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
     }
 
+    /**
+     * Checks a token and turns it into a security context.
+     *
+     * @param token The token as sent in the cookie
+     * @return The security context, with no authentication if there is no token
+     */
     public SecurityContext toSecurityContext(
             final String token) {
 
@@ -82,6 +123,12 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
 
     }
 
+    /**
+     * Adds the claims of a new token which come from the login, like the user id and the groups.
+     *
+     * @param claimsSetBuilder The claims of the token being built
+     * @param context          The security context of the login
+     */
     protected abstract void applyJwtClaimsSet(
             final JwtClaimsSet.Builder claimsSetBuilder,
             final SecurityContext context);
@@ -90,6 +137,10 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
      * The token of a new login. It lives {@code expires-duration}, but never longer than
      * {@code max-login-duration}, and it notes the time of the login in the claim
      * {@value #LOGIN_TIME_CLAIM}, which every renewal keeps.
+     *
+     * @param context The security context of the login
+     * @return The token and the moment it expires, or empty if there is no authentication or the
+     *         token cannot be built
      */
     public Optional<Map.Entry<String, Instant>> toToken(
             final SecurityContext context) {
@@ -144,6 +195,9 @@ public abstract class JwtMapper<D extends AbstractAuthenticationToken> {
      * The login time comes from the claim {@value #LOGIN_TIME_CLAIM}. A token without it was
      * issued before renewal existed, or by an application of its own, and was never renewed, so
      * its issue time is its login time.
+     *
+     * @param jwt The token of the current request, already checked
+     * @return The new token and the moment it expires, or empty if there is nothing to renew
      */
     public Optional<Map.Entry<String, Instant>> renew(
             final Jwt jwt) {

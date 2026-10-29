@@ -31,6 +31,13 @@ public class JwtRenewalFilter extends OncePerRequestFilter {
 
     private final RequestMatcher requestsWhichDoNotRenew;
 
+    /**
+     * Creates the filter.
+     *
+     * @param properties              The token settings, the cookie settings among them
+     * @param jwtMapper               Builds the renewed token
+     * @param requestsWhichDoNotRenew The requests which keep their token as it is
+     */
     public JwtRenewalFilter(
             final JwtProperties properties,
             final JwtMapper<? extends JwtAuthenticationToken> jwtMapper,

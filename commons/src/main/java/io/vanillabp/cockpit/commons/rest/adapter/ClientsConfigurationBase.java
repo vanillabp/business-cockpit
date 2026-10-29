@@ -38,15 +38,37 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+/**
+ * The base for Spring configurations which build Feign REST clients out of {@link Client} settings.
+ * It sets timeouts, TLS, proxy, logging, retries, JSON encoding and authentication.
+ */
 public abstract class ClientsConfigurationBase {
 
-    @Autowired
-    /*
+    /**
+     * The mapper for the JSON bodies of the requests and responses. If there is none, Feign keeps
+     * its own encoder and decoder.
+     * <p>
      * Jackson 3: the Feign codecs take a JsonMapper rather than the ObjectMapper base class. Spring Boot 4
      * auto-configures exactly that bean ("jacksonJsonMapper"), so this stays a plain injection.
      */
+    @Autowired
     protected Optional<JsonMapper> objectMapper;
+
+    /**
+     * Creates the base. The JSON mapper is injected by Spring afterwards.
+     */
+    public ClientsConfigurationBase() {
+    }
     
+    /**
+     * Applies the TLS, proxy and logging settings to an OkHttp client.
+     *
+     * @param clientClass            The class the log messages of the client are written for
+     * @param properties             The settings of the client
+     * @param httpClientBuilder      The builder of the OkHttp client to change
+     * @param adoptHttpClientBuilder Changes the builder after the TLS settings and before the proxy
+     *                               and logging settings, or {@code null}
+     */
     protected void configureOkHttpClient(
             final Class<?> clientClass,
             final Client properties,
@@ -62,6 +84,13 @@ public abstract class ClientsConfigurationBase {
 
     }
 
+    /**
+     * Applies all settings to a Feign builder.
+     *
+     * @param clientClass The class the log messages of the client are written for
+     * @param builder     The Feign builder to change
+     * @param properties  The settings of the client
+     */
     protected void configureFeignBuilder(
             final Class<?> clientClass,
             final Builder builder,
@@ -71,6 +100,13 @@ public abstract class ClientsConfigurationBase {
         
     }
     
+    /**
+     * Tells Feign whether and how often to send a failed request again. Without retry settings, or
+     * with retries turned off, a request is sent only once.
+     *
+     * @param builder    The Feign builder to change
+     * @param properties The settings of the client
+     */
     protected void configureRetry(
             final Builder builder,
             final Client properties) {
@@ -91,6 +127,16 @@ public abstract class ClientsConfigurationBase {
         
     }
 
+    /**
+     * Applies all settings to a Feign builder: timeouts, the OkHttp client, retries, JSON encoding
+     * and authentication.
+     *
+     * @param clientClass            The class the log messages of the client are written for
+     * @param builder                The Feign builder to change
+     * @param properties             The settings of the client
+     * @param adoptHttpClientBuilder Changes the OkHttp builder after the TLS settings and before the
+     *                               proxy and logging settings, or {@code null}
+     */
     protected void configureFeignBuilder(
             final Class<?> clientClass,
             final Builder builder,
@@ -119,6 +165,12 @@ public abstract class ClientsConfigurationBase {
 
     }
     
+    /**
+     * Lets Feign read and write JSON bodies with the injected JSON mapper. Form bodies are written as
+     * forms. Without a JSON mapper Feign keeps its own encoder and decoder.
+     *
+     * @param builder The Feign builder to change
+     */
     protected void configureJsonEncoding(
             final Builder builder) {
         
@@ -131,6 +183,14 @@ public abstract class ClientsConfigurationBase {
 
     }
     
+    /**
+     * Applies the TLS settings to an OkHttp client. With a truststore file, the client trusts the
+     * certificates in it and shows its own client certificate. Without a truststore file and with
+     * {@code verifySsl} off, the client trusts every certificate.
+     *
+     * @param properties        The settings of the client
+     * @param httpClientBuilder The builder of the OkHttp client to change
+     */
     protected void configureTls(
             final Client properties,
             OkHttpClient.Builder httpClientBuilder) {
@@ -170,6 +230,14 @@ public abstract class ClientsConfigurationBase {
         
     }
 
+    /**
+     * Applies the proxy settings to an OkHttp client and, if wanted, logs each request and response.
+     *
+     * @param builder     The builder of the OkHttp client to change
+     * @param clientClass The class the log messages are written for
+     * @param properties  The settings of the client
+     * @return The same builder
+     */
     protected OkHttpClient.Builder configureProxyAndLogger(
             final OkHttpClient.Builder builder,
             final Class<?> clientClass,
@@ -207,6 +275,14 @@ public abstract class ClientsConfigurationBase {
 
     }
 
+    /**
+     * Sends an OAuth bearer token with each request, if OAuth is configured. The token is fetched with
+     * the client credentials grant.
+     *
+     * @param builder    The Feign builder to change
+     * @param properties The settings of the client
+     * @return Whether OAuth is used
+     */
     protected boolean configureOauthAuthentication(
             final Builder builder,
             final Client properties) {
@@ -229,6 +305,13 @@ public abstract class ClientsConfigurationBase {
 
     }
 
+    /**
+     * Sends user name and password with each request, if HTTP basic authentication is configured.
+     *
+     * @param builder    The Feign builder to change
+     * @param properties The settings of the client
+     * @return Whether basic authentication is used
+     */
     protected boolean configureBasicAuthentication(
             final Builder builder,
             final Client properties) {

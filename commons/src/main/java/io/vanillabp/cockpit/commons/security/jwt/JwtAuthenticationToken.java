@@ -7,11 +7,21 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.io.Serial;
 import java.util.Collection;
 
+/**
+ * A login which Spring Security knows from a JSON Web Token (JWT). The token is kept as the
+ * details of the authentication. The principal is the subject of the token, the user id.
+ */
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Creates an authentication which counts as authenticated, because the token was checked before.
+     *
+     * @param jwt         The checked token
+     * @param authorities The authorities of the user
+     */
     public JwtAuthenticationToken(
             final Jwt jwt,
             final Collection<? extends GrantedAuthority> authorities) {
@@ -36,6 +46,11 @@ public class JwtAuthenticationToken extends AbstractAuthenticationToken {
         
     }
 
+    /**
+     * The token this login comes from.
+     *
+     * @return The token
+     */
     public Jwt getJwt() {
 
         return (Jwt) getDetails();
