@@ -54,6 +54,13 @@ mvn install
 
 A pull request is checked by one job. It builds and tests the whole reactor with `install`.
 
+Every build runs javadoc over the code written by hand, and a single warning fails the build. A
+public class, method or field without a comment is such a warning, and so is a class without an
+explicit constructor. The code which the OpenAPI generator, protoc, MapStruct and the Quarkus
+extension processor write below `target` is not checked, because nobody can add a comment there.
+The javadoc jar of a release still documents it. Javadoc does not run Lombok, so it does not see a
+constructor which Lombok writes. Write such a constructor out instead.
+
 Once a night, the workflow `Chain check` runs `bin/check-the-chain.sh`. It looks at the main
 branches of this repository and the three adapter repositories, and at the MongoDB changeset
 library. It asks whether the four name the same Quarkus, Spring Boot and other shared versions,

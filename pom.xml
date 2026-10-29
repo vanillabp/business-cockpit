@@ -151,6 +151,10 @@
                        on the class path. -->
                   <additionalOption>--source-path ${project.build.sourceDirectory}${path.separator}${project.build.directory}/generated-sources/openapi${path.separator}${project.build.directory}/generated-sources/annotations</additionalOption>
                 </additionalOptions>
+                <!-- a warning fails the build. Every comment here was written once, and a
+                     warning which passes would park the next gap in a build which looks
+                     green. -->
+                <failOnWarnings>true</failOnWarnings>
               </configuration>
             </execution>
           </executions>
