@@ -36,6 +36,14 @@ public class NotificationConfigGuiApiController implements OfficialNotificationC
 
     private final UserTaskService userTaskService;
 
+    /**
+     * Creates the controller. Spring calls it.
+     *
+     * @param userContext          tells who is authenticated
+     * @param userRepository       the users, which hold the notification configuration
+     * @param notificationServices every medium the cockpit offers
+     * @param userTaskService      the user tasks, to find the workflows a user can see
+     */
     public NotificationConfigGuiApiController(
             final UserContext userContext,
             final UserRepository userRepository,

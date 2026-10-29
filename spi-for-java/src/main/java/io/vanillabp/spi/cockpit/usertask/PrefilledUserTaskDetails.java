@@ -4,16 +4,55 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * The details of a user task as VanillaBP prefilled them from what the BPMS reported. A method
+ * annotated with {@link UserTaskDetailsProvider} takes it as a parameter.
+ *
+ * <p>The getters say what the BPMS reported. The setters change what is reported to the cockpit.
+ * Most providers set what they want to add or change and return this very object.
+ *
+ * @see UserTaskDetailsProvider
+ */
 public interface PrefilledUserTaskDetails extends UserTaskDetails {
 
+    /**
+     * The id of this report, which the cockpit receives as the id of the event. It is not the id of
+     * the task, see {@link #getId()} for that.
+     *
+     * @return The id of this report
+     */
     String getEventId();
     
+    /**
+     * When the reported change happened. Where the BPMS gives no time, it is the time the report
+     * was built.
+     *
+     * @return When the change happened
+     */
     OffsetDateTime getEventTimestamp();
     
+    /**
+     * The id of the BPMN process the task belongs to, as written in the BPMN file.
+     *
+     * @return The BPMN process id
+     */
     String getBpmnProcessId();
     
+    /**
+     * The version of the deployed BPMN process the task runs in, the way the BPMS reports it. It is
+     * the value {@link UserTaskDetailsProvider#version()} is matched against.
+     *
+     * @return The version, or <code>null</code> where the BPMS reports none
+     */
     String getBpmnProcessVersion();
     
+    /**
+     * The id of the user task element in the BPMN file. All tasks created from that element share
+     * it. It is the value {@link UserTaskDetailsProvider#id()} names, see {@link #getId()} for the
+     * id of this one task.
+     *
+     * @return The id of the BPMN element
+     */
     String getBpmnTaskId();
 
     /**
@@ -33,12 +72,36 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
      */
     void setInitiator(String initiator);
 
+    /**
+     * Sets the short text the cockpit stores with the task.
+     *
+     * @param comment The comment
+     * @see UserTaskDetails#getComment()
+     */
     void setComment(String comment);
 
+    /**
+     * Sets the title of the workflow, or the name of a template, per language.
+     *
+     * @param workflowTitle The texts or template names, keyed by language
+     * @see UserTaskDetails#getWorkflowTitle()
+     */
     void setWorkflowTitle(Map<String, String> workflowTitle);
 
+    /**
+     * Sets the title of this task, or the name of a template, per language.
+     *
+     * @param title The texts or template names, keyed by language
+     * @see UserTaskDetails#getTitle()
+     */
     void setTitle(Map<String, String> title);
     
+    /**
+     * Sets the title of the kind of task, or the name of a template, per language.
+     *
+     * @param taskDefinitionTitle The texts or template names, keyed by language
+     * @see UserTaskDetails#getTaskDefinitionTitle()
+     */
     void setTaskDefinitionTitle(Map<String, String> taskDefinitionTitle);
     
     /**
@@ -98,18 +161,64 @@ public interface PrefilledUserTaskDetails extends UserTaskDetails {
      */
     void setAdmittedUsers(List<String> admittedUsers);
 
+    /**
+     * Sets the business data the cockpit stores with the task.
+     *
+     * @param details The business data
+     * @see UserTaskDetails#getDetails()
+     */
     void setDetails(Map<String, Object> details);
     
+    /**
+     * Sets the text the full-text search of the task list looks in.
+     *
+     * @param detailsFulltextSearch The text to search in
+     * @see UserTaskDetails#getDetailsFulltextSearch()
+     */
     void setDetailsFulltextSearch(String detailsFulltextSearch);
 
+    /**
+     * Sets the languages the titles are rendered in. Leave it empty to use the languages
+     * configured for the workflow module.
+     *
+     * @param i18nLanguages The languages, like <code>en</code>
+     * @see UserTaskDetails#getI18nLanguages()
+     */
     void setI18nLanguages(List<String> i18nLanguages);
     
+    /**
+     * Sets the date by which the task should be done.
+     *
+     * @param dueDate The due date
+     * @see UserTaskDetails#getDueDate()
+     */
     void setDueDate(OffsetDateTime dueDate);
 
+    /**
+     * Sets the date before which nobody needs to work on the task.
+     *
+     * @param followUpDate The follow-up date
+     * @see UserTaskDetails#getFollowUpDate()
+     */
     void setFollowUpDate(OffsetDateTime followUpDate);
 
+    /**
+     * Sets the object the templates read their values from, for instance the workflow
+     * aggregate. Nothing is prefilled here, so without this call the templates see no data
+     * of the case.
+     *
+     * @param templateContext The template context
+     * @see UserTaskDetails#getTemplateContext()
+     */
     void setTemplateContext(Object templateContext);
 
+    /**
+     * Sets how the cockpit notifies users about this task.
+     *
+     * @param notificationDelivery How to notify, or <code>null</code> for
+     *        {@link NotificationDelivery#USER_CONFIG}
+     * @see UserTaskDetails#getNotificationDelivery()
+     */
     void setNotificationDelivery(NotificationDelivery notificationDelivery);
 
     /**

@@ -18,6 +18,8 @@ import java.util.List;
 public interface CockpitSection {
 
   /**
+   * The languages of the titles, as this level says them.
+   *
    * @return The languages titles are reported in, or <code>null</code> where this level leaves it
    *         to the level above
    */
@@ -28,6 +30,8 @@ public interface CockpitSection {
   }
 
   /**
+   * The language of the BPMN names, as this level says it.
+   *
    * @return The language the BPMN names are written in, or <code>null</code> where this level
    *         leaves it to the level above
    */
@@ -38,6 +42,8 @@ public interface CockpitSection {
   }
 
   /**
+   * Where the initiator of a report comes from, as this level says it.
+   *
    * @return Who answers the initiator of a report, or <code>null</code> where this level leaves
    *         it to the level above. The application is the level above a workflow module here,
    *         and {@link BusinessCockpitConfiguration#initiatorSource} is where it is asked

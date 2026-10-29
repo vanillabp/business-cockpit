@@ -31,6 +31,10 @@ public record WorkflowConfiguration(
                                     Map<String, String> templatePathPerUserTask,
                                     InitiatorSource initiatorSource) implements CockpitSection {
 
+  /**
+   * Takes a copy of the languages and of the template paths of the user tasks. Missing languages
+   * stay <code>null</code>, so the module decides. Missing template paths become an empty map.
+   */
   public WorkflowConfiguration {
     i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);
     templatePathPerUserTask = templatePathPerUserTask == null

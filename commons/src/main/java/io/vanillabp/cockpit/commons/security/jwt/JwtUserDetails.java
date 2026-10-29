@@ -6,13 +6,25 @@ import java.util.regex.Pattern;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+/**
+ * The details of a user as the claims of a login token (a JSON Web Token, JWT) tell them.
+ */
 public class JwtUserDetails implements UserDetails {
 
     private static final Pattern PATTERN_NAME = Pattern.compile("^(\\S+)\\s+(.*)$");
+    /**
+     * The start of the authority each user has for itself, followed by the user id. With it, a check
+     * for a list of authorities can name single users as well as groups.
+     */
     public static final String USER_AUTHORITY_PREFIX = "USER_";
 
     private final JwtAuthenticationToken authenticationToken;
 
+    /**
+     * Creates the details out of an authentication.
+     *
+     * @param authenticationToken The authentication, which holds the token
+     */
     public JwtUserDetails(
             final JwtAuthenticationToken authenticationToken) {
 

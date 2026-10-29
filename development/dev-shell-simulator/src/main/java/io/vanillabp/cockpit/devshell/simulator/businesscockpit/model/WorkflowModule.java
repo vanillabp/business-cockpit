@@ -7,17 +7,24 @@ import jakarta.persistence.Table;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * A workflow module as the simulator stores it, built from its registration.
+ */
 @Getter
 @Setter
-@NoArgsConstructor
 @Entity
 @Table(name = "SIMULATOR_WORKFLOW_MODULE")
 public class WorkflowModule {
+
+    /**
+     * Creates an empty workflow module. JPA and the mapper need it.
+     */
+    public WorkflowModule() {
+    }
 
     @Id
     @Column(name = "ID")

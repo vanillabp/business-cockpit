@@ -9,6 +9,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 
+/**
+ * The Spring Boot application of the simulator. It stands in for a workflow module during
+ * development: it sends test user tasks and workflows to the Business Cockpit and serves the
+ * official task list and workflow list API.
+ */
 @SpringBootApplication
 @ComponentScan(basePackageClasses = {
         BusinessCockpitSimulator.class,
@@ -21,6 +26,18 @@ import org.springframework.context.annotation.ComponentScan;
 })
 public class BusinessCockpitSimulator {
 
+    /**
+     * Creates the application. Spring Boot calls it, nobody else does.
+     */
+    public BusinessCockpitSimulator() {
+    }
+
+    /**
+     * Starts the simulator. If no Spring profile is given, the profile {@code rest-sync} is used,
+     * so the simulator reports to the Business Cockpit by REST.
+     *
+     * @param args The command line arguments, passed on to Spring Boot
+     */
     public static void main(String... args) {
 
         final var app = new SpringApplication(BusinessCockpitSimulator.class);

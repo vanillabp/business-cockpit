@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/gui/api/v1")
 public class GuiApiController extends AbstractWorkflowModulesGuiApiController {
 
+    /**
+     * Called by Spring, which finds this controller by its component scan and creates it.
+     */
+    public GuiApiController() {
+    }
+
     @Override
     protected WorkflowModuleVisibility workflowModulesVisibleTo(
             final UserDetails currentUser) {

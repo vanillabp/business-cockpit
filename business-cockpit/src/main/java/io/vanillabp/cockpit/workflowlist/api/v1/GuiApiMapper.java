@@ -20,6 +20,12 @@ import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
+/**
+ * Turns the workflows the cockpit stores into what its GUI API answers, and the values of a GUI API
+ * request into what the service reads. MapStruct writes the implementation,
+ * {@code WorkflowListGuiApiMapperImpl}. The application's {@link PersonAndGroupApiMapper} turns
+ * persons and groups.
+ */
 @Mapper(implementationName = "WorkflowListGuiApiMapperImpl")
 public abstract class GuiApiMapper {
 
@@ -29,18 +35,43 @@ public abstract class GuiApiMapper {
     @Autowired
     private PersonAndGroupApiMapper personAndGroupMapper;
 
+    /**
+     * Used by the implementation MapStruct writes.
+     */
+    public GuiApiMapper() {
+
+    }
+
+    /**
+     * Turns a stored person into a person of the GUI API.
+     *
+     * @param user The stored person
+     * @return The person of the GUI API
+     */
     @Named(PERSON_MAPPING)
     public io.vanillabp.cockpit.gui.api.v1.Person toPerson(
             final Person user) {
         return personAndGroupMapper.personToApiPerson(user);
     }
 
+    /**
+     * Turns a stored group into a group of the GUI API.
+     *
+     * @param group The stored group
+     * @return The group of the GUI API
+     */
     @Named(GROUP_MAPPING)
     public io.vanillabp.cockpit.gui.api.v1.Group toGroup(
             final Group group) {
         return personAndGroupMapper.groupToApiGroup(group);
     }
 
+    /**
+     * Turns which workflows a GUI API request asks for into the mode the service reads.
+     *
+     * @param mode The mode of the request
+     * @return The mode for the service
+     */
     @ValueMapping(target = "All", source = "ALL")
     @ValueMapping(target = "Active", source = "ACTIVE")
     @ValueMapping(target = "Inactive", source = "INACTIVE")
@@ -64,8 +95,22 @@ public abstract class GuiApiMapper {
     public abstract Workflow toApi(
             io.vanillabp.cockpit.workflowlist.model.Workflow workflow);
 
+    /**
+     * What the cockpit knows about several workflows, for its own user interface.
+     *
+     * @param data The workflows as they are stored
+     * @return The workflows as the GUI API answers them
+     */
     public abstract List<Workflow> toApi(List<io.vanillabp.cockpit.workflowlist.model.Workflow> data);
 
+    /**
+     * One page of the workflow list, as the GUI API answers it.
+     *
+     * @param data The page of stored workflows
+     * @param timestamp The time of the server when the page was read
+     * @param requestId The id the client gave its request, sent back so it can match the answer
+     * @return The page as the GUI API answers it
+     */
     @Mapping(target = "page.number", source = "data.number")
     @Mapping(target = "page.size", source = "data.size")
     @Mapping(target = "page.totalPages", source = "data.totalPages")
@@ -77,10 +122,29 @@ public abstract class GuiApiMapper {
                                     OffsetDateTime timestamp,
                                     String requestId);
 
+    /**
+     * Turns a filter of a GUI API request into the filter the service reads.
+     *
+     * @param data The filter of the request
+     * @return The filter for the service
+     */
     public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
 
+    /**
+     * Turns the filters of a GUI API request into the filters the service reads.
+     *
+     * @param data The filters of the request
+     * @return The filters for the service
+     */
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
+    /**
+     * The address of the workflow module of the workflow, as the cockpit's proxy serves it.
+     *
+     * @param workflow The workflow as it is stored
+     * @return The path below which the cockpit serves the workflow module, or {@code null} if the
+     *         workflow names no workflow module
+     */
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
             final io.vanillabp.cockpit.workflowlist.model.Workflow workflow) {
@@ -94,6 +158,12 @@ public abstract class GuiApiMapper {
         
     }
 
+    /**
+     * Turns a suggestion for a search field into what the GUI API answers.
+     *
+     * @param result The word found and how often it was found
+     * @return The suggestion of the GUI API
+     */
     public abstract KwicResult toApi(io.vanillabp.cockpit.util.kwic.KwicResult result);
 
 }

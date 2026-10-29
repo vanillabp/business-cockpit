@@ -24,6 +24,8 @@ public final class NotificationConfigurationResolver {
     }
 
     /**
+     * Tells whether a user wants a notification about a workflow through a medium.
+     *
      * @param configuration    the user's configuration (may be {@code null})
      * @param workflowModuleId the workflow module of the case the user task belongs to
      * @param bpmnProcessId    the BPMN process of that case, which for a task of a called process

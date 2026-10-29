@@ -14,6 +14,12 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 public class CockpitIsNotConfiguredFailureAnalyzer
         extends AbstractFailureAnalyzer<CockpitIsNotConfiguredException> {
 
+    /**
+     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+     */
+    public CockpitIsNotConfiguredFailureAnalyzer() {
+    }
+
     @Override
     protected FailureAnalysis analyze(
             final Throwable rootFailure,

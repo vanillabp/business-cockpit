@@ -62,15 +62,29 @@ import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+/**
+ * Reads and changes the user tasks the cockpit stores. It has two kinds of callers: the GUI API,
+ * where every call names a {@link UserTaskVisibility} which decides what the caller may reach, and
+ * the reports of the workflow modules, which belong to no user.
+ * <p>
+ * It also watches the collection for changes and turns every change into a
+ * {@link UserTaskChangedNotification} for the open browsers.
+ */
 @Service
 public class UserTaskService {
 
+    /** The prefix of the name of every sort index of the user tasks. */
     public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
+    /** The field of the due date, which the list is sorted by first by default. */
     public static final String PROPERTY_DUEDATE = "dueDate";
+    /** The field of the start of a task, which the list is sorted by second by default. */
     public static final String PROPERTY_CREATEDAT = "createdAt";
+    /** The field of the id, which the list is sorted by last by default. */
     public static final String PROPERTY_ID = "id";
 
+    /** Which tasks a list holds, depending on whether they ended and on their follow-up date. */
     public static enum RetrieveItemsMode {
+        /** Every task, ended or not. */
         All,
         /** Every task which has not ended, whatever its follow-up date says. */
         OpenTasks,
@@ -82,7 +96,9 @@ public class UserTaskService {
          * the repository's DECISIONS.md.
          */
         OpenTasksWithFollowUp,
+        /** Open tasks with a follow-up date which is not due yet. */
         OpenTaskOnlyFollowUp,
+        /** Only the tasks which have ended. */
         ClosedTasksOnly
     }
 
@@ -140,6 +156,13 @@ public class UserTaskService {
     private Subscription dbChangesSubscription;
 
     /**
+     * Called by Spring.
+     */
+    public UserTaskService() {
+
+    }
+
+    /**
      * The initiator recorded for a change the Business Cockpit itself caused. It is the user who
      * is logged in, or {@link UpdateInformationAware#COCKPIT_USER} where there is none, a job of
      * the cockpit for example. It is kept apart from
@@ -184,6 +207,10 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Sets up the rule for the paths of a list request and learns the sort indexes which exist
+     * already. Called by Spring once the fields are set.
+     */
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
@@ -201,6 +228,11 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Starts to watch the collection for changes once the application has started.
+     *
+     * @param event The event which says the application has started
+     */
     @EventListener
     public void subscribeToDbChanges(
             final ApplicationStartedEvent event) {
@@ -226,6 +258,9 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Stops watching the collection for changes. Called by Spring when the application stops.
+     */
     @PreDestroy
     public void cleanup() {
 
@@ -239,6 +274,9 @@ public class UserTaskService {
      * One user task by its id, with nobody asked whether the caller may see it. This is the way in
      * for what the BPMS reports, which knows the ids it sent and belongs to no user. Everything
      * answering a person goes through the overload taking a {@link UserTaskVisibility}.
+     *
+     * @param userTaskId The id of the task
+     * @return The task, or {@code null} if there is none of that id
      */
     public UserTask getUserTask(
             final String userTaskId) {
@@ -254,6 +292,10 @@ public class UserTaskService {
      * none. The visibility sits in the query and is not a filter running afterwards, which is what
      * makes the check impossible to skip. Holding an id is not enough: a caller has to name a view
      * the task belongs to.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @return The task, or {@code null}
      */
     public UserTask getUserTask(
             final UserTaskVisibility visibility,
@@ -272,6 +314,10 @@ public class UserTaskService {
     /**
      * The tasks of those ids which the given visibility lets through. The ones it does not are left
      * out silently, the same way a list leaves them out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @return The tasks found
      */
     public List<UserTask> getUserTasks(
             final UserTaskVisibility visibility,
@@ -287,6 +333,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Records that a user has read a task.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param userId The id of the user who read it
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     */
     public UserTask markAsRead(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -301,6 +355,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Records that a user has read several tasks. Tasks the caller may not reach are left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @param userId The id of the user who read them
+     * @return The tasks as they are stored now
+     */
     public List<UserTask> markAsRead(
             final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
@@ -312,6 +374,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Forgets that a user has read a task, so it shows as new to them again.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param userId The id of the user
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     */
     public UserTask markAsUnread(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -326,6 +396,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Forgets that a user has read several tasks. Tasks the caller may not reach are left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @param userId The id of the user
+     * @return The tasks as they are stored now
+     */
     public List<UserTask> markAsUnread(
             final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
@@ -337,6 +415,15 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Adds a person to the candidate users of a task. Assigning in the cockpit makes the person a
+     * candidate, not the assignee.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param person The person to add
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     */
     public UserTask assignTask(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -351,6 +438,15 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Adds a person to the candidate users of several tasks. Tasks the caller may not reach are
+     * left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @param person The person to add
+     * @return The tasks as they are stored now
+     */
     public List<UserTask> assignTask(
             final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
@@ -362,6 +458,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Removes a person from the candidate users of a task.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param personId The id of the person to remove
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     */
     public UserTask unassignTask(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -376,6 +480,15 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Removes a person from the candidate users of several tasks. Tasks the caller may not reach
+     * are left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @param personId The id of the person to remove
+     * @return The tasks as they are stored now
+     */
     public List<UserTask> unassignTask(
             final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
@@ -387,6 +500,16 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Sets or clears the follow-up date of a task. Seconds and smaller parts of the date are cut
+     * off.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param followUpDate The new follow-up date, or {@code null} to clear it
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     * @throws UserTaskAlreadyCompletedException if the task has ended already
+     */
     public UserTask setFollowUpDate(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -408,6 +531,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Makes a person the assignee of a task. Nothing is written if they are the assignee already.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskId The id of the task
+     * @param person The person who takes the task
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
+     */
     public UserTask claimTask(
             final UserTaskVisibility visibility,
             final String userTaskId,
@@ -426,6 +557,14 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Makes a person the assignee of several tasks. Tasks the caller may not reach are left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param userTaskIds The ids of the tasks
+     * @param person The person who takes the tasks
+     * @return The tasks as they are stored now
+     */
     public List<UserTask> claimTask(
             final UserTaskVisibility visibility,
             final Collection<String> userTaskIds,
@@ -442,6 +581,13 @@ public class UserTaskService {
      * made from. A list of what is mine holds nothing of mine any more once I let go. So the
      * visibility decides whether the change may happen, and what comes back afterwards is read
      * without it. Answering {@code null} would tell the caller their own action failed.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param currentUser The id of the user who gives the task back, recorded as the one who
+     *        changed it
+     * @param userTaskId The id of the task
+     * @param personId The id of the assignee. The task is only given back if this is its assignee.
+     * @return The task as it is stored now, or {@code null} if the caller may not reach it
      */
     public UserTask unclaimTask(
             final UserTaskVisibility visibility,
@@ -463,6 +609,17 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Gives several tasks back, the same way as for one task. Tasks the caller may not reach are
+     * left out.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param currentUser The id of the user who gives the tasks back, recorded as the one who
+     *        changed them
+     * @param userTaskIds The ids of the tasks
+     * @param personId The id of the assignee. A task is only given back if this is its assignee.
+     * @return The tasks the caller may reach, as they are stored now
+     */
     public List<UserTask> unclaimTask(
             final UserTaskVisibility visibility,
             final String currentUser,
@@ -546,6 +703,20 @@ public class UserTaskService {
 
     }
 
+    /**
+     * One page of the user task list.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param pageNumber The number of the page, starting at 0
+     * @param pageSize How many tasks a page holds
+     * @param initialTimestamp When the user started to page through the list. A task which ended
+     *        after this time still counts as open, so the pages stay the same while the user pages.
+     * @param searchQueries The filters of the list, or {@code null}
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
+     * @param sortAscending Whether to sort in ascending order
+     * @param mode Which tasks the list holds
+     * @return The page
+     */
     public Page<UserTask> getUserTasks(
             final UserTaskVisibility visibility,
             final int pageNumber,
@@ -569,6 +740,22 @@ public class UserTaskService {
 
     }
 
+    /**
+     * One page of the user task list, with conditions of the caller's own on top. The sort index
+     * is created first if it is missing.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param pageNumber The number of the page, starting at 0
+     * @param pageSize How many tasks a page holds
+     * @param initialTimestamp When the user started to page through the list. A task which ended
+     *        after this time still counts as open.
+     * @param searchQueries The filters of the list, or {@code null}
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
+     * @param sortAscending Whether to sort in ascending order
+     * @param predefinedCriterias More conditions a task has to meet, or {@code null}
+     * @param mode Which tasks the list holds
+     * @return The page
+     */
     protected Page<UserTask> retrieveUserTasks(
             final UserTaskVisibility visibility,
             final int pageNumber,
@@ -614,6 +801,18 @@ public class UserTaskService {
 
     }
 
+    /**
+     * Suggestions for a search field of the user task list: the words in a field which contain
+     * the text typed so far. Only open tasks are searched. Nothing is suggested for less than three
+     * letters.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param initialTimestamp When the user started to page through the list, or {@code null}
+     * @param searchQueries The filters the user set in the list, or {@code null}
+     * @param path The field to look for words in
+     * @param query The text typed so far
+     * @return The words found, at most 21
+     */
     public List<KwicResult> kwic(
             final UserTaskVisibility visibility,
             final OffsetDateTime initialTimestamp,
@@ -640,6 +839,20 @@ public class UserTaskService {
         return kwicService.getKwicAggregatedResults(UserTask.class, match, searchQueries, path, query);
     }
 
+    /**
+     * The user tasks of one workflow, for the first page of a list.
+     *
+     * @param workflowId The id of the workflow
+     * @param activeOnly Whether to leave out the tasks which have ended
+     * @param limitListAccordingToCurrentUsersPermissions Whether to show only what the user may
+     *        work on, see {@link UserTaskVisibility#everythingTheUserMayWorkOn(String, Collection)}
+     * @param currentUser The id of the user
+     * @param currentUserGroups The groups of the user
+     * @param size How many tasks to return at most
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
+     * @param sortAscending Whether to sort in ascending order
+     * @return The tasks
+     */
     public List<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
             final boolean activeOnly,
@@ -666,6 +879,21 @@ public class UserTaskService {
 
     }
 
+    /**
+     * The first tasks of the list again, for a browser which already shows some of them. The
+     * query reads only the ids. The tasks the browser does not know yet are then loaded
+     * completely.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param size How many tasks to return at most
+     * @param knownUserTasksIds The ids of the tasks the browser shows already
+     * @param initialTimestamp When the user started to page through the list, or {@code null}
+     * @param searchQueries The filters of the list, or {@code null}
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the due date
+     * @param sortAscending Whether to sort in ascending order
+     * @param mode Which tasks the list holds, or {@code null} for the open tasks
+     * @return The tasks as one page, with the number of all tasks of the list
+     */
     public Page<UserTask> getUserTasksUpdated(
             final UserTaskVisibility visibility,
             final int size,
@@ -989,6 +1217,10 @@ public class UserTaskService {
      * <p>
      * The title is the {@code workflowTitle} of a task which sits in the case's own process. Only
      * where the user sees no such task, it is the title of a task of a called process.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @return One user task per workflow, with only the workflow module, the BPMN process id and
+     *         the workflow title set
      */
     public List<UserTask> getVisibleWorkflows(
             final UserTaskVisibility visibility) {
@@ -1036,6 +1268,14 @@ public class UserTaskService {
      * candidate user or candidate group, or it addresses nobody, and it does not exclude them. So
      * an exclusion cancels each of the other reasons, while an admission stands next to all of
      * them and is not cancelled. {@link UserTaskVisibility} says why.
+     *
+     * @param visibility Which tasks the caller may reach
+     * @param initialTimestamp When the user started to page through the list. For the modes of
+     *        open tasks, a task which ended after this time counts as open. {@code null} counts
+     *        only the tasks which have not ended.
+     * @param mode Which tasks the list holds
+     * @param predefinedCriterias More conditions a task has to meet, or {@code null}
+     * @return The criteria
      */
     public Criteria buildUserTasksCriteria(
             final UserTaskVisibility visibility,

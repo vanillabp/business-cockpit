@@ -15,6 +15,11 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the user task events of version 1.1 of the BPMS API onto the user tasks the cockpit
+ * stores. Unlike version 1, a created and an updated task each have an event type of their own,
+ * and the events report the admitted users.
+ */
 @Mapper(implementationName = "UserTaskMapperV1_1Impl")
 public abstract class UserTaskMapper {
 
@@ -25,6 +30,18 @@ public abstract class UserTaskMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass which Spring creates.
+     */
+    public UserTaskMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user, or {@code null} if the report names nobody
+     * @return The person, or {@code null} if the report names nobody
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
@@ -34,18 +51,36 @@ public abstract class UserTaskMapper {
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
 
+    /**
+     * Cuts the seconds off a follow-up date, so that the date counts in whole minutes.
+     *
+     * @param followUpDate The follow-up date as it was reported, or {@code null}
+     * @return The date without seconds, or {@code null} if none was reported
+     */
     @Named(FOLLOW_UP_DATE_MAPPING)
     public OffsetDateTime toFollowUpDate(
             final OffsetDateTime followUpDate) {
         return followUpDate == null ? null : followUpDate.withSecond(0).withNano(0);
     }
 
+    /**
+     * Builds a new user task from the report of its creation.
+     *
+     * @param event The report of the created task
+     * @return The new task, not stored yet
+     */
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -73,6 +108,12 @@ public abstract class UserTaskMapper {
     @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toNewTask(UserTaskCreatedEvent event);
 
+    /**
+     * Builds a new user task from an update, for an update which arrives before the creation.
+     *
+     * @param event The report of the updated task
+     * @return The new task, not stored yet
+     */
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -100,6 +141,14 @@ public abstract class UserTaskMapper {
     @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toNewTask(UserTaskUpdatedEvent event);
 
+    /**
+     * Maps an update onto a user task the cockpit holds already. The id, the creation and the
+     * follow-up date stay as they are.
+     *
+     * @param event The report of the updated task
+     * @param result The stored task, changed in place
+     * @return The stored task
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -130,6 +179,15 @@ public abstract class UserTaskMapper {
     @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     public abstract UserTask toUpdatedTask(UserTaskUpdatedEvent event, @MappingTarget UserTask result);
 
+    /**
+     * The mapping of a completion which MapStruct generates. Call
+     * {@link #toEndedTask(UserTaskCompletedEvent, UserTask)} instead, which also keeps what the end does
+     * not report.
+     *
+     * @param event The completion as it was reported
+     * @param result The stored task, changed in place
+     * @return The stored task
+     */
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -175,6 +233,15 @@ public abstract class UserTaskMapper {
     @Mapping(target = "admittedUsers", source = "admittedUsers", qualifiedByName = PERSON_MAPPING)
     protected abstract UserTask mapEndedTask(UserTaskCompletedEvent event, @MappingTarget UserTask result);
 
+    /**
+     * The mapping of a cancellation which MapStruct generates. Call
+     * {@link #toEndedTask(UserTaskCancelledEvent, UserTask)} instead, which also keeps what the end does
+     * not report.
+     *
+     * @param event The cancellation as it was reported
+     * @param result The stored task, changed in place
+     * @return The stored task
+     */
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

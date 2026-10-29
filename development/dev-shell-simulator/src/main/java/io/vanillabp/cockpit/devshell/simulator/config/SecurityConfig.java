@@ -27,6 +27,10 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * The security setup of the dev shell simulator. The made-up users log in with one shared
+ * password, and the user the dev shell switched to travels in a JSON Web Token (JWT) cookie.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -38,12 +42,31 @@ public class SecurityConfig {
      */
     static final String SIMULATED_USER_PASSWORD = "Secure_123";
 
+    /**
+     * Creates the configuration. Spring creates it, nobody else does.
+     */
+    public SecurityConfig() {
+    }
+
+    /**
+     * The settings of the JWT and its cookie, read from {@code application.jwt}.
+     *
+     * @return The JWT settings
+     */
     @Bean
     @ConfigurationProperties("application.jwt")
     public JwtProperties jwtProperties() {
         return new JwtProperties();
     }
 
+    /**
+     * The filter chain for the official API and the BPMS API. Every request is allowed, because
+     * the simulator only runs on a developer's machine.
+     *
+     * @param http The builder of the filter chain
+     * @return The filter chain
+     * @throws Exception If the filter chain cannot be built
+     */
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public SecurityFilterChain simulatorSecurityFilterChain(
@@ -64,6 +87,13 @@ public class SecurityConfig {
 
     }
 
+    /**
+     * The configured users, kept in memory. Each one gets the shared password, and its groups
+     * become its authorities.
+     *
+     * @param properties The properties which list the users
+     * @return The user details service
+     */
     @Bean
     public UserDetailsService inMemoryUserDetailsService(
             final Properties properties) {
@@ -89,6 +119,13 @@ public class SecurityConfig {
 
     }
 
+    /**
+     * Keeps the user the dev shell switched to in a JWT cookie.
+     *
+     * @param jwtMapper Turns the JWT into an authentication token and back
+     * @param jwtProperties The settings of the JWT and its cookie
+     * @return The repository
+     */
     @Bean
     @ConditionalOnMissingBean
     public JwtServerSecurityContextRepository jwtServerSecurityContextRepository(
@@ -99,6 +136,13 @@ public class SecurityConfig {
 
     }
 
+    /**
+     * Turns a JWT into an authentication token and back. Groups are not resolved here, the
+     * business application maps them.
+     *
+     * @param jwtProperties The settings of the JWT
+     * @return The mapper
+     */
     @Bean
     @ConditionalOnMissingBean
     public JwtMapper<? extends AbstractAuthenticationToken> jwtMapper(
@@ -112,6 +156,14 @@ public class SecurityConfig {
     }
 
 
+    /**
+     * The controller the dev shell uses to list the users and to switch between them.
+     *
+     * @param properties The properties which list the users
+     * @param securityContextRepository Keeps the current user in a JWT cookie
+     * @param jwtProperties The settings of the JWT and its cookie
+     * @return The controller
+     */
     @Bean
     @ConditionalOnMissingBean
     public UserController devShellUserDropdownRestController(

@@ -75,6 +75,8 @@ public class RestTransport implements BusinessCockpitTransport {
   private final String baseUrl;
 
   /**
+   * Creates the transport and its own REST client.
+   *
    * @param configuration Where the server is and how to authenticate
    */
   public RestTransport(
@@ -106,8 +108,11 @@ public class RestTransport implements BusinessCockpitTransport {
   }
 
   /**
+   * Creates the transport on a REST client which already exists.
+   *
    * @param api A client built elsewhere, which is what a test pointing at its own HTTP server
    *          hands in
+   * @param baseUrl The address of the server, used only to name it in messages
    */
   public RestTransport(
       final BpmsApi api,

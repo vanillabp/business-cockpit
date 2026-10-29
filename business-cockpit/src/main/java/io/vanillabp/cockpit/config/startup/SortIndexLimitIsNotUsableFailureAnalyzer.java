@@ -13,6 +13,12 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 public class SortIndexLimitIsNotUsableFailureAnalyzer
         extends AbstractFailureAnalyzer<SortIndexLimitIsNotUsableException> {
 
+    /**
+     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+     */
+    public SortIndexLimitIsNotUsableFailureAnalyzer() {
+    }
+
     @Override
     protected FailureAnalysis analyze(
             final Throwable rootFailure,

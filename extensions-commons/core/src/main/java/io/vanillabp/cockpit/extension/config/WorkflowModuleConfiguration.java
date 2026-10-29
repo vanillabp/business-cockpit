@@ -43,6 +43,10 @@ public record WorkflowModuleConfiguration(
                                           Map<String, WorkflowConfiguration> workflows,
                                           InitiatorSource initiatorSource) implements CockpitSection {
 
+  /**
+   * Takes a copy of the languages, of the group hierarchy and of the workflows. Each of them
+   * becomes empty where it was not given.
+   */
   public WorkflowModuleConfiguration {
     i18nLanguages = i18nLanguages == null ? List.of() : List.copyOf(i18nLanguages);
     groupHierarchy = groupHierarchy == null ? Map.of() : Map.copyOf(groupHierarchy);

@@ -10,11 +10,27 @@ import feign.RetryableException;
 import feign.codec.ErrorDecoder;
 import io.vanillabp.cockpit.commons.rest.adapter.ClientsConfigurationBase;
 
+/**
+ * Sends a bearer token in the &quot;Authorization&quot; header of each request. If the server
+ * answers 401, the request is marked as one Feign may retry, so it can be sent again with a new
+ * token. Subclasses say how a token is fetched.
+ */
 public abstract class BearerTokenBasedAuthInterceptor extends ClientsConfigurationBase
         implements RequestInterceptor, ErrorDecoder {
 
     private ThreadLocal<String> tokens = new ThreadLocal<>();
 
+    /**
+     * Creates the interceptor. It fetches a token when a request needs one.
+     */
+    public BearerTokenBasedAuthInterceptor() {
+    }
+
+    /**
+     * Fetches a new token from the token issuer.
+     *
+     * @return The token, without the &quot;Bearer&quot; prefix
+     */
     protected abstract String createToken();
 
     @Override

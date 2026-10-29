@@ -13,12 +13,21 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 
+/**
+ * Builds a {@link JwtAuthenticationToken} out of a token and a token out of a login. The groups of
+ * the user are written to the claim {@value JwtMapper#AUTHORITIES_CLAIM}.
+ */
 public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationToken> {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationTokenMapper.class);
 
     private final Function<Collection<String>, Collection<String>> groupResolverFunction;
 
+    /**
+     * Creates a mapper which takes the groups of a token as they are.
+     *
+     * @param properties The token settings
+     */
     public JwtAuthenticationTokenMapper(
             final JwtProperties properties) {
 
@@ -27,6 +36,13 @@ public class JwtAuthenticationTokenMapper extends JwtMapper<JwtAuthenticationTok
 
     }
 
+    /**
+     * Creates a mapper which adds groups to the ones a token names, for example the groups a group
+     * hierarchy says a user has as well.
+     *
+     * @param properties            The token settings
+     * @param groupResolverFunction Turns the groups of the token into all groups of the user
+     */
     public JwtAuthenticationTokenMapper(
             final JwtProperties properties,
             final Function<Collection<String>, Collection<String>> groupResolverFunction) {

@@ -12,11 +12,15 @@ public class GuiEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = 1L;
 
+    /** The id of the entity which changed, see {@link #getEntityId()}. */
     private final String entityId;
 
+    /** What the browser gets to read, see {@link #getEvent()}. */
     private final Object event;
 
     /**
+     * Creates the wake-up call for one change.
+     *
      * @param kindOfEntity The kind of entity which changed. It is also the name of the event in the
      *        stream, so a list in the browser listens to the kind it shows
      * @param entityId The id of the entity which changed, or {@code null} for an event which is
@@ -34,6 +38,11 @@ public class GuiEvent extends ApplicationEvent {
 
     }
 
+    /**
+     * What the browser gets to read. It is written to the stream as it is.
+     *
+     * @return The payload for the browser
+     */
     public Object getEvent() {
         return event;
     }
@@ -41,12 +50,19 @@ public class GuiEvent extends ApplicationEvent {
     /**
      * The id the stream decides on. It is not written to the browser, which reads the id from
      * {@link #getEvent()}.
+     *
+     * @return The id, or {@code null} for an event which is about no single entity
      */
     @JsonIgnore
     public String getEntityId() {
         return entityId;
     }
 
+    /**
+     * The kind of entity which changed. It is the name of the event in the stream as well.
+     *
+     * @return The kind of entity
+     */
     @JsonIgnore
     public String getKindOfEntity() {
         return (String) getSource();

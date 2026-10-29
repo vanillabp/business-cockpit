@@ -62,6 +62,12 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   private List<String> accessibleToGroups = new ArrayList<>();
 
+  /**
+   * Creates an empty event of one kind. The extension fills it, then the BPMS half and the details
+   * provider add to it.
+   *
+   * @param eventKind What happened to the workflow
+   */
   public WorkflowEvent(
       final WorkflowEventKind eventKind) {
 
@@ -70,6 +76,8 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   }
 
   /**
+   * The kind of this event.
+   *
    * @return What happened to the workflow, which decides the endpoint respectively the
    *         protobuf message this event is sent as
    */
@@ -122,6 +130,12 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The id of this event. A report which is sent again keeps it, so the cockpit server can tell a
+   * repetition from a new event.
+   *
+   * @param eventId The id of the event
+   */
   public void setEventId(
       final String eventId) {
 
@@ -129,12 +143,22 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The BPMS' id of the workflow.
+   *
+   * @return The id of the workflow
+   */
   public String getWorkflowId() {
 
     return workflowId;
 
   }
 
+  /**
+   * The BPMS' id of the workflow.
+   *
+   * @param workflowId The id of the workflow
+   */
   public void setWorkflowId(
       final String workflowId) {
 
@@ -142,12 +166,22 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The business key the workflow was started with.
+   *
+   * @return The business key
+   */
   public String getBusinessId() {
 
     return businessId;
 
   }
 
+  /**
+   * The business key the workflow was started with.
+   *
+   * @param businessId The business key
+   */
   public void setBusinessId(
       final String businessId) {
 
@@ -162,12 +196,22 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * When the event happened in the BPMS.
+   *
+   * @return The time of the event
+   */
   public OffsetDateTime getTimestamp() {
 
     return timestamp;
 
   }
 
+  /**
+   * When the event happened in the BPMS.
+   *
+   * @param timestamp The time of the event
+   */
   public void setTimestamp(
       final OffsetDateTime timestamp) {
 
@@ -176,6 +220,8 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
   }
 
   /**
+   * When the BPMS started the workflow. Only the report of an end carries it.
+   *
    * @return When the BPMS started the workflow, or <code>null</code> where the BPMS half could
    *         not tell
    */
@@ -185,6 +231,11 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * When the BPMS created the workflow, where the BPMS half could tell.
+   *
+   * @param createdAt The time of the creation, or <code>null</code>
+   */
   public void setCreatedAt(
       final OffsetDateTime createdAt) {
 
@@ -192,12 +243,24 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * Which instance of the workflow module reported this event. It is the host name of that
+   * instance.
+   *
+   * @return The name of the instance
+   */
   public String getSource() {
 
     return source;
 
   }
 
+  /**
+   * Which instance of the workflow module reported this event. It is the host name of that
+   * instance.
+   *
+   * @param source The name of the instance
+   */
   public void setSource(
       final String source) {
 
@@ -205,12 +268,22 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The workflow module the workflow belongs to.
+   *
+   * @return The id of the workflow module
+   */
   public String getWorkflowModuleId() {
 
     return workflowModuleId;
 
   }
 
+  /**
+   * The workflow module the workflow belongs to.
+   *
+   * @param workflowModuleId The id of the workflow module
+   */
   public void setWorkflowModuleId(
       final String workflowModuleId) {
 
@@ -225,6 +298,11 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The BPMN process id of the workflow.
+   *
+   * @param bpmnProcessId The BPMN process id
+   */
   public void setBpmnProcessId(
       final String bpmnProcessId) {
 
@@ -239,6 +317,11 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * The version of the deployed process the workflow runs on, as a person reads it.
+   *
+   * @param bpmnProcessVersion The version
+   */
   public void setBpmnProcessVersion(
       final String bpmnProcessVersion) {
 
@@ -261,12 +344,24 @@ public class WorkflowEvent implements PrefilledWorkflowDetails {
 
   }
 
+  /**
+   * Which kind of user interface the workflow module brings. The user interface reads it, not the
+   * cockpit server.
+   *
+   * @return The kind of user interface
+   */
   public String getUiUriType() {
 
     return uiUriType;
 
   }
 
+  /**
+   * Which kind of user interface the workflow module brings. The user interface reads it, not the
+   * cockpit server.
+   *
+   * @param uiUriType The kind of user interface
+   */
   public void setUiUriType(
       final String uiUriType) {
 

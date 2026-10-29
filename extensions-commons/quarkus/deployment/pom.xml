@@ -139,6 +139,16 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <!-- the one class written here is package private, because only Quarkus calls it. With
+               the public classes only, javadoc finds nothing to document and stops with an
+               error. -->
+          <show>package</show>
+        </configuration>
+      </plugin>
+      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <!-- The tests here boot their application IN this JVM, and Quarkus logs that boot into a

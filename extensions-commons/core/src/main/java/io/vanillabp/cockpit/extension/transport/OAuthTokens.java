@@ -55,6 +55,8 @@ public class OAuthTokens implements RequestInterceptor {
   private volatile Instant replaceAfter = Instant.MIN;
 
   /**
+   * Creates the token source. It fetches the first token when the first request needs one.
+   *
    * @param configuration What the application configured about the cockpit server. One section
    *          of it is the client-credentials flow, and with it the connection to the
    *          authorization server

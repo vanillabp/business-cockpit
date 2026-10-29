@@ -15,6 +15,12 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 public class WritesAreNotAcknowledgedFailureAnalyzer
         extends AbstractFailureAnalyzer<WritesAreNotAcknowledgedException> {
 
+    /**
+     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+     */
+    public WritesAreNotAcknowledgedFailureAnalyzer() {
+    }
+
     @Override
     protected FailureAnalysis analyze(
             final Throwable rootFailure,

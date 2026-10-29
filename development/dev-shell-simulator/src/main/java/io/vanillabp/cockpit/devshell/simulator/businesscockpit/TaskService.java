@@ -10,18 +10,25 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 /**
- * Service class for managing UserTasks.
- * Contains the Map {@code userTasks} to store and retrieve tasks.
+ * Keeps the user tasks the simulator received. They are stored in the simulator's in-memory
+ * database.
  */
 @Service
 public class TaskService {
 
+    /**
+     * Which user tasks a query returns. The names are the same as in the cockpit's API.
+     */
     public enum RetrieveMode {
+        /** All tasks, open and closed. */
         ALL,
+        /** Only the tasks which have not ended yet. */
         OPENTASKS,
+        /** Treated like {@link #ALL} here, because the simulator knows no follow-up dates. */
         OPENTASKSWITHOUTFOLLOWUP,
         /** Another name for OPENTASKS, the same as in the cockpit. */
         OPENTASKSWITHFOLLOWUP,
+        /** Only the tasks which have ended. */
         CLOSEDTASKSONLY
     };
 
@@ -29,11 +36,17 @@ public class TaskService {
     private UserTaskRepository userTasks;
 
     /**
-     * Creates a new UserTask from details and adds it to the task map.
-     *
-     * @param userTaskId usertask object to be put into the userTask map.
+     * Creates the service. Spring creates it, nobody else does.
      */
+    public TaskService() {
+    }
 
+    /**
+     * Stores a new user task.
+     *
+     * @param userTaskId The id of the user task
+     * @param userTask The user task to store
+     */
     public void createTask(
             final String userTaskId,
             final UserTask userTask) {
@@ -47,7 +60,7 @@ public class TaskService {
     }
 
     /**
-     * Retrieves specific UserTask from the userTask Hashmap.
+     * Reads one user task.
      *
      * @param userTaskId unique Id for each UserTask.
      * @return userTask object
@@ -78,7 +91,14 @@ public class TaskService {
 
     // ID, businessId, titel
     /**
-     * Creates a UserTasks object containing all user tasks with pagination.
+     * Reads one page of the user tasks.
+     *
+     * @param retrieveMode Which tasks to return: all, only open ones or only closed ones
+     * @param sortField The field to sort by, {@code createdAt} if {@code null}
+     * @param sortAscending {@code true} to sort ascending, otherwise descending
+     * @param pageNumberRequested The number of the page, starting at 0. 0 if {@code null}.
+     * @param pageSizeRequested The number of tasks of a page. 20 if {@code null}.
+     * @return The page of tasks
      */
     public Page<UserTask> getUserTasks(
             final RetrieveMode retrieveMode,
@@ -120,7 +140,15 @@ public class TaskService {
     }
 
     /**
-     * Creates a UserTasks object containing all user tasks with pagination.
+     * Reads one page of the user tasks of one workflow.
+     *
+     * @param workflowId The id of the workflow
+     * @param retrieveMode Which tasks to return: all, only open ones or only closed ones
+     * @param sortField The field to sort by, {@code createdAt} if {@code null}
+     * @param sortAscending {@code true} to sort ascending, otherwise descending
+     * @param pageNumberRequested The number of the page, starting at 0. 0 if {@code null}.
+     * @param pageSizeRequested The number of tasks of a page. 20 if {@code null}.
+     * @return The page of tasks
      */
     public Page<UserTask> getUserTasksOfWorkflow(
             final String workflowId,
@@ -163,7 +191,7 @@ public class TaskService {
     }
 
     /**
-     * Retrieves all user tasks from the Hashmap.
+     * Reads all user tasks.
      *
      * @return List of all stored UserTask objects.
      */
@@ -175,7 +203,7 @@ public class TaskService {
     }
 
     /**
-     * Updates an existing UserTask in the task map.
+     * Updates a user task which is stored already.
      *
      * @param userTaskId The ID of the UserTask to update.
      * @param mapOnto      Mapper.

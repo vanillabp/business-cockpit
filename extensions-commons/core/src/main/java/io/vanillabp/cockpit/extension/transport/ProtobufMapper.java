@@ -41,6 +41,8 @@ public final class ProtobufMapper {
   private final ObjectMapper objectMapper;
 
   /**
+   * Creates the mapper.
+   *
    * @param objectMapper The mapper turning the business data of an event into a tree
    */
   public ProtobufMapper(
@@ -51,6 +53,8 @@ public final class ProtobufMapper {
   }
 
   /**
+   * Turns a user-task event into the protobuf envelope the Kafka transport sends.
+   *
    * @param event The user-task event
    * @return The envelope to send
    */
@@ -70,6 +74,8 @@ public final class ProtobufMapper {
   }
 
   /**
+   * Turns a workflow event into the protobuf envelope the Kafka transport sends.
+   *
    * @param event The workflow event
    * @return The envelope to send
    */
@@ -89,6 +95,9 @@ public final class ProtobufMapper {
   }
 
   /**
+   * Turns the registration of a workflow module into the protobuf envelope the Kafka transport
+   * sends.
+   *
    * @param event The registration of a workflow module
    * @return The envelope to send
    */

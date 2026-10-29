@@ -9,12 +9,24 @@ import java.util.Objects;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.messaging.Message;
 
+/**
+ * Tells the open browsers that a workflow changed. The GUI notification service turns it into an
+ * event of the update stream.
+ */
 public class WorkflowChangedNotification extends NotificationEvent {
 
     private static final long serialVersionUID = 1L;
 
+    /** The id of the workflow which changed. */
     private String workflowId;
 
+    /**
+     * Creates the notification.
+     *
+     * @param type The kind of change
+     * @param workflowId The id of the workflow which changed
+     * @param targetGroups The groups whose members may be told, or {@code null} for everybody
+     */
     public WorkflowChangedNotification(
             final Type type,
             final String workflowId,
@@ -33,6 +45,9 @@ public class WorkflowChangedNotification extends NotificationEvent {
      * Builds the notification from the change event alone, without the document behind it. The
      * reason is the same as for a user task, see
      * {@code UserTaskChangedNotification#build(Message)}.
+     *
+     * @param message The change event of MongoDB
+     * @return The notification
      */
     public static WorkflowChangedNotification build(
             final Message<ChangeStreamDocument<Document>, Workflow> message) {
@@ -69,10 +84,20 @@ public class WorkflowChangedNotification extends NotificationEvent {
     }
     
 
+    /**
+     * The id of the workflow which changed.
+     *
+     * @return The id
+     */
     public String getWorkflowId() {
         return workflowId;
     }
 
+    /**
+     * Sets the id of the workflow which changed.
+     *
+     * @param workflowId The id
+     */
     public void setWorkflowId(String workflowId) {
         this.workflowId = workflowId;
     }

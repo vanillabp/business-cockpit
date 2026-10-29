@@ -39,9 +39,18 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 public class ChangesetPropertiesAutoConfiguration {
 
     /**
+     * Creates the configuration. Spring Boot calls this constructor.
+     */
+    public ChangesetPropertiesAutoConfiguration() {
+    }
+
+    /**
      * The two enums name the same two kinds of database, so the value is carried over by name. A
      * name which the library does not know ends the start, which is where a new mode of the cockpit
      * would be noticed.
+     *
+     * @param properties The MongoDB settings of the cockpit
+     * @return The settings for the changeset library
      */
     @Bean
     public ChangesetProperties mongoDbChangesetProperties(

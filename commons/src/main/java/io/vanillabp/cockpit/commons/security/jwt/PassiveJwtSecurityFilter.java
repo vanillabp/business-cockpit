@@ -13,12 +13,24 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Reads the login token from its cookie and makes the user known to Spring Security for this
+ * request. It is passive: it never answers a request on its own. A request without a token, or
+ * with a token which is not valid, goes on without a user, and the security rules decide what it
+ * may do.
+ */
 public class PassiveJwtSecurityFilter extends OncePerRequestFilter {
 
     private final JwtProperties properties;
 
     private final JwtMapper<? extends JwtAuthenticationToken> jwtMapper;
 
+    /**
+     * Creates the filter.
+     *
+     * @param properties The token settings, the cookie name among them
+     * @param jwtMapper  Turns the token into an authentication
+     */
     public PassiveJwtSecurityFilter(
             final JwtProperties properties,
             final JwtMapper<? extends JwtAuthenticationToken> jwtMapper) {

@@ -15,16 +15,28 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 
+/**
+ * Sends the token requests of the OAuth client with OkHttp, so they use the same proxy, TLS and
+ * logging settings as the REST client itself.
+ */
 public class OAuthOkHttpClient extends OkHttpClient implements HttpClient {
 
     private OkHttpClient client;
 
+    /**
+     * Creates a client with a plain OkHttp client, without proxy, TLS or logging settings.
+     */
     public OAuthOkHttpClient() {
         
         this.client = new OkHttpClient();
         
     }
 
+    /**
+     * Creates a client which sends the requests with the given OkHttp client.
+     *
+     * @param client The OkHttp client, already configured
+     */
     public OAuthOkHttpClient(
             final OkHttpClient client) {
         

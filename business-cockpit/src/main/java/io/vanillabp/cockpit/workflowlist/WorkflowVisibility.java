@@ -27,6 +27,13 @@ import java.util.stream.Stream;
  * and as {@link #letsThrough(WorkflowFacts)} for the update streams.
  * {@code TheVisibilityInMemoryAgreesWithTheQueryTest} keeps the two in line, the same way it does
  * for {@code UserTaskVisibility}.
+ *
+ * @param includeDanglingWorkflows Whether a workflow which names neither users nor groups is
+ *        visible as well
+ * @param accessibleToUsers The user ids of which a visible workflow names at least one, or
+ *        {@code null}
+ * @param accessibleToGroups The group ids of which a visible workflow names at least one, or
+ *        {@code null}
  */
 public record WorkflowVisibility(
         boolean includeDanglingWorkflows,
@@ -36,6 +43,9 @@ public record WorkflowVisibility(
     /**
      * The workflows addressed to the user, either by name or through one of their groups, plus the
      * ones which address nobody and are therefore open to everybody.
+     *
+     * @param user The user
+     * @return The visibility
      */
     public static WorkflowVisibility workflowsAddressedTo(
             final UserDetails user) {
@@ -44,7 +54,11 @@ public record WorkflowVisibility(
 
     }
 
-    /** Every workflow, whoever it addresses. */
+    /**
+     * Every workflow, whoever it addresses.
+     *
+     * @return The visibility which restricts nothing
+     */
     public static WorkflowVisibility everyWorkflow() {
 
         return new WorkflowVisibility(false, null, null);
@@ -55,6 +69,9 @@ public record WorkflowVisibility(
      * Whether this visibility lets the workflow through. It is the rule of
      * {@code WorkflowlistService.buildWorkflowlistCriteria}, for a list of every workflow, ended or
      * not, and it has to give the same answer.
+     *
+     * @param workflow The facts of the workflow
+     * @return {@code true} if the workflow is visible
      */
     public boolean letsThrough(
             final WorkflowFacts workflow) {
@@ -92,6 +109,11 @@ public record WorkflowVisibility(
      * What {@link #letsThrough(WorkflowFacts)} reads of a workflow, and nothing else. The update
      * streams read exactly these fields of a changed workflow from the database. {@code dangling}
      * is the value stored in the document, which is what the query compares.
+     *
+     * @param id The id of the workflow
+     * @param accessibleToUsers The users the workflow is accessible to
+     * @param accessibleToGroups The groups the workflow is accessible to
+     * @param dangling Whether the workflow names neither users nor groups
      */
     public record WorkflowFacts(
             String id,
@@ -99,7 +121,11 @@ public record WorkflowVisibility(
             List<Group> accessibleToGroups,
             Boolean dangling) {
 
-        /** The names of the fields, which are the fields the update streams read. */
+        /**
+         * The names of the fields, which are the fields the update streams read.
+         *
+         * @return The names of the fields
+         */
         public static List<String> fieldNames() {
 
             return Stream

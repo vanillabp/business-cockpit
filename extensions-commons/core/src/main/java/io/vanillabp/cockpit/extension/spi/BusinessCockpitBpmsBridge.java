@@ -89,6 +89,8 @@ import java.util.Optional;
 public interface BusinessCockpitBpmsBridge {
 
   /**
+   * The adapter id of this bridge.
+   *
    * @return The configured adapter id this bridge serves. Two adapter ids of the same BPMS
    *         type mean two bridges, because during a migration each of them holds workflows of
    *         its own
@@ -96,6 +98,8 @@ public interface BusinessCockpitBpmsBridge {
   String adapterId();
 
   /**
+   * The type of the BPMS behind this bridge.
+   *
    * @return The adapter type this bridge belongs to (<code>camunda7</code>,
    *         <code>camunda8</code>, <code>operaton</code>, <code>process-engine-api</code>),
    *         used only to name the BPMS in messages

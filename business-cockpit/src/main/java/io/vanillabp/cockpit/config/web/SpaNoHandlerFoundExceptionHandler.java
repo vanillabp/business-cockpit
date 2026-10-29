@@ -37,6 +37,17 @@ public class SpaNoHandlerFoundExceptionHandler {
     @Autowired
     private ResourceLoader resourceLoader;
 
+    /**
+     * Creates the handler. Spring creates it because of {@code @ControllerAdvice}.
+     */
+    public SpaNoHandlerFoundExceptionHandler() {
+    }
+
+    /**
+     * Answers a path nobody else answers with the application shell.
+     *
+     * @return The application shell, or HTTP 404 if the application has no shell
+     */
     @ExceptionHandler({ NoResourceFoundException.class, NoHandlerFoundException.class })
     public ResponseEntity<Resource> handleNotFound() {
 

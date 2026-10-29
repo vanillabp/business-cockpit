@@ -12,6 +12,12 @@ import java.util.Date;
 @WritingConverter
 public class OffsetDateTimeWriteConverter implements Converter<OffsetDateTime, Date> {
 
+    /**
+     * Creates the converter.
+     */
+    public OffsetDateTimeWriteConverter() {
+    }
+
     @Override
     public Date convert(final OffsetDateTime source) {
         

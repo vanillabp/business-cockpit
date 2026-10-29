@@ -20,6 +20,9 @@ public record KafkaTransportConfiguration(
                                           String workflowModuleTopic,
                                           Map<String, String> producerProperties) {
 
+  /**
+   * Takes a copy of the producer properties, and an empty map where none were given.
+   */
   public KafkaTransportConfiguration {
     producerProperties = producerProperties == null ? Map.of() : Map.copyOf(producerProperties);
   }

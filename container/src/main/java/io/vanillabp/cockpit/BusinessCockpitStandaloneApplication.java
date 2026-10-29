@@ -20,6 +20,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BusinessCockpitStandaloneApplication {
 
+    /**
+     * Called by Spring Boot, which treats this class as a configuration class and creates it.
+     */
+    public BusinessCockpitStandaloneApplication() {
+    }
+
+    /**
+     * Starts the cockpit. Without a profile given, the profile {@code local} is active, so the
+     * cockpit starts with the demo users and needs no user directory of its own.
+     *
+     * @param args The command line arguments, handed on to Spring Boot
+     */
     public static void main(String... args) {
 
         final var app = new SpringApplication(BusinessCockpitStandaloneApplication.class);

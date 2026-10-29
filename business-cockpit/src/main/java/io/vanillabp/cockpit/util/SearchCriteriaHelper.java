@@ -8,7 +8,25 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.CriteriaDefinition;
 import org.springframework.util.StringUtils;
 
+/**
+ * Turns the filters of a list request into MongoDB criteria.
+ */
 public class SearchCriteriaHelper {
+
+    /**
+     * Only static methods, so nobody needs an instance.
+     */
+    private SearchCriteriaHelper() {
+
+    }
+
+    /**
+     * Creates one criterion per filter. The query of a filter is a regular expression. A filter
+     * without a path searches the full text.
+     *
+     * @param searchQueries The filters, or {@code null}
+     * @return The criteria, an empty list if there are no filters
+     */
     public static List<? extends CriteriaDefinition> buildSearchCriteria(
             final Collection<SearchQuery> searchQueries) {
 

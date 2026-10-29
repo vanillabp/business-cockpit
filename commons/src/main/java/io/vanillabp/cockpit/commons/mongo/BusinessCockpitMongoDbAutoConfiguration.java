@@ -15,11 +15,26 @@ import org.springframework.data.mongodb.core.messaging.MessageListenerContainer;
 
 // registered through the .imports file, so it has to be an @AutoConfiguration. Only then are
 // @AutoConfigureBefore and @AutoConfigureAfter read
+/**
+ * Sets up the MongoDB parts the cockpit needs: its MongoDB settings and the container which runs
+ * the change streams. It runs before Spring Data builds the MongoDB repositories.
+ */
 @AutoConfiguration
 @AutoConfigureBefore(DataMongoRepositoriesAutoConfiguration.class)
 @ConditionalOnClass({ MongoClient.class, MongoTemplate.class })
 public class BusinessCockpitMongoDbAutoConfiguration {
 
+    /**
+     * Creates the configuration. Spring Boot calls this constructor.
+     */
+    public BusinessCockpitMongoDbAutoConfiguration() {
+    }
+
+    /**
+     * The MongoDB settings of the cockpit, bound from the keys below {@code mongodb}.
+     *
+     * @return The settings
+     */
     @Bean
     public MongoDbProperties businessCockpitMongoDbProperties() {
 
@@ -35,6 +50,9 @@ public class BusinessCockpitMongoDbAutoConfiguration {
      * Those threads are daemons. A change stream never ends by itself, and a thread parked on the
      * cursor of a database which is already gone would otherwise keep the JVM alive after the
      * shutdown.
+     *
+     * @param mongoTemplate The template the change streams are read with
+     * @return The container
      */
     @Bean
     @ConditionalOnBean(MongoTemplate.class)

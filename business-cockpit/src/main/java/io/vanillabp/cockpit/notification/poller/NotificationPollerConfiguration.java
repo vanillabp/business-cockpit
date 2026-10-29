@@ -22,6 +22,24 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 @Configuration
 public class NotificationPollerConfiguration {
 
+    /**
+     * Creates the configuration. Spring calls it while it reads the configuration classes.
+     */
+    public NotificationPollerConfiguration() {
+    }
+
+    /**
+     * The poller, unless the application declares one of its own.
+     *
+     * @param mongoTemplate          the template the poller takes its lease and cursor with
+     * @param userRepository         the users, with their notification configuration
+     * @param userTaskRepository     the user tasks, to find the ones which changed
+     * @param outboxRepository       the outbox the notifications wait in until they are sent
+     * @param notificationServices   every medium the cockpit offers; none means the poller stays idle
+     * @param userDirectory          the user directory, to find the authorities of a user
+     * @param notificationProperties the notification settings, with the delivery limits
+     * @return the poller
+     */
     @Bean
     @ConditionalOnMissingBean
     public NotificationPoller notificationPoller(

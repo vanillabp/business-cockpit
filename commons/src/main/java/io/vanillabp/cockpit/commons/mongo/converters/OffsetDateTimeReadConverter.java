@@ -13,6 +13,12 @@ import java.util.Date;
 @ReadingConverter
 public class OffsetDateTimeReadConverter implements Converter<Date, OffsetDateTime> {
 
+    /**
+     * Creates the converter.
+     */
+    public OffsetDateTimeReadConverter() {
+    }
+
     @Override
     public OffsetDateTime convert(final Date source) {
         

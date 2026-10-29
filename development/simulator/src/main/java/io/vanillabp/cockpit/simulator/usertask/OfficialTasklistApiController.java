@@ -14,9 +14,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+/**
+ * A fake of the Business Cockpit's official task list API. It answers every task id with a random
+ * user task and keeps it, so the next request for the same id returns the same task.
+ */
 @RestController
 @RequestMapping(path = "/official-api/v1")
 public class OfficialTasklistApiController implements OfficialTasklistApi {
+
+    /**
+     * Creates the controller. Spring creates it, nobody else does.
+     */
+    public OfficialTasklistApiController() {
+    }
     
     private Map<String, UserTask> userTasks = new HashMap<>();
     

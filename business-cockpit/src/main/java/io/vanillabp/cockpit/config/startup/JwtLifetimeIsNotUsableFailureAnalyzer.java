@@ -13,6 +13,12 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 public class JwtLifetimeIsNotUsableFailureAnalyzer
         extends AbstractFailureAnalyzer<JwtLifetimeIsNotUsableException> {
 
+    /**
+     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+     */
+    public JwtLifetimeIsNotUsableFailureAnalyzer() {
+    }
+
     @Override
     protected FailureAnalysis analyze(
             final Throwable rootFailure,

@@ -40,11 +40,16 @@ public record CockpitSettings(
                               ProcessEngineApi processEngineApi,
                               Map<String, WorkflowModule> workflowModules) {
 
+  /**
+   * Takes a copy of the workflow modules, and an empty map where none were given.
+   */
   public CockpitSettings {
     workflowModules = workflowModules == null ? Map.of() : Map.copyOf(workflowModules);
   }
 
   /**
+   * The settings of an application which did not configure the Business Cockpit.
+   *
    * @return An application which wrote nothing at all about the Business Cockpit
    */
   public static CockpitSettings none() {
@@ -164,6 +169,9 @@ public record CockpitSettings(
                       Topics topics,
                       Map<String, String> properties) {
 
+    /**
+     * Takes a copy of the other properties, and an empty map where none were given.
+     */
     public Kafka {
       properties = properties == null ? Map.of() : Map.copyOf(properties);
     }
@@ -204,6 +212,9 @@ public record CockpitSettings(
                                Cockpit cockpit,
                                Map<String, Workflow> workflows) {
 
+    /**
+     * Takes a copy of the workflows, and an empty map where none were given.
+     */
     public WorkflowModule {
       workflows = workflows == null ? Map.of() : Map.copyOf(workflows);
     }
@@ -248,6 +259,11 @@ public record CockpitSettings(
                         Map<String, List<String>> groupHierarchy,
                         String initiatorSource) {
 
+    /**
+     * Takes a copy of the languages and of the group hierarchy. Missing languages stay
+     * <code>null</code>, so the level above decides. A missing group hierarchy becomes an empty
+     * map.
+     */
     public Cockpit {
       i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);
       groupHierarchy = groupHierarchy == null ? Map.of() : Map.copyOf(groupHierarchy);
@@ -277,6 +293,10 @@ public record CockpitSettings(
                          Map<String, UserTask> userTasks,
                          String initiatorSource) {
 
+    /**
+     * Takes a copy of the languages and of the user tasks. Missing languages stay
+     * <code>null</code>, so the level above decides. Missing user tasks become an empty map.
+     */
     public Workflow {
       i18nLanguages = i18nLanguages == null ? null : List.copyOf(i18nLanguages);
       userTasks = userTasks == null ? Map.of() : Map.copyOf(userTasks);

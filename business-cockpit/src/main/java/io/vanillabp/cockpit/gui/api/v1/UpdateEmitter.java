@@ -57,6 +57,12 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * A new stream around the given emitter, with no events waiting.
+     *
+     * @param emitter The open server-sent-event stream of the browser tab
+     * @return The new stream
+     */
     public static UpdateEmitter withEmitter(
             final SseEmitter emitter) {
 
@@ -66,12 +72,23 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Sets how many events one delivery carries at most. The rest waits for the next delivery.
+     *
+     * @param maxItemsPerUpdate The number of events
+     * @return This stream
+     */
     public UpdateEmitter maxItemsPerUpdate(
             final int maxItemsPerUpdate) {
         this.maxItemsPerUpdate = maxItemsPerUpdate;
         return this;
     }
 
+    /**
+     * The open server-sent-event stream of the browser tab.
+     *
+     * @return The emitter
+     */
     public SseEmitter getEmitter() {
         return emitter;
     }
@@ -79,17 +96,31 @@ public class UpdateEmitter {
     /**
      * The person the stream was opened for, with the rights they had at that moment. The stream
      * ends when their sign-in expires, so newer rights arrive with the next stream.
+     *
+     * @return The person
      */
     public UserDetails getUser() {
         return user;
     }
 
+    /**
+     * Sets the person the stream is opened for.
+     *
+     * @param user The person, with the rights of this sign-in
+     * @return This stream
+     */
     public UpdateEmitter user(
             final UserDetails user) {
         this.user = user;
         return this;
     }
 
+    /**
+     * Whether the stream was opened for the person with this id.
+     *
+     * @param userId The id of the person
+     * @return {@code true} if it was
+     */
     public boolean belongsTo(
             final String userId) {
 
@@ -97,6 +128,12 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Sets the least time between two deliveries to the browser.
+     *
+     * @param updateInterval The time in milliseconds
+     * @return This stream
+     */
     public UpdateEmitter updateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
         return this;
@@ -110,6 +147,11 @@ public class UpdateEmitter {
      * the browser may still show what the stream forgot. Keeping this answer stops a loop. The
      * answer to the reload has the same ids, so it does not go over the limit again. Only one
      * answer which is above the limit on its own does, and even then it loses nothing.
+     *
+     * @param kindOfEntity The kind of entity the list shows
+     * @param view The view the list was answered from
+     * @param ids The ids of the entities in the answer
+     * @param maxKnownIds How many ids of all kinds the stream remembers at most
      */
     public void rememberAnswer(
             final String kindOfEntity,
@@ -153,7 +195,13 @@ public class UpdateEmitter {
 
     }
 
-    /** Of these ids, the ones the browser of this stream was told about by one of its lists. */
+    /**
+     * Of these ids, the ones the browser of this stream was told about by one of its lists.
+     *
+     * @param kindOfEntity The kind of entity
+     * @param ids The ids to look for
+     * @return The ids the browser shows, a new set
+     */
     public Set<String> whichOfTheseTheBrowserShows(
             final String kindOfEntity,
             final Collection<String> ids) {
@@ -173,6 +221,9 @@ public class UpdateEmitter {
     /**
      * The views the lists of this stream's person were answered from, and the view the stream
      * started with.
+     *
+     * @param kindOfEntity The kind of entity
+     * @return A copy of the views
      */
     public Set<Object> viewsOf(
             final String kindOfEntity) {
@@ -184,6 +235,13 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Adds a view the stream asks with when it decides which changes of this kind concern its
+     * person.
+     *
+     * @param kindOfEntity The kind of entity
+     * @param view The view
+     */
     public void addView(
             final String kindOfEntity,
             final Object view) {
@@ -196,7 +254,11 @@ public class UpdateEmitter {
 
     }
 
-    /** Asks the lists of this kind in the browser to load everything they show again. */
+    /**
+     * Asks the lists of this kind in the browser to load everything they show again.
+     *
+     * @param kindOfEntity The kind of entity
+     */
     public void reload(
             final String kindOfEntity) {
 
@@ -206,6 +268,12 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Returns the kinds whose lists have to be loaded again and then forgets them, so each reload
+     * is asked for only once.
+     *
+     * @return The kinds of entity
+     */
     public Set<String> takeKindsToReload() {
 
         synchronized (memoryLock) {
@@ -221,6 +289,9 @@ public class UpdateEmitter {
 
     /**
      * Writes one named event to the browser.
+     *
+     * @param name The name of the event, which a list in the browser listens to
+     * @param payload The data of the event
      *
      * @return Whether the client is still there. A client which closed the stream cannot be told
      *         anything any more, and its emitter has to be dropped
@@ -246,6 +317,7 @@ public class UpdateEmitter {
 
     }
 
+    /** Ends the stream. An error while ending it is ignored, the stream is gone either way. */
     public void complete() {
 
         synchronized (this) {
@@ -258,6 +330,11 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Puts an event in the queue for the next delivery. {@code null} is ignored.
+     *
+     * @param event The event
+     */
     public void collectEvent(
             final GuiEvent event) {
 
@@ -271,6 +348,12 @@ public class UpdateEmitter {
 
     }
 
+    /**
+     * Takes the events for a delivery out of the queue. It returns nothing when the last delivery
+     * is less than the update interval ago, and never more than the maximum per update.
+     *
+     * @return The events to write, maybe none
+     */
     public List<GuiEvent> consumeEvents() {
 
         synchronized (eventsLock) {

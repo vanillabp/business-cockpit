@@ -14,6 +14,8 @@ public class ReportNotStoredException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     /**
+     * Creates the exception with the reason and the cause the outcome names.
+     *
      * @param outcome What came of storing the report: a save which failed for now
      */
     public ReportNotStoredException(

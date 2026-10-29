@@ -23,4 +23,12 @@ package io.vanillabp.cockpit;
 @Deprecated(since = "0.9.0", forRemoval = true)
 public class BusinessCockpitApplication {
 
+    /**
+     * Does nothing. It is public so that an application which still extends this class keeps
+     * compiling.
+     */
+    public BusinessCockpitApplication() {
+
+    }
+
 }

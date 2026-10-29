@@ -13,6 +13,12 @@ import org.springframework.boot.diagnostics.FailureAnalysis;
 public class MapKeyDotReplacementIsNotUsableFailureAnalyzer
         extends AbstractFailureAnalyzer<MapKeyDotReplacementIsNotUsableException> {
 
+    /**
+     * Creates the analyzer. Spring Boot creates it from {@code META-INF/spring.factories}.
+     */
+    public MapKeyDotReplacementIsNotUsableFailureAnalyzer() {
+    }
+
     @Override
     protected FailureAnalysis analyze(
             final Throwable rootFailure,

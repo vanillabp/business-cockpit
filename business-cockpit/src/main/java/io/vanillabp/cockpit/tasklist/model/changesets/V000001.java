@@ -21,6 +21,11 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
+/**
+ * The changesets of the {@code usertask} collection: the collection itself, its indexes and the
+ * changes to stored tasks which new fields brought. A changeset runs once per database, in the
+ * order of its number.
+ */
 @Component("V100_UserTask")
 @DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
@@ -33,6 +38,20 @@ public class V000001 {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Called by Spring.
+     */
+    public V000001() {
+
+    }
+
+    /**
+     * Creates the collection, an index on the workflow module and its URI, and an index for the
+     * default sort order.
+     *
+     * @param mongo The template to change the database with
+     * @return The commands which undo the changeset by dropping the indexes and the collection
+     */
     @DbChangeset(order = 1)
     public List<String> createUsertaskCollection(
             final MongoTemplate mongo) {
@@ -63,6 +82,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Creates an index on {@code endedAt}, which tells open tasks from ended ones.
+     *
+     * @param mongo The template to change the database with
+     * @return The command which undoes the changeset by dropping the index
+     */
     @DbChangeset(order = 2)
     public String createUsertaskEndedAtIndex(
             final MongoTemplate mongo) {
@@ -77,6 +102,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Adds the id to the index of the default sort order, so that two tasks with the same dates
+     * have a fixed order.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 3)
     public String changeDefaultUserTaskIndex(
             final MongoTemplate mongo) {
@@ -97,6 +129,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Builds the index of the default sort order again with {@code _id}, the name MongoDB stores
+     * the id under, instead of {@code id}.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 4)
     public String fixDefaultUserTaskIndex(
             final MongoTemplate mongo) {
@@ -117,6 +156,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Clears who has read which task, and creates an index on the users who read a task.
+     *
+     * @param mongo The template to change the database with
+     * @return The command which undoes the changeset by dropping the index
+     */
     @DbChangeset(order = 5)
     public String clearAndIndexReadBy(
             final MongoTemplate mongo) {
@@ -136,6 +181,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Marks every task as {@code dangling} which has no assignee and no candidates, so that nobody
+     * is responsible for it.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 6)
     public String setDanglingFieldAccordingToAssigneeAndCandidates(
             final MongoTemplate mongo) {
@@ -154,6 +206,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Builds the index on the workflow module again, because the field {@code workflowModule} was
+     * renamed to {@code workflowModuleId}.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 7)
     public String renameWorkflowModuleIntoWorkflowModuleId(
             final MongoTemplate mongo) {
@@ -175,6 +234,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the index on the workflow module and its URI. The URIs of the workflow modules are
+     * stored in a collection of their own now.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 8)
     public String moveWorkflowModuleUriIntoSeparateCollection(
             final MongoTemplate mongo) {
@@ -187,6 +253,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the index of the default sort order. Sort indexes are created when a list needs them.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 9)
     public String dropDefaultSortIndex( // will be created on demand
             final MongoTemplate mongo) {
@@ -199,6 +271,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the assignee and the candidates of every task from plain ids into persons and groups,
+     * which carry the text a search looks at and the text a list sorts by.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 10)
     public String introducePersonAndGroupForUserTasks(
             final MongoTemplate mongo) {
@@ -248,6 +327,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the id of a user into the stored form of a person. If the application's mapper knows
+     * no such person, the id is used for every field.
+     *
+     * @param userId The id of the user
+     * @return The person to store, or {@code null} if the id is {@code null}
+     */
     public BasicDBObject getPerson(
             final String userId) {
 
@@ -270,6 +356,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the id of a group into the stored form of a group. If the application's mapper knows
+     * no such group, the id is used for every field.
+     *
+     * @param groupId The id of the group
+     * @return The group to store, or {@code null} if the id is {@code null}
+     */
     public BasicDBObject getGroup(
             final String groupId) {
 
@@ -297,6 +390,9 @@ public class V000001 {
      * {@code candidateUsersSince} for each of their candidates. The closest value at hand is
      * {@code createdAt}. It is the timestamp of the reporting system, but for a record which is
      * already stored it lies in the past, and that is all the scan for what changed needs.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      */
     @DbChangeset(order = 12)
     public String introduceReportedAtAndCandidateUsersSince(
@@ -339,6 +435,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the custom sort indexes, because their names changed. They are created again when a
+     * list needs them.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 11)
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
             final MongoTemplate mongo) {
@@ -368,6 +471,8 @@ public class V000001 {
      * copy for it. An invented value would claim that the cockpit knows which event its state came
      * from, and it does not.
      *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      * @see io.vanillabp.cockpit.tasklist.model.UserTask#getLatestEventAt()
      */
     @DbChangeset(order = 14)
@@ -400,6 +505,9 @@ public class V000001 {
      * That nobody is responsible for a task is stored as {@code dangling}, so that it can be
      * queried. The tasks which lose their phantom assignee therefore have to be judged again, the
      * way changeset 6 did it.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      */
     @DbChangeset(order = 13)
     public String removeAssigneesHavingNoUserId(
@@ -438,6 +546,8 @@ public class V000001 {
      * moment the cockpit stored the task. A record with none of the three has nothing to tell and
      * stays as it is.
      *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      * @see io.vanillabp.cockpit.tasklist.model.UserTask#isKnownFromItsEndAlone()
      */
     @DbChangeset(order = 15)

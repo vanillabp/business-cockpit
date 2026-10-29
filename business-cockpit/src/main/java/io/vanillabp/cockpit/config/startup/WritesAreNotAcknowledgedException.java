@@ -10,8 +10,14 @@ public class WritesAreNotAcknowledgedException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Which value cannot be used and why, for the description of the failure report.
+     */
     private final String whatIsWrong;
 
+    /**
+     * What the developer has to do, for the action of the failure report.
+     */
     private final String whatToDo;
 
     WritesAreNotAcknowledgedException(

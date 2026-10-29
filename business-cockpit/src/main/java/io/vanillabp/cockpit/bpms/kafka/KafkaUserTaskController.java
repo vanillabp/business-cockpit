@@ -15,6 +15,11 @@ import org.springframework.kafka.annotation.KafkaListener;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
+/**
+ * Takes the reports about user tasks from the Kafka topic {@code user-task} which the properties name,
+ * and stores them like the REST API does. If a report cannot be stored, the listener throws, and
+ * {@link RepeatUntilStored} hands the record to it again.
+ */
 public class KafkaUserTaskController {
 
     private final ProtobufUserTaskMapper protobufUserTaskMapper;
@@ -23,12 +28,23 @@ public class KafkaUserTaskController {
 
     private static final String CLIENT_ID = "user-task-client";
 
+    /**
+     * Creates the listener.
+     *
+     * @param userTaskService Stores the reports
+     * @param protobufUserTaskMapper Maps the reports onto user tasks
+     */
     public KafkaUserTaskController(UserTaskService userTaskService,
                                    ProtobufUserTaskMapper protobufUserTaskMapper) {
         this.protobufUserTaskMapper = protobufUserTaskMapper;
         this.userTaskService = userTaskService;
     }
 
+    /**
+     * Parses one record as a protobuf event and stores the report it carries.
+     *
+     * @param record The record, with the id of the task as key and the event as value
+     */
     @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
             topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.user-task}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",

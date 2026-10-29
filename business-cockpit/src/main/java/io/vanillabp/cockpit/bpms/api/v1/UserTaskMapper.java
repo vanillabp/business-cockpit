@@ -11,6 +11,10 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the user task events of version 1 of the BPMS API onto the user tasks the cockpit stores.
+ * Version 1 knows no admitted users, so a report through it leaves them as they are.
+ */
 @Mapper(implementationName = "UserTaskMapperV1Impl")
 public abstract class UserTaskMapper {
 
@@ -21,6 +25,18 @@ public abstract class UserTaskMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass which Spring creates.
+     */
+    public UserTaskMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user, or {@code null} if the report names nobody
+     * @return The person, or {@code null} if the report names nobody
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
@@ -30,18 +46,36 @@ public abstract class UserTaskMapper {
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
 
+    /**
+     * Cuts the seconds off a follow-up date, so that the date counts in whole minutes.
+     *
+     * @param followUpDate The follow-up date as it was reported, or {@code null}
+     * @return The date without seconds, or {@code null} if none was reported
+     */
     @Named(FOLLOW_UP_DATE_MAPPING)
     public OffsetDateTime toFollowUpDate(
             final OffsetDateTime followUpDate) {
         return followUpDate == null ? null : followUpDate.withSecond(0).withNano(0);
     }
 
+    /**
+     * Builds a new user task from a report the cockpit knows nothing about yet.
+     *
+     * @param event The report of a created or an updated task
+     * @return The new task, not stored yet
+     */
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -71,6 +105,14 @@ public abstract class UserTaskMapper {
     @Mapping(target = "admittedUsers", ignore = true)
     public abstract UserTask toNewTask(UserTaskCreatedOrUpdatedEvent event);
     
+    /**
+     * Maps a report onto a user task the cockpit holds already. The id, the creation and the
+     * follow-up date stay as they are.
+     *
+     * @param event The report of an updated task
+     * @param result The stored task, changed in place
+     * @return The stored task
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:

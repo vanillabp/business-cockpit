@@ -26,6 +26,12 @@ public class OauthBearerTokenHandler extends BearerTokenBasedAuthInterceptor {
 
     private final String basicHeader;
 
+    /**
+     * Creates the handler. The requests to the token endpoint use the client settings found in
+     * {@code authenticationProperties.getOauth()}.
+     *
+     * @param authenticationProperties The authentication settings of the REST client
+     */
     public OauthBearerTokenHandler(
             final Authentication authenticationProperties) {
 

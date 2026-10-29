@@ -36,6 +36,12 @@ public class UserLoginUpsertFilter extends OncePerRequestFilter implements Order
 
     private final UserLoginUpsertService userLoginUpsertService;
 
+    /**
+     * Creates the filter.
+     *
+     * @param userDetailsProvider Gives the details of the logged-in user
+     * @param userLoginUpsertService Writes the user document
+     */
     public UserLoginUpsertFilter(
             final UserDetailsProvider userDetailsProvider,
             final UserLoginUpsertService userLoginUpsertService) {

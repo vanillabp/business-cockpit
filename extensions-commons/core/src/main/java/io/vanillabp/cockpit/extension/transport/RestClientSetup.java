@@ -120,6 +120,9 @@ public final class RestClientSetup {
   }
 
   /**
+   * The check of the server's host name. It is switched off where the application turned off
+   * the TLS check.
+   *
    * @param configuration What the application configured
    * @return What every request against the cockpit server checks the server's name with, or
    *         <code>null</code> where the JVM's own check is left on
@@ -136,6 +139,8 @@ public final class RestClientSetup {
   }
 
   /**
+   * Builds the login for the proxy.
+   *
    * @param proxy The proxy, or <code>null</code>
    * @return What a request carries as its <code>Proxy-Authorization</code>, or
    *         <code>null</code> where the proxy expects no user
@@ -151,6 +156,8 @@ public final class RestClientSetup {
   }
 
   /**
+   * Builds the value of a basic authentication.
+   *
    * @param username The user
    * @param password Its password
    * @return The value of an <code>Authorization</code> header of the basic scheme

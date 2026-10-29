@@ -13,6 +13,11 @@ import org.springframework.kafka.annotation.KafkaListener;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
+/**
+ * Takes the reports about workflows from the Kafka topic {@code workflow} which the properties name,
+ * and stores them like the REST API does. If a report cannot be stored, the listener throws, and
+ * {@link RepeatUntilStored} hands the record to it again.
+ */
 public class KafkaWorkflowController {
 
     private final ProtobufWorkflowMapper workflowMapper;
@@ -21,12 +26,23 @@ public class KafkaWorkflowController {
 
     private static final String CLIENT_ID = "workflow-client";
 
+    /**
+     * Creates the listener.
+     *
+     * @param workflowlistService Stores the reports
+     * @param workflowMapper Maps the reports onto workflows
+     */
     public KafkaWorkflowController(WorkflowlistService workflowlistService,
                                    ProtobufWorkflowMapper workflowMapper) {
         this.workflowlistService = workflowlistService;
         this.workflowMapper = workflowMapper;
     }
 
+    /**
+     * Parses one record as a protobuf event and stores the report it carries.
+     *
+     * @param record The record, with the id of the workflow as key and the event as value
+     */
     @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
             topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",

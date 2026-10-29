@@ -10,7 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Finds all groups a user has. A group hierarchy says that one group includes others, so a user of
+ * the one group has the others as well.
+ */
 public class GroupHierarchyResolver {
+
+    /**
+     * There is no instance, the class only has static methods.
+     */
+    private GroupHierarchyResolver() {
+    }
 
     /**
      * Resolves effective groups based on a list of hierarchies and assigned groups.

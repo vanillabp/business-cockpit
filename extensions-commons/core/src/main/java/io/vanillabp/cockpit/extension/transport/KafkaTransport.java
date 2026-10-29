@@ -39,6 +39,8 @@ public class KafkaTransport implements BusinessCockpitTransport {
   private final Producer<String, byte[]> producer;
 
   /**
+   * Creates the transport and its own Kafka producer.
+   *
    * @param configuration The brokers and topics
    * @param objectMapper The mapper turning business data into a tree
    */
@@ -51,6 +53,8 @@ public class KafkaTransport implements BusinessCockpitTransport {
   }
 
   /**
+   * Creates the transport on a producer which already exists.
+   *
    * @param configuration The brokers and topics
    * @param objectMapper The mapper turning business data into a tree
    * @param producer A producer built elsewhere, which is what a test hands in

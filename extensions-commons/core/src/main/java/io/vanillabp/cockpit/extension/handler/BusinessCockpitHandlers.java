@@ -56,6 +56,8 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
+   * Tells VanillaBP how to find and call the user-task details providers of an application.
+   *
    * @return The contract of <code>&#64;UserTaskDetailsProvider</code>
    */
   public static HandlerContract userTaskContract() {
@@ -219,6 +221,8 @@ public final class BusinessCockpitHandlers {
   }
 
   /**
+   * Translates the kind of a user-task event into the kind the SPI knows.
+   *
    * @param event The event a details provider is invoked for
    * @return The same thing in the vocabulary the SPI hands to business code
    */

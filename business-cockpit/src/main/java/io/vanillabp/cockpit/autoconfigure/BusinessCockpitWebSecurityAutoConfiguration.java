@@ -27,6 +27,10 @@ public class BusinessCockpitWebSecurityAutoConfiguration {
     private static final Logger logger =
             LoggerFactory.getLogger(BusinessCockpitWebSecurityAutoConfiguration.class);
 
+    /**
+     * Called by Spring Boot. Logs that {@code @EnableWebSecurity} now applies to the whole
+     * application, and how to switch it off.
+     */
     public BusinessCockpitWebSecurityAutoConfiguration() {
 
         new WholeApplicationSwitch(

@@ -6,9 +6,21 @@ import io.vanillabp.cockpit.users.model.Group;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
 
+/**
+ * Turns the ids a workflow module reports into persons and groups for the demo users of the
+ * profile {@code local}. The stored person carries the display name for the full-text search,
+ * and a sort value which sorts by the first word of the name before the rest. An id the directory
+ * does not know is stored as it is, without a name.
+ */
 public class LocalPersonAndGroupMapperImpl implements PersonAndGroupMapper {
     private final UserDetailsProvider userDetailsProvider;
 
+    /**
+     * Creates the mapper on top of the demo users.
+     *
+     * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+     *          a person by its id
+     */
     public LocalPersonAndGroupMapperImpl(
             final UserDetailsProvider userDetailsProvider) {
 

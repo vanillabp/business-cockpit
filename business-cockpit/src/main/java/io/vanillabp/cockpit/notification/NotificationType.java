@@ -12,9 +12,13 @@ package io.vanillabp.cockpit.notification;
  */
 public enum NotificationType {
 
+    /** A new user task was reported and the recipient can see it. */
     CREATED,
+    /** The recipient became a personal candidate of a user task. */
     CANDIDATE_USER,
+    /** Somebody else completed a user task the recipient had taken over. */
     COMPLETED,
+    /** The process cancelled a user task the recipient had taken over. */
     CANCELED
 
 }

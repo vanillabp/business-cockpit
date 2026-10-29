@@ -19,6 +19,9 @@ public class JwtLifetimeIsNotUsableException extends RuntimeException {
             + "for example 'PT12H' for twelve hours or 'P7D' for seven days, or leave the property out "
             + "to use its default.";
 
+    /**
+     * Which value cannot be used and why, for the description of the failure report.
+     */
     private final String whatIsWrong;
 
     JwtLifetimeIsNotUsableException(

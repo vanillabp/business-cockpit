@@ -19,17 +19,46 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
+/**
+ * Turns the exceptions a REST controller throws into HTTP answers. Each kind of mistake gets its
+ * own status code, so a client can tell a mistake of its own from one of the server.
+ */
 @ControllerAdvice
 public class RestfulExceptionHandler {
 
+    /**
+     * An error answer with a status code. Nothing in the cockpit uses this class at the moment.
+     */
     public static class RestError {
 
+        /**
+         * The HTTP status code.
+         */
         public int code;
+
+        /**
+         * Creates an error answer without a code.
+         */
+        public RestError() {
+        }
     }
 
     @Autowired
     private Logger logger;
 
+    /**
+     * Creates the handler. Spring injects the logger afterwards.
+     */
+    public RestfulExceptionHandler() {
+    }
+
+    /**
+     * Answers invalid values with {@code 400 Bad Request}. The body is a JSON object of the
+     * violations.
+     *
+     * @param exception A {@link BcValidationException}
+     * @return The answer
+     */
     @ExceptionHandler(BcValidationException.class)
     public ResponseEntity<Object> handleValidationException(
             final Exception exception) {
@@ -43,6 +72,14 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * Answers a request which cannot be done in the current state with
+     * {@code 422 Unprocessable Content}. The body is the message of the exception, written for
+     * the user.
+     *
+     * @param exception A {@link BcUserMessageException}
+     * @return The answer
+     */
     @ExceptionHandler(BcUserMessageException.class)
     public ResponseEntity<String> handleUserMessageException(
             final Exception exception) {
@@ -55,6 +92,13 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * Answers a request the user may not make with {@code 403 Forbidden}. The body is the message
+     * of the exception.
+     *
+     * @param exception A {@link BcForbiddenException} or an {@link AccessDeniedException}
+     * @return The answer
+     */
     @ExceptionHandler({
             BcForbiddenException.class,
             AccessDeniedException.class
@@ -70,6 +114,14 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * Answers a request without a valid login with {@code 401 Unauthorized}. The body is the
+     * message of the exception.
+     *
+     * @param exception A {@link BcUnauthorizedException} or an
+     *                  {@link AuthenticationCredentialsNotFoundException}
+     * @return The answer
+     */
     @ExceptionHandler({
             BcUnauthorizedException.class,
             AuthenticationCredentialsNotFoundException.class
@@ -93,6 +145,9 @@ public class RestfulExceptionHandler {
      * <p>
      * The body of the answer names each field and the rule it breaks. It never repeats the value
      * the request sent, which can be large or personal.
+     *
+     * @param exception What the validation of the body found
+     * @return The answer
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<String> handleInvalidRequestBody(
@@ -110,6 +165,9 @@ public class RestfulExceptionHandler {
      * The same as {@link #handleInvalidRequestBody(MethodArgumentNotValidException)}, for the
      * validation Spring runs when a parameter of a controller method carries a constraint itself,
      * like {@code @NotNull} on a path variable.
+     *
+     * @param exception What the validation of the parameters found
+     * @return The answer
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<String> handleInvalidParameter(
@@ -131,6 +189,9 @@ public class RestfulExceptionHandler {
 
     /**
      * The same answer for a mistake the schema cannot express, which a controller found itself.
+     *
+     * @param exception What the controller found
+     * @return The answer
      */
     @ExceptionHandler(BcInvalidRequestException.class)
     public ResponseEntity<String> handleInvalidRequest(
@@ -184,6 +245,13 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * Answers every other exception with {@code 500 Internal Server Error} and logs it with its
+     * stack trace. The body is the message of the exception.
+     *
+     * @param exception The exception
+     * @return The answer
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleUnexpectedException(
             final Exception exception) {
@@ -196,6 +264,12 @@ public class RestfulExceptionHandler {
 
     }
 
+    /**
+     * Answers a request body which cannot be read, like broken JSON, with
+     * {@code 400 Bad Request} and an empty body.
+     *
+     * @param e What went wrong while reading the body
+     */
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public void handle(

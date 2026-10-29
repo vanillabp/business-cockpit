@@ -82,6 +82,11 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Repeatable(UserTaskDetailsProviders.class)
 public @interface UserTaskDetailsProvider {
 
+    /**
+     * The default of {@link #id()} and {@link #taskDefinition()}. Where both attributes keep it, the
+     * name of the method names the user task, the way it does for a <code>&#64;WorkflowTask</code>
+     * method.
+     */
     static String USE_METHOD_NAME = "";
 
     /**
@@ -93,12 +98,17 @@ public @interface UserTaskDetailsProvider {
     static String ALL = "*";
 
     /**
+     * The user task this method serves, named by the id of its element in the BPMN file.
+     *
      * @return The BPMN id of the activity. Set this one or {@link #taskDefinition()}, never both.
      *         Write {@link #ALL} for a method serving every user task of this workflow service.
      */
     String id() default USE_METHOD_NAME;
 
     /**
+     * The user tasks this method serves, named by their task definition. Every task of that
+     * task definition is served.
+     *
      * @return The task-definition as defined in the BPMN.
      *         Write {@link #ALL} for a method serving every user task of this workflow service.
      */

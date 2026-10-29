@@ -14,6 +14,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 
 import static io.vanillabp.cockpit.bpms.kafka.KafkaConfiguration.KAFKA_CONSUMER_PREFIX;
 
+/**
+ * Takes the registrations of workflow modules from the Kafka topic {@code workflow-module} which
+ * the properties name.
+ */
 public class KafkaWorkflowModuleController {
 
 
@@ -21,11 +25,21 @@ public class KafkaWorkflowModuleController {
 
     private static final String CLIENT_ID = "wm-client";
 
+    /**
+     * Creates the listener.
+     *
+     * @param workflowModuleService Stores the workflow modules
+     */
     public KafkaWorkflowModuleController(
             final WorkflowModuleService workflowModuleService) {
         this.workflowModuleService = workflowModuleService;
     }
 
+    /**
+     * Parses one record as a protobuf event and stores the workflow module it registers.
+     *
+     * @param record The record, with the registration event as value
+     */
     @KafkaListener(containerFactory = KafkaConfiguration.LISTENER_CONTAINER_FACTORY,
             topics = "${" + BpmsApiProperties.PREFIX + ".kafka.topics.workflow-module}",
             clientIdPrefix = KAFKA_CONSUMER_PREFIX + "-" + CLIENT_ID + "-${workerId:local}",

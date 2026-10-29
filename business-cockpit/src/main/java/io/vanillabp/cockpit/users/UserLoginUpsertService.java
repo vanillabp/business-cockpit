@@ -38,6 +38,13 @@ public class UserLoginUpsertService {
 
     private final Map<String, Instant> lastUpsertPerUser = new ConcurrentHashMap<>();
 
+    /**
+     * Creates the service.
+     *
+     * @param mongoTemplate Used to write the user document
+     * @param throttle How long a node waits before it writes the document of the same user again
+     * @param clock Gives the time of the login
+     */
     public UserLoginUpsertService(
             final MongoTemplate mongoTemplate,
             final Duration throttle,
@@ -53,6 +60,9 @@ public class UserLoginUpsertService {
      * Creates or refreshes the {@code users} document of the given authenticated user. It keeps
      * whatever notification configuration is stored and refreshes {@code lastLoggedIn} and
      * {@code email} only.
+     *
+     * @param userDetails The user who logged in. Nothing is written if it is {@code null} or has no
+     *        id.
      */
     public void upsertOnLogin(
             final UserDetails userDetails) {

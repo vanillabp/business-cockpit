@@ -17,8 +17,14 @@ public class MapKeyDotReplacementIsNotUsableException extends RuntimeException {
     private static final String WHAT_TO_DO =
             "Change the value, or leave the property out:\n\n" + MapKeyDotReplacement.whatToSet();
 
+    /**
+     * Which value cannot be used and why, for the description of the failure report.
+     */
     private final String whatIsWrong;
 
+    /**
+     * What the developer has to do, for the action of the failure report.
+     */
     private final String whatToDo;
 
     MapKeyDotReplacementIsNotUsableException(

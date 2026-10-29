@@ -91,6 +91,9 @@ public final class RepeatUntilStored {
     }
 
     /**
+     * Builds the error handler which repeats a record until it is stored, or skips it if it fails
+     * every time.
+     *
      * @return A new error handler for the listener containers of the cockpit
      */
     public static DefaultErrorHandler errorHandler() {

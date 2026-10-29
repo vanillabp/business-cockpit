@@ -41,6 +41,12 @@ public class BpmsApiV1_1Controller implements BpmsApi {
     private OfficialApiMapper mapper;
 
     /**
+     * Creates the controller. Spring creates it, nobody else does.
+     */
+    public BpmsApiV1_1Controller() {
+    }
+
+    /**
      * Register a workflow-module or update the registration
      *
      * @param workflowModuleId    (required)

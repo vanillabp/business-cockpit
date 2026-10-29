@@ -32,6 +32,8 @@ public class BusinessCockpitWiringService implements ExtensionWiringService<Obje
   private final BusinessCockpitExtension extension;
 
   /**
+   * Creates the wiring service.
+   *
    * @param extension The extension the registration is scheduled through
    */
   public BusinessCockpitWiringService(

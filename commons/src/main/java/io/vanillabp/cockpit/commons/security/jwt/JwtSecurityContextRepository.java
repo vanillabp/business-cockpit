@@ -42,6 +42,12 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
 
     private final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper;
 
+    /**
+     * Creates the repository.
+     *
+     * @param properties The token settings, the cookie settings among them
+     * @param jwtMapper  Turns the token into an authentication and back
+     */
     public JwtSecurityContextRepository(
             final JwtProperties properties,
             final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
@@ -98,6 +104,9 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
     /**
      * Overwrites the JWT cookie with an already expired one, which makes the browser drop it. Used
      * on logout and whenever a token turns out to be unusable.
+     *
+     * @param properties The token settings, the cookie settings among them
+     * @param response   The response which drops the cookie
      */
     public static void clearCookie(
             final JwtProperties properties,
@@ -118,6 +127,11 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
     /**
      * Writes the JWT cookie, which lives as long as the token in it. Used on login and whenever a
      * token is renewed, see {@link JwtRenewalFilter}.
+     *
+     * @param properties The token settings, the cookie settings among them
+     * @param response   The response which carries the cookie
+     * @param token      The token
+     * @param expiresAt  When the token expires, and so the cookie
      */
     public static void addCookie(
             final JwtProperties properties,

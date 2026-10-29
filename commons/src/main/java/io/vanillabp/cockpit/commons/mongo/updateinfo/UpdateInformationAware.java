@@ -2,6 +2,10 @@ package io.vanillabp.cockpit.commons.mongo.updateinfo;
 
 import java.time.OffsetDateTime;
 
+/**
+ * A document which records who changed it last and when. {@link UpdateInformationEventListener}
+ * sets both values before each write.
+ */
 public interface UpdateInformationAware {
 
     /**
@@ -21,8 +25,18 @@ public interface UpdateInformationAware {
      */
     String COCKPIT_USER = "cockpit";
 
+    /**
+     * Records who changed the document last.
+     *
+     * @param userId The id of the user logged in, or {@link #SYSTEM_USER} if there is none
+     */
     void setUpdatedBy(String userId);
     
+    /**
+     * Records when the document was changed last.
+     *
+     * @param timestamp The time of the change
+     */
     void setUpdatedAt(OffsetDateTime timestamp);
     
 }

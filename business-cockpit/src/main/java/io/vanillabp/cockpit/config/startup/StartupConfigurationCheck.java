@@ -75,6 +75,12 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
     private ConfigurableEnvironment environment;
 
+    /**
+     * Creates the check. Spring creates it as a bean, and Spring passes the environment in later.
+     */
+    public StartupConfigurationCheck() {
+    }
+
     @Override
     public void setEnvironment(
             final Environment environment) {
@@ -93,7 +99,10 @@ public class StartupConfigurationCheck implements BeanFactoryPostProcessor, Envi
 
     /**
      * Throws {@link CockpitIsNotConfiguredException} if the application cannot run at all, and
-     * logs one warning per feature which stays switched off.
+     * logs one warning per feature which stays switched off. A missing JWT signing key is
+     * generated and added to the environment.
+     *
+     * @param environment The configuration of the application
      */
     public void checkConfigurationOf(
             final ConfigurableEnvironment environment) {

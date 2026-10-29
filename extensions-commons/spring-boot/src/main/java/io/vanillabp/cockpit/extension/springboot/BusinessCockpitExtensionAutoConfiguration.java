@@ -66,6 +66,13 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   private BusinessCockpitExtension extension;
 
   /**
+   * Creates the auto-configuration. Spring Boot does this after the platform's own
+   * auto-configuration ran.
+   */
+  public BusinessCockpitExtensionAutoConfiguration() {
+  }
+
+  /**
    * What the application wrote about the Business Cockpit. It is read off this platform's
    * binding and handed on as the neutral object which the core and every BPMS half read.
    *
@@ -206,6 +213,9 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
+   * Gives each workflow aggregate its own <code>BusinessCockpitService</code>, which is how an
+   * application reports to the cockpit from its workflow code.
+   *
    * @param extension The extension
    * @return The factory building the <code>BusinessCockpitService</code> of each workflow
    *         aggregate. The declared generic names the service interface, which is how
@@ -220,6 +230,9 @@ public class BusinessCockpitExtensionAutoConfiguration implements DisposableBean
   }
 
   /**
+   * Lets the extension take part when VanillaBP deploys a workflow module, so the cockpit
+   * server learns that the module exists.
+   *
    * @param extension The extension
    * @return Its place in VanillaBP's deployment pipeline
    */

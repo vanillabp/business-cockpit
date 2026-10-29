@@ -31,6 +31,7 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
     private static final Logger logger = LoggerFactory.getLogger(EmailNotificationService.class);
 
+    /** The technical type of the e-mail medium, see {@link #getType()}. */
     public static final String TYPE = "email";
 
     /** {@link RecipientConfiguration#type()} of the e-mail address value. */
@@ -45,6 +46,14 @@ public class EmailNotificationService extends AbstractTemplatingNotificationServ
 
     private final ApplicationProperties applicationProperties;
 
+    /**
+     * Creates the e-mail medium. {@link EmailNotificationConfiguration} calls it.
+     *
+     * @param notificationProperties the notification settings, with the sender address
+     * @param userRepository         the users, which hold the e-mail address of each recipient
+     * @param mailSender             the Spring Boot mail sender the e-mails go through
+     * @param applicationProperties  the settings of the cockpit, with its default locale and its URL
+     */
     public EmailNotificationService(
             final NotificationProperties notificationProperties,
             final UserRepository userRepository,

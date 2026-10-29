@@ -25,6 +25,7 @@ import org.springframework.data.mongodb.core.query.Query;
  */
 public class WorkflowStreamAudience implements UpdateStreamAudience {
 
+    /** The kind of entity this audience decides about, as the update streams name it. */
     public static final String KIND_OF_ENTITY = "Workflow";
 
     /** The type of the wake-up call which makes a workflow list load everything it shows again. */
@@ -32,6 +33,11 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
 
     private final MongoTemplate mongoTemplate;
 
+    /**
+     * Creates the audience.
+     *
+     * @param mongoTemplate Used to read the changed workflows
+     */
     public WorkflowStreamAudience(
             final MongoTemplate mongoTemplate) {
 
@@ -87,6 +93,9 @@ public class WorkflowStreamAudience implements UpdateStreamAudience {
     /**
      * The changed workflows, with the fields the visibility reads. A workflow deleted in the meantime is
      * missing, and only a stream whose browser shows it learns about it.
+     *
+     * @param ids The ids of the changed workflows
+     * @return The facts of the workflows found
      */
     public List<WorkflowFacts> factsOf(
             final Collection<String> ids) {

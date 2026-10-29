@@ -49,6 +49,25 @@ public class ChangeStreamUtils {
     @Autowired
     private MessageListenerContainer messageListenerContainer;
 
+    /**
+     * Creates the helper. Spring injects the logger, the settings and the listener container
+     * afterwards.
+     */
+    public ChangeStreamUtils() {
+    }
+
+    /**
+     * Subscribes to the changes of the collection an entity class is stored in. An update brings the
+     * document only on Azure Cosmos DB, where the full document is always looked up.
+     *
+     * @param <T>                    The entity class
+     * @param entityClass            The entity class, which names its collection in a public static
+     *                               field {@code COLLECTION_NAME}
+     * @param listener               Gets each change. If it throws, the change is logged and lost,
+     *                               and the stream keeps running.
+     * @param watchingOperationTypes The kinds of changes to get, or none for all of them
+     * @return The subscription, which {@link #unsubscribe(Subscription)} ends
+     */
     public <T> Subscription subscribe(
             final Class<T> entityClass,
             final MessageListener<ChangeStreamDocument<Document>, T> listener,
@@ -58,6 +77,20 @@ public class ChangeStreamUtils {
         
     }
 
+    /**
+     * Subscribes to the changes of the collection an entity class is stored in.
+     *
+     * @param <T>                    The entity class
+     * @param entityClass            The entity class, which names its collection in a public static
+     *                               field {@code COLLECTION_NAME}
+     * @param fullDocument           Whether an update brings the whole document after the change. On
+     *                               Azure Cosmos DB it always does.
+     * @param listener               Gets each change. If it throws, the change is logged and lost,
+     *                               and the stream keeps running.
+     * @param watchingOperationTypes The kinds of changes to get, or none for all of them. Azure Cosmos
+     *                               DB reports no deletions, so they are left out there.
+     * @return The subscription, which {@link #unsubscribe(Subscription)} ends
+     */
     public <T> Subscription subscribe(
             final Class<T> entityClass,
             final boolean fullDocument,
@@ -181,6 +214,11 @@ public class ChangeStreamUtils {
 
     }
 
+    /**
+     * Ends a subscription. No more changes reach its listener.
+     *
+     * @param subscription The subscription to end
+     */
     public void unsubscribe(
             final Subscription subscription) {
         

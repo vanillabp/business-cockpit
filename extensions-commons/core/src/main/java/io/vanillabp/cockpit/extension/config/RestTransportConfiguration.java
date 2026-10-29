@@ -21,8 +21,8 @@ import java.time.Duration;
  * @param readTimeout How long the server may take to answer
  * @param proxy The HTTP proxy the server is reached through, or <code>null</code>
  * @param verifySsl Whether the certificate the server presents is checked at all
- * @param sslTruststoreFilename The PKCS12 file holding the certificates the server's is checked
- *          against, or <code>null</code> for the ones the JVM trusts
+ * @param sslTruststoreFilename The PKCS12 file holding the certificates the server's certificate is
+ *          checked against, or <code>null</code> for the ones the JVM trusts
  * @param sslTruststorePassword The password of that file
  * @param oauth The client-credentials flow the bearer token is fetched with, or
  *          <code>null</code>
@@ -54,6 +54,8 @@ public record RestTransportConfiguration(
                       String password) {
 
     /**
+     * Tells whether the proxy needs a login.
+     *
      * @return Whether the proxy is given a user, i.e. whether requests carry a
      *         Proxy-Authorization header
      */
@@ -97,6 +99,8 @@ public record RestTransportConfiguration(
   }
 
   /**
+   * Tells whether the cockpit server gets a basic authentication.
+   *
    * @return Whether a user was configured, i.e. whether requests carry an Authorization header
    */
   public boolean authenticates() {

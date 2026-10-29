@@ -7,8 +7,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
 
+/**
+ * Tells Hibernate how to write the JSON columns of the simulator's database.
+ */
 @Configuration
 public class HibernateJsonConfig {
+
+    /**
+     * Creates the configuration. Spring creates it, nobody else does.
+     */
+    public HibernateJsonConfig() {
+    }
 
     /**
      * Support for OffsetDateTime, when storing Workflow or UserTask objects as JSON in H2.
@@ -20,6 +29,9 @@ public class HibernateJsonConfig {
      * {@link Jackson3JsonFormatMapper} takes a Jackson 3 {@link JsonMapper}. The Jackson 2 one compiles
      * against {@code com.fasterxml.jackson.databind.ObjectMapper}, so it cannot be fed the auto-configured
      * mapper any more - hence the switch. This only affects the simulator's in-memory H2 database.
+     *
+     * @param objectMapper The JSON mapper Spring Boot configured
+     * @return The customizer, which sets the JSON format mapper of Hibernate
      */
     @Bean
     public HibernatePropertiesCustomizer jsonFormatMapperCustomizer(

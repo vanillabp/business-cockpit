@@ -37,6 +37,13 @@ public class FollowUpScheduler {
     private OffsetDateTime previousCheckTimestamp = OffsetDateTime.now();
 
     /**
+     * Called by Spring. The first window starts now.
+     */
+    public FollowUpScheduler() {
+
+    }
+
+    /**
      * The key was written without the dash in {@code business-cockpit} and was therefore a key of
      * its own. Nothing else in this application used it and no page of the wiki named it. A
      * placeholder is looked up by its exact name, so a value written under the documented prefix

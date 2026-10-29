@@ -50,6 +50,18 @@ import java.util.stream.Stream;
  * tab. {@code TheVisibilityInMemoryAgreesWithTheQueryTest} keeps the two in line. It asks both
  * about many tasks and views and fails on the first difference. It also fails if the query reads
  * a field which {@link TaskFacts} does not carry.
+ *
+ * @param includeDanglingTasks Whether a task which addresses nobody is visible as well
+ * @param notInAssignees Whether to leave out the tasks assigned to one of the {@code assignees},
+ *        instead of showing them
+ * @param assignees The user ids of the assignees, or {@code null}
+ * @param candidateUsers The user ids of which a visible task names at least one as a candidate,
+ *        or {@code null}
+ * @param candidateGroups The group ids of which a visible task names at least one as a candidate,
+ *        or {@code null}
+ * @param excludedCandidates The user ids a task can keep out through its own
+ *        {@code excludedCandidateUsers}, or {@code null}
+ * @param admittedUsers The user ids of which a visible task admits at least one, or {@code null}
  */
 public record UserTaskVisibility(
         boolean includeDanglingTasks,
@@ -64,6 +76,9 @@ public record UserTaskVisibility(
      * Everything the user could take a hand in: their own tasks, the ones naming them or one of
      * their groups, the ones admitting them, and the ones addressed to nobody. A task naming the
      * user as excluded is left out, unless the same task admits them.
+     *
+     * @param user The user
+     * @return The visibility
      */
     public static UserTaskVisibility everythingTheUserMayWorkOn(
             final UserDetails user) {
@@ -75,6 +90,10 @@ public record UserTaskVisibility(
     /**
      * The same view as {@link #everythingTheUserMayWorkOn(UserDetails)} for a caller which holds
      * the user's id and groups instead of the user.
+     *
+     * @param userId The id of the user
+     * @param usersGroups The groups of the user
+     * @return The visibility
      */
     public static UserTaskVisibility everythingTheUserMayWorkOn(
             final String userId,
@@ -90,6 +109,9 @@ public record UserTaskVisibility(
      * What is the user's own: assigned to them, or naming them personally. Their groups do not
      * count here, neither do the tasks addressed to nobody, and neither does a task which only
      * admits them. This view says what is addressed to the person today.
+     *
+     * @param user The user
+     * @return The visibility
      */
     public static UserTaskVisibility onlyWhatIsTheUsersOwn(
             final UserDetails user) {
@@ -107,6 +129,9 @@ public record UserTaskVisibility(
      *
      * <p>Being admitted to a task does not count here. This view says which work is theirs to take,
      * and a task which only lets somebody read it offers them nothing.
+     *
+     * @param user The user
+     * @return The visibility
      */
     public static UserTaskVisibility whatTheUsersGroupsMayTake(
             final UserDetails user) {
@@ -120,6 +145,8 @@ public record UserTaskVisibility(
     /**
      * Every user task, whoever it addresses. Meant for the places which show what a workflow is up
      * to rather than what the reader has to do.
+     *
+     * @return The visibility which restricts nothing
      */
     public static UserTaskVisibility everyUserTask() {
 
@@ -131,6 +158,9 @@ public record UserTaskVisibility(
      * Whether this visibility lets the task through. It is the rule of
      * {@code UserTaskService.buildUserTasksCriteria}, for a list of every task, ended or not, and
      * it has to give the same answer.
+     *
+     * @param task The facts of the task
+     * @return {@code true} if the task is visible
      */
     public boolean letsThrough(
             final TaskFacts task) {
@@ -220,6 +250,14 @@ public record UserTaskVisibility(
      * read exactly these fields of a changed task from the database. {@code dangling} is the value
      * stored in the document, which is what the query compares, and not the one the task would
      * compute from its fields now.
+     *
+     * @param id The id of the task
+     * @param assignee The person the task is assigned to, or {@code null}
+     * @param candidateUsers The users who may work on the task
+     * @param candidateGroups The groups whose members may work on the task
+     * @param excludedCandidateUsers The users kept out of the task
+     * @param admittedUsers The users who may reach the task for a reason of the business
+     * @param dangling Whether the task addresses nobody, as stored in the document
      */
     public record TaskFacts(
             String id,
@@ -230,7 +268,11 @@ public record UserTaskVisibility(
             List<Person> admittedUsers,
             Boolean dangling) {
 
-        /** The names of the fields, which are the fields the update streams read. */
+        /**
+         * The names of the fields, which are the fields the update streams read.
+         *
+         * @return The names of the fields
+         */
         public static List<String> fieldNames() {
 
             return Stream

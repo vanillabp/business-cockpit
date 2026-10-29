@@ -30,6 +30,7 @@ import org.springframework.data.mongodb.core.index.IndexInfo;
  */
 public class SortIndexes {
 
+    /** The prefix of the name of every sort index. The rest of the name is the sort combination. */
     public static final String INDEX_PREFIX = "_sort_";
 
     private final String collectionName;
@@ -51,10 +52,14 @@ public class SortIndexes {
     private final Set<String> combinationsDealtWith = new HashSet<>();
 
     /**
+     * Creates the sort indexes of one collection.
+     *
      * @param collectionName The collection the list reads
      * @param listPaths The paths the list may be sorted by
      * @param limit How many sort indexes the collection may have at most
      * @param limitProperty The configuration key of the limit, for the warning
+     * @param mongoTemplate Used to read and create the indexes
+     * @param logger Where the warnings go
      */
     public SortIndexes(
             final String collectionName,
@@ -86,6 +91,8 @@ public class SortIndexes {
     }
 
     /**
+     * Checks one path a client wants to sort by.
+     *
      * @param path One path of the field {@code sort}
      * @throws io.vanillabp.cockpit.commons.exceptions.BcInvalidRequestException if the list cannot
      *         be sorted by it

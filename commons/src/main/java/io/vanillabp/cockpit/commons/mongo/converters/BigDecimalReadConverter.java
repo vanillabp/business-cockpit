@@ -7,8 +7,18 @@ import org.springframework.data.convert.WritingConverter;
 
 import java.math.BigDecimal;
 
+/**
+ * Writes a {@link BigDecimal} to MongoDB as {@link Decimal128}, so the value keeps all its digits.
+ * Despite its name this converter is used for writing.
+ */
 @WritingConverter
 public class BigDecimalReadConverter implements Converter<BigDecimal, Decimal128> {
+
+    /**
+     * Creates the converter.
+     */
+    public BigDecimalReadConverter() {
+    }
 
     @Override
     public Decimal128 convert(@NonNull BigDecimal source) {

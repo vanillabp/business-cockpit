@@ -20,6 +20,10 @@ public class BusinessCockpitSchedulingAutoConfiguration {
     private static final Logger logger =
             LoggerFactory.getLogger(BusinessCockpitSchedulingAutoConfiguration.class);
 
+    /**
+     * Called by Spring Boot. Logs that {@code @EnableScheduling} now applies to the whole
+     * application, and how to switch it off.
+     */
     public BusinessCockpitSchedulingAutoConfiguration() {
 
         new WholeApplicationSwitch(

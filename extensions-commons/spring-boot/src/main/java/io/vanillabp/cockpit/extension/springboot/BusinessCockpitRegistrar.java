@@ -22,6 +22,8 @@ public class BusinessCockpitRegistrar implements InitializingBean, ApplicationLi
   private final PhaseOperationRegistry registry;
 
   /**
+   * Creates the registrar. It does nothing until Spring calls it.
+   *
    * @param extension The extension
    * @param registry VanillaBP's registry of phase-two operations
    */

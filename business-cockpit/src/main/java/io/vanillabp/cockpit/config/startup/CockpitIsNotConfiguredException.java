@@ -16,8 +16,14 @@ public class CockpitIsNotConfiguredException extends RuntimeException {
             "Add the values shown above to the application's configuration (e.g. 'application.yaml') "
             + "and start again.";
 
+    /**
+     * The list of the missing values, for the description of the failure report.
+     */
     private final String whatIsMissing;
 
+    /**
+     * What the developer has to do, for the action of the failure report.
+     */
     private final String whatToDo;
 
     CockpitIsNotConfiguredException(

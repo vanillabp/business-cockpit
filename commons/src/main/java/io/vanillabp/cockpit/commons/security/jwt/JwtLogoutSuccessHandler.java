@@ -15,6 +15,11 @@ public class JwtLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
 
     private final JwtProperties properties;
 
+    /**
+     * Creates the handler.
+     *
+     * @param properties The token settings, the cookie settings among them
+     */
     public JwtLogoutSuccessHandler(
             final JwtProperties properties) {
 

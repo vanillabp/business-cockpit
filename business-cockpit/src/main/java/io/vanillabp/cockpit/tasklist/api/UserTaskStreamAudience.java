@@ -25,6 +25,7 @@ import org.springframework.data.mongodb.core.query.Query;
  */
 public class UserTaskStreamAudience implements UpdateStreamAudience {
 
+    /** The kind of entity this audience decides about, as the update streams name it. */
     public static final String KIND_OF_ENTITY = "UserTask";
 
     /** The type of the wake-up call which makes a task list load everything it shows again. */
@@ -32,6 +33,11 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
 
     private final MongoTemplate mongoTemplate;
 
+    /**
+     * Creates the audience.
+     *
+     * @param mongoTemplate Used to read the changed tasks
+     */
     public UserTaskStreamAudience(
             final MongoTemplate mongoTemplate) {
 
@@ -87,6 +93,9 @@ public class UserTaskStreamAudience implements UpdateStreamAudience {
     /**
      * The changed tasks, with the fields the visibility reads. A task deleted in the meantime is
      * missing, and only a stream whose browser shows it learns about it.
+     *
+     * @param ids The ids of the changed tasks
+     * @return The facts of the tasks found
      */
     public List<TaskFacts> factsOf(
             final Collection<String> ids) {

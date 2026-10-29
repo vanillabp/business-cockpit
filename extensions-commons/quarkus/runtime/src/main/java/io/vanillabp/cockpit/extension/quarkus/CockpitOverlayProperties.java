@@ -51,16 +51,22 @@ public interface CockpitOverlayProperties {
 
   /**
    * What the whole application says about the Business Cockpit.
+   *
+   * @return The section below {@code vanillabp.cockpit}
    */
   Cockpit cockpit();
 
   /**
    * What single workflow modules say, by workflow module id.
+   *
+   * @return The sections of the workflow modules, by workflow module id
    */
   Map<String, WorkflowModuleOverlay> workflowModules();
 
   /**
-   * @return What was bound, as the neutral core reads it
+   * What was bound, as the neutral core reads it.
+   *
+   * @return The settings of this application
    */
   default CockpitSettings toSettings() {
 
@@ -83,36 +89,50 @@ public interface CockpitOverlayProperties {
 
     /**
      * Whether user tasks are reported at all.
+     *
+     * @return The switch, as text
      */
     Optional<String> userTasksEnabled();
 
     /**
      * Whether workflows are reported at all.
+     *
+     * @return The switch, as text
      */
     Optional<String> workflowListEnabled();
 
     /**
      * The directory the templates are loaded from.
+     *
+     * @return The directory
      */
     Optional<String> templateLoaderPath();
 
     /**
      * Who answers the initiator of a report.
+     *
+     * @return The source of the initiator, as text
      */
     Optional<String> initiatorSource();
 
     /**
      * The connection to the cockpit server, and with it the REST transport.
+     *
+     * @return The REST section
      */
     Rest rest();
 
     /**
      * The brokers the events are sent to, and with them the Kafka transport.
+     *
+     * @return The Kafka section
      */
     Kafka kafka();
 
     /**
      * What the cockpit's Process-Engine-API half reads.
+     *
+     * @return The Process-Engine-API section
      */
     ProcessEngineApi processEngineApi();
 
@@ -125,45 +145,63 @@ public interface CockpitOverlayProperties {
 
     /**
      * The cockpit server's address, and with it the choice of this transport.
+     *
+     * @return The base URL of the cockpit server
      */
     Optional<String> baseUrl();
 
     /**
      * How long establishing the connection may take.
+     *
+     * @return The time span, as text
      */
     Optional<String> connectTimeout();
 
     /**
      * How long the server may take to answer.
+     *
+     * @return The time span, as text
      */
     Optional<String> readTimeout();
 
     /**
      * Whether the certificate the server presents is checked at all.
+     *
+     * @return The switch, as text
      */
     Optional<String> verifySsl();
 
     /**
      * The PKCS12 file the certificate is checked against.
+     *
+     * @return The name of the truststore file
      */
     Optional<String> sslTruststoreFilename();
 
     /**
      * The password of that file.
+     *
+     * @return The password of the truststore
      */
     Optional<String> sslTruststorePassword();
 
     /**
      * The HTTP proxy the cockpit server is reached through.
+     *
+     * @return The proxy section
      */
     Proxy proxy();
 
     /**
      * How the workflow module identifies itself.
+     *
+     * @return The authentication section
      */
     Authentication authentication();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.Rest toSettings() {
@@ -190,25 +228,35 @@ public interface CockpitOverlayProperties {
 
     /**
      * Whether a basic authentication is sent, which is version 1's switch.
+     *
+     * @return The switch, as text
      */
     Optional<String> basic();
 
     /**
      * The user it is sent with.
+     *
+     * @return The user name
      */
     Optional<String> username();
 
     /**
      * The password belonging to the user.
+     *
+     * @return The password
      */
     Optional<String> password();
 
     /**
      * The client-credentials flow the bearer token is fetched with.
+     *
+     * @return The OAuth section
      */
     OAuth oauth();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.Authentication toSettings() {
@@ -232,55 +280,77 @@ public interface CockpitOverlayProperties {
 
     /**
      * Where tokens are issued, and with it the choice of this flow.
+     *
+     * @return The base URL of the authorization server
      */
     Optional<String> baseUrl();
 
     /**
      * The client the token is asked for.
+     *
+     * @return The client id
      */
     Optional<String> clientId();
 
     /**
      * The secret belonging to it.
+     *
+     * @return The client secret
      */
     Optional<String> clientSecret();
 
     /**
      * Whether the client identifies itself in an <code>Authorization</code> header.
+     *
+     * @return The switch, as text
      */
     Optional<String> basic();
 
     /**
      * How long establishing the connection may take.
+     *
+     * @return The time span, as text
      */
     Optional<String> connectTimeout();
 
     /**
      * How long the authorization server may take to answer.
+     *
+     * @return The time span, as text
      */
     Optional<String> readTimeout();
 
     /**
      * Whether its certificate is checked at all.
+     *
+     * @return The switch, as text
      */
     Optional<String> verifySsl();
 
     /**
      * The PKCS12 file its certificate is checked against.
+     *
+     * @return The name of the truststore file
      */
     Optional<String> sslTruststoreFilename();
 
     /**
      * The password of that file.
+     *
+     * @return The password of the truststore
      */
     Optional<String> sslTruststorePassword();
 
     /**
      * The HTTP proxy the authorization server is reached through.
+     *
+     * @return The proxy section
      */
     Proxy proxy();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.OAuth toSettings() {
@@ -307,25 +377,35 @@ public interface CockpitOverlayProperties {
 
     /**
      * The proxy's host, which is what switches it on.
+     *
+     * @return The host
      */
     Optional<String> host();
 
     /**
      * The proxy's port.
+     *
+     * @return The port, as text
      */
     Optional<String> port();
 
     /**
      * The user it expects, where it expects one.
+     *
+     * @return The user name
      */
     Optional<String> username();
 
     /**
      * The password belonging to the user.
+     *
+     * @return The password
      */
     Optional<String> password();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.Proxy toSettings() {
@@ -347,11 +427,15 @@ public interface CockpitOverlayProperties {
 
     /**
      * The brokers, and with them the choice of this transport.
+     *
+     * @return The bootstrap servers, as text
      */
     Optional<String> bootstrapServers();
 
     /**
      * One topic per kind of event.
+     *
+     * @return The topics section
      */
     Topics topics();
 
@@ -359,10 +443,14 @@ public interface CockpitOverlayProperties {
      * Anything else the producer is to be given, for example
      * <code>kafka.properties.security.protocol</code>. A key of this map keeps the dots it was
      * written with, so a setting of the Kafka client reaches it unchanged.
+     *
+     * @return The other settings of the producer, by key
      */
     Map<String, String> properties();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.Kafka toSettings() {
@@ -384,20 +472,28 @@ public interface CockpitOverlayProperties {
 
     /**
      * The topic user-task events are sent to.
+     *
+     * @return The name of the topic
      */
     Optional<String> userTask();
 
     /**
      * The topic workflow events are sent to.
+     *
+     * @return The name of the topic
      */
     Optional<String> workflow();
 
     /**
      * The topic a workflow module's registration is sent to.
+     *
+     * @return The name of the topic
      */
     Optional<String> workflowModule();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it
      */
     default CockpitSettings.Topics toSettings() {
@@ -420,10 +516,14 @@ public interface CockpitOverlayProperties {
 
     /**
      * How many delivered user tasks a node remembers.
+     *
+     * @return The number, as text
      */
     Optional<String> rememberedUserTasks();
 
     /**
+     * Turns this section into what the neutral core reads.
+     *
      * @return This section as the neutral core reads it, or <code>null</code> where nothing was
      *         written into it
      */
@@ -444,15 +544,21 @@ public interface CockpitOverlayProperties {
 
     /**
      * What the module itself says, below <code>cockpit</code>.
+     *
+     * @return The module's own section
      */
     ModuleCockpit cockpit();
 
     /**
      * What single workflows of it say, by BPMN process id.
+     *
+     * @return The sections of the workflows, by BPMN process id
      */
     Map<String, WorkflowOverlay> workflows();
 
     /**
+     * Turns what this workflow module said into what the neutral core reads.
+     *
      * @return What this workflow module said, as the neutral core reads it
      */
     default CockpitSettings.WorkflowModule toSettings() {
@@ -480,41 +586,57 @@ public interface CockpitOverlayProperties {
 
     /**
      * Where the module answers the cockpit's provider APIs.
+     *
+     * @return The URI
      */
     Optional<String> workflowModuleUri();
 
     /**
      * How the cockpit loads this module's forms.
+     *
+     * @return The type, as text
      */
     Optional<String> uiUriType();
 
     /**
      * Where this module's forms are served from.
+     *
+     * @return The path
      */
     Optional<String> uiUriPath();
 
     /**
      * The languages titles are reported in.
+     *
+     * @return The languages
      */
     Optional<List<String>> i18nLanguages();
 
     /**
      * The language the BPMN names are written in.
+     *
+     * @return The language
      */
     Optional<String> bpmnDescriptionLanguage();
 
     /**
      * The segment this module contributes to the template lookup path.
+     *
+     * @return The path segment
      */
     Optional<String> templatePath();
 
     /**
      * Which groups a group stands for.
+     *
+     * @return The groups each group stands for, by group
      */
     Map<String, List<String>> groupHierarchy();
 
     /**
      * Who answers the initiator of this module's reports.
+     *
+     * @return The source of the initiator, as text
      */
     Optional<String> initiatorSource();
 
@@ -550,11 +672,15 @@ public interface CockpitOverlayProperties {
 
     /**
      * What this workflow says, below <code>cockpit</code>.
+     *
+     * @return The workflow's own section
      */
     WorkflowCockpit cockpit();
 
     /**
      * What single user tasks of it say, by task definition.
+     *
+     * @return The sections of the user tasks, by task definition
      */
     Map<String, UserTaskOverlay> userTasks();
 
@@ -599,21 +725,29 @@ public interface CockpitOverlayProperties {
 
     /**
      * The languages this workflow's titles are reported in.
+     *
+     * @return The languages
      */
     Optional<List<String>> i18nLanguages();
 
     /**
      * The language this workflow's BPMN names are written in.
+     *
+     * @return The language
      */
     Optional<String> bpmnDescriptionLanguage();
 
     /**
      * The segment this workflow contributes to the template lookup path.
+     *
+     * @return The path segment
      */
     Optional<String> templatePath();
 
     /**
      * Who answers the initiator of this workflow's reports.
+     *
+     * @return The source of the initiator, as text
      */
     Optional<String> initiatorSource();
 
@@ -626,6 +760,8 @@ public interface CockpitOverlayProperties {
 
     /**
      * What this user task says, below <code>cockpit</code>.
+     *
+     * @return The user task's own section
      */
     UserTaskCockpit cockpit();
 
@@ -638,6 +774,8 @@ public interface CockpitOverlayProperties {
 
     /**
      * The segment this user task contributes to the template lookup path.
+     *
+     * @return The path segment
      */
     Optional<String> templatePath();
 

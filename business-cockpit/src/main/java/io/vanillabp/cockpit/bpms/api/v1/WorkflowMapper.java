@@ -10,6 +10,10 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the workflow events of version 1 of the BPMS API onto the workflows, the cases, the
+ * cockpit stores.
+ */
 @Mapper(implementationName = "WorkflowMapperV1Impl")
 public abstract class WorkflowMapper {
 
@@ -19,6 +23,18 @@ public abstract class WorkflowMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass which Spring creates.
+     */
+    public WorkflowMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user, or {@code null} if the report names nobody
+     * @return The person, or {@code null} if the report names nobody
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
@@ -27,12 +43,24 @@ public abstract class WorkflowMapper {
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
 
+    /**
+     * Builds a new workflow from a report the cockpit knows nothing about yet.
+     *
+     * @param event The report of a created or an updated workflow
+     * @return The new workflow, not stored yet
+     */
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -51,6 +79,14 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
     
+    /**
+     * Maps a report onto a workflow the cockpit holds already. The id and the creation stay as they
+     * are.
+     *
+     * @param event The report of an updated workflow
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:

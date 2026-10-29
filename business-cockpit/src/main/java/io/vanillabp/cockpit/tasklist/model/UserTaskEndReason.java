@@ -8,7 +8,9 @@ package io.vanillabp.cockpit.tasklist.model;
  */
 public enum UserTaskEndReason {
 
+    /** A user completed the task. */
     COMPLETED,
+    /** The task was cancelled, for example by the process. */
     CANCELLED
 
 }
