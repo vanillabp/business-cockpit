@@ -101,8 +101,8 @@ public interface BusinessCockpitBpmsBridge {
    * The type of the BPMS behind this bridge.
    *
    * @return The adapter type this bridge belongs to (<code>camunda7</code>,
-   *         <code>camunda8</code>, <code>operaton</code>, <code>process-engine-api</code>),
-   *         used only to name the BPMS in messages
+   *         <code>camunda8</code>, <code>cibseven</code>, <code>operaton</code>,
+   *         <code>process-engine-api</code>), used only to name the BPMS in messages
    */
   String adapterType();
 

@@ -889,7 +889,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
    * @return The bridge
    * @throws IllegalStateException If no BPMS half is registered for that adapter. The message
    *           names the adapters the application configured, the halves which are registered
-   *           and the four artifacts which provide one
+   *           and the five artifacts which provide one
    */
   public BusinessCockpitBpmsBridge bridgeOf(
       final String adapterId) {
@@ -905,6 +905,7 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
             to that adapter's BPMS to your workflow module - \
             'io.vanillabp.businesscockpit:businesscockpit-camunda7-adapter', \
             'io.vanillabp.businesscockpit:businesscockpit-camunda8-adapter', \
+            'io.vanillabp.businesscockpit:businesscockpit-cibseven-adapter', \
             'io.vanillabp.businesscockpit:businesscockpit-operaton-adapter' or \
             'io.vanillabp.businesscockpit:businesscockpit-process-engine-api-adapter', each in the \
             variant of your platform."""
