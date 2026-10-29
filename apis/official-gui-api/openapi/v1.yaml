@@ -200,6 +200,40 @@ paths:
           description: User task is unknown
         409:
           description: User task already completed
+  /usertask/count:
+    post:
+      tags:
+        - officialTasklist
+      summary: The number of user tasks of several lists, for the counts next to the primary filters
+      description: >-
+        Counts the user tasks of each filter of the request, with the same conditions as
+        'POST /usertask' on the same base path. The server does not sort and sends no rows. Each
+        count in the answer carries the key of its filter, in the order of the request.
+      operationId: countUserTasks
+      parameters:
+        - in: query
+          name: initialTimestamp
+          description: The same time as for 'POST /usertask'. A task which ended after it still counts as open.
+          schema:
+            type: string
+            format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserTaskCountsRequest"
+      responses:
+        200:
+          description: One count per filter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Counts'
+        400:
+          description: >-
+            A filter breaks the rules of 'POST /usertask', a key is missing or used twice, or the
+            request has no filter or more than 20.
   /usertask/{userTaskId}:
     get:
       tags:
@@ -458,6 +492,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Workflows'
+  /workflow/count:
+    post:
+      tags:
+        - officialWorkflowlist
+      summary: The number of workflows of several lists, for the counts next to the primary filters
+      description: >-
+        Counts the workflows of each filter of the request, with the same conditions as
+        'POST /workflow' on the same base path. The server does not sort and sends no rows. Each
+        count in the answer carries the key of its filter, in the order of the request.
+      operationId: countWorkflows
+      parameters:
+        - in: query
+          name: initialTimestamp
+          description: The same time as for 'POST /workflow'. A workflow which ended after it still counts as active.
+          schema:
+            type: string
+            format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkflowCountsRequest"
+      responses:
+        200:
+          description: One count per filter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Counts'
+        400:
+          description: >-
+            A filter breaks the rules of 'POST /workflow', a key is missing or used twice, or the
+            request has no filter or more than 20.
   /workflow/{workflowId}:
       get:
         tags:
@@ -1252,6 +1320,97 @@ components:
           description: The direction of every path in 'sort'. Without it the server sorts ascending.
         mode:
           $ref: '#/components/schemas/WorkflowRetrieveMode'
+    UserTaskCountFilter:
+      type: object
+      description: >-
+        One list to count, with the filters 'POST /usertask' takes. A request without 'mode' counts
+        'OpenTasksWithFollowUp', the same as the list.
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          minLength: 1
+          description: A name the client chooses for this filter. The count in the answer carries it.
+        mode:
+          $ref: '#/components/schemas/UserTaskRetrieveMode'
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
+    UserTaskCountsRequest:
+      type: object
+      required:
+        - filters
+      properties:
+        filters:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/UserTaskCountFilter'
+    WorkflowCountFilter:
+      type: object
+      description: >-
+        One list to count, with the filters 'POST /workflow' takes. A request without 'mode' counts
+        'Active', the same as the list.
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          minLength: 1
+          description: A name the client chooses for this filter. The count in the answer carries it.
+        mode:
+          $ref: '#/components/schemas/WorkflowRetrieveMode'
+        searchQueries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchQuery'
+        businessIds:
+          type: array
+          items:
+            type: string
+          description: Counts only the workflows of these business ids, the same as in 'POST /workflow'.
+    WorkflowCountsRequest:
+      type: object
+      required:
+        - filters
+      properties:
+        filters:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/WorkflowCountFilter'
+    Count:
+      type: object
+      required:
+        - key
+        - count
+      properties:
+        key:
+          type: string
+          description: The key of the filter this count belongs to.
+        count:
+          type: integer
+          format: int64
+          description: The same number as 'page.totalElements' of the list with the same filters.
+    Counts:
+      type: object
+      required:
+        - serverTimestamp
+        - counts
+      properties:
+        serverTimestamp:
+          type: string
+          format: date-time
+          description: The time the server counted at. Send it as 'initialTimestamp' to page through a list which agrees with the counts.
+        counts:
+          type: array
+          description: One count per filter of the request, in the same order.
+          items:
+            $ref: '#/components/schemas/Count'
     KwicRequest:
       type: object
       properties:

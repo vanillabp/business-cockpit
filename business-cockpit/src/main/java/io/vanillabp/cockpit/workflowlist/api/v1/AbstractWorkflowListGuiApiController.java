@@ -12,16 +12,21 @@ import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.gui.api.v1.Count;
+import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
 import io.vanillabp.cockpit.gui.api.v1.OfficialWorkflowlistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowCountFilter;
+import io.vanillabp.cockpit.gui.api.v1.WorkflowCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.Workflows;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsRequest;
 import io.vanillabp.cockpit.gui.api.v1.WorkflowsUpdateRequest;
 import io.vanillabp.cockpit.tasklist.UserTaskService;
+import io.vanillabp.cockpit.util.CountKeys;
 import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
 import io.vanillabp.cockpit.workflowlist.WorkflowVisibility;
@@ -170,6 +175,60 @@ public abstract class AbstractWorkflowListGuiApiController implements OfficialWo
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, workflows);
 
     return ResponseEntity.ok(mapper.toApi(workflows, timestamp, requestId));
+
+  }
+
+  /**
+   * The number of workflows of one list. A subclass may override it to count in another way, and
+   * should then override {@link #getWorkflows(WorkflowVisibility, int, int, OffsetDateTime, List, List, String, boolean, WorkflowlistService.RetrieveItemsMode)}
+   * the same way, so the count agrees with the list.
+   *
+   * @param visibility Which workflows the user may reach
+   * @param initialTimestamp When the user started to page through the list
+   * @param businessIds Only the workflows of these business ids, or {@code null} for all
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which workflows the list holds
+   * @return The number of workflows
+   */
+  protected long countWorkflows(
+      final WorkflowVisibility visibility,
+      final OffsetDateTime initialTimestamp,
+      final List<String> businessIds,
+      final List<SearchQuery> searchQueries,
+      final WorkflowlistService.RetrieveItemsMode mode) {
+
+    return workflowlistService.countWorkflows(
+        initialTimestamp, visibility, businessIds, searchQueries, mode);
+
+  }
+
+  @Override
+  public ResponseEntity<Counts> countWorkflows(
+      final WorkflowCountsRequest workflowCountsRequest,
+      final OffsetDateTime initialTimestamp) {
+
+    final var timestamp = initialTimestamp != null
+        ? initialTimestamp
+        : OffsetDateTime.now();
+    final var filters = workflowCountsRequest.getFilters();
+    CountKeys.checkThatEachKeyIsUsedOnce(filters.stream().map(WorkflowCountFilter::getKey).toList());
+
+    final var visibility = workflowsVisibleTo(userContext.getUserLoggedInDetails());
+    final var counts = filters
+        .stream()
+        .map(filter -> new Count()
+            .key(filter.getKey())
+            .count(countWorkflows(
+                visibility,
+                timestamp,
+                filter.getBusinessIds(),
+                mapper.toModel(filter.getSearchQueries()),
+                filter.getMode() != null
+                    ? mapper.toModel(filter.getMode())
+                    : WorkflowlistService.RetrieveItemsMode.Active)))
+        .toList();
+
+    return ResponseEntity.ok(new Counts().serverTimestamp(timestamp).counts(counts));
 
   }
 

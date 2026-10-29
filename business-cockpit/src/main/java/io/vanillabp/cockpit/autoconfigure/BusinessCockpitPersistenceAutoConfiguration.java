@@ -34,7 +34,7 @@ import io.vanillabp.cockpit.config.MongoDbConfiguration;
     MongoClient.class, MongoTemplate.class
 })
 @Import({
-    BusinessCockpitPersistenceAutoConfiguration.CockpitDocumentPackages.class, MongoDbConfiguration.class, UpdateInformationEventListener.class, io.vanillabp.cockpit.notification.model.changesets.V000001.class, io.vanillabp.cockpit.tasklist.model.changesets.V000001.class, io.vanillabp.cockpit.users.model.changesets.V000001.class, io.vanillabp.cockpit.workflowlist.model.changesets.V000001.class, io.vanillabp.cockpit.workflowmodules.model.changesets.V000001.class, io.vanillabp.cockpit.workflowmodules.model.changesets.V000002.class
+    BusinessCockpitPersistenceAutoConfiguration.CockpitDocumentPackages.class, MongoDbConfiguration.class, UpdateInformationEventListener.class, io.vanillabp.cockpit.notification.model.changesets.V000001.class, io.vanillabp.cockpit.tasklist.model.changesets.V000001.class, io.vanillabp.cockpit.tasklist.model.changesets.V000002.class, io.vanillabp.cockpit.users.model.changesets.V000001.class, io.vanillabp.cockpit.workflowlist.model.changesets.V000001.class, io.vanillabp.cockpit.workflowlist.model.changesets.V000002.class, io.vanillabp.cockpit.workflowmodules.model.changesets.V000001.class, io.vanillabp.cockpit.workflowmodules.model.changesets.V000002.class
 })
 public class BusinessCockpitPersistenceAutoConfiguration {
 

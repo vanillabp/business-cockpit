@@ -837,6 +837,35 @@ public class UserTaskService {
   }
 
   /**
+   * The number of user tasks of a list, with the same conditions as
+   * {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, RetrieveItemsMode)}.
+   * Nothing is sorted and no task is read, so no sort index is needed either.
+   *
+   * @param visibility Which tasks the caller may reach
+   * @param initialTimestamp When the user started to page through the list. A task which ended
+   *        after this time still counts as open. {@code null} counts only the tasks which have
+   *        not ended, which the indexes of the visibility answer best.
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which tasks the list holds
+   * @return The number of tasks the list holds
+   */
+  public long countUserTasks(
+      final UserTaskVisibility visibility,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final RetrieveItemsMode mode) {
+
+    final var query = new Query();
+    query.addCriteria(buildUserTasksCriteria(visibility, initialTimestamp, mode, null));
+    final var searchCriteria = filterCriteria(searchQueries);
+    if (searchCriteria != null) {
+      searchCriteria.forEach(query::addCriteria);
+    }
+    return mongoTemplate.count(query, UserTask.class);
+
+  }
+
+  /**
    * Suggestions for a search field of the user task list: the words in a field which contain
    * the text typed so far. Only open tasks are searched. Nothing is suggested for less than three
    * letters.

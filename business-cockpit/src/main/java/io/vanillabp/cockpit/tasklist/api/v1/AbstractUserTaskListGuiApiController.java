@@ -14,6 +14,8 @@ import org.springframework.util.StringUtils;
 
 import io.vanillabp.cockpit.commons.security.usercontext.UserContext;
 import io.vanillabp.cockpit.commons.security.usercontext.UserDetails;
+import io.vanillabp.cockpit.gui.api.v1.Count;
+import io.vanillabp.cockpit.gui.api.v1.Counts;
 import io.vanillabp.cockpit.gui.api.v1.FollowUpDateRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicRequest;
 import io.vanillabp.cockpit.gui.api.v1.KwicResults;
@@ -21,6 +23,8 @@ import io.vanillabp.cockpit.gui.api.v1.OfficialTasklistApi;
 import io.vanillabp.cockpit.gui.api.v1.UpdateStreams;
 import io.vanillabp.cockpit.gui.api.v1.UserSearchResult;
 import io.vanillabp.cockpit.gui.api.v1.UserTask;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskCountFilter;
+import io.vanillabp.cockpit.gui.api.v1.UserTaskCountsRequest;
 import io.vanillabp.cockpit.gui.api.v1.UserTaskIds;
 import io.vanillabp.cockpit.gui.api.v1.UserTasks;
 import io.vanillabp.cockpit.gui.api.v1.UserTasksRequest;
@@ -32,6 +36,7 @@ import io.vanillabp.cockpit.tasklist.api.UserTaskStreamAudience;
 import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 import io.vanillabp.cockpit.users.model.PersonAndGroupMapper;
+import io.vanillabp.cockpit.util.CountKeys;
 import io.vanillabp.cockpit.util.ListPaging;
 import io.vanillabp.cockpit.util.SearchQuery;
 
@@ -167,6 +172,60 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
     tellTheUpdateStreamsWhatIsShown(currentUser, visibility, userTasks);
 
     return ResponseEntity.ok(mapper.toApi(userTasks, timestamp, currentUser.getId()));
+
+  }
+
+  /**
+   * The number of tasks of one list. A subclass may override it to count in another way, and
+   * should then override {@link #getUserTasks(UserTaskVisibility, int, int, OffsetDateTime, Collection, String, boolean, UserTaskService.RetrieveItemsMode)}
+   * the same way, so the count agrees with the list.
+   *
+   * @param visibility Which tasks the user may reach
+   * @param initialTimestamp When the user started to page through the list, or {@code null} to
+   *        count only the tasks which have not ended
+   * @param searchQueries The filters of the list, or {@code null}
+   * @param mode Which tasks the list holds
+   * @return The number of tasks
+   */
+  protected long countUserTasks(
+      final UserTaskVisibility visibility,
+      final OffsetDateTime initialTimestamp,
+      final Collection<SearchQuery> searchQueries,
+      final UserTaskService.RetrieveItemsMode mode) {
+
+    return userTaskService.countUserTasks(visibility, initialTimestamp, searchQueries, mode);
+
+  }
+
+  @Override
+  public ResponseEntity<Counts> countUserTasks(
+      final UserTaskCountsRequest userTaskCountsRequest,
+      final OffsetDateTime initialTimestamp) {
+
+    final var filters = userTaskCountsRequest.getFilters();
+    CountKeys.checkThatEachKeyIsUsedOnce(filters.stream().map(UserTaskCountFilter::getKey).toList());
+
+    final var visibility = userTasksVisibleTo(userContext.getUserLoggedInDetails());
+    final var counts = filters
+        .stream()
+        .map(filter -> new Count()
+            .key(filter.getKey())
+            .count(countUserTasks(
+                visibility,
+                // without a timestamp the count asks for the tasks which have not ended,
+                // which MongoDB narrows down in the indexes of the visibility. 'now' gives the
+                // same number with an "or" more, and MongoDB then reads the index entries of
+                // every task the user may see, the ended ones included
+                initialTimestamp,
+                mapper.toModel(filter.getSearchQueries()),
+                filter.getMode() != null
+                    ? mapper.toModel(filter.getMode())
+                    : UserTaskService.RetrieveItemsMode.OpenTasksWithFollowUp)))
+        .toList();
+
+    return ResponseEntity.ok(new Counts()
+        .serverTimestamp(initialTimestamp != null ? initialTimestamp : OffsetDateTime.now())
+        .counts(counts));
 
   }
 

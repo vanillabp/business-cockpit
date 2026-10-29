@@ -269,3 +269,11 @@ Marking as read and as unread still work for an ended task, and so does `GET /us
 `markAsRead=true`. A read marker only changes how the list shows the row.
 
 The list forms never answered 404, although the OpenAPI file said so. The file no longer says it.
+
+### Two count endpoints
+
+`POST /usertask/count` and `POST /workflow/count` are new. Each takes a list of filters, the same
+filters as its list, and answers one count per filter, with no rows and without sorting. Nothing
+else changes. A user interface which counted with a page of size 1 can switch when it likes. Two new
+changesets add indexes on the fields which decide who sees a user task or a workflow. On a large
+database the first start after the upgrade takes a little longer while MongoDB builds them.

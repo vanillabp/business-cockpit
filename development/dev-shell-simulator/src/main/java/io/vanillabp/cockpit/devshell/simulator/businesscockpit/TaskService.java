@@ -209,6 +209,19 @@ public class TaskService {
         .build();
   }
 
+  /**
+   * Counts the user tasks a list of the given mode shows.
+   *
+   * @param retrieveMode Which tasks to count
+   * @return The number of tasks
+   */
+  public long countUserTasks(
+      final RetrieveMode retrieveMode) {
+
+    return shownBy(retrieveMode, userTasks.findAll()).size();
+
+  }
+
   private static List<UserTask> shownBy(
       final RetrieveMode retrieveMode,
       final List<UserTask> userTasks) {
