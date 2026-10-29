@@ -50,17 +50,32 @@ import org.springframework.data.support.PageableExecutionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+/**
+ * Reads and stores the workflows the cockpit holds. It has two kinds of callers: the GUI API, where
+ * every call names a {@link WorkflowVisibility} which decides what the caller may reach, and the
+ * reports of the workflow modules, which belong to no user.
+ * <p>
+ * It also watches the collection for changes and turns every change into a
+ * {@link WorkflowChangedNotification} for the open browsers.
+ */
 @Service
 public class WorkflowlistService {
 
+    /** Which workflows a list holds, depending on whether they ended. */
     public enum RetrieveItemsMode {
+        /** Every workflow, ended or not. */
         All,
+        /** The workflows which have not ended, or ended after the user started to page. */
         Active,
+        /** The workflows which have ended. */
         Inactive
     }
 
+    /** The prefix of the name of every sort index of the workflows. */
     public static final String INDEX_CUSTOM_SORT_PREFIX = SortIndexes.INDEX_PREFIX;
+    /** The field of the start of a workflow, which the list is sorted by first by default. */
     public static final String PROPERTY_CREATEDAT = "createdAt";
+    /** The field of the id, which the list is sorted by last by default. */
     public static final String PROPERTY_ID = "id";
 
     private static final List<Sort.Order> DEFAULT_ORDER_ASC = List.of(
@@ -109,6 +124,17 @@ public class WorkflowlistService {
 
     private Subscription dbChangesSubscription;
 
+    /**
+     * Called by Spring.
+     */
+    public WorkflowlistService() {
+
+    }
+
+    /**
+     * Sets up the rule for the paths of a list request and learns the sort indexes which exist
+     * already. Called by Spring once the fields are set.
+     */
     @PostConstruct
     protected void initializeTrackingOfIndexes() {
 
@@ -324,6 +350,9 @@ public class WorkflowlistService {
      * One workflow by its id, with nobody asked whether the caller may see it. This is the way in
      * for what the BPMS reports, which knows the ids it sent and belongs to no user. Everything
      * answering a person goes through the overload taking a {@link WorkflowVisibility}.
+     *
+     * @param workflowId The id of the workflow
+     * @return The workflow, or {@code null} if there is none of that id
      */
     public Workflow getWorkflow(
             final String workflowId) {
@@ -338,6 +367,10 @@ public class WorkflowlistService {
      * The workflow of that id which the given visibility lets through, or {@code null} when there
      * is none. The visibility sits in the query rather than in a check around it, so there is no
      * way to the workflow which skips it.
+     *
+     * @param visibility Which workflows the caller may reach
+     * @param workflowId The id of the workflow
+     * @return The workflow, or {@code null}
      */
     public Workflow getWorkflow(
             final WorkflowVisibility visibility,
@@ -354,6 +387,22 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * One page of the workflow list. The sort index is created first if it is missing.
+     *
+     * @param pageNumber The number of the page, starting at 0
+     * @param pageSize How many workflows a page holds
+     * @param initialTimestamp When the user started to page through the list, or {@code null}
+     *        for now. A workflow which ended after this time still counts as active, so the pages
+     *        stay the same while the user pages.
+     * @param visibility Which workflows the caller may reach
+     * @param businessIds Only the workflows of these business ids, or {@code null} for all
+     * @param searchQueries The filters of the list, or {@code null}
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the start
+     * @param sortAscending Whether to sort in ascending order
+     * @param mode Which workflows the list holds
+     * @return The page
+     */
     public Page<Workflow> getWorkflows(
             final int pageNumber,
             final int pageSize,
@@ -447,6 +496,21 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * The first workflows of the list again, for a browser which already shows some of them. The
+     * query reads only the ids. The workflows the browser does not know yet are then loaded
+     * completely.
+     *
+     * @param visibility Which workflows the caller may reach
+     * @param size How many workflows to return at most
+     * @param knownWorkflowIds The ids of the workflows the browser shows already
+     * @param initialTimestamp When the user started to page through the list
+     * @param searchQueries The filters of the list, or {@code null}
+     * @param sort The paths to sort by, separated by commas, or {@code null} for the start
+     * @param sortAscending Whether to sort in ascending order
+     * @param mode Which workflows the list holds, or {@code null} for the active ones
+     * @return The workflows as one page, with the number of all workflows of the list
+     */
     public Page<Workflow> getWorkflowsUpdated(
             final WorkflowVisibility visibility,
             final int size,
@@ -501,6 +565,11 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * Starts to watch the collection for changes once the application has started.
+     *
+     * @param event The event which says the application has started
+     */
     @EventListener
     public void subscribeToDbChanges(
             final ApplicationStartedEvent event) {
@@ -523,6 +592,18 @@ public class WorkflowlistService {
 
     }
 
+    /**
+     * Suggestions for a search field of the workflow list: the words in a field which contain the
+     * text typed so far. Only active workflows are searched. Nothing is suggested for less than
+     * three letters.
+     *
+     * @param endedSince When the user started to page through the list
+     * @param visibility Which workflows the caller may reach
+     * @param searchQueries The filters the user set in the list, or {@code null}
+     * @param path The field to look for words in
+     * @param query The text typed so far
+     * @return The words found, at most 21
+     */
     public List<KwicResult> kwic(
             final OffsetDateTime endedSince,
             final WorkflowVisibility visibility,
@@ -550,6 +631,18 @@ public class WorkflowlistService {
         return kwicService.getKwicAggregatedResults(Workflow.class, match, searchQueries, path, query);
     }
 
+    /**
+     * The query behind every list and every request naming a single workflow. The part which
+     * honours the user's permissions follows {@link WorkflowVisibility}.
+     *
+     * @param visibility Which workflows the caller may reach
+     * @param initialTimestamp When the user started to page through the list. It decides whether a
+     *        workflow which ended in the meantime counts as active.
+     * @param mode Which workflows the list holds
+     * @param predefinedCriterias More conditions a workflow has to meet, or {@code null}
+     * @param businessIds Only the workflows of these business ids, or {@code null} for all
+     * @return The criteria
+     */
     public CriteriaDefinition buildWorkflowlistCriteria(
             final WorkflowVisibility visibility,
             final OffsetDateTime initialTimestamp,
@@ -623,6 +716,9 @@ public class WorkflowlistService {
                 new Criteria().andOperator(subCriterias);
     }
 
+    /**
+     * Stops watching the collection for changes. Called by Spring when the application stops.
+     */
     @PreDestroy
     public void cleanup() {
 

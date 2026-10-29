@@ -33,13 +33,27 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
+/**
+ * The security of the GUI API and of the files of the user interface. A user logs in once by HTTP
+ * basic authentication and gets a JWT (JSON Web Token) cookie, which every later request is
+ * authenticated with. The security of the BPMS API is a chain of its own, imported from
+ * {@link BpmsApiWebSecurityConfiguration}.
+ */
 @Configuration
 @Import(BpmsApiWebSecurityConfiguration.class)
 public class WebSecurityConfiguration {
 
+    /**
+     * The information about the application, like its title and version. The browser needs it
+     * before anybody logs in, so it is open to everybody.
+     */
     public static final RequestMatcher appInfoRequestMatcher = pathPattern(
             "/gui/api/v1/app/info");
 
+    /**
+     * The user who is logged in. It is open to everybody, so the browser can find out whether
+     * somebody is logged in at all.
+     */
     public static final RequestMatcher currentUserRequestMatcher = pathPattern(
             "/gui/api/v1/app/current-user");
 
@@ -50,17 +64,33 @@ public class WebSecurityConfiguration {
     public static final RequestMatcher updatesRequestMatcher = pathPattern(
             "/gui/api/v1/updates");
 
+    /**
+     * The files the user interface is built of. They are open to everybody.
+     */
     public static final RequestMatcher assetsRequestMatcher = pathPattern(
             "/assets/**");
 
+    /**
+     * Further static files of the user interface. They are open to everybody.
+     */
     public static final RequestMatcher staticRequestMatcher = pathPattern(
             "/static/**");
 
+    /**
+     * The requests the cockpit forwards to the user interfaces of the workflow modules. They are
+     * open to everybody, so the cockpit itself does not ask for a login here.
+     */
     public static final RequestMatcher workflowModulesProxyRequestMatcher = pathPattern(
             "/wm/**");
 
     @Autowired
     private ApplicationProperties properties;
+
+    /**
+     * Creates the configuration. Spring creates it because of {@code @Configuration}.
+     */
+    public WebSecurityConfiguration() {
+    }
 
     /**
      * Authenticates a request from the JWT cookie whenever it carries one. It sits behind the
@@ -85,6 +115,13 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * Turns a login token into the authentication of a user and back. The groups of the user are
+     * completed by the group hierarchy. An application can bring its own mapper instead.
+     *
+     * @param groupHierarchyService Resolves the groups a group belongs to
+     * @return The mapper
+     */
     @Bean
     @ConditionalOnMissingBean
     public JwtMapper<? extends JwtAuthenticationToken> jwtMapper(
@@ -96,6 +133,12 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * Stores the authentication of a login in the JWT cookie, so later requests find it there.
+     *
+     * @param jwtMapper Turns the authentication into a token
+     * @return The repository
+     */
     @Bean
     public JwtSecurityContextRepository jwtSecurityContextRepository(
             final JwtMapper<? extends AbstractAuthenticationToken> jwtMapper) {
@@ -106,6 +149,17 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * The security filter chain of the GUI API and of the user interface. An application can
+     * bring its own chain named {@code guiHttpSecurity} instead.
+     *
+     * @param http The builder of the chain
+     * @param jwtSecurityContextRepository Stores the login in the JWT cookie
+     * @param jwtMapper Turns a token into an authentication and back
+     * @param userService Provides the users who may log in by basic authentication
+     * @return The chain
+     * @throws Exception If Spring Security cannot build the chain
+     */
     @Bean
     @Order(99)
     @ConditionalOnMissingBean(name = "guiHttpSecurity")
@@ -147,6 +201,11 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * Removes the JWT cookie on logout and sends the browser to the start page.
+     *
+     * @return The handler
+     */
     public JwtLogoutSuccessHandler jwtLogoutSuccessHandler() {
 
         final var handler = new JwtLogoutSuccessHandler(properties.getJwt());
@@ -175,6 +234,12 @@ public class WebSecurityConfiguration {
 
     }
 
+    /**
+     * Provides the details of the user who is logged in, read from the JWT. An application can
+     * bring its own bean named {@code userDetailsProvider} instead.
+     *
+     * @return The provider
+     */
     @Bean
     @ConditionalOnMissingBean(name = "userDetailsProvider")
     public io.vanillabp.cockpit.commons.security.usercontext.UserDetailsProvider userDetailsProvider() {

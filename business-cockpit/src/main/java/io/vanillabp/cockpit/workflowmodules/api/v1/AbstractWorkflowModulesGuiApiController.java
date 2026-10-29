@@ -22,18 +22,28 @@ import org.springframework.http.ResponseEntity;
  */
 public abstract class AbstractWorkflowModulesGuiApiController implements OfficialWorkflowModulesApi {
 
+    /** Reads the registered workflow modules. */
     @Autowired
     protected WorkflowModuleService service;
 
+    /** Turns a stored workflow module into the one of the GUI API. */
     @Autowired
     protected GuiApiMapper mapper;
 
+    /** Tells who makes the current request. */
     @Autowired
     protected UserContext userContext;
+
+    /** Creates the controller. Spring fills the fields. */
+    public AbstractWorkflowModulesGuiApiController() {
+    }
 
     /**
      * The workflow modules this view lets the given user reach, which is the only thing a subclass
      * has to decide.
+     *
+     * @param currentUser The user who makes the request
+     * @return The modules this user may reach in this view
      */
     protected abstract WorkflowModuleVisibility workflowModulesVisibleTo(
             final UserDetails currentUser);

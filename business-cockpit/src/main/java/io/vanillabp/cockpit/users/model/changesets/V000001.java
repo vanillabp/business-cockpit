@@ -14,6 +14,19 @@ import org.springframework.stereotype.Component;
 @DbChangesetConfiguration(author = "stephanpelikan")
 public class V000001 {
 
+    /**
+     * Called by Spring.
+     */
+    public V000001() {
+
+    }
+
+    /**
+     * Creates the collection.
+     *
+     * @param mongo Used to create the collection
+     * @return The command which undoes the changeset by dropping the collection
+     */
     @DbChangeset(order = 4000)
     public String createUsersCollection(
             final MongoTemplate mongo) {

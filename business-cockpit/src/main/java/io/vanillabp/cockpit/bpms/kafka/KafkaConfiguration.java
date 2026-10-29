@@ -22,6 +22,11 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.util.StringUtils;
 
+/**
+ * Sets up the cockpit to take the reports of the BPMS adapters from Kafka, as another way beside
+ * REST. It is only there if Kafka and the protobuf classes are on the class path and all three
+ * topics are configured.
+ */
 // registered through the .imports file of this module, which is what makes the conditions below the
 // only thing deciding whether the ingestion is there
 @AutoConfiguration
@@ -32,6 +37,9 @@ import org.springframework.util.StringUtils;
 public class KafkaConfiguration {
 
     private static final String WORKER_ID_NOT_SET = "not-set";
+    /**
+     * The start of the client id and of the consumer group id of every listener of the cockpit.
+     */
     public static final String KAFKA_CONSUMER_PREFIX = "business-cockpit";
 
     /**
@@ -44,6 +52,21 @@ public class KafkaConfiguration {
     @Value("${workerId:" + WORKER_ID_NOT_SET + "}")
     private String workerId;
 
+    /**
+     * Creates the configuration. Spring Boot creates it as an auto-configuration.
+     */
+    public KafkaConfiguration() {
+    }
+
+    /**
+     * The consumer factory of the listeners, built from the Kafka settings of Spring Boot. It reads
+     * the key as a string and the value as bytes, which the listeners parse as protobuf. The start
+     * fails if the worker id or the suffix of the consumer group id is missing.
+     *
+     * @param kafkaProperties The Kafka settings of Spring Boot
+     * @param bpmsApiProperties The settings of the BPMS API, for the suffix of the consumer group id
+     * @return The consumer factory
+     */
     @Bean
     public DefaultKafkaConsumerFactory<?, ?> kafkaConsumerFactory(
             KafkaProperties kafkaProperties,
@@ -77,6 +100,10 @@ public class KafkaConfiguration {
     /**
      * Built with the Kafka settings of Spring Boot, like the factory Spring Boot builds itself, and
      * with the error handler of {@link RepeatUntilStored} in place of the one Spring Boot would set.
+     *
+     * @param configurer Applies the Kafka settings of Spring Boot to the factory
+     * @param kafkaConsumerFactory The consumer factory the containers use
+     * @return The listener container factory of the cockpit
      */
     @Bean(LISTENER_CONTAINER_FACTORY)
     public ConcurrentKafkaListenerContainerFactory<Object, Object> businessCockpitKafkaListenerContainerFactory(
@@ -90,6 +117,13 @@ public class KafkaConfiguration {
 
     }
 
+    /**
+     * The listener for reports about user tasks.
+     *
+     * @param userTaskService Stores the reports
+     * @param protobufUserTaskMapper Maps the reports onto user tasks
+     * @return The listener
+     */
     @Bean
     public KafkaUserTaskController kafkaUserTaskController(
             UserTaskService userTaskService,
@@ -98,6 +132,13 @@ public class KafkaConfiguration {
         return new KafkaUserTaskController(userTaskService, protobufUserTaskMapper);
     }
 
+    /**
+     * The listener for reports about workflows.
+     *
+     * @param workflowlistService Stores the reports
+     * @param workflowMapper Maps the reports onto workflows
+     * @return The listener
+     */
     @Bean
     public KafkaWorkflowController kafkaWorkflowController(
             WorkflowlistService workflowlistService,
@@ -106,6 +147,12 @@ public class KafkaConfiguration {
         return new KafkaWorkflowController(workflowlistService, workflowMapper);
     }
 
+    /**
+     * The listener for workflow modules which register themselves.
+     *
+     * @param workflowModuleService Stores the workflow modules
+     * @return The listener
+     */
     @Bean
     public KafkaWorkflowModuleController kafkaWorkflowModuleController(
             WorkflowModuleService workflowModuleService) {
@@ -113,11 +160,21 @@ public class KafkaConfiguration {
         return new KafkaWorkflowModuleController(workflowModuleService);
     }
 
+    /**
+     * The mapper from protobuf user task reports onto user tasks.
+     *
+     * @return The mapper
+     */
     @Bean
     public ProtobufUserTaskMapper protobufUserTaskMapper(){
         return Mappers.getMapper(ProtobufUserTaskMapper.class);
     }
 
+    /**
+     * The mapper from protobuf workflow reports onto workflows.
+     *
+     * @return The mapper
+     */
     @Bean
     public ProtobufWorkflowMapper protobufWorkflowMapper(){
         return Mappers.getMapper(ProtobufWorkflowMapper.class);

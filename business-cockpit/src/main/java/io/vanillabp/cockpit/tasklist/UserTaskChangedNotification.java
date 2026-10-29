@@ -9,12 +9,24 @@ import java.util.Objects;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.messaging.Message;
 
+/**
+ * Tells the open browsers that a user task changed. The GUI notification service turns it into an
+ * event of the update stream.
+ */
 public class UserTaskChangedNotification extends NotificationEvent {
 
     private static final long serialVersionUID = 1L;
 
+    /** The id of the user task which changed. */
     private String userTaskId;
     
+    /**
+     * Creates the notification.
+     *
+     * @param type The kind of change
+     * @param userTaskId The id of the user task which changed
+     * @param targetGroups The groups whose members may be told, or {@code null} for everybody
+     */
     public UserTaskChangedNotification(
             final Type type,
             final String userTaskId,
@@ -38,6 +50,9 @@ public class UserTaskChangedNotification extends NotificationEvent {
      * {@code update}. Everything a client needs is in the event: which kind of entity changed, its
      * id and what happened to it. The target groups are left out on purpose: who learns about a
      * change is decided per update stream and not per event, and nothing reads them.
+     *
+     * @param message The change event of MongoDB
+     * @return The notification
      */
     public static UserTaskChangedNotification build(
             final Message<ChangeStreamDocument<Document>, UserTask> message) {
@@ -74,10 +89,20 @@ public class UserTaskChangedNotification extends NotificationEvent {
     }
     
     
+    /**
+     * The id of the user task which changed.
+     *
+     * @return The id
+     */
     public String getUserTaskId() {
         return userTaskId;
     }
     
+    /**
+     * Sets the id of the user task which changed.
+     *
+     * @param userTaskId The id
+     */
     public void setUserTaskId(String userTaskId) {
         this.userTaskId = userTaskId;
     }

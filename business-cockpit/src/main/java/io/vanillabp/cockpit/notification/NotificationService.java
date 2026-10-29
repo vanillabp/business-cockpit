@@ -20,6 +20,9 @@ import java.util.Map;
 public interface NotificationService {
 
     /**
+     * The technical type of this medium, which also finds its templates and its recipient
+     * settings.
+     *
      * @return the technical type of this medium, e.g. {@code "email"}. Also used to resolve the
      *         template path ({@code business-cockpit.notification.<type>.templates}) and as the key
      *         for the per-medium recipient configuration.
@@ -27,12 +30,17 @@ public interface NotificationService {
     String getType();
 
     /**
+     * The name of the medium as the GUI shows it, in every language the medium offers.
+     *
      * @return the display name of the medium per language (key = language, e.g. {@code "de"} ->
      *         {@code "E-Mail"}).
      */
     Map<String, String> getName();
 
     /**
+     * The settings a user needs for this medium, e.g. the e-mail address, ready to be shown in the
+     * GUI.
+     *
      * @param userId the user the configuration belongs to
      * @return the medium-specific recipient configuration values of the user (e.g. the e-mail
      *         address), each carrying its language-specific title and description for rendering in

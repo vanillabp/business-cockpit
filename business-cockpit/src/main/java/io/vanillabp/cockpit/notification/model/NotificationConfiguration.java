@@ -20,6 +20,10 @@ public record NotificationConfiguration(
 
     /**
      * Builds the per-workflow key used in {@link #perWorkflow()}.
+     *
+     * @param workflowModuleId the workflow module of the workflow
+     * @param bpmnProcessId    the BPMN process id of the workflow
+     * @return the key, {@code workflowModuleId + "#" + bpmnProcessId}
      */
     public static String workflowKey(
             final String workflowModuleId,

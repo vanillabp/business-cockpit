@@ -8,12 +8,28 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+/**
+ * Turns a changed workflow into an event for the update streams of the open browsers.
+ */
 @Service("workflowlistGuiNotificationService")
 public class GuiNotificationService {
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
 
+    /**
+     * Called by Spring.
+     */
+    public GuiNotificationService() {
+
+    }
+
+    /**
+     * Publishes a GUI event for the changed workflow. The update streams decide which browsers get
+     * it.
+     *
+     * @param notification The change of the workflow
+     */
     @EventListener(classes = WorkflowChangedNotification.class)
     public void updateClients(
             final WorkflowChangedNotification notification) {

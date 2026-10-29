@@ -22,8 +22,17 @@ import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 
 import java.util.List;
 
+/**
+ * Sets up the connection to MongoDB and the template all of the cockpit writes through.
+ */
 @Configuration
 public class MongoDbConfiguration {
+
+    /**
+     * Creates the configuration. Spring creates it because of {@code @Configuration}.
+     */
+    public MongoDbConfiguration() {
+    }
 
     @Autowired
     private MongoDbProperties properties;
@@ -32,7 +41,10 @@ public class MongoDbConfiguration {
     private Environment environment;
     
     /**
-     * Switches TLS on, which an integration environment needs.
+     * Switches TLS on if the properties ask for it, which an integration environment needs. It
+     * also shows the connection pool in JMX (Java Management Extensions).
+     *
+     * @return The customizer of the client settings
      */
     @Bean
     public MongoClientSettingsBuilderCustomizer settings() {
@@ -48,7 +60,10 @@ public class MongoDbConfiguration {
     }
     
     /**
-     * Reads and writes an OffsetDateTime the way MongoDB stores a date.
+     * Reads and writes an OffsetDateTime the way MongoDB stores a date, and a BigDecimal the way
+     * MongoDB stores a decimal number.
+     *
+     * @return The conversions
      */
     @Bean
     public MongoCustomConversions customConversions() {
@@ -70,6 +85,10 @@ public class MongoDbConfiguration {
      * <p>
      * The converter gets the replacement of a dot in a key of the business data here, for the same
      * reason: the template is what every record of the cockpit is written and read through.
+     *
+     * @param mongoDbFactory The factory of the database connection
+     * @param converter The converter between documents and Java objects
+     * @return The template
      */
     @Bean
     public MongoTemplate mongoTemplate(

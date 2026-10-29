@@ -67,6 +67,15 @@ public class UpdateStreams {
 
     private Map<String, List<GuiEvent>> collectedChanges = new LinkedHashMap<>();
 
+    /**
+     * Creates the streams. A limit of known ids below one is replaced by the default, with a
+     * warning which names the property to fix.
+     *
+     * @param properties The configuration of the cockpit, of which the {@code gui-sse} part counts
+     * @param taskScheduler Runs the first ping of a new stream and ends a stream when its sign-in
+     *        expires
+     * @param audiences One audience per kind of entity, which decides who may see a change
+     */
     public UpdateStreams(
             final ApplicationProperties properties,
             final TaskScheduler taskScheduler,
@@ -110,6 +119,7 @@ public class UpdateStreams {
      * @param signInExpiresAt When the sign-in expires. The stream ends then, and the browser opens a
      *        new one, which carries the rights of the new sign-in. That is how a change of rights,
      *        a substitute for example, reaches the stream without the person signing in again
+     * @return The emitter which Spring MVC keeps open as the response to the browser
      */
     public SseEmitter subscribe(
             final UserDetails user,
@@ -164,6 +174,11 @@ public class UpdateStreams {
      * Tells the streams of this person that one of their lists was answered with these ids, from
      * this view. Every stream of the person learns it, because a request of a list does not say
      * which tab it comes from.
+     *
+     * @param kindOfEntity The kind of entity the list shows
+     * @param user The person whose list was answered. Nothing happens for {@code null}
+     * @param view The view the list was answered from
+     * @param ids The ids of the entities in the answer
      */
     public void listAnswered(
             final String kindOfEntity,
@@ -183,7 +198,11 @@ public class UpdateStreams {
 
     }
 
-    /** Collects a change for the next filtering tick, without deciding who it concerns yet. */
+    /**
+     * Collects a change for the next filtering tick, without deciding who it concerns yet.
+     *
+     * @param guiEvent The change
+     */
     @EventListener(classes = GuiEvent.class)
     public void collectChange(
             final GuiEvent guiEvent) {
@@ -336,7 +355,11 @@ public class UpdateStreams {
 
     }
 
-    /** The open streams, for a test or a measurement which looks at them from outside. */
+    /**
+     * The open streams, for a test or a measurement which looks at them from outside.
+     *
+     * @return A copy of the open streams
+     */
     public Collection<UpdateEmitter> openStreams() {
 
         return List.copyOf(updateEmitters.values());

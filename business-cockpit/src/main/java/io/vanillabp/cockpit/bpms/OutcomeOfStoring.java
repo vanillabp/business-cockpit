@@ -62,6 +62,8 @@ public final class OutcomeOfStoring {
     }
 
     /**
+     * The outcome of a report which needs nothing more.
+     *
      * @return The outcome of a report which was stored, or which changed nothing because the
      *         cockpit knows something younger already
      */
@@ -72,6 +74,9 @@ public final class OutcomeOfStoring {
     }
 
     /**
+     * The outcome of a save which threw. It looks at the causes to tell whether the same report
+     * can go through when it comes again.
+     *
      * @param record The record the report is about, like "user task 'task-1'"
      * @param failure What the save threw
      * @return The outcome of a save which failed, sorted into one of the two kinds
@@ -101,21 +106,33 @@ public final class OutcomeOfStoring {
 
     }
 
-    /** @return Whether the cockpit is up to date about the record now */
+    /**
+     * Tells whether nothing failed.
+     *
+     * @return Whether the cockpit is up to date about the record now
+     */
     public boolean isUpToDate() {
 
         return failure == null;
 
     }
 
-    /** @return Whether the save failed in a way which no repetition of the report can change */
+    /**
+     * Tells whether sending the report again is of no use.
+     *
+     * @return Whether the save failed in a way which no repetition of the report can change
+     */
     public boolean failsEveryTime() {
 
         return failsEveryTime;
 
     }
 
-    /** @return What the save threw, or {@code null} if nothing failed */
+    /**
+     * The exception of a failed save, for the log.
+     *
+     * @return What the save threw, or {@code null} if nothing failed
+     */
     public Exception failure() {
 
         return failure;
@@ -123,6 +140,8 @@ public final class OutcomeOfStoring {
     }
 
     /**
+     * The reason of a failed save in words.
+     *
      * @return One line which says what could not be stored and why, short enough for the body of
      *         an answer and for a log line. It names the record and the most specific cause, and
      *         never a value of the report.

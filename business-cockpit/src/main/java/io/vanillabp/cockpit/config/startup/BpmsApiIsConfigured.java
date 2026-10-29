@@ -15,6 +15,12 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 public class BpmsApiIsConfigured implements Condition {
 
+    /**
+     * Creates the condition. Spring creates it when it reads the {@code @Conditional} annotation.
+     */
+    public BpmsApiIsConfigured() {
+    }
+
     @Override
     public boolean matches(
             final ConditionContext context,

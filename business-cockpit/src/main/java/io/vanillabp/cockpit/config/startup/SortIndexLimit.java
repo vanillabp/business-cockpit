@@ -16,14 +16,23 @@ import org.springframework.core.env.Environment;
  */
 public final class SortIndexLimit {
 
+    /**
+     * The limit used if none is configured.
+     */
     public static final int DEFAULT = 30;
 
+    /**
+     * The highest limit which may be configured. MongoDB takes 64 indexes per collection, and the
+     * cockpit keeps a few of them for itself.
+     */
     public static final int HIGHEST = 60;
 
     private SortIndexLimit() {
     }
 
     /**
+     * The limit the cockpit works with.
+     *
      * @param environment The configuration of the application
      * @return The configured limit, or {@link #DEFAULT} if none is configured. A value
      *         {@link #whatIsWrongWith(Environment)} refuses stops the start before this is asked.
@@ -39,6 +48,8 @@ public final class SortIndexLimit {
     }
 
     /**
+     * Checks the configured limit, so a wrong value can stop the start.
+     *
      * @param environment The configuration of the application
      * @return Why the configured value cannot be used, or empty if it can or none is configured
      */

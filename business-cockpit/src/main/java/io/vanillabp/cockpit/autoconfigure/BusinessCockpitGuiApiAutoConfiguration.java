@@ -47,4 +47,11 @@ import org.springframework.context.annotation.Import;
 })
 public class BusinessCockpitGuiApiAutoConfiguration {
 
+    /**
+     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+     */
+    public BusinessCockpitGuiApiAutoConfiguration() {
+
+    }
+
 }

@@ -14,6 +14,11 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the workflow events of version 1.1 of the BPMS API onto the workflows, the cases, the
+ * cockpit stores. Unlike version 1, a created and an updated workflow each have an event type of
+ * their own.
+ */
 @Mapper(implementationName = "WorkflowMapperV1_1Impl")
 public abstract class WorkflowMapper {
 
@@ -23,6 +28,18 @@ public abstract class WorkflowMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass which Spring creates.
+     */
+    public WorkflowMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user, or {@code null} if the report names nobody
+     * @return The person, or {@code null} if the report names nobody
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
@@ -31,12 +48,24 @@ public abstract class WorkflowMapper {
         return userId == null ? null : personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
 
+    /**
+     * Builds a new workflow from the report of its creation.
+     *
+     * @param event The report of the created workflow
+     * @return The new workflow, not stored yet
+     */
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -55,6 +84,12 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowCreatedEvent event);
 
+    /**
+     * Builds a new workflow from an update, for an update which arrives before the creation.
+     *
+     * @param event The report of the updated workflow
+     * @return The new workflow, not stored yet
+     */
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -73,6 +108,14 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowUpdatedEvent event);
 
+    /**
+     * Maps an update onto a workflow the cockpit holds already. The id and the creation stay as they
+     * are.
+     *
+     * @param event The report of the updated workflow
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -91,6 +134,15 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowUpdatedEvent event, @MappingTarget Workflow result);
 
+    /**
+     * The mapping of a completion which MapStruct generates. Call
+     * {@link #toEndedWorkflow(WorkflowCompletedEvent, Workflow)} instead, which also keeps what the end
+     * does not report.
+     *
+     * @param event The completion as it was reported
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -118,6 +170,15 @@ public abstract class WorkflowMapper {
     @Mapping(target = "accessibleToGroups", source = "accessibleToGroups", qualifiedByName = GROUP_MAPPING)
     protected abstract Workflow mapEndedWorkflow(WorkflowCompletedEvent event, @MappingTarget Workflow result);
 
+    /**
+     * The mapping of a cancellation which MapStruct generates. Call
+     * {@link #toEndedWorkflow(WorkflowCancelledEvent, Workflow)} instead, which also keeps what the end
+     * does not report.
+     *
+     * @param event The cancellation as it was reported
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

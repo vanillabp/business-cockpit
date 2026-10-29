@@ -11,13 +11,26 @@ import java.util.List;
  */
 public interface RecipientDirectory {
 
-    /** The available medium types (from the {@code NotificationService} beans). */
+    /**
+     * The available medium types (from the {@code NotificationService} beans).
+     *
+     * @return the medium types, e.g. {@code "email"}
+     */
     Collection<String> mediaTypes();
 
-    /** Whether the user has logged in at least once (exists in the {@code users} collection). */
+    /**
+     * Whether the user has logged in at least once (exists in the {@code users} collection).
+     *
+     * @param userId the user
+     * @return {@code true} if the user has logged in before
+     */
     boolean isLoggedIn(String userId);
 
-    /** Ids of all logged-in users (used to fan out CREATED notifications). */
+    /**
+     * Ids of all logged-in users (used to fan out CREATED notifications).
+     *
+     * @return the ids of every user who has logged in before
+     */
     Collection<String> loggedInUserIds();
 
     /**
@@ -25,10 +38,18 @@ public interface RecipientDirectory {
      * {@code null} where they cannot be found out, because no user directory is configured for
      * example. A CREATED notification which rests on what the user may see is then skipped for
      * that user.
+     *
+     * @param userId the user
+     * @return the authorities of the user, or {@code null} if they are not known
      */
     List<String> authoritiesOf(String userId);
 
-    /** The user's notification configuration ({@code null} = the default "none"). */
+    /**
+     * The user's notification configuration.
+     *
+     * @param userId the user
+     * @return the configuration, or {@code null} for the default "none"
+     */
     NotificationConfiguration configOf(String userId);
 
 }

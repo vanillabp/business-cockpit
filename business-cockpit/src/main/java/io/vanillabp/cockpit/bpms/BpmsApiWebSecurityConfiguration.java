@@ -30,13 +30,35 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher;
  */
 public class BpmsApiWebSecurityConfiguration {
 
+    /**
+     * The role of the one user of the BPMS API.
+     */
     public static final String BPMS_API_ROLE = "BPMS-API";
 
+    /**
+     * The authority Spring Security makes of {@link #BPMS_API_ROLE}. The BPMS API controllers ask
+     * for it.
+     */
     public static final String BPMS_API_AUTHORITY = "ROLE_" + BPMS_API_ROLE;
+
+    /**
+     * Creates the configuration. Spring creates it, because the web security configuration imports
+     * it.
+     */
+    public BpmsApiWebSecurityConfiguration() {
+    }
 
 	@Autowired
 	private BpmsApiProperties properties;
 
+    /**
+     * The filter chain for the paths of the BPMS API. It comes before the chain of the GUI and
+     * asks for HTTP basic credentials on every request.
+     *
+     * @param http The builder Spring Security gives to every chain
+     * @return The chain for the BPMS API
+     * @throws Exception If Spring Security cannot build the chain
+     */
     @Bean
     @Order(1)
     @Conditional(BpmsApiIsConfigured.class)
@@ -67,6 +89,11 @@ public class BpmsApiWebSecurityConfiguration {
 
     }
 
+    /**
+     * Holds the one user of the BPMS API, built from the configured user name and password.
+     *
+     * @return The user store of the BPMS API
+     */
     @Bean
     @Conditional(BpmsApiIsConfigured.class)
     public InMemoryUserDetailsManager bpmsApiUserDetailsService() {
@@ -86,6 +113,8 @@ public class BpmsApiWebSecurityConfiguration {
      * password and warns about running that way in production. Those three lines say nothing about
      * the configuration the startup check asks for, and they hide it. Nobody authenticates against
      * the empty manager: the GUI chain brings its own users.
+     *
+     * @return A user store without users
      */
     @Bean
     @Conditional(BpmsApiIsNotConfigured.class)

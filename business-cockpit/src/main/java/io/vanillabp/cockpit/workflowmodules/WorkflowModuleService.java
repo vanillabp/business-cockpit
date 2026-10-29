@@ -16,8 +16,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
+/**
+ * Keeps the registrations of the workflow modules. A module registers itself when it starts, and
+ * the cockpit needs the registration to pass GUI requests on to the module and to resolve the
+ * groups of a user.
+ */
 @Service
 public class WorkflowModuleService {
+
+    /** Creates the service. Spring fills the fields. */
+    public WorkflowModuleService() {
+    }
 
     @Autowired
     private WorkflowModuleRepository workflowModules;
@@ -25,6 +34,11 @@ public class WorkflowModuleService {
     @Autowired
     private MicroserviceProxyRegistry microserviceProxyRegistry;
 
+    /**
+     * Loads every stored workflow module on startup. It fills the cache of group hierarchies and
+     * registers a proxy for each module, so requests can be passed on before any module registers
+     * again.
+     */
     @PostConstruct
     public void registerProxiesForWorkflowModules() {
 
@@ -48,6 +62,20 @@ public class WorkflowModuleService {
 
     }
 
+    /**
+     * Stores the registration of a workflow module, or updates the one stored before. If another
+     * cockpit node writes the same module at the same time, the registration is applied once more
+     * on top of what that node wrote.
+     *
+     * @param id The id of the workflow module
+     * @param uri Where the module answers the cockpit's calls
+     * @param taskProviderApiUriPath The path below the URI serving the user-task provider API
+     * @param workflowProviderApiUriPath The path below the URI serving the workflow provider API
+     * @param accessibleToGroups The groups which may see the module, none for everybody
+     * @param groupHierarchy For each group, the groups it stands for
+     * @return Whether anything had to be written. A registration which repeats what is already
+     *         stored leaves the document untouched
+     */
     public boolean registerOrUpdateWorkflowModule(
             final String id,
             final String uri,
@@ -177,6 +205,9 @@ public class WorkflowModuleService {
      * the cockpit needs the registration itself, for instance to route a proxied request.
      * Everything answering a person goes through the overload taking a
      * {@link WorkflowModuleVisibility}.
+     *
+     * @param id The id of the workflow module
+     * @return The module, or {@code null} when there is none or the id is {@code null}
      */
     public WorkflowModule getWorkflowModule(
             final String id) {
@@ -194,6 +225,10 @@ public class WorkflowModuleService {
      * The module of that id which the given visibility lets through, or {@code null} when there is
      * none. The visibility goes into the query the same way it goes into the query behind the list,
      * so the two cannot drift apart.
+     *
+     * @param visibility Which modules the caller may reach
+     * @param id The id of the workflow module
+     * @return The module, or {@code null}
      */
     public WorkflowModule getWorkflowModule(
             final WorkflowModuleVisibility visibility,
@@ -211,6 +246,12 @@ public class WorkflowModuleService {
 
     }
 
+    /**
+     * The modules the given visibility lets through, for the module list of the GUI.
+     *
+     * @param visibility Which modules the caller may reach
+     * @return The modules, in no particular order
+     */
     public List<WorkflowModule> getWorkflowModules(
             final WorkflowModuleVisibility visibility) {
 

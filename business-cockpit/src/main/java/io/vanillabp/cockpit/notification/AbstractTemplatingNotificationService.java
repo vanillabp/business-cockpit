@@ -56,14 +56,23 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
      * A rendered template, and whether it is HTML. That comes from the output format Freemarker
      * read, which is a {@code .ftlh} template or an explicit
      * {@code <#ftl output_format="HTML">}.
+     *
+     * @param content the text the template produced
+     * @param html    {@code true} if the text is HTML, {@code false} for plain text
      */
     public record Rendered(String content, boolean html) {
     }
 
+    /** The notification settings, which name the template directory of each medium. */
     protected final NotificationProperties notificationProperties;
 
     private volatile Configuration configuration;
 
+    /**
+     * Creates the service for a medium. The templates are read on first use.
+     *
+     * @param notificationProperties the notification settings
+     */
     protected AbstractTemplatingNotificationService(
             final NotificationProperties notificationProperties) {
 
@@ -156,6 +165,16 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
      * and falls back to the application's default. The public {@link #render} with five arguments
      * keeps the signature of the contract and asks {@link #localeOf(UserDetails)} for the
      * locale.
+     *
+     * @param templateName     the base template name (e.g. {@code email-body}); the extension and
+     *                         the locale suffix are resolved here and by Freemarker
+     * @param templateContext  the data model
+     * @param userDetails      the recipient (exposed to the template as {@code userDetails})
+     * @param notificationType the kind of change (exposed as {@code notificationType})
+     * @param forced           whether the workflow module forced the notification (exposed as
+     *                         {@code forced})
+     * @param locale           the locale to look the template up with
+     * @return the rendered text, or {@code null} if no template was found
      */
     protected String render(
             final String templateName,
@@ -175,6 +194,13 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
      * a medium can send the message with the correct content type. A {@code .ftlh} template is
      * preferred over a {@code .ftl} one of the same name.
      *
+     * @param templateName     the base template name (e.g. {@code email-body}), without extension
+     * @param templateContext  the data model
+     * @param userDetails      the recipient (exposed to the template as {@code userDetails})
+     * @param notificationType the kind of change (exposed as {@code notificationType})
+     * @param forced           whether the workflow module forced the notification (exposed as
+     *                         {@code forced})
+     * @param locale           the locale to look the template up with
      * @return the rendered content and its HTML flag, or {@code null} if no template was found
      */
     protected Rendered renderContent(
@@ -234,6 +260,9 @@ public abstract class AbstractTemplatingNotificationService implements Notificat
      * {@link Locale#ENGLISH} by default. The e-mail medium takes the other way and hands the
      * recipient's own locale, or the application's default, to the overload with six
      * arguments.
+     *
+     * @param userDetails the recipient
+     * @return the locale to look the template up with
      */
     protected Locale localeOf(final UserDetails userDetails) {
 

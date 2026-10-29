@@ -20,9 +20,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+/**
+ * Answers the GUI's questions about the application and the person signed in, and opens the
+ * update stream of a browser tab.
+ */
 @RestController
 @RequestMapping(path = "/gui/api/v1")
 public class LoginApiController implements LoginApi {
+
+    /** Creates the controller. Spring fills the fields. */
+    public LoginApiController() {
+    }
 
     @Autowired
     private ApplicationProperties properties;
@@ -36,6 +44,13 @@ public class LoginApiController implements LoginApi {
     @Autowired
     private PersonAndGroupApiMapper personAndGroupMapper;
 
+    /**
+     * Opens the update stream of a browser tab. The stream ends when the sign-in expires, and the
+     * browser then opens a new one.
+     *
+     * @return The stream, kept open as the response
+     * @throws Exception When no user is signed in yet, as {@link BcUnauthorizedException}
+     */
     @RequestMapping(
             method = RequestMethod.GET,
             value = "/updates",

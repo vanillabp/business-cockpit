@@ -57,6 +57,7 @@ public final class WriteConcernCheck {
      * falls back to a single acknowledgement, and {@link #reportWhatTheCockpitWritesWith} says so.
      *
      * @param properties the {@code mongodb.*} settings of the application
+     * @return the write concern asked for, or empty if the configuration asks for none
      */
     public static Optional<WriteConcern> writeConcernConfigured(
             final MongoDbProperties properties) {

@@ -15,11 +15,19 @@ import java.util.Collection;
  *
  * <p>This decides the module list and nothing else. The tasks and workflows of a module carry their
  * own visibility, so a user kept out of a module can still meet what that module reported.
+ *
+ * @param accessibleToGroups The groups whose modules are let through, or {@code null} to let every
+ *     module through
  */
 public record WorkflowModuleVisibility(
         Collection<String> accessibleToGroups) {
 
-    /** The modules registered for one of the user's groups, plus the ones open to everybody. */
+    /**
+     * The modules registered for one of the user's groups, plus the ones open to everybody.
+     *
+     * @param user The user whose groups decide
+     * @return The visibility for that user
+     */
     public static WorkflowModuleVisibility modulesAddressedTo(
             final UserDetails user) {
 
@@ -27,7 +35,11 @@ public record WorkflowModuleVisibility(
 
     }
 
-    /** Every registered workflow module, whichever groups it named. */
+    /**
+     * Every registered workflow module, whichever groups it named.
+     *
+     * @return The visibility which lets every module through
+     */
     public static WorkflowModuleVisibility everyWorkflowModule() {
 
         return new WorkflowModuleVisibility(null);

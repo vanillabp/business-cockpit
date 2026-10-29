@@ -43,6 +43,8 @@ public final class WhatAnEndReports {
     }
 
     /**
+     * Copies a stored list before a mapping runs, for the same reason as the map.
+     *
      * @param stored What the cockpit holds about the task or the case
      * @param <V> What the list holds
      * @return A copy, or <code>null</code> where nothing is stored
@@ -56,6 +58,9 @@ public final class WhatAnEndReports {
     }
 
     /**
+     * Chooses the map to store. An empty map in the report of an end means nothing was reported,
+     * so the stored one stays.
+     *
      * @param reported What the end carried
      * @param stored What the cockpit holds about the task or the case
      * @param <V> What the map holds
@@ -70,6 +75,9 @@ public final class WhatAnEndReports {
     }
 
     /**
+     * Chooses the list to store. An empty list in the report of an end means nothing was reported,
+     * so the stored one stays.
+     *
      * @param reported What the end carried
      * @param stored What the cockpit holds about the task or the case
      * @param <V> What the list holds
@@ -84,6 +92,9 @@ public final class WhatAnEndReports {
     }
 
     /**
+     * Chooses the words to store for the fulltext search. Blank words in the report of an end
+     * mean nothing was reported, so the stored ones stay.
+     *
      * @param reported The words the end carried for the fulltext search
      * @param stored What the cockpit holds about the task or the case
      * @return What to store

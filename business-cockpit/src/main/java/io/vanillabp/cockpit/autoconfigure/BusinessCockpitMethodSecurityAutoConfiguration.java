@@ -23,6 +23,10 @@ public class BusinessCockpitMethodSecurityAutoConfiguration {
     private static final Logger logger =
             LoggerFactory.getLogger(BusinessCockpitMethodSecurityAutoConfiguration.class);
 
+    /**
+     * Called by Spring Boot. Logs that {@code @EnableMethodSecurity} now applies to the whole
+     * application, and how to switch it off.
+     */
     public BusinessCockpitMethodSecurityAutoConfiguration() {
 
         new WholeApplicationSwitch(

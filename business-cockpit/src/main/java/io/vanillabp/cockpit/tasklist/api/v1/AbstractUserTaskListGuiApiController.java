@@ -52,35 +52,65 @@ import org.springframework.util.StringUtils;
  */
 public abstract class AbstractUserTaskListGuiApiController implements OfficialTasklistApi {
 
+	/** Tells who is logged in. */
 	@Autowired
 	protected UserContext userContext;
 
+	/** Turns stored tasks into what the GUI API answers, and request values into model values. */
 	@Autowired
 	protected GuiApiMapper mapper;
 
+	/** Turns persons and groups into what the GUI API answers. */
 	@Autowired
 	protected PersonAndGroupApiMapper personAndGroupMapper;
 
+	/** Turns users and ids into the persons stored with a task. */
 	@Autowired
 	protected PersonAndGroupMapper personAndGroupModelMapper;
 
+	/** The directory of the users, for the search for a user to assign. */
 	@Autowired
 	protected UserDetailsProvider userDetailsProvider;
 
+	/** Reads and changes the stored tasks. */
 	@Autowired
 	protected UserTaskService userTaskService;
 
+	/** Learns which tasks a browser shows, so it can tell the browser about their changes. */
 	@Autowired
 	protected UpdateStreams updateStreams;
+
+	/**
+	 * Used by the subclasses.
+	 */
+	public AbstractUserTaskListGuiApiController() {
+
+	}
 
 	/**
 	 * The user tasks this view lets the given user reach, which is the only thing a subclass has to
 	 * decide. It is asked once per request and used for the list as well as for everything naming a
 	 * single task.
+	 *
+	 * @param currentUser The user who makes the request
+	 * @return The tasks the user may reach in this view
 	 */
 	protected abstract UserTaskVisibility userTasksVisibleTo(
 			final UserDetails currentUser);
 
+	/**
+	 * One page of the list. A subclass may override it to read the tasks in another way.
+	 *
+	 * @param visibility Which tasks the user may reach
+	 * @param pageNumber The number of the page, starting at 0
+	 * @param pageSize How many tasks a page holds
+	 * @param initialTimestamp When the user started to page through the list
+	 * @param searchQueries The filters of the list, or {@code null}
+	 * @param sort The paths to sort by, separated by commas, or {@code null}
+	 * @param sortAscending Whether to sort in ascending order
+	 * @param mode Which tasks the list holds
+	 * @return The page
+	 */
 	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasks(
 			final UserTaskVisibility visibility,
 			final int pageNumber,
@@ -133,6 +163,20 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	}
 
+	/**
+	 * The first tasks of the list again, for a browser which shows some of them already. A
+	 * subclass may override it to read the tasks in another way.
+	 *
+	 * @param visibility Which tasks the user may reach
+	 * @param size How many tasks to return at most
+	 * @param knownUserTasksIds The ids of the tasks the browser shows already
+	 * @param initialTimestamp When the user started to page through the list
+	 * @param searchQueries The filters of the list, or {@code null}
+	 * @param sort The paths to sort by, separated by commas, or {@code null}
+	 * @param sortAscending Whether to sort in ascending order
+	 * @param mode Which tasks the list holds
+	 * @return The tasks as one page
+	 */
 	protected Page<io.vanillabp.cockpit.tasklist.model.UserTask> getUserTasksUpdated(
 			final UserTaskVisibility visibility,
 			final int size,
@@ -207,6 +251,17 @@ public abstract class AbstractUserTaskListGuiApiController implements OfficialTa
 
 	}
 
+    /**
+     * Suggestions for a search field of the list. A subclass may override it to search in another
+     * way.
+     *
+     * @param visibility Which tasks the user may reach
+     * @param endedSince When the user started to page through the list
+     * @param searchQueries The filters the user set in the list
+     * @param path The field to look for words in
+     * @param query The text typed so far
+     * @return The words found
+     */
     protected List<io.vanillabp.cockpit.util.kwic.KwicResult> kwic(
             final UserTaskVisibility visibility,
             final OffsetDateTime endedSince,

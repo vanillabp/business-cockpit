@@ -38,6 +38,17 @@ import java.util.TimeZone;
 @Configuration
 public class JsonConfiguration {
 
+    /**
+     * Creates the configuration. Spring creates it because of {@code @Configuration}.
+     */
+    public JsonConfiguration() {
+    }
+
+    /**
+     * Writes dates and times as ISO-8601 text in UTC, not as numbers.
+     *
+     * @return The customizer for dates and times
+     */
     @Bean
     public JsonMapperBuilderCustomizer jsonFormatDateTimes() {
 
@@ -49,6 +60,12 @@ public class JsonConfiguration {
 
     }
 
+    /**
+     * Keeps the properties in the order they are declared, indents the output and leaves out
+     * {@code null} properties.
+     *
+     * @return The customizer for the shape of the output
+     */
     @Bean
     public JsonMapperBuilderCustomizer jsonMinimizeOutput() {
 

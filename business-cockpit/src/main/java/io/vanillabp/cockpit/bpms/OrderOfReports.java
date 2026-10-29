@@ -21,6 +21,9 @@ public final class OrderOfReports {
     }
 
     /**
+     * Tells whether a report comes too late to change anything, because the cockpit already holds
+     * the state of a younger event.
+     *
      * @param eventTimestamp When the event behind the report happened
      * @param latestEventStored When the event behind the state the cockpit holds happened, or
      *        {@code null} where the cockpit does not know

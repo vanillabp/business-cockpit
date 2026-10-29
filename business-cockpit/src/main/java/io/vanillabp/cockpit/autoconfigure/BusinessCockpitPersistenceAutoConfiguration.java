@@ -42,6 +42,13 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 public class BusinessCockpitPersistenceAutoConfiguration {
 
     /**
+     * Called by Spring Boot. Most of what this configuration adds comes from its annotations.
+     */
+    public BusinessCockpitPersistenceAutoConfiguration() {
+
+    }
+
+    /**
      * Everything of the cockpit lives below this package, which is also what the component scan of
      * the former base class covered. {@code EveryCockpitBeanIsRegisteredTest} reads it and fails when
      * it stops holding the library's classes.
@@ -57,6 +64,7 @@ public class BusinessCockpitPersistenceAutoConfiguration {
      *      time. It has to be {@link ChangesetApplier}, not the auto-configuration which declares
      *      it. A configuration class exists before its own beans do. Asking for it would compile
      *      and start, but guarantee nothing.
+     * @return The helper which opens the change streams
      */
     @Bean
     public ChangeStreamUtils changeStreamUtils(

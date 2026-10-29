@@ -34,6 +34,12 @@ public class CockpitMongoTemplate extends MongoTemplate {
 
     private WriteConcern writeConcernOfThisTemplate;
 
+    /**
+     * Creates the template on the given database.
+     *
+     * @param mongoDbFactory The factory of the database connection
+     * @param converter The converter between documents and Java objects
+     */
     public CockpitMongoTemplate(
             final MongoDatabaseFactory mongoDbFactory,
             final MongoConverter converter) {
@@ -60,6 +66,8 @@ public class CockpitMongoTemplate extends MongoTemplate {
     /**
      * What a write of this template promises right now. Where the template leaves the answer to
      * the connection, that is the concern the connection carries.
+     *
+     * @return The write concern a write of this template uses
      */
     public WriteConcern writeConcernApplied() {
 
@@ -77,6 +85,8 @@ public class CockpitMongoTemplate extends MongoTemplate {
     /**
      * What the connection string or the {@code MongoClient} asks for. A write only gets this where
      * {@link #writeConcernApplied()} has nothing of its own to say.
+     *
+     * @return The write concern of the connection
      */
     public WriteConcern writeConcernOfTheConnection() {
 

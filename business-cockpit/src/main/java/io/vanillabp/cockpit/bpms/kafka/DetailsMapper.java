@@ -9,7 +9,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Turns the business data of a protobuf report into the plain maps, lists and values the cockpit
+ * stores. Numbers become {@link java.math.BigDecimal}.
+ */
 public class DetailsMapper {
+
+    /**
+     * Creates the mapper. All its methods are static, so nothing needs an instance.
+     */
+    public DetailsMapper() {
+    }
 
     static class NullableValueEntry<K, V> implements Map.Entry<K, V> {
         private K key;
@@ -57,6 +67,14 @@ public class DetailsMapper {
 
     }
 
+    /**
+     * Turns one value of the business data into a Java value. A value which is no array is sent as an
+     * array with one element, and this method unwraps it.
+     *
+     * @param arrayValue The value as it was reported
+     * @return A list for an array, otherwise the single value. An empty list where a single value has
+     *         no element.
+     */
     protected static Object mapArrayValue(
             final DetailsArrayValue arrayValue) {
 
@@ -75,6 +93,13 @@ public class DetailsMapper {
 
     }
 
+    /**
+     * Turns a single protobuf value into a Java value. A value of a type this mapper does not know
+     * ends in an {@link UnsupportedOperationException}.
+     *
+     * @param value The value as it was reported
+     * @return {@code null}, a {@link java.math.BigDecimal}, a string, a boolean or a map
+     */
     protected static Object mapDetailsValue(
             final DetailsValue value) {
 

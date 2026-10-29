@@ -20,6 +20,12 @@ import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 
+/**
+ * Turns the user tasks the cockpit stores into what its GUI API answers, and the values of a GUI
+ * API request into what the service reads. MapStruct writes the implementation,
+ * {@code TasklistGuiApiMapperImpl}. The application's {@link PersonAndGroupApiMapper} turns
+ * persons and groups.
+ */
 @Mapper(implementationName = "TasklistGuiApiMapperImpl")
 public abstract class GuiApiMapper {
 
@@ -29,12 +35,31 @@ public abstract class GuiApiMapper {
     @Autowired
     private PersonAndGroupApiMapper personAndGroupMapper;
 
+    /**
+     * Used by the implementation MapStruct writes.
+     */
+    public GuiApiMapper() {
+
+    }
+
+    /**
+     * Turns a stored person into a person of the GUI API.
+     *
+     * @param user The stored person
+     * @return The person of the GUI API
+     */
     @Named(PERSON_MAPPING)
     public io.vanillabp.cockpit.gui.api.v1.Person toPerson(
             final Person user) {
         return personAndGroupMapper.personToApiPerson(user);
     }
 
+    /**
+     * Turns a stored group into a group of the GUI API.
+     *
+     * @param group The stored group
+     * @return The group of the GUI API
+     */
     @Named(GROUP_MAPPING)
     public io.vanillabp.cockpit.gui.api.v1.Group toGroup(
             final Group group) {
@@ -63,6 +88,13 @@ public abstract class GuiApiMapper {
 			io.vanillabp.cockpit.tasklist.model.UserTask userTask,
             String userId);
 
+    /**
+     * What the cockpit knows about several user tasks, for its own user interface.
+     *
+     * @param userTasks The tasks as they are stored, or {@code null}
+     * @param userId Who is asking, which decides whether a task counts as read
+     * @return The tasks as the GUI API answers them, or {@code null}
+     */
     public List<UserTask> toApi(
 			List<io.vanillabp.cockpit.tasklist.model.UserTask> userTasks,
             String userId) {
@@ -75,6 +107,14 @@ public abstract class GuiApiMapper {
                 .toList();
     }
 
+    /**
+     * One page of the user task list, as the GUI API answers it.
+     *
+     * @param data The page of stored tasks
+     * @param timestamp The time of the server when the page was read
+     * @param userId Who is asking, which decides whether a task counts as read
+     * @return The page as the GUI API answers it
+     */
     @Mapping(target = "page.number", source = "data.number")
     @Mapping(target = "page.size", source = "data.size")
     @Mapping(target = "page.totalPages", source = "data.totalPages")
@@ -85,10 +125,28 @@ public abstract class GuiApiMapper {
                                     OffsetDateTime timestamp,
                                     String userId);
 
+    /**
+     * Turns a filter of a GUI API request into the filter the service reads.
+     *
+     * @param data The filter of the request
+     * @return The filter for the service
+     */
     public abstract io.vanillabp.cockpit.util.SearchQuery toModel(SearchQuery data);
 
+    /**
+     * Turns the filters of a GUI API request into the filters the service reads.
+     *
+     * @param data The filters of the request
+     * @return The filters for the service
+     */
     public abstract List<io.vanillabp.cockpit.util.SearchQuery> toModel(List<SearchQuery> data);
 
+    /**
+     * Turns which tasks a GUI API request asks for into the mode the service reads.
+     *
+     * @param mode The mode of the request
+     * @return The mode for the service
+     */
     @ValueMapping(target = "All", source = "ALL")
     @ValueMapping(target = "OpenTasks", source = "OPENTASKS")
     @ValueMapping(target = "OpenTasksWithoutFollowUp", source = "OPENTASKSWITHOUTFOLLOWUP")
@@ -97,6 +155,13 @@ public abstract class GuiApiMapper {
     @ValueMapping(target = "ClosedTasksOnly", source = "CLOSEDTASKSONLY")
     public abstract RetrieveItemsMode toModel(UserTaskRetrieveMode mode);
 
+    /**
+     * The address of the workflow module of the user task, as the cockpit's proxy serves it.
+     *
+     * @param userTask The user task as it is stored
+     * @return The path below which the cockpit serves the workflow module, or {@code null} if the
+     *         user task names no workflow module
+     */
     @NoMappingMethod
     protected String proxiedWorkflowModuleUri(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
@@ -110,6 +175,13 @@ public abstract class GuiApiMapper {
         
     }
 
+    /**
+     * The due date of the task for the GUI API. A task without a due date is stored with
+     * {@link OffsetDateTime#MAX}, and the GUI API answers {@code null} for it.
+     *
+     * @param userTask The task as it is stored
+     * @return The due date, or {@code null} if the task has none
+     */
     @NoMappingMethod
     protected OffsetDateTime mapDateTimeMaxToNull(
             final io.vanillabp.cockpit.tasklist.model.UserTask userTask) {
@@ -121,6 +193,12 @@ public abstract class GuiApiMapper {
         return userTask.getDueDate();
     }
 
+    /**
+     * Turns a suggestion for a search field into what the GUI API answers.
+     *
+     * @param result The word found and how often it was found
+     * @return The suggestion of the GUI API
+     */
     public abstract KwicResult toApi(io.vanillabp.cockpit.util.kwic.KwicResult result);
 
 }

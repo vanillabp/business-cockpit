@@ -23,6 +23,11 @@ import org.springframework.stereotype.Component;
 
 import static io.vanillabp.cockpit.workflowlist.WorkflowlistService.INDEX_CUSTOM_SORT_PREFIX;
 
+/**
+ * The changesets of the {@code workflow} collection: the collection itself, its indexes and the
+ * changes to stored workflows which new fields brought. A changeset runs once per database, in
+ * the order of its number.
+ */
 @Component("V100_Workflow")
 @DbChangesetConfiguration(author = "gwieshammer")
 public class V000001 {
@@ -36,6 +41,20 @@ public class V000001 {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Called by Spring.
+     */
+    public V000001() {
+
+    }
+
+    /**
+     * Creates the collection, an index on the workflow module and its URI, and an index for the
+     * default sort order.
+     *
+     * @param mongo The template to change the database with
+     * @return The commands which undo the changeset by dropping the indexes and the collection
+     */
     @DbChangeset(order = 1000)
     public List<String> createWorkflowCollection(
             final MongoTemplate mongo) {
@@ -65,6 +84,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Creates an index on {@code endedAt}, which tells running workflows from ended ones.
+     *
+     * @param mongo The template to change the database with
+     * @return The command which undoes the changeset by dropping the index
+     */
     @DbChangeset(order = 1002)
     public String createWorkflowEndedAtIndex(
             final MongoTemplate mongo) {
@@ -79,6 +104,14 @@ public class V000001 {
 
     }
     
+    /**
+     * Adds {@code _id} to the index of the default sort order, so that two workflows created at the
+     * same time have a fixed order. The name of the method speaks of user tasks, but it changes
+     * the workflows.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1003, author = "stephanpelikan")
     public String fixDefaultUserTaskIndex(
             final MongoTemplate mongo) {
@@ -98,6 +131,12 @@ public class V000001 {
         
     }
 
+    /**
+     * Creates an index on the full text a filter without a path searches.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1004, author = "stephanpelikan")
     public String createDetailsFulltextSearchIndex(
             final MongoTemplate mongo) {
@@ -112,6 +151,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Builds the index on the workflow module again, because the field {@code workflowModule} was
+     * renamed to {@code workflowModuleId}.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1005, author = "stephanpelikan")
     public String renameWorkflowModuleIntoWorkflowModuleId(
             final MongoTemplate mongo) {
@@ -133,6 +179,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the index on the workflow module and its URI. The URIs of the workflow modules are
+     * stored in a collection of their own now.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1006)
     public String moveWorkflowModuleUriIntoSeparateCollection(
             final MongoTemplate mongo) {
@@ -145,6 +198,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the index of the default sort order. Sort indexes are created when a list needs them.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1007)
     public String dropDefaultSortIndex( // will be created on demand
                                         final MongoTemplate mongo) {
@@ -157,6 +216,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the initiator and the users and groups a workflow is accessible to from plain ids into
+     * persons and groups, which carry the text a search looks at and the text a list sorts by.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1008)
     public String introducePersonAndGroupForWorkflows(
             final MongoTemplate mongo) {
@@ -209,6 +275,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the id of a user into the stored form of a person. If the application's mapper knows
+     * no such person, the id is used for every field.
+     *
+     * @param userId The id of the user
+     * @return The person to store, or {@code null} if the id is {@code null}
+     */
     public BasicDBObject getPerson(
             final String userId) {
 
@@ -231,6 +304,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Turns the id of a group into the stored form of a group. If the application's mapper knows
+     * no such group, the id is used for every field.
+     *
+     * @param groupId The id of the group
+     * @return The group to store, or {@code null} if the id is {@code null}
+     */
     public BasicDBObject getGroup(
             final String groupId) {
 
@@ -253,6 +333,13 @@ public class V000001 {
 
     }
 
+    /**
+     * Drops the custom sort indexes, because their names changed. They are created again when a
+     * list needs them.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1009, author = "stephanpelikan")
     public String dropSortIndexesDueToNewNaming( // will be recreated on demand
              final MongoTemplate mongo) {
@@ -270,6 +357,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Removes the field {@code workflowId} from every workflow, because it was redundant.
+     *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
+     */
     @DbChangeset(order = 1010, author = "stephanpelikan")
     public String dropRedundantColumnWorkflowId(
             final MongoTemplate mongo) {
@@ -286,6 +379,12 @@ public class V000001 {
 
     }
 
+    /**
+     * Creates a sort index on the business id, so that the list sorts by it fast.
+     *
+     * @param mongo The template to change the database with
+     * @return The command which undoes the changeset by dropping the index
+     */
     @DbChangeset(order = 1011, author = "martingreilinger")
     public String addBusinessIdIndex(
             final MongoTemplate mongo) {
@@ -305,6 +404,8 @@ public class V000001 {
      * Fills {@code reportedAt} in for workflows reported before that property existed. The
      * closest value at hand is {@code createdAt}, the timestamp of the reporting system.
      *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getReportedAt()
      */
     @DbChangeset(order = 1012)
@@ -329,6 +430,8 @@ public class V000001 {
      * Fills {@code latestEventAt} in for workflows reported before that property existed, the way
      * changeset 14 of the user tasks does it, and for the same reason.
      *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#getLatestEventAt()
      */
     @DbChangeset(order = 1013)
@@ -362,6 +465,8 @@ public class V000001 {
      * moment the cockpit stored the case. A record with none of the three has nothing to tell and
      * stays as it is.
      *
+     * @param mongo The template to change the database with
+     * @return {@code null}, because the changeset cannot be undone
      * @see io.vanillabp.cockpit.workflowlist.model.Workflow#isKnownFromItsEndAlone()
      */
     @DbChangeset(order = 1014)

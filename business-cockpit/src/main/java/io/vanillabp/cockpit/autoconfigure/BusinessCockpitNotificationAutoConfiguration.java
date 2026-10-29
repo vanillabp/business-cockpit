@@ -21,4 +21,11 @@ import org.springframework.context.annotation.Import;
 })
 public class BusinessCockpitNotificationAutoConfiguration {
 
+    /**
+     * Called by Spring Boot. Everything this configuration adds comes from its annotations.
+     */
+    public BusinessCockpitNotificationAutoConfiguration() {
+
+    }
+
 }

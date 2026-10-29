@@ -58,6 +58,18 @@ public class NotificationPoller {
 
     private final String nodeId = UUID.randomUUID().toString();
 
+    /**
+     * Creates the poller. {@link NotificationPollerConfiguration} calls it.
+     *
+     * @param mongoTemplate        the template the poller takes its lease and cursor with
+     * @param userRepository       the users, with their notification configuration
+     * @param userTaskRepository   the user tasks, to find the ones which changed
+     * @param outboxRepository     the outbox the notifications wait in until they are sent
+     * @param notificationServices every medium the cockpit offers; none means the poller stays idle
+     * @param userDirectory        the user directory, to find the authorities of a user
+     * @param maxDeliveryAttempts  how often the delivery of one bulk is attempted
+     * @param cleanupSentOlderThan how old a sent outbox entry has to be before it is deleted
+     */
     public NotificationPoller(
             final MongoTemplate mongoTemplate,
             final UserRepository userRepository,
@@ -79,6 +91,11 @@ public class NotificationPoller {
 
     }
 
+    /**
+     * Runs one cycle once a minute, or as often as configured: it scans the changed user tasks
+     * and sends what waits in the outbox. It does nothing while no medium exists. A failed cycle
+     * is logged, and the next one tries again.
+     */
     @Scheduled(
             fixedRateString = "${business-cockpit.notification.interval:PT1M}",
             initialDelayString = "${business-cockpit.notification.interval:PT1M}")

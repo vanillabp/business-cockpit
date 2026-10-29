@@ -17,11 +17,18 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Takes the reports of the BPMS adapters by REST, in version 1.1 of the BPMS API. It checks each
+ * report, hands it to the services which store it and tells the sender whether to send it again.
+ */
 @RestController("bpmsApiControllerV1_1")
 @RequestMapping(path = BpmsApiController.BPMS_API_URL_PREFIX)
 @Secured(BpmsApiWebSecurityConfiguration.BPMS_API_AUTHORITY)
 public class BpmsApiController implements BpmsApi {
 
+	/**
+	 * The path all endpoints of version 1.1 of the BPMS API start with.
+	 */
 	public static final String BPMS_API_URL_PREFIX = "/bpms/api/v1_1";
 
     @Autowired
@@ -38,6 +45,12 @@ public class BpmsApiController implements BpmsApi {
 
     @Autowired
     private WorkflowModuleService workflowModuleService;
+
+    /**
+     * Creates the controller. Spring creates it and fills its fields.
+     */
+    public BpmsApiController() {
+    }
 
     @Override
     public ResponseEntity<Void> userTaskCreatedEvent(

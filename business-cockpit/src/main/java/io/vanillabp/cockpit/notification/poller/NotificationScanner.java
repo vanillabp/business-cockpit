@@ -36,6 +36,14 @@ import java.util.stream.Collectors;
 public class NotificationScanner {
 
     /**
+     * Creates a scanner. It keeps no state, so the poller uses one for all cycles.
+     */
+    public NotificationScanner() {
+    }
+
+    /**
+     * Finds the notifications one changed user task asks for.
+     *
      * @param task   a user task changed since the cursor
      * @param caseProcess the process of the case the task belongs to, which picks the user's
      *               setting. For a task of a called process it is not the process of the task

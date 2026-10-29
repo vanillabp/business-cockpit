@@ -36,6 +36,7 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
     private static final Logger logger = LoggerFactory.getLogger(
             MicroserviceProxyRegistry.class);
 
+    /** The path below which the cockpit serves the workflow modules. The module id follows it. */
     public static final String WORKFLOW_MODULES_PATH_PREFIX = "/wm/";
 
     /** Matches nothing. An empty gateway route builder would throw, so this is the initial state. */
@@ -45,6 +46,13 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
 
     private final AtomicReference<RouterFunction<ServerResponse>> currentRoutes =
             new AtomicReference<>(NO_ROUTES);
+
+    /**
+     * Starts with no routes. The workflow modules are added when they register.
+     */
+    public MicroserviceProxyRegistry() {
+
+    }
 
     @Override
     public Optional<HandlerFunction<ServerResponse>> route(
@@ -62,6 +70,13 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
 
     }
 
+    /**
+     * Adds a route for a workflow module, or changes the URI of its route. The routes are only
+     * built again if the URI is new.
+     *
+     * @param id The id of the workflow module
+     * @param uri The URI the workflow module is reached at
+     */
     public synchronized void registerMicroservice(
             final String id,
             final String uri) {
@@ -75,6 +90,12 @@ public class MicroserviceProxyRegistry implements RouterFunction<ServerResponse>
 
     }
 
+    /**
+     * Adds routes for several workflow modules at once. A module which already has a route keeps
+     * its URI.
+     *
+     * @param microserviceUris The URIs of the workflow modules, by the module id
+     */
     public synchronized void registerMicroservices(
             final Map<String, String> microserviceUris) {
 

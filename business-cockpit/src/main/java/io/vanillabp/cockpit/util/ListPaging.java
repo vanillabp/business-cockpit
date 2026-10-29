@@ -18,11 +18,18 @@ public final class ListPaging {
     /** The first page, which is what a client means when it does not say which one. */
     public static final int DEFAULT_PAGE_NUMBER = 0;
 
+    /** The sort order a client means when it does not say which one. */
     public static final boolean DEFAULT_SORT_ASCENDING = true;
 
     private ListPaging() {
     }
 
+    /**
+     * The page number of a list request.
+     *
+     * @param requested The page number of the request, or {@code null}
+     * @return The page number, {@link #DEFAULT_PAGE_NUMBER} if the request names none
+     */
     public static int pageNumber(
             final Integer requested) {
 
@@ -31,6 +38,10 @@ public final class ListPaging {
     }
 
     /**
+     * The page size of a list request. It has no default, see above.
+     *
+     * @param requested The page size of the request, or {@code null}
+     * @return The page size
      * @throws BcInvalidRequestException if the request names no page size
      */
     public static int pageSize(
@@ -43,6 +54,13 @@ public final class ListPaging {
 
     }
 
+    /**
+     * The sort order of a list request.
+     *
+     * @param requested Whether the request asks for ascending order, or {@code null}
+     * @return Whether to sort in ascending order, {@link #DEFAULT_SORT_ASCENDING} if the request
+     *         does not say
+     */
     public static boolean sortAscending(
             final Boolean requested) {
 

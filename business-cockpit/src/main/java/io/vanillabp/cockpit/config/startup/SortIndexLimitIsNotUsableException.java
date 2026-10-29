@@ -16,6 +16,9 @@ public class SortIndexLimitIsNotUsableException extends RuntimeException {
     private static final String WHAT_TO_DO =
             "Change the value, or leave the property out:\n\n" + SortIndexLimit.whatToSet();
 
+    /**
+     * Which value cannot be used and why, for the description of the failure report.
+     */
     private final String whatIsWrong;
 
     SortIndexLimitIsNotUsableException(

@@ -45,6 +45,9 @@ public final class AnswerToAReport {
     }
 
     /**
+     * Answers a report which is refused before anything is stored, for example because its path
+     * and its body name different records.
+     *
      * @return The answer to a report which can never go through
      */
     public static ResponseEntity<Void> refused() {
@@ -54,6 +57,9 @@ public final class AnswerToAReport {
     }
 
     /**
+     * Turns the outcome of storing a report into the answer the sender gets. The status code tells
+     * the sender whether to send the report again.
+     *
      * @param outcome What the service answered: whether the cockpit is up to date about the record
      *        now, and if not, whether the same report can go through when it comes again. A report
      *        which is older than what is stored changes nothing, and the cockpit is up to date

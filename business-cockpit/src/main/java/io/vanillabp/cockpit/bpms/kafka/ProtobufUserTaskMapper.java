@@ -23,6 +23,9 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ValueMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the protobuf user task events which arrive by Kafka onto the user tasks the cockpit stores.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
 public abstract class ProtobufUserTaskMapper {
 
@@ -33,12 +36,31 @@ public abstract class ProtobufUserTaskMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass, and the Kafka configuration creates it
+     * as a Spring bean.
+     */
+    public ProtobufUserTaskMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user
+     * @return The person
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
         return personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
@@ -52,6 +74,12 @@ public abstract class ProtobufUserTaskMapper {
     abstract io.vanillabp.spi.cockpit.usertask.NotificationDelivery mapNotificationDelivery(
             io.vanillabp.cockpit.bpms.api.protobuf.v1.NotificationDelivery delivery);
 
+    /**
+     * Builds a new user task from a report the cockpit knows nothing about yet.
+     *
+     * @param event The report of a created or an updated task
+     * @return The new task, not stored yet
+     */
     @Mapping(target = "id", source = "userTaskId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -92,6 +120,10 @@ public abstract class ProtobufUserTaskMapper {
      * {@link io.vanillabp.cockpit.bpms.WhoSeesAUserTask} puts the stored assignee and candidates
      * back, because only the report which created the task says who sees it. The admitted users
      * are the exception: every report may set them.
+     *
+     * @param event The report of the updated task
+     * @param result The stored task, changed in place
+     * @return The stored task
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
@@ -131,6 +163,14 @@ public abstract class ProtobufUserTaskMapper {
      * task the cockpit holds already, {@link io.vanillabp.cockpit.bpms.WhoSeesAUserTask} keeps the
      * stored assignee and candidates. The notification poller needs the former assignee to tell
      * them that somebody else completed the task or that the process cancelled it.
+     * <p>
+     * This is the mapping MapStruct generates. Call
+     * {@link #toEndedTask(UserTaskCreatedOrUpdatedEvent, UserTask)} instead, which also keeps what
+     * the end does not report.
+     *
+     * @param event The end as it was reported
+     * @param result The stored task, changed in place
+     * @return The stored task
      */
     // an end overwrites what it reports and leaves the rest of the stored task as it is. See
     // decision 19 in the repository's DECISIONS.md. A field the sender left out is declared
@@ -222,14 +262,32 @@ public abstract class ProtobufUserTaskMapper {
 
     }
 
+    /**
+     * Turns a protobuf timestamp into a date and time in the time zone of the cockpit.
+     *
+     * @param value The timestamp as it was reported
+     * @return The same moment
+     */
     public OffsetDateTime map(Timestamp value) {
         return ProtobufHelper.map(value);
     }
 
+    /**
+     * Copies a repeated protobuf string field into a plain list.
+     *
+     * @param stringList The strings as they were reported
+     * @return The same strings
+     */
     public List<String> map(ProtocolStringList stringList){
         return stringList.stream().toList();
     }
 
+    /**
+     * Turns the business data of a report into the map the cockpit stores.
+     *
+     * @param detailsMap The business data as it was reported
+     * @return The business data as plain Java values
+     */
     @Named(DETAILS_MAPPING)
     protected Map<String, Object> map(
             final DetailsMap detailsMap) {

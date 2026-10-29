@@ -20,6 +20,19 @@ public class V000001 {
     private static final String INDEX_OUTBOX_UNIQUE = "_outboxUnique";
     private static final String INDEX_OUTBOX_PENDING = "_outboxPending";
 
+    /**
+     * Creates the changeset. Spring creates it as a bean and the changeset runner calls it.
+     */
+    public V000001() {
+    }
+
+    /**
+     * Creates the outbox collection and its two indexes. The unique one keeps a notification
+     * from being stored twice. The other one speeds up the search for entries still to be sent.
+     *
+     * @param mongo the template to change the database with
+     * @return the command which undoes this changeset
+     */
     @DbChangeset(order = 3000)
     public String createNotificationOutboxCollection(
             final MongoTemplate mongo) {

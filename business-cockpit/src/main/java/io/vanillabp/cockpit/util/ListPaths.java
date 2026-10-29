@@ -39,6 +39,8 @@ public class ListPaths {
     private final Optional<String> mapKeyDotReplacement;
 
     /**
+     * Creates the rule for one list.
+     *
      * @param fieldsOfTheList The top-level fields a path may start with, besides {@value #BUSINESS_DATA}
      * @param mapKeyDotReplacement What the cockpit stores instead of a dot in a key of the business
      *        data, if anything. A path names such a key in its stored form, so the replacement is
@@ -54,6 +56,8 @@ public class ListPaths {
     }
 
     /**
+     * Checks one path of a list request.
+     *
      * @param parameter The part of the request which named the path, for the message
      * @param path The path to check
      * @throws BcInvalidRequestException if the path breaks the rule
@@ -75,6 +79,7 @@ public class ListPaths {
      * Checks the path of every filter. A filter without a path searches the full text, which is
      * always allowed.
      *
+     * @param searchQueries The filters of the request, or {@code null}
      * @throws BcInvalidRequestException if one path breaks the rule
      */
     public void checkFilters(

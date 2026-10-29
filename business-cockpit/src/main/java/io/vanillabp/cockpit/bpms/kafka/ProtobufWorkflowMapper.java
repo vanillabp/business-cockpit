@@ -20,6 +20,10 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.beans.factory.annotation.Autowired;
 
+/**
+ * Maps the protobuf workflow events which arrive by Kafka onto the workflows, the cases, the
+ * cockpit stores.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.DEFAULT)
 public abstract class ProtobufWorkflowMapper {
 
@@ -30,18 +34,43 @@ public abstract class ProtobufWorkflowMapper {
     @Autowired
     private PersonAndGroupMapper personAndGroupMapper;
 
+    /**
+     * Creates the mapper. MapStruct generates the subclass, and the Kafka configuration creates it
+     * as a Spring bean.
+     */
+    public ProtobufWorkflowMapper() {
+    }
+
+    /**
+     * Turns the id of a user, as a workflow module reports it, into a person of the cockpit.
+     *
+     * @param userId The id of the user
+     * @return The person
+     */
     @Named(PERSON_MAPPING)
     public Person toPerson(
             final String userId) {
         return personAndGroupMapper.toModelPerson(userId);
     }
 
+    /**
+     * Turns the id of a group, as a workflow module reports it, into a group of the cockpit.
+     *
+     * @param groupId The id of the group
+     * @return The group
+     */
     @Named(GROUP_MAPPING)
     public Group toGroup(
             final String groupId) {
         return personAndGroupMapper.toModelGroup(groupId);
     }
 
+    /**
+     * Builds a new workflow from a report the cockpit knows nothing about yet.
+     *
+     * @param event The report of a created or an updated workflow
+     * @return The new workflow, not stored yet
+     */
     @Mapping(target = "id", source = "workflowId")
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -65,6 +94,14 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toNewWorkflow(WorkflowCreatedOrUpdatedEvent event);
 
+    /**
+     * Maps an update onto a workflow the cockpit holds already. The id and the creation stay as they
+     * are.
+     *
+     * @param event The report of the updated workflow
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "version", ignore = true)
     // maintained by the cockpit itself, never taken from an event:
@@ -85,6 +122,15 @@ public abstract class ProtobufWorkflowMapper {
     @Mapping(target = "details", source = "details", qualifiedByName = DETAILS_MAPPING)
     public abstract Workflow toUpdatedWorkflow(WorkflowCreatedOrUpdatedEvent event, @MappingTarget Workflow result);
 
+    /**
+     * The mapping of an end which MapStruct generates. Call
+     * {@link #toEndedWorkflow(WorkflowCreatedOrUpdatedEvent, Workflow)} instead, which also keeps what
+     * the end does not report.
+     *
+     * @param event The end as it was reported
+     * @param result The stored workflow, changed in place
+     * @return The stored workflow
+     */
     // an end overwrites what it reports and leaves the rest of the stored case as it is. See
     // decision 19 in the repository's DECISIONS.md. Who started the case is declared optional in
     // the protobuf schema and arrives as null. This strategy handles that. The title, the business
@@ -154,10 +200,22 @@ public abstract class ProtobufWorkflowMapper {
 
     }
 
+    /**
+     * Turns a protobuf timestamp into a date and time in the time zone of the cockpit.
+     *
+     * @param value The timestamp as it was reported
+     * @return The same moment
+     */
     public OffsetDateTime map(Timestamp value) {
         return ProtobufHelper.map(value);
     }
 
+    /**
+     * Turns the business data of a report into the map the cockpit stores.
+     *
+     * @param detailsMap The business data as it was reported
+     * @return The business data as plain Java values
+     */
     @Named(DETAILS_MAPPING)
     protected Map<String, Object> map(
             final DetailsMap detailsMap) {

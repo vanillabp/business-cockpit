@@ -22,6 +22,8 @@ public final class PathAndBody {
     }
 
     /**
+     * Checks that the id in the path and the id in the body of a report are the same.
+     *
      * @param kindOfRecord What the id is about, for the log: "user task" or "workflow"
      * @param idInPath The id the path of the report names
      * @param idInBody The id the body of the report names

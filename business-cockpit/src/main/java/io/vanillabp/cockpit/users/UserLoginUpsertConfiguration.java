@@ -19,6 +19,19 @@ public class UserLoginUpsertConfiguration {
     /** At most one login upsert per user per this window and node. */
     private static final Duration UPSERT_THROTTLE = Duration.ofMinutes(5);
 
+    /**
+     * Called by Spring.
+     */
+    public UserLoginUpsertConfiguration() {
+
+    }
+
+    /**
+     * The service which writes the user document, at most once per user every five minutes.
+     *
+     * @param mongoTemplate Used to write the user document
+     * @return The service
+     */
     @Bean
     @ConditionalOnMissingBean
     public UserLoginUpsertService userLoginUpsertService(
@@ -28,6 +41,13 @@ public class UserLoginUpsertConfiguration {
 
     }
 
+    /**
+     * The filter which calls the service when a user logs in.
+     *
+     * @param userDetailsProvider Gives the details of the logged-in user
+     * @param userLoginUpsertService Writes the user document
+     * @return The filter
+     */
     @Bean
     @ConditionalOnMissingBean
     public UserLoginUpsertFilter userLoginUpsertFilter(
