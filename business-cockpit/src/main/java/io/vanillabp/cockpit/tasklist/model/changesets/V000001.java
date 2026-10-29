@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -279,6 +280,7 @@ public class V000001 {
      * @return {@code null}, because the changeset cannot be undone
      */
     @DbChangeset(order = 10)
+    @SuppressWarnings("unchecked")
     public String introducePersonAndGroupForUserTasks(
             final MongoTemplate mongo) {
 
@@ -294,12 +296,11 @@ public class V000001 {
                         newDocument.set("assignee", getPerson(assignee.toString()));
                     }
                     final var candidateUsers = document.get("candidateUsers");
-                    if ((candidateUsers != null)
-                            && (candidateUsers instanceof List)
-                            && (((List<?>) candidateUsers).size() > 0)
-                            && (((List<?>) candidateUsers).get(0) instanceof String)) {
+                    if ((candidateUsers instanceof List<?> candidateUsersList)
+                            && !candidateUsersList.isEmpty()
+                            && (candidateUsersList.getFirst() instanceof String)) {
                         final var newCandidateUsers = new BasicBSONList();
-                        ((List<String>) candidateUsers)
+                        ((List<String>) candidateUsersList)
                                 .stream()
                                 .map(this::getPerson)
                                 .filter(Objects::nonNull)
@@ -307,12 +308,11 @@ public class V000001 {
                         newDocument.set("candidateUsers", newCandidateUsers);
                     }
                     final var candidateGroups = document.get("candidateGroups");
-                    if ((candidateGroups != null)
-                            && (candidateGroups instanceof List)
-                            && (((List<?>) candidateGroups).size() > 0)
-                            && (((List<?>) candidateGroups).get(0) instanceof String)) {
+                    if ((candidateGroups instanceof List<?> candidateGroupsList)
+                            && !candidateGroupsList.isEmpty()
+                            && (candidateGroupsList.getFirst() instanceof String)) {
                         final var newCandidateGroups = new BasicBSONList();
-                        ((List<String>) candidateGroups)
+                        ((List<String>) candidateGroupsList)
                                 .stream()
                                 .map(this::getGroup)
                                 .filter(Objects::nonNull)
@@ -450,7 +450,7 @@ public class V000001 {
                 .indexOps(UserTask.COLLECTION_NAME)
                 .getIndexInfo()
                 .stream()
-                .map(indexInfo -> indexInfo.getName())
+                .map(IndexInfo::getName)
                 .filter(name -> name.startsWith(UserTaskService.INDEX_CUSTOM_SORT_PREFIX))
                 .toList()
                 .forEach(name -> mongo.indexOps(UserTask.COLLECTION_NAME).dropIndex(name));

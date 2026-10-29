@@ -28,8 +28,9 @@ import org.springframework.data.mongodb.core.query.Query;
  * <p>This is what an installation does on every start after the first one, and it is what an
  * installation does after the upgrade which moved the mechanism out of this repository into the
  * published library. The identity of a step is the class name of its changeset bean plus the name
- * of its method. Those beans are the five {@code V000001} classes of the cockpit, and they stayed
- * where they were, so the records an older version wrote still name the steps of this one.
+ * of its method. Those beans are the {@code V000001} classes of the cockpit and the {@code V000002}
+ * class which repairs one of them. They stayed where they were, so the records an older version
+ * wrote still name the steps of this one.
  *
  * <p>The application under test has migrated the database while it started, so the collection is
  * filled. The test then lets a second applier run against it, the way a second start would, and
@@ -136,7 +137,7 @@ class ChangesetsRunOncePerDatabaseTest extends ItestBase {
                 .isEqualTo(whatTheChangesetBeansOfTheApplicationAreCalled())
                 .allSatisfy(id -> assertThat(id)
                         .startsWith("io.vanillabp.cockpit.")
-                        .contains(".model.changesets.V000001#"));
+                        .containsPattern("\\.model\\.changesets\\.V00000[12]#"));
 
     }
 

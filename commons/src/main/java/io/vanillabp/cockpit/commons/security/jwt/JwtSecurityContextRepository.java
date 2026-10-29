@@ -112,15 +112,10 @@ public class JwtSecurityContextRepository implements SecurityContextRepository {
             final JwtProperties properties,
             final HttpServletResponse response) {
 
-        final var cookie = new Cookie(properties.getCookie().getName(), "");
-        cookie.setMaxAge(0);
-        cookie.setPath(properties.getCookie().getPath());
-        if (properties.getCookie().getDomain() != null) {
-            cookie.setDomain(properties.getCookie().getDomain());
-        }
-        cookie.setSecure(properties.getCookie().isSecure());
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        // the same attributes as the cookie it replaces. A browser drops a cookie only for a match of
+        // name, path and domain, and a cookie without SameSite next to one with it is what a strict
+        // browser may refuse to take
+        response.addCookie(buildCookie(properties, "", Duration.ZERO));
 
     }
 
