@@ -38,6 +38,8 @@ public class FreemarkerTemplating implements Templating {
   private final Configuration configuration;
 
   /**
+   * Creates the templating for the configured template directory.
+   *
    * @param templateLoaderPath Where templates are loaded from: a directory of the classpath,
    *          written with <code>classpath:</code> or <code>classpath*:</code> in front of it, or
    *          one of the file system, written with <code>file:</code> in front of it. The
@@ -89,6 +91,8 @@ public class FreemarkerTemplating implements Templating {
   }
 
   /**
+   * Creates the templating on a Freemarker configuration which is already complete.
+   *
    * @param configuration A configuration built elsewhere, for example a test loading its
    *          templates from the classpath, or an application which needs settings of its own
    */
@@ -100,6 +104,8 @@ public class FreemarkerTemplating implements Templating {
   }
 
   /**
+   * Creates a Freemarker configuration as the cockpit needs it. A caller adds the template loader.
+   *
    * @return A Freemarker configuration with the settings the cockpit's templates are written
    *         against, without a template loader
    */

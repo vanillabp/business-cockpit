@@ -37,6 +37,8 @@ public class BusinessCockpitServiceFactory implements AggregateServiceFactory<Bu
   private final BusinessCockpitExtension extension;
 
   /**
+   * Creates the factory. VanillaBP calls it once per workflow aggregate class.
+   *
    * @param extension The extension the service reports through
    */
   public BusinessCockpitServiceFactory(

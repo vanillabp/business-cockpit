@@ -29,6 +29,8 @@ import io.vanillabp.cockpit.extension.event.WorkflowEvent;
 public interface BusinessCockpitTransport {
 
   /**
+   * A short name of this transport, for log and error messages.
+   *
    * @return How this transport is called in a message about it
    */
   String describe();

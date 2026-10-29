@@ -105,6 +105,8 @@ public final class BusinessCockpitOperations {
   }
 
   /**
+   * The outbox operation which sends a user-task event to the cockpit server.
+   *
    * @return The operation reporting a user-task event
    */
   public static PhaseOperation publishUserTaskEvent() {
@@ -127,6 +129,8 @@ public final class BusinessCockpitOperations {
   }
 
   /**
+   * The outbox operation which sends a workflow event to the cockpit server.
+   *
    * @return The operation reporting a workflow event
    */
   public static PhaseOperation publishWorkflowEvent() {
@@ -149,6 +153,8 @@ public final class BusinessCockpitOperations {
   }
 
   /**
+   * The outbox operation which registers a workflow module at the cockpit server.
+   *
    * @return The operation registering a workflow module
    */
   public static PhaseOperation registerWorkflowModule() {

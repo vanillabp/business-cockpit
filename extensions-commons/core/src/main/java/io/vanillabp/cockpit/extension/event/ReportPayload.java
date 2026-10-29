@@ -55,6 +55,8 @@ public final class ReportPayload {
   }
 
   /**
+   * Turns the report of a user task into the payload of an outbox entry.
+   *
    * @param event The report of a user task, built and enriched
    * @return The bytes the outbox entry carries
    * @throws IllegalStateException If a value of the report cannot be written (guiding message)
@@ -67,6 +69,8 @@ public final class ReportPayload {
   }
 
   /**
+   * Turns the report of a workflow into the payload of an outbox entry.
+   *
    * @param event The report of a workflow, built and enriched
    * @return The bytes the outbox entry carries
    * @throws IllegalStateException If a value of the report cannot be written (guiding message)
@@ -79,6 +83,8 @@ public final class ReportPayload {
   }
 
   /**
+   * Reads the report of a user task back from the payload of an outbox entry.
+   *
    * @param payload The bytes of the entry being dispatched
    * @return The report as it was built at the event
    * @throws PhaseTwoPermanentFailure If the bytes cannot be read, which repeating the entry
@@ -92,6 +98,8 @@ public final class ReportPayload {
   }
 
   /**
+   * Reads the report of a workflow back from the payload of an outbox entry.
+   *
    * @param payload The bytes of the entry being dispatched
    * @return The report as it was built at the event
    * @throws PhaseTwoPermanentFailure If the bytes cannot be read, which repeating the entry

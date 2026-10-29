@@ -38,6 +38,8 @@ public enum InitiatorSource {
   }
 
   /**
+   * The configured name of this source.
+   *
    * @return The text an application writes into the property
    */
   public String configuredAs() {

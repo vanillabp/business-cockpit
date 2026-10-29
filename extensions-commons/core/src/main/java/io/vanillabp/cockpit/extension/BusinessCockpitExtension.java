@@ -137,6 +137,9 @@ public class BusinessCockpitExtension implements BusinessCockpitEventPublisher {
   private final Set<String> secondaryBpmnProcesses = ConcurrentHashMap.newKeySet();
 
   /**
+   * Creates the extension. The platform module of Spring Boot or Quarkus calls it once and hands in
+   * what it found.
+   *
    * @param configuration What the application configured, already validated
    * @param transport Where the events go
    * @param bridges The BPMS halves, one per configured adapter id

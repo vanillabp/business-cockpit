@@ -39,6 +39,9 @@ public record RegisterWorkflowModuleEvent(
   /** The same for the workflow provider API. */
   public static final String WORKFLOW_PROVIDER_API_URI_PATH = "/workflow-provider";
 
+  /**
+   * Takes a copy of the groups and of the group hierarchy, and an empty one where none were given.
+   */
   public RegisterWorkflowModuleEvent {
     accessibleToGroups = accessibleToGroups == null ? List.of() : List.copyOf(accessibleToGroups);
     groupHierarchy = groupHierarchy == null ? Map.of() : Map.copyOf(groupHierarchy);

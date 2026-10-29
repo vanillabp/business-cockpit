@@ -107,6 +107,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The switch for user-task reports. It is on unless the application turns it off.
+   *
    * @return Whether user tasks are reported at all, which an application switches off with
    *         <code>vanillabp.cockpit.user-tasks-enabled</code>
    */
@@ -117,6 +119,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The switch for workflow reports. It is on unless the application turns it off.
+   *
    * @return Whether workflows are reported at all, which an application switches off with
    *         <code>vanillabp.cockpit.workflow-list-enabled</code>
    */
@@ -127,6 +131,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The settings of the REST transport, already checked.
+   *
    * @return The REST transport's settings, or <code>null</code> where Kafka was chosen
    */
   public RestTransportConfiguration getRest() {
@@ -136,6 +142,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * The settings of the Kafka transport, already checked.
+   *
    * @return The Kafka transport's settings, or <code>null</code> where REST was chosen
    */
   public KafkaTransportConfiguration getKafka() {
@@ -145,6 +153,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * Tells whether the application replaces the transport the cockpit ships.
+   *
    * @return Whether the application brought a
    *         {@link io.vanillabp.cockpit.extension.transport.BusinessCockpitTransport} of its
    *         own. Its reports then take that way, and both of the shipped transports become
@@ -157,6 +167,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * Where the templates for the titles are, as the application wrote it.
+   *
    * @return The directory templates are loaded from, or <code>null</code> where the
    *         application configured none and the cockpit reports the BPMN names instead
    */
@@ -167,6 +179,8 @@ public final class BusinessCockpitConfiguration {
   }
 
   /**
+   * Tells whether the cockpit renders titles from templates.
+   *
    * @return Whether titles are rendered from templates rather than taken from the BPMN names
    */
   public boolean isTemplating() {

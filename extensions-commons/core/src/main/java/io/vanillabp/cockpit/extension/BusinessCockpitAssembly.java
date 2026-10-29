@@ -93,6 +93,8 @@ public final class BusinessCockpitAssembly {
   }
 
   /**
+   * Builds the renderer of the titles.
+   *
    * @param configuration The validated configuration
    * @return The renderer of the titles, {@link Templating#none()} where the application
    *         configured no template directory

@@ -69,6 +69,9 @@ public class BusinessCockpitOutbox {
   private volatile PhaseTwoOutbox storeOfEveryWorkflowAggregate;
 
   /**
+   * Creates the outbox. It learns the store of each BPMN process later, while the application
+   * boots.
+   *
    * @param perWorkflowAggregate How the platform attributes a store to a workflow aggregate
    *          class, answering <code>null</code> where the application has none at all
    * @param stores Every store the application holds, the ones a

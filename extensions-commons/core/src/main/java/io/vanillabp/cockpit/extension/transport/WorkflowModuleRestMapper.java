@@ -15,6 +15,8 @@ public final class WorkflowModuleRestMapper {
   }
 
   /**
+   * Turns the registration of a workflow module into the body the cockpit server gets.
+   *
    * @param event The registration
    * @return What the cockpit's API is sent
    */

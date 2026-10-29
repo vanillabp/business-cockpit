@@ -108,6 +108,10 @@ public record UserTaskDetailsPrefill(
 
   }
 
+  /**
+   * Takes a copy of the lists and maps, and an empty one where none was given. A process variable
+   * which is <code>null</code> is kept.
+   */
   public UserTaskDetailsPrefill {
     candidateUsers = candidateUsers == null ? List.of() : List.copyOf(candidateUsers);
     candidateGroups = candidateGroups == null ? List.of() : List.copyOf(candidateGroups);
@@ -120,6 +124,8 @@ public record UserTaskDetailsPrefill(
   }
 
   /**
+   * Starts a prefill which names only the fields the BPMS can answer.
+   *
    * @return A builder, because a BPMS half answers a handful of these fields and leaves the
    *         rest alone
    */
@@ -165,6 +171,12 @@ public record UserTaskDetailsPrefill(
     private Builder() {
     }
 
+    /**
+     * Sets the version of the deployed process, as a person reads it.
+     *
+     * @param bpmnProcessVersion The version
+     * @return The builder
+     */
     public Builder bpmnProcessVersion(
         final String bpmnProcessVersion) {
 
@@ -173,6 +185,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the BPMS' id of the workflow, where it differs from what the reference carried.
+     *
+     * @param workflowId The id of the workflow
+     * @return The builder
+     */
     public Builder workflowId(
         final String workflowId) {
 
@@ -181,6 +199,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the id of the called workflow the task lives in.
+     *
+     * @param subWorkflowId The id of the called workflow
+     * @return The builder
+     */
     public Builder subWorkflowId(
         final String subWorkflowId) {
 
@@ -189,6 +213,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the business key the workflow was started with.
+     *
+     * @param businessId The business key
+     * @return The builder
+     */
     public Builder businessId(
         final String businessId) {
 
@@ -197,6 +227,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the BPMN name of the user task element.
+     *
+     * @param bpmnTaskName The name
+     * @return The builder
+     */
     public Builder bpmnTaskName(
         final String bpmnTaskName) {
 
@@ -205,6 +241,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the BPMN name of the process.
+     *
+     * @param bpmnProcessName The name
+     * @return The builder
+     */
     public Builder bpmnProcessName(
         final String bpmnProcessName) {
 
@@ -214,6 +256,8 @@ public record UserTaskDetailsPrefill(
     }
 
     /**
+     * Sets who caused this event.
+     *
      * @param initiator Who caused this event, where the BPMS records it. Prefilling
      *          <code>system</code> instead of leaving it empty would be wrong: the application's
      *          provider would then read a value nobody said
@@ -227,6 +271,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the user the task is assigned to.
+     *
+     * @param assignee The user
+     * @return The builder
+     */
     public Builder assignee(
         final String assignee) {
 
@@ -235,6 +285,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the users who may claim the task.
+     *
+     * @param candidateUsers The users
+     * @return The builder
+     */
     public Builder candidateUsers(
         final List<String> candidateUsers) {
 
@@ -243,6 +299,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the groups whose members may claim the task.
+     *
+     * @param candidateGroups The groups
+     * @return The builder
+     */
     public Builder candidateGroups(
         final List<String> candidateGroups) {
 
@@ -251,6 +313,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets when the task is due.
+     *
+     * @param dueDate The due date
+     * @return The builder
+     */
     public Builder dueDate(
         final OffsetDateTime dueDate) {
 
@@ -259,6 +327,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets when somebody wants to be reminded of the task.
+     *
+     * @param followUpDate The follow-up date
+     * @return The builder
+     */
     public Builder followUpDate(
         final OffsetDateTime followUpDate) {
 
@@ -267,6 +341,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the process variables a <code>&#64;TaskParam</code> parameter is bound from.
+     *
+     * @param variables The variables, by name
+     * @return The builder
+     */
     public Builder variables(
         final Map<String, Object> variables) {
 
@@ -275,6 +355,12 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Sets the multi-instance context of the task.
+     *
+     * @param multiInstances The context, by BPMN element id and outermost first
+     * @return The builder
+     */
     public Builder multiInstances(
         final Map<String, HandlerMultiInstance> multiInstances) {
 
@@ -284,6 +370,8 @@ public record UserTaskDetailsPrefill(
     }
 
     /**
+     * Sets when the BPMS created the task.
+     *
      * @param createdAt When the BPMS created the task, where the event at hand tells it
      * @return The builder
      */
@@ -295,6 +383,11 @@ public record UserTaskDetailsPrefill(
 
     }
 
+    /**
+     * Builds the prefill. Fields which were not set stay empty.
+     *
+     * @return The prefill
+     */
     public UserTaskDetailsPrefill build() {
 
       return new UserTaskDetailsPrefill(

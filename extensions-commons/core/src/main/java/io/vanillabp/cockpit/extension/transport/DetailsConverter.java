@@ -29,6 +29,8 @@ public final class DetailsConverter {
   }
 
   /**
+   * Turns the details of an event into the map the protobuf messages carry.
+   *
    * @param objectMapper The mapper turning the business objects into a tree
    * @param details What the details provider put into the event
    * @return The protobuf shape, empty where there is nothing
@@ -45,6 +47,8 @@ public final class DetailsConverter {
   }
 
   /**
+   * Turns a JSON object into the map the protobuf messages carry.
+   *
    * @param node The tree, which has to be an object
    * @return The protobuf shape
    */

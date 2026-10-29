@@ -31,6 +31,8 @@ public final class UserTaskRestMapper {
   }
 
   /**
+   * Turns a user-task event into the body the cockpit server gets for a creation.
+   *
    * @param event The Created event
    * @return What the cockpit's API is sent
    */
@@ -73,6 +75,8 @@ public final class UserTaskRestMapper {
   }
 
   /**
+   * Turns a user-task event into the body the cockpit server gets for a update.
+   *
    * @param event The Updated event
    * @return What the cockpit's API is sent
    */
@@ -115,6 +119,8 @@ public final class UserTaskRestMapper {
   }
 
   /**
+   * Turns a user-task event into the body the cockpit server gets for a completion.
+   *
    * @param event The Completed event
    * @return What the cockpit's API is sent
    */
@@ -158,6 +164,8 @@ public final class UserTaskRestMapper {
   }
 
   /**
+   * Turns a user-task event into the body the cockpit server gets for a cancelation.
+   *
    * @param event The Cancelled event
    * @return What the cockpit's API is sent
    */

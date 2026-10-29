@@ -85,6 +85,9 @@ public interface Templating {
       Map<String, Object> additionalValues);
 
   /**
+   * The templating of an application without templates. Every call answers empty, so the cockpit
+   * reports the BPMN names.
+   *
    * @return A templating which renders nothing, for an application which configured none
    */
   static Templating none() {
