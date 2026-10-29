@@ -128,6 +128,33 @@
             </compilerArgs>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <executions>
+            <!-- the check which every build runs. Everything not set here comes from the
+                 parent. -->
+            <execution>
+              <id>check-javadoc</id>
+              <configuration>
+                <!-- only the sources written by hand are checked. The OpenAPI generator,
+                     protoc, MapStruct and the Quarkus extension processor write their code
+                     below 'target', and nobody can add a comment there. That code still goes
+                     into the javadoc jar of a release: the jar is built by an execution of
+                     its own, and that one reads every source root of the compiler. -->
+                <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                <additionalOptions combine.children="append">
+                  <!-- the code written by hand calls the generated code, so javadoc has to find
+                       it. This second source path replaces the one above for looking up a
+                       type, and javadoc still documents only the files the line above picked.
+                       The plugin offers no other way: it does not put the module's own classes
+                       on the class path. -->
+                  <additionalOption>--source-path ${project.build.sourceDirectory}${path.separator}${project.build.directory}/generated-sources/openapi${path.separator}${project.build.directory}/generated-sources/annotations</additionalOption>
+                </additionalOptions>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
