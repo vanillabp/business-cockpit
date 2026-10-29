@@ -186,6 +186,35 @@ class JwtSecurityContextRepositoryTest {
     }
 
     /**
+     * The cookie which drops the login has to match the one which carries it in every attribute but
+     * the value and the lifetime. A browser keeps a cookie whose path or domain differ, and a strict
+     * browser may refuse a cookie without SameSite next to one with it.
+     */
+    @Test
+    void theCookieWhichLogsOutCarriesTheAttributesOfTheOneWhichLoggedIn() {
+
+        properties.getCookie().setDomain("cockpit.example.com");
+        properties.getCookie().setPath("/cockpit");
+        properties.getCookie().setSecure(true);
+        properties.getCookie().setSameSite(SameSite.LAX);
+        final var loggedIn = cookieWrittenFor("john", "ADMIN");
+        final var response = new MockHttpServletResponse();
+
+        JwtSecurityContextRepository.clearCookie(properties, response);
+
+        final var loggedOut = response.getCookie(properties.getCookie().getName());
+        assertThat(loggedOut.getName()).isEqualTo(loggedIn.getName());
+        assertThat(loggedOut.getDomain()).isEqualTo(loggedIn.getDomain()).isEqualTo("cockpit.example.com");
+        assertThat(loggedOut.getPath()).isEqualTo(loggedIn.getPath()).isEqualTo("/cockpit");
+        assertThat(loggedOut.getSecure()).isEqualTo(loggedIn.getSecure()).isTrue();
+        assertThat(loggedOut.isHttpOnly()).isEqualTo(loggedIn.isHttpOnly()).isTrue();
+        assertThat(loggedOut.getAttribute("SameSite"))
+                .isEqualTo(loggedIn.getAttribute("SameSite"))
+                .isEqualTo("Lax");
+
+    }
+
+    /**
      * The cookie the cockpit hands out on a successful sign in, which is the input of every read
      * the tests above do.
      */
