@@ -4,8 +4,24 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * What a workflow module reports to the Business Cockpit about one user task.
+ *
+ * <p>A method annotated with {@link UserTaskDetailsProvider} returns it. Most such methods fill in
+ * the {@link PrefilledUserTaskDetails} they were given and return that very object. A method may
+ * also return an object of its own. The cockpit then takes only the values a provider may set,
+ * and it keeps what the BPMS reported, like the id and the task definition.
+ *
+ * @see PrefilledUserTaskDetails
+ */
 public interface UserTaskDetails {
 
+    /**
+     * The id of the user task, the one the BPMS gave it. It names this one task, not the BPMN
+     * element, and it is the id <code>BusinessCockpitService</code> takes for a user task.
+     *
+     * @return The id of the user task
+     */
     String getId();
 
     /**
@@ -25,14 +41,54 @@ public interface UserTaskDetails {
      */
     String getInitiator();
     
+    /**
+     * A short text the cockpit stores with the task. Lists of tasks can be sorted and filtered by
+     * it.
+     *
+     * @return The comment, or <code>null</code>
+     */
     String getComment();
 
+    /**
+     * The title of the workflow this task belongs to, in each language of {@link #getI18nLanguages()}.
+     *
+     * <p>The key of the map is a language, like <code>en</code>, and the value is the text in that
+     * language. A value set by a details provider is first taken as the name of a template. Where a
+     * template of that name exists, the cockpit renders it. Otherwise the value is shown as it is.
+     * Where nothing is set, the cockpit renders its own template for this title, if the application
+     * has templates, or it shows the name written in the BPMN file.
+     *
+     * @return The titles by language
+     */
     Map<String, String> getWorkflowTitle();
 
+    /**
+     * The title of this task, in each language of {@link #getI18nLanguages()}. The task list shows it.
+     *
+     * <p>It is filled the same way as {@link #getWorkflowTitle()}. Its fallback is the name of the
+     * user task in the BPMN file.
+     *
+     * @return The titles by language
+     */
     Map<String, String> getTitle();
 
+    /**
+     * The task definition, as written in the BPMN file, for instance the form key. Many tasks share
+     * one task definition. It is the value {@link UserTaskDetailsProvider#taskDefinition()} names.
+     *
+     * @return The task definition
+     */
     String getTaskDefinition();
 
+    /**
+     * The title of the kind of task, in each language of {@link #getI18nLanguages()}. It is the same for every
+     * task of one task definition.
+     *
+     * <p>It is filled the same way as {@link #getWorkflowTitle()}. Its fallback is the name of the
+     * user task in the BPMN file.
+     *
+     * @return The titles by language
+     */
     Map<String, String> getTaskDefinitionTitle();
     
     /**
@@ -99,14 +155,47 @@ public interface UserTaskDetails {
      */
     List<String> getAdmittedUsers();
 
+    /**
+     * The date by which the task should be done. The task list shows it and can be sorted by it.
+     * The prefilled details carry the due date the BPMS holds, where it holds one.
+     *
+     * @return The due date, or <code>null</code>
+     */
     OffsetDateTime getDueDate();
     
+    /**
+     * The date before which nobody needs to work on the task. Until then the task list can leave
+     * the task out of the open tasks, and it comes back once the date is reached. The prefilled
+     * details carry the follow-up date the BPMS holds, where it holds one.
+     *
+     * @return The follow-up date, or <code>null</code>
+     */
     OffsetDateTime getFollowUpDate();
     
+    /**
+     * The business data of the task. The workflow module decides what goes in. The cockpit stores
+     * it with the task, and columns, sorting and filters of the task list can read its keys, like
+     * <code>details.customer.name</code>.
+     *
+     * @return The business data, or <code>null</code>
+     */
     Map<String, Object> getDetails();
     
+    /**
+     * The text the full-text search of the task list looks in. The workflow module puts it together
+     * itself. Data which is not in this text cannot be found by that search. Where it is left
+     * <code>null</code> and the application has templates, the cockpit renders it from a template.
+     *
+     * @return The text to search in, or <code>null</code>
+     */
     String getDetailsFulltextSearch();
     
+    /**
+     * The languages the titles are rendered in, like <code>en</code> and <code>de</code>. Where
+     * this is empty, the cockpit uses the languages configured for the workflow module.
+     *
+     * @return The languages
+     */
     List<String> getI18nLanguages();
     
     /**
@@ -118,12 +207,16 @@ public interface UserTaskDetails {
     Object getTemplateContext();
     
     /**
+     * Where the cockpit finds the user interface of this task.
+     *
      * @return What the cockpit opens for this task. It is the path the workflow module configured
      *         unless a details provider set one of its own
      */
     String getUiUriPath();
 
     /**
+     * How the cockpit notifies users about this task.
+     *
      * @return How notifications for this user task are to be delivered. {@code null} is interpreted
      *         as {@link NotificationDelivery#USER_CONFIG}.
      */

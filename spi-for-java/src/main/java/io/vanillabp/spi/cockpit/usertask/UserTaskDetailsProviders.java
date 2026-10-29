@@ -20,6 +20,11 @@ import java.lang.annotation.Target;
 @Documented
 public @interface UserTaskDetailsProviders {
 
+    /**
+     * The annotations written on the method, in the order they were written.
+     *
+     * @return The repeated annotations
+     */
     UserTaskDetailsProvider[] value();
     
 }
