@@ -37,7 +37,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
     io.vanillabp.cockpit.tasklist.model.changesets.V000001.class,
     io.vanillabp.cockpit.users.model.changesets.V000001.class,
     io.vanillabp.cockpit.workflowlist.model.changesets.V000001.class,
-    io.vanillabp.cockpit.workflowmodules.model.changesets.V000001.class
+    io.vanillabp.cockpit.workflowmodules.model.changesets.V000001.class,
+    io.vanillabp.cockpit.workflowmodules.model.changesets.V000002.class
 })
 public class BusinessCockpitPersistenceAutoConfiguration {
 
