@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
  * A change to {@link V000001} would not do it. The changeset library stores the rollback in the
  * record of a changeset when the changeset runs, so every database which ran it keeps the wrong
  * command. Only a new changeset reaches those records.
+ * <p>
+ * This is decision 67 in the repository's DECISIONS.md.
  */
 @Component("V101_WorkflowModule")
 @DbChangesetConfiguration(author = "stephanpelikan")

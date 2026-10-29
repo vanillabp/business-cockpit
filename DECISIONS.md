@@ -2796,3 +2796,90 @@ test of that repository reads this jar's file and holds the default against its 
 The platform also writes an entry `vanillabp.workflow-modules`, with a type of its own, and so do the
 BPMS adapters. Which entry an IDE uses when several jars describe the same name was not tried in an
 IDE. The Quarkus modules are not part of this decision.
+
+### 67. A wrong rollback of a changeset is repaired by a new changeset
+
+Decided on 2026-10-29, by story 1513.
+
+The rollback commands of a changeset of the cockpit are never fixed in the changeset itself. A new
+changeset in a new class next to it, `V000002`, `V000003` and so on, rewrites the stored record.
+
+#### Why
+
+The changeset library (`com.phactum.mongodb:mongodb-changesets`) stores a record per changeset with
+the id, the order, the time and the rollback commands. It writes the rollback commands when the
+changeset runs. A database which ran the changeset keeps the commands of that time, whatever the
+code says later. Only a new changeset, which runs on every database once, reaches those records.
+
+#### What was measured
+
+`ARollbackDropsWhatItsChangesetCreatedTest` runs against a real MongoDB. It runs each of the five
+changesets which create a collection, with the other four collections in place, stores its rollback
+commands the way the library does, and rolls back. Before the repair, four of five were right. The
+changeset of the workflow modules (`workflowmodules` `V000001#createWorkflowModuleCollection`,
+order 2000) dropped `workflow` and left `modules`: the collections left over were `users`,
+`modules`, `usertask` and `notification_outbox`.
+
+#### The repair
+
+`workflowmodules` `V000002#correctTheRollbackOfTheWorkflowModuleCollection`, order 2001, rewrites
+the stored record of order 2000 from `{ drop: 'workflow' }` to `{ drop: 'modules' }`. It does so on
+old and new databases alike, because a new database gets the wrong command from order 2000 too. A
+record with any other command is left alone, and a database without the record gets none.
+
+
+### 68. Changeset 1008 is fixed in place
+
+Decided on 2026-10-29 by the maintainer, story 1514.
+
+Changeset 1008 (`workflowlist` `V000001#introducePersonAndGroupForWorkflows`) is fixed in its own
+code. No new changeset repairs it. This is an exception: as a rule, a changeset which was part of a
+release is not changed again.
+
+#### What was wrong
+
+Release 0.0.3 stored the users and groups a workflow is accessible to as plain ids. Changeset 1008
+turns them into persons and groups. For the groups it asked whether the new, still empty list holds
+a string, so it never filled that list. `AMigrationKeepsTheGroupsOfAWorkflowTest` measured it
+against a real MongoDB: `["accounting", "sales"]` became `[]`, and so did `["accounting"]`. Users
+and initiator came through. The changeset for user tasks does not have this check and is right.
+
+The check is gone now, and 1008 turns the group ids into groups the same way it does the users.
+
+#### Why the exception is safe
+
+- The changeset library stores no hash of the code of a changeset. It does not notice the change.
+- A database which ran 1008 has its record and never runs it again. Its state stays as it is.
+- A database which has not run 1008 yet, one which still comes from 0.0.3, runs the fixed code and
+  keeps its groups.
+
+The rule is still needed where a changeset stores something that later code cannot reach, like the
+rollback commands of story 1513.
+
+#### What it costs
+
+- Groups which 1008 already emptied cannot be brought back. The database no longer holds them. This
+  hits a database which went from 0.0.3 to any later release up to 0.4.3. A running workflow gets
+  its groups back with its next report, since a report sets `accessibleToGroups`. An ended workflow
+  stays without groups, and only users named in `accessibleToUsers` see it.
+- Two databases which both ran 1008 may differ, depending on the release they ran it with. Only
+  databases from 0.0.3 are affected.
+
+
+### 69. The cookie which logs out carries the attributes of the login cookie
+
+Decided on 2026-10-29, by story 1517.
+
+`JwtSecurityContextRepository.clearCookie` builds its cookie with the same method as the login
+cookie, with an empty value and a lifetime of zero. Both carry the same name, path, domain,
+`Secure`, `HttpOnly` and `SameSite`.
+
+#### Why
+
+The method built its cookie by hand and left out `SameSite`. A browser drops a cookie only when
+name, path and domain match, and a strict browser may refuse a cookie without `SameSite` next to one
+with it. Then the login stays.
+
+The fixed password `test` of the chain `guiHttpSecurity` stays as it is. Story 1517 looked at it
+too, and the maintainer decided to keep it.
+
