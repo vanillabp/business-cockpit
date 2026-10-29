@@ -201,6 +201,10 @@ formatter drops comments and turns some quoted strings into numbers. So the work
 `.github`, the OpenAPI specs, the Spring configuration below `config` and the Docker Compose file
 are left out.
 
+The commit which formatted the whole repository is listed in `.git-blame-ignore-revs`. Run
+`git config blame.ignoreRevsFile .git-blame-ignore-revs` once, and `git blame` skips it. GitHub
+skips it on its own.
+
 ## Tests keep quiet until one fails
 
 A test which passed has nothing to say. Whoever reads a red build is looking for the one place
