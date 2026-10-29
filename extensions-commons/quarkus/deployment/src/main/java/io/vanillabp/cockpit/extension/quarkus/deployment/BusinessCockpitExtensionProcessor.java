@@ -21,6 +21,15 @@ class BusinessCockpitExtensionProcessor {
   private static final String FEATURE = "vanillabp-business-cockpit-extension";
 
   /**
+   * Quarkus creates the processor by reflection to run its build steps. Nobody else does.
+   */
+  BusinessCockpitExtensionProcessor() {
+  }
+
+  /**
+   * Announces the extension and makes the producer of the cockpit's beans a bean itself. It is
+   * marked so that Quarkus does not remove it as unused.
+   *
    * @param featureProducer Where the feature is announced, so that a booting application lists
    *          the extension
    * @return The producer class, as a bean nothing may remove
