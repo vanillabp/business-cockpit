@@ -16,6 +16,14 @@ import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+/**
+ * The user directory of the profile {@code local}. It loads the demo users once, at startup, from
+ * the simulator of the development tools, and it answers every later question from that copy. A
+ * user added to the simulator later is seen only after a restart.
+ * <p>
+ * If the simulator cannot be reached, the cockpit does not start, and the message says which
+ * property points to it.
+ */
 public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LocalUserDetailsProviderImpl.class);
@@ -26,6 +34,13 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
     private final String devShellSimulatorUsersUri;
 
+    /**
+     * Creates the directory. The users are loaded later, by
+     * {@link #loadAllUsersFromDevShellSimulator()}.
+     *
+     * @param devShellSimulatorUsersUri The address the simulator serves its users at. The users
+     *          are read from <code>/all</code> below it
+     */
     public LocalUserDetailsProviderImpl(
             final String devShellSimulatorUsersUri) {
 
@@ -36,15 +51,37 @@ public class LocalUserDetailsProviderImpl implements UserDetailsProvider {
 
     }
 
+    /**
+     * One user the way the simulator sends it as JSON.
+     */
     public static class UserRepresentation {
+
+        /**
+         * Called by the JSON reader, which creates one object per user it reads.
+         */
+        public UserRepresentation() {
+        }
+
+        /** The id of the user, the one tasks and workflows name. */
         public String id;
+        /** The email address of the user. */
         public String email;
+        /** The first name, shortened to its first letter in the short display name. */
         public String firstName;
+        /** The last name. Where it is empty, the user is shown by the id. */
         public String lastName;
+        /** The ids of the groups the user belongs to. */
         public List<String> groups;
+        /** Further attributes of the user. The cockpit does not read them. */
         public Map<String, List<String>> attributes = null;
     }
 
+    /**
+     * Loads all users from the simulator. Spring calls it once, after it created this bean.
+     *
+     * @throws RuntimeException If the simulator cannot be reached or sends no users. The message
+     *          names the address used and the property which changes it
+     */
     @PostConstruct
     public void loadAllUsersFromDevShellSimulator() {
 

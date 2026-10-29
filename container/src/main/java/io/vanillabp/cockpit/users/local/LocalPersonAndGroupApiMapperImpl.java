@@ -6,9 +6,20 @@ import io.vanillabp.cockpit.users.UserDetailsProvider;
 import io.vanillabp.cockpit.users.model.Person;
 import io.vanillabp.cockpit.users.model.PersonAndGroupApiMapper;
 
+/**
+ * Shows the demo users of the profile {@code local} in the GUI API. A person gets the name and the
+ * email address the user directory holds. A group is shown by its id, because the demo users come
+ * with group ids only.
+ */
 public class LocalPersonAndGroupApiMapperImpl implements PersonAndGroupApiMapper {
     private final UserDetailsProvider userDetailsProvider;
 
+    /**
+     * Creates the mapper on top of the demo users.
+     *
+     * @param userDetailsProvider The directory of the demo users, which is asked for the name of
+     *          a person by its id
+     */
     public LocalPersonAndGroupApiMapperImpl(
             final UserDetailsProvider userDetailsProvider) {
 
